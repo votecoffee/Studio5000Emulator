@@ -173,8 +173,10 @@ class Router:
                 dims=[]
                 while isinstance(value,list):dims.append(len(value));value=value[0] if value else None
                 if dtype not in TYPES or dtype=='BOOL' and dims or len(dims)>3:continue
+                try:self.access(tag.key,True);access=0
+                except (CIPError,ModelError):access=2
                 result.append({'id':len(result)+1,'name':tag.name,'ref':tag.key,'type':TYPES[dtype][0]|(len(dims)<<13),
-                               'dimensions':(dims+[0,0,0])[:3]})
+                               'dimensions':(dims+[0,0,0])[:3],'external_access':access})
             except ModelError:continue
             except CIPError:continue
         return result
@@ -185,6 +187,10 @@ class Router:
         match=re.match(r'^(?:Program:([\w]+)\.)?([A-Za-z_][\w:]*)(.*)$',ref,re.I)
         if not match:raise CIPError(4,'Invalid static tag path')
         scope,name,tail=match.groups();key=(f'Program:{scope}.{name}' if scope else name).lower()
+        if scope:
+            program=next((p for n,p in project.programs.items() if n.lower()==scope.lower()),None)
+            if program is None:raise CIPError(5,'Unknown program scope')
+            if program['class']!='Standard':raise CIPError(0x0F,'Program is not externally accessible')
         tag=project.tags.get(key)
         if tag is None:raise CIPError(5,'Unknown tag')
         if key in seen:raise CIPError(5,'Alias cycle')
@@ -259,19 +265,31 @@ class Router:
             memory.values=before;raise
         return 0,b''
 
-    def enumerate_symbols(self,path,data,limit=REPLY_LIMIT):
+    def symbol_scope(self,path):
         scope=''
         if path.symbols:
             if len(path.symbols)!=1 or not isinstance(path.symbols[0],str) or not path.symbols[0].lower().startswith('program:'):raise CIPError(4,'Unsupported symbol enumeration path')
             scope=path.symbols[0][8:]
+            program=next((p for n,p in self.app.engine.project.programs.items() if n.lower()==scope.lower()),None)
+            if program is None:raise CIPError(5,'Unknown program scope')
+            if program['class']!='Standard':raise CIPError(0x0F,'Program is not externally accessible')
+        return scope
+
+    def symbol_attributes(self,symbol):
+        name=symbol['name'].encode('ascii')
+        return {1:struct.pack('<H',len(name))+name,2:struct.pack('<H',symbol['type']),
+                8:struct.pack('<III',*symbol['dimensions']),10:bytes((symbol['external_access'],))}
+
+    def enumerate_symbols(self,path,data,limit=REPLY_LIMIT):
+        scope=self.symbol_scope(path)
+        if path.attribute is not None:raise CIPError(4,'Enumeration path does not take an attribute')
         need(data,2);n=struct.unpack_from('<H',data)[0];exact(data,2+2*n)
         attrs=struct.unpack_from('<'+'H'*n,data,2)
-        if not n or n>16 or any(a not in (1,2,8) for a in attrs):raise CIPError(0x14,'Only symbol attributes 1, 2 and 8 are implemented')
+        if not n or n>16 or any(a not in (1,2,8,10) for a in attrs):raise CIPError(0x14,'Only symbol attributes 1, 2, 8 and 10 are implemented')
         out=b''
         for symbol in self.symbols(scope):
             if symbol['id']<(path.instance or 0):continue
-            name=symbol['name'].encode('ascii')
-            values={1:struct.pack('<H',len(name))+name,2:struct.pack('<H',symbol['type']),8:struct.pack('<III',*symbol['dimensions'])}
+            values=self.symbol_attributes(symbol)
             row=struct.pack('<I',symbol['id'])+b''.join(values[a] for a in attrs)
             if len(out)+len(row)>limit-4:
                 if not out:raise CIPError(0x1B,'One symbol row exceeds negotiated response size')
@@ -348,6 +366,11 @@ class Router:
             if base>limit-4:raise CIPError(0x1B,'Multiple-service response exceeds model limit')
             return (0x1E if any(r[2] for r in results) else 0),struct.pack('<H'+'H'*count,count,*positions)+b''.join(results)
         if path.class_id==0x6B and service==0x55:return self.enumerate_symbols(path,data,limit)
+        if path.class_id==0x6B and service in (3,0x0E):
+            scope=self.symbol_scope(path)
+            symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)
+            if symbol is None:raise CIPError(5,'Unknown symbol instance')
+            return self.attribute_read(service,path,data,self.symbol_attributes(symbol))
         if service in (0x4C,0x52,0x4D) and path.class_id in (None,0x6B):
             if service==0x4D:return self.write_tag(path,data)
             return self.read_tag(path,data,service==0x52,limit)
@@ -402,7 +425,7 @@ class Endpoint:
     def record(self,kind,request=b'',response=b'',**fields):
         with self.lock:
             self.counts[kind]+=1
-            if kind=='cip' and fields.get('status') in (8,0x14):
+            if kind=='cip' and fields.get('status') in (8,0x0A,0x14):
                 key=fields.get('service','')+' '+fields.get('path','')
                 self.unsupported[key if key in self.unsupported or len(self.unsupported)<128 else 'Other unsupported requests']+=1
             self.events.append({'time':time.time(),'kind':kind,**fields,'request_hex':request[:1024].hex(),

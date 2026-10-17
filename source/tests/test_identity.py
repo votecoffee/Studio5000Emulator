@@ -58,7 +58,7 @@ class IdentityTests(unittest.TestCase):
         self.assertEqual(result[2],0x14)
         trace=self.endpoint.state(True)
         self.assertEqual(trace['unsupported'][0]['count'],1)
-        self.assertIn('Only symbol attributes 1, 2 and 8',trace['events'][-2]['detail'])
+        self.assertIn('Only symbol attributes 1, 2, 8 and 10',trace['events'][-2]['detail'])
 
     def test_identity_state_and_class_attributes(self):
         c=self.endpoint_for()
