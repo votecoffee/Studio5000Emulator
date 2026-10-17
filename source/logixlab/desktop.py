@@ -12,9 +12,10 @@ from . import __version__
 class TrayIcon:
     """Own a hidden Win32 window and icon on a dedicated message-loop thread."""
 
-    def __init__(self, url, on_quit):
+    def __init__(self, url, on_quit, on_import=None):
         self.url = url
         self.on_quit = on_quit
+        self.on_import = on_import
         self.available = False
         self.error = None
         self._ready = threading.Event()
@@ -138,6 +139,8 @@ class TrayIcon:
                 user.AppendMenuW(menu, 2, 0, self.url)
                 user.AppendMenuW(menu, 0x800, 0, None)  # separator
                 user.AppendMenuW(menu, 0, 1, 'Open app')
+                if self.on_import:
+                    user.AppendMenuW(menu, 0, 3, 'Import ACD / L5X...')
                 user.AppendMenuW(menu, 0, 2, 'Quit LogixLab')
                 user.SetMenuDefaultItem(menu, 1, False)
                 user.SetForegroundWindow(hwnd)
@@ -146,6 +149,8 @@ class TrayIcon:
                     open_app()
                 elif command == 2:
                     self.on_quit()
+                elif command == 3 and self.on_import:
+                    threading.Thread(target=self.on_import, daemon=True).start()
                 user.PostMessageW(hwnd, 0, 0, 0)
             finally:
                 user.DestroyMenu(menu)

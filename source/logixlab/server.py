@@ -44,6 +44,8 @@ class Application:
         self.endpoint = None
         self.connectivity_lock = threading.RLock()
         self.desktop = {'tray_available': False, 'tray_error': None}
+        self.instance_id = uuid.uuid4().hex
+        self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
@@ -56,7 +58,8 @@ class Application:
             if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
 
     def state(self):
-        metadata = {'app_version': __version__, 'desktop': dict(self.desktop)}
+        metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
+                    'instance_id': self.instance_id, 'execution_environment': self.execution_environment}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
         return {**metadata, "loaded": True, "name": e.project.name, "version": e.project.version,
@@ -105,6 +108,8 @@ class Application:
                     name = Path(data.get("name", "project").replace("\\", "/")).name
                     suffix = Path(name).suffix.lower()
                     if suffix not in (".acd", ".l5x"): raise ModelError("Choose an ACD or L5X file")
+                    if suffix == '.acd' and self.execution_environment == 'vmware-host-only':
+                        raise ModelError('ACD conversion runs on Windows. Use the Windows VM tray menu Import ACD / L5X, or load a complete L5X export here.')
                     content = base64.b64decode(data["content"], validate=True)
                     if len(content) > 100_000_000: raise ModelError("100 MB upload limit")
                     folder = self.data_dir / "imports" / uuid.uuid4().hex

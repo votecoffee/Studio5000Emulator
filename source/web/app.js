@@ -20,7 +20,13 @@ async function accept(value, refreshReport = false) {
 }
 function render() {
   if(state?.app_version){$('app-version').textContent=state.app_version;document.title=`LogixLab ${state.app_version} · Offline PLC lab`;}
-  $('desktop-status').title=state?.desktop?.tray_available ? 'Tray icon active: Open app or Quit LogixLab.' : (state?.desktop?.tray_error || 'Use End session to shut down the app.');
+  const appliance=state?.execution_environment==='vmware-host-only';
+  $('desktop-status').lastChild.textContent=appliance?' VMware appliance':' Local session';
+  $('desktop-status').title=appliance?'Host-only VM. Use the Windows tray to open, import projects or quit.':state?.desktop?.tray_available ? 'Tray icon active: Open app or Quit LogixLab.' : (state?.desktop?.tray_error || 'Use End session to shut down the app.');
+  $('settings').hidden=appliance;
+  $('open').textContent=appliance?'＋ Open L5X':'＋ Open ACD / L5X';
+  $('file').accept=appliance?'.l5x':'.acd,.l5x';
+  $('footer-text').textContent=appliance?'VMware host-only execution · ACD import uses the Windows tray':'ACD import uses your installed Rockwell SDK · engine runs independently';
   const loaded = !!state?.loaded;
   ['reset','step','run','apply','snapshot','report','mode'].forEach(id => $(id).disabled = !loaded);
   $('harness').disabled = !loaded || $('mode').value !== 'routine';

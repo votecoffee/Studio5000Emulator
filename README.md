@@ -70,6 +70,10 @@ disables the icon for headless runs.
 Original project files are preserved. Settings and imported copies normally live
 under `%LOCALAPPDATA%\LogixLab`; `--data-dir` selects another private directory.
 
+For a separate PLC IP while Linx retains the host's port 44818, use the optional
+[VMware host-only appliance](docs/vmware-appliance.md). After preparation,
+`START-VM.cmd` starts it with a localhost browser tunnel and Windows tray controls.
+
 ### CLI
 
 Start a demo with checkout-local session storage:

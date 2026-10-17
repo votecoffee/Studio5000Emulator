@@ -47,8 +47,9 @@ messages can depend on that listener. Coordinate any Linx configuration change
 with the applications using it; the emulator never stops or reconfigures that
 service. See the official
 [Ethernet Advanced settings](https://www.rockwellautomation.com/en-us/docs/factorytalk-services-platform/6-60/factorytalk-services-platform-help-ditamap/factorytalk-linx-help/config-stand-alone-apps/add-a-driver/ethernet-ppt-advanced-sets.html).
-An isolated VM with its own network address is another architecture when the
-host's Linx listener must remain unchanged.
+The optional [VMware host-only appliance](vmware-appliance.md) supplies an isolated
+guest network stack when the host's Linx listener must remain unchanged. Its
+launcher provides a localhost browser tunnel and Windows tray controls.
 
 ## Virtual chassis
 
