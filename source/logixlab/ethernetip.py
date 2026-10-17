@@ -674,12 +674,18 @@ class Endpoint:
                 if len(raw)>32792:return
                 response=endpoint.packet(raw,Session(peer=str(self.client_address)),True)
                 if response is not None:sock.sendto(response,self.client_address)
-        try:
-            self.tcp=TCP(('127.0.0.1',self.port),Handler);self.port=self.tcp.server_address[1]
-            self.udp=socketserver.UDPServer(('127.0.0.1',self.port),UDPHandler)
-        except OSError as e:
-            if self.tcp:self.tcp.server_close()
-            raise ModelError(f'Cannot bind local EtherNet/IP port {self.port}: {e}') from e
+        requested_port=self.port;attempts=8 if requested_port==0 else 1
+        for attempt in range(attempts):
+            try:
+                self.tcp=TCP(('127.0.0.1',requested_port),Handler);self.port=self.tcp.server_address[1]
+                self.udp=socketserver.UDPServer(('127.0.0.1',self.port),UDPHandler)
+                break
+            except OSError as e:
+                failed_port=self.port
+                for server in (self.tcp,self.udp):
+                    if server:server.server_close()
+                self.tcp=self.udp=None;self.port=requested_port
+                if attempt+1==attempts:raise ModelError(f'Cannot bind local EtherNet/IP port {failed_port}: {e}') from e
         self.enabled=True
         for server in (self.tcp,self.udp):
             thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':0.05},daemon=True);thread.start();self.threads.append(thread)

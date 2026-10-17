@@ -44,6 +44,11 @@ fragmentation and generic CIP mask writes. The installed client's malformed
 single-scalar and high-level mask request paths are rejected by the endpoint;
 the acceptance script uses valid client paths and records that distinction.
 
+Automatic-port targets (`port=0`) choose a shared TCP/UDP port with up to eight
+bind attempts. A failed attempt releases its sockets before selecting another
+port. Explicit ports are used exactly as requested; an unavailable port returns
+an error rather than moving the listener.
+
 The structure probe creates an isolated read-only Structure Lab endpoint. It
 uses the installed client's template parser to discover nested UDTs, decode
 records and arrays, fragment reads over a 256-byte Class 3 connection, and observe
