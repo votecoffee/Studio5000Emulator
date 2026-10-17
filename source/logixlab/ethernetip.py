@@ -232,7 +232,8 @@ class Router:
         key,parts,dtype=self.access(ref,write);memory=self.app.engine.memory
         if key is None or dtype not in TYPES:raise CIPError(8,'Only atomic data and atomic members are implemented')
         if dtype=='BOOL':
-            if count!=1 or isinstance(memory.read(ref),list):raise CIPError(8,'Packed BOOL arrays are not implemented')
+            value=memory.read(ref) if any(isinstance(p,tuple) for p in parts) else memory.at(key,parts)
+            if count!=1 or isinstance(value,list):raise CIPError(8,'Packed BOOL arrays are not implemented')
             return dtype,[ref]
         key,paths,dtype=memory.region(ref,count)
         return dtype,[memory.address(key,p) for p in paths]
@@ -250,19 +251,51 @@ class Router:
         chunk=encoded[offset:offset+limit-6]
         return 6 if offset+len(chunk)<len(encoded) else 0,struct.pack('<H',TYPES[dtype][0])+chunk
 
-    def write_tag(self,path,data):
-        if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')
-        need(data,4);type_code,count=struct.unpack_from('<HH',data)
-        dtype,refs=self.region(self.reference(path),count,True)
-        if type_code!=TYPES[dtype][0]:raise CIPError(0xFF,'Tag type does not match declared type')
-        size=struct.calcsize('<'+TYPES[dtype][1]);exact(data,4+count*size)
-        values=[struct.unpack_from('<'+TYPES[dtype][1],data,4+i*size)[0] for i in range(count)]
+    def store_atomic(self,dtype,refs,values):
         if dtype=='BOOL' and any(v not in (0,1) for v in values):raise CIPError(9,'BOOL value must be 0 or 1')
         memory=self.app.engine.memory;before=copy.deepcopy(memory.values)
         try:
             for ref,value in zip(refs,values):memory.write(ref,bool(value) if dtype=='BOOL' else value)
         except Exception:
             memory.values=before;raise
+
+    def write_tag(self,path,data,fragment=False):
+        if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')
+        header=8 if fragment else 4;need(data,header);type_code,count=struct.unpack_from('<HH',data)
+        dtype,refs=self.region(self.reference(path),count,True)
+        if type_code!=TYPES[dtype][0]:raise CIPError(0xFF,'Tag type does not match declared type')
+        fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
+        offset=struct.unpack_from('<I',data,4)[0] if fragment else 0;payload=data[header:]
+        if not fragment:exact(data,header+count*size)
+        if not payload:raise CIPError(0x13,'Fragment contains no data')
+        if offset>=count*size or len(payload)>count*size-offset:raise CIPError(0x20,'Fragment exceeds requested atomic region')
+        first=offset//size;last=(offset+len(payload)-1)//size;values=[]
+        for index in range(first,last+1):
+            start=max(offset,index*size);end=min(offset+len(payload),(index+1)*size)
+            lo=start-index*size;hi=end-index*size;chunk=payload[start-offset:end-offset]
+            if lo==0 and hi==size:raw=chunk
+            else:
+                # Partial atoms preserve known backing bytes. Unknown bytes are
+                # never filled with zeros just to accept an incomplete write.
+                old=self.app.engine.memory.read(refs[index])
+                raw=bytearray(struct.pack(fmt,int(old) if dtype=='BOOL' else old));raw[lo:hi]=chunk
+            values.append(struct.unpack(fmt,raw)[0])
+        self.store_atomic(dtype,refs[first:last+1],values)
+        return 0,b''
+
+    def read_modify_write(self,path,data):
+        if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')
+        need(data,2);mask_size=struct.unpack_from('<H',data)[0]
+        dtype,refs=self.region(self.reference(path),1,True)
+        if dtype in ('BOOL','REAL'):raise CIPError(8,'Read Modify Write supports integer atoms only')
+        fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
+        if mask_size not in (1,2,4,8) or mask_size>size:raise CIPError(3,'Mask size exceeds the integer atom')
+        exact(data,2+2*mask_size)
+        or_mask=int.from_bytes(data[2:2+mask_size],'little');and_mask=int.from_bytes(data[2+mask_size:],'little')
+        old=self.app.engine.memory.read(refs[0]);low_mask=(1<<(mask_size*8))-1
+        value=((old&~low_mask)|(((old&low_mask)|or_mask)&and_mask))&((1<<(size*8))-1)
+        value=struct.unpack(fmt,value.to_bytes(size,'little'))[0]
+        self.store_atomic(dtype,refs,[value])
         return 0,b''
 
     def symbol_scope(self,path):
@@ -371,8 +404,9 @@ class Router:
             symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)
             if symbol is None:raise CIPError(5,'Unknown symbol instance')
             return self.attribute_read(service,path,data,self.symbol_attributes(symbol))
-        if service in (0x4C,0x52,0x4D) and path.class_id in (None,0x6B):
-            if service==0x4D:return self.write_tag(path,data)
+        if service in (0x4C,0x52,0x4D,0x53,0x4E) and path.class_id in (None,0x6B):
+            if service in (0x4D,0x53):return self.write_tag(path,data,service==0x53)
+            if service==0x4E:return self.read_modify_write(path,data)
             return self.read_tag(path,data,service==0x52,limit)
         raise CIPError(8,f'Unsupported service 0x{service:02X} class {path.class_id}')
 
