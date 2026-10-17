@@ -563,9 +563,18 @@ def decode_cpf(data):
 
 
 class Endpoint:
-    def __init__(self,app,port=44818,allow_writes=False,profile='research'):
+    def __init__(self,app,port=44818,allow_writes=False,profile='research',bind_address='127.0.0.1'):
+        from ipaddress import IPv4Address
+        try:
+            if not isinstance(bind_address,str):raise ValueError('Expected IPv4 text')
+            address=IPv4Address(bind_address)
+            if address.packed[0]==0 or address.is_multicast or address.is_reserved:
+                raise ValueError('Expected a specific unicast address')
+        except ValueError as error:
+            raise ModelError('Bind IP must be a specific unicast IPv4 address assigned to this PC') from error
         if isinstance(port,bool) or not isinstance(port,int) or not 0<=port<=65535:raise ModelError('EtherNet/IP port must be 0..65535')
         if not isinstance(allow_writes,bool):raise ModelError('allow_writes must be boolean')
+        self.bind_address=str(address)
         self.app=app;self.allow_writes=allow_writes;self.port=port;self.router=Router(app,self)
         if app.engine is None:raise ModelError('Load a project before selecting an identity')
         self.profile=profile;self.identity=Identity.from_project(profile,app.engine.project)
@@ -603,7 +612,7 @@ class Endpoint:
 
     def state(self,trace=False):
         with self.lock:
-            result={'enabled':self.enabled,'address':f'127.0.0.1:{self.port}','allow_writes':self.allow_writes,
+            result={'enabled':self.enabled,'address':f'{self.bind_address}:{self.port}','bind_address':self.bind_address,'allow_writes':self.allow_writes,
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'locator':self.locator_state(),
@@ -615,7 +624,7 @@ class Endpoint:
 
     def discovery(self,command):
         if command==0x63:
-            addr=struct.pack('>HH4s8s',2,self.port,socket.inet_aton('127.0.0.1'),b'\0'*8)
+            addr=struct.pack('>HH4s8s',2,self.port,socket.inet_aton(self.bind_address),b'\0'*8)
             with self.lock:identity=self.identity
             item=struct.pack('<H',1)+addr+identity.all_attributes()+identity.attributes()[8]
             return struct.pack('<HHH',1,0x0C,len(item))+item
@@ -717,15 +726,19 @@ class Endpoint:
         requested_port=self.port;attempts=8 if requested_port==0 else 1
         for attempt in range(attempts):
             try:
-                self.tcp=TCP(('127.0.0.1',requested_port),Handler);self.port=self.tcp.server_address[1]
-                self.udp=socketserver.UDPServer(('127.0.0.1',self.port),UDPHandler)
+                transport='TCP'
+                self.tcp=TCP((self.bind_address,requested_port),Handler);self.port=self.tcp.server_address[1]
+                transport='UDP'
+                self.udp=socketserver.UDPServer((self.bind_address,self.port),UDPHandler)
                 break
             except OSError as e:
                 failed_port=self.port
                 for server in (self.tcp,self.udp):
                     if server:server.server_close()
                 self.tcp=self.udp=None;self.port=requested_port
-                if attempt+1==attempts:raise ModelError(f'Cannot bind local EtherNet/IP port {failed_port}: {e}') from e
+                if attempt+1==attempts:
+                    raise ModelError(f'Cannot bind EtherNet/IP {transport} at {self.bind_address}:{failed_port}: {e}. '
+                        'Use an IP assigned to this PC and a free TCP/UDP port. A listener on 0.0.0.0 may also reserve this port.') from e
         self.enabled=True
         for server in (self.tcp,self.udp):
             thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':0.05},daemon=True);thread.start();self.threads.append(thread)

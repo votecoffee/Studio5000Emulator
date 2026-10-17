@@ -6,8 +6,8 @@ online edits and native debugger services remain unimplemented or unverified.
 
 ## Start an endpoint
 
-In the app, load a project and open **Connectivity**. Choose an identity profile
-and port, then select **Start endpoint**. **Load network lab** opens a public
+In the app, load a project and open **Connectivity**. Choose an identity profile,
+bind IP and port, then select **Start endpoint**. **Load network lab** opens a public
 fixture with a 1,200-element DINT array, ControlWord, Command and read-only
 Observed. Each modeled scan copies Command to Observed.
 **Load structure lab** opens nested numeric UDTs for template discovery and
@@ -23,6 +23,45 @@ The default address is `127.0.0.1:44818`, with TCP and UDP listeners and a model
 backplane route of port 1, slot 0. The target never forwards traffic externally.
 Writes are disabled until explicitly enabled before startup. Network writes and
 the UI use the same memory; Step/Run controls modeled scan execution.
+
+## Linx coexistence and addresses
+
+Use **Bind IP** or `--eip-bind` to select a specific IPv4 address belonging to
+the emulator's PC. TCP, UDP and the ListIdentity socket address all use that
+address. The HTTP UI stays on loopback. Wildcard, multicast, limited-broadcast and
+hostname bindings are rejected. A reachable non-loopback address makes the
+experimental protocol endpoint accessible to other devices; tag writes remain
+opt-in. The app does not assign IP addresses, change firewall rules or configure
+Linx.
+
+Two applications can use port 44818 on different local addresses when both
+bind specifically. A wildcard listener on `0.0.0.0:44818` can prevent a second
+application from binding even a different loopback address. Changing only the
+emulator's IP does not resolve that case. A temporary nonstandard port supports
+protocol testing, but does not establish normal Studio discovery or Go Online.
+
+FactoryTalk Linx documents **Ethernet driver properties → Advanced → IP Address**
+for limiting its listener to one address. Its **Listen on EtherNet/IP encapsulated
+ports** setting controls incoming TCP/UDP 44818 services. Existing unsolicited
+messages can depend on that listener. Coordinate any Linx configuration change
+with the applications using it; the emulator never stops or reconfigures that
+service. See the official
+[Ethernet Advanced settings](https://www.rockwellautomation.com/en-us/docs/factorytalk-services-platform/6-60/factorytalk-services-platform-help-ditamap/factorytalk-linx-help/config-stand-alone-apps/add-a-driver/ethernet-ppt-advanced-sets.html).
+An isolated VM with its own network address is another architecture when the
+host's Linx listener must remain unchanged.
+
+## Virtual chassis
+
+The modeled port-1/slot-0 route is an EtherNet/IP routing response; it does not
+register this application in Rockwell's native virtual chassis. That requires
+a separate virtual-backplane provider integration. Rockwell historically offered
+a toolkit for third-party network or specialty modules in SoftLogix, including
+the L30 and L60 variants; it was not exclusively limited to Rockwell modules.
+See the official [SoftLogix product overview](https://www.rockwellautomation.com/en-tr/products/hardware/programmable-controllers/softlogix-controllers.html).
+That history does not establish a supported way to register a custom v35 CPU in
+the installed chassis. This project has no such provider yet. Changing an IP
+or adding an EDS file cannot supply that integration or the remaining native
+Studio project/debugger services.
 
 ## Identity profiles
 

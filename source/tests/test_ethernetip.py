@@ -13,8 +13,8 @@ H=struct.Struct('<HHII8sI')
 
 
 class Client:
-    def __init__(self,port):
-        self.socket=socket.create_connection(('127.0.0.1',port),timeout=2);self.socket.settimeout(2);self.session=0
+    def __init__(self,port,host='127.0.0.1'):
+        self.socket=socket.create_connection((host,port),timeout=2);self.socket.settimeout(2);self.session=0
 
     def read(self,size):
         result=b''

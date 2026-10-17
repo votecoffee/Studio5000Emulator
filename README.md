@@ -90,8 +90,11 @@ Start the Network Lab's read-only EtherNet/IP endpoint:
 py -3.13 -X utf8 source/launch.py --sample NetworkLab --eip-port 44818 --eip-profile logix-v35-l85e --data-dir .local/network-session
 ```
 
-The HTTP UI and protocol listeners bind to `127.0.0.1`. Protocol access starts
-disabled unless requested. Tag writes require **Allow tag writes** or
+The HTTP UI binds to `127.0.0.1`. The protocol endpoint defaults to that address;
+**Bind IP** or `--eip-bind` selects another IPv4 address belonging to this PC.
+See [Linx coexistence](docs/connectivity.md#linx-coexistence-and-addresses) if
+another application owns port 44818. Protocol access starts disabled unless
+requested. Tag writes require **Allow tag writes** or
 `--eip-writes`. Use the **Connectivity** tab to start/stop the endpoint and export
 its trace. See [connectivity documentation](docs/connectivity.md) for the supported
 services, identity profiles and remaining Studio handshake work.

@@ -46,7 +46,7 @@ class Application:
         self.desktop = {'tray_available': False, 'tray_error': None}
 
     def connectivity(self,trace=False):
-        return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818',
+        return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -87,7 +87,7 @@ class Application:
                     with self.lock:
                         if self.engine is None or self.busy:raise ModelError('Load a project before starting connectivity')
                         if self.endpoint and self.endpoint.enabled:raise ModelError('EtherNet/IP endpoint is already running')
-                        endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False),data.get('profile','research'))
+                        endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False),data.get('profile','research'),data.get('bind_address','127.0.0.1'))
                         self.endpoint=endpoint.start()
                         return self.state()
                 raise ModelError('Unknown connectivity action')
@@ -161,10 +161,10 @@ class Application:
             return self.state()
 
 
-def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True):
+def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True, eip_bind='127.0.0.1'):
     app = Application(data_dir)
     if sample:app.command('demo',{'sample':sample})
-    if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile})
+    if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile,'bind_address':eip_bind})
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -256,6 +256,7 @@ def main():
     parser.add_argument("--data-dir")
     parser.add_argument('--sample',choices=SAMPLES)
     parser.add_argument('--eip-port',type=int,help='Start local research EtherNet/IP listener; requires --sample')
+    parser.add_argument('--eip-bind',default='127.0.0.1',help='Bind EtherNet/IP to a specific local IPv4 address (default: loopback)')
     parser.add_argument('--eip-writes',action='store_true',help='Allow explicit atomic tag writes to the software model')
     parser.add_argument('--eip-profile',choices=('research','logix-v35-l85e'),default='research')
     parser.add_argument("--report", help="Generate a JSON coverage report for an L5X, without starting the app")
@@ -265,8 +266,9 @@ def main():
     else:
         if args.eip_port is not None and not args.sample:parser.error('--eip-port requires --sample')
         if args.eip_writes and args.eip_port is None:parser.error('--eip-writes requires --eip-port')
+        if args.eip_bind!='127.0.0.1' and args.eip_port is None:parser.error('--eip-bind requires --eip-port')
         if args.eip_profile!='research' and args.eip_port is None:parser.error('--eip-profile requires --eip-port')
-        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray)
+        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray,args.eip_bind)
 
 
 if __name__ == "__main__": main()
