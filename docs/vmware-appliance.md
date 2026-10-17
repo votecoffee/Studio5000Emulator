@@ -49,8 +49,8 @@ py -3.13 -X utf8 source/tools/vmware_appliance.py start
 The launcher starts the VM in the background, discovers its DHCP address, verifies
 its SSH host key and opens the browser through a localhost-only SSH tunnel.
 The web service remains on guest loopback; the forwarded Windows address is
-`http://127.0.0.1:8786`. The header shows the exact running version and identifies
-the VMware appliance. The Windows launcher supplies the tray controls.
+`http://127.0.0.1:8786`. The header shows the exact running version, PLC endpoint IP and VMware appliance
+status. The Windows launcher supplies the tray controls.
 
 Read the current guest address with:
 

@@ -637,8 +637,14 @@ class Endpoint:
     def packet(self,raw,session,udp=False):
         if len(raw)<24:return None
         command,size,handle,status,context,options=HEADER.unpack_from(raw)
+        # A nonzero status is an encapsulation error reply from the peer.
+        # Reflecting another error can make two implementations reply forever.
+        if status:
+            self.record('peer_error',request=raw,command=f'0x{command:04X}',status=status,
+                        transport='udp' if udp else 'tcp',peer=session.peer,session=handle)
+            return None
         result=b'';error=0;out_handle=handle
-        if size!=len(raw)-24 or status or options:error=3
+        if size!=len(raw)-24 or options:error=3
         elif command in (4,0x63,0x64):
             if size:error=3
             else:result=self.discovery(command)

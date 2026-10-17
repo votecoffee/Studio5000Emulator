@@ -205,7 +205,13 @@ $('cancel-edit').onclick=()=>$('edit-dialog').close();
 $('save-edit').onclick=async()=>{try{let value=$('edit-value').value;if(editTag.kind==='integer_text'){if(!/^[+-]?\d+$/.test(value))throw new Error('Enter an integer in decimal notation');}else if(editTag.kind!=='string'){value=Number(value);if(!Number.isFinite(value))throw new Error('Enter a finite numeric value');}await accept(await api('write',{tag:editTag.name,value}));$('edit-dialog').close();}catch(e){error(e);}};
 $('edit-value').onkeydown=e=>{if(e.key==='Enter')$('save-edit').click();};
 $('report').onclick=async()=>{try{download(await api('report'),'LogixLab-coverage.json');}catch(e){error(e);}};
-$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);clearLocator();try{await api('quit');$('alert').hidden=false;$('alert').textContent='Session ended. You can close this tab. Launch LogixLab.exe to start again.';document.querySelectorAll('button').forEach(b=>b.disabled=true);}catch(e){error(e);}};
+$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);clearLocator();try{
+  await api('quit');$('plc-address').dataset.active='false';$('plc-address').textContent='PLC endpoint stopped';
+  $('alert').hidden=false;$('alert').textContent=state?.execution_environment==='vmware-host-only'
+    ?'Session ended. You can close this tab. Run START-VM.cmd to start the appliance again.'
+    :'Session ended. You can close this tab. Launch LogixLab.exe to start again.';
+  document.querySelectorAll('button').forEach(b=>b.disabled=true);
+}catch(e){error(e);}};
 $('snapshot').onclick=async()=>{try{download(await api('snapshot'),'LogixLab-snapshot.json');}catch(e){error(e);}};
 window.addEventListener('beforeunload',()=>{stop();clearInterval(connectivityPoll);clearLocator();});
 fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}}).then(r=>r.json()).then(async value=>{if(value.loaded){$('mode').value=value.mode;await accept(value,true);}else{state=value;render();}}).catch(error);
@@ -233,6 +239,9 @@ function renderLocator(c) {
 }
 function renderConnectivity() {
   const c=state?.connectivity || {};const active=!!c.enabled;
+  $('plc-address').textContent=c.bind_address?`PLC IP ${c.bind_address}${active?'':' · stopped'}`:'PLC endpoint off';
+  $('plc-address').dataset.active=String(active);
+  $('plc-address').title=c.address?`${c.address} · TCP + UDP · slot 0`:'Start an endpoint in Connectivity.';
   renderLocator(c);
   $('eip-badge').textContent=active?'LISTENING':'STOPPED';$('eip-badge').className='badge'+(active?' ready':'');
   $('eip-start').disabled=!state?.loaded||active;$('eip-stop').disabled=!active;

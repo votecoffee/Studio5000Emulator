@@ -59,7 +59,8 @@ See [development guidance](docs/development.md) for optional tooling.
 
 Choose a bundled demo or open a complete L5X export. Check **Coverage**, then use
 **Step scan** or **Run**. Edit inputs in **Tag Watch** and inspect the logic trace.
-The header shows the running app's full version. On Windows, its tray icon offers
+The header shows the running app's full version and PLC endpoint IP. On Windows,
+its tray icon offers
 **Open app** and **Quit LogixLab**; hover over it to see the version and session
 address. The icon may appear under the taskbar's hidden-icons arrow.
 
@@ -159,6 +160,8 @@ conventions.
 - Add packed BOOLs, strings, predefined structures and more controller metadata.
 - Establish a reproducible native Studio connection and project handshake.
 - Demonstrate online monitoring before advertising Studio Go Online support.
+- Add a host-only networking backend independent of VMware, evaluating free
+  container and virtual-machine tooling. See the [milestones and backend comparison](docs/roadmap.md).
 
 ## Maintainers
 

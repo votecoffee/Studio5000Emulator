@@ -95,6 +95,10 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Integer masks | `0x4E` Read Modify Write, applying OR then AND masks |
 | Multiple service | Bounded Multiple Service Packets with independent child operations |
 
+Nonzero encapsulation-status packets from a peer are recorded as `peer_error`
+and are not answered. This prevents an error-response loop during client
+interoperability; the session remains available for later valid requests.
+
 Symbol attributes provide name, type, dimensions and effective external access.
 Constants, aliases and member restrictions are honored. Private tags, AOI locals
 and Safety program tags are not exposed. Firmware-internal attributes 3, 5 and 6

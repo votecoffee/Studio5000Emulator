@@ -296,5 +296,30 @@ class EtherNetIPTests(unittest.TestCase):
         c=self.client();head,_=c.packet(0x6F,b'\0'*8);self.assertEqual(head[3],3)
         self.assertEqual(self.value('Step',c),struct.pack('<Hi',0xC4,2))
 
+    def test_tcp_peer_error_is_not_reflected_and_session_remains_usable(self):
+        client=self.client()
+        before=copy.deepcopy(self.app.engine.memory.values)
+        # Observed Linx error reply followed by a legitimate request. The first
+        # response must belong to that request, with no reflected error ahead.
+        client.socket.sendall(H.pack(0x6F,0,client.session,3,b'TESTWIRE',0))
+        header,identity=client.packet(0x63)
+        self.assertEqual(header[0],0x63);self.assertEqual(header[3],0)
+        self.assertIn(b'LogixLab',identity)
+        self.assertEqual(self.value('Step',client),struct.pack('<Hi',0xC4,2))
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.endpoint.state()['counts']['peer_error'],1)
+
+    def test_udp_peer_error_is_not_reflected_and_discovery_remains_usable(self):
+        with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:
+            sock.settimeout(0.1)
+            sock.sendto(H.pack(0x63,0,0,3,b'TESTWIRE',0),('127.0.0.1',self.endpoint.port))
+            with self.assertRaises(socket.timeout):sock.recvfrom(4096)
+            sock.settimeout(2)
+            sock.sendto(H.pack(0x63,0,0,0,b'TESTWIRE',0),('127.0.0.1',self.endpoint.port))
+            response,_=sock.recvfrom(4096)
+            self.assertEqual(H.unpack_from(response)[3],0)
+            self.assertIn(b'LogixLab',response[24:])
+        self.assertEqual(self.endpoint.state()['counts']['peer_error'],1)
+
 
 if __name__=='__main__':unittest.main()

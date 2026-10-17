@@ -528,6 +528,10 @@ def main():
     parser.add_argument('--converter', help='Optional Windows l5xgit converter for ACD imports')
     args = parser.parse_args()
     directory = args.directory.resolve()
+    if args.action == 'start' and sys.stdout is None:
+        directory.mkdir(parents=True, exist_ok=True)
+        log = (directory / 'manager.log').open('a', encoding='utf-8', buffering=1)
+        sys.stdout = sys.stderr = log
     if args.action == 'prepare':
         prepare(directory, args.network, args.rebuild)
     elif args.action == 'start':
@@ -547,4 +551,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as error:
+        if sys.stderr:
+            import traceback
+            traceback.print_exc()
+        if sys.platform == 'win32' and Path(sys.executable).name.lower() == 'pythonw.exe':
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(None, str(error), 'LogixLab VM could not complete the operation', 0x10)
+        raise SystemExit(1)

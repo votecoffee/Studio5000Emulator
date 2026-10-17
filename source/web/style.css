@@ -5,6 +5,7 @@ header{height:auto;min-height:86px;gap:20px}.brand{flex-shrink:0}.head-actions{f
 
 #connectivity{max-height:620px;overflow:auto}.eip-body{padding:0 22px 24px}.eip-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.eip-controls label{font-size:11px;color:var(--muted)}#eip-port{width:90px;margin-left:6px}.eip-address{font:13px Consolas;color:var(--accent);margin-top:24px}.tabs{overflow-x:auto}.eip-controls button{font-size:11px}
 
+.plc-address{font:11px Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:9px;color:var(--muted);white-space:nowrap}.plc-address[data-active=true]{color:var(--accent);border-color:#3e6c5d}
 .device-locator{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 24px;border-bottom:2px solid currentColor;letter-spacing:1px;animation:locator-flash 1.5s steps(1,end) infinite}
 .locator-light{display:inline-block;width:12px;height:12px;border-radius:50%;background:currentColor}
 #locator-time{font-size:12px;letter-spacing:0;color:var(--text)}
