@@ -15,7 +15,7 @@ Bug reports, questions and pull requests are welcome through the repository's
 - `.local/`: ignored, machine-local notes, settings, private inputs and receipts.
 - `dist/`: ignored executable build output.
 
-Application work currently uses `feature/studio5000-connectivity`. Keep changes
+Application development is maintained on `main`. Keep changes
 focused and update the root README when user-visible behavior or setup changes.
 
 ## Checks

@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="ConveyorDemo" TargetType="Controller" ContainsContext="false">
+  <Controller Name="ConveyorDemo" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="StartPB" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StopPB" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RunLatch" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MotorRunning" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PartSensor" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SensorMemory" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PartPulse" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BatchComplete" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetPB" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StartDelay" TagType="Base" DataType="TIMER" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Radix="Decimal" Value="1000" />
+            <DataValueMember Name="ACC" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Radix="Decimal" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Parts" TagType="Base" DataType="COUNTER" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <Structure DataType="COUNTER">
+            <DataValueMember Name="PRE" DataType="DINT" Radix="Decimal" Value="5" />
+            <DataValueMember Name="ACC" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="CU" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="CD" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="OV" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="UN" DataType="BOOL" Radix="Decimal" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SpeedSetpoint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="50" />
+        </Data>
+      </Tag>
+      <Tag Name="SpeedCommand" TagType="Base" DataType="DINT" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DisplayedPartCount" TagType="Base" DataType="DINT" ExternalAccess="Read/Write" Constant="false">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment>Hold run request until Stop is pressed.</Comment>
+                <Text>XIO(StopPB)[XIC(StartPB),XIC(RunLatch)]OTE(RunLatch);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Comment>Delay motor start by 1,000 simulated milliseconds.</Comment>
+                <Text>XIC(RunLatch)TON(StartDelay,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Comment>Motor runs after the startup delay.</Comment>
+                <Text>XIC(StartDelay.DN)XIC(RunLatch)OTE(MotorRunning);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Comment>Detect one pulse per passing part.</Comment>
+                <Text>XIC(PartSensor)ONS(SensorMemory)OTE(PartPulse);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Comment>Count pulses only while the motor is running.</Comment>
+                <Text>XIC(MotorRunning)XIC(PartPulse)CTU(Parts,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Comment>Indicate when the five-part batch is complete.</Comment>
+                <Text>XIC(Parts.DN)OTE(BatchComplete);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Comment>Reset the batch counter on operator request.</Comment>
+                <Text>XIC(ResetPB)RES(Parts);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Comment>Drive the speed command, or clear it when stopped.</Comment>
+                <Text>[XIC(MotorRunning)MOV(SpeedSetpoint,SpeedCommand),XIO(MotorRunning)CLR(SpeedCommand)];</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Comment>Execute the reporting routine.</Comment>
+                <Text>JSR(Reporting,0);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Reporting" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment>A simple arithmetic calculation in a called routine.</Comment>
+                <Text>ADD(Parts.ACC,0,DisplayedPartCount);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

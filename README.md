@@ -10,9 +10,7 @@ and executable use the name **LogixLab**.
 are not implemented or verified.** Supported instructions have bounded software
 models; this project does not establish native controller equivalence.
 
-Application development currently lives on
-[`feature/studio5000-connectivity`](https://github.com/votecoffee/Studio5000Emulator/tree/feature/studio5000-connectivity).
-The install command below selects that branch.
+Application development is maintained on `main`.
 
 ## Table of Contents
 
@@ -49,7 +47,7 @@ runs independently after import and does not depend on FactoryTalk Logix Echo.
 - Optional independent protocol probes: `pycomm3`.
 
 ```powershell
-git clone --branch feature/studio5000-connectivity https://github.com/votecoffee/Studio5000Emulator.git
+git clone --branch main https://github.com/votecoffee/Studio5000Emulator.git
 cd Studio5000Emulator
 py -3.13 -X utf8 source/launch.py
 ```

@@ -1,0 +1,226 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="CallLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="CallLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes>
+      <DataType Name="LabPair" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="A" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="B" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Enabled" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EarlyReturn" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CompareOK" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MaskOK" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputValue" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="FormalInput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WorkValue" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NestedInput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NestedOutput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Result" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PackedWord" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="4660" />
+        </Data>
+      </Tag>
+      <Tag Name="RealInput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="2.5" />
+        </Data>
+      </Tag>
+      <Tag Name="FormalReal" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RealResult" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RealOutput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ArrayInput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3" Radix="Decimal">
+            <Element Index="[0]" Value="10" />
+            <Element Index="[1]" Value="20" />
+            <Element Index="[2]" Value="30" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ArrayFormal" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3" Radix="Decimal">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ArrayOutput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3" Radix="Decimal">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="PairInput" TagType="Base" DataType="LabPair" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabPair">
+            <DataValueMember Name="A" DataType="DINT" Radix="Decimal" Value="4" />
+            <DataValueMember Name="B" DataType="DINT" Radix="Decimal" Value="9" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PairFormal" TagType="Base" DataType="LabPair" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabPair">
+            <DataValueMember Name="A" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="B" DataType="DINT" Radix="Decimal" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PairOutput" TagType="Base" DataType="LabPair" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabPair">
+            <DataValueMember Name="A" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="B" DataType="DINT" Radix="Decimal" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Enabled)JSR(Calculate,2,InputValue,RealInput,Result,RealOutput);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>JSR(TransformData,2,ArrayInput,PairInput,ArrayOutput,PairOutput);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>CMP((Result&gt;=24)&amp;&amp;(RealOutput=7.5))OTE(CompareOK);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>MEQ(PackedWord,16#00F0,16#0030)OTE(MaskOK);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Calculate" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>SBR(FormalInput,FormalReal);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>ADD(CallCount,1,CallCount)ADD(FormalInput,5,WorkValue);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(EarlyReturn)RET(WorkValue,FormalReal);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>JSR(DoubleValue,1,WorkValue,WorkValue);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>MUL(FormalReal,3.0,RealResult);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>RET(WorkValue,RealResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleValue" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>SBR(NestedInput);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>MUL(NestedInput,2,NestedOutput);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>RET(NestedOutput);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TransformData" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>SBR(ArrayFormal,PairFormal);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>ADD(ArrayFormal[1],5,ArrayFormal[1])ADD(PairFormal.A,PairFormal.B,PairFormal.A);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>RET(ArrayFormal,PairFormal);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

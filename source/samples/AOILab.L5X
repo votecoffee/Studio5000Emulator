@@ -1,0 +1,265 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOILab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOILab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabAccumulator" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="true" ExecutePostscan="false" ExecuteEnableInFalse="true" CreatedDate="2026-10-16T12:00:00.000Z" CreatedBy="LogixLab" EditedDate="2026-10-16T12:00:00.000Z" EditedBy="LogixLab" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="Step" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Total" TagType="Base" DataType="DINT" Usage="Output" Required="true" Visible="true" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Shared" TagType="Base" DataType="DINT" Usage="InOut" Required="true" Visible="true" Radix="Decimal" Constant="false" />
+          <Parameter Name="Limit" TagType="Base" DataType="DINT" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="100" />
+            </DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Count" DataType="DINT" ExternalAccess="None" Radix="Decimal">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="777" />
+            </DefaultData>
+          </LocalTag>
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(Count,Step,Count)MOV(Count,Total)ADD(Shared,Step,Shared);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>LES(Count,Limit)OTE(EnableOut);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Prescan" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>CLR(Count)CLR(Total);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>MOV(-1,Total);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+      <AddOnInstructionDefinition Name="LabScale" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="true" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2026-10-16T12:00:00.000Z" CreatedBy="LogixLab" EditedDate="2026-10-16T12:00:00.000Z" EditedBy="LogixLab" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="Raw" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" Radix="Float" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Gain" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" Radix="Float" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="1" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Result" TagType="Base" DataType="REAL" Usage="Output" Required="true" Visible="true" Radix="Float" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="0" />
+            </DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Scaled" DataType="REAL" ExternalAccess="None" Radix="Float">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="987" />
+            </DefaultData>
+          </LocalTag>
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>MUL(Raw,Gain,Scaled)MOV(Scaled,Result);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Prescan" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>CLR(Scaled)CLR(Result);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+      <AddOnInstructionDefinition Name="LabWrapper" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2026-10-16T12:00:00.000Z" CreatedBy="LogixLab" EditedDate="2026-10-16T12:00:00.000Z" EditedBy="LogixLab" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="Raw" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" Radix="Float" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Result" TagType="Base" DataType="REAL" Usage="Output" Required="true" Visible="true" Radix="Float" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="REAL" Radix="Float" Value="0" />
+            </DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Core" DataType="LabScale" ExternalAccess="None" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>LabScale(Core,Raw,2.0,Result);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnableA" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnableB" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="AReady" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BReady" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StepA" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="StepB" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="TotalA" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="TotalB" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="88" />
+        </Data>
+      </Tag>
+      <Tag Name="SharedA" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="SharedB" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="Truncated" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RawValue" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="12.75" />
+        </Data>
+      </Tag>
+      <Tag Name="ScaledValue" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AccumulatorA" TagType="Base" DataType="LabAccumulator" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabAccumulator">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Step" DataType="DINT" Radix="Decimal" Value="1" />
+            <DataValueMember Name="Total" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Limit" DataType="DINT" Radix="Decimal" Value="5" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="AccumulatorB" TagType="Base" DataType="LabAccumulator" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabAccumulator">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Step" DataType="DINT" Radix="Decimal" Value="1" />
+            <DataValueMember Name="Total" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Limit" DataType="DINT" Radix="Decimal" Value="100" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="NestedScale" TagType="Base" DataType="LabWrapper" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabWrapper">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Raw" DataType="REAL" Radix="Float" Value="0" />
+            <DataValueMember Name="Result" DataType="REAL" Radix="Float" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA)OTE(AReady);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnableB)LabAccumulator(AccumulatorB,StepB,TotalB,SharedB)OTE(BReady);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>LabWrapper(NestedScale,RawValue,ScaledValue);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>TRN(ScaledValue,Truncated);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>
