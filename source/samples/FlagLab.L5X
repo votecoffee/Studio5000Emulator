@@ -1,0 +1,712 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FlagLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FlagLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes>
+      <DataType Name="FlagGroup" Class="User" Family="NoFamily">
+        <Members>
+          <Member Name="ZZZZZZZZZZGroup" DataType="SINT" Dimension="0" Hidden="true" />
+          <Member Name="Enabled" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZGroup" BitNumber="0" />
+          <Member Name="Valid" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZGroup" BitNumber="2" />
+          <Member Name="High" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZGroup" BitNumber="7" />
+          <Member Name="Code" DataType="INT" Dimension="0" Hidden="false" />
+        </Members>
+      </DataType>
+      <DataType Name="FlagRecord" Class="User" Family="NoFamily">
+        <Members>
+          <Member Name="ZZZZZZZZZZState" DataType="SINT" Dimension="0" Hidden="true" />
+          <Member Name="Ready" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZState" BitNumber="0" />
+          <Member Name="Running" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZState" BitNumber="3" />
+          <Member Name="Fault" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZState" BitNumber="7" />
+          <Member Name="ZZZZZZZZZZMode" DataType="SINT" Dimension="0" Hidden="true" />
+          <Member Name="Remote" DataType="BIT" Dimension="0" Hidden="false" Target="ZZZZZZZZZZMode" BitNumber="1" />
+          <Member Name="Count" DataType="DINT" Dimension="0" Hidden="false" />
+          <Member Name="Group" DataType="FlagGroup" Dimension="0" Hidden="false" />
+          <Member Name="History" DataType="FlagGroup" Dimension="4" Hidden="false" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Record" TagType="Base" DataType="FlagRecord" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <Structure DataType="FlagRecord">
+            <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Running" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Fault" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Count" DataType="DINT" Value="1370" />
+            <StructureMember Name="Group" DataType="FlagGroup">
+              <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+              <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+              <DataValueMember Name="High" DataType="BOOL" Value="1" />
+              <DataValueMember Name="Code" DataType="INT" Value="37" />
+            </StructureMember>
+            <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+              <Element Index="[0]">
+                <Structure DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Code" DataType="INT" Value="38" />
+                </Structure>
+              </Element>
+              <Element Index="[1]">
+                <Structure DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Code" DataType="INT" Value="39" />
+                </Structure>
+              </Element>
+              <Element Index="[2]">
+                <Structure DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Code" DataType="INT" Value="40" />
+                </Structure>
+              </Element>
+              <Element Index="[3]">
+                <Structure DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Code" DataType="INT" Value="41" />
+                </Structure>
+              </Element>
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Records" TagType="Base" DataType="FlagRecord" Dimensions="12" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="FlagRecord" Dimensions="12">
+            <Element Index="[0]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="0" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-100" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-99" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-98" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-97" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-96" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="10" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-99" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-98" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-97" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-96" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-95" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[2]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="20" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-98" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-97" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-96" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-95" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-94" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[3]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="30" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-97" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-96" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-95" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-94" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-93" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[4]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="40" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-96" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-95" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-94" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-93" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-92" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[5]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="50" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-95" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-94" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-93" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-92" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-91" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[6]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="60" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-94" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-93" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-92" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-91" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-90" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[7]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="70" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-93" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-92" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-91" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-90" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-89" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[8]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="80" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-92" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-91" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-90" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-89" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-88" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[9]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="90" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-91" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-90" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-89" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-88" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-87" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[10]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Count" DataType="DINT" Value="100" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-90" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-89" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-88" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-87" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-86" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[11]">
+              <Structure DataType="FlagRecord">
+                <DataValueMember Name="Ready" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Running" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Fault" DataType="BOOL" Value="0" />
+                <DataValueMember Name="Remote" DataType="BOOL" Value="1" />
+                <DataValueMember Name="Count" DataType="DINT" Value="110" />
+                <StructureMember Name="Group" DataType="FlagGroup">
+                  <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                  <DataValueMember Name="Valid" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                  <DataValueMember Name="Code" DataType="INT" Value="-89" />
+                </StructureMember>
+                <ArrayMember Name="History" DataType="FlagGroup" Dimensions="4">
+                  <Element Index="[0]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-88" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-87" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-86" />
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="FlagGroup">
+                      <DataValueMember Name="Enabled" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="Valid" DataType="BOOL" Value="1" />
+                      <DataValueMember Name="High" DataType="BOOL" Value="0" />
+                      <DataValueMember Name="Code" DataType="INT" Value="-85" />
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Observed" TagType="Base" DataType="BOOL" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ObservedCount" TagType="Base" DataType="DINT" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Records[0].Ready)OTE(Observed);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>MOV(Records[0].Count,ObservedCount);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

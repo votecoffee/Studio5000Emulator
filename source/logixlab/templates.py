@@ -1,4 +1,4 @@
-"""Bounded, aligned wire layouts for explicit numeric UDT definitions.
+"""Bounded, aligned wire layouts for explicit numeric and packed BIT UDTs.
 
 Template IDs and handles belong to this software model. They are not copied
 from, or authenticated against, a native controller's compiled type database.
@@ -33,6 +33,8 @@ class Member:
     offset: int
     code: int
     element_size: int
+    bit: int | None = None
+    hidden: bool = False
 
 
 @dataclass(frozen=True)
@@ -78,15 +80,41 @@ class Catalog:
         if not valid_name(type_name): raise ModelError('Invalid wire UDT name')
         nodes = schema.findall('./Members/Member')
         if not 1 <= len(nodes) <= MAX_MEMBERS: raise ModelError('Wire UDT member count must be 1..256')
+        # Only explicit, non-overlapping BIT mappings may use hidden storage.
+        # Hidden hosts carry no independent application value in the model.
+        hosts = set(); bits = set()
+        for index, node in enumerate(nodes):
+            if node.get('DataType') != 'BIT': continue
+            target = node.get('Target', '')
+            candidates = [n for n in nodes[:index] if n.get('Name') == target]
+            if len(candidates) != 1: raise ModelError('BIT requires a preceding hidden SINT host')
+            host = candidates[0]
+            if (host.get('DataType') != 'SINT' or host.get('Hidden', 'false').lower() != 'true'
+                    or not target.startswith('ZZZZZZZZZZ') or dimensions(host.get('Dimension', '0'))):
+                raise ModelError('BIT host must be a scalar hidden SINT with a storage name')
+            bit_text = node.get('BitNumber', '')
+            if not re.fullmatch('[0-7]', bit_text) or dimensions(node.get('Dimension', '0')):
+                raise ModelError('BIT requires one scalar bit in the range 0..7')
+            bit = int(bit_text)
+            if (target, bit) in bits: raise ModelError('Overlapping BIT mappings are unsupported')
+            bits.add((target, bit)); hosts.add(target)
         members = []; names = set(); offset = 0; depth = 1; alignment = 4
         for node in nodes:
             member_name = node.get('Name', '')
             if not valid_name(member_name) or member_name.lower() in names: raise ModelError('Invalid or duplicate wire member')
             names.add(member_name.lower())
-            if (node.get('Hidden', 'false').lower() != 'false' or node.get('AOILocal', 'false').lower() != 'false'
-                    or node.get('ExternalAccess', 'Read/Write') not in ('Read/Write', 'Read Only')
-                    or node.get('Target') or node.get('BitNumber') or node.get('AliasFor')):
+            is_host = member_name in hosts
+            is_bit = node.get('DataType') == 'BIT'
+            if (node.get('Hidden', 'false').lower() != ('true' if is_host else 'false')
+                    or node.get('AOILocal', 'false').lower() != 'false'
+                    or (not is_host and node.get('ExternalAccess', 'Read/Write') not in ('Read/Write', 'Read Only'))
+                    or (not is_bit and (node.get('Target') or node.get('BitNumber'))) or node.get('AliasFor')):
                 raise ModelError('Hidden, private or overlaid wire members are unsupported')
+            if is_bit:
+                host = next(m for m in members if m.name == node.get('Target'))
+                members.append(Member(member_name, 'BOOL', 1, False, host.offset, 0xC1, 1,
+                                      int(node.get('BitNumber'))))
+                continue
             dims = dimensions(node.get('Dimension', '0'))
             if len(dims) > 1 or dims and not 1 <= dims[0] <= 4096:
                 raise ModelError('Wire member arrays require one dimension of 1..4096')
@@ -105,11 +133,11 @@ class Catalog:
             alignment = max(alignment, member_alignment); offset = aligned(offset, member_alignment)
             occupied = aligned(size * count, member_alignment) if dims else size
             if offset + occupied > MAX_BYTES: raise ModelError('Wire UDT exceeds 32768 bytes')
-            members.append(Member(member_name, dtype, count, bool(dims), offset, code, size))
+            members.append(Member(member_name, dtype, count, bool(dims), offset, code, size, hidden=is_host))
             offset += occupied
         offset = aligned(offset, alignment)
         if offset > MAX_BYTES: raise ModelError('Aligned wire UDT exceeds 32768 bytes')
-        info = b''.join(struct.pack('<HHI', m.count if m.array else 0,
+        info = b''.join(struct.pack('<HHI', m.bit if m.bit is not None else m.count if m.array else 0,
                                     m.code | (0x2000 if m.array else 0), m.offset) for m in members)
         names_data = (type_name + ';n\0' + '\0'.join(m.name for m in members) + '\0').encode('ascii')
         definition = info + names_data
@@ -135,10 +163,11 @@ class Catalog:
         return {i: by_id[i] for i in visible if i in by_id}
 
     def leaves(self, template, ref, base=0):
-        """Yield wire offsets and typed member references without reading values."""
+        """Yield offsets, types, references and optional packed bit locations."""
         for member in template.members:
+            if member.hidden: continue
             member_ref = ref + '.' + member.name
-            nested = self.for_type(member.dtype) if member.dtype not in ATOMS else None
+            nested = self.for_type(member.dtype) if member.dtype not in ATOMS and member.bit is None else None
             size = member.element_size
             for index in range(member.count):
                 item_ref = member_ref + (f'[{index}]' if member.array else '')
@@ -146,14 +175,18 @@ class Catalog:
                 if nested:
                     yield from self.leaves(nested, item_ref, offset)
                 else:
-                    yield offset, member.dtype, item_ref
+                    yield offset, member.dtype, item_ref, member.bit
 
     def encode(self, template, ref, read):
-        # Alignment padding is reserved, canonical zero data in this model. It
-        # does not stand in for omitted application values or hidden host bits.
+        # Padding and unused host bits are reserved zero data in this model.
+        # Every application value, including each visible flag, is read below.
         result = bytearray(template.size)
-        for offset, dtype, item_ref in self.leaves(template, ref):
+        for offset, dtype, item_ref, bit in self.leaves(template, ref):
             value = read(item_ref)
             if value is None or isinstance(value, (dict, list)): raise ModelError('Unknown structured wire data')
-            struct.pack_into('<' + ATOMS[dtype][1], result, offset, value)
+            if bit is not None:
+                if value not in (False, True): raise ModelError('Invalid packed BOOL value')
+                result[offset] |= int(value) << bit
+            else:
+                struct.pack_into('<' + ATOMS[dtype][1], result, offset, value)
         return bytes(result)

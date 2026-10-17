@@ -180,6 +180,7 @@ $('text-demo').onclick=()=>loadDemo('TextLab');
 $('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('structure-demo').onclick=()=>loadDemo('StructureLab');
 $('layout-demo').onclick=()=>loadDemo('LayoutLab');
+$('flag-demo').onclick=()=>loadDemo('FlagLab');
 $('aoi-context').onchange=()=>{selectedContext=$('aoi-context').value;renderLadder();};
 $('step').onclick=scan;
 $('run').onclick=()=>{if(running){stop();render();}else{running=true;$('run').textContent='Ⅱ Pause';render();tick();}};

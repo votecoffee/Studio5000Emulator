@@ -17,8 +17,9 @@ From `source/`:
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
 
-The bundled Conveyor, Data, AOI, Call, Text, Network, Structure and Layout labs are public L5X
-fixtures. Native ACD inputs and generated ACD variants remain local.
+The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
+labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
+local.
 
 ## Optional protocol probes
 
@@ -36,6 +37,7 @@ py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structu
 py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/structure-writes.json
 py -3.13 -X utf8 tests/interop_numeric_layouts.py --out ../.local/checks/layouts.json
 py -3.13 -X utf8 tests/interop_catalog_revision.py --out ../.local/checks/catalog.json
+py -3.13 -X utf8 tests/interop_packed_bits.py --out ../.local/checks/flags.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -81,6 +83,14 @@ remain unchanged; generated project copies and receipts stay local.
 Live write probes require an explicit `--write`, a loopback target and endpoint
 writes enabled. The transfer probe expects Network Lab and restores changed
 inputs. Do not point test clients at production controllers.
+
+The packed-bit probe uses the client's template parser and structure codec to
+read and write Flag Lab's 336-byte record array over a 256-byte connection. It
+checks multiple hosts, sparse bit numbers, nested arrays, direct atomic flag
+writes, rejection of unused host bits, read-only access and modeled scan
+propagation, then restores its input records. Like the other structure probes,
+it uses the documented-attribute catalog adapter; native tag upload and Studio
+Go Online remain separate work.
 
 ## Optional ACD conversion
 

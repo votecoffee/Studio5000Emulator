@@ -364,12 +364,18 @@ class Router:
         end=offset+len(payload);values=[];memory=self.app.engine.memory;covered=bytearray(len(payload))
         first=offset//template.size;last=(end-1)//template.size
         for index in range(first,last+1):
-            for member_offset,dtype,member_ref in self.templates().leaves(template,refs[index],index*template.size):
+            for member_offset,dtype,member_ref,bit in self.templates().leaves(template,refs[index],index*template.size):
+                if bit is not None:
+                    if offset<=member_offset<end:
+                        self.access(member_ref,True)
+                        mask=1<<bit;position=member_offset-offset;covered[position]|=mask
+                        values.append((member_ref,bool(payload[position]&mask)))
+                    continue
                 fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
                 start=max(offset,member_offset);stop=min(end,member_offset+size)
                 if start>=stop:continue
                 self.access(member_ref,True)
-                chunk=payload[start-offset:stop-offset];covered[start-offset:stop-offset]=b'\1'*(stop-start)
+                chunk=payload[start-offset:stop-offset];covered[start-offset:stop-offset]=b'\xFF'*(stop-start)
                 if stop-start==size:raw=chunk
                 else:
                     # Preserve known bytes in split atoms; untouched members may
@@ -377,7 +383,8 @@ class Router:
                     raw=bytearray(struct.pack(fmt,memory.read(member_ref)))
                     raw[start-member_offset:stop-member_offset]=chunk
                 values.append((member_ref,struct.unpack(fmt,raw)[0]))
-        if any(value for value,used in zip(payload,covered) if not used):raise CIPError(9,'Reserved layout padding must be zero')
+        if any(value&(~used&0xFF) for value,used in zip(payload,covered)):
+            raise CIPError(9,'Reserved layout padding and unused host bits must be zero')
         if values:self.store_values(values)
         return 0,b''
 
