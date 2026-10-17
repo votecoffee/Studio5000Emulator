@@ -1,6 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let state = null, selected = '', selectedContext = '', running = false, stepping = false, currentTab = 'ladder', report = null, editTag = null;
+let connectivityPoll = null;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(action, data = {}) {
@@ -20,6 +21,7 @@ function render() {
   const loaded = !!state?.loaded;
   ['reset','step','run','apply','snapshot','report','mode'].forEach(id => $(id).disabled = !loaded);
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
+  renderConnectivity();
   if (!loaded) return;
   $('project-name').textContent = state.name;
   $('project-detail').textContent = `Studio 5000 v${state.version} · ${state.processor} · ${state.routines.length} routines · ${state.mode === 'routine' ? 'isolated routine harness' : 'whole project'}`;
@@ -158,7 +160,7 @@ function renderCoverage() {
 function renderChanges() {
   $('changes-body').innerHTML=state.changes.slice(0,500).map(c=>`<tr><td>${c.scan} / ${c.ms}</td><td>${escapeHtml(c.tag)}</td><td>${escapeHtml(c.before)} → ${escapeHtml(c.after)}</td></tr>`).join('');
 }
-function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['ladder','coverage','changes'].forEach(id=>$(id).hidden=id!==name);}
+function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['ladder','coverage','changes','connectivity'].forEach(id=>$(id).hidden=id!==name);}
 async function loadDemo(sample='ConveyorDemo') {stop();$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
 async function scan() {
   if(stepping)return;stepping=true;
@@ -190,7 +192,24 @@ $('cancel-edit').onclick=()=>$('edit-dialog').close();
 $('save-edit').onclick=async()=>{try{let value=$('edit-value').value;if(editTag.kind==='integer_text'){if(!/^[+-]?\d+$/.test(value))throw new Error('Enter an integer in decimal notation');}else if(editTag.kind!=='string'){value=Number(value);if(!Number.isFinite(value))throw new Error('Enter a finite numeric value');}await accept(await api('write',{tag:editTag.name,value}));$('edit-dialog').close();}catch(e){error(e);}};
 $('edit-value').onkeydown=e=>{if(e.key==='Enter')$('save-edit').click();};
 $('report').onclick=async()=>{try{download(await api('report'),'LogixLab-coverage.json');}catch(e){error(e);}};
-$('quit').onclick=async()=>{stop();try{await api('quit');$('alert').hidden=false;$('alert').textContent='Session ended. You can close this tab. Launch LogixLab.exe to start again.';document.querySelectorAll('button').forEach(b=>b.disabled=true);}catch(e){error(e);}};
+$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);try{await api('quit');$('alert').hidden=false;$('alert').textContent='Session ended. You can close this tab. Launch LogixLab.exe to start again.';document.querySelectorAll('button').forEach(b=>b.disabled=true);}catch(e){error(e);}};
 $('snapshot').onclick=async()=>{try{download(await api('snapshot'),'LogixLab-snapshot.json');}catch(e){error(e);}};
-window.addEventListener('beforeunload',stop);
+window.addEventListener('beforeunload',()=>{stop();clearInterval(connectivityPoll);});
 fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}}).then(r=>r.json()).then(async value=>{if(value.loaded){$('mode').value=value.mode;await accept(value,true);}else{state=value;render();}}).catch(error);
+
+function renderConnectivity() {
+  const c=state?.connectivity || {};const active=!!c.enabled;
+  $('eip-badge').textContent=active?'LISTENING':'STOPPED';$('eip-badge').className='badge'+(active?' ready':'');
+  $('eip-start').disabled=!state?.loaded||active;$('eip-stop').disabled=!active;
+  $('eip-port').disabled=active;$('eip-writes').disabled=active;$('eip-trace').disabled=!c.trace_events;
+  $('eip-refresh').disabled=!state?.loaded;
+  $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
+  $('eip-summary').textContent=(active?'Accepting local clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
+  $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
+}
+$('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start',{port:Number($('eip-port').value),allow_writes:$('eip-writes').checked}));}catch(e){error(e);}};
+$('eip-stop').onclick=async()=>{try{await accept(await api('connectivity-stop'));}catch(e){error(e);}};
+$('eip-refresh').onclick=async()=>{try{await accept(await api('observe'));}catch(e){error(e);}};
+$('eip-trace').onclick=async()=>{try{download(await api('connectivity-trace'),'LogixLab-protocol-trace.json');}catch(e){error(e);}};
+connectivityPoll=setInterval(async()=>{if(state?.connectivity?.enabled&&!running&&!stepping){try{await accept(await api('observe'));}catch(_){}}},2000);

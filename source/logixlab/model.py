@@ -224,6 +224,8 @@ class Tag:
     alias: str = ""
     constant: bool = False
     problem: str = ""
+    external_access: str = 'Read/Write'
+    tag_class: str = 'Standard'
 
     @property
     def key(self): return f"Program:{self.scope}.{self.name}" if self.scope else self.name
@@ -311,7 +313,8 @@ class Project:
                     if item.get('CanBeNull','false').lower()=='true':aoi.problems.append('Nullable InOut is unsupported')
                     continue
                 ET.SubElement(members,'Member',Name=name,DataType=item.get('DataType',''),
-                              Dimension=item.get('Dimensions','0'),Hidden='false',AOILocal=str(usage=='Local').lower())
+                              Dimension=item.get('Dimensions','0'),Hidden='false',AOILocal=str(usage=='Local').lower(),
+                              ExternalAccess=item.get('ExternalAccess','None' if usage=='Local' else 'Read/Write'))
                 if usage in ('Input','Output') and (item.get('DataType','').upper() not in {'BOOL',*INT_BITS,'REAL'}
                                                     or dimensions(item.get('Dimensions','0'))):
                     aoi.problems.append('Input/Output parameters require supported atomic scalar types')
@@ -487,6 +490,8 @@ class Project:
     def _tag(self, e, scope):
         tag = Tag(e.get("Name"), e.get("DataType", ""), None, scope,
                   e.get("AliasFor", ""), e.get("Constant", "false").lower() == "true")
+        tag.external_access=e.get('ExternalAccess','Read/Write')
+        tag.tag_class=e.get('Class','Standard')
         try:
             if tag.alias: pass
             else:

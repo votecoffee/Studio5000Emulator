@@ -39,15 +39,26 @@ class Application:
         self.provenance = {}
         self.lock = threading.RLock()
         self.busy = False
+        self.generation = 0
+        self.endpoint = None
+        self.connectivity_lock = threading.RLock()
+
+    def connectivity(self,trace=False):
+        return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818',
+            'allow_writes':False,'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
+
+    def close(self):
+        with self.connectivity_lock:
+            if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
 
     def state(self):
-        if self.engine is None: return {"loaded": False, "converter": self.converter}
+        if self.engine is None: return {"loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
         return {"loaded": True, "name": e.project.name, "version": e.project.version,
                 "processor": e.project.processor, "scan": e.scan_count, "ms": e.time_ms,
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
                 'entry_routines':e.entries,
-                "fault": e.fault, "tags": e.memory.leaves(), "trace": e.trace,
+                "fault": e.fault, "tags": e.memory.leaves(), "trace": e.trace,'connectivity':self.connectivity(),
                 "changes": e.changes, "provenance": self.provenance,
                 "tasks": e.project.tasks, "converter": self.converter,
                 'aoi_instances':e.addons.instances,
@@ -60,6 +71,21 @@ class Application:
                              for r in list(e.project.routines.values())+[r for a in e.project.aois.values() for r in a.routines.values()]]}
 
     def command(self, action, data):
+        if action.startswith('connectivity-'):
+            with self.connectivity_lock:
+                if action=='connectivity-stop':
+                    self.close()
+                    with self.lock:return self.state()
+                if action=='connectivity-trace':return self.connectivity(True)
+                if action=='connectivity-start':
+                    from .ethernetip import Endpoint
+                    with self.lock:
+                        if self.engine is None or self.busy:raise ModelError('Load a project before starting connectivity')
+                    if self.endpoint and self.endpoint.enabled:raise ModelError('EtherNet/IP endpoint is already running')
+                    endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False))
+                    self.endpoint=endpoint.start()
+                    with self.lock:return self.state()
+                raise ModelError('Unknown connectivity action')
         if action in ("load", "demo"):
             with self.lock:
                 if self.busy: raise ModelError("An import is already running")
@@ -89,6 +115,7 @@ class Application:
                 engine = Engine(project)
                 with self.lock:
                     self.engine, self.provenance = engine, provenance
+                    self.generation += 1
                     return self.state()
             finally:
                 with self.lock: self.busy = False
@@ -102,13 +129,17 @@ class Application:
             e = self.engine
             if action == "configure":
                 self.engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
+                self.generation += 1
             elif action == "step":
                 count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
                 for _ in range(count): self.engine.step(dt)
             elif action == "write":
                 e.memory.write(data["tag"], data["value"])
-            elif action == "reset": self.engine = Engine(e.project, e.mode, e.selected)
+            elif action == "reset":
+                self.engine = Engine(e.project, e.mode, e.selected)
+                self.generation += 1
+            elif action == 'observe':pass
             elif action == "report":
                 report = e.report()
                 report["import_provenance"] = self.provenance
@@ -120,8 +151,10 @@ class Application:
             return self.state()
 
 
-def serve(port=0, open_browser=True, data_dir=None):
+def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None):
     app = Application(data_dir)
+    if sample:app.command('demo',{'sample':sample})
+    if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes})
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -186,7 +219,7 @@ def serve(port=0, open_browser=True, data_dir=None):
     if open_browser: webbrowser.open(url)
     try: server.serve_forever()
     except KeyboardInterrupt: pass
-    finally: server.server_close()
+    finally: app.close();server.server_close()
 
 
 def main():
@@ -194,11 +227,17 @@ def main():
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--data-dir")
+    parser.add_argument('--sample',choices=('ConveyorDemo','DataLab','AOILab','CallLab','TextLab'))
+    parser.add_argument('--eip-port',type=int,help='Start local research EtherNet/IP listener; requires --sample')
+    parser.add_argument('--eip-writes',action='store_true',help='Allow explicit atomic tag writes to the software model')
     parser.add_argument("--report", help="Generate a JSON coverage report for an L5X, without starting the app")
     args = parser.parse_args()
     if args.report:
         print(json.dumps(Engine(Project(args.report)).report(), indent=2))
-    else: serve(args.port, not args.no_browser, args.data_dir)
+    else:
+        if args.eip_port is not None and not args.sample:parser.error('--eip-port requires --sample')
+        if args.eip_writes and args.eip_port is None:parser.error('--eip-writes requires --eip-port')
+        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample)
 
 
 if __name__ == "__main__": main()
