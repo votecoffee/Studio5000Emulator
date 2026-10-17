@@ -110,6 +110,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
 | EtherNet/IP | Loopback discovery, sessions, Class 3 messaging and atomic tag services |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
+| Structured reads | Numeric UDT templates, nested records, arrays and fragmented reads |
 | Studio online | Go Online, project correlation, upload/download and online edits pending |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
@@ -140,7 +141,7 @@ conventions.
 ## Roadmap
 
 - Expand supported instructions, data types and execution semantics.
-- Implement additional controller metadata and structure/template services.
+- Expand UDT packing, structured writes and controller metadata services.
 - Establish a reproducible native Studio connection and project handshake.
 - Demonstrate online monitoring before advertising Studio Go Online support.
 

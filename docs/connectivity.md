@@ -10,6 +10,8 @@ In the app, load a project and open **Connectivity**. Choose an identity profile
 and port, then select **Start endpoint**. **Load network lab** opens a public
 fixture with a 1,200-element DINT array, ControlWord, Command and read-only
 Observed. Each modeled scan copies Command to Observed.
+**Load structure lab** opens nested numeric UDTs for template discovery and
+fragmented structure reads. Each scan copies Command into Machine.Axis.
 
 The default address is `127.0.0.1:44818`, with TCP and UDP listeners and a modeled
 backplane route of port 1, slot 0. The target never forwards traffic externally.
@@ -38,7 +40,9 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
 | Objects | Identity attributes, Message Router class inventory and controller name |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
+| Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
+| Structured access | Bounded numeric UDT reads, including nested structures and arrays |
 | Transfers | `0x4C` read, `0x4D` write, `0x52` fragmented read, `0x53` fragmented write |
 | Integer masks | `0x4E` Read Modify Write, applying OR then AND masks |
 | Multiple service | Bounded Multiple Service Packets with independent child operations |
@@ -49,9 +53,35 @@ and Safety program tags are not exposed. Firmware-internal attributes 3, 5 and 6
 remain unsupported, so full native tag-upload initialization is still pending.
 
 Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
-ULINT and REAL. Whole structures/STRING transfers, template/UDT layout services,
-packed BOOL arrays and fragmented aggregate writes remain unsupported. Atomic
-STRING members can be addressed individually.
+ULINT and REAL. Whole STRING transfers, packed BOOL arrays and aggregate writes
+remain unsupported. Atomic STRING members can be addressed individually.
+
+## Structured reads
+
+Explicit `User` UDTs in `NoFamily` may contain DINT, UDINT and REAL members,
+nested supported UDTs and one-dimensional member arrays. These four-byte fields
+use a contiguous little-endian model layout. Root arrays may have up to three
+dimensions. Symbol types link to template instances; templates describe member
+types, offsets, names, structure size and the handle returned in structured reads.
+See the [data access manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf),
+chapter 2, for the protocol formats.
+
+The model limits each layout and requested transfer to 32 KiB, nesting to eight
+levels, each type to 256 members and member arrays to 4,096 elements. Hidden,
+private, overlaid, packed, inferred-only, predefined and AOI layouts are excluded.
+Other atomic widths and BOOL/STRING fields inside whole UDT transfers are pending.
+Eligible atomic members remain accessible separately.
+
+Template IDs and CRC-derived handles belong to this software model and are not
+native compiled type identifiers. Only templates reachable through externally
+accessible tags are exposed. Unknown member values reject the requested read;
+unknown backing data is never replaced with zeroes. Aggregate writes are rejected.
+Reset and import invalidate sessions; project replacement rebuilds the catalog.
+
+The independent structure probe uses the client's template parser and value
+codec over a negotiated 256-byte Class 3 connection to exercise fragmentation.
+Its tag-cache adapter uses supported symbol attributes. This does not establish
+native firmware-address tag upload, native UDT layout parity or Studio Go Online.
 
 ## Write semantics
 

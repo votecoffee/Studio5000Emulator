@@ -19,6 +19,7 @@ from .runtime import Engine
 from . import __version__
 
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab')
 
 
 def serialize_nodes(nodes):
@@ -93,7 +94,7 @@ class Application:
             try:
                 if action == "demo":
                     sample=data.get('sample','ConveyorDemo')
-                    if sample not in ('ConveyorDemo','DataLab','AOILab','CallLab','TextLab','NetworkLab'):raise ModelError('Unknown bundled demo')
+                    if sample not in SAMPLES:raise ModelError('Unknown bundled demo')
                     source = BASE / "samples" / (sample+'.L5X')
                     provenance = {"method": "Bundled v35 L5X demo"}
                 else:
@@ -232,7 +233,7 @@ def main():
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--data-dir")
-    parser.add_argument('--sample',choices=('ConveyorDemo','DataLab','AOILab','CallLab','TextLab','NetworkLab'))
+    parser.add_argument('--sample',choices=SAMPLES)
     parser.add_argument('--eip-port',type=int,help='Start local research EtherNet/IP listener; requires --sample')
     parser.add_argument('--eip-writes',action='store_true',help='Allow explicit atomic tag writes to the software model')
     parser.add_argument('--eip-profile',choices=('research','logix-v35-l85e'),default='research')

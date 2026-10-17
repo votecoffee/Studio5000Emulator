@@ -1,0 +1,714 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="StructureLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="StructureLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <Description>LogixLab fixture: nested numeric UDT templates and fragmented structure reads.</Description>
+    <DataTypes>
+      <DataType Name="AxisState" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Command" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Actual" DataType="REAL" Dimension="0" Radix="Float" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Samples" DataType="DINT" Dimension="8" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+      <DataType Name="MachineState" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Axis" DataType="AxisState" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="History" DataType="AxisState" Dimension="12" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Counters" DataType="UDINT" Dimension="4" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Command" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="Machine" TagType="Base" DataType="MachineState" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <Structure DataType="MachineState">
+            <StructureMember DataType="AxisState" Name="Axis">
+              <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="10" />
+              <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="10.5" />
+              <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                <Element Index="[0]" Value="10" />
+                <Element Index="[1]" Value="11" />
+                <Element Index="[2]" Value="12" />
+                <Element Index="[3]" Value="13" />
+                <Element Index="[4]" Value="14" />
+                <Element Index="[5]" Value="15" />
+                <Element Index="[6]" Value="16" />
+                <Element Index="[7]" Value="17" />
+              </ArrayMember>
+            </StructureMember>
+            <ArrayMember Name="History" DataType="AxisState" Dimensions="12">
+              <Element Index="[0]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="11" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="11.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="11" />
+                    <Element Index="[1]" Value="12" />
+                    <Element Index="[2]" Value="13" />
+                    <Element Index="[3]" Value="14" />
+                    <Element Index="[4]" Value="15" />
+                    <Element Index="[5]" Value="16" />
+                    <Element Index="[6]" Value="17" />
+                    <Element Index="[7]" Value="18" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[1]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="12" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="12.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="12" />
+                    <Element Index="[1]" Value="13" />
+                    <Element Index="[2]" Value="14" />
+                    <Element Index="[3]" Value="15" />
+                    <Element Index="[4]" Value="16" />
+                    <Element Index="[5]" Value="17" />
+                    <Element Index="[6]" Value="18" />
+                    <Element Index="[7]" Value="19" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[2]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="13" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="13.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="13" />
+                    <Element Index="[1]" Value="14" />
+                    <Element Index="[2]" Value="15" />
+                    <Element Index="[3]" Value="16" />
+                    <Element Index="[4]" Value="17" />
+                    <Element Index="[5]" Value="18" />
+                    <Element Index="[6]" Value="19" />
+                    <Element Index="[7]" Value="20" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[3]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="14" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="14.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="14" />
+                    <Element Index="[1]" Value="15" />
+                    <Element Index="[2]" Value="16" />
+                    <Element Index="[3]" Value="17" />
+                    <Element Index="[4]" Value="18" />
+                    <Element Index="[5]" Value="19" />
+                    <Element Index="[6]" Value="20" />
+                    <Element Index="[7]" Value="21" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[4]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="15" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="15.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="15" />
+                    <Element Index="[1]" Value="16" />
+                    <Element Index="[2]" Value="17" />
+                    <Element Index="[3]" Value="18" />
+                    <Element Index="[4]" Value="19" />
+                    <Element Index="[5]" Value="20" />
+                    <Element Index="[6]" Value="21" />
+                    <Element Index="[7]" Value="22" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[5]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="16" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="16.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="16" />
+                    <Element Index="[1]" Value="17" />
+                    <Element Index="[2]" Value="18" />
+                    <Element Index="[3]" Value="19" />
+                    <Element Index="[4]" Value="20" />
+                    <Element Index="[5]" Value="21" />
+                    <Element Index="[6]" Value="22" />
+                    <Element Index="[7]" Value="23" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[6]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="17" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="17.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="17" />
+                    <Element Index="[1]" Value="18" />
+                    <Element Index="[2]" Value="19" />
+                    <Element Index="[3]" Value="20" />
+                    <Element Index="[4]" Value="21" />
+                    <Element Index="[5]" Value="22" />
+                    <Element Index="[6]" Value="23" />
+                    <Element Index="[7]" Value="24" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[7]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="18" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="18.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="18" />
+                    <Element Index="[1]" Value="19" />
+                    <Element Index="[2]" Value="20" />
+                    <Element Index="[3]" Value="21" />
+                    <Element Index="[4]" Value="22" />
+                    <Element Index="[5]" Value="23" />
+                    <Element Index="[6]" Value="24" />
+                    <Element Index="[7]" Value="25" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[8]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="19" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="19.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="19" />
+                    <Element Index="[1]" Value="20" />
+                    <Element Index="[2]" Value="21" />
+                    <Element Index="[3]" Value="22" />
+                    <Element Index="[4]" Value="23" />
+                    <Element Index="[5]" Value="24" />
+                    <Element Index="[6]" Value="25" />
+                    <Element Index="[7]" Value="26" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[9]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="20" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="20.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="20" />
+                    <Element Index="[1]" Value="21" />
+                    <Element Index="[2]" Value="22" />
+                    <Element Index="[3]" Value="23" />
+                    <Element Index="[4]" Value="24" />
+                    <Element Index="[5]" Value="25" />
+                    <Element Index="[6]" Value="26" />
+                    <Element Index="[7]" Value="27" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[10]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="21" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="21.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="21" />
+                    <Element Index="[1]" Value="22" />
+                    <Element Index="[2]" Value="23" />
+                    <Element Index="[3]" Value="24" />
+                    <Element Index="[4]" Value="25" />
+                    <Element Index="[5]" Value="26" />
+                    <Element Index="[6]" Value="27" />
+                    <Element Index="[7]" Value="28" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+              <Element Index="[11]">
+                <Structure DataType="AxisState">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="22" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="22.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="22" />
+                    <Element Index="[1]" Value="23" />
+                    <Element Index="[2]" Value="24" />
+                    <Element Index="[3]" Value="25" />
+                    <Element Index="[4]" Value="26" />
+                    <Element Index="[5]" Value="27" />
+                    <Element Index="[6]" Value="28" />
+                    <Element Index="[7]" Value="29" />
+                  </ArrayMember>
+                </Structure>
+              </Element>
+            </ArrayMember>
+            <ArrayMember Name="Counters" DataType="UDINT" Dimensions="4">
+              <Element Index="[0]" Value="10" />
+              <Element Index="[1]" Value="11" />
+              <Element Index="[2]" Value="12" />
+              <Element Index="[3]" Value="13" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Machines" TagType="Base" DataType="MachineState" ExternalAccess="Read/Write" Dimensions="2">
+        <Data Format="Decorated">
+          <Array DataType="MachineState" Dimensions="2">
+            <Element Index="[0]">
+              <Structure DataType="MachineState">
+                <StructureMember DataType="AxisState" Name="Axis">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="0" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="0.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="1" />
+                    <Element Index="[2]" Value="2" />
+                    <Element Index="[3]" Value="3" />
+                    <Element Index="[4]" Value="4" />
+                    <Element Index="[5]" Value="5" />
+                    <Element Index="[6]" Value="6" />
+                    <Element Index="[7]" Value="7" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="History" DataType="AxisState" Dimensions="12">
+                  <Element Index="[0]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="1" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="1.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="1" />
+                        <Element Index="[1]" Value="2" />
+                        <Element Index="[2]" Value="3" />
+                        <Element Index="[3]" Value="4" />
+                        <Element Index="[4]" Value="5" />
+                        <Element Index="[5]" Value="6" />
+                        <Element Index="[6]" Value="7" />
+                        <Element Index="[7]" Value="8" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="2" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="2.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="2" />
+                        <Element Index="[1]" Value="3" />
+                        <Element Index="[2]" Value="4" />
+                        <Element Index="[3]" Value="5" />
+                        <Element Index="[4]" Value="6" />
+                        <Element Index="[5]" Value="7" />
+                        <Element Index="[6]" Value="8" />
+                        <Element Index="[7]" Value="9" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="3" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="3.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="3" />
+                        <Element Index="[1]" Value="4" />
+                        <Element Index="[2]" Value="5" />
+                        <Element Index="[3]" Value="6" />
+                        <Element Index="[4]" Value="7" />
+                        <Element Index="[5]" Value="8" />
+                        <Element Index="[6]" Value="9" />
+                        <Element Index="[7]" Value="10" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="4" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="4.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="4" />
+                        <Element Index="[1]" Value="5" />
+                        <Element Index="[2]" Value="6" />
+                        <Element Index="[3]" Value="7" />
+                        <Element Index="[4]" Value="8" />
+                        <Element Index="[5]" Value="9" />
+                        <Element Index="[6]" Value="10" />
+                        <Element Index="[7]" Value="11" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[4]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="5" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="5.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="5" />
+                        <Element Index="[1]" Value="6" />
+                        <Element Index="[2]" Value="7" />
+                        <Element Index="[3]" Value="8" />
+                        <Element Index="[4]" Value="9" />
+                        <Element Index="[5]" Value="10" />
+                        <Element Index="[6]" Value="11" />
+                        <Element Index="[7]" Value="12" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[5]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="6" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="6.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="6" />
+                        <Element Index="[1]" Value="7" />
+                        <Element Index="[2]" Value="8" />
+                        <Element Index="[3]" Value="9" />
+                        <Element Index="[4]" Value="10" />
+                        <Element Index="[5]" Value="11" />
+                        <Element Index="[6]" Value="12" />
+                        <Element Index="[7]" Value="13" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[6]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="7" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="7.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="7" />
+                        <Element Index="[1]" Value="8" />
+                        <Element Index="[2]" Value="9" />
+                        <Element Index="[3]" Value="10" />
+                        <Element Index="[4]" Value="11" />
+                        <Element Index="[5]" Value="12" />
+                        <Element Index="[6]" Value="13" />
+                        <Element Index="[7]" Value="14" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[7]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="8" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="8.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="8" />
+                        <Element Index="[1]" Value="9" />
+                        <Element Index="[2]" Value="10" />
+                        <Element Index="[3]" Value="11" />
+                        <Element Index="[4]" Value="12" />
+                        <Element Index="[5]" Value="13" />
+                        <Element Index="[6]" Value="14" />
+                        <Element Index="[7]" Value="15" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[8]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="9" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="9.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="9" />
+                        <Element Index="[1]" Value="10" />
+                        <Element Index="[2]" Value="11" />
+                        <Element Index="[3]" Value="12" />
+                        <Element Index="[4]" Value="13" />
+                        <Element Index="[5]" Value="14" />
+                        <Element Index="[6]" Value="15" />
+                        <Element Index="[7]" Value="16" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[9]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="10" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="10.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="10" />
+                        <Element Index="[1]" Value="11" />
+                        <Element Index="[2]" Value="12" />
+                        <Element Index="[3]" Value="13" />
+                        <Element Index="[4]" Value="14" />
+                        <Element Index="[5]" Value="15" />
+                        <Element Index="[6]" Value="16" />
+                        <Element Index="[7]" Value="17" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[10]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="11" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="11.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="11" />
+                        <Element Index="[1]" Value="12" />
+                        <Element Index="[2]" Value="13" />
+                        <Element Index="[3]" Value="14" />
+                        <Element Index="[4]" Value="15" />
+                        <Element Index="[5]" Value="16" />
+                        <Element Index="[6]" Value="17" />
+                        <Element Index="[7]" Value="18" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[11]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="12" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="12.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="12" />
+                        <Element Index="[1]" Value="13" />
+                        <Element Index="[2]" Value="14" />
+                        <Element Index="[3]" Value="15" />
+                        <Element Index="[4]" Value="16" />
+                        <Element Index="[5]" Value="17" />
+                        <Element Index="[6]" Value="18" />
+                        <Element Index="[7]" Value="19" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+                <ArrayMember Name="Counters" DataType="UDINT" Dimensions="4">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="1" />
+                  <Element Index="[2]" Value="2" />
+                  <Element Index="[3]" Value="3" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="MachineState">
+                <StructureMember DataType="AxisState" Name="Axis">
+                  <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="100" />
+                  <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="100.5" />
+                  <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                    <Element Index="[0]" Value="100" />
+                    <Element Index="[1]" Value="101" />
+                    <Element Index="[2]" Value="102" />
+                    <Element Index="[3]" Value="103" />
+                    <Element Index="[4]" Value="104" />
+                    <Element Index="[5]" Value="105" />
+                    <Element Index="[6]" Value="106" />
+                    <Element Index="[7]" Value="107" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="History" DataType="AxisState" Dimensions="12">
+                  <Element Index="[0]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="101" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="101.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="101" />
+                        <Element Index="[1]" Value="102" />
+                        <Element Index="[2]" Value="103" />
+                        <Element Index="[3]" Value="104" />
+                        <Element Index="[4]" Value="105" />
+                        <Element Index="[5]" Value="106" />
+                        <Element Index="[6]" Value="107" />
+                        <Element Index="[7]" Value="108" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[1]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="102" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="102.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="102" />
+                        <Element Index="[1]" Value="103" />
+                        <Element Index="[2]" Value="104" />
+                        <Element Index="[3]" Value="105" />
+                        <Element Index="[4]" Value="106" />
+                        <Element Index="[5]" Value="107" />
+                        <Element Index="[6]" Value="108" />
+                        <Element Index="[7]" Value="109" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[2]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="103" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="103.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="103" />
+                        <Element Index="[1]" Value="104" />
+                        <Element Index="[2]" Value="105" />
+                        <Element Index="[3]" Value="106" />
+                        <Element Index="[4]" Value="107" />
+                        <Element Index="[5]" Value="108" />
+                        <Element Index="[6]" Value="109" />
+                        <Element Index="[7]" Value="110" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[3]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="104" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="104.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="104" />
+                        <Element Index="[1]" Value="105" />
+                        <Element Index="[2]" Value="106" />
+                        <Element Index="[3]" Value="107" />
+                        <Element Index="[4]" Value="108" />
+                        <Element Index="[5]" Value="109" />
+                        <Element Index="[6]" Value="110" />
+                        <Element Index="[7]" Value="111" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[4]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="105" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="105.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="105" />
+                        <Element Index="[1]" Value="106" />
+                        <Element Index="[2]" Value="107" />
+                        <Element Index="[3]" Value="108" />
+                        <Element Index="[4]" Value="109" />
+                        <Element Index="[5]" Value="110" />
+                        <Element Index="[6]" Value="111" />
+                        <Element Index="[7]" Value="112" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[5]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="106" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="106.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="106" />
+                        <Element Index="[1]" Value="107" />
+                        <Element Index="[2]" Value="108" />
+                        <Element Index="[3]" Value="109" />
+                        <Element Index="[4]" Value="110" />
+                        <Element Index="[5]" Value="111" />
+                        <Element Index="[6]" Value="112" />
+                        <Element Index="[7]" Value="113" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[6]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="107" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="107.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="107" />
+                        <Element Index="[1]" Value="108" />
+                        <Element Index="[2]" Value="109" />
+                        <Element Index="[3]" Value="110" />
+                        <Element Index="[4]" Value="111" />
+                        <Element Index="[5]" Value="112" />
+                        <Element Index="[6]" Value="113" />
+                        <Element Index="[7]" Value="114" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[7]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="108" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="108.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="108" />
+                        <Element Index="[1]" Value="109" />
+                        <Element Index="[2]" Value="110" />
+                        <Element Index="[3]" Value="111" />
+                        <Element Index="[4]" Value="112" />
+                        <Element Index="[5]" Value="113" />
+                        <Element Index="[6]" Value="114" />
+                        <Element Index="[7]" Value="115" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[8]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="109" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="109.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="109" />
+                        <Element Index="[1]" Value="110" />
+                        <Element Index="[2]" Value="111" />
+                        <Element Index="[3]" Value="112" />
+                        <Element Index="[4]" Value="113" />
+                        <Element Index="[5]" Value="114" />
+                        <Element Index="[6]" Value="115" />
+                        <Element Index="[7]" Value="116" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[9]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="110" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="110.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="110" />
+                        <Element Index="[1]" Value="111" />
+                        <Element Index="[2]" Value="112" />
+                        <Element Index="[3]" Value="113" />
+                        <Element Index="[4]" Value="114" />
+                        <Element Index="[5]" Value="115" />
+                        <Element Index="[6]" Value="116" />
+                        <Element Index="[7]" Value="117" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[10]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="111" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="111.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="111" />
+                        <Element Index="[1]" Value="112" />
+                        <Element Index="[2]" Value="113" />
+                        <Element Index="[3]" Value="114" />
+                        <Element Index="[4]" Value="115" />
+                        <Element Index="[5]" Value="116" />
+                        <Element Index="[6]" Value="117" />
+                        <Element Index="[7]" Value="118" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                  <Element Index="[11]">
+                    <Structure DataType="AxisState">
+                      <DataValueMember Name="Command" DataType="DINT" Radix="Decimal" Value="112" />
+                      <DataValueMember Name="Actual" DataType="REAL" Radix="Float" Value="112.5" />
+                      <ArrayMember Name="Samples" DataType="DINT" Dimensions="8">
+                        <Element Index="[0]" Value="112" />
+                        <Element Index="[1]" Value="113" />
+                        <Element Index="[2]" Value="114" />
+                        <Element Index="[3]" Value="115" />
+                        <Element Index="[4]" Value="116" />
+                        <Element Index="[5]" Value="117" />
+                        <Element Index="[6]" Value="118" />
+                        <Element Index="[7]" Value="119" />
+                      </ArrayMember>
+                    </Structure>
+                  </Element>
+                </ArrayMember>
+                <ArrayMember Name="Counters" DataType="UDINT" Dimensions="4">
+                  <Element Index="[0]" Value="100" />
+                  <Element Index="[1]" Value="101" />
+                  <Element Index="[2]" Value="102" />
+                  <Element Index="[3]" Value="103" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>MOV(Command,Machine.Axis.Command)MOV(Command,Machine.Axis.Actual);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

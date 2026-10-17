@@ -16,8 +16,10 @@ from logixlab.server import Application
 from logixlab.ethernetip import Endpoint
 
 
-def atomic_catalog(driver):
+def documented_catalog(driver, structures=False):
     from pycomm3.cip import Array,DataTypes
+    if structures and driver._cache is None:
+        driver._cache={name:{} for name in ('tag_name:id','id:struct','handle:id','id:udt')}
     tags={};start=0
     for _ in range(100):
         result=driver.generic_message(service=0x55,class_code=0x6B,instance=start,
@@ -29,17 +31,22 @@ def atomic_catalog(driver):
             name=data[pos:pos+length].decode('ascii');pos+=length
             code,*dimensions,access=struct.unpack_from('<HIIIB',data,pos);pos+=15
             assert instance>previous;previous=instance
-            dim=(code>>13)&3;dtype=DataTypes.get(code&0xFF);atom=DataTypes.get(dtype)
-            assert atom is not None and not code&0x8000
+            dim=(code>>13)&3;structured=bool(code&0x8000)
+            if structured:
+                assert structures,'Structured tag encountered in an atomic-only catalog'
+                dtype=driver._get_data_type(code&0xFFF,code);atom=dtype['type_class'];dtype_name=dtype['name']
+            else:
+                dtype=DataTypes.get(code&0xFF);atom=DataTypes.get(dtype);dtype_name=dtype
+                assert atom is not None
             count=1
             for size in dimensions[:dim]:count*=size
-            tags[name]={'tag_name':name,'instance_id':instance,'tag_type':'atomic',
-                'data_type':dtype,'data_type_name':dtype,'dim':dim,'dimensions':dimensions,
+            tags[name]={'tag_name':name,'instance_id':instance,'tag_type':'struct' if structured else 'atomic',
+                'data_type':dtype,'data_type_name':dtype_name,'dim':dim,'dimensions':dimensions,
                 'external_access':{0:'Read/Write',2:'Read Only'}[access],
                 'type_class':Array(length_=count,element_type_=atom) if dim else atom}
         if packet.service_status==0:return tags
         assert previous>=start,'Enumeration did not advance';start=previous+1
-    raise AssertionError('Atomic catalog pagination bound exceeded')
+    raise AssertionError('Documented catalog pagination bound exceeded')
 
 
 def check(target,advance=None):
@@ -48,7 +55,7 @@ def check(target,advance=None):
     if not ipaddress.ip_address(target.split(':')[0]).is_loopback:raise ValueError('Only loopback targets are accepted')
     with LogixDriver(target+'/0',init_tags=False) as driver:
         assert driver.name=='NetworkLab',driver.info
-        tags=atomic_catalog(driver)
+        tags=documented_catalog(driver)
         assert set(tags)=={'Command','ControlWord','Observed','Transfer'}
         assert tags['Transfer']['dimensions']==[1200,0,0]
         driver._tags=tags  # Test adapter; standard native tag upload remains pending.

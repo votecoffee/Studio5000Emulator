@@ -18,6 +18,7 @@ from collections import Counter, deque
 from dataclasses import dataclass, field
 from .model import ModelError
 from .identity import Identity
+from .templates import Catalog, MAX_BYTES
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -137,7 +138,13 @@ class Session:
 
 
 class Router:
-    def __init__(self,app,endpoint):self.app=app;self.endpoint=endpoint
+    def __init__(self,app,endpoint):
+        self.app=app;self.endpoint=endpoint;self._catalog=None
+
+    def templates(self):
+        project=self.app.engine.project
+        if self._catalog is None or self._catalog.project is not project:self._catalog=Catalog(project)
+        return self._catalog
 
     def identity_attributes(self):
         return self.endpoint.identity.attributes()
@@ -172,10 +179,12 @@ class Router:
                     value=value[part]
                 dims=[]
                 while isinstance(value,list):dims.append(len(value));value=value[0] if value else None
-                if dtype not in TYPES or dtype=='BOOL' and dims or len(dims)>3:continue
+                template=self.templates().for_type(dtype) if dtype not in TYPES else None
+                if dtype not in TYPES and template is None or dtype=='BOOL' and dims or len(dims)>3:continue
                 try:self.access(tag.key,True);access=0
                 except (CIPError,ModelError):access=2
-                result.append({'id':len(result)+1,'name':tag.name,'ref':tag.key,'type':TYPES[dtype][0]|(len(dims)<<13),
+                code=(0x8000|template.instance) if template else TYPES[dtype][0]
+                result.append({'id':len(result)+1,'name':tag.name,'ref':tag.key,'type':code|(len(dims)<<13),
                                'dimensions':(dims+[0,0,0])[:3],'external_access':access})
             except ModelError:continue
             except CIPError:continue
@@ -235,21 +244,62 @@ class Router:
             value=memory.read(ref) if any(isinstance(p,tuple) for p in parts) else memory.at(key,parts)
             if count!=1 or isinstance(value,list):raise CIPError(8,'Packed BOOL arrays are not implemented')
             return dtype,[ref]
+        if count==1 and not isinstance(memory.at(key,parts),list):return dtype,[ref]
         key,paths,dtype=memory.region(ref,count)
         return dtype,[memory.address(key,p) for p in paths]
 
     def read_tag(self,path,data,fragment=False,limit=REPLY_LIMIT):
         exact(data,6 if fragment else 2);count=struct.unpack_from('<H',data)[0]
-        dtype,refs=self.region(self.reference(path),count)
-        fmt='<'+TYPES[dtype][1];encoded=b''
-        for ref in refs:
-            value=self.app.engine.memory.read(ref)
-            if value is None or isinstance(value,(dict,list)):raise CIPError(0x0C,'Unknown or aggregate data')
-            encoded+=struct.pack(fmt,int(value) if dtype=='BOOL' else value)
+        if not 1<=count<=4096:raise CIPError(3,'Element count must be 1..4096')
+        ref=self.reference(path);_,_,dtype=self.access(ref)
+        template=self.templates().for_type(dtype) if dtype not in TYPES else None
+        if template:
+            if count*template.size>MAX_BYTES:raise CIPError(3,'Structured transfer exceeds 32768 bytes')
+            memory=self.app.engine.memory;key,parts,_=memory.resolve(ref);value=memory.at(key,parts)
+            if isinstance(value,dict) and (not parts or not isinstance(parts[-1],int)):
+                if count!=1:raise CIPError(3,'Scalar structure count must be one')
+                paths=[parts]
+            else:
+                start=ref
+                while isinstance(value,list):
+                    if not value:raise CIPError(0x0C,'Empty structured array')
+                    start+='[0]';value=value[0]
+                key,paths,_=memory.region(start,count)
+            def read_member(member_ref):
+                self.access(member_ref)
+                return memory.read(member_ref)
+            encoded=b''.join(self.templates().encode(template,memory.address(key,p),read_member) for p in paths)
+            type_data=struct.pack('<HH',0x02A0,template.handle)
+        else:
+            dtype,refs=self.region(ref,count)
+            fmt='<'+TYPES[dtype][1];encoded=b''
+            for ref in refs:
+                value=self.app.engine.memory.read(ref)
+                if value is None or isinstance(value,(dict,list)):raise CIPError(0x0C,'Unknown or aggregate data')
+                encoded+=struct.pack(fmt,int(value) if dtype=='BOOL' else value)
+            type_data=struct.pack('<H',TYPES[dtype][0])
         offset=struct.unpack_from('<I',data,2)[0] if fragment else 0
         if offset>=len(encoded):raise CIPError(0x20,'Fragment offset outside data')
-        chunk=encoded[offset:offset+limit-6]
-        return 6 if offset+len(chunk)<len(encoded) else 0,struct.pack('<H',TYPES[dtype][0])+chunk
+        capacity=limit-4-len(type_data)
+        if capacity<1:raise CIPError(0x1B,'Response cannot hold a tag data byte')
+        chunk=encoded[offset:offset+capacity]
+        return 6 if offset+len(chunk)<len(encoded) else 0,type_data+chunk
+
+    def template_service(self,service,path,data,limit):
+        if path.symbols:raise CIPError(4,'Template paths do not take symbols')
+        scopes=['']+[n for n,p in self.app.engine.project.programs.items() if p['class']=='Standard']
+        instances={s['type']&0xFFF for scope in scopes for s in self.symbols(scope) if s['type']&0x8000}
+        template=self.templates().closure(instances).get(path.instance)
+        if template is None:raise CIPError(5,'Unknown or unexposed template instance')
+        if service in (3,0x0E):return self.attribute_read(service,path,data,template.attributes())
+        if service!=0x4C:raise CIPError(8,'Unsupported template service')
+        if path.attribute is not None:raise CIPError(4,'Template reads do not take an attribute')
+        exact(data,6);offset,count=struct.unpack('<IH',data)
+        if not count:raise CIPError(3,'Template byte count must be positive')
+        if offset>=len(template.definition):raise CIPError(0x20,'Template offset outside definition')
+        if limit<=4:raise CIPError(0x1B,'Response cannot hold a template data byte')
+        end=min(offset+count,len(template.definition));chunk=template.definition[offset:min(end,offset+limit-4)]
+        return 6 if offset+len(chunk)<end else 0,chunk
 
     def store_atomic(self,dtype,refs,values):
         if dtype=='BOOL' and any(v not in (0,1) for v in values):raise CIPError(9,'BOOL value must be 0 or 1')
@@ -381,7 +431,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<HHHHHH',5,1,2,6,0x64,0x6B)
+            classes=struct.pack('<HHHHHHH',6,1,2,6,0x64,0x6B,0x6C)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
         if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service==1:
@@ -399,6 +449,7 @@ class Router:
             if base>limit-4:raise CIPError(0x1B,'Multiple-service response exceeds model limit')
             return (0x1E if any(r[2] for r in results) else 0),struct.pack('<H'+'H'*count,count,*positions)+b''.join(results)
         if path.class_id==0x6B and service==0x55:return self.enumerate_symbols(path,data,limit)
+        if path.class_id==0x6C:return self.template_service(service,path,data,limit)
         if path.class_id==0x6B and service in (3,0x0E):
             scope=self.symbol_scope(path)
             symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)

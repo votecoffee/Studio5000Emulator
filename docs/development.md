@@ -17,7 +17,7 @@ From `source/`:
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
 
-The bundled Conveyor, Data, AOI, Call, Text and Network labs are public L5X
+The bundled Conveyor, Data, AOI, Call, Text, Network and Structure labs are public L5X
 fixtures. Native ACD inputs and generated ACD variants remain local.
 
 ## Optional protocol probes
@@ -32,6 +32,7 @@ Set-Location source
 py -3.13 -X utf8 tests/interop_pycomm3.py --out ../.local/checks/atomic.json
 py -3.13 -X utf8 tests/interop_logix_identity.py --out ../.local/checks/identity.json
 py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ../.local/checks/transfers.json
+py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structures.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -40,6 +41,11 @@ distinct from native firmware-address tag upload. It exercises automatic array
 fragmentation and generic CIP mask writes. The installed client's malformed
 single-scalar and high-level mask request paths are rejected by the endpoint;
 the acceptance script uses valid client paths and records that distinction.
+
+The structure probe creates an isolated read-only Structure Lab endpoint. It
+uses the installed client's template parser to discover nested UDTs, decode
+records and arrays, fragment reads over a 256-byte Class 3 connection, and observe
+a modeled scan. It does not exercise native firmware-address tag upload.
 
 Live write probes require an explicit `--write`, a loopback target and endpoint
 writes enabled. The transfer probe expects Network Lab and restores changed
