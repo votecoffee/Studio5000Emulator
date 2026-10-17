@@ -43,6 +43,7 @@ class Application:
         self.generation = 0
         self.endpoint = None
         self.connectivity_lock = threading.RLock()
+        self.desktop = {'tray_available': False, 'tray_error': None}
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818',
@@ -55,9 +56,10 @@ class Application:
             if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
 
     def state(self):
-        if self.engine is None: return {"loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
+        metadata = {'app_version': __version__, 'desktop': dict(self.desktop)}
+        if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
-        return {"loaded": True, "name": e.project.name, "version": e.project.version,
+        return {**metadata, "loaded": True, "name": e.project.name, "version": e.project.version,
                 "processor": e.project.processor, "scan": e.scan_count, "ms": e.time_ms,
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
                 'entry_routines':e.entries,
@@ -159,7 +161,7 @@ class Application:
             return self.state()
 
 
-def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research'):
+def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True):
     app = Application(data_dir)
     if sample:app.command('demo',{'sample':sample})
     if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile})
@@ -199,7 +201,10 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
                       "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css")}
             if path not in assets: return self.send(404, {"error": "Not found"})
             name, mime = assets[path]
-            self.send(200, (BASE / "web" / name).read_bytes(), mime)
+            content = (BASE / "web" / name).read_bytes()
+            if name == 'index.html':
+                content = content.replace(b'__LOGIXLAB_VERSION__', __version__.encode('ascii'))
+            self.send(200, content, mime)
 
         def do_POST(self):
             origin = self.headers.get("Origin")
@@ -222,18 +227,32 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{server.server_port}"
-    (app.data_dir / "last-session.json").write_text(json.dumps({"url": url, "pid": os.getpid()}), encoding="utf-8")
-    if sys.stdout: print(f"LogixLab {__version__}: {url}", flush=True)
-    if open_browser: webbrowser.open(url)
-    try: server.serve_forever()
+    tray_icon = None
+    try:
+        if tray:
+            from .desktop import TrayIcon
+            def quit_from_tray():
+                threading.Thread(target=server.shutdown, daemon=True).start()
+            tray_icon = TrayIcon(url, quit_from_tray)
+            tray_icon.start()
+            app.desktop = {'tray_available': tray_icon.available, 'tray_error': tray_icon.error}
+        (app.data_dir / "last-session.json").write_text(json.dumps({"url": url, "pid": os.getpid(),
+            'app_version': __version__, **app.desktop}), encoding="utf-8")
+        if sys.stdout: print(f"LogixLab {__version__}: {url}", flush=True)
+        if open_browser: webbrowser.open(url)
+        server.serve_forever()
     except KeyboardInterrupt: pass
-    finally: app.close();server.server_close()
+    finally:
+        app.close()
+        if tray_icon: tray_icon.stop()
+        server.server_close()
 
 
 def main():
     parser = argparse.ArgumentParser(description="LogixLab offline v35 ladder simulator")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument('--no-tray', action='store_true', help='Disable the Windows notification-area icon')
     parser.add_argument("--data-dir")
     parser.add_argument('--sample',choices=SAMPLES)
     parser.add_argument('--eip-port',type=int,help='Start local research EtherNet/IP listener; requires --sample')
@@ -247,7 +266,7 @@ def main():
         if args.eip_port is not None and not args.sample:parser.error('--eip-port requires --sample')
         if args.eip_writes and args.eip_port is None:parser.error('--eip-writes requires --eip-port')
         if args.eip_profile!='research' and args.eip_port is None:parser.error('--eip-profile requires --eip-port')
-        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile)
+        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray)
 
 
 if __name__ == "__main__": main()

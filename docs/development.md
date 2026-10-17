@@ -3,6 +3,11 @@
 The tested development environment is Windows with Python 3.13. The application
 runtime uses the standard library. UI assets are plain HTML, CSS and JavaScript.
 
+The running version comes from `source/logixlab/__init__.py`. Bump it for each
+committed application revision; the HTML, API, tray tooltip and session receipt
+use that exact value. Rebuild the executable after changing it, and restart the
+app to activate new Python code. An existing process retains its loaded version.
+
 ## Run and test
 
 From the repository root:

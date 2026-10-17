@@ -59,7 +59,13 @@ See [development guidance](docs/development.md) for optional tooling.
 
 Choose a bundled demo or open a complete L5X export. Check **Coverage**, then use
 **Step scan** or **Run**. Edit inputs in **Tag Watch** and inspect the logic trace.
-Use **End session** to stop the local app.
+The header shows the running app's full version. On Windows, its tray icon offers
+**Open app** and **Quit LogixLab**; hover over it to see the version and session
+address. The icon may appear under the taskbar's hidden-icons arrow.
+
+Use **End session** or **Quit LogixLab** to stop the app and its protocol endpoint.
+Closing a browser tab leaves the app running; reopen it from the tray. `--no-tray`
+disables the icon for headless runs.
 
 Original project files are preserved. Settings and imported copies normally live
 under `%LOCALAPPDATA%\LogixLab`; `--data-dir` selects another private directory.
