@@ -45,6 +45,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Explicit transport | SendRRData, slot-0 Unconnected Send, Class 3 SendUnitData |
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
 | Objects | Identity attributes, Message Router class inventory and controller name |
+| Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`, instance 1: attributes 1, 2, 3, 4 and 10 |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
@@ -62,6 +63,34 @@ remain unsupported, so full native tag-upload initialization is still pending.
 Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
 ULINT and REAL. Whole STRING transfers and packed BOOL arrays remain unsupported.
 Atomic STRING members can be addressed individually.
+
+## Device locator
+
+Identity class `0x01`, instance 1 supports the `0x4B` Flash_LEDs service. The
+request contains exactly one USINT duration: zero stops identification, and
+9 through 255 starts it for that many real seconds. Values 1 through 8 are
+invalid. A later valid request replaces the remaining time. Success returns an
+empty service response. The timing contract follows the
+[ODVA CIP Object Tests, section 4.1 test 6.8](https://ticket.hilscher.com/secure/attachment/260555/CIP_PCTS.pdf).
+
+The webpage displays a global **DEVICE LOCATOR ACTIVE** banner with a countdown
+and a repeating red/green/off color cycle. It remains visible while switching
+tabs and automatically clears on expiry, cancellation or endpoint shutdown.
+Page refresh reads the current request from the endpoint. Browser reduced-motion
+preferences show a steady indicator. Idle pages poll at two-second intervals;
+local countdowns continue between responses.
+
+Identification works with tag writes disabled. It does not change application
+memory, scan execution, project generation, device identity or catalog tokens.
+Its monotonic timer runs independently of modeled scan time. Protocol traces
+record requests and durations. Application resets preserve identification of
+the same endpoint; stopping or replacing the endpoint clears it.
+
+FactoryTalk Linx discovery and device-location support are separate from native
+project selection, Go Online and upload/download. Extended identity and vendor
+metadata remain incomplete. Manufacturing dates, warranty identifiers and other
+physical-device data are not inferred from an ACD or invented to fill empty
+fields in a device-information view.
 
 ## Catalog refresh
 

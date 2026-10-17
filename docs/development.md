@@ -38,6 +38,7 @@ py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/struct
 py -3.13 -X utf8 tests/interop_numeric_layouts.py --out ../.local/checks/layouts.json
 py -3.13 -X utf8 tests/interop_catalog_revision.py --out ../.local/checks/catalog.json
 py -3.13 -X utf8 tests/interop_packed_bits.py --out ../.local/checks/flags.json
+py -3.13 -X utf8 tests/interop_device_locator.py --out ../.local/checks/locator.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -91,6 +92,13 @@ writes, rejection of unused host bits, read-only access and modeled scan
 propagation, then restores its input records. Like the other structure probes,
 it uses the documented-attribute catalog adapter; native tag upload and Studio
 Go Online remain separate work.
+
+The device-locator probe uses an independent Class 3 client against a temporary
+read-only endpoint. It checks start, replacement and stop requests, invalid
+durations and lengths, and preservation of application memory. It does not
+operate the FactoryTalk Linx interface. Browser checks should also cover the
+global banner, tab changes, cancellation, expiry and page reload during an
+active request.
 
 ## Optional ACD conversion
 

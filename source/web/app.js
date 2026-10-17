@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 let state = null, selected = '', selectedContext = '', running = false, stepping = false, currentTab = 'ladder', report = null, editTag = null;
 let connectivityPoll = null;
+let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(action, data = {}) {
@@ -196,13 +197,35 @@ $('cancel-edit').onclick=()=>$('edit-dialog').close();
 $('save-edit').onclick=async()=>{try{let value=$('edit-value').value;if(editTag.kind==='integer_text'){if(!/^[+-]?\d+$/.test(value))throw new Error('Enter an integer in decimal notation');}else if(editTag.kind!=='string'){value=Number(value);if(!Number.isFinite(value))throw new Error('Enter a finite numeric value');}await accept(await api('write',{tag:editTag.name,value}));$('edit-dialog').close();}catch(e){error(e);}};
 $('edit-value').onkeydown=e=>{if(e.key==='Enter')$('save-edit').click();};
 $('report').onclick=async()=>{try{download(await api('report'),'LogixLab-coverage.json');}catch(e){error(e);}};
-$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);try{await api('quit');$('alert').hidden=false;$('alert').textContent='Session ended. You can close this tab. Launch LogixLab.exe to start again.';document.querySelectorAll('button').forEach(b=>b.disabled=true);}catch(e){error(e);}};
+$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);clearLocator();try{await api('quit');$('alert').hidden=false;$('alert').textContent='Session ended. You can close this tab. Launch LogixLab.exe to start again.';document.querySelectorAll('button').forEach(b=>b.disabled=true);}catch(e){error(e);}};
 $('snapshot').onclick=async()=>{try{download(await api('snapshot'),'LogixLab-snapshot.json');}catch(e){error(e);}};
-window.addEventListener('beforeunload',()=>{stop();clearInterval(connectivityPoll);});
+window.addEventListener('beforeunload',()=>{stop();clearInterval(connectivityPoll);clearLocator();});
 fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}}).then(r=>r.json()).then(async value=>{if(value.loaded){$('mode').value=value.mode;await accept(value,true);}else{state=value;render();}}).catch(error);
 
+function clearLocator() {
+  clearInterval(locatorTimer);locatorTimer=null;locatorRequest=null;
+  $('device-locator').hidden=true;$('locator-time').textContent='';
+}
+function updateLocator() {
+  const seconds=Math.max(0,Math.ceil((locatorDeadline-performance.now())/1000));
+  if(!seconds){clearLocator();return;}
+  $('locator-time').textContent=`${seconds} s remaining`;
+}
+function renderLocator(c) {
+  const locator=c.locator;
+  if(!c.enabled||!locator?.active||!Number.isFinite(locator.remaining_ms)||locator.remaining_ms<=0){clearLocator();return;}
+  locatorDeadline=performance.now()+locator.remaining_ms;
+  if(locator.request_id!==locatorRequest||locatorTimer===null){
+    locatorRequest=locator.request_id;
+    const elapsed=Number.isFinite(locator.elapsed_ms)?Math.max(0,locator.elapsed_ms):0;
+    $('device-locator').style.animationDelay=`-${elapsed%1500}ms`;
+    if(locatorTimer===null)locatorTimer=setInterval(updateLocator,250);
+  }
+  $('device-locator').hidden=false;updateLocator();
+}
 function renderConnectivity() {
   const c=state?.connectivity || {};const active=!!c.enabled;
+  renderLocator(c);
   $('eip-badge').textContent=active?'LISTENING':'STOPPED';$('eip-badge').className='badge'+(active?' ready':'');
   $('eip-start').disabled=!state?.loaded||active;$('eip-stop').disabled=!active;
   $('eip-port').disabled=active;$('eip-profile').disabled=active;$('eip-writes').disabled=active;$('eip-trace').disabled=!c.trace_events;

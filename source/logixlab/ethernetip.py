@@ -7,6 +7,7 @@ The wire implementation uses only Python's standard library.
 from __future__ import annotations
 
 import copy
+import math
 import re
 import secrets
 import socket
@@ -480,6 +481,11 @@ class Router:
                 return self.handle(data[4:4+size],session,depth+1,limit,budget),None
         if path.class_id==1 and not path.symbols:
             if path.instance==1:
+                if service==0x4B:
+                    if path.attribute is not None:raise CIPError(4,'Flash LEDs does not take an attribute')
+                    exact(data,1)
+                    self.endpoint.flash_leds(data[0])
+                    return 0,b''
                 if service==1 and path.attribute is None:exact(data,0);return 0,self.identity()
                 return self.attribute_read(service,path,data,self.identity_attributes())
             elif path.instance in (None,0):
@@ -566,6 +572,25 @@ class Endpoint:
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
+        self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
+
+    def flash_leds(self,seconds):
+        # Identification is independent of application tag-write permission.
+        if isinstance(seconds,bool) or not isinstance(seconds,int) or not (seconds==0 or 9<=seconds<=255):
+            raise CIPError(3,'Flash LEDs time must be zero or 9..255 seconds')
+        with self.lock:
+            if not self.enabled:raise CIPError(0x10,'Endpoint is stopped')
+            now=self._locator_clock();self._locator_started=now
+            self._locator_until=now+seconds if seconds else 0.0
+            self._locator_request=secrets.token_hex(8)
+            self.record('locator',duration_seconds=seconds)
+
+    def locator_state(self):
+        # Caller holds endpoint.lock; no app lock or wall-clock dependency.
+        now=self._locator_clock();remaining=max(0.0,self._locator_until-now) if self.enabled else 0.0
+        return {'active':remaining>0,'remaining_ms':math.ceil(remaining*1000),
+                'elapsed_ms':max(0,int((now-self._locator_started)*1000)) if remaining else 0,
+                'request_id':self._locator_request}
 
     def record(self,kind,request=b'',response=b'',**fields):
         with self.lock:
@@ -581,6 +606,7 @@ class Endpoint:
             result={'enabled':self.enabled,'address':f'127.0.0.1:{self.port}','allow_writes':self.allow_writes,
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
+                    'locator':self.locator_state(),
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
@@ -707,7 +733,7 @@ class Endpoint:
         return self
 
     def stop(self):
-        self.enabled=False
+        with self.lock:self.enabled=False;self._locator_until=0.0
         with self.lock:clients=list(self.connections)
         for conn in clients:
             try:conn.shutdown(socket.SHUT_RDWR);conn.close()

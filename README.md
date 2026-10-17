@@ -112,6 +112,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit packed Boolean flags and fragmented reads/writes |
 | Catalog refresh | Controller comparison attributes and source-bound cache tokens |
+| Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Go Online, project correlation, upload/download and online edits pending |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,

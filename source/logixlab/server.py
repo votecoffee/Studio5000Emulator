@@ -46,7 +46,9 @@ class Application:
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818',
-            'allow_writes':False,'profile':'research','catalog_revision':None,'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
+            'allow_writes':False,'profile':'research','catalog_revision':None,
+            'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
+            'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
 
     def close(self):
         with self.connectivity_lock:
