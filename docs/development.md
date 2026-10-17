@@ -35,6 +35,7 @@ py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ../.local/checks/transf
 py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structures.json
 py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/structure-writes.json
 py -3.13 -X utf8 tests/interop_numeric_layouts.py --out ../.local/checks/layouts.json
+py -3.13 -X utf8 tests/interop_catalog_revision.py --out ../.local/checks/catalog.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -69,6 +70,13 @@ nonzero reserved-padding rejection and scan
 propagation, then restores its input records. The model's zero-padding contract
 and remaining layout restrictions are documented under
 [structured transfers](connectivity.md#structured-transfers).
+
+The catalog-revision probe checks controller comparison attributes through the
+independent client, then reconnects after isolated source imports. It verifies
+that runtime edits preserve tokens, an added tag shifts symbol instances, and
+a changed nested UDT changes the record layout from 64 to 72 bytes. It refreshes
+the catalog and reads the new member and record array. Fixtures in the repository
+remain unchanged; generated project copies and receipts stay local.
 
 Live write probes require an explicit `--write`, a loopback target and endpoint
 writes enabled. The transfer probe expects Network Lab and restores changed

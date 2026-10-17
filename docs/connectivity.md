@@ -42,6 +42,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Explicit transport | SendRRData, slot-0 Unconnected Send, Class 3 SendUnitData |
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
 | Objects | Identity attributes, Message Router class inventory and controller name |
+| Catalog refresh | Controller class `0xAC`, instance 1: attributes 1, 2, 3, 4 and 10 |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
@@ -58,6 +59,30 @@ remain unsupported, so full native tag-upload initialization is still pending.
 Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
 ULINT and REAL. Whole STRING transfers and packed BOOL arrays remain unsupported.
 Atomic STRING members can be addressed individually.
+
+## Catalog refresh
+
+Controller class `0xAC`, instance 1 supports Get Attribute Single and Get Attribute
+List for attributes 1, 2, 3, 4 and 10. Their wire widths are 2, 2, 4, 4 and 4 bytes
+(INT/INT/DINT/DINT/DINT). This comparison interface is described in
+[Data Access, chapter 2](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf).
+
+The model derives opaque comparison tokens from the imported source bytes and
+model version. Compare all five attributes together. Values stay stable during
+scans, tag writes, resets and scope changes. Importing identical source bytes
+preserves tokens; different source bytes conservatively change them, including
+changes to comments or initial values. These are not native firmware signatures.
+The connectivity API exposes the combined token as `catalog_revision.token`
+while the endpoint is enabled.
+
+Imports, resets and scope changes still require clients to reconnect and refresh
+their cached symbols/templates. Old sessions are rejected. A metadata check and
+tag reads may share a Multiple Service Packet. For writes, check the revision
+before and after writing; a grouped metadata check is not a conditional write
+guard because Multiple Service children execute independently.
+
+Only the read-only comparison attributes are implemented. Native project
+correlation, mode changes and Studio Go Online remain pending.
 
 ## Structured transfers
 

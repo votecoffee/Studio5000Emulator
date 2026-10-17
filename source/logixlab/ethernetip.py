@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from .model import ModelError
 from .identity import Identity
 from .templates import Catalog, MAX_BYTES
+from .catalog_revision import CatalogRevision
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -478,9 +479,14 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<HHHHHHH',6,1,2,6,0x64,0x6B,0x6C)
+            classes=struct.pack('<HHHHHHHH',7,1,2,6,0x64,0x6B,0x6C,0xAC)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
+        if path.class_id==0xAC:
+            if path.symbols:raise CIPError(4,'Controller metadata paths do not take symbols')
+            if path.instance!=1:raise CIPError(5,'Unknown controller metadata instance')
+            attributes=CatalogRevision.from_source(self.app.engine.project.sha256).attributes()
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service==1:
             exact(data,0);name=self.app.engine.project.name.encode('ascii')
             if len(name)>255:raise CIPError(0x1B,'Controller project name exceeds supported size')
@@ -567,6 +573,7 @@ class Endpoint:
         with self.lock:
             result={'enabled':self.enabled,'address':f'127.0.0.1:{self.port}','allow_writes':self.allow_writes,
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
+                    'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}

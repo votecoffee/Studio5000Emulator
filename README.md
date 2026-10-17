@@ -111,6 +111,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | EtherNet/IP | Loopback discovery, sessions, Class 3 messaging and atomic tag services |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned mixed-width numeric UDTs, nested records and fragmented reads/writes |
+| Catalog refresh | Controller comparison attributes and source-bound cache tokens |
 | Studio online | Go Online, project correlation, upload/download and online edits pending |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
