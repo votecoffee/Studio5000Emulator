@@ -118,16 +118,24 @@ class Catalog:
                     instance = member.code & 0xFFF; visible.add(instance); todo.append(instance)
         return {i: by_id[i] for i in visible if i in by_id}
 
-    def encode(self, template, ref, read):
-        result = bytearray()
+    def leaves(self, template, ref, base=0):
+        """Yield wire offsets and typed member references without reading values."""
         for member in template.members:
             member_ref = ref + '.' + member.name
+            nested = self.for_type(member.dtype) if member.dtype not in ATOMS else None
+            size = nested.size if nested else 4
             for index in range(member.count):
                 item_ref = member_ref + (f'[{index}]' if member.array else '')
-                if member.dtype in ATOMS:
-                    value = read(item_ref)
-                    if value is None or isinstance(value, (dict, list)): raise ModelError('Unknown structured wire data')
-                    result.extend(struct.pack('<' + ATOMS[member.dtype][1], value))
+                offset = base + member.offset + index * size
+                if nested:
+                    yield from self.leaves(nested, item_ref, offset)
                 else:
-                    result.extend(self.encode(self.for_type(member.dtype), item_ref, read))
+                    yield offset, member.dtype, item_ref
+
+    def encode(self, template, ref, read):
+        result = bytearray()
+        for _, dtype, item_ref in self.leaves(template, ref):
+            value = read(item_ref)
+            if value is None or isinstance(value, (dict, list)): raise ModelError('Unknown structured wire data')
+            result.extend(struct.pack('<' + ATOMS[dtype][1], value))
         return bytes(result)

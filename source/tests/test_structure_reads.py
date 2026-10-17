@@ -148,7 +148,7 @@ class StructureReadTests(unittest.TestCase):
         self.assertEqual(self.read('Machine', offset=0)[2], 0x0C)
         self.assertEqual(self.app.engine.memory.values, before)
 
-    def test_structured_writes_and_readonly_member_writes_do_not_mutate(self):
+    def test_malformed_structured_writes_and_readonly_member_writes_do_not_mutate(self):
         before = copy.deepcopy(self.app.engine.memory.values)
         for service in (0x4D, 0x53, 0x4E):
             for name in ('Machine', 'Machines'):

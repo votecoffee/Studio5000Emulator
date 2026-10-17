@@ -33,6 +33,7 @@ py -3.13 -X utf8 tests/interop_pycomm3.py --out ../.local/checks/atomic.json
 py -3.13 -X utf8 tests/interop_logix_identity.py --out ../.local/checks/identity.json
 py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ../.local/checks/transfers.json
 py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structures.json
+py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/structure-writes.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -46,6 +47,14 @@ The structure probe creates an isolated read-only Structure Lab endpoint. It
 uses the installed client's template parser to discover nested UDTs, decode
 records and arrays, fragment reads over a 256-byte Class 3 connection, and observe
 a modeled scan. It does not exercise native firmware-address tag upload.
+
+The structure-write probe also creates an isolated loopback target. It transfers
+a 1,072-byte nested-record array with automatic fragmentation, writes small
+records through Multi Service, checks wrong-handle and read-only rejection,
+observes a scan consuming a written field, and restores the input records.
+It uses the same documented-attribute catalog adapter. The installed pycomm3
+1.2.16 single-write builder duplicates payload bytes for small writes; the probe
+uses its valid Multi Service path rather than relaxing endpoint length checks.
 
 Live write probes require an explicit `--write`, a loopback target and endpoint
 writes enabled. The transfer probe expects Network Lab and restores changed

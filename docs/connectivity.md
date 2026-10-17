@@ -11,7 +11,8 @@ and port, then select **Start endpoint**. **Load network lab** opens a public
 fixture with a 1,200-element DINT array, ControlWord, Command and read-only
 Observed. Each modeled scan copies Command to Observed.
 **Load structure lab** opens nested numeric UDTs for template discovery and
-fragmented structure reads. Each scan copies Command into Machine.Axis.
+fragmented transfers. Each scan copies Command into Machine.Axis and copies
+Machines[0].Axis.Command into the read-only Machine.History[0].Command.
 
 The default address is `127.0.0.1:44818`, with TCP and UDP listeners and a modeled
 backplane route of port 1, slot 0. The target never forwards traffic externally.
@@ -42,7 +43,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
-| Structured access | Bounded numeric UDT reads, including nested structures and arrays |
+| Structured access | Bounded numeric UDT reads/writes, including nested structures and arrays |
 | Transfers | `0x4C` read, `0x4D` write, `0x52` fragmented read, `0x53` fragmented write |
 | Integer masks | `0x4E` Read Modify Write, applying OR then AND masks |
 | Multiple service | Bounded Multiple Service Packets with independent child operations |
@@ -53,10 +54,10 @@ and Safety program tags are not exposed. Firmware-internal attributes 3, 5 and 6
 remain unsupported, so full native tag-upload initialization is still pending.
 
 Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
-ULINT and REAL. Whole STRING transfers, packed BOOL arrays and aggregate writes
-remain unsupported. Atomic STRING members can be addressed individually.
+ULINT and REAL. Whole STRING transfers and packed BOOL arrays remain unsupported.
+Atomic STRING members can be addressed individually.
 
-## Structured reads
+## Structured transfers
 
 Explicit `User` UDTs in `NoFamily` may contain DINT, UDINT and REAL members,
 nested supported UDTs and one-dimensional member arrays. These four-byte fields
@@ -75,8 +76,16 @@ Eligible atomic members remain accessible separately.
 Template IDs and CRC-derived handles belong to this software model and are not
 native compiled type identifiers. Only templates reachable through externally
 accessible tags are exposed. Unknown member values reject the requested read;
-unknown backing data is never replaced with zeroes. Aggregate writes are rejected.
+unknown backing data is never replaced with zeroes.
 Reset and import invalidate sessions; project replacement rebuilds the catalog.
+
+Structured `0x4D` and `0x53` writes require the `A0 02` type marker and the matching
+template handle before the element count. Fragment offsets address bytes in the
+requested record region. Writes validate root access and every touched member,
+including aliases, constants and read-only nested members. A whole-record write
+touches every member; a fragment may update writable fields while leaving a
+read-only field untouched. Complete atoms can establish unknown leaf values;
+split atoms require known bytes for the remainder of that atom.
 
 The independent structure probe uses the client's template parser and value
 codec over a negotiated 256-byte Class 3 connection to exercise fragmentation.
@@ -88,7 +97,10 @@ native firmware-address tag upload, native UDT layout parity or Studio Go Online
 Each write request validates its payload and rolls back that request on failure.
 Accepted fragments take effect immediately; a later failed fragment does not
 undo prior fragments. Scans may run between separate requests. Fragments can
-split an atomic element, but untouched bytes must already be known.
+split an atomic element, but untouched bytes within that atom must already be
+known. This applies to both atomic and supported numeric UDT transfers. A failed
+member or nonfinite REAL rejects the entire request, including earlier members
+or records in that request.
 
 Integer masks may cover 1, 2, 4 or 8 low bytes of a sufficiently wide integer.
 Upper bytes are preserved; OR is applied before AND. BOOL, REAL and aggregate

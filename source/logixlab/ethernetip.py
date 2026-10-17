@@ -254,21 +254,11 @@ class Router:
         ref=self.reference(path);_,_,dtype=self.access(ref)
         template=self.templates().for_type(dtype) if dtype not in TYPES else None
         if template:
-            if count*template.size>MAX_BYTES:raise CIPError(3,'Structured transfer exceeds 32768 bytes')
-            memory=self.app.engine.memory;key,parts,_=memory.resolve(ref);value=memory.at(key,parts)
-            if isinstance(value,dict) and (not parts or not isinstance(parts[-1],int)):
-                if count!=1:raise CIPError(3,'Scalar structure count must be one')
-                paths=[parts]
-            else:
-                start=ref
-                while isinstance(value,list):
-                    if not value:raise CIPError(0x0C,'Empty structured array')
-                    start+='[0]';value=value[0]
-                key,paths,_=memory.region(start,count)
+            memory=self.app.engine.memory;refs=self.structure_region(ref,count,template)
             def read_member(member_ref):
                 self.access(member_ref)
                 return memory.read(member_ref)
-            encoded=b''.join(self.templates().encode(template,memory.address(key,p),read_member) for p in paths)
+            encoded=b''.join(self.templates().encode(template,item,read_member) for item in refs)
             type_data=struct.pack('<HH',0x02A0,template.handle)
         else:
             dtype,refs=self.region(ref,count)
@@ -284,6 +274,21 @@ class Router:
         if capacity<1:raise CIPError(0x1B,'Response cannot hold a tag data byte')
         chunk=encoded[offset:offset+capacity]
         return 6 if offset+len(chunk)<len(encoded) else 0,type_data+chunk
+
+    def structure_region(self,ref,count,template,write=False):
+        if not 1<=count<=4096:raise CIPError(3,'Element count must be 1..4096')
+        if count*template.size>MAX_BYTES:raise CIPError(3,'Structured transfer exceeds 32768 bytes')
+        key,parts,_=self.access(ref,write);memory=self.app.engine.memory;value=memory.at(key,parts)
+        if isinstance(value,dict) and (not parts or not isinstance(parts[-1],int)):
+            if count!=1:raise CIPError(3,'Scalar structure count must be one')
+            paths=[parts]
+        else:
+            start=ref
+            while isinstance(value,list):
+                if not value:raise CIPError(0x0C,'Empty structured array')
+                start+='[0]';value=value[0]
+            key,paths,_=memory.region(start,count)
+        return [memory.address(key,p) for p in paths]
 
     def template_service(self,service,path,data,limit):
         if path.symbols:raise CIPError(4,'Template paths do not take symbols')
@@ -303,16 +308,24 @@ class Router:
 
     def store_atomic(self,dtype,refs,values):
         if dtype=='BOOL' and any(v not in (0,1) for v in values):raise CIPError(9,'BOOL value must be 0 or 1')
+        self.store_values([(ref,bool(value) if dtype=='BOOL' else value) for ref,value in zip(refs,values)])
+
+    def store_values(self,values):
         memory=self.app.engine.memory;before=copy.deepcopy(memory.values)
         try:
-            for ref,value in zip(refs,values):memory.write(ref,bool(value) if dtype=='BOOL' else value)
+            for ref,value in values:memory.write(ref,value)
         except Exception:
             memory.values=before;raise
 
     def write_tag(self,path,data,fragment=False):
         if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')
+        ref=self.reference(path);_,_,declared=self.access(ref,True)
+        if declared not in TYPES:
+            template=self.templates().for_type(declared)
+            if template is None:raise CIPError(8,'Unsupported structured wire layout')
+            return self.write_structure(ref,template,data,fragment)
         header=8 if fragment else 4;need(data,header);type_code,count=struct.unpack_from('<HH',data)
-        dtype,refs=self.region(self.reference(path),count,True)
+        dtype,refs=self.region(ref,count,True)
         if type_code!=TYPES[dtype][0]:raise CIPError(0xFF,'Tag type does not match declared type')
         fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
         offset=struct.unpack_from('<I',data,4)[0] if fragment else 0;payload=data[header:]
@@ -331,6 +344,33 @@ class Router:
                 raw=bytearray(struct.pack(fmt,int(old) if dtype=='BOOL' else old));raw[lo:hi]=chunk
             values.append(struct.unpack(fmt,raw)[0])
         self.store_atomic(dtype,refs[first:last+1],values)
+        return 0,b''
+
+    def write_structure(self,ref,template,data,fragment=False):
+        header=10 if fragment else 6;need(data,header)
+        type_code,handle,count=struct.unpack_from('<HHH',data)
+        if type_code!=0x02A0 or handle!=template.handle:raise CIPError(0xFF,'Structure type or handle does not match the template')
+        refs=self.structure_region(ref,count,template,True);total=count*template.size
+        offset=struct.unpack_from('<I',data,6)[0] if fragment else 0;payload=data[header:]
+        if not fragment:exact(data,header+total)
+        if not payload:raise CIPError(0x13,'Fragment contains no data')
+        if offset>=total or len(payload)>total-offset:raise CIPError(0x20,'Fragment exceeds requested structured region')
+        end=offset+len(payload);values=[];memory=self.app.engine.memory
+        first=offset//template.size;last=(end-1)//template.size
+        for index in range(first,last+1):
+            for member_offset,dtype,member_ref in self.templates().leaves(template,refs[index],index*template.size):
+                start=max(offset,member_offset);stop=min(end,member_offset+4)
+                if start>=stop:continue
+                self.access(member_ref,True)
+                fmt='<'+TYPES[dtype][1];chunk=payload[start-offset:stop-offset]
+                if stop-start==4:raw=chunk
+                else:
+                    # Preserve known bytes in split atoms; untouched members may
+                    # remain unknown and are never read merely to fill a packet.
+                    raw=bytearray(struct.pack(fmt,memory.read(member_ref)))
+                    raw[start-member_offset:stop-member_offset]=chunk
+                values.append((member_ref,struct.unpack(fmt,raw)[0]))
+        self.store_values(values)
         return 0,b''
 
     def read_modify_write(self,path,data):

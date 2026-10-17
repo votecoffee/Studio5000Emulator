@@ -7,7 +7,7 @@ def create(destination):
     root = E.Element('RSLogix5000Content', SchemaRevision='1.0', SoftwareRevision='35.01',
                      TargetName='StructureLab', TargetType='Controller', ContainsContext='false')
     c = E.SubElement(root, 'Controller', Name='StructureLab', ProcessorType='1756-L85E', MajorRev='35', MinorRev='11')
-    E.SubElement(c, 'Description').text = 'LogixLab fixture: nested numeric UDT templates and fragmented structure reads.'
+    E.SubElement(c, 'Description').text = 'LogixLab fixture: nested numeric UDT templates and fragmented structure transfers.'
     types = E.SubElement(c, 'DataTypes')
     schemas = {
         'AxisState': [('Command', 'DINT', 0), ('Actual', 'REAL', 0), ('Samples', 'DINT', 8)],
@@ -53,7 +53,8 @@ def create(destination):
     E.SubElement(program, 'Tags')
     routine = E.SubElement(E.SubElement(program, 'Routines'), 'Routine', Name='MainRoutine', Type='RLL')
     rung = E.SubElement(E.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
-    E.SubElement(rung, 'Text').text = 'MOV(Command,Machine.Axis.Command)MOV(Command,Machine.Axis.Actual);'
+    E.SubElement(rung, 'Text').text = ('MOV(Command,Machine.Axis.Command)MOV(Command,Machine.Axis.Actual)'
+                                    'MOV(Machines[0].Axis.Command,Machine.History[0].Command);')
     task = E.SubElement(E.SubElement(c, 'Tasks'), 'Task', Name='MainTask', Type='CONTINUOUS', Priority='10',
                         Watchdog='500', Class='Standard', InhibitTask='false')
     E.SubElement(E.SubElement(task, 'ScheduledPrograms'), 'ScheduledProgram', Name='MainProgram')
