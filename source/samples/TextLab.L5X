@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="TextLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="TextLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabSTAccumulator" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="true" ExecutePostscan="false" ExecuteEnableInFalse="true" CreatedDate="2026-10-16T12:00:00.000Z" CreatedBy="LogixLab" EditedDate="2026-10-16T12:00:00.000Z" EditedBy="LogixLab" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read Only" />
+          <Parameter Name="Step" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Total" TagType="Base" DataType="DINT" Usage="Output" Required="true" Visible="true" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+            </DefaultData>
+          </Parameter>
+          <Parameter Name="Limit" TagType="Base" DataType="DINT" Usage="Input" Required="false" Visible="false" Radix="Decimal" ExternalAccess="Read/Write">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="100" />
+            </DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Count" DataType="DINT" ExternalAccess="None" Radix="Decimal">
+            <DefaultData Format="Decorated">
+              <DataValue DataType="DINT" Radix="Decimal" Value="777" />
+            </DefaultData>
+          </LocalTag>
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="ST">
+            <STContent>
+              <Line Number="0">Count := Count + Step;</Line>
+              <Line Number="1">Total := Count;</Line>
+              <Line Number="2">EnableOut := Count &lt; Limit;</Line>
+            </STContent>
+          </Routine>
+          <Routine Name="Prescan" Type="ST">
+            <STContent>
+              <Line Number="0">Count := 0;</Line>
+              <Line Number="1">Total := 0;</Line>
+            </STContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="ST">
+            <STContent>
+              <Line Number="0">Total := -1;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="Enable" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Done" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Truth" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ScanTotal" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ClearedOnRun" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="Sum" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Index" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="Selector" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="State" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CaseResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WhileCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RepeatCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SearchResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="SearchIndex" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="FormalSum" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ScaleWork" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Scaled" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AdjustInput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AdjustOutput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Step" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="AOITotal" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Packed" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BitIndex" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="Values" TagType="Base" DataType="DINT" Dimensions="5" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5" Radix="Decimal">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Prefix" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[5,'SCAN $00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="NumberText" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="Message" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="Shadow" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="Accumulator" TagType="Base" DataType="LabSTAccumulator" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabSTAccumulator">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Step" DataType="DINT" Radix="Decimal" Value="1" />
+            <DataValueMember Name="Total" DataType="DINT" Radix="Decimal" Value="0" />
+            <DataValueMember Name="Limit" DataType="DINT" Radix="Decimal" Value="100" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">// Text Lab: assignments, selection, iteration and mixed-language calls.</Line>
+              <Line Number="1">ScanTotal := ScanTotal + 1;</Line>
+              <Line Number="2">ClearedOnRun [:=] 17;</Line>
+              <Line Number="3">Sum := 0;</Line>
+              <Line Number="4">FOR Index := 0 TO 4 DO</Line>
+              <Line Number="5">    Values[Index] := Index * 3;</Line>
+              <Line Number="6">    Sum := Sum + Values[Index];</Line>
+              <Line Number="7">END_FOR;</Line>
+              <Line Number="8">IF Enable THEN</Line>
+              <Line Number="9">    IF Sum &gt;= 30 THEN State := 2;</Line>
+              <Line Number="10">    ELSIF Sum &gt; 0 THEN State := 1;</Line>
+              <Line Number="11">    ELSE State := 0;</Line>
+              <Line Number="12">    END_IF;</Line>
+              <Line Number="13">    LabSTAccumulator(Accumulator,Step,AOITotal);</Line>
+              <Line Number="14">ELSE</Line>
+              <Line Number="15">    State := -1;</Line>
+              <Line Number="16">END_IF;</Line>
+              <Line Number="17">CASE Selector OF</Line>
+              <Line Number="18">    1,2: CaseResult := 10;</Line>
+              <Line Number="19">    3..5: CaseResult := 20;</Line>
+              <Line Number="20">    ELSE CaseResult := -1;</Line>
+              <Line Number="21">END_CASE;</Line>
+              <Line Number="22">WhileCount := 0;</Line>
+              <Line Number="23">WHILE WhileCount &lt; 3 DO</Line>
+              <Line Number="24">    WhileCount := WhileCount + 1;</Line>
+              <Line Number="25">END_WHILE;</Line>
+              <Line Number="26">RepeatCount := 0;</Line>
+              <Line Number="27">REPEAT</Line>
+              <Line Number="28">    RepeatCount := RepeatCount + 1;</Line>
+              <Line Number="29">UNTIL RepeatCount &gt;= 2 END_REPEAT;</Line>
+              <Line Number="30">SearchResult := -1;</Line>
+              <Line Number="31">FOR SearchIndex := 0 TO 4 DO</Line>
+              <Line Number="32">    IF Values[SearchIndex] = 9 THEN</Line>
+              <Line Number="33">        SearchResult := SearchIndex;</Line>
+              <Line Number="34">        EXIT;</Line>
+              <Line Number="35">    END_IF;</Line>
+              <Line Number="36">END_FOR;</Line>
+              <Line Number="37">JSR(LadderScale,1,Sum,Scaled);</Line>
+              <Line Number="38">DTOS(ScanTotal,NumberText);</Line>
+              <Line Number="39">CONCAT(Prefix,NumberText,Message);</Line>
+              <Line Number="40">Shadow := Message;</Line>
+              <Line Number="41">Packed := 0;</Line>
+              <Line Number="42">FOR BitIndex := 0 TO 3 DO</Line>
+              <Line Number="43">    Packed.[BitIndex] := 1;</Line>
+              <Line Number="44">END_FOR;</Line>
+              <Line Number="45">Done := Enable AND (Sum = 30);</Line>
+              <Line Number="46">Truth := TRUE;</Line>
+            </STContent>
+          </Routine>
+          <Routine Name="LadderScale" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>SBR(FormalSum);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>MUL(FormalSum,2,ScaleWork);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>JSR(TextAdjust,1,ScaleWork,ScaleWork);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>RET(ScaleWork);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TextAdjust" Type="ST">
+            <STContent>
+              <Line Number="0">SBR(AdjustInput);</Line>
+              <Line Number="1">AdjustOutput := AdjustInput + 1;</Line>
+              <Line Number="2">RET(AdjustOutput);</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

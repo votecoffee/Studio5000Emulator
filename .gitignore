@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.exe
+validation/
+.sessions/
+*.zip
+*.bundle
+SHA256-MANIFEST.json
+preview.jpg

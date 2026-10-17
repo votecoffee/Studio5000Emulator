@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="DataLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="DataLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Source" TagType="Base" DataType="DINT" Dimensions="6" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6" Radix="Decimal">
+            <Element Index="[0]" Value="10" />
+            <Element Index="[1]" Value="20" />
+            <Element Index="[2]" Value="30" />
+            <Element Index="[3]" Value="40" />
+            <Element Index="[4]" Value="50" />
+            <Element Index="[5]" Value="60" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Buffer" TagType="Base" DataType="DINT" Dimensions="6" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6" Radix="Decimal">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="0" />
+            <Element Index="[5]" Value="0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Grid" TagType="Base" DataType="DINT" Dimensions="2 3" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="2,3" Radix="Decimal">
+            <Element Index="[0,0]" Value="0" />
+            <Element Index="[0,1]" Value="0" />
+            <Element Index="[0,2]" Value="0" />
+            <Element Index="[1,0]" Value="0" />
+            <Element Index="[1,1]" Value="0" />
+            <Element Index="[1,2]" Value="0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Index" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Columns" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ParsedNumber" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LoopCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SkippedValue" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Scaled" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CopyEnable" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Bypass" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EarlyReturn" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PackedStatus" TagType="Base" DataType="UINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="65535" />
+        </Data>
+      </Tag>
+      <Tag Name="HighBit" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WideSource" TagType="Base" DataType="LINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="9223372036854775806" />
+        </Data>
+      </Tag>
+      <Tag Name="WideDest" TagType="Base" DataType="LINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Prefix" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[6,'VALUE $00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="NumberText" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="Message" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+      <Tag Name="Snippet" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment>Initialize a numeric array once.</Comment>
+                <Text>XIC(S:FS)FLL(7,Buffer[0],6);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Comment>Copy six elements into a two-dimensional array.</Comment>
+                <Text>XIC(CopyEnable)COP(Source[0],Buffer[0],6)CPS(Buffer[0],Grid[0,0],6);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Comment>Read the second dimension length.</Comment>
+                <Text>SIZE(Grid,1,Columns);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Comment>Evaluate an expression with an indexed array operand.</Comment>
+                <Text>CPT(Scaled,(Grid[Index,1]+5)*2.0);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Comment>Build text from a numeric value.</Comment>
+                <Text>DTOS(Grid[Index,1],NumberText)CONCAT(Prefix,NumberText,Message);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Comment>Extract text and convert a string back to a number.</Comment>
+                <Text>MID(Message,3,1,Snippet)STOD(NumberText,ParsedNumber);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Comment>Preserve wide integer values and read an unsigned word bit.</Comment>
+                <Text>MOV(WideSource,WideDest)XIC(PackedStatus.15)OTE(HighBit);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Comment>Prepare a bounded loop.</Comment>
+                <Text>CLR(LoopCount);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Comment>Repeat until the count reaches three.</Comment>
+                <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Comment>Skip the next write when Bypass is set.</Comment>
+                <Text>XIC(Bypass)JMP(Finish);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Comment>This write is skipped in the default demo.</Comment>
+                <Text>MOV(999,SkippedValue);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Comment>Temporary end exits only this routine.</Comment>
+                <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>
