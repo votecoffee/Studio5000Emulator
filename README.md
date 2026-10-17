@@ -1,4 +1,4 @@
-# LogixLab: Studio 5000 connectivity branch
+# Studio5000Emulator (LogixLab)
 
 Experimental build **0.6.0-connectivity.2**, October 17, 2026.
 
@@ -8,10 +8,17 @@ It uses LogixLab's execution engine and does not require FactoryTalk Logix Echo.
 
 ## Branch and baseline
 
-This folder is a local Git repository. `main` preserves the v0.5 source baseline;
-development is on `feature/studio5000-connectivity`. No remote is configured.
+The working repository is `C:\~LocalWork\Repos\Programming\~Github\Studio5000Emulator`.
+Its origin is [votecoffee/Studio5000Emulator](https://github.com/votecoffee/Studio5000Emulator).
+Development continues on `feature/studio5000-connectivity`. `main` tracks the
+GitHub initialization; `baseline/logixlab-v0.5` preserves the original v0.5 source.
+The connectivity branch includes both histories and the repository's MIT license.
+Make small, verified local commits as development proceeds. **Do not push to
+origin; the repository owner handles pushes.**
 `BASELINE.json` records the original release manifest and source hashes.
-The separate v0.5 release folder and ZIP remain unchanged.
+The previous release folders, ZIPs and Git bundles remain in the original Codex
+workspace's `outputs` directory. Their validation receipts describe those frozen
+builds; relocation checks are recorded separately under `validation/`.
 
 ## Run
 
