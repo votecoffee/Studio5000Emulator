@@ -177,6 +177,7 @@ $('file').onchange=async()=>{
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
+$('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('aoi-context').onchange=()=>{selectedContext=$('aoi-context').value;renderLadder();};
 $('step').onclick=scan;
 $('run').onclick=()=>{if(running){stop();render();}else{running=true;$('run').textContent='Ⅱ Pause';render();tick();}};

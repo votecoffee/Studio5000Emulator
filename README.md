@@ -1,6 +1,6 @@
 # Studio5000Emulator (LogixLab)
 
-Experimental build **0.6.0-connectivity.2**, October 17, 2026.
+Experimental build **0.6.0-connectivity.3**, October 17, 2026.
 
 This branch adds a local EtherNet/IP target to the existing custom emulator.
 It uses LogixLab's execution engine and does not require FactoryTalk Logix Echo.
@@ -59,10 +59,18 @@ Add `--eip-profile logix-v35-l85e` for the experimental compatibility identity.
 - Standard/Large Forward Open and Forward Close for bounded point-to-point Class 3
   explicit messaging; connected SendUnitData and sequence/replay checks.
 - Symbolic paths and synthetic symbol-instance addressing. Symbol enumeration
-  supports attributes 1 (name), 2 (type) and 8 (dimensions), with pagination.
+  supports attributes 1 (name), 2 (type), 8 (dimensions) and 10 (effective external
+  access), with pagination. Atomic Symbol instances also support Get Attribute
+  Single and Get Attribute List. Constants and aliases inherit read-only access;
+  private tags, AOI locals and Safety program tags are excluded.
 - Atomic BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT and REAL reads/writes;
   atomic arrays, supported atomic structure members, program-scoped tags and aliases.
-- Fragmented atomic reads; unknown values return errors instead of invented zeros.
+- Fragmented atomic reads and writes (`0x52` / `0x53`), including byte offsets
+  that split an atom. Partial atoms require known backing bytes. Complete atoms
+  can establish unknown values; unknown untouched bytes are not invented.
+- Read Modify Write (`0x4E`) for integer atoms, with OR then AND masks. Masks of
+  1, 2, 4 or 8 bytes can address the low bytes of a sufficiently wide integer;
+  upper bytes are preserved. BOOL/REAL and aggregate masks are unsupported.
 - Read/Write, Read Only, None, constants, aliases, hidden members and AOI-local
   restrictions are enforced. Safety-class tags are not exposed.
 
@@ -89,8 +97,10 @@ to 1,024 bytes and has a truncation flag. Events include peer, session, path,
 service, status and errors. Unsupported-request summaries retain a bounded set
 of keys. Trace export contains local project tag names and request data.
 
-Individual multi-element writes validate their full payload and roll back on
-failure. Multiple Service Packet children are independent operations; a later
+Individual write requests validate their payload and roll back on failure.
+Each accepted fragment takes effect immediately. A later failed fragment does
+not undo previous fragments, and scans may run between separate requests.
+Multiple Service Packet children are independent operations; a later
 child failure does not roll back earlier successful children. An oversized
 combined response can also fail after earlier children executed.
 
@@ -99,7 +109,7 @@ combined response can also fail after earlier children executed.
 This endpoint does **not** yet implement Studio project correlation, compiled
 project transfer, upload/download, online edits, native debugger services, native
 controller status/mode changes, template/UDT layout services, whole-structure or
-STRING transfers, packed BOOL arrays, fragmented writes, or physical I/O/CIP Safety.
+STRING transfers, packed BOOL arrays, fragmented aggregate writes, or physical I/O/CIP Safety.
 Atomic STRING members such as `Message.LEN` and `Message.DATA[0]` can be addressed.
 Runtime semantics retain all v0.5 software-model boundaries in `README-v0.5.txt`.
 
@@ -146,8 +156,8 @@ configuration has not been changed by LogixLab.
 
 ## Validation and development
 
-The behavioral suite has **237 passing tests**, including 33 existing protocol
-tests and 13 identity/profile tests.
+The behavioral suite has **259 passing tests**, including 33 existing protocol
+tests, 13 identity/profile tests, 6 metadata tests and 16 atomic-transfer tests.
 The independent `pycomm3` 1.2.16 client also verifies discovery, atomic-symbol
 enumeration, Large Forward Open, connected reads/writes and Forward Close. A scan
 uses a CIP-written input to update the custom engine's AOI output.
@@ -156,6 +166,14 @@ An additional `pycomm3.LogixDriver` probe initializes both profiles with
 attribute list and closes its Class 3 connection. Its full native tag upload is
 deliberately rejected because native address attributes are not implemented.
 The raw trace and unsupported-request count record this rejection.
+The transfer probe uses an atomic catalog adapter populated from wire attributes
+1, 2, 8 and 10. With that cache, the independent LogixDriver automatically writes
+and reads 1,200 DINTs (4,800 bytes), rejects a read-only write and follows a
+network command through a scan. It verifies mask writes through generic CIP.
+The installed pycomm3 1.2.16 single-scalar and high-level mask encoders emitted
+malformed payloads during testing; the emulator rejected them. Valid Multi Service
+scalar writes and generic CIP masks are used in the acceptance probe. Client
+native tag upload and native Studio project correlation remain pending.
 These checks establish bounded protocol interoperability, not Studio Go Online
 or native runtime equivalence. See `validation/` for delivery receipts.
 The EXE build succeeded. Automatic approval review rejected its shell launch
@@ -167,6 +185,7 @@ cd source
 py -3.13 -X utf8 -m unittest discover -s tests -v
 py -3.13 -X utf8 tests/interop_pycomm3.py --out ..\validation\interop.json
 py -3.13 -X utf8 tests/interop_logix_identity.py --out ..\validation\identity-interop.json
+py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ..\validation\transfer-interop.json
 ```
 
 The client probes require the optional test-only `pycomm3` package; it is not an
@@ -179,6 +198,27 @@ py -3.13 -X utf8 tests/interop_pycomm3.py --target 127.0.0.1:44818 --out ..\vali
 
 The probe is restricted to loopback. Add `--write` only with endpoint writes enabled;
 the probe restores its changed Step input. Build with `source/build.ps1`.
+
+### Network lab
+
+In **Connectivity**, choose **Load network lab** to open the bundled L5X fixture.
+It contains a 1,200-element Transfer array, ControlWord, Command and read-only
+Observed. A scan copies Command to Observed. The fixture is verified in the custom
+model; no native ACD or Studio import acceptance is claimed for this new sample.
+
+```powershell
+py -3.13 -X utf8 launch.py --sample NetworkLab --eip-port 44818 --eip-profile logix-v35-l85e
+```
+
+The source command runs from `source`. For live transfer acceptance, start a
+Network Lab endpoint with **Allow tag writes**, then run:
+
+```powershell
+py -3.13 -X utf8 tests/interop_atomic_transfers.py --target 127.0.0.1:44818 --write --out ..\validation\live-transfers.json
+```
+
+The probe restores its changed inputs and array. Its default invocation creates
+an isolated target and executes the scan check itself.
 
 Protocol references: [Rockwell 1756-PM020 data access manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf),
 [ODVA CIP network overview](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf),
