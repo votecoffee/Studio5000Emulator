@@ -1,228 +1,163 @@
-# Studio5000Emulator (LogixLab)
+# Studio5000Emulator
 
-Experimental build **0.6.0-connectivity.3**, October 17, 2026.
+An experimental offline Logix v35 emulator with a browser UI and local EtherNet/IP research endpoint.
 
-This branch adds a local EtherNet/IP target to the existing custom emulator.
-It uses LogixLab's execution engine and does not require FactoryTalk Logix Echo.
-**Studio 5000 Go Online is not implemented or verified at this milestone.**
+Explore supported ladder and Structured Text logic, drive inputs, inspect scan
+traces, and test explicit messaging against a custom execution model. The app
+and executable use the name **LogixLab**.
 
-## Branch and baseline
+**Status: experimental. Studio 5000 Go Online, upload/download and online edits
+are not implemented or verified.** Supported instructions have bounded software
+models; this project does not establish native controller equivalence.
 
-The working repository is `C:\~LocalWork\Repos\Programming\~Github\Studio5000Emulator`.
-Its origin is [votecoffee/Studio5000Emulator](https://github.com/votecoffee/Studio5000Emulator).
-Development continues on `feature/studio5000-connectivity`. `main` tracks the
-GitHub initialization; `baseline/logixlab-v0.5` preserves the original v0.5 source.
-The connectivity branch includes both histories and the repository's MIT license.
-Make small, verified local commits as development proceeds. **Do not push to
-origin; the repository owner handles pushes.**
-`BASELINE.json` records the original release manifest and source hashes.
-The previous release folders, ZIPs and Git bundles remain in the original Codex
-workspace's `outputs` directory. Their validation receipts describe those frozen
-builds; relocation checks are recorded separately under `validation/`.
+Application development currently lives on
+[`feature/studio5000-connectivity`](https://github.com/votecoffee/Studio5000Emulator/tree/feature/studio5000-connectivity).
+The install command below selects that branch.
 
-## Run
+## Table of Contents
 
-1. Launch `LogixLab.exe` (Python is not required), or run `source/run-from-source.cmd`.
-2. Choose **Text lab**, or import an ACD/full L5X.
-3. Open **Connectivity**. Choose an identity profile and port, then click **Start endpoint**.
-4. The default address is `127.0.0.1:44818`, with a modeled backplane route of
-   port 1, slot 0. Both TCP and UDP bind only to the local computer.
-5. Tag reads are enabled. **Allow tag writes** is an explicit option selected
-   before starting. Network writes change the same memory shown by Tag Watch.
-6. Use Step/Run in LogixLab to execute scans. Refresh values updates the view;
-   while the endpoint is active, paused views also refresh every two seconds.
-7. Export the protocol trace to inspect unsupported client requests. Stop endpoint
-   closes its listeners and client connections. End session closes the app.
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [Current Support](#current-support)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [License](#license)
 
-If the selected port is already occupied, the app reports a bind error. A different
-port works with configurable test clients. No existing Rockwell service, adapter,
-firewall setting or network route is changed by this app.
+## Background
 
-Command-line source example:
+Studio5000Emulator is being built toward a custom Logix emulator, starting with
+explicitly supported instructions and data types. It combines deterministic
+local scans, a logic monitor, tag editing, coverage reports and protocol tracing.
+Unsupported features are reported before execution where possible.
+
+L5X execution uses Python's standard library. ACD import is optional and converts
+a private copy through separately installed native tooling. The execution engine
+runs independently after import and does not depend on FactoryTalk Logix Echo.
+
+## Install
+
+### Dependencies
+
+- Windows and Python 3.13 for the tested source workflow.
+- Optional ACD import: compatible Studio 5000/Logix Designer SDK tooling and an
+  `l5xgit` converter. Configure it in **Import settings**, with
+  `LOGIXLAB_CONVERTER`, or by placing `l5xgit` on `PATH`.
+- Optional executable build: PyInstaller.
+- Optional independent protocol probes: `pycomm3`.
 
 ```powershell
-cd source
-py -3.13 -X utf8 launch.py --sample TextLab --eip-port 44818
+git clone --branch feature/studio5000-connectivity https://github.com/votecoffee/Studio5000Emulator.git
+cd Studio5000Emulator
+py -3.13 -X utf8 source/launch.py
 ```
 
-Add `--eip-writes` to opt into atomic tag writes. Without `--eip-port`, connectivity
-starts disabled. The UI starts/stops the endpoint without restarting the app.
-Add `--eip-profile logix-v35-l85e` for the experimental compatibility identity.
+No additional Python packages are needed to run L5X projects or bundled demos.
+See [development guidance](docs/development.md) for optional tooling.
 
-## Implemented protocol surface
+## Usage
 
-- TCP/UDP ListIdentity, ListServices and ListInterfaces; session registration and
-  unregistration; stream framing handles split and coalesced TCP packets.
-- SendRRData, local slot-0 Unconnected Send, and bounded Multiple Service Packets.
-- Identity object Get Attributes All, Single and List; per-attribute error status;
-  Message Router class inventory; controller-name query (class `0x64`).
-- Standard/Large Forward Open and Forward Close for bounded point-to-point Class 3
-  explicit messaging; connected SendUnitData and sequence/replay checks.
-- Symbolic paths and synthetic symbol-instance addressing. Symbol enumeration
-  supports attributes 1 (name), 2 (type), 8 (dimensions) and 10 (effective external
-  access), with pagination. Atomic Symbol instances also support Get Attribute
-  Single and Get Attribute List. Constants and aliases inherit read-only access;
-  private tags, AOI locals and Safety program tags are excluded.
-- Atomic BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT and REAL reads/writes;
-  atomic arrays, supported atomic structure members, program-scoped tags and aliases.
-- Fragmented atomic reads and writes (`0x52` / `0x53`), including byte offsets
-  that split an atom. Partial atoms require known backing bytes. Complete atoms
-  can establish unknown values; unknown untouched bytes are not invented.
-- Read Modify Write (`0x4E`) for integer atoms, with OR then AND masks. Masks of
-  1, 2, 4 or 8 bytes can address the low bytes of a sufficiently wide integer;
-  upper bytes are preserved. BOOL/REAL and aggregate masks are unsupported.
-- Read/Write, Read Only, None, constants, aliases, hidden members and AOI-local
-  restrictions are enforced. Safety-class tags are not exposed.
+Choose a bundled demo or open a complete L5X export. Check **Coverage**, then use
+**Step scan** or **Run**. Edit inputs in **Tag Watch** and inspect the logic trace.
+Use **End session** to stop the local app.
 
-The default identity is **LogixLab v35 research target**, with experimental
-vendor value `0xFFFF`. The optional **Experimental 1756-L85E v35** profile advertises
-vendor 1, device type 14 and product code 168. It requires a loaded `1756-L85E`
-v35 source and takes the minor revision from that source. Text Lab advertises
-35.11. Both profiles use the research serial `4C4C0001`; neither establishes
-native controller equivalence. Incompatible imports are rejected while this
-profile is active, preserving the previous project. Compatible imports update
-the identity and invalidate existing sessions.
+Original project files are preserved. Settings and imported copies normally live
+under `%LOCALAPPDATA%\LogixLab`; `--data-dir` selects another private directory.
 
-FactoryTalk Linx native browsing remains unverified. Protocol discovery and client
-initialization do not prove that Studio recognizes a supported controller.
+### CLI
 
-The endpoint has at most 16 TCP clients, 8 Class 3 connections per session,
-32 KiB request payloads, 4 levels of nested messages and a 128-dispatch budget.
-Replies are bounded to 480 CIP bytes and the negotiated connection size.
-Reset, project replacement and scope changes invalidate old registered sessions;
-clients must reconnect. Disconnects discard session connection state.
-
-The trace retains the last 1,000 events. Each request/reply hex sample is limited
-to 1,024 bytes and has a truncation flag. Events include peer, session, path,
-service, status and errors. Unsupported-request summaries retain a bounded set
-of keys. Trace export contains local project tag names and request data.
-
-Individual write requests validate their payload and roll back on failure.
-Each accepted fragment takes effect immediately. A later failed fragment does
-not undo previous fragments, and scans may run between separate requests.
-Multiple Service Packet children are independent operations; a later
-child failure does not roll back earlier successful children. An oversized
-combined response can also fail after earlier children executed.
-
-## Pending Studio connectivity work
-
-This endpoint does **not** yet implement Studio project correlation, compiled
-project transfer, upload/download, online edits, native debugger services, native
-controller status/mode changes, template/UDT layout services, whole-structure or
-STRING transfers, packed BOOL arrays, fragmented aggregate writes, or physical I/O/CIP Safety.
-Atomic STRING members such as `Message.LEN` and `Message.DATA[0]` can be addressed.
-Runtime semantics retain all v0.5 software-model boundaries in `README-v0.5.txt`.
-
-The next native milestone is to make the loopback target visible in FactoryTalk
-Linx, repeat the SDK connection attempt, and implement the first observed missing
-handshake. Full online ladder monitoring must be demonstrated in Studio before
-being advertised as supported.
-
-## Native SDK probe result
-
-This build includes a small diagnostic at `source/research/NativeStudioProbe`.
-It uses the installed official Logix Designer SDK client 2.1.974 against a private
-copy of the bundled TextLab ACD. It opens the ACD, sets a loopback communications
-path and attempts either ReadControllerMode or GoOnline. It never downloads,
-saves, changes controller mode or writes tags. SDK binaries are not bundled.
-
-Both actual probes opened the project and accepted
-`Ethernet\127.0.0.1\Backplane\0`, then failed with
-`RxE_COMM_DTLERROR - Failed to call Linx communication software.`
-The GoOnline probe's before/after endpoint traces contain the same single startup
-event, with no client connections, discovery or CIP traffic. The ACD SHA-256 was
-unchanged. See `validation/native-connection-result.json`, its paired traces and
-the native receipts/logs. This is a Linx communication failure before any emulator
-handshake was observed; it does not establish whether the current protocol surface
-would satisfy Studio.
-
-To repeat on a machine with the SDK available:
-
-1. Start Text Lab with the experimental L85E profile on port 44818.
-2. In FactoryTalk Linx, configure and verify **only** the local `127.0.0.1` target.
-   The SDK guide requires the target to be configured and visible in Linx.
-3. Export a protocol trace, run the probe below, then export another trace.
-4. Compare counts and requests. A successful identity query is still short of a
-   successful GoOnline/correlation result. Record any native dialog or error.
+Start a demo with checkout-local session storage:
 
 ```powershell
-dotnet run --project source/research/NativeStudioProbe -- --acd source/samples/TextLab.ACD --comm-path 'Ethernet\127.0.0.1\Backplane\0' --operation go-online --out validation/native-recheck.json
+py -3.13 -X utf8 source/launch.py --sample TextLab --data-dir .local/session
 ```
 
-Use `--operation mode` for the smaller mode query. The probe accepts only loopback
-slot-0 paths and retains the private ACD copy beside its receipt. Build/package
-output excludes SDK build folders and diagnostic private copies. FactoryTalk Linx
-configuration has not been changed by LogixLab.
-
-## Validation and development
-
-The behavioral suite has **259 passing tests**, including 33 existing protocol
-tests, 13 identity/profile tests, 6 metadata tests and 16 atomic-transfer tests.
-The independent `pycomm3` 1.2.16 client also verifies discovery, atomic-symbol
-enumeration, Large Forward Open, connected reads/writes and Forward Close. A scan
-uses a CIP-written input to update the custom engine's AOI output.
-An additional `pycomm3.LogixDriver` probe initializes both profiles with
-`init_tags=False`, reads the source controller name and identity, queries an
-attribute list and closes its Class 3 connection. Its full native tag upload is
-deliberately rejected because native address attributes are not implemented.
-The raw trace and unsupported-request count record this rejection.
-The transfer probe uses an atomic catalog adapter populated from wire attributes
-1, 2, 8 and 10. With that cache, the independent LogixDriver automatically writes
-and reads 1,200 DINTs (4,800 bytes), rejects a read-only write and follows a
-network command through a scan. It verifies mask writes through generic CIP.
-The installed pycomm3 1.2.16 single-scalar and high-level mask encoders emitted
-malformed payloads during testing; the emulator rejected them. Valid Multi Service
-scalar writes and generic CIP masks are used in the acceptance probe. Client
-native tag upload and native Studio project correlation remain pending.
-These checks establish bounded protocol interoperability, not Studio Go Online
-or native runtime equivalence. See `validation/` for delivery receipts.
-The EXE build succeeded. Automatic approval review rejected its shell launch
-without a detailed reason, so this milestone's UI/runtime checks use the same
-source directly; packaged-EXE execution remains unverified.
+Generate an offline coverage report:
 
 ```powershell
-cd source
+py -3.13 -X utf8 source/launch.py --report source/samples/TextLab.L5X
+```
+
+Start the Network Lab's read-only EtherNet/IP endpoint:
+
+```powershell
+py -3.13 -X utf8 source/launch.py --sample NetworkLab --eip-port 44818 --eip-profile logix-v35-l85e --data-dir .local/network-session
+```
+
+The HTTP UI and protocol listeners bind to `127.0.0.1`. Protocol access starts
+disabled unless requested. Tag writes require **Allow tag writes** or
+`--eip-writes`. Use the **Connectivity** tab to start/stop the endpoint and export
+its trace. See [connectivity documentation](docs/connectivity.md) for the supported
+services, identity profiles and remaining Studio handshake work.
+
+### Build an executable
+
+```powershell
+py -3.13 -m pip install pyinstaller
+powershell -NoProfile -File source/build.ps1
+.\dist\LogixLab.exe
+```
+
+The build places the executable under `dist/`. `START.cmd` launches that build.
+Source-authored L5X demos are bundled; generated ACD files are kept local.
+
+## Current Support
+
+| Area | Available behavior |
+| --- | --- |
+| Projects | v35 L5X import; optional native ACD-to-L5X conversion on a copy |
+| Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic scans |
+| Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
+| EtherNet/IP | Loopback discovery, sessions, Class 3 messaging and atomic tag services |
+| Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
+| Studio online | Go Online, project correlation, upload/download and online edits pending |
+
+Coverage depends on the actual project and execution scope. Full task scheduling,
+motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain
+outside the current model. Unknown data and unsupported forms are not silently
+replaced with assumed behavior.
+
+Read the [execution model](docs/execution-model.md) before interpreting scan
+results, and the [protocol contract](docs/connectivity.md) before using clients.
+
+## Development
+
+The code, public L5X fixtures, tests and browser assets are under `source/`.
+Shared technical documentation is under `docs/`. Build output goes to `dist/`.
+
+Run the behavioral suite from the repository root:
+
+```powershell
+Set-Location source
 py -3.13 -X utf8 -m unittest discover -s tests -v
-py -3.13 -X utf8 tests/interop_pycomm3.py --out ..\validation\interop.json
-py -3.13 -X utf8 tests/interop_logix_identity.py --out ..\validation\identity-interop.json
-py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ..\validation\transfer-interop.json
 ```
 
-The client probes require the optional test-only `pycomm3` package; it is not an
-application dependency. By default it creates an isolated in-process target.
-To probe a running Text Lab endpoint read-only:
+Store machine-specific notes, private PLC files, settings, captures and test
+receipts in ignored `.local/` storage. Generated builds and local reports are
+excluded from Git. See [CONTRIBUTING.md](CONTRIBUTING.md) for checks and repository
+conventions.
 
-```powershell
-py -3.13 -X utf8 tests/interop_pycomm3.py --target 127.0.0.1:44818 --out ..\validation\live-interop.json
-```
+## Roadmap
 
-The probe is restricted to loopback. Add `--write` only with endpoint writes enabled;
-the probe restores its changed Step input. Build with `source/build.ps1`.
+- Expand supported instructions, data types and execution semantics.
+- Implement additional controller metadata and structure/template services.
+- Establish a reproducible native Studio connection and project handshake.
+- Demonstrate online monitoring before advertising Studio Go Online support.
 
-### Network lab
+## Maintainers
 
-In **Connectivity**, choose **Load network lab** to open the bundled L5X fixture.
-It contains a 1,200-element Transfer array, ControlWord, Command and read-only
-Observed. A scan copies Command to Observed. The fixture is verified in the custom
-model; no native ACD or Studio import acceptance is claimed for this new sample.
+[@votecoffee](https://github.com/votecoffee)
 
-```powershell
-py -3.13 -X utf8 launch.py --sample NetworkLab --eip-port 44818 --eip-profile logix-v35-l85e
-```
+## Contributing
 
-The source command runs from `source`. For live transfer acceptance, start a
-Network Lab endpoint with **Allow tag writes**, then run:
+Questions, bug reports and pull requests are welcome through
+[GitHub Issues](https://github.com/votecoffee/Studio5000Emulator/issues) and
+[pull requests](https://github.com/votecoffee/Studio5000Emulator/pulls).
+Please read [CONTRIBUTING.md](CONTRIBUTING.md), use minimal synthetic fixtures,
+and include relevant verification with changes.
 
-```powershell
-py -3.13 -X utf8 tests/interop_atomic_transfers.py --target 127.0.0.1:44818 --write --out ..\validation\live-transfers.json
-```
+## License
 
-The probe restores its changed inputs and array. Its default invocation creates
-an isolated target and executes the scan check itself.
-
-Protocol references: [Rockwell 1756-PM020 data access manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf),
-[ODVA CIP network overview](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf),
-and [pycomm3 client implementation](https://github.com/ottowayi/pycomm3).
-Native setup reference: [Rockwell Logix Designer SDK guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/gr/ldsdk-gr001_-en-p.pdf).
-L85E product identity reference: [Rockwell 1756 declaration of conformity](https://literature.rockwellautomation.com/idc/groups/literature/documents/ct/1756-ct119_-en-e.pdf).
-No Rockwell binaries, firmware, EDS files or copied vendor SDK source are included.
+[MIT](LICENSE) © 2026 votecoffee.

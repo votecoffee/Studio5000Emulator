@@ -12,7 +12,7 @@ from logixlab.server import Application
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--acd', default=str(Path(__file__).resolve().parents[1]/'samples/ConveyorDemo.ACD'))
+    parser.add_argument('--acd', required=True, help='Private ConveyorDemo ACD generated from the public L5X fixture')
     parser.add_argument('--work-dir', required=True, help='Private output folder for copied ACD, export, and logs')
     parser.add_argument('--converter')
     args=parser.parse_args()

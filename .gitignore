@@ -1,12 +1,27 @@
+# Machine-local settings, notes, imports, logs and private project files.
+/.local/
+/.sessions/
+/validation/
+
+# Generated builds and release artifacts.
+/build/
+/dist/
+/releases/
+**/bin/
+**/obj/
 __pycache__/
 *.py[cod]
 *.exe
-validation/
-.sessions/
 *.zip
 *.bundle
-SHA256-MANIFEST.json
-preview.jpg
-**/bin/
-**/obj/
-releases/
+*.ACD
+*.acd
+/SHA256-MANIFEST.json
+/preview.jpg
+
+# Local Python environments and configuration.
+.venv/
+venv/
+.env
+.env.*
+!.env.example

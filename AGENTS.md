@@ -1,9 +1,11 @@
-# Studio5000Emulator repository instructions
+# Contributor and agent guidance
 
-- The canonical working repository is `C:\~LocalWork\Repos\Programming\~Github\Studio5000Emulator`.
-- Continue emulator and Studio 5000 connectivity development on `feature/studio5000-connectivity` unless the user directs a branch change.
-- Commit small, coherent increments frequently after appropriate verification.
-- Do not push to `origin`. The user will push commits themselves.
-- Preserve the original v0.5 history on `baseline/logixlab-v0.5` and the existing GitHub history and LICENSE.
-- Application code and UI are under `source/`; run the behavioral suite from there with `py -3.13 -X utf8 -m unittest discover -s tests -v`.
-- Distinguish protocol/client tests from demonstrated native Studio Go Online behavior when reporting results.
+- Read optional checkout-local instructions in `.local/AGENTS.md` when present.
+- Keep the root README current and follow the repository's Standard Readme structure.
+- Put shared technical documentation in `docs/`; keep personal notes, machine paths,
+  private PLC projects, logs and generated validation reports in ignored `.local/` storage.
+- Application code, tests, public L5X fixtures and browser assets are under `source/`.
+- Run relevant checks before committing. The behavioral suite runs from `source/`:
+  `py -3.13 -X utf8 -m unittest discover -s tests -v`.
+- Keep changes focused. Preserve the distinction between software-model/protocol
+  tests and demonstrated native Studio 5000 Go Online behavior.

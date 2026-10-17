@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .importers import convert_acd, DEFAULT_CONVERTER
+from .importers import convert_acd, default_converter
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -30,7 +30,7 @@ class Application:
     def __init__(self, data_dir=None):
         self.data_dir = Path(data_dir or Path(os.environ.get("LOCALAPPDATA", str(Path.cwd()))) / "LogixLab")
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.converter = str(DEFAULT_CONVERTER)
+        self.converter = default_converter()
         settings = self.data_dir / 'settings.json'
         if settings.is_file():
             try: self.converter = str(json.loads(settings.read_text(encoding='utf-8'))['converter'])

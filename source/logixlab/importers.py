@@ -8,7 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .model import ModelError
 
-DEFAULT_CONVERTER = Path(r"C:\~LocalWork\Repos\Programming\PLCCodeGenerator\Archive\ra-logix-designer-vcs-custom-tools-main\artifacts\bin\Debug\l5xgit.exe")
+def default_converter():
+    """Resolve optional native tooling without depending on a checkout location."""
+    configured = os.environ.get('LOGIXLAB_CONVERTER', '').strip()
+    return str(Path(configured).expanduser()) if configured else (shutil.which('l5xgit') or '')
 
 
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -16,8 +19,9 @@ def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def convert_acd(source, destination, converter=None):
     source, destination = Path(source).resolve(), Path(destination).resolve()
-    executable = Path(converter) if converter else DEFAULT_CONVERTER
-    if not executable.is_file():
+    configured = converter or default_converter()
+    executable = Path(configured).resolve() if configured else None
+    if executable is None or not executable.is_file():
         raise ModelError("ACD import needs the l5xgit converter and installed Studio 5000/SDK. Set its path in Import settings, or load a complete L5X export.")
     if source == destination: raise ModelError("Source and export paths must differ")
     destination.parent.mkdir(parents=True, exist_ok=True)

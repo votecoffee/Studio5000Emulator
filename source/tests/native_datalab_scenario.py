@@ -21,7 +21,7 @@ def check(app):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--acd',default=str(Path(__file__).resolve().parents[1]/'samples/DataLab.ACD'));parser.add_argument('--work-dir',required=True);parser.add_argument('--converter')
+    parser=argparse.ArgumentParser();parser.add_argument('--acd',required=True,help='Private DataLab ACD generated from the public L5X fixture');parser.add_argument('--work-dir',required=True);parser.add_argument('--converter')
     args=parser.parse_args();path=Path(args.acd);before=hashlib.sha256(path.read_bytes()).hexdigest();app=Application(args.work_dir)
     if args.converter:app.converter=args.converter
     app.command('load',{'name':path.name,'content':base64.b64encode(path.read_bytes()).decode()})
