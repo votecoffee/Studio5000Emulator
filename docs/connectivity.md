@@ -13,6 +13,8 @@ Observed. Each modeled scan copies Command to Observed.
 **Load structure lab** opens nested numeric UDTs for template discovery and
 fragmented transfers. Each scan copies Command into Machine.Axis and copies
 Machines[0].Axis.Command into the read-only Machine.History[0].Command.
+**Load layout lab** exercises mixed-width numeric fields, nested alignment and
+64-bit values. Each scan copies Records[0].Count into the read-only Observed tag.
 
 The default address is `127.0.0.1:44818`, with TCP and UDP listeners and a modeled
 backplane route of port 1, slot 0. The target never forwards traffic externally.
@@ -59,18 +61,30 @@ Atomic STRING members can be addressed individually.
 
 ## Structured transfers
 
-Explicit `User` UDTs in `NoFamily` may contain DINT, UDINT and REAL members,
-nested supported UDTs and one-dimensional member arrays. These four-byte fields
-use a contiguous little-endian model layout. Root arrays may have up to three
-dimensions. Symbol types link to template instances; templates describe member
-types, offsets, names, structure size and the handle returned in structured reads.
+Explicit `User` UDTs in `NoFamily` may contain SINT, INT, DINT, LINT, USINT, UINT,
+UDINT, ULINT and REAL members, nested supported UDTs and one-dimensional member
+arrays. Numeric values use little-endian encoding. Root arrays may have up to
+three dimensions. Symbol types link to template instances; templates describe
+member types, offsets, names, structure size and the handle returned in reads.
 See the [data access manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf),
 chapter 2, for the protocol formats.
+
+Numeric fields align to their byte width. Arrays align to at least four bytes
+and include trailing alignment padding. Structures align to four bytes, or
+eight when they contain a 64-bit member, including through nested types.
+Structure sizes are rounded to that alignment. These rules follow
+[Design Considerations, chapter 6](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm094_-en-p.pdf).
+
+Reserved alignment padding is canonical zero data in this software model.
+Reads emit zero padding; writes reject nonzero bytes in reserved padding before
+changing application values. A zero-only padding fragment is a no-op. This is
+a model policy, not a claim about native controller padding contents. Unknown
+application values still reject reads, independently of the padding policy.
 
 The model limits each layout and requested transfer to 32 KiB, nesting to eight
 levels, each type to 256 members and member arrays to 4,096 elements. Hidden,
 private, overlaid, packed, inferred-only, predefined and AOI layouts are excluded.
-Other atomic widths and BOOL/STRING fields inside whole UDT transfers are pending.
+BOOL/STRING fields inside whole UDT transfers and LREAL remain unsupported.
 Eligible atomic members remain accessible separately.
 
 Template IDs and CRC-derived handles belong to this software model and are not

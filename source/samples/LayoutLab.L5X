@@ -1,0 +1,357 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="LayoutLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="LayoutLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <Description>LogixLab fixture: mixed-width numeric UDTs with scalar, array and nested alignment.</Description>
+    <DataTypes>
+      <DataType Name="SmallGroup" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Byte" DataType="SINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Short" DataType="INT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Code" DataType="USINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Samples" DataType="SINT" Dimension="3" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+      <DataType Name="MixedRecord" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Prefix" DataType="SINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Short" DataType="INT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Bytes" DataType="USINT" Dimension="3" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Wide" DataType="LINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Count" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Words" DataType="UINT" Dimension="3" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Group" DataType="SmallGroup" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Huge" DataType="ULINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Ratio" DataType="REAL" Dimension="0" Radix="Float" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Trailing" DataType="SINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Unsigned" DataType="UDINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Record" TagType="Base" DataType="MixedRecord" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <Structure DataType="MixedRecord">
+            <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="1" />
+            <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29991" />
+            <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="127" />
+              <Element Index="[2]" Value="246" />
+            </ArrayMember>
+            <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775799" />
+            <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="109" />
+            <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+              <Element Index="[0]" Value="1" />
+              <Element Index="[1]" Value="32768" />
+              <Element Index="[2]" Value="65526" />
+            </ArrayMember>
+            <StructureMember DataType="SmallGroup" Name="Group">
+              <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="4" />
+              <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1243" />
+              <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="209" />
+              <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                <Element Index="[0]" Value="-13" />
+                <Element Index="[1]" Value="0" />
+                <Element Index="[2]" Value="14" />
+              </ArrayMember>
+            </StructureMember>
+            <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551606" />
+            <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="10.25" />
+            <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="111" />
+            <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967286" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Records" TagType="Base" DataType="MixedRecord" ExternalAccess="Read/Write" Dimensions="8">
+        <Data Format="Decorated">
+          <Array DataType="MixedRecord" Dimensions="8">
+            <Element Index="[0]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-8" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-30000" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="255" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775808" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="100" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65535" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="-5" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1234" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="200" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-4" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="5" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551615" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="1.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="120" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967295" />
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-7" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29999" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="254" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775807" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="101" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65534" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="-4" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1235" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="201" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-5" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="6" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551614" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="2.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="119" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967294" />
+              </Structure>
+            </Element>
+            <Element Index="[2]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-6" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29998" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="253" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775806" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="102" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65533" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="-3" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1236" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="202" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-6" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="7" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551613" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="3.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="118" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967293" />
+              </Structure>
+            </Element>
+            <Element Index="[3]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-5" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29997" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="252" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775805" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="103" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65532" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="-2" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1237" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="203" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-7" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="8" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551612" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="4.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="117" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967292" />
+              </Structure>
+            </Element>
+            <Element Index="[4]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-4" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29996" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="251" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775804" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="104" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65531" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="-1" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1238" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="204" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-8" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="9" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551611" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="5.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="116" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967291" />
+              </Structure>
+            </Element>
+            <Element Index="[5]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-3" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29995" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="250" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775803" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="105" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65530" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="0" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1239" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="205" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-9" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="10" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551610" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="6.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="115" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967290" />
+              </Structure>
+            </Element>
+            <Element Index="[6]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-2" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29994" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="249" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775802" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="106" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65529" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="1" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1240" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="206" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-10" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="11" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551609" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="7.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="114" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967289" />
+              </Structure>
+            </Element>
+            <Element Index="[7]">
+              <Structure DataType="MixedRecord">
+                <DataValueMember Name="Prefix" DataType="SINT" Radix="Decimal" Value="-1" />
+                <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-29993" />
+                <ArrayMember Name="Bytes" DataType="USINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="127" />
+                  <Element Index="[2]" Value="248" />
+                </ArrayMember>
+                <DataValueMember Name="Wide" DataType="LINT" Radix="Decimal" Value="-9223372036854775801" />
+                <DataValueMember Name="Count" DataType="DINT" Radix="Decimal" Value="107" />
+                <ArrayMember Name="Words" DataType="UINT" Dimensions="3" Radix="Decimal">
+                  <Element Index="[0]" Value="1" />
+                  <Element Index="[1]" Value="32768" />
+                  <Element Index="[2]" Value="65528" />
+                </ArrayMember>
+                <StructureMember DataType="SmallGroup" Name="Group">
+                  <DataValueMember Name="Byte" DataType="SINT" Radix="Decimal" Value="2" />
+                  <DataValueMember Name="Short" DataType="INT" Radix="Decimal" Value="-1241" />
+                  <DataValueMember Name="Code" DataType="USINT" Radix="Decimal" Value="207" />
+                  <ArrayMember Name="Samples" DataType="SINT" Dimensions="3" Radix="Decimal">
+                    <Element Index="[0]" Value="-11" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="12" />
+                  </ArrayMember>
+                </StructureMember>
+                <DataValueMember Name="Huge" DataType="ULINT" Radix="Decimal" Value="18446744073709551608" />
+                <DataValueMember Name="Ratio" DataType="REAL" Radix="Float" Value="8.25" />
+                <DataValueMember Name="Trailing" DataType="SINT" Radix="Decimal" Value="113" />
+                <DataValueMember Name="Unsigned" DataType="UDINT" Radix="Decimal" Value="4294967288" />
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Observed" TagType="Base" DataType="DINT" ExternalAccess="Read Only">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>MOV(Records[0].Count,Observed);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

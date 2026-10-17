@@ -157,7 +157,7 @@ class StructureReadTests(unittest.TestCase):
         self.assertEqual(self.app.engine.memory.values, before)
 
     def test_unsupported_packing_and_private_members_are_not_advertised(self):
-        cases = ['<Member Name="A" DataType="BOOL"/>', '<Member Name="A" DataType="LINT"/>',
+        cases = ['<Member Name="A" DataType="BOOL"/>', '<Member Name="A" DataType="LREAL"/>',
                  '<Member Name="A" DataType="DINT" Hidden="true"/>',
                  '<Member Name="A" DataType="DINT" ExternalAccess="None"/>',
                  '<Member Name="A" DataType="DINT" Dimension="2,2"/>',

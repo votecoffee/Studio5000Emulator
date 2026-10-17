@@ -17,7 +17,7 @@ From `source/`:
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
 
-The bundled Conveyor, Data, AOI, Call, Text, Network and Structure labs are public L5X
+The bundled Conveyor, Data, AOI, Call, Text, Network, Structure and Layout labs are public L5X
 fixtures. Native ACD inputs and generated ACD variants remain local.
 
 ## Optional protocol probes
@@ -34,6 +34,7 @@ py -3.13 -X utf8 tests/interop_logix_identity.py --out ../.local/checks/identity
 py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ../.local/checks/transfers.json
 py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structures.json
 py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/structure-writes.json
+py -3.13 -X utf8 tests/interop_numeric_layouts.py --out ../.local/checks/layouts.json
 ```
 
 By default the scripts create isolated loopback targets. The transfer probe
@@ -55,6 +56,14 @@ observes a scan consuming a written field, and restores the input records.
 It uses the same documented-attribute catalog adapter. The installed pycomm3
 1.2.16 single-write builder duplicates payload bytes for small writes; the probe
 uses its valid Multi Service path rather than relaxing endpoint length checks.
+
+The numeric-layout probe verifies all nine supported numeric widths, nested
+alignment, exact 64-bit values, and fragmented read/write roundtrips of eight
+64-byte records. It also checks direct atomic-array access inside record arrays,
+nonzero reserved-padding rejection and scan
+propagation, then restores its input records. The model's zero-padding contract
+and remaining layout restrictions are documented under
+[structured transfers](connectivity.md#structured-transfers).
 
 Live write probes require an explicit `--write`, a loopback target and endpoint
 writes enabled. The transfer probe expects Network Lab and restores changed

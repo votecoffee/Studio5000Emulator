@@ -244,8 +244,13 @@ class Router:
             value=memory.read(ref) if any(isinstance(p,tuple) for p in parts) else memory.at(key,parts)
             if count!=1 or isinstance(value,list):raise CIPError(8,'Packed BOOL arrays are not implemented')
             return dtype,[ref]
-        if count==1 and not isinstance(memory.at(key,parts),list):return dtype,[ref]
-        key,paths,dtype=memory.region(ref,count)
+        value=memory.at(key,parts)
+        if count==1 and not isinstance(value,list):return dtype,[ref]
+        start=ref
+        while isinstance(value,list):
+            if not value:raise CIPError(0x0C,'Empty atomic array')
+            start+='[0]';value=value[0]
+        key,paths,dtype=memory.region(start,count)
         return dtype,[memory.address(key,p) for p in paths]
 
     def read_tag(self,path,data,fragment=False,limit=REPLY_LIMIT):
@@ -355,22 +360,24 @@ class Router:
         if not fragment:exact(data,header+total)
         if not payload:raise CIPError(0x13,'Fragment contains no data')
         if offset>=total or len(payload)>total-offset:raise CIPError(0x20,'Fragment exceeds requested structured region')
-        end=offset+len(payload);values=[];memory=self.app.engine.memory
+        end=offset+len(payload);values=[];memory=self.app.engine.memory;covered=bytearray(len(payload))
         first=offset//template.size;last=(end-1)//template.size
         for index in range(first,last+1):
             for member_offset,dtype,member_ref in self.templates().leaves(template,refs[index],index*template.size):
-                start=max(offset,member_offset);stop=min(end,member_offset+4)
+                fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
+                start=max(offset,member_offset);stop=min(end,member_offset+size)
                 if start>=stop:continue
                 self.access(member_ref,True)
-                fmt='<'+TYPES[dtype][1];chunk=payload[start-offset:stop-offset]
-                if stop-start==4:raw=chunk
+                chunk=payload[start-offset:stop-offset];covered[start-offset:stop-offset]=b'\1'*(stop-start)
+                if stop-start==size:raw=chunk
                 else:
                     # Preserve known bytes in split atoms; untouched members may
                     # remain unknown and are never read merely to fill a packet.
                     raw=bytearray(struct.pack(fmt,memory.read(member_ref)))
                     raw[start-member_offset:stop-member_offset]=chunk
                 values.append((member_ref,struct.unpack(fmt,raw)[0]))
-        self.store_values(values)
+        if any(value for value,used in zip(payload,covered) if not used):raise CIPError(9,'Reserved layout padding must be zero')
+        if values:self.store_values(values)
         return 0,b''
 
     def read_modify_write(self,path,data):

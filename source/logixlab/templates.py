@@ -1,4 +1,4 @@
-"""Bounded wire layouts for explicit, four-byte numeric UDT definitions.
+"""Bounded, aligned wire layouts for explicit numeric UDT definitions.
 
 Template IDs and handles belong to this software model. They are not copied
 from, or authenticated against, a native controller's compiled type database.
@@ -12,10 +12,16 @@ from dataclasses import dataclass
 from .model import ModelError, dimensions
 
 
-ATOMS = {'DINT': (0xC4, 'i'), 'UDINT': (0xC8, 'I'), 'REAL': (0xCA, 'f')}
+ATOMS = {'SINT': (0xC2, 'b'), 'INT': (0xC3, 'h'), 'DINT': (0xC4, 'i'),
+         'LINT': (0xC5, 'q'), 'USINT': (0xC6, 'B'), 'UINT': (0xC7, 'H'),
+         'UDINT': (0xC8, 'I'), 'ULINT': (0xC9, 'Q'), 'REAL': (0xCA, 'f')}
 MAX_BYTES = 32768
 MAX_MEMBERS = 256
 MAX_DEPTH = 8
+
+
+def aligned(value, boundary):
+    return (value + boundary - 1) // boundary * boundary
 
 
 @dataclass(frozen=True)
@@ -26,6 +32,7 @@ class Member:
     array: bool
     offset: int
     code: int
+    element_size: int
 
 
 @dataclass(frozen=True)
@@ -37,6 +44,7 @@ class Template:
     definition: bytes
     handle: int
     depth: int
+    alignment: int
 
     def attributes(self):
         return {1: struct.pack('<H', self.handle), 2: struct.pack('<H', len(self.members)),
@@ -64,12 +72,13 @@ class Catalog:
         if schema is None or key not in self.ids: raise ModelError('No explicit wire UDT definition')
         if schema.get('Class', 'User') != 'User' or schema.get('Family', 'NoFamily') != 'NoFamily':
             raise ModelError('Only explicit user-defined wire structures are supported')
+        if self.project.string_capacity(name) is not None: raise ModelError('Whole STRING wire layouts are unsupported')
         type_name = schema.get('Name', name)
         valid_name = lambda value: re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,39}', value)
         if not valid_name(type_name): raise ModelError('Invalid wire UDT name')
         nodes = schema.findall('./Members/Member')
         if not 1 <= len(nodes) <= MAX_MEMBERS: raise ModelError('Wire UDT member count must be 1..256')
-        members = []; names = set(); offset = 0; depth = 1
+        members = []; names = set(); offset = 0; depth = 1; alignment = 4
         for node in nodes:
             member_name = node.get('Name', '')
             if not valid_name(member_name) or member_name.lower() in names: raise ModelError('Invalid or duplicate wire member')
@@ -84,15 +93,22 @@ class Catalog:
             count = dims[0] if dims else 1
             dtype = node.get('DataType', '')
             if dtype.upper() in ATOMS:
-                dtype = dtype.upper(); code = ATOMS[dtype][0]; size = 4
+                dtype = dtype.upper(); code = ATOMS[dtype][0]; size = struct.calcsize('<' + ATOMS[dtype][1])
+                member_alignment = size
             else:
                 nested = self.build(dtype, stack + (key,))
                 code = 0x8000 | nested.instance; size = nested.size
+                member_alignment = nested.alignment
                 depth = max(depth, 1 + nested.depth)
                 if depth > MAX_DEPTH: raise ModelError('Wire UDT nesting exceeds eight levels')
-            if offset + size * count > MAX_BYTES: raise ModelError('Wire UDT exceeds 32768 bytes')
-            members.append(Member(member_name, dtype, count, bool(dims), offset, code))
-            offset += size * count
+            if dims: member_alignment = max(4, member_alignment)
+            alignment = max(alignment, member_alignment); offset = aligned(offset, member_alignment)
+            occupied = aligned(size * count, member_alignment) if dims else size
+            if offset + occupied > MAX_BYTES: raise ModelError('Wire UDT exceeds 32768 bytes')
+            members.append(Member(member_name, dtype, count, bool(dims), offset, code, size))
+            offset += occupied
+        offset = aligned(offset, alignment)
+        if offset > MAX_BYTES: raise ModelError('Aligned wire UDT exceeds 32768 bytes')
         info = b''.join(struct.pack('<HHI', m.count if m.array else 0,
                                     m.code | (0x2000 if m.array else 0), m.offset) for m in members)
         names_data = (type_name + ';n\0' + '\0'.join(m.name for m in members) + '\0').encode('ascii')
@@ -101,7 +117,7 @@ class Catalog:
         definition += b'\0' * (-(len(definition) + 23) % 4)
         if len(definition) > MAX_BYTES: raise ModelError('Wire template definition exceeds 32768 bytes')
         handle = binascii.crc_hqx(definition, 0xFFFF)
-        template = Template(self.ids[key], type_name, tuple(members), offset, definition, handle, depth)
+        template = Template(self.ids[key], type_name, tuple(members), offset, definition, handle, depth, alignment)
         self.types[key] = template
         return template
 
@@ -123,7 +139,7 @@ class Catalog:
         for member in template.members:
             member_ref = ref + '.' + member.name
             nested = self.for_type(member.dtype) if member.dtype not in ATOMS else None
-            size = nested.size if nested else 4
+            size = member.element_size
             for index in range(member.count):
                 item_ref = member_ref + (f'[{index}]' if member.array else '')
                 offset = base + member.offset + index * size
@@ -133,9 +149,11 @@ class Catalog:
                     yield offset, member.dtype, item_ref
 
     def encode(self, template, ref, read):
-        result = bytearray()
-        for _, dtype, item_ref in self.leaves(template, ref):
+        # Alignment padding is reserved, canonical zero data in this model. It
+        # does not stand in for omitted application values or hidden host bits.
+        result = bytearray(template.size)
+        for offset, dtype, item_ref in self.leaves(template, ref):
             value = read(item_ref)
             if value is None or isinstance(value, (dict, list)): raise ModelError('Unknown structured wire data')
-            result.extend(struct.pack('<' + ATOMS[dtype][1], value))
+            struct.pack_into('<' + ATOMS[dtype][1], result, offset, value)
         return bytes(result)
