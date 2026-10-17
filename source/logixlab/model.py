@@ -286,6 +286,7 @@ class Project:
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))
         self.processor = c.get("ProcessorType", "unknown")
+        self.minor_version = c.get('MinorRev','0')
         if self.version != "35": self.issues.append(f"Revision {self.version}: this prototype targets v35")
         for attr in ("PowerUpHandlerProgram", "MajorFaultProgram"):
             if c.get(attr): self.issues.append(f"{attr} execution is unsupported")

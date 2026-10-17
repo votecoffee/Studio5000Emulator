@@ -7,3 +7,5 @@ validation/
 *.bundle
 SHA256-MANIFEST.json
 preview.jpg
+**/bin/
+**/obj/

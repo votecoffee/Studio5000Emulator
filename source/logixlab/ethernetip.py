@@ -17,6 +17,7 @@ import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from .model import ModelError
+from .identity import Identity
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -139,12 +140,24 @@ class Router:
     def __init__(self,app,endpoint):self.app=app;self.endpoint=endpoint
 
     def identity_attributes(self):
-        # Deliberately identifies LogixLab, not an authentic Rockwell product.
-        name=b'LogixLab v35 research target'
-        return {1:struct.pack('<H',0xFFFF),2:struct.pack('<H',0x0E),3:struct.pack('<H',1),
-                4:bytes((35,1)),5:b'\x00\x00',6:struct.pack('<I',0x4C4C0001),7:bytes((len(name),))+name}
+        return self.endpoint.identity.attributes()
 
-    def identity(self):return b''.join(self.identity_attributes().values())
+    def identity(self):return self.endpoint.identity.all_attributes()
+
+    def attribute_read(self,service,path,data,attributes):
+        if service==0x0E:
+            exact(data,0)
+            if path.attribute not in attributes:raise CIPError(0x14,'Unsupported attribute')
+            return 0,attributes[path.attribute]
+        if service==3 and path.attribute is None:
+            need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
+            if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
+            result=struct.pack('<H',count);failed=False
+            for number in struct.unpack_from('<'+'H'*count,data,2):
+                value=attributes.get(number);status=0 if value is not None else 0x14
+                failed|=status!=0;result+=struct.pack('<HH',number,status)+(value if value is not None else b'')
+            return 0x0A if failed else 0,result
+        raise CIPError(8,'Unsupported attribute service')
 
     def symbols(self,scope=''):
         result=[];engine=self.app.engine
@@ -312,12 +325,18 @@ class Router:
         if path.class_id==1 and not path.symbols:
             if path.instance==1:
                 if service==1 and path.attribute is None:exact(data,0);return 0,self.identity()
-                if service==0x0E:
-                    exact(data,0);value=self.identity_attributes().get(path.attribute)
-                    if value is None:raise CIPError(0x14,'Unsupported identity attribute')
-                    return 0,value
-            elif path.instance==0 and service==0x0E and path.attribute in (1,2,3):
-                exact(data,0);return 0,b'\x01\x00'
+                return self.attribute_read(service,path,data,self.identity_attributes())
+            elif path.instance in (None,0):
+                return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
+            raise CIPError(5,'Unknown Identity object instance')
+        if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
+            classes=struct.pack('<HHHHHH',5,1,2,6,0x64,0x6B)
+            if service==1 and path.attribute is None:exact(data,0);return 0,classes
+            return self.attribute_read(service,path,data,{1:classes})
+        if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service==1:
+            exact(data,0);name=self.app.engine.project.name.encode('ascii')
+            if len(name)>255:raise CIPError(0x1B,'Controller project name exceeds supported size')
+            return 0,struct.pack('<H',len(name))+name
         if path.class_id==2 and path.instance==1 and service==0x0A and not path.symbols and path.attribute is None:
             need(data,2);count=struct.unpack_from('<H',data)[0]
             if not 1<=count<=16:raise CIPError(3,'Multiple Service Packet limit is 16')
@@ -370,17 +389,20 @@ def decode_cpf(data):
 
 
 class Endpoint:
-    def __init__(self,app,port=44818,allow_writes=False):
+    def __init__(self,app,port=44818,allow_writes=False,profile='research'):
         if isinstance(port,bool) or not isinstance(port,int) or not 0<=port<=65535:raise ModelError('EtherNet/IP port must be 0..65535')
         if not isinstance(allow_writes,bool):raise ModelError('allow_writes must be boolean')
         self.app=app;self.allow_writes=allow_writes;self.port=port;self.router=Router(app,self)
+        if app.engine is None:raise ModelError('Load a project before selecting an identity')
+        self.profile=profile;self.identity=Identity.from_project(profile,app.engine.project)
+        self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
 
     def record(self,kind,request=b'',response=b'',**fields):
         with self.lock:
             self.counts[kind]+=1
-            if kind=='cip' and fields.get('status')==8:
+            if kind=='cip' and fields.get('status') in (8,0x14):
                 key=fields.get('service','')+' '+fields.get('path','')
                 self.unsupported[key if key in self.unsupported or len(self.unsupported)<128 else 'Other unsupported requests']+=1
             self.events.append({'time':time.time(),'kind':kind,**fields,'request_hex':request[:1024].hex(),
@@ -389,7 +411,7 @@ class Endpoint:
     def state(self,trace=False):
         with self.lock:
             result={'enabled':self.enabled,'address':f'127.0.0.1:{self.port}','allow_writes':self.allow_writes,
-                    'identity':'LogixLab research identity; not a Rockwell controller identity',
+                    'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
@@ -399,7 +421,8 @@ class Endpoint:
     def discovery(self,command):
         if command==0x63:
             addr=struct.pack('>HH4s8s',2,self.port,socket.inet_aton('127.0.0.1'),b'\0'*8)
-            item=struct.pack('<H',1)+addr+self.router.identity()+b'\x03'
+            with self.lock:identity=self.identity
+            item=struct.pack('<H',1)+addr+identity.all_attributes()+identity.attributes()[8]
             return struct.pack('<HHH',1,0x0C,len(item))+item
         if command==4:
             item=struct.pack('<HH',1,0x20)+b'Communications'.ljust(16,b'\0')

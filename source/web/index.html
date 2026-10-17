@@ -15,10 +15,10 @@
 <div id="connectivity" class="tab-content" hidden>
 <div class="section-heading"><h2>Studio 5000 connectivity research</h2><span id="eip-badge" class="badge">STOPPED</span></div>
 <div class="eip-body"><p class="limits">Local EtherNet/IP endpoint backed by the loaded project. Controller discovery and tag services are available. Studio Go Online, upload, download and online edits are pending.</p>
-<div class="eip-controls"><label>Port <input id="eip-port" type="number" min="1" max="65535" value="44818" aria-label="EtherNet/IP port"></label><label><input id="eip-writes" type="checkbox"> Allow tag writes</label></div>
+<div class="eip-controls"><label>Identity <select id="eip-profile" aria-label="Protocol identity"><option value="research">LogixLab research</option><option value="logix-v35-l85e">Experimental 1756-L85E v35</option></select></label><label>Port <input id="eip-port" type="number" min="1" max="65535" value="44818" aria-label="EtherNet/IP port"></label><label><input id="eip-writes" type="checkbox"> Allow tag writes</label></div>
 <div class="eip-controls"><button id="eip-start" class="primary">Start endpoint</button><button id="eip-stop">Stop endpoint</button><button id="eip-refresh">Refresh values</button><button id="eip-trace">Export protocol trace ↓</button></div>
 <p id="eip-address" class="eip-address">127.0.0.1:44818 · TCP + UDP · slot 0</p><p id="eip-summary" class="limits">Load a project to begin.</p>
-<div class="issue">Identity: LogixLab research target. Studio Go Online is not yet supported. Unsupported services return errors and are recorded for the next implementation step.</div>
+<div id="eip-identity" class="issue">The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.</div>
 <h3>REQUEST COUNTS</h3><div id="eip-counts" class="chips"></div><h3>UNSUPPORTED REQUESTS</h3><div id="eip-unsupported" class="limits">No requests recorded.</div>
 </div></div>
 <div id="coverage" class="tab-content" hidden><div class="section-heading"><h2>Execution coverage</h2><button id="report">Download report ↓</button></div><div id="coverage-body"></div></div>
