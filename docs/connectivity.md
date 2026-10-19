@@ -178,8 +178,8 @@ the separate device-locator operation below.
 
 Separate, temporary native SDK trials established the raw-RSA encoding and
 verified HMAC-SHA1 requests over the complete outer CIP request plus its counter,
-excluding the final 20-byte MAC. Three trials matched using independently
-generated nonces. The MAC uses the nonce's little-endian byte sequence as its
+excluding the final 20-byte MAC. Three trials matched using generated nonces,
+including a deterministic test vector. The MAC uses the nonce's little-endian byte sequence as its
 key. Confirmation proof semantics and authenticated reply/container handling
 remain research work; the temporary trials rejected their embedded operations.
 The generic HMAC construction is defined in
@@ -501,6 +501,16 @@ during this attempt, the sole unsupported request was Extended Device class
 configuration and installed attribute-reference files retained their original
 hashes. Independent client checks and 452 behavioral tests on each of Windows
 and Linux passed for `.18`.
+
+The normal `.20` endpoint was then tested with the matching private ACD through
+RockwellMCPServer and the native Logix Designer SDK. Open Project, Read Connected
+State and Get Communications Path succeeded. Its 12 CIP events include a
+successful `0x64` / `0x4B` response containing the 130-byte challenge payload.
+Studio next sent a 22-byte `0x64` / `0x4C` request, which returned unsupported
+service (`0x08`). That was the sole unsupported request in this attempt.
+Go Online still failed with `RxE_COMM_ASA_SERVICE_NOT_SUPPORTED`; the failure
+phase advanced to confirmation. The original and private ACD hashes and shared
+native-service configuration were preserved. Tag writes remained disabled.
 
 ### Passive reference handshake
 
