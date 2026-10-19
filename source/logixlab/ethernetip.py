@@ -371,6 +371,8 @@ class Router:
             for ref,value in values:memory.write(ref,value)
         except Exception:
             memory.values=before;raise
+        self.app._io_dirty=True
+        self.app.publish_device_io()
 
     def write_tag(self,path,data,fragment=False):
         if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')

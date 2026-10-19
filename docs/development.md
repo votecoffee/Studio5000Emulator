@@ -30,6 +30,16 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+## Device I/O
+
+`device_io.py` holds immutable scalar snapshots and a bounded input queue.
+Application mutation paths capture committed state; consumer JSON encoding and
+HTTP/MQTT I/O run outside `app.lock`. Input transactions are drained before each
+scan, with root-value rollback if a batch fails. `device_http.py` exposes scoped
+tokens and cached/queued routes. The optional `tools/mqtt_bridge.py` runs in its
+own process with bounded outgoing/incoming queues. See [Device I/O](device-io.md)
+for the wire schema, sampling limits and optional real-broker validation.
+
 ## ACD symbol identity
 
 `native_symbols.py` reads the optional `TagInfo.XML` schema 1.0 stream using the

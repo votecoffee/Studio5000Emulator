@@ -1,0 +1,2 @@
+# Optional, separate-process MQTT bridge. The emulator needs no extra packages.
+paho-mqtt==2.1.0

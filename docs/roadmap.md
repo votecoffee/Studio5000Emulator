@@ -110,6 +110,18 @@ Containerlab can add topology management when it provides useful capabilities;
 it is not itself a Windows virtual-network driver. EVE-NG and GNS3 similarly do
 not remove the need for an execution backend with its own network stack.
 
+## External device simulation
+
+`.32` adds committed cached snapshots, a bounded transactional input queue and
+an optional separate-process MQTT bridge. Device input batches apply between
+scans with acknowledgements, access checks and source-generation guards.
+See [Device I/O](device-io.md) for verified scope and setup.
+
+Next: typed OPC UA subscriptions/writes, DDS integration where needed, an
+independent SQL historian, device-owned input namespaces and optional simulation
+clock synchronization. Keep protocol adapters and storage work outside the scan
+path, and distinguish sampled current state from a lossless transition log.
+
 ## Execution coverage
 
 Continue expanding instruction and data-type models, task scheduling, strings,

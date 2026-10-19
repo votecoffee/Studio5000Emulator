@@ -208,12 +208,15 @@ class Engine:
                     if n!='RTO':w('.DN',False);w('.ACC',0)
                 elif n in ('CTU','CTD'):w('.CU' if n=='CTU' else '.CD',True)
 
-    def step(self, dt=10):
+    def validate_interval(self, dt):
         if self.blockers: raise ModelError("Execution blocked; inspect the coverage report")
         if not isinstance(dt, int) or not 1 <= dt <= 60000: raise ModelError("Scan interval must be 1..60000 ms")
         if self.mode == "project" and self.project.tasks[0]["type"] == "Periodic":
             rate = float(self.project.tasks[0]["rate"])
             if dt != rate: raise ModelError(f"Periodic task requires a {rate:g} ms scan interval")
+
+    def step(self, dt=10):
+        self.validate_interval(dt)
         before = copy.deepcopy(self.memory.values)
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace)
         self.time_ms += dt

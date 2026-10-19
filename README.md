@@ -21,6 +21,7 @@ Application development is maintained on `main`.
 - [Install](#install)
 - [Usage](#usage)
 - [Current Support](#current-support)
+- [External Device Simulation](#external-device-simulation)
 - [Development](#development)
 - [Roadmap](#roadmap)
 - [Maintainers](#maintainers)
@@ -169,6 +170,18 @@ replaced with assumed behavior.
 
 Read the [execution model](docs/execution-model.md) before interpreting scan
 results, and the [protocol contract](docs/connectivity.md) before using clients.
+
+## External Device Simulation
+
+The **Device I/O** tab enables queued external input writes. External monitors
+read consistent cached snapshots without taking the scan lock. A separate MQTT
+bridge distributes tag values and accepts atomic input batches from robot,
+servo and other device simulators. Writes apply between scans, with scoped
+tokens, expiry, duplicate detection and queued/applied/rejected acknowledgements.
+
+See [setup, MQTT topics and the HTTP API](docs/device-io.md). The MQTT dependency
+is optional; the app runtime remains standard-library-only. OPC UA/DDS adapters
+and a SQL historian are future extensions of the same interface.
 
 ## Development
 

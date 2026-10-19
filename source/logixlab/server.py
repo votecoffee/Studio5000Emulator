@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 from .importers import convert_acd, default_converter
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
+from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -49,6 +50,8 @@ class Application:
         self.connectivity_lock = threading.RLock()
         self.desktop = {'tray_available': False, 'tray_error': None}
         self.instance_id = uuid.uuid4().hex
+        self.device_io = DeviceIO(self.instance_id)
+        self._io_dirty = False
         self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')
 
     def connectivity(self,trace=False):
@@ -65,14 +68,18 @@ class Application:
 
     def state(self):
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
-                    'instance_id': self.instance_id, 'execution_environment': self.execution_environment}
+                    'instance_id': self.instance_id, 'execution_environment': self.execution_environment,
+                    'device_io':self.device_io.description()}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
+        tags = e.memory.leaves()
+        self.publish_device_io(tags)
+        metadata['device_io'] = self.device_io.description()
         return {**metadata, "loaded": True, "name": e.project.name, "version": e.project.version,
                 "processor": e.project.processor, "scan": e.scan_count, "ms": e.time_ms,
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
                 'entry_routines':e.entries,
-                "fault": e.fault, "tags": e.memory.leaves(), "trace": e.trace,'connectivity':self.connectivity(),
+                "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
                 "changes": e.changes, "provenance": self.provenance,
                 "tasks": e.project.tasks, "converter": self.converter,
                 'aoi_instances':e.addons.instances,
@@ -83,6 +90,12 @@ class Application:
                               "rungs": [{"number": x["number"], "text": x["text"], "comment": x["comment"],
                                          "nodes": serialize_nodes(x["nodes"])} for x in r.rungs]}
                              for r in list(e.project.routines.values())+[r for a in e.project.aois.values() for r in a.routines.values()]]}
+
+    def publish_device_io(self, tags=None):
+        # Caller owns app.lock. No socket/JSON work, or consumer callback, here.
+        if self.engine is not None and self._io_dirty:
+            self.device_io.capture(self.engine,self.generation,tags if tags is not None else self.engine.memory.leaves())
+            self._io_dirty = False
 
     def command(self, action, data):
         if action.startswith('connectivity-'):
@@ -152,12 +165,17 @@ class Application:
                     self.native_project_identity = native_identity
                     self.native_symbols = native_symbols
                     self.generation += 1
+                    self.device_io.bind(self.generation)
+                    self._io_dirty = True
                     if self.endpoint:self.endpoint.close_native_sessions()
                     return self.state()
             finally:
                 with self.lock: self.busy = False
         with self.lock:
             if self.busy: raise ModelError("Import in progress")
+            if action == 'device-io-configure':
+                self.device_io.configure(data.get('allow_writes',False))
+                return self.state()
             if action == "settings":
                 self.converter = str(data["converter"])
                 (self.data_dir / 'settings.json').write_text(json.dumps({'converter': self.converter}), encoding='utf-8')
@@ -167,16 +185,26 @@ class Application:
             if action == "configure":
                 self.engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
                 self.generation += 1
+                self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()
             elif action == "step":
                 count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
-                for _ in range(count): self.engine.step(dt)
+                self.engine.validate_interval(dt)
+                for _ in range(count):
+                    self.device_io.apply(self)
+                    self._io_dirty = True
+                    try: self.engine.step(dt)
+                    except Exception:
+                        self.publish_device_io(); raise
+                    if count > 1 and self.device_io.sample_due(): self.publish_device_io()
             elif action == "write":
                 e.memory.write(data["tag"], data["value"])
+                self._io_dirty = True
             elif action == "reset":
                 self.engine = Engine(e.project, e.mode, e.selected)
                 self.generation += 1
+                self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()
             elif action == 'observe':pass
             elif action == "report":
@@ -190,16 +218,17 @@ class Application:
             return self.state()
 
 
-def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True, eip_bind='127.0.0.1',eip_native_read_only=False):
+def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True, eip_bind='127.0.0.1',eip_native_read_only=False,device_writes=False):
     app = Application(data_dir)
     if sample:app.command('demo',{'sample':sample})
+    if device_writes:app.command('device-io-configure',{'allow_writes':True})
     if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile,'bind_address':eip_bind,'native_read_only':eip_native_read_only})
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args): pass
 
-        def send(self, code, content, mime="application/json"):
+        def send(self, code, content, mime="application/json", headers=None):
             def safe(value):
                 if isinstance(value,int) and abs(value)>9007199254740991:return str(value)
                 if isinstance(value,dict):return {k:safe(v) for k,v in value.items()}
@@ -210,6 +239,7 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(content)))
             self.send_header("Cache-Control", "no-store")
+            for name,value in (headers or {}).items():self.send_header(name,value)
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
             self.end_headers()
@@ -221,6 +251,9 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
         def do_GET(self):
             if not self.valid_host(): return self.send(403, {"error": "Invalid host"})
             path = urlsplit(self.path).path
+            if path.startswith('/api/device-io/'):
+                from . import device_http
+                return device_http.get(self,app.device_io,path)
             if path == "/session.js":
                 return self.send(200, f"window.LOGIX_TOKEN = {json.dumps(token)};".encode(), "text/javascript")
             if path == "/api/state":
@@ -241,6 +274,10 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
         def do_POST(self):
             origin = self.headers.get("Origin")
             expected_origin = f"http://127.0.0.1:{self.server.server_port}"
+            if urlsplit(self.path).path == '/api/device-io/write':
+                if not self.valid_host() or (origin and origin != expected_origin):return self.send(403,{'error':'Invalid device origin'})
+                from . import device_http
+                return device_http.write(self,app.device_io)
             if not self.valid_host() or self.headers.get("X-Logix-Token") != token or (origin and origin != expected_origin):
                 return self.send(403, {"error": "Invalid session"})
             try:
@@ -292,6 +329,7 @@ def main():
     parser.add_argument('--eip-writes',action='store_true',help='Allow explicit atomic tag writes to the software model')
     parser.add_argument('--eip-profile',choices=('research','logix-v35-l85e'),default='research')
     parser.add_argument('--eip-native-read-only',action='store_true',help='Experimental anonymous Studio compatibility; requires L85E profile and disabled tag writes')
+    parser.add_argument('--device-writes',action='store_true',help='Allow queued device-simulator input writes between scans')
     parser.add_argument("--report", help="Generate a JSON coverage report for an L5X, without starting the app")
     args = parser.parse_args()
     if args.report:
@@ -302,7 +340,7 @@ def main():
         if args.eip_bind!='127.0.0.1' and args.eip_port is None:parser.error('--eip-bind requires --eip-port')
         if args.eip_profile!='research' and args.eip_port is None:parser.error('--eip-profile requires --eip-port')
         if args.eip_native_read_only and args.eip_port is None:parser.error('--eip-native-read-only requires --eip-port')
-        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray,args.eip_bind,args.eip_native_read_only)
+        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray,args.eip_bind,args.eip_native_read_only,args.device_writes)
 
 
 if __name__ == "__main__": main()

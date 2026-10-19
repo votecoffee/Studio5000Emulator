@@ -11,7 +11,7 @@
 <div id="alert" role="alert" hidden></div>
 <div class="workspace">
 <aside><div class="panel-title">PROJECT EXPLORER <span id="routine-count">0</span></div><div id="explorer"><div class="empty-side">Your programs and routines will appear here.</div></div><div class="aside-bottom"><div class="eyebrow">IMPORT PROVENANCE</div><p id="provenance">Original files stay unchanged.</p></div></aside>
-<section class="center"><nav class="tabs"><button class="active" data-tab="ladder">Logic monitor</button><button data-tab="coverage">Coverage</button><button data-tab="changes">Tag changes</button><button data-tab="connectivity">Connectivity</button><div class="spacer"></div><button id="snapshot">Export snapshot ↓</button></nav>
+<section class="center"><nav class="tabs"><button class="active" data-tab="ladder">Logic monitor</button><button data-tab="coverage">Coverage</button><button data-tab="changes">Tag changes</button><button data-tab="connectivity">Connectivity</button><button data-tab="devices">Device I/O</button><div class="spacer"></div><button id="snapshot">Export snapshot ↓</button></nav>
 <div id="ladder" class="tab-content"><div class="routine-heading"><strong id="routine-name">No routine selected</strong><select id="aoi-context" aria-label="AOI instance" hidden></select><span id="routine-type">RLL</span></div><div id="rungs"><div class="welcome"><div class="welcome-symbol">┤ ├</div><h2>See what happens on every scan.</h2><p>Start with the conveyor demo, or open your own project.<br>Unsupported features are listed before you run.</p><button id="welcome-demo" class="primary">Explore the demo →</button><div class="welcome-steps"><span>01 &nbsp; Import</span><span>02 &nbsp; Check coverage</span><span>03 &nbsp; Drive &amp; observe</span></div></div></div></div>
 <div id="connectivity" class="tab-content" hidden>
 <div class="section-heading"><h2>Studio 5000 connectivity research</h2><span id="eip-badge" class="badge">STOPPED</span></div>
@@ -27,6 +27,13 @@
 <p id="eip-discovery" class="limits">Start the endpoint to check broadcast discovery.</p>
 <div id="eip-identity" class="issue">The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.</div>
 <h3>REQUEST COUNTS</h3><div id="eip-counts" class="chips"></div><h3>UNSUPPORTED REQUESTS</h3><div id="eip-unsupported" class="limits">No requests recorded.</div>
+</div></div>
+<div id="devices" class="tab-content" hidden><div class="section-heading"><h2>External device simulation</h2><span id="device-badge" class="badge">READ ONLY</span></div><div class="eip-body">
+<p class="limits">Monitor committed tag snapshots over the local device API or the optional MQTT bridge. External clients read a cached copy, independently of the scan loop.</p>
+<div class="eip-controls"><label><input id="device-writes" type="checkbox"> Allow external tag writes</label><button id="device-apply" class="primary">Apply device access</button></div>
+<p class="limits">Writes are queued and applied atomically before a scan. Start Run or Step scan to consume device inputs. Each request receives a queued, applied or rejected acknowledgement. Resetting or replacing the project cancels pending inputs.</p>
+<p id="device-api" class="eip-address"></p><p id="device-summary" class="limits"></p>
+<p class="limits">Run the MQTT bridge separately to connect robot, servo and other device simulators. Its broker connection, publish interval and topic prefix are independent of Studio connectivity.</p>
 </div></div>
 <div id="coverage" class="tab-content" hidden><div class="section-heading"><h2>Execution coverage</h2><button id="report">Download report ↓</button></div><div id="coverage-body"></div></div>
 <div id="changes" class="tab-content" hidden><div class="section-heading"><h2>Tag changes</h2><span>Most recent first · up to 2,000 changes</span></div><table><thead><tr><th>Scan / ms</th><th>Tag</th><th>Before → After</th></tr></thead><tbody id="changes-body"></tbody></table></div>

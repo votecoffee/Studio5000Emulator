@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
+from urllib.error import HTTPError
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -88,3 +89,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
                 socket.create_connection(('127.0.0.1', port), timeout=0.2)
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
             udp.bind(('127.0.0.1', protocol_port))
+
+    def test_device_api_has_scoped_tokens_cached_reads_and_queued_input_acknowledgements(self):
+        self.post('demo',{'sample':'NetworkLab'})
+        self.post('device-io-configure',{'allow_writes':True})
+        session=json.loads(self.get('/api/device-io/session'))
+        def device(path,body=None,token=None,headers=None):
+            request=Request(self.url+'/api/device-io/'+path,json.dumps(body).encode() if body is not None else None,
+                            {'X-Logix-Device-Token':token or session['read_token'],**(headers or {})})
+            return urlopen(request,timeout=3)
+        with device('snapshot') as response:
+            frame=json.load(response);etag=response.headers['ETag']
+        with self.assertRaises(HTTPError) as error:device('snapshot',headers={'If-None-Match':etag})
+        self.assertEqual(error.exception.code,304)
+        body={'request_id':'http-device','instance_id':frame['instance_id'],
+              'project_generation':frame['project_generation'],'writes':[{'tag':'Command','value':76}]}
+        with self.assertRaises(HTTPError) as error:device('write',body)
+        self.assertEqual(error.exception.code,403)
+        with device('write',body,session['write_token']) as response:
+            self.assertEqual(response.status,202);self.assertEqual(json.load(response)['status'],'queued')
+        with self.assertRaises(HTTPError) as error:
+            urlopen(Request(self.url+'/api/step',b'{}',{'X-Logix-Token':session['write_token']}),timeout=3)
+        self.assertEqual(error.exception.code,403)
+        self.post('step',{'count':1,'dt':10})
+        with device('requests/http-device') as response:self.assertEqual(json.load(response)['status'],'applied')
+        with device('snapshot') as response:
+            values={t['name']:t['value'] for t in json.load(response)['tags']}
+        self.assertEqual(values['Observed'],76)
