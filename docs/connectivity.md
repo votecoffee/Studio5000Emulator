@@ -72,6 +72,9 @@ Separate controls check active listener ownership and wildcard conflicts.
 The `.23` suite passed all 504 tests on Linux; Windows passed 502 tests with two
 Linux-only tests skipped. The restart regression fails against the prior socket
 policy and passes with address reuse enabled.
+A read-only host-only appliance check completed three successive restarts on
+its fixed EtherNet/IP address, preserved the modeled snapshot and source hash,
+and rejected a competing reusable TCP bind.
 
 ## Broadcast discovery
 
@@ -280,6 +283,31 @@ narrows the confirmation investigation but does not establish its calculation.
 The `.22` behavioral suite passed 501 tests on each of Windows and Linux,
 including independent reply vectors, altered bytes, wrong keys, mismatched
 request contexts, malformed headers and maximum-length replies.
+
+### Capability-response investigation
+
+Additional isolated SDK trials varied the entries in the temporary `0x4C`
+capability response while retaining the same known nonce and offer. These tests
+did not validate the confirmation proof or dispatch the next embedded operation.
+
+| Response variation | Observed next step |
+| --- | --- |
+| Empty list | SDK reports an unspecified error before a signed request |
+| Entry 2 omitted | Same early failure |
+| One of entries 3, 4, 5 or 6 omitted | SDK sends a MAC-valid `0x37` request; harness rejects it |
+| All five entries, with entry 2's value zero | SDK still sends a MAC-valid `0x37` request |
+| Entry 2 alone | SDK reports an unspecified error before a signed request |
+
+These observations do not fully define the entries or establish a simpler
+transport path. Confirmation remains unsupported by the normal endpoint.
+
+Offline analysis of a bounded reference sample also found 157 paired `0x38`
+exchanges containing 4,138 child request/reply pairs. Requests contain a UINT
+count, that many UINT relative offsets and the child CIP requests. Replies have
+matching child counts, corresponding reply services and echoed counters;
+observed outer statuses are zero and `0x1E`. This establishes reference framing
+for further work. A known-key native `0x38` MAC test and bounded batch handling
+are still needed; no `0x38` dispatch or MAC verification is enabled in the app.
 
 ## Device locator
 
