@@ -153,10 +153,13 @@ class NumericLayoutTests(unittest.TestCase):
         self.assertEqual(result[2], 3)
         self.assertEqual(self.write('Records', b'x', count=513, offset=0)[2], 3)
 
-    def test_custom_string_layout_is_not_accidentally_exposed_as_numeric(self):
+    def test_explicit_user_string_layout_has_dint_length_sint_data_and_padding(self):
         self.app.engine.project.udts['customstring'] = E.fromstring('<DataType Name="CustomString"><Members>'
             '<Member Name="LEN" DataType="DINT"/><Member Name="DATA" DataType="SINT" Dimension="10"/></Members></DataType>')
-        self.assertIsNone(self.router.templates().for_type('CustomString'))
+        template = self.router.templates().for_type('CustomString')
+        self.assertEqual(template.size, 16)
+        self.assertEqual([(m.name, m.dtype, m.offset, m.count) for m in template.members],
+                         [('LEN', 'DINT', 0, 1), ('DATA', 'SINT', 4, 10)])
 
     def test_scan_consumes_count_from_a_mixed_width_record(self):
         data = bytearray(record_bytes(0)); struct.pack_into('<i', data, 16, 987)

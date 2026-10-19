@@ -225,7 +225,7 @@ class Router:
             return self.access(alias+tail,write,seen+(key,))
         dtype=tag.dtype
         for item in re.findall(r'\.([A-Za-z_][\w]*)',tail):
-            if dtype.upper() in ('TIMER','COUNTER') or project.string_capacity(dtype) is not None:
+            if dtype.upper() in ('TIMER','COUNTER','STRING'):
                 dtype='DINT' if item.upper() in ('LEN','PRE','ACC') else 'SINT' if item.upper()=='DATA' else 'BOOL';continue
             udt=project.udts.get(dtype.lower())
             member=next((m for m in udt.findall('./Members/Member') if m.get('Name','').lower()==item.lower()),None) if udt is not None else None

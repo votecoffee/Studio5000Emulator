@@ -125,7 +125,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
 | EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
-| Structured transfers | Aligned numeric UDTs, explicit packed Boolean flags and fragmented reads/writes |
+| Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
@@ -162,7 +162,7 @@ conventions.
 ## Roadmap
 
 - Expand supported instructions, data types and execution semantics.
-- Add packed BOOLs, strings, predefined structures and more controller metadata.
+- Add packed BOOL arrays, built-in STRING transfers, predefined structures and more controller metadata.
 - Establish a reproducible native Studio connection and project handshake.
 - Demonstrate online monitoring before advertising Studio Go Online support.
 - Add a host-only networking backend independent of VMware, evaluating free

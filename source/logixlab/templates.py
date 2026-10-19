@@ -72,14 +72,17 @@ class Catalog:
         if key in self.unsupported: raise ModelError(self.unsupported[key])
         schema = self.project.udts.get(key)
         if schema is None or key not in self.ids: raise ModelError('No explicit wire UDT definition')
+        if key == 'string': raise ModelError('Built-in STRING wire layouts are unsupported')
         if schema.get('Class', 'User') != 'User' or schema.get('Family', 'NoFamily') != 'NoFamily':
             raise ModelError('Only explicit user-defined wire structures are supported')
-        if self.project.string_capacity(name) is not None: raise ModelError('Whole STRING wire layouts are unsupported')
         type_name = schema.get('Name', name)
         valid_name = lambda value: re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,39}', value)
         if not valid_name(type_name): raise ModelError('Invalid wire UDT name')
         nodes = schema.findall('./Members/Member')
         if not 1 <= len(nodes) <= MAX_MEMBERS: raise ModelError('Wire UDT member count must be 1..256')
+        if self.project.string_capacity(name) is not None:
+            length = next(node for node in nodes if node.get('Name') == 'LEN')
+            if dimensions(length.get('Dimension', '0')): raise ModelError('String LEN must be a scalar DINT')
         # Only explicit, non-overlapping BIT mappings may use hidden storage.
         # Hidden hosts carry no independent application value in the model.
         hosts = set(); bits = set()

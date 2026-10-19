@@ -16,6 +16,9 @@ native Studio connection and programming services remain unfinished.
   with supported payload layouts and separate checks for each connection phase.
   The `.18` probe passes controller and File Manager class-revision queries;
   the observed Extended Device `0x64` / `0x4B` request remains unsupported.
+  A passive reference capture now establishes the matching request and varying
+  successful replies, followed by `0x64` / `0x4C` and Message Router services
+  `0x36`–`0x38`; their vendor semantics still need implementation evidence.
 - Demonstrate a read-only native Go Online session with a matching private ACD.
 - Add upload, download and online editing as separate, explicitly tested stages.
 

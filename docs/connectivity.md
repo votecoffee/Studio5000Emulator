@@ -131,7 +131,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
-| Structured access | Bounded numeric and explicit packed-BIT UDTs, including nested structures and arrays |
+| Structured access | Numeric, explicit user LEN/DATA string and packed-BIT UDTs, including nested structures and arrays |
 | Transfers | `0x4C` read, `0x4D` write, `0x52` fragmented read, `0x53` fragmented write |
 | Integer masks | `0x4E` Read Modify Write, applying OR then AND masks |
 | Multiple service | Bounded Multiple Service Packets with independent child operations |
@@ -146,8 +146,9 @@ and Safety program tags are not exposed. Firmware-internal attributes 3, 5 and 6
 remain unsupported, so full native tag-upload initialization is still pending.
 
 Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
-ULINT and REAL. Whole STRING transfers and packed BOOL arrays remain unsupported.
-Atomic STRING members can be addressed individually.
+ULINT and REAL. Explicit user-defined LEN/DATA string structures support whole
+and fragmented transfers. Built-in STRING transfers and packed BOOL arrays
+remain unsupported. Atomic built-in STRING members can be addressed individually.
 
 ## Device locator
 
@@ -307,7 +308,7 @@ The model limits each layout and requested transfer to 32 KiB, nesting to eight
 levels, each type to 256 members and member arrays to 4,096 elements. Private,
 inferred-only, predefined and AOI layouts are excluded. Hidden storage is allowed
 only for the validated BIT hosts described below. Unmapped BOOL declarations,
-BOOL/BIT arrays, STRING fields, LREAL and other overlays remain unsupported in
+BOOL/BIT arrays, built-in STRING fields, LREAL and other overlays remain unsupported in
 whole UDT transfers. Eligible atomic members remain accessible separately.
 
 Template IDs and CRC-derived handles belong to this software model and are not
@@ -323,6 +324,30 @@ including aliases, constants and read-only nested members. A whole-record write
 touches every member; a fragment may update writable fields while leaving a
 read-only field untouched. Complete atoms can establish unknown leaf values;
 split atoms require known bytes for the remainder of that atom.
+
+### User-defined strings
+
+Explicit `User` / `NoFamily` UDTs with a scalar DINT `LEN` and one-dimensional
+SINT `DATA` array use the same supported structure layout. Whole and fragmented
+transfers work for scalar tags, arrays and nested fields. For example, a nine-byte
+DATA array has LEN at offset 0, DATA at offset 4 and three zero padding bytes,
+giving a 16-byte record. Member access restrictions apply to both direct atomic
+access and whole-structure transfers.
+
+LEN transfers as a DINT, including values outside the DATA capacity. String
+execution validates LEN before using the string. Unknown backing bytes still
+reject whole reads, and successful reads do not discard unused DATA bytes.
+Whole writes can establish all unknown fields; split atoms require known
+remaining bytes. Built-in STRING and inferred-only string layouts remain outside
+this wire subset. The user-created string form is described in the
+[data access manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf),
+chapter 2, page 45.
+
+Version `0.6.0-connectivity.19` passed 473 behavioral tests on each of Windows
+and Linux. An independent `pycomm3` 1.2.16 probe discovered the templates, decoded
+scalar, array and nested values, and performed automatic fragmented reads and
+writes over a 24-byte Class 3 connection. Read-only tag writes were rejected.
+These checks exercise modeled structures and explicit messaging.
 
 The independent structure probe uses the client's template parser and value
 codec over a negotiated 256-byte Class 3 connection to exercise fragmentation.
@@ -436,6 +461,22 @@ during this attempt, the sole unsupported request was Extended Device class
 configuration and installed attribute-reference files retained their original
 hashes. Independent client checks and 452 behavioral tests on each of Windows
 and Linux passed for `.18`.
+
+### Passive reference handshake
+
+A separate passive Studio v35 reconnect capture from a real v35 controller on
+2026-10-19 contains the same 297-byte Extended Device `0x4B` request payload as
+the emulator's native probe. Nine observed successful responses each contain
+130 payload bytes: a UINT value of 128 followed by 128 bytes that differ between
+exchanges. Studio next sends Extended Device `0x4C` with a 22-byte payload; its
+successful reply contains 32 payload bytes. Subsequent requests use Message
+Router services `0x36`, `0x37` and `0x38`.
+
+This establishes request/reply shapes and ordering in the reference trace.
+The varying data and vendor semantics require further analysis;
+recorded controller replies are not used as emulator responses. The capture and
+project details remain local. This passive observation does not change the
+emulator's native Go Online result.
 
 These are observed gaps, not a complete list of requirements for native online
 operation. The trace does not establish the vendor payload layouts or which

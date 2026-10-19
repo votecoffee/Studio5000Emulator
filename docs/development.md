@@ -76,6 +76,7 @@ py -3.13 -X utf8 tests/interop_logix_identity.py --out ../.local/checks/identity
 py -3.13 -X utf8 tests/interop_atomic_transfers.py --out ../.local/checks/transfers.json
 py -3.13 -X utf8 tests/interop_structure_reads.py --out ../.local/checks/structures.json
 py -3.13 -X utf8 tests/interop_structure_writes.py --out ../.local/checks/structure-writes.json
+py -3.13 -X utf8 tests/interop_user_strings.py --out ../.local/checks/user-strings.json
 py -3.13 -X utf8 tests/interop_numeric_layouts.py --out ../.local/checks/layouts.json
 py -3.13 -X utf8 tests/interop_catalog_revision.py --out ../.local/checks/catalog.json
 py -3.13 -X utf8 tests/interop_packed_bits.py --out ../.local/checks/flags.json
@@ -106,6 +107,14 @@ observes a scan consuming a written field, and restores the input records.
 It uses the same documented-attribute catalog adapter. The installed pycomm3
 1.2.16 single-write builder duplicates payload bytes for small writes; the probe
 uses its valid Multi Service path rather than relaxing endpoint length checks.
+
+The user-string probe imports a generated public LEN/DATA fixture into an
+isolated loopback target. It uses the independent client's template parser and
+string codec for scalar, array and nested reads, automatic fragmented array
+reads/writes on a 24-byte connection, and rejection of a read-only tag write.
+The behavioral tests also cover individual member restrictions, unknown backing
+bytes, split atoms, padding and rollback. Built-in STRING transfers remain
+unsupported.
 
 The numeric-layout probe verifies all nine supported numeric widths, nested
 alignment, exact 64-bit values, and fragmented read/write roundtrips of eight
