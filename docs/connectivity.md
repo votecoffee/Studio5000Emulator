@@ -295,6 +295,19 @@ controller/program/AOI alarm declarations, alarm data/configuration, incomplete
 source, replacement, cursors, malformed/scoped requests and signed read-only
 dispatch. Alarm configuration and runtime semantics remain unsupported.
 
+The rebuilt `.39` appliance passed 55 live protocol checks and all eight SDK
+connection steps, including final Offline confirmation, with 85 verified signed
+requests. Its upload trace verified 180 signed requests and successful replies
+for all 12 supported scalars, three motion catalogs and both alarm catalogs.
+The next HMI Button Control list was denied. This deployed upload job ended
+indeterminate after an SDK worker timeout, rather than a completed failed-upload
+result. No complete upload is demonstrated. The worker closed, network clients
+disconnected, and the original ACD, model values and scan count were unchanged.
+A subsequent unchanged public-SDK probe verified 93 signed requests, stayed
+Online/Program without correlation loss and finished Offline. Typed BOOL and
+generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`. The timeout did
+not prevent that later connection check; tag/rung monitoring remains unfinished.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
