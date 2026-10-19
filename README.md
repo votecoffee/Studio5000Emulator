@@ -105,6 +105,8 @@ requested. Tag writes require **Allow tag writes** or
 `--eip-writes`. Use the **Connectivity** tab to start/stop the endpoint and export
 its trace. See [connectivity documentation](docs/connectivity.md) for the supported
 services, identity profiles and remaining Studio handshake work.
+Linux endpoints can restart on the same IP and port after closing connected
+clients; a conflicting active listener still prevents startup.
 
 ### Build an executable
 

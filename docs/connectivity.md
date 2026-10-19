@@ -51,6 +51,28 @@ The optional [VMware host-only appliance](vmware-appliance.md) supplies an isola
 guest network stack when the host's Linx listener must remain unchanged. Its
 launcher provides a localhost browser tunnel and Windows tray controls.
 
+## Endpoint restarts
+
+Version `0.6.0-connectivity.23` allows a Linux TCP endpoint to restart immediately
+on the same selected IP/port after it closes an active client connection. Earlier
+builds could leave that port unavailable until the kernel's `TIME_WAIT` timeout
+expired, even though no process was listening there.
+
+Linux TCP sockets now use `SO_REUSEADDR`. A live TCP listener at that address,
+a wildcard listener covering it, or an occupied UDP port still makes startup
+fail. `SO_REUSEPORT` is not enabled. Explicit ports are never relocated, and the
+Windows socket policy is unchanged. These rules follow the Linux
+[socket option and address-reuse contract](https://man7.org/linux/man-pages/man7/socket.7.html).
+A connection left by an older build without address reuse can still require
+its timeout to expire during the first transition to the new socket policy.
+
+The Linux regression test establishes server-side `TIME_WAIT` through a real
+connected session, then restarts and registers a new client on the same port.
+Separate controls check active listener ownership and wildcard conflicts.
+The `.23` suite passed all 504 tests on Linux; Windows passed 502 tests with two
+Linux-only tests skipped. The restart regression fails against the prior socket
+policy and passes with address reuse enabled.
+
 ## Broadcast discovery
 
 Linux endpoints on an Ethernet interface with an IPv4 subnet prefix shorter than

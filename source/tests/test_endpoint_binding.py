@@ -1,9 +1,12 @@
 """Automatic TCP/UDP pair selection and failed-start resource cleanup."""
 import socket
 import socketserver
+import sys
 import tempfile
 import threading
+import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 from logixlab.model import ModelError
 from logixlab.server import Application
@@ -62,6 +65,55 @@ class EndpointBindingTests(unittest.TestCase):
                 with self.assertRaises(ModelError): self.endpoint.start()
             bind.assert_not_called()
         self.assertFalse(self.endpoint.enabled); self.assertIsNone(self.endpoint.tcp)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux TCP TIME_WAIT behavior')
+    def test_linux_restart_reuses_port_after_server_closes_an_active_connection(self):
+        self.endpoint = Endpoint(self.app, 0).start()
+        port = self.endpoint.port
+        client = Client(port)
+        try:
+            client.register()
+            peer_port = client.socket.getsockname()[1]
+            self.endpoint.stop()  # Server closes first, so its port enters TIME_WAIT.
+            self.assertEqual(client.socket.recv(1), b'')
+        finally:
+            client.close()
+        local, peer = f'0100007F:{port:04X}', f'0100007F:{peer_port:04X}'
+        deadline = time.monotonic() + 2
+        while True:
+            rows = [line.split() for line in Path('/proc/net/tcp').read_text().splitlines()[1:]]
+            if any(row[1:4] == [local, peer, '06'] for row in rows): break
+            if time.monotonic() >= deadline: self.fail('Server-side TIME_WAIT was not established')
+            time.sleep(.01)
+        self.endpoint = Endpoint(self.app, port).start()
+        replacement = Client(port)
+        try:
+            replacement.register()
+            self.assertEqual(replacement.packet(0x63)[0][3], 0)
+        finally: replacement.close()
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux reusable listener ownership')
+    def test_linux_running_endpoint_cannot_share_its_tcp_listener(self):
+        self.endpoint = Endpoint(self.app, 0).start()
+        with socket.socket() as competitor:
+            competitor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            with self.assertRaises(OSError): competitor.bind(('127.0.0.1', self.endpoint.port))
+        second = Endpoint(self.app, self.endpoint.port)
+        try:
+            with self.assertRaises(ModelError): second.start()
+        finally: second.stop()
+        client = Client(self.endpoint.port)
+        try: client.register()
+        finally: client.close()
+
+    def test_live_wildcard_listener_prevents_specific_address_startup(self):
+        with socket.socket() as occupied:
+            if sys.platform == 'win32':
+                occupied.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            occupied.bind(('0.0.0.0', 0)); occupied.listen()
+            self.endpoint = Endpoint(self.app, occupied.getsockname()[1])
+            with self.assertRaises(ModelError): self.endpoint.start()
+            self.assertFalse(self.endpoint.enabled)
 
     def test_unavailable_broadcast_listener_preserves_tcp_and_udp_unicast(self):
         status = {'broadcast_enabled': False, 'broadcast_addresses': [], 'interface': None, 'reason': 'Port in use'}

@@ -13,6 +13,7 @@ import secrets
 import socket
 import socketserver
 import struct
+import sys
 import threading
 import time
 from collections import Counter, deque
@@ -763,7 +764,11 @@ class Endpoint:
     def start(self):
         endpoint=self
         class TCP(socketserver.ThreadingTCPServer):
-            daemon_threads=True;block_on_close=False;allow_reuse_address=False
+            daemon_threads=True;block_on_close=False
+            # Linux requires this on both old and new sockets to restart after
+            # a server-closed connection enters TIME_WAIT. SO_REUSEPORT is not
+            # enabled: another active listener must still make startup fail.
+            allow_reuse_address=sys.platform=='linux'
             def process_request(self,request,address):
                 if not endpoint.slots.acquire(False):request.close();return
                 try:super().process_request(request,address)
