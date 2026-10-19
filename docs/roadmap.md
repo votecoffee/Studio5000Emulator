@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.42` adds backed ordinary scalar Symbol descriptors. The
+Current milestone: `.43` adds controller compatibility settings and read-only
+Linux Ethernet status. The native candidate preserves scalar tag discovery and
+returns these fields, but still fails controller collection. Handler-reference
+encoding, Ethernet counters and remaining controller/device metadata need further
+work. Complete native upload and SDK tag monitoring are unfinished.
+
+Version `.42` adds backed ordinary scalar Symbol descriptors. The
 deployed native upload test accepts all 12 supported demo descriptors and advances
 to controller/device collection; Ethernet Link and Controller metadata
 remain incomplete. Complete native upload and SDK tag monitoring are unfinished.

@@ -158,7 +158,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Scoped Data Tables, backed scalar reads and Symbol descriptors, empty motion/alarm/HMIBC/Message catalogs and bounded empty energy inventory; native project transfer remains unfinished |
+| Upload discovery | Scoped Data Tables, backed scalar reads and Symbol descriptors, bounded empty catalogs, controller settings and Linux Ethernet status; native project transfer remains unfinished |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, controller name/description and limited Metadata Definition class discovery; security enforcement remains unsupported |

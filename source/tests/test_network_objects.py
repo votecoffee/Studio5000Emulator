@@ -94,7 +94,7 @@ class NetworkObjectTests(unittest.TestCase):
         with patch('logixlab.ethernetip.interface_snapshot') as reader:
             for cls, inst, attr, service, data, status in (
                 (0xF6, 1, 3, 0x10, b'\0' * 6, 8), (0xF6, 2, 3, 0x0E, b'', 5),
-                (0xF6, 1, 3, 0x0E, b'\0', 0x15), (0xF6, 1, 1, 0x0E, b'', 0x14),
+                (0xF6, 1, 3, 0x0E, b'\0', 0x15), (0xF6, 1, 11, 0x0E, b'', 0x14),
                 (0xF6, 1, None, 3, b'\0\0', 3)):
                 with self.subTest(cls=cls, attr=attr, service=service):
                     self.assertEqual(self.send(cls, inst, attr, service, data)[2], status)

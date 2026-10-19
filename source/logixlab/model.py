@@ -294,13 +294,13 @@ class Project:
         self.hmi_button_catalog = HmiButtonCatalog.from_source(root, c)
         self.energy_catalog = EnergyCatalog.from_source(root, c)
         self.message_catalog = MessageCatalog.from_source(root, c)
-        self.controller_configuration = ControllerConfiguration.from_controller(c)
+        self.controller_configuration = ControllerConfiguration.from_controller(c, root)
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))
         self.processor = c.get("ProcessorType", "unknown")
         self.minor_version = c.get('MinorRev','0')
         if self.version != "35": self.issues.append(f"Revision {self.version}: this prototype targets v35")
-        for attr in ("PowerUpHandlerProgram", "MajorFaultProgram"):
+        for attr in ("PowerLossProgram", "PowerUpHandlerProgram", "MajorFaultProgram"):
             if c.get(attr): self.issues.append(f"{attr} execution is unsupported")
         for d in c.findall("./DataTypes/DataType"):
             self.udts[d.get("Name").lower()] = d

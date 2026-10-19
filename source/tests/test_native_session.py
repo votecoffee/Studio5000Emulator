@@ -110,6 +110,16 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(5,bytes((0x10,len(path)//2))+path+b'\0')[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_controller_collection_exposes_settings_but_not_unknown_handler_references(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        query=bytes.fromhex('0302208e24010600030006000100070008001000')
+        expected=(b'\x83\0\x0A\0'+struct.pack('<HHHHHHHHHHHHH',6,3,0,20,6,0x14,1,0x14,7,0,0,8,0)+
+                  struct.pack('<HHHH',0,16,0,1))
+        self.assertEqual(self.signed(4,query),expected)
+        self.assertEqual(self.signed(5,bytes.fromhex('1003208e24013003')+b'\x0A\0')[2],0x0F)
+        self.assertEqual(self.signed(6,bytes.fromhex('0e03208e24013003'))[4:],b'\x14\0')
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_signed_axis_group_discovery_is_empty_only_for_motion_free_source(self):
         from logixlab.motion_catalog import MotionCatalog
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)

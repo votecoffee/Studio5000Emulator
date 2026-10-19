@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.42` deployed test accepts scalar Symbol descriptors and reaches controller collection | Ethernet Link/Controller metadata, remaining tag kinds and project reconstruction |
+| Native upload | `.43` candidate returns controller settings and Linux Ethernet status; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -464,6 +464,59 @@ and zero scan count were preserved; network writes stayed disabled. Deployed
 modules, webpage assets and the Windows executable matched the source and version.
 Full upload/download, native online edits and Studio GUI monitoring remain
 unfinished or unverified.
+
+### Controller settings and Linux Ethernet status
+
+Version `.43` exposes Controller compatibility attributes `3` (communication
+time slice), `16` (share unused slice) and `8` (no multi-workstation edit slot).
+Explicit `TimeSlice` values from 10 through 90 and `ShareUnusedTimeSlice` values
+`0`/`1` use the source; invalid explicit values stay unavailable. Missing values
+use declared model compatibility settings of 20 and 1, with default provenance
+reported by the Connectivity API. These settings do not change the software
+scheduler or claim native CPU time allocation. Rockwell's
+[Import/Export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+documents the source fields. The
+[Design Considerations reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm094_-en-p.pdf)
+also distinguishes newer controllers where the system overhead time slice does
+not apply.
+
+Complete source can establish that power-loss and fault handlers are absent.
+Named, UID-only, context, namespaced or ambiguous declarations remain unknown.
+Their native reference encoding is unresolved, so attributes `1` and `6` remain
+unsupported even when source absence is known. Handler execution and edit-slot
+ownership are not implemented. Power-loss handlers also appear in the model's
+unsupported-execution issues when declared.
+
+Ethernet Link `0xF6` instance 1 adds read-only Linux attributes `1`, `2`, `6`, `7`,
+`8` and `9`: speed, flags, interface control, type, operational and administrative
+state. The selected interface's sysfs and read-only `ETHTOOL_GSET` observations
+provide the values. Negotiation status is inferred from carrier and the observed
+autonegotiation configuration. No adapter or PHY setting is changed. The first
+query caches the same interface used for IP/MAC metadata; restarting the endpoint
+refreshes it. Missing, non-Ethernet, unsupported or unrepresentable observations
+stay unavailable without invalidating IPv4/MAC data. Windows retains IPv4/MAC
+discovery; these additional link observations currently require Linux.
+
+The wire fields follow Rockwell's
+[Ethernet Link object table](https://literature.rockwellautomation.com/idc/groups/literature/documents/qs/2080-qs002_-en-e.pdf)
+and the Linux [ethtool UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/ethtool.h).
+Interface/media counters `4` and `5` remain unsupported. A mixed attribute list
+preserves supported values and per-field errors; no counter is replaced with an
+invented zero. Network setters remain rejected even when tag writes are enabled.
+
+The `.43` normal-source candidate preserved all 12 scalar reads and Symbol lists
+across 199 verified signed requests. It returned the three Controller settings
+and six Ethernet status fields, while the lists retained errors for handler
+references and counters. Upload still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`; this does not establish which
+remaining field or object is responsible. Private codec experiments did not
+resolve the failure and are not part of the shipped protocol.
+
+The suite runs 682 tests: Windows passes 680 with two Linux-only skips; Linux
+passes 681 with the Windows console check skipped. New checks cover source and
+default provenance, invalid settings, incomplete/ambiguous handler declarations,
+exact link encodings, read-only ioctl framing, missing driver data, cached
+interface selection, malformed requests and signed setter denial.
 
 ### Change Log correlation
 

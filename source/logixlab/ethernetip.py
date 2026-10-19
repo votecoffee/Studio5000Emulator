@@ -683,15 +683,18 @@ class Router:
             elif instance==1 and path.class_id==0xF6:
                 attributes={}
                 if service==0x0E:exact(data,0)
-                requested=service==0x0E and path.attribute==3
+                requested=service==0x0E and path.attribute in (1,2,3,6,7,8,9)
                 if service==3 and path.attribute is None:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-                    requested=3 in struct.unpack_from('<'+'H'*count,data,2)
+                    requested=bool({1,2,3,6,7,8,9}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
                 if requested:
                     snapshot=self.network_interface()
-                    if snapshot is None or snapshot.mac is None:raise CIPError(0x0C,'Ethernet MAC address is unavailable on this interface')
-                    attributes[3]=snapshot.mac
+                    if snapshot is not None:
+                        if snapshot.mac is not None:attributes[3]=snapshot.mac
+                        if snapshot.link is not None:attributes.update(snapshot.link.attributes())
+                    if service==0x0E and path.attribute not in attributes:
+                        raise CIPError(0x0C,'Ethernet link attribute is unavailable on this interface')
             elif instance==1:
                 if service==0x0E:exact(data,0)
                 attributes={6:cip_string(socket.gethostname())}
