@@ -241,9 +241,9 @@ Structural reply decoding requires a successful outer response, the correspondin
 embedded reply service, valid additional-status bounds and an echoed counter.
 The `0x37` reply uses the same observed container header with its reply length.
 Captures without keys receive structural analysis only, explicitly labeled
-**NOT VERIFIED** for integrity. Unknown `0x38`
-containers, unsupported format words, length mismatches and malformed inner
-headers are rejected by the codec. Capture reports retain their outer evidence.
+**NOT VERIFIED** for integrity. Unsupported format words, length mismatches and
+malformed inner headers are rejected by the codec. Capture reports retain their
+outer evidence. Version `.24` adds the separate structural batch format below.
 
 The codec accepts immutable byte messages up to 65,519 bytes and decodes one
 layer. It opens no connection, stores no key and never calls the protocol router.
@@ -274,8 +274,8 @@ Those private tests supplied a temporary capability response solely to reach the
 wrapper experiment, without validating `0x64` / `0x4C`. The normal endpoint still
 rejects confirmation and all signed dispatch. No embedded operator-identity
 operation was performed. Native MAC evidence covers `0x37`; `0x36` encoding and
-verification are tested with independent synthetic vectors. Service `0x38`
-remains unsupported.
+verification are tested with independent synthetic vectors. At that revision,
+service `0x38` remained unsupported by the offline codec.
 
 A separate repeated-nonce test produced identical confirmation bytes across
 different EtherNet/IP session IDs, with identical offers and ciphertexts. This
@@ -306,8 +306,48 @@ exchanges containing 4,138 child request/reply pairs. Requests contain a UINT
 count, that many UINT relative offsets and the child CIP requests. Replies have
 matching child counts, corresponding reply services and echoed counters;
 observed outer statuses are zero and `0x1E`. This establishes reference framing
-for further work. A known-key native `0x38` MAC test and bounded batch handling
-are still needed; no `0x38` dispatch or MAC verification is enabled in the app.
+for further work. A known-key native `0x38` MAC test is still needed; no `0x38`
+dispatch or MAC verification is enabled in the app.
+
+### Structural batch decoding
+
+Version `0.6.0-connectivity.24` extends the offline codec and capture inspector
+to the observed Message Router `0x38` batches. The codec returns an immutable
+`BatchEnvelope` with the counter and ordered child CIP byte strings. It accepts
+the following bounded profile:
+
+- A request uses the same two-word Message Router path as `0x36`/`0x37`.
+- The body starts with a little-endian UINT child count and that many UINT byte
+  offsets, relative to the count field. The first child starts immediately
+  after the table; subsequent offsets strictly increase and remain in the body.
+- Every child has a complete CIP request header and bounded path. Reply child
+  counts and services must match the paired request in order, with valid reply
+  reserved bytes and additional-status lengths.
+- A reply has service `0xB8`, outer status zero or `0x1E`, no outer additional
+  status, and the exact request counter. Child statuses and data remain intact;
+  a partial-error reply is not reported as success. Odd child byte lengths are
+  supported without inserting or removing padding.
+- The trailer is a UDINT counter and 20 opaque bytes. Batch MAC verification and
+  reply encoding remain unavailable; the codec raises an explicit error rather
+  than applying the unvalidated MAC calculation from another service.
+
+The implementation limits each batch to 256 children and the complete message
+to 65,519 bytes. These are decoder limits, not claims about controller limits.
+Malformed batches are rejected as a whole. Nested wrappers remain opaque child
+bytes, so the inspector still decodes only one envelope layer.
+
+Capture report format 3 adds `child_count` and ordered `children` fields for
+batches, while preserving the `inner` field for `0x36`/`0x37`. Default reports
+omit child symbols, values and raw messages. Raw bytes require the existing
+explicit `--include-payloads` option. All batch integrity fields remain
+**NOT VERIFIED**.
+
+Offline validation decoded all 157 saved reference batch exchanges and 4,138
+child request/reply pairs. The `.24` suite passed all 517 tests on Linux; Windows
+passed 515 with two Linux-only skips. This checks modeled behavior, framing and
+correlation only: no reference session key was available, no embedded operation
+was executed, and native Go Online still requires the unresolved confirmation
+and session behavior.
 
 ## Device locator
 

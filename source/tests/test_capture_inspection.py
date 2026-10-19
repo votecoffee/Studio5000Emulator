@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from tools.inspect_cip_capture import describe, inspect, summarize
 from test_signed_messages import request as signed_request, response as signed_response
+from test_signed_batches import REQUEST as BATCH_REQUEST, RESPONSE as BATCH_RESPONSE, batch
 
 
 def packet(frame, raw, reference=None, stream=0):
@@ -19,6 +20,53 @@ def packet(frame, raw, reference=None, stream=0):
 
 
 class CaptureInspectionTests(unittest.TestCase):
+    def test_batch_pair_exposes_ordered_children_and_partial_errors(self):
+        report = summarize([packet(1, BATCH_REQUEST), packet(2, BATCH_RESPONSE, 1)])
+        pair, = report['exchanges']
+        self.assertEqual(report['format_version'], 3)
+        for message in (pair['request'], pair['response']):
+            envelope = message['signed_envelope']
+            self.assertEqual(envelope['structure'], 'DECODED')
+            self.assertEqual(envelope['integrity'], 'NOT VERIFIED')
+            self.assertEqual(envelope['sequence'], 7)
+            self.assertEqual(envelope['child_count'], 2)
+            self.assertEqual([child['service'] for child in envelope['children']], [0x0E, 0x4C])
+        self.assertEqual(pair['response']['status'], 0x1E)
+        self.assertEqual([child['status'] for child in pair['response']['signed_envelope']['children']], [0, 6])
+        self.assertEqual(pair['response']['signed_envelope']['children'][1]['additional_status'], [0x1234])
+
+    def test_batch_privacy_and_nested_envelopes_stop_at_one_layer(self):
+        name = b'PrivateMachine'
+        path = b'\x91' + bytes((len(name),)) + name
+        private_child = bytes((0x4D, len(path)//2)) + path + b'operator-private-value'
+        raw = batch((private_child, BATCH_REQUEST))
+        for include in (False, True):
+            report = summarize([packet(1, raw)], include)
+            children = report['unpaired_requests'][0]['signed_envelope']['children']
+            self.assertTrue(children[0]['symbolic_path'])
+            self.assertEqual(children[1]['service'], 0x38)
+            self.assertNotIn('signed_envelope', children[1])
+            if include:
+                self.assertEqual(children[0]['message_hex'], private_child.hex())
+            else:
+                for private in (name.decode(), name.hex(), private_child.hex(), raw.hex(), 'operator-private-value'):
+                    self.assertNotIn(private, json.dumps(report))
+
+    def test_invalid_batch_children_do_not_expose_partial_decodes(self):
+        raw = batch((bytes.fromhex('0e03200124013001'), b'\x0E\xFF'))
+        report = summarize([packet(1, raw)])
+        envelope = report['unpaired_requests'][0]['signed_envelope']
+        self.assertEqual(envelope['structure'], 'UNSUPPORTED OR MALFORMED')
+        self.assertNotIn('children', envelope)
+        self.assertEqual(report['decoded_messages'], 1)
+        self.assertFalse(report['skipped_packets'])
+        for reply in (batch((b'\x8E\0\0\0',), response=True),
+                      batch((b'\x8E\0\0\0', b'\xCC\0\0\0'), response=True, sequence=8)):
+            report = summarize([packet(1, BATCH_REQUEST), packet(2, reply, 1)])
+            envelope = report['exchanges'][0]['response']['signed_envelope']
+            self.assertEqual(envelope['structure'], 'UNSUPPORTED OR MALFORMED')
+            self.assertNotIn('children', envelope)
+
     def test_signed_pair_exposes_inner_fields_without_verifying_integrity(self):
         for service in (0x36, 0x37):
             result = summarize([packet(1, signed_request(service)), packet(2, signed_response(service), 1)])

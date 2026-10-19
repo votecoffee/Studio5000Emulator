@@ -58,6 +58,14 @@ must echo that counter and match the embedded reply service. Malformed or unknow
 envelopes retain the outer evidence and an explicit structural error. Symbol
 names and bytes remain omitted by default, including inside decoded envelopes.
 
+Report format 3 also decodes observed `0x38` batch offset tables and correlates
+ordered child replies, including outer `0x1E` and embedded errors. Batches are
+limited to 256 children and 65,519 total message bytes. Their child descriptions
+use `children` and `child_count`; single-message envelopes retain `inner`.
+Nested wrappers are not decoded recursively. Malformed batches keep their outer
+evidence without exposing partially decoded children. Default privacy settings
+apply to every child.
+
 Every decoded envelope says **integrity: NOT VERIFIED**. The capture inspector
 does not accept session keys or verify MACs. The separate pure Python codec in
 `source/logixlab/signed_messages.py` provides `verify_request(raw, key,
@@ -69,8 +77,10 @@ Version `.22` adds `verify_response(raw, key, request=...)` and
 echoed counter, preserve embedded CIP errors and check or produce the MAC over
 the complete reply before its final 20 bytes. These functions never dispatch an
 operation. Native positive/negative tests establish `0x37` reply compatibility;
-`0x36` MACs retain synthetic coverage only. Service `0x38`, confirmation and live
-session integration remain unresolved. See the
+`0x36` MACs retain synthetic coverage only. Version `.24` supports structural
+batch parsing through `parse_request` and `parse_response`, returning a
+`BatchEnvelope`. Batch MAC verification and encoding remain unavailable;
+confirmation and live session integration are unresolved. See the
 [observed envelope layout](connectivity.md#offline-signed-envelope-codec).
 
 Embedded services inside other routed requests or Multiple Service Packets

@@ -50,9 +50,16 @@ def number(node, name):
 
 
 def envelope_description(envelope, include_payloads):
-    return {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
-            'sequence': envelope.sequence, 'container_format': envelope.container_format,
-            'inner': describe(envelope.inner, include_payloads, unwrap=False)}
+    result = {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
+              'sequence': envelope.sequence}
+    if isinstance(envelope, signed_messages.BatchEnvelope):
+        result.update(child_count=len(envelope.children),
+                      children=[describe(child, include_payloads, unwrap=False)
+                                for child in envelope.children])
+    else:
+        result.update(container_format=envelope.container_format,
+                      inner=describe(envelope.inner, include_payloads, unwrap=False))
+    return result
 
 
 def describe(raw, include_payloads=False, *, unwrap=True):
@@ -140,7 +147,7 @@ def summarize(packets, include_payloads=False):
         exchanges.append({'request': request, 'response': response})
         paired_requests.add(request['frame']); paired_responses.add(response['frame'])
     counts = Counter(f"0x{value['service']:02X}" for value in messages.values() if not value['response'])
-    return {'format_version': 2, 'scope': 'outer CIP messages and one observed signed layer',
+    return {'format_version': 3, 'scope': 'outer CIP messages and one observed signed layer',
             'signed_integrity': 'NOT VERIFIED',
             'vendor_semantics': 'NOT INFERRED', 'studio_go_online': 'NOT ASSESSED',
             'cip_packets': len(packets), 'decoded_messages': len(messages),
