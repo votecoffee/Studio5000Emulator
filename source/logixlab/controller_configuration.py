@@ -68,4 +68,17 @@ def metadata_class_attributes():
 
 def metadata_description():
     return {'object_revision': 1, 'maximum_instance': 0, 'instance_count': 0,
-            'metadata_services': False}
+            'instance_list': True, 'metadata_services': False}
+
+
+def empty_metadata_query(payload):
+    """Recognize bounded read queries for the model's empty definition set.
+
+    The native connection query selects controller attribute 26; project upload
+    requests all controller definitions. Unknown selectors/targets and mutation
+    opcodes must not receive a successful empty response.
+    """
+    prefix=struct.pack('<II',0x101,0)
+    target=(0xFFFF,0x8E,1,0,0,0,0)
+    return payload in (prefix+struct.pack('<8H',1,*target),
+                       prefix+struct.pack('<9H',9,*target,26))

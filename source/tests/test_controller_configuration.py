@@ -114,6 +114,20 @@ class ControllerConfigurationTests(unittest.TestCase):
             # Retain the established name-only Get Attributes All response.
             self.assertEqual(self.cip(b'\x01\2\x20\x64\x24\1'), b'\x81\0\0\0'+name)
 
+    def test_empty_metadata_instance_list_has_no_count_and_accepts_paging_cursors(self):
+        before=copy.deepcopy(self.app.engine.memory.values)
+        for cursor in (b'\x24\0',b'\x24\1',b'\x25\0\xff\xff',b'\x26\0\0\0\1\0'):
+            path=bytes.fromhex('21004903')+cursor
+            self.assertEqual(self.cip(bytes((0x4B,len(path)//2))+path),b'\xCB\0\0\0')
+        self.assertTrue(self.endpoint.state()['metadata_definition']['instance_list'])
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_metadata_list_rejects_attribute_symbol_payload_and_missing_cursor(self):
+        for path,data,status in ((DEFINITIONS+b'\x30\1',b'',4),
+                (DEFINITIONS+b'\x91\x02xx',b'',4),(bytes.fromhex('21004903'),b'',4),
+                (DEFINITIONS,b'\0',0x15)):
+            self.assertEqual(self.cip(bytes((0x4B,len(path)//2))+path+data)[2],status)
+
     def test_extended_device_unknown_or_unrepresentable_text_is_not_truncated(self):
         for description in ('x'*129, '\u2603'):
             self.load('0', description=description)

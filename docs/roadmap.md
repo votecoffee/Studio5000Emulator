@@ -6,8 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.31` preserves source-bound ACD symbol IDs and routes native
-controller/program instance paths. The `.30` implementation completes a
+Current milestone: `.33` adds bounded symbol/template instance lists and empty
+extended-property discovery needed during upload initialization. `.31` preserves
+source-bound ACD symbol IDs and routes native controller/program instance paths.
+The `.30` implementation completes a
 read-only native SDK Go Online/Online state/Program mode/Go Offline sequence and
 stays Online across repeated polls. The
 next acceptance stage is native tag address discovery: SDK tag reads currently
@@ -58,6 +60,11 @@ The version-specific notes below record earlier investigation milestones.
   `0x36`–`0x38`; their vendor semantics still need implementation evidence.
 - Demonstrate a read-only native Go Online session with a matching private ACD.
 - Add upload, download and online editing as separate, explicitly tested stages.
+  Upload must reconstruct types, tags, programs/routines and controller settings
+  before it can produce a usable native project. Download needs a programming
+  session and validated, atomic model replacement. Online editing additionally
+  needs edit ownership, change history, test/assemble and rollback semantics.
+  Current native attempts fail; `.33` discovery does not complete these stages.
 
 Independent CIP client success and a Linx identity icon do not complete this
 milestone. Keep exact native failure phases and protocol receipts locally.

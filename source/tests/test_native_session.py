@@ -87,6 +87,15 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(result.children,(expected,b'\xCD\0\x0F\0'))
         self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'),50)
 
+    def test_signed_empty_metadata_list_does_not_enable_other_vendor_services(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b03210049032400')),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(5,bytes.fromhex('4b03210049032400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(6,bytes.fromhex('4b02206b2400'))[2],0)
+        self.assertEqual(self.signed(7,bytes.fromhex('4c03210049032400'))[2],0x0F)
+        self.assertEqual(self.signed(8,bytes.fromhex('4b02206a2400'))[2],0x0F)
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),
@@ -156,10 +165,16 @@ class NativeSessionTests(unittest.TestCase):
     def test_empty_metadata_query_is_bounded_and_unsigned_service_stays_unsupported(self):
         self.bind()
         prefix=bytes.fromhex('5303210049032400')
-        payload=struct.pack('<II',0x101,0)+bytes(18)
-        self.assertEqual(self.signed(4,prefix+payload), b'\xD3\0\0\0'+struct.pack('<II',0x301,0))
-        self.assertEqual(self.signed(5,prefix+payload+b'x')[2],0x0F)
-        self.assertEqual(self.cip(prefix+payload)[2],8)
+        query=struct.pack('<II8H',0x101,0,1,0xFFFF,0x8E,1,0,0,0,0)
+        selected=struct.pack('<II9H',0x101,0,9,0xFFFF,0x8E,1,0,0,0,0,26)
+        for sequence,payload in enumerate((query,selected),4):
+            self.assertEqual(self.signed(sequence,prefix+payload), b'\xD3\0\0\0'+struct.pack('<II',0x301,0))
+            self.assertEqual(self.cip(prefix+payload)[2],8)
+        sequence=6
+        for payload in (query+b'x',query[:-1],struct.pack('<II',0x101,0)+bytes(18),
+                        *(query[:n]+bytes((query[n]^1,))+query[n+1:] for n in range(len(query)))):
+            self.assertEqual(self.signed(sequence,prefix+payload)[2],0x0F)
+            sequence+=1
 
     def test_source_change_and_stop_release_keys_and_contexts(self):
         self.bind()

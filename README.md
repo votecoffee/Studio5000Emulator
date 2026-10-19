@@ -8,8 +8,9 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** Native SDK tag reads still fail online address discovery. Studio 5000
-GUI monitoring, upload/download and online edits remain unverified.
+Offline.** Native SDK tag reads still fail online address discovery. Native
+upload/download and online edits are unsupported; tested attempts fail. Studio
+5000 GUI monitoring remains unverified.
 Supported instructions have bounded software models; this project
 does not establish native controller equivalence.
 
@@ -161,7 +162,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, Online state, Program mode and Go Offline verified for the demo; GUI monitoring, upload/download and online edits pending |
+| Studio online | Native SDK Go Online, Online state, Program mode and Go Offline verified for the demo; native programming and tag/rung monitoring remain unfinished |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain

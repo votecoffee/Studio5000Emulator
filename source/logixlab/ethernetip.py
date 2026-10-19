@@ -181,11 +181,12 @@ class Router:
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
+                inner[0]==0x4B and path.class_id in (0x6B,0x6C,0x349) or
                 inner[0]==0x4F and path.class_id==0xAC):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
-                path.attribute is None and not path.symbols and len(payload)==26 and
-                payload[:8]==struct.pack('<II',0x101,0)):
+                path.attribute is None and not path.symbols and
+                controller_configuration.empty_metadata_query(payload)):
                 return reply(inner[0],0,struct.pack('<II',0x301,0))
             return reply(inner[0],0x0F)
         except (CIPError,native_session.NativeError) as error:return reply(inner[0],error.status)
@@ -495,6 +496,22 @@ class Router:
             out+=row
         return 0,out
 
+    def instance_list(self,path,data,limit):
+        """Get Instance List: cursor in the path, packed UDINT IDs in reply."""
+        if path.instance is None or path.attribute is not None:
+            raise CIPError(4,'Instance list requires a starting instance and no attribute')
+        exact(data,0)
+        if path.class_id==0x6B:
+            ids=[symbol['id'] for symbol in self.symbols(self.symbol_scope(path))]
+        else:
+            if path.symbols or path.program_instance is not None:
+                raise CIPError(4,'This instance list requires a global class path')
+            ids=sorted(t.instance for t in self.templates().types.values()) if path.class_id==0x6C else []
+        ids=[instance for instance in ids if instance>=path.instance]
+        capacity=max(0,(limit-4)//4)
+        if ids and not capacity:raise CIPError(0x1B,'One instance ID exceeds negotiated response size')
+        return (6 if len(ids)>capacity else 0),b''.join(struct.pack('<I',instance) for instance in ids[:capacity])
+
     def forward_open(self,data,session,large=False):
         fixed=40 if large else 36;need(data,fixed)
         path_size=data[fixed-1]*2;exact(data,fixed+path_size);route_ok(data[fixed:],True)
@@ -638,6 +655,8 @@ class Router:
             return self.attribute_read(service,path,data,file_manager.class_attributes())
         if path.class_id==0x349:
             if path.symbols:raise CIPError(4,'Metadata Definition paths do not take symbols')
+            if service==0x4B:
+                return self.instance_list(path,data,limit)
             if path.instance!=0:raise CIPError(5,'No Metadata Definition instances are modeled')
             return self.attribute_read(service,path,data,controller_configuration.metadata_class_attributes())
         if path.class_id==0x334 and self.app.engine.project.processor=='1756-L85E':
@@ -697,6 +716,7 @@ class Router:
             for r in results:positions.append(base);base+=len(r)
             if base>limit-4:raise CIPError(0x1B,'Multiple-service response exceeds model limit')
             return (0x1E if any(r[2] for r in results) else 0),struct.pack('<H'+'H'*count,count,*positions)+b''.join(results)
+        if path.class_id in (0x6B,0x6C) and service==0x4B:return self.instance_list(path,data,limit)
         if path.class_id==0x6B and service==0x55:return self.enumerate_symbols(path,data,limit)
         if path.class_id==0x6C:return self.template_service(service,path,data,limit)
         if path.class_id==0x6B and service in (3,0x0E):

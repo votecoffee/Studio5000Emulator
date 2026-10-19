@@ -71,6 +71,51 @@ source-bound identifiers accompany the L5X. Plain L5X imports do not establish
 an ACD binding. Select the guest's EtherNet/IP address and backplane slot zero
 in Linx. The appliance enables native read-only mode by default.
 
+### Native programming status
+
+A successful connection does not establish project transfer or online editing.
+These are separate native acceptance stages:
+
+| Operation | Demonstrated result | Remaining work |
+| --- | --- | --- |
+| SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
+| Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
+| Native upload | Demo passes metadata and type discovery in `.33`, then tag upload fails | Native Data Table discovery, tag addresses and project reconstruction |
+| Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
+| Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
+
+Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template
+(`0x6C`) and the model's empty Metadata Definition (`0x349`) catalog. Replies
+contain packed 32-bit IDs with an inclusive starting-instance cursor. A response
+that fills its negotiated budget returns partial-transfer status; it never emits
+an empty partial page. Symbols reuse existing external-access checks, program
+scopes and source-bound IDs. Templates reuse the software model's existing type
+IDs and supported layouts; they are not compiled controller addresses.
+
+The native channel permits these read services after session binding. Two exact
+read-only metadata query shapes cover the connection's controller-attribute
+query and upload's controller-definition query. Unknown selectors, changed
+targets, extra bytes and mutation opcodes remain denied. An isolated native
+upload accepted the empty definition list/query, then Template discovery. It
+advanced from `RxCsE_UPLOAD_OF_METADATA_DEFS_FAILED`, through
+`RxCsE_UPLOAD_OF_DATATYPES_FAILED`, to `RxCsE_UPLOAD_OF_TAGS_FAILED`. The final
+trace stops at Data Table class `0x6A`, service `0x4B`. That object's native tag
+database and physical-address mapping remain unimplemented; an empty list would
+incorrectly discard the demo's tags. This is progress through initialization,
+not a successful upload.
+
+A NOP-only online rung-import attempt reported `LgxSrv_E_FATAL_ERROR` and stopped
+the native SDK service. No edit was applied. Native edit attempts require further
+input and service validation; the emulator does not implement edit commit/test/
+assemble operations. All tested controller/source tag values remained intact.
+
+The `.33` suite passes 598 tests on Linux; Windows passes 596 with two
+platform-specific skips. Tests cover sparse 32-bit IDs, program isolation,
+pagination, private tags, malformed paths/payloads and signed read-only policy.
+Wire-format reference: Sandia's
+[Get Instance List reader](https://sandialabs.github.io/PEAT/_modules/peat/modules/rockwell/clx_cip.html#get_instance_list_data_from_reply).
+No PEAT source is copied or included in the runtime.
+
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
 only the exact imported index/generation cursor and returns those two UINTs,
 without a length prefix or invented history. An older/different cursor or a
