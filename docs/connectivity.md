@@ -141,6 +141,24 @@ establish an authentic Rockwell target or native controller equivalence.
 Incompatible project imports are rejected while the compatibility profile is
 active. Compatible replacements update identity data and invalidate old sessions.
 
+Version `0.6.0-connectivity.26` adds read-only Identity instance 1 attributes
+`101` and `102`, available through single and list reads. Rockwell documents
+`101` as the hardware major/minor byte pair in its
+[Dynamix Identity Object table](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1444-um001_-en-p.pdf),
+and `102` as a UDINT firmware build number in its
+[ArmorStart Identity Object table](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/290e-um001_-en-p.pdf).
+The observed v35 native query and reply match those two- and four-byte widths.
+These publications describe other Rockwell products; the Logix wire observation
+is separate compatibility evidence.
+
+Both emulator profiles deliberately report **virtual hardware 1.0** and
+**profile firmware build 0**. These are model values, not physical-controller
+provenance or an inferred Rockwell firmware build. The API and Connectivity tab
+identify them as virtual. The app release version remains a separate value.
+The Identity class advertises maximum instance attribute 102; unknown attributes
+retain per-attribute errors. Standard Get Attributes All and ListIdentity retain
+their existing field layouts, and attribute writes remain unsupported.
+
 ## Supported services
 
 | Surface | Implemented subset |
@@ -148,7 +166,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Encapsulation | ListIdentity, ListServices, ListInterfaces, Register/Unregister Session |
 | Explicit transport | SendRRData, slot-0 Unconnected Send, Class 3 SendUnitData |
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
-| Objects | Identity attributes, Message Router class inventory and controller name |
+| Objects | Identity attributes including read-only virtual hardware/build metadata, Message Router class inventory and controller name |
 | Network metadata | Port/node addresses `0xF4`, TCP/IP configuration `0xF5`, Ethernet MAC `0xF6` |
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`: class revision/inventory and instance 1 comparison attributes |
@@ -299,7 +317,7 @@ an operator, create a controller context or dispatch an embedded operation.
 | --- | --- | --- | --- |
 | 1 | `0x37` | Class `0x8E`, instance 1, service `0x5C`; 98 payload bytes | Empty successful reply |
 | 2 | `0x36` | Class `0x378`, instance 1, service `0x4B`; 112 SDK payload bytes | One DWORD; a synthetic test value advances the client |
-| 3 | `0x36` | Class `0x8E`, instance 1, service `0x63`; one DWORD | The test stops here with an unsupported-service error |
+| 3 | `0x36` | Class `0x8E`, instance 1, service `0x63`; one DWORD | An empty test reply now advances the client to metadata queries |
 
 The passive reference has the same sequence, with a 114-byte payload at counter
 2 and an empty successful reply at counter 3. Payload sizes and wire replies do
@@ -325,6 +343,31 @@ serial number or product label. The SDK read each changed identity, but its
 confirmation bytes stayed identical across all three trials and different
 EtherNet/IP sessions. These tested identity fields do not explain the proof;
 its calculation remains unresolved.
+
+### Metadata reads after context binding
+
+A subsequent bounded native experiment acknowledged the observed counter-3
+wire reply, then permitted only attribute reads against the isolated model.
+Registration and context replies remained temporary stubs: confirmation and
+their vendor semantics were not validated or enabled in the normal endpoint.
+
+The first counter-4 read requested Identity instance 1 attributes `101` and
+`102`. Before `.26`, that list had unsupported-attribute results. With the
+candidate virtual revision metadata above, the native SDK received a successful,
+MAC-valid list reply. This verifies the reply shape and read compatibility, not
+physical hardware equivalence or completed Go Online.
+
+The next unresolved reads concern class `0x8E`, instance 1, attribute `13`:
+the SDK tries a one-entry attribute-list read and a single read. They remain
+unsupported, and the SDK reports that security access information could not be
+obtained. The harness also denied a zero-entry Set Attribute List request to
+class `0xAC`, instance 1. It performed no attribute writes or controller-state
+changes; its final memory comparison matched the original model values.
+
+The observed signed counters remained ordered through these requests, but this
+does not validate a complete session lifecycle or replay policy. Unknown
+security flags, permissions and cache-write semantics are not guessed. The
+normal endpoint still rejects `0x64` confirmation and all signed dispatch.
 
 ### Capability-response investigation
 

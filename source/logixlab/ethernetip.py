@@ -500,7 +500,7 @@ class Router:
                 if service==1 and path.attribute is None:exact(data,0);return 0,self.identity()
                 return self.attribute_read(service,path,data,self.identity_attributes())
             elif path.instance in (None,0):
-                return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
+                return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
             classes=struct.pack('<12H',11,1,2,6,0x64,0x6B,0x6C,0xAC,0xF4,0xF5,0xF6,0x31A)

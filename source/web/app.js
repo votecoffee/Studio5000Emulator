@@ -255,7 +255,7 @@ function renderConnectivity() {
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:
     `Unicast discovery only · ${discovery.reason||'Broadcast discovery unavailable'}`;
   const identity=c.identity;
-  $('eip-identity').textContent=identity ? `${identity.product_name} · revision ${identity.revision.major}.${identity.revision.minor} · experimental profile · research serial ${identity.serial}. Studio Go Online remains unverified.` : 'The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.';
+  $('eip-identity').textContent=identity ? `${identity.product_name} · revision ${identity.revision.major}.${identity.revision.minor} · virtual hardware ${identity.hardware_revision?.major ?? '?'}.${identity.hardware_revision?.minor ?? '?'} · virtual firmware build ${identity.firmware_build ?? '?'} · experimental profile · research serial ${identity.serial}. Studio Go Online remains unverified.` : 'The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.';
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
 }

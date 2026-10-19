@@ -25,6 +25,11 @@ native Studio connection and programming services remain unfinished.
   temporary registration wire replies exposed the next vendor context request
   without implementing its semantics. See the
   [native sequence investigation](connectivity.md#native-signed-sequence-investigation).
+  Version `.26` adds the read-only virtual Identity hardware/build fields
+  requested after context binding. The isolated SDK accepts that list reply;
+  class `0x8E` attribute `13` security metadata and cache/session semantics
+  remain unresolved. Keep modeled revision values separate from native device
+  provenance and security permissions.
   Version `.24` adds bounded offline `0x38` batch decoding and ordered child
   reply correlation, checked against 157 reference exchanges. Validate their
   MACs with a known key before adding authenticated batch dispatch.

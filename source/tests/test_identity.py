@@ -63,8 +63,44 @@ class IdentityTests(unittest.TestCase):
     def test_identity_state_and_class_attributes(self):
         c=self.endpoint_for()
         self.assertEqual(self.cip(c,b'\x0E\3\x20\1\x24\1\x30\x08')[4:],b'\3')
-        self.assertEqual(self.cip(c,b'\x0E\3\x20\1\x24\0\x30\7')[4:],b'\x08\x00')
+        self.assertEqual(self.cip(c,b'\x0E\3\x20\1\x24\0\x30\7')[4:],b'\x66\x00')
         self.assertEqual(self.cip(c,b'\x0E\2\x20\1\x30\1')[4:],b'\1\0')
+
+    def test_extended_revision_list_matches_single_reads_and_virtual_metadata(self):
+        c=self.endpoint_for('logix-v35-l85e')
+        result=self.cip(c,b'\x03\2\x20\1\x24\1'+struct.pack('<3H',2,101,102))
+        self.assertEqual(result,b'\x83\0\0\0'+struct.pack('<3H',2,101,0)+b'\1\0'+struct.pack('<HHI',102,0,0))
+        for number,expected in ((101,b'\1\0'),(102,b'\0'*4)):
+            path=b'\x20\1\x24\1'+bytes((0x30,number))
+            self.assertEqual(self.cip(c,bytes((0x0E,3))+path),b'\x8E\0\0\0'+expected)
+        metadata=self.endpoint.state()['identity']
+        self.assertEqual(metadata['hardware_revision'],{'major':1,'minor':0})
+        self.assertEqual(metadata['firmware_build'],0)
+        self.assertIn('not physical-controller provenance',metadata['revision_metadata_policy'])
+
+    def test_extended_revision_unknown_attributes_and_write_attempts_preserve_memory(self):
+        c=self.endpoint_for();before=copy.deepcopy(self.app.engine.memory.values)
+        result=self.cip(c,b'\x03\2\x20\1\x24\1'+struct.pack('<4H',3,101,103,102))
+        self.assertEqual(result,b'\x83\0\x0A\0'+struct.pack('<3H',3,101,0)+b'\1\0'+
+                         struct.pack('<HHHHI',103,0x14,102,0,0))
+        identity_before=self.endpoint.identity.description()
+        for number,value in ((101,b'\xFF\xFF'),(102,b'\xFF'*4)):
+            raw=b'\x10\3\x20\1\x24\1'+bytes((0x30,number))+value
+            self.assertEqual(self.cip(c,raw)[2],8)
+        self.assertEqual(self.cip(c,b'\x04\2\x20\1\x24\1'+struct.pack('<HHI',1,102,99))[2],8)
+        self.assertEqual(self.endpoint.identity.description(),identity_before)
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_extended_revision_defaults_do_not_change_standard_identity_wire_layout(self):
+        for profile in ('research','logix-v35-l85e'):
+            identity=Identity.from_project(profile,self.app.engine.project)
+            standard=identity.all_attributes()
+            name_length=standard[14]
+            self.assertEqual(len(standard),15+name_length)
+            self.assertEqual(standard[8:10],b'\0\0')
+            self.assertEqual(standard[10:14],struct.pack('<I',identity.serial))
+            self.assertEqual(identity.attributes()[101],b'\1\0')
+            self.assertEqual(identity.attributes()[102],b'\0'*4)
 
     def test_attribute_errors_do_not_change_memory(self):
         c=self.endpoint_for();before=copy.deepcopy(self.app.engine.memory.values)

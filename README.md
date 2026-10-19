@@ -149,6 +149,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native handshake research | v35 public-key challenge; confirmation and authenticated Message Router services remain unsupported |
 | Offline protocol analysis | `0x36`/`0x37` request/reply MACs checked with native denial controls; structural `0x38` batches with child reply correlation; no embedded dispatch |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
+| Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
