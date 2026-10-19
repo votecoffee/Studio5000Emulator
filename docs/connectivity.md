@@ -346,6 +346,19 @@ presence across scopes, independent alarm/button catalogs, invalid export roots,
 source replacement and signed requests. The energy-probe checks verify session
 binding, exact request matching, batch errors, no inner dispatch and denied writes.
 
+The rebuilt `.40` appliance passed 58 live protocol checks and all eight native
+SDK connection steps, including final Offline confirmation, with 85 verified
+signed requests. Its upload recheck verified 180 signed requests: the 12 supported
+scalar values and all six empty motion/alarm/HMIBC catalogs were accepted. The
+unsupported energy probe triggered the Base Energy instance-list fallback,
+which remains denied. The SDK upload job failed with `RxCsE_UPLOAD_OF_TAGS_FAILED`.
+The original ACD, model values and scan count were unchanged.
+
+A separate unchanged public-SDK probe verified 93 signed requests, stayed
+Online/Program without correlation loss and finished Offline. Typed BOOL and
+generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`; HMIBC discovery
+and the energy error response do not resolve native tag/rung monitoring.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
