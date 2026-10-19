@@ -9,6 +9,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from .controller_configuration import ControllerConfiguration
+from .motion_catalog import MotionCatalog
 
 
 class ModelError(Exception):
@@ -284,6 +285,7 @@ class Project:
             raise ModelError("Import a complete Controller L5X export")
         c = root.find("Controller")
         if c is None: raise ModelError("Controller element is missing")
+        self.motion_catalog = MotionCatalog.from_source(root, c)
         self.controller_configuration = ControllerConfiguration.from_controller(c)
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))

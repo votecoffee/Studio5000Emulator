@@ -97,6 +97,20 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(9,bytes.fromhex('4b0220692400'))[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_axis_group_discovery_is_empty_only_for_motion_free_source(self):
+        from logixlab.motion_catalog import MotionCatalog
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b0220b02400')),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(5,bytes.fromhex('4b0220b02400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(6,bytes.fromhex('100320b024013001')+b'\1')[2],0x0F)
+        self.app.engine.project.motion_catalog=MotionCatalog(False)
+        self.assertEqual(self.signed(7,bytes.fromhex('4b0220b02400'))[2],0x0C)
+        self.assertEqual(self.signed(8,bytes.fromhex('4b0220b12400'))[2],0x0C)
+        self.app.engine.project.motion_catalog=MotionCatalog(True)
+        self.assertEqual(self.signed(9,bytes.fromhex('4b0220b12400')),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(10,bytes.fromhex('4b0321002b032400')),b'\xCB\0\0\0')
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),

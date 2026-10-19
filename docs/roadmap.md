@@ -6,7 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.37` adds backed model addresses and read-only full scalar
+Current milestone: `.38` adds source-checked empty Axis Group, Axis and Coordinate
+System discovery. An isolated native candidate accepts all three lists and
+advances to Digital Alarm (`0x331`) discovery. Nonempty motion catalogs and motion execution remain unsupported.
+`.37` adds backed model addresses and read-only full scalar
 Data Table transfers. A native candidate accepts the demo's 12 supported scalar
 values and reaches Axis Group instance discovery. Native tag/rung monitoring and
 complete upload remain unfinished. `.36` keeps Windows appliance commands and the SSH tunnel

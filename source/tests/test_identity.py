@@ -114,7 +114,7 @@ class IdentityTests(unittest.TestCase):
 
     def test_message_router_lists_only_implemented_object_classes(self):
         c=self.endpoint_for();result=self.cip(c,b'\x0E\3\x20\2\x24\1\x30\1')
-        self.assertEqual(result[4:],struct.pack('<15H',14,1,2,6,0x64,0x6A,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349))
+        self.assertEqual(result[4:],struct.pack('<18H',17,1,2,6,0x64,0x6A,0x6B,0x6C,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x349))
 
     def test_profile_rejects_other_controller_firmware_and_unknown_revision(self):
         p=self.app.engine.project

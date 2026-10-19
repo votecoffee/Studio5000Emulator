@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.37` candidate reads the demo's 12 supported scalar values, then stops at Axis Group discovery | Remaining tag kinds, object catalogs and project reconstruction |
+| Native upload | `.38` candidate reads 12 supported scalar values and passes empty motion catalogs; stops at Digital Alarm discovery | Remaining tag kinds, object catalogs and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -213,6 +213,40 @@ modeled values remained unchanged. A separate unchanged public-SDK probe stayed
 Online/Program and went Offline; typed BOOL and generic BOOL/DINT reads still
 failed with `RxDA_E_NO_ONLINE_ADDRESS`. The scalar upload service does not yet
 resolve the SDK's native online-address cache or establish tag/rung monitoring.
+
+### Empty motion catalogs
+
+Version `.38` supports Get Instance List (`0x4B`) for Axis Group (`0xB0`),
+Axis (`0xB1`) and Coordinate System (`0x32B`) only when the source establishes
+that all three catalogs are empty.
+An empty result has success status and no instance IDs. The starting cursor is
+inclusive, as for the other instance lists. These paths must be global and
+include an instance cursor; attributes, payload bytes and program scopes are
+rejected. Signed read-only sessions allow these lists without enabling setters.
+
+The check requires a complete Controller export (`ContainsContext="false"`),
+one target Controller and one complete controller Tags section. It inspects
+source XML before unsupported tags can be filtered out of the runtime. A
+`MOTION_GROUP`, `AXIS_*` or `COORDINATE_SYSTEM` data type, motion-specific data format/parameters,
+unknown controller-tag entries or ambiguous context prevents an empty response.
+Such sources return unavailable (`0x0C`). These classes do not invent instance IDs,
+class revisions, axis configuration or motion execution. Catalog availability
+is exposed in connectivity state and follows project replacement.
+
+The tag and configuration shapes are documented in
+[Rockwell's Import/Export reference, chapter 6](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
+The installed v35 object descriptions identify classes `0xB0`, `0xB1` and `0x32B`;
+the native upload exchange supplies their list request shapes. No vendor files
+are included. An isolated `.38` candidate read all 12 supported demo scalars and
+accepted all three empty motion lists, then requested Digital Alarm class
+`0x331`, Get Instance List `0x4B`. That request remains denied; upload still fails
+`RxCsE_UPLOAD_OF_TAGS_FAILED`. Model values and scan count were preserved.
+Complete upload and native monitoring remain unverified for this revision.
+
+The `.38` suite runs 624 tests. Checks cover source completeness, motion tag/data
+detection, project replacement, instance cursors, invalid paths/payloads, object
+inventory and signed read-only dispatch. Motion detection uses the original XML,
+including definitions that the execution model cannot parse.
 
 ### Change Log correlation
 
