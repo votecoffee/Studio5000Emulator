@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.41` candidate passes energy/Message catalogs and reaches Symbol descriptors | Remaining Symbol address/configuration fields, tag kinds and project reconstruction |
+| Native upload | `.41` deployed test passes energy/Message catalogs and reaches Symbol descriptors | Remaining Symbol address/configuration fields, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -403,6 +403,18 @@ ordinary-source boundary, unknown configuration, module identity/context,
 replacement, all three energy lists and negative newer probes. Message checks
 cover declarations across scopes, data/configuration, alarm text, malformed
 paths and signed read-only dispatch.
+
+The rebuilt `.41` appliance passed 70 live protocol checks. All eight native SDK
+connection steps passed across 85 verified signed requests, ending Offline.
+Native upload accepted the same 12 scalar reads and nine empty catalog responses
+across 187 verified signed requests, then failed at the Symbol attribute list
+above. A separate SDK hold/read check completed 93 verified signed requests,
+reported Online/Program and ended Offline without correlation loss. Typed BOOL,
+generic BOOL and generic DINT reads still report `RxDA_E_NO_ONLINE_ADDRESS`.
+These checks preserved the source ACD, model values and zero scan count; network
+writes remained disabled. Deployed modules, browser assets and the Windows build
+matched the source, including the displayed version. Studio GUI monitoring,
+complete upload/download and native online edits remain unverified or failing.
 
 ### Change Log correlation
 
