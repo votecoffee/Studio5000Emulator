@@ -55,6 +55,16 @@ malformed/compressed XML and signed read/write-denial behavior.
 The `.31` suite passes 571 tests on Linux; Windows passes 569 with two
 Linux-only skips.
 
+The rebuilt `.31` appliance passed 23 live protocol checks, including reads
+through the imported demo IDs. RockwellMCPServer/native SDK then completed all
+eight connection steps, including a final Offline-state read, with 86 verified
+signed requests. A separate public-SDK read test stayed Online/Program and went
+Offline cleanly; typed BOOL and generic BOOL/DINT reads still failed with
+`RxDA_E_NO_ONLINE_ADDRESS`. Its complete trace contains no symbolic or
+symbol-instance tag-read request. This confirms that logical ID preservation
+alone does not resolve native address discovery. The original ACD and all
+modeled initial values remained unchanged; Studio GUI monitoring is unverified.
+
 Use the L85E profile with **Experimental native session (read only)** enabled.
 Import the matching ACD through the Windows app or VMware tray importer so its
 source-bound identifiers accompany the L5X. Plain L5X imports do not establish
