@@ -415,8 +415,8 @@ The baseline endpoint trace contains these unsupported requests:
 | Object path | Request | Response in `.15` |
 | --- | --- | --- |
 | Class `0xAC`, instance 0 | Get Attribute List for attribute 1 | Unknown metadata instance (`0x05`) |
-| Class `0x31A`, instance 0 | Get Attribute List and Get Attribute Single for attribute 1 | Unsupported service (`0x08`) |
-| Class `0x64`, instance 1 | Vendor service `0x4B` | Unsupported service (`0x08`) |
+| File Manager class `0x31A`, instance 0 | Get Attribute List and Get Attribute Single for attribute 1 | Unsupported service (`0x08`) |
+| Extended Device class `0x64`, instance 1 | Vendor service `0x4B` | Unsupported service (`0x08`) |
 
 The same native operation was repeated against `0.6.0-connectivity.16` after
 adding controller class metadata. Its class `0xAC`, instance 0 revision request
@@ -426,6 +426,16 @@ still failed with `RxE_COMM_ASA_SERVICE_NOT_SUPPORTED`. Both native attempts use
 the same preserved ACD content; the original and private input hashes remained
 unchanged. Independent client checks and 433 behavioral tests on each of Windows
 and Linux passed for `.16`.
+
+The `.18` retest added the File Manager class-discovery subset. Its native
+class-revision request received a successful UINT revision-1 reply; the earlier
+Get Attribute Single fallback was no longer sent. Of the 11 CIP events recorded
+during this attempt, the sole unsupported request was Extended Device class
+`0x64`, instance 1, service `0x4B`. Go Online still failed with
+`RxE_COMM_ASA_SERVICE_NOT_SUPPORTED`. The ACD inputs, shared native-service
+configuration and installed attribute-reference files retained their original
+hashes. Independent client checks and 452 behavioral tests on each of Windows
+and Linux passed for `.18`.
 
 These are observed gaps, not a complete list of requirements for native online
 operation. The trace does not establish the vendor payload layouts or which
@@ -438,6 +448,11 @@ download or online monitor. ACD inputs, exact target configuration, job receipts
 and packet samples remain in ignored local storage. The diagnostic CLI above
 retains its loopback restriction; the appliance test used the separately
 configured, target-allowlisted RockwellMCPServer instance.
+
+The ASA naming in the native error refers to CIP in the
+[FactoryTalk Linx SDK reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/lnxsdk-rm001_-en-e.pdf),
+chapter 4. The remaining vendor request's response layout and later connection
+stages still require separate evidence.
 
 ## References
 
