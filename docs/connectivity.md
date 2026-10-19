@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.38` candidate reads 12 supported scalar values and passes empty motion catalogs; stops at Digital Alarm discovery | Remaining tag kinds, object catalogs and project reconstruction |
+| Native upload | `.39` candidate reads 12 supported scalar values and passes empty motion/alarm catalogs; stops at HMI Button Control discovery | Remaining tag kinds, object catalogs and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -259,6 +259,41 @@ A separate unchanged public-SDK probe verified 93 signed requests, stayed
 Online/Program without correlation loss and finished Offline. Typed BOOL and
 generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`; empty motion
 discovery does not resolve native tag/rung monitoring.
+
+### Empty instruction alarm catalogs
+
+Version `.39` supports Get Instance List (`0x4B`) for Digital Alarm (`0x331`)
+and Analog Alarm (`0x332`) when complete source establishes an empty alarm
+catalog. Replies contain no IDs and use success status. These lists require a
+global class path with an instance cursor, no attribute and no payload. Setters,
+other alarm services and nonempty catalogs remain unsupported. Signed sessions
+allow the lists without granting write permission.
+
+The source check includes controller/program tags and AOI local declarations,
+before runtime type filtering. `ALARM_DIGITAL` / `ALARM_ANALOG` data types,
+`Data Format="Alarm"`, alarm parameters or alarm configuration prevent an empty
+reply. Incomplete/context exports, ambiguous tag/program containers and unknown
+tag entries also return unavailable (`0x0C`). Connectivity state reports
+availability and a zero count only for a proven empty catalog; project replacement
+recomputes that state. Alarm execution, configuration, events, acknowledgements
+and tag-based alarm discovery remain separate unfinished work.
+
+[Rockwell's Import/Export reference, chapter 6](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+documents the alarm tag/configuration shapes. The installed v35 object
+descriptions identify Digital and Analog Alarm class numbers; vendor files and
+private native exchanges are kept outside the public source tree.
+
+An isolated `.39` native candidate accepted the demo's 12 supported scalar reads,
+three empty motion lists and both empty alarm lists, then requested HMI Button
+Control class `0x36E`, Get Instance List `0x4B`. That request remains denied;
+upload still fails `RxCsE_UPLOAD_OF_TAGS_FAILED`. Model values and scan count
+were preserved. This is partial transfer, not complete native project upload.
+
+The `.39` suite runs 631 tests: Windows passes 629 with two Linux-only skips;
+Linux passes 630 with the Windows console check skipped. New checks cover
+controller/program/AOI alarm declarations, alarm data/configuration, incomplete
+source, replacement, cursors, malformed/scoped requests and signed read-only
+dispatch. Alarm configuration and runtime semantics remain unsupported.
 
 ### Change Log correlation
 

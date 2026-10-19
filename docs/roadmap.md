@@ -6,7 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.38` adds source-checked empty Axis Group, Axis and Coordinate
+Current milestone: `.39` adds source-checked empty Digital/Analog Alarm discovery
+for projects without instruction alarm objects. The native candidate accepts both
+lists and reaches HMI Button Control (`0x36E`) discovery. Nonempty alarm catalogs
+and alarm execution remain unsupported. `.38` adds source-checked empty Axis Group, Axis and Coordinate
 System discovery. An isolated native candidate accepts all three lists and
 advances to Digital Alarm (`0x331`) discovery. Nonempty motion catalogs and motion execution remain unsupported.
 `.37` adds backed model addresses and read-only full scalar

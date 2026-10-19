@@ -111,6 +111,17 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(10,bytes.fromhex('4b0321002b032400')),b'\xCB\0\0\0')
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_alarm_lists_require_alarm_free_source_and_keep_writes_denied(self):
+        from logixlab.alarm_catalog import AlarmCatalog
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        for sequence,target in enumerate(('4b03210031032400','4b03210032032400'),4):
+            self.assertEqual(self.signed(sequence,bytes.fromhex(target)),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(6,bytes.fromhex('4b03210031032400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(7,bytes.fromhex('10042100310324013001')+bytes(4))[2],0x0F)
+        self.app.engine.project.alarm_catalog=AlarmCatalog(False)
+        self.assertEqual(self.signed(8,bytes.fromhex('4b03210032032400'))[2],0x0C)
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),
