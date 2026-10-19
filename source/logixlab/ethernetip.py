@@ -152,7 +152,7 @@ class Session:
 
 class Router:
     def __init__(self,app,endpoint):
-        self.app=app;self.endpoint=endpoint;self._catalog=None
+        self.app=app;self.endpoint=endpoint;self._catalog=None;self._storage=None;self._storage_key=None
 
     def templates(self):
         project=self.app.engine.project
@@ -182,7 +182,7 @@ class Router:
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
                 inner[0]==0x4B and path.class_id in (0x6A,0x6B,0x6C,0x349) or
-                inner[0]==0x4F and path.class_id==0xAC):
+                inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
                 path.attribute is None and not path.symbols and
@@ -496,10 +496,32 @@ class Router:
         else:
             table=next((s for s in tables if s['id']==path.instance),None)
             if table is None:raise CIPError(5,'Unknown modeled Data Table instance')
-            attributes=data_table.attributes(table)
-        # Address/formal-type reads and value/programming services remain
-        # unavailable. A logical Symbol ID must never be used as an address.
+            storage=self.scalar_storage().by_ref.get(table['ref'].lower())
+            attributes=data_table.attributes(table,storage)
+            if service==0x4F:
+                if path.attribute is not None:raise CIPError(4,'Scalar reads do not take an attribute')
+                exact(data,6);selector,count=struct.unpack('<IH',data)
+                if storage is None:raise CIPError(8,'No supported scalar storage for this table')
+                if selector!=0 or count!=storage.size:raise CIPError(3,'Only zero-selector full scalar reads are supported')
+                if count>limit-4:raise CIPError(0x1B,'Response cannot hold the full scalar')
+                return 0,storage.value(self.app.engine.memory.read)
+        # Only this model's backed scalar addresses are exposed. Formal types,
+        # native physical memory and programming services remain unavailable.
         return self.attribute_read(service,path,data,attributes)
+
+    def scalar_storage(self):
+        rows=[];project=self.app.engine.project
+        scopes=['']+[name for name,p in project.programs.items() if p['class']=='Standard']
+        for scope in scopes:
+            for symbol in self.data_tables(scope):
+                tag=project.tags[symbol['ref'].lower()]
+                if tag.constant or symbol['type']&0xE000:continue
+                dtype=self.access(symbol['ref'])[2]
+                if dtype in TYPES:rows.append((symbol,'<'+TYPES[dtype][1]))
+        key=(project,tuple((s['ref'],s['id'],s['type'],fmt) for s,fmt in rows))
+        if key!=self._storage_key:
+            self._storage=data_table.AddressSpace(rows);self._storage_key=key
+        return self._storage
 
     def enumerate_symbols(self,path,data,limit=REPLY_LIMIT):
         scope=self.symbol_scope(path)

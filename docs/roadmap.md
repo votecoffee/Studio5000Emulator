@@ -6,11 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.36` keeps Windows appliance commands and the SSH tunnel
+Current milestone: `.37` adds backed model addresses and read-only full scalar
+Data Table transfers. A native candidate accepts the demo's 12 supported scalar
+values and reaches Axis Group instance discovery. Native tag/rung monitoring and
+complete upload remain unfinished. `.36` keeps Windows appliance commands and the SSH tunnel
 from opening console windows. `.35` fixes navigation to the Device I/O panel and clarifies
 the unverified native GUI boundary in the webpage banner. `.34` adds scoped Data Table discovery and supported tag
-descriptors. Native upload now reaches its first Data Table attribute list;
-address and data-use fields remain unavailable. `.33` adds bounded symbol/template instance lists and empty
+descriptors. That native upload reached its first Data Table attribute list;
+address and data-use fields were unavailable. `.33` adds bounded symbol/template instance lists and empty
 extended-property discovery needed during upload initialization. `.31` preserves
 source-bound ACD symbol IDs and routes native controller/program instance paths.
 The `.30` implementation completes a

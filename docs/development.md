@@ -54,6 +54,13 @@ builds scoped catalogs through existing symbol type/access checks, excluding
 aliases from storage instances. IDs reuse the model's Symbol IDs and never
 stand in for physical addresses. See [Data Table scope and limits](connectivity.md#data-table-catalog).
 
+Its bounded scalar address space has separate model descriptor/value regions.
+Value reads use current committed memory under the application lock; they never
+read host or controller memory. Only ordinary nonconstant scalar atoms receive
+these allocations. A zero-selector `0x4F` request must read the complete scalar
+within the negotiated reply budget. Keep all other tag kinds and selectors
+unavailable until their layouts and transfer semantics are implemented.
+
 `native_symbols.py` reads the optional `TagInfo.XML` schema 1.0 stream using the
 bounded container reader shared with `native_project.py`. It accepts root
 controller Symbol paths and Program/Symbol paths, with separate IDs per scope.

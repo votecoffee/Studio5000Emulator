@@ -111,16 +111,20 @@ class NativeSessionTests(unittest.TestCase):
         self.assertFalse(self.endpoint.locator_state()['active'])
         self.assertEqual(self.cip(raw)[2],0x0F)  # replay closes the context
 
-    def test_signed_data_table_metadata_links_symbols_but_addresses_and_values_are_denied(self):
+    def test_signed_data_table_reads_model_addresses_and_scalar_bytes_without_writes(self):
         self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
                                               [Symbol('',0,'SpeedSetpoint',70000)])
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         self.assertEqual(self.signed(4,bytes.fromhex('4b02206a2400')),b'\xCB\0\0\0'+struct.pack('<I',70000))
         path=bytes.fromhex('206a260070110100')
         self.assertEqual(self.signed(5,b'\x0E\5'+path+b'\x30\x08'),b'\x8E\0\0\0'+struct.pack('<I',70000))
-        self.assertEqual(self.signed(6,b'\x0E\5'+path+b'\x30\x03')[2],0x14)
+        address=self.signed(6,b'\x0E\5'+path+b'\x30\x03')
+        self.assertEqual(address[:4],b'\x8E\0\0\0')
+        self.assertNotEqual(address[4:],bytes(4))
         self.assertEqual(self.signed(7,b'\x4C\4'+path+b'\1\0')[2],0x0F)
         self.assertEqual(self.signed(8,b'\x10\5'+path+b'\x30\2\xC4\0')[2],0x0F)
+        self.assertEqual(self.signed(9,b'\x4F\4'+path+struct.pack('<IH',0,4)),b'\xCF\0\0\0'+struct.pack('<i',50))
+        self.assertEqual(self.signed(10,b'\x4F\4'+path+struct.pack('<IH',1,4))[2],3)
         self.assertEqual(self.app.engine.memory.values,before)
 
     def test_bad_batch_mac_never_dispatches_a_child_and_unbound_batch_cannot_register(self):

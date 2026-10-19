@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.34` accepts Data Table discovery, then tag descriptor upload fails | Address/data-use fields, tag values and project reconstruction |
+| Native upload | `.37` candidate reads the demo's 12 supported scalar values, then stops at Axis Group discovery | Remaining tag kinds, object catalogs and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -136,9 +136,9 @@ Table IDs are not imported compiled IDs. Missing mappings are not replaced with
 generated IDs inside that binding. Class metadata reports revision 1, the maximum
 visible instance and visible instance count, with separate 32-bit counts.
 
-Supported instance attributes are `1` (three 32-bit array dimensions), `2` (the
-model's type word) and `8` (32-bit Symbol link). Address, data-value address,
-formal-type and data-use fields remain unavailable. A mixed attribute list keeps
+In `.34`, supported instance attributes were `1` (three 32-bit array dimensions),
+`2` (the model's type word) and `8` (32-bit Symbol link). Address, data-value
+address, formal-type and data-use fields were unavailable. A mixed attribute list keeps
 the requested order and individual errors. It does not substitute a logical ID
 or zero for a compiled address. The Connectivity API reports these limits in
 `data_table`.
@@ -168,6 +168,42 @@ Version `.35` also fixes the Device I/O panel's tab navigation; browser checks
 verified that each of the five tabs shows only its own panel. The served version
 and assets match the rebuilt app. Cached device reads and queued-write
 cancellation checks passed, with external writes disabled at the end.
+
+Version `.37` adds backed storage for up to 4,096 ordinary, nonconstant base
+scalar atoms. Their descriptor attributes `3` and `7` point to separate model
+descriptor/value regions; `6` and `9` describe ordinary local storage with zero
+data-use flags. These are catalog-local addresses in the software model, not
+imported controller addresses or host-process pointers. Descriptor bytes and
+current scalar bytes back each allocation. Replacing the project or changing
+the exposed scalar catalog replaces its address map.
+
+Data Table service `0x4F` accepts exactly four zero selector bytes followed by
+a UINT byte count equal to the full scalar width. Its reply contains raw value
+bytes without a tag-type prefix. The native v35 client was observed requesting
+one byte for BOOL and four for DINT. Other selectors, partial/oversized reads,
+short reply budgets and unknown values return explicit errors. Constants,
+arrays, structures, aliases and inaccessible tags do not receive scalar storage;
+their supported catalog fields remain available where applicable. General
+physical-memory services, formal types and all Data Table writes remain
+unsupported. Signed sessions permit this scalar read without enabling setters.
+
+An isolated normal-source `.37` upload candidate returned all 12 supported demo
+scalar values, then reached Axis Group class `0xB0`, Get Instance List `0x4B`.
+That request remains denied and upload still fails with
+`RxCsE_UPLOAD_OF_TAGS_FAILED`. This is partial tag-data transfer, not native
+project upload or native tag-monitor acceptance. The fixture's other tag kinds
+and later project objects still require implementation. Model values and scan
+count were preserved; private wire-shape probes are not included in the app.
+
+The `.37` suite runs 618 tests: Windows passes 616 with two Linux-only skips;
+Linux passes 617 with the Windows console check skipped. New checks cover every
+supported scalar width, scope isolation, current-value reads, unknown values,
+catalog replacement, address/padding boundaries, storage limits and signed
+read-only dispatch. Public client implementations were consulted as protocol
+references, including [pycomm3's symbol parser](https://github.com/ottowayi/pycomm3/blob/master/pycomm3/logix_driver.py)
+and [PEAT's class-instance read routines](https://github.com/sandialabs/PEAT/blob/main/peat/modules/rockwell/clx_cip.py);
+the v35 scalar request shape above comes from the local native-client exchange.
+No third-party implementation or vendor reference files are bundled.
 
 ### Change Log correlation
 
