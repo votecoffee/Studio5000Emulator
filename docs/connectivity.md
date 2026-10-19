@@ -53,6 +53,15 @@ dispatch and lifecycle cleanup. The Windows executable embeds matching browser
 assets and both new session/correlation modules. These checks are separate from
 the failed native Go Online result above.
 
+A final check used the rebuilt appliance and the normal Windows ACD importer,
+including conversion and manifest transfer. Fifteen live wire checks passed;
+the native SDK again reached request 83 and stopped at Change Log search. The
+running model retained scan count zero and every imported initial tag value.
+This result uses the normal application with fresh challenge keys and no
+temporary router or correlation overrides. The current read-only gate rejects
+the unimplemented search with CIP `0x0F`, surfaced by the SDK as
+`RxCsE_ASA_NO_PERMISSION`; that error does not establish a password failure.
+
 ## Start an endpoint
 
 In the app, load a project and open **Connectivity**. Choose an identity profile,
