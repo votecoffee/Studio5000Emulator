@@ -243,10 +243,22 @@ accepted all three empty motion lists, then requested Digital Alarm class
 `RxCsE_UPLOAD_OF_TAGS_FAILED`. Model values and scan count were preserved.
 Complete upload and native monitoring remain unverified for this revision.
 
-The `.38` suite runs 624 tests. Checks cover source completeness, motion tag/data
+The `.38` suite runs 624 tests: Windows passes 622 with two Linux-only skips;
+Linux passes 623 with the Windows console check skipped. Checks cover source completeness, motion tag/data
 detection, project replacement, instance cursors, invalid paths/payloads, object
 inventory and signed read-only dispatch. Motion detection uses the original XML,
 including definitions that the execution model cannot parse.
+
+The rebuilt `.38` appliance passed 49 live protocol checks and all eight SDK
+connection steps, with 85 verified signed requests and final Offline confirmation.
+Its upload recheck verified 177 signed requests: all 12 supported scalar values
+and the three empty motion catalogs were accepted before the Digital Alarm list
+failed. This remains a partial upload. The original ACD, source-bound project
+configuration, model values and scan count were preserved.
+A separate unchanged public-SDK probe verified 93 signed requests, stayed
+Online/Program without correlation loss and finished Offline. Typed BOOL and
+generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`; empty motion
+discovery does not resolve native tag/rung monitoring.
 
 ### Change Log correlation
 
