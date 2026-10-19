@@ -76,8 +76,9 @@ Version `.22` adds `verify_response(raw, key, request=...)` and
 `encode_response(request, inner, key)`. They correlate the embedded service and
 echoed counter, preserve embedded CIP errors and check or produce the MAC over
 the complete reply before its final 20 bytes. These functions never dispatch an
-operation. Native positive/negative tests establish `0x37` reply compatibility;
-`0x36` MACs retain synthetic coverage only. Version `.24` supports structural
+operation. Native positive/negative denial tests establish request/reply MAC
+compatibility for both `0x36` and `0x37`; registration and confirmation semantics
+remain separate work. Version `.24` supports structural
 batch parsing through `parse_request` and `parse_response`, returning a
 `BatchEnvelope`. Batch MAC verification and encoding remain unavailable;
 confirmation and live session integration are unresolved. See the

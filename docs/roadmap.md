@@ -21,7 +21,10 @@ native Studio connection and programming services remain unfinished.
   verification, with no live dispatch. `.22` adds reply signing/verification;
   native `0x37` denial tests distinguish valid MACs from a damaged-MAC control.
   Resolve confirmation proof and session lifecycle before connecting that codec
-  to live dispatch. Native `0x36` MAC validation remains a separate check.
+  to live dispatch. Native `0x36` request/reply MAC controls now pass as well;
+  temporary registration wire replies exposed the next vendor context request
+  without implementing its semantics. See the
+  [native sequence investigation](connectivity.md#native-signed-sequence-investigation).
   Version `.24` adds bounded offline `0x38` batch decoding and ordered child
   reply correlation, checked against 157 reference exchanges. Validate their
   MACs with a known key before adding authenticated batch dispatch.

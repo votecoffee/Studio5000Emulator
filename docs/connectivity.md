@@ -232,8 +232,9 @@ enable their live dispatch or change the unresolved `0x64` / `0x4C` confirmation
 The request verifier covers every outer CIP byte before the MAC, including the
 path, container header when present, embedded request and counter. A known-nonce
 native SDK `0x37` trace matches this calculation. Reference `0x36`/`0x37` framing,
-independent synthetic vectors and altered-byte tests cover both formats; a native
-`0x36` MAC has not yet been checked with a known key. `verify_request` requires a 20-byte supplied key and
+independent synthetic vectors and altered-byte tests cover both formats. The
+[native signed-sequence investigation](#native-signed-sequence-investigation)
+also verifies `0x36` with a known key. `verify_request` requires a 20-byte supplied key and
 the exact expected counter. It is a stateless diagnostic function: key possession
 does not establish peer identity or permission to execute an operation.
 
@@ -273,9 +274,10 @@ violation in Rockwell's
 Those private tests supplied a temporary capability response solely to reach the
 wrapper experiment, without validating `0x64` / `0x4C`. The normal endpoint still
 rejects confirmation and all signed dispatch. No embedded operator-identity
-operation was performed. Native MAC evidence covers `0x37`; `0x36` encoding and
-verification are tested with independent synthetic vectors. At that revision,
-service `0x38` remained unsupported by the offline codec.
+operation was performed. Those initial native MAC tests covered `0x37`;
+independent synthetic vectors cover both formats. The later `0x36` results are
+described below. At that revision, service `0x38` remained unsupported by the
+offline codec.
 
 A separate repeated-nonce test produced identical confirmation bytes across
 different EtherNet/IP session IDs, with identical offers and ciphertexts. This
@@ -283,6 +285,46 @@ narrows the confirmation investigation but does not establish its calculation.
 The `.22` behavioral suite passed 501 tests on each of Windows and Linux,
 including independent reply vectors, altered bytes, wrong keys, mismatched
 request contexts, malformed headers and maximum-length replies.
+
+### Native signed-sequence investigation
+
+Additional emulator-only tests used native SDK 2.1.974 through RockwellMCPServer
+0.18.0, a known nonce and a matching offline project copy. The normal endpoint
+continues to reject confirmation. Temporary wire-format stubs supplied the
+capability reply and the following observed registration replies solely to
+inspect later messages; they did not validate the confirmation proof, register
+an operator, create a controller context or dispatch an embedded operation.
+
+| Counter | Wrapper | Embedded request | Observed reply payload |
+| --- | --- | --- | --- |
+| 1 | `0x37` | Class `0x8E`, instance 1, service `0x5C`; 98 payload bytes | Empty successful reply |
+| 2 | `0x36` | Class `0x378`, instance 1, service `0x4B`; 112 SDK payload bytes | One DWORD; a synthetic test value advances the client |
+| 3 | `0x36` | Class `0x8E`, instance 1, service `0x63`; one DWORD | The test stops here with an unsupported-service error |
+
+The passive reference has the same sequence, with a 114-byte payload at counter
+2 and an empty successful reply at counter 3. Payload sizes and wire replies do
+not establish the semantics or permissions of these vendor operations.
+
+The counter-2 native `0x36` request verifies using HMAC-SHA1 over the complete
+outer request through the counter, with the known nonce's little-endian bytes
+as its key. The public encoder produced a matching `0x36` reply carrying an
+embedded CIP `0x0F` denial. The SDK reported access denied. A control differing
+in exactly one reply MAC byte produced a data-integrity error. The public
+verifier accepts the denial and rejects the damaged control. The same control
+on the counter-1 registration reply also stopped the client with a
+data-integrity error; the valid reply advanced it to counter 2.
+
+Native MAC evidence therefore covers requests and denial replies for both
+`0x36` and `0x37`. It does not validate `0x38` MACs, confirmation, registration
+semantics, replay protection or native Go Online. These tests leave the normal
+endpoint's unsupported-service behavior unchanged.
+
+Three separate confirmation trials kept the nonce, public-key offer and
+encrypted challenge identical while independently changing the reported CIP
+serial number or product label. The SDK read each changed identity, but its
+confirmation bytes stayed identical across all three trials and different
+EtherNet/IP sessions. These tested identity fields do not explain the proof;
+its calculation remains unresolved.
 
 ### Capability-response investigation
 
