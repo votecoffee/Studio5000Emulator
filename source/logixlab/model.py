@@ -11,6 +11,7 @@ from pathlib import Path
 from .controller_configuration import ControllerConfiguration
 from .motion_catalog import MotionCatalog
 from .alarm_catalog import AlarmCatalog
+from .hmi_button_catalog import HmiButtonCatalog
 
 
 class ModelError(Exception):
@@ -288,6 +289,7 @@ class Project:
         if c is None: raise ModelError("Controller element is missing")
         self.motion_catalog = MotionCatalog.from_source(root, c)
         self.alarm_catalog = AlarmCatalog.from_source(root, c)
+        self.hmi_button_catalog = HmiButtonCatalog.from_source(root, c)
         self.controller_configuration = ControllerConfiguration.from_controller(c)
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))

@@ -178,10 +178,16 @@ class Router:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
             elif native.stage!='bound':return reply(inner[0],0x0F)
+            if inner==b'\x3B\2\x20\x4E\x24\0':
+                # The model has no Base Energy implementation. Report this
+                # exact native probe as unsupported without dispatching it or
+                # inventing a successful energy response. All neighbors stay
+                # subject to the read-only allowlist below.
+                return reply(inner[0],8)
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (0x6A,0x6B,0x6C,0xB0,0xB1,0x32B,0x331,0x332,0x349) or
+                inner[0]==0x4B and path.class_id in (0x6A,0x6B,0x6C,0xB0,0xB1,0x32B,0x331,0x332,0x349,0x36E) or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -555,6 +561,8 @@ class Router:
                 raise CIPError(0x0C,'Motion catalog is nonempty or unavailable from this source')
             if path.class_id in (0x331,0x332) and not self.app.engine.project.alarm_catalog.empty:
                 raise CIPError(0x0C,'Alarm catalog is nonempty or unavailable from this source')
+            if path.class_id==0x36E and not self.app.engine.project.hmi_button_catalog.empty:
+                raise CIPError(0x0C,'HMI Button Control catalog is nonempty or unavailable from this source')
             ids=sorted(t.instance for t in self.templates().types.values()) if path.class_id==0x6C else []
         ids=[instance for instance in ids if instance>=path.instance]
         capacity=max(0,(limit-4)//4)
@@ -652,7 +660,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x64,0x6A,0x6B,0x6C,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x64,0x6A,0x6B,0x6C,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -708,6 +716,9 @@ class Router:
         if path.class_id in (0x331,0x332):
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty alarm discovery is supported')
+        if path.class_id==0x36E:
+            if service==0x4B:return self.instance_list(path,data,limit)
+            raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
         if path.class_id==0x349:
             if path.symbols:raise CIPError(4,'Metadata Definition paths do not take symbols')
             if service==0x4B:
@@ -888,6 +899,7 @@ class Endpoint:
                     'data_table':data_table.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,
+                    'hmi_button_control':self.app.engine.project.hmi_button_catalog.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,

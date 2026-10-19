@@ -6,7 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.39` adds source-checked empty Digital/Analog Alarm discovery
+Current milestone: `.40` adds source-checked empty HMIBC discovery and an explicit
+unsupported reply to the exact native Base Energy probe. The native candidate
+passes HMIBC discovery, then falls back to Base Energy Get Instance List (`0x4B`),
+which remains unsupported. Button and energy runtime behavior remain unfinished.
+`.39` adds source-checked empty Digital/Analog Alarm discovery
 for projects without instruction alarm objects. The native candidate accepts both
 lists and reaches HMI Button Control (`0x36E`) discovery. Nonempty alarm catalogs
 and alarm execution remain unsupported. `.38` adds source-checked empty Axis Group, Axis and Coordinate

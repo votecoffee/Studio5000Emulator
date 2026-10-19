@@ -122,6 +122,33 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(8,bytes.fromhex('4b03210032032400'))[2],0x0C)
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_hmi_button_list_requires_empty_source_and_keeps_writes_denied(self):
+        from logixlab.hmi_button_catalog import HmiButtonCatalog
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b0321006e032400')),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(5,bytes.fromhex('4b0321006e032400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(6,bytes.fromhex('100421006e0324013001')+b'\1')[2],0x0F)
+        self.app.engine.project.hmi_button_catalog=HmiButtonCatalog(False)
+        self.assertEqual(self.signed(7,bytes.fromhex('4b0321006e032400'))[2],0x0C)
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_exact_energy_probe_reports_unsupported_without_dispatch_or_write_permission(self):
+        probe=bytes.fromhex('3b02204e2400')
+        self.begin()
+        self.assertEqual(self.signed(1,probe)[2],0x0F)
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        count=self.endpoint.counts['cip']
+        self.assertEqual(self.signed(4,probe),b'\xBB\0\x08\0')
+        self.assertEqual(self.endpoint.counts['cip'],count+1)  # no inner dispatch
+        for sequence,raw in enumerate((probe+b'\0',bytes.fromhex('3b02204e2401'),
+                bytes.fromhex('3b03204e24003001'),bytes.fromhex('1003204e24013001')+bytes(4)),5):
+            self.assertEqual(self.signed(sequence,raw)[2],0x0F)
+        raw=batch((probe,bytes.fromhex('1003204e24013001')+bytes(4)),sequence=9)
+        raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.children,(b'\xBB\0\x08\0',b'\x90\0\x0F\0'))
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),

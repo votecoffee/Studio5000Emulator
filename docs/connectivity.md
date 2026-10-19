@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.39` candidate reads 12 supported scalar values and passes empty motion/alarm catalogs; stops at HMI Button Control discovery | Remaining tag kinds, object catalogs and project reconstruction |
+| Native upload | `.40` candidate reads 12 supported scalar values and passes empty motion/alarm/HMIBC catalogs; stops at Base Energy instance discovery | Remaining tag kinds, object catalogs and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -307,6 +307,44 @@ A subsequent unchanged public-SDK probe verified 93 signed requests, stayed
 Online/Program without correlation loss and finished Offline. Typed BOOL and
 generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`. The timeout did
 not prevent that later connection check; tag/rung monitoring remains unfinished.
+
+### Empty HMI Button Control catalog
+
+Version `.40` supports Get Instance List (`0x4B`) for HMI Button Control
+(`0x36E`) when complete L5X source establishes an empty HMIBC catalog. It uses
+the same global cursor and payload/path validation as the other instance lists.
+The source check includes controller/program tags and AOI local declarations,
+before runtime type filtering. `HMIBC` data types, HMIBC data formats or
+HMIBC-specific elements prevent an empty reply. Incomplete or ambiguous source
+also returns unavailable (`0x0C`). Project replacement recomputes the catalog.
+Button configuration, runtime behavior and client ownership are not implemented.
+
+Alarm and HMIBC readers share the export-context and declaration checks in
+`tag_catalog.py`; their object-presence checks are independent. A source with
+alarm objects can establish an empty button catalog, and vice versa.
+[Rockwell's Import/Export reference, chapter 6](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+documents the HMIBC source shape. The installed v35 object description identifies
+class `0x36E`. Vendor files are not bundled.
+
+The `.40` candidate reads all 12 supported demo scalars and accepts three empty
+motion lists, two alarm lists and the HMIBC list. It then sends the exact request
+`3b02204e2400` to Base Energy class `0x4E`, instance zero. The model has no energy
+implementation. A bound signed session now returns unsupported-service (`0x08`)
+for that exact probe without dispatching it or inventing a successful energy
+response. Other instances, attributes, payloads and setters retain the existing
+policy. Unbound sessions still receive permission denied.
+
+The native client accepts that error and falls back to Get Instance List `0x4B`
+on Base Energy class `0x4E`. That list remains denied and upload fails
+`RxCsE_UPLOAD_OF_TAGS_FAILED`. The model's values and scan count were preserved.
+No energy inventory, measurements or controls, complete project upload or native
+tag/rung monitoring are demonstrated by this change.
+
+The `.40` suite runs 641 tests: Windows passes 639 with two Linux-only skips;
+Linux passes 640 with the Windows console check skipped. New checks cover HMIBC
+presence across scopes, independent alarm/button catalogs, invalid export roots,
+source replacement and signed requests. The energy-probe checks verify session
+binding, exact request matching, batch errors, no inner dispatch and denied writes.
 
 ### Change Log correlation
 
