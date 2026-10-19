@@ -42,6 +42,11 @@ for the wire schema, sampling limits and optional real-broker validation.
 
 ## ACD symbol identity
 
+`data_table.py` encodes the supported read-only Data Table fields. The router
+builds scoped catalogs through existing symbol type/access checks, excluding
+aliases from storage instances. IDs reuse the model's Symbol IDs and never
+stand in for physical addresses. See [Data Table scope and limits](connectivity.md#data-table-catalog).
+
 `native_symbols.py` reads the optional `TagInfo.XML` schema 1.0 stream using the
 bounded container reader shared with `native_project.py`. It accepts root
 controller Symbol paths and Program/Symbol paths, with separate IDs per scope.

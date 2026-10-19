@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import controller_configuration, file_manager, key_exchange, native_session, signed_messages
+from . import controller_configuration, data_table, file_manager, key_exchange, native_session, signed_messages
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -108,8 +108,8 @@ def decode_path(raw):
             if kind==0x28:p.symbols.append(value)
             else:
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
-                # A native program tag has two object pairs: Program, Symbol.
-                if (attr=='class_id' and value==0x6B and p.class_id==0x68 and
+                # Program-scoped data tables and symbols have two object pairs.
+                if (attr=='class_id' and value in (0x6A,0x6B) and p.class_id==0x68 and
                     p.instance and p.attribute is None and not p.symbols and p.program_instance is None):
                     p.program_instance=p.instance;p.class_id=value;p.instance=None
                     continue
@@ -117,7 +117,7 @@ def decode_path(raw):
                 setattr(p,attr,value)
         else:raise CIPError(4,f'Unsupported path segment 0x{code:02X}')
     if p.attribute is not None and p.class_id is None:raise CIPError(4,'Attribute without class')
-    if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program tag requires a symbol instance')
+    if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program object requires a child instance')
     return p
 
 
@@ -181,7 +181,7 @@ class Router:
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (0x6B,0x6C,0x349) or
+                inner[0]==0x4B and path.class_id in (0x6A,0x6B,0x6C,0x349) or
                 inner[0]==0x4F and path.class_id==0xAC):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -479,6 +479,28 @@ class Router:
         return {1:struct.pack('<H',len(name))+name,2:struct.pack('<H',symbol['type']),
                 8:struct.pack('<III',*symbol['dimensions']),10:bytes((symbol['external_access'],))}
 
+    def data_tables(self,scope=''):
+        # Alias symbols refer to another tag's storage and do not create a new
+        # Data Table instance. Reuse discovery's type/access/source checks.
+        tags=self.app.engine.project.tags
+        return [symbol for symbol in self.symbols(scope) if not tags[symbol['ref'].lower()].alias]
+
+    def data_table_service(self,service,path,data,limit):
+        scope=self.symbol_scope(path)
+        if service==0x4B:return self.instance_list(path,data,limit)
+        if path.instance is None:raise CIPError(4,'Data Table path requires an instance')
+        tables=self.data_tables(scope)
+        if path.instance==0:
+            attributes={1:struct.pack('<H',1),2:struct.pack('<I',max((s['id'] for s in tables),default=0)),
+                        3:struct.pack('<I',len(tables))}
+        else:
+            table=next((s for s in tables if s['id']==path.instance),None)
+            if table is None:raise CIPError(5,'Unknown modeled Data Table instance')
+            attributes=data_table.attributes(table)
+        # Address/formal-type reads and value/programming services remain
+        # unavailable. A logical Symbol ID must never be used as an address.
+        return self.attribute_read(service,path,data,attributes)
+
     def enumerate_symbols(self,path,data,limit=REPLY_LIMIT):
         scope=self.symbol_scope(path)
         if path.attribute is not None:raise CIPError(4,'Enumeration path does not take an attribute')
@@ -501,8 +523,9 @@ class Router:
         if path.instance is None or path.attribute is not None:
             raise CIPError(4,'Instance list requires a starting instance and no attribute')
         exact(data,0)
-        if path.class_id==0x6B:
-            ids=[symbol['id'] for symbol in self.symbols(self.symbol_scope(path))]
+        if path.class_id in (0x6A,0x6B):
+            if path.class_id==0x6A:ids=[table['id'] for table in self.data_tables(self.symbol_scope(path))]
+            else:ids=[symbol['id'] for symbol in self.symbols(self.symbol_scope(path))]
         else:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'This instance list requires a global class path')
@@ -603,7 +626,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x64,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x64,0x6A,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -716,6 +739,7 @@ class Router:
             for r in results:positions.append(base);base+=len(r)
             if base>limit-4:raise CIPError(0x1B,'Multiple-service response exceeds model limit')
             return (0x1E if any(r[2] for r in results) else 0),struct.pack('<H'+'H'*count,count,*positions)+b''.join(results)
+        if path.class_id==0x6A:return self.data_table_service(service,path,data,limit)
         if path.class_id in (0x6B,0x6C) and service==0x4B:return self.instance_list(path,data,limit)
         if path.class_id==0x6B and service==0x55:return self.enumerate_symbols(path,data,limit)
         if path.class_id==0x6C:return self.template_service(service,path,data,limit)
@@ -829,6 +853,7 @@ class Endpoint:
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
+                    'data_table':data_table.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,

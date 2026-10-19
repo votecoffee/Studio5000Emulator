@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | Demo passes metadata and type discovery in `.33`, then tag upload fails | Native Data Table discovery, tag addresses and project reconstruction |
+| Native upload | `.34` accepts Data Table discovery, then tag descriptor upload fails | Address/data-use fields, tag values and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -120,6 +120,41 @@ original ACD remained unchanged; no scans ran during these checks.
 Wire-format reference: Sandia's
 [Get Instance List reader](https://sandialabs.github.io/PEAT/_modules/peat/modules/rockwell/clx_cip.html#get_instance_list_data_from_reply).
 No PEAT source is copied or included in the runtime.
+
+### Data Table catalog
+
+Version `.34` adds Data Table class `0x6A` to discovery and read-only native
+dispatch. Get Instance List supports bounded pages and inclusive cursors, for
+controller tags and Program/Data Table paths. Instances describe supported,
+externally readable base tags. Aliases do not create duplicate storage; private,
+safety and unsupported tags are omitted. This is the model's partial catalog,
+not a claim of a complete native tag database.
+
+Each table uses its corresponding scoped Symbol ID as a **model-owned** instance
+ID. When an ACD catalog is bound, the Symbol link retains its source ID; Data
+Table IDs are not imported compiled IDs. Missing mappings are not replaced with
+generated IDs inside that binding. Class metadata reports revision 1, the maximum
+visible instance and visible instance count, with separate 32-bit counts.
+
+Supported instance attributes are `1` (three 32-bit array dimensions), `2` (the
+model's type word) and `8` (32-bit Symbol link). Address, data-value address,
+formal-type and data-use fields remain unavailable. A mixed attribute list keeps
+the requested order and individual errors. It does not substitute a logical ID
+or zero for a compiled address. The Connectivity API reports these limits in
+`data_table`.
+
+An isolated native SDK upload accepted a 12-entry demo Data Table list, then
+requested attributes `1, 2, 3, 6, 7, 8, 9` for its first tag. The supported fields
+were returned; missing fields `3, 6, 7, 9` returned per-attribute unavailable
+status. Upload still failed with `RxCsE_UPLOAD_OF_TAGS_FAILED`. This establishes
+the next required descriptor/address layer, not a successful project upload.
+
+The `.34` suite passes 607 tests on Linux; Windows passes 605 with two
+platform-specific skips. Tests cover sparse IDs, class counts, scope isolation,
+aliases/access checks, source replacement, descriptor ordering, malformed paths,
+pagination, signed requests and denied value/writing services. Installed v35
+attribute descriptions were consulted for field numbers and widths; vendor
+files are not modified or distributed.
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
 only the exact imported index/generation cursor and returns those two UINTs,

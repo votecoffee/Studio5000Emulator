@@ -6,7 +6,9 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.33` adds bounded symbol/template instance lists and empty
+Current milestone: `.34` adds scoped Data Table discovery and supported tag
+descriptors. Native upload now reaches its first Data Table attribute list;
+address and data-use fields remain unavailable. `.33` adds bounded symbol/template instance lists and empty
 extended-property discovery needed during upload initialization. `.31` preserves
 source-bound ACD symbol IDs and routes native controller/program instance paths.
 The `.30` implementation completes a
@@ -64,7 +66,7 @@ The version-specific notes below record earlier investigation milestones.
   before it can produce a usable native project. Download needs a programming
   session and validated, atomic model replacement. Online editing additionally
   needs edit ownership, change history, test/assemble and rollback semantics.
-  Current native attempts fail; `.33` discovery does not complete these stages.
+  Current native attempts fail; `.34` discovery does not complete these stages.
 
 Independent CIP client success and a Linx identity icon do not complete this
 milestone. Keep exact native failure phases and protocol receipts locally.

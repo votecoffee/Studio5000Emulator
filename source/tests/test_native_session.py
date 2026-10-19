@@ -93,7 +93,8 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(5,bytes.fromhex('4b03210049032400')+b'\0')[2],0x15)
         self.assertEqual(self.signed(6,bytes.fromhex('4b02206b2400'))[2],0)
         self.assertEqual(self.signed(7,bytes.fromhex('4c03210049032400'))[2],0x0F)
-        self.assertEqual(self.signed(8,bytes.fromhex('4b02206a2400'))[2],0x0F)
+        self.assertEqual(self.signed(8,bytes.fromhex('4b02206a2400'))[2],0)
+        self.assertEqual(self.signed(9,bytes.fromhex('4b0220692400'))[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
 
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
@@ -109,6 +110,18 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.app.engine.memory.values,before)
         self.assertFalse(self.endpoint.locator_state()['active'])
         self.assertEqual(self.cip(raw)[2],0x0F)  # replay closes the context
+
+    def test_signed_data_table_metadata_links_symbols_but_addresses_and_values_are_denied(self):
+        self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
+                                              [Symbol('',0,'SpeedSetpoint',70000)])
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b02206a2400')),b'\xCB\0\0\0'+struct.pack('<I',70000))
+        path=bytes.fromhex('206a260070110100')
+        self.assertEqual(self.signed(5,b'\x0E\5'+path+b'\x30\x08'),b'\x8E\0\0\0'+struct.pack('<I',70000))
+        self.assertEqual(self.signed(6,b'\x0E\5'+path+b'\x30\x03')[2],0x14)
+        self.assertEqual(self.signed(7,b'\x4C\4'+path+b'\1\0')[2],0x0F)
+        self.assertEqual(self.signed(8,b'\x10\5'+path+b'\x30\2\xC4\0')[2],0x0F)
+        self.assertEqual(self.app.engine.memory.values,before)
 
     def test_bad_batch_mac_never_dispatches_a_child_and_unbound_batch_cannot_register(self):
         self.bind();count=self.endpoint.counts['cip']
