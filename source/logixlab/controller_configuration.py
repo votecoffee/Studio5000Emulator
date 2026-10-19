@@ -14,6 +14,7 @@ class ControllerConfiguration:
     security_code: int | None
     project_name: str
     project_description: str | None
+    redundancy_configured: bool | None = None
 
     @classmethod
     def from_controller(cls, controller):
@@ -24,11 +25,21 @@ class ControllerConfiguration:
         description = '' if not descriptions else None
         if len(descriptions) == 1 and not len(descriptions[0]):
             description = descriptions[0].text or ''
+        redundancy=controller.findall('RedundancyInfo')
+        enabled=redundancy[0].get('Enabled') if len(redundancy)==1 else None
         return cls(value if value is not None and value <= 0xFFFFFFFF else None,
-                   controller.get('Name', 'Controller'), description)
+                   controller.get('Name', 'Controller'), description,
+                   {'true':True,'false':False}.get(enabled))
 
     def attributes(self):
         return {13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
+
+    def compatibility_attributes(self):
+        # The software controller has no hardware run-inhibit input and does
+        # not implement downloads. These masks describe the model only.
+        values={**self.attributes(),7:b'\0\0',26:bytes(4)}
+        if self.redundancy_configured is not None:values[9]=bytes((self.redundancy_configured,))
+        return values
 
     def extended_device_attributes(self):
         values = {}

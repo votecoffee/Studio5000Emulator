@@ -139,7 +139,7 @@ sysctl -w net.ipv4.icmp_echo_ignore_all=0 >/dev/null
 id logixlab >/dev/null 2>&1 || adduser -D -h /var/lib/logixlab -s /sbin/nologin logixlab
 mkdir -p /var/lib/logixlab
 chown logixlab:logixlab /var/lib/logixlab
-su logixlab -s /bin/sh -c "exec env LOGIXLAB_ENVIRONMENT=vmware-host-only /usr/bin/python3 /opt/logixlab/launch.py --port 8786 --no-browser --no-tray --data-dir /var/lib/logixlab --sample ConveyorDemo --eip-port 44818 --eip-bind $ip --eip-profile logix-v35-l85e" >/var/log/logixlab.log 2>&1 &
+su logixlab -s /bin/sh -c "exec env LOGIXLAB_ENVIRONMENT=vmware-host-only /usr/bin/python3 /opt/logixlab/launch.py --port 8786 --no-browser --no-tray --data-dir /var/lib/logixlab --sample ConveyorDemo --eip-port 44818 --eip-bind $ip --eip-profile logix-v35-l85e --eip-native-read-only" >/var/log/logixlab.log 2>&1 &
 echo $! >/run/logixlab.pid
 '''
     ssh_config = '''Port 22
@@ -366,7 +366,9 @@ def import_project(directory, project, converter=None):
     # Recheck identity after potentially long native conversion.
     validated_state(directory)
     result = api(session['url'], 'load', {'name': source.stem + '.L5X',
-                                         'content': base64.b64encode(exported.read_bytes()).decode()})
+                                         'content': base64.b64encode(exported.read_bytes()).decode(),
+                                         **({'native_project_identity':provenance['native_project_identity']}
+                                            if 'native_project_identity' in provenance else {})})
     if digest(source) != original_hash:
         raise ValueError('Source project changed during import')
     receipt = {'app_version': result['app_version'], 'project': result['name'],

@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .importers import convert_acd, default_converter
+from .native_project import NativeProjectIdentity
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -38,6 +39,7 @@ class Application:
             except (ValueError, KeyError, OSError): pass
         self.engine = None
         self.provenance = {}
+        self.native_project_identity = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -51,6 +53,7 @@ class Application:
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
             'controller_configuration':None,'metadata_definition':None,
+            'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
 
@@ -91,7 +94,7 @@ class Application:
                     with self.lock:
                         if self.engine is None or self.busy:raise ModelError('Load a project before starting connectivity')
                         if self.endpoint and self.endpoint.enabled:raise ModelError('EtherNet/IP endpoint is already running')
-                        endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False),data.get('profile','research'),data.get('bind_address','127.0.0.1'))
+                        endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False),data.get('profile','research'),data.get('bind_address','127.0.0.1'),data.get('native_read_only',False))
                         self.endpoint=endpoint.start()
                         return self.state()
                 raise ModelError('Unknown connectivity action')
@@ -123,6 +126,11 @@ class Application:
                         source = converted
                     else: provenance = {"method": "Complete L5X upload", "original_filename": name}
                 project = Project(source)
+                correlation = provenance.get('native_project_identity')
+                if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_project_identity' in data:
+                    correlation = data['native_project_identity']
+                native_identity = NativeProjectIdentity.from_manifest(correlation, project.sha256) if correlation is not None else None
+                if native_identity: provenance['native_project_identity'] = native_identity.manifest()
                 engine = Engine(project)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -131,7 +139,9 @@ class Application:
                         with self.endpoint.lock:
                             self.endpoint.identity=identity;self.endpoint.source_sha256=project.sha256
                     self.engine, self.provenance = engine, provenance
+                    self.native_project_identity = native_identity
                     self.generation += 1
+                    if self.endpoint:self.endpoint.close_native_sessions()
                     return self.state()
             finally:
                 with self.lock: self.busy = False
@@ -146,6 +156,7 @@ class Application:
             if action == "configure":
                 self.engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
                 self.generation += 1
+                if self.endpoint:self.endpoint.close_native_sessions()
             elif action == "step":
                 count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
@@ -155,6 +166,7 @@ class Application:
             elif action == "reset":
                 self.engine = Engine(e.project, e.mode, e.selected)
                 self.generation += 1
+                if self.endpoint:self.endpoint.close_native_sessions()
             elif action == 'observe':pass
             elif action == "report":
                 report = e.report()
@@ -167,10 +179,10 @@ class Application:
             return self.state()
 
 
-def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True, eip_bind='127.0.0.1'):
+def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=False, sample=None, eip_profile='research', tray=True, eip_bind='127.0.0.1',eip_native_read_only=False):
     app = Application(data_dir)
     if sample:app.command('demo',{'sample':sample})
-    if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile,'bind_address':eip_bind})
+    if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile,'bind_address':eip_bind,'native_read_only':eip_native_read_only})
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -268,6 +280,7 @@ def main():
     parser.add_argument('--eip-bind',default='127.0.0.1',help='Bind EtherNet/IP to a specific local IPv4 address (default: loopback)')
     parser.add_argument('--eip-writes',action='store_true',help='Allow explicit atomic tag writes to the software model')
     parser.add_argument('--eip-profile',choices=('research','logix-v35-l85e'),default='research')
+    parser.add_argument('--eip-native-read-only',action='store_true',help='Experimental anonymous Studio compatibility; requires L85E profile and disabled tag writes')
     parser.add_argument("--report", help="Generate a JSON coverage report for an L5X, without starting the app")
     args = parser.parse_args()
     if args.report:
@@ -277,7 +290,8 @@ def main():
         if args.eip_writes and args.eip_port is None:parser.error('--eip-writes requires --eip-port')
         if args.eip_bind!='127.0.0.1' and args.eip_port is None:parser.error('--eip-bind requires --eip-port')
         if args.eip_profile!='research' and args.eip_port is None:parser.error('--eip-profile requires --eip-port')
-        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray,args.eip_bind)
+        if args.eip_native_read_only and args.eip_port is None:parser.error('--eip-native-read-only requires --eip-port')
+        serve(args.port, not args.no_browser, args.data_dir,args.eip_port,args.eip_writes,args.sample,args.eip_profile,not args.no_tray,args.eip_bind,args.eip_native_read_only)
 
 
 if __name__ == "__main__": main()

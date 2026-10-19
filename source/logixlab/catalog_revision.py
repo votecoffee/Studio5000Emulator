@@ -31,3 +31,14 @@ class CatalogRevision:
     def description(self):
         return {'token': self.token.hex(), 'policy': 'Source bytes and model version; stable across runtime changes',
                 'native_firmware_signature': False}
+
+    def compatibility_attributes(self):
+        """Empty virtual change log with source-derived identifiers.
+
+        Format 2 and the Logix writer marker identify the observed wire format;
+        none of these generated identifiers assert native ACD correlation.
+        """
+        attributes=self.attributes()
+        attributes.update({5:b'\0\0',6:b'\0\0',7:struct.pack('<I',2),
+                           8:self.token[8:12],9:struct.pack('<HH',1,1)})
+        return attributes

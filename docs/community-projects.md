@@ -57,6 +57,13 @@ ignored local storage. This one-fixture failure does not characterize every
 file supported by the upstream library. It does block adopting this version as
 an execution-ready importer. The native converter remains the default.
 
+The `.29` correlation reader uses the ACD directory format reviewed in
+`acd-tools==0.3a2` as a reference. It is an original bounded standard-library
+implementation that reads only the offline Change Log header. No upstream code
+is bundled and no new runtime package is required. Logic and initial values
+still come from the native converter; this header reader is not an ACD-to-L5X
+replacement. Its public tests build synthetic containers and identifiers.
+
 ## Reusable conversion comparison
 
 From the repository root:

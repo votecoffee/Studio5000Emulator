@@ -1,8 +1,57 @@
 # EtherNet/IP connectivity
 
 The endpoint is an experimental explicit-message target backed by the loaded
-project's modeled memory. Studio Go Online, project correlation, upload/download,
+project's modeled memory. Completed Studio Go Online, upload/download,
 online edits and native debugger services remain unimplemented or unverified.
+
+## Experimental native read-only session
+
+Version `0.6.0-connectivity.29` adds an opt-in anonymous compatibility session.
+Select **Experimental native session (read only)** with the L85E profile, or pass
+`--eip-native-read-only` with `--eip-port` and `--eip-profile logix-v35-l85e`.
+The VMware appliance enables this mode. Ordinary tag writes cannot be enabled
+with it. The default desktop endpoint retains the earlier challenge-only behavior.
+
+The opaque `0x64` / `0x4C` proof is acknowledged **without verification**. This
+mode does not authenticate Rockwell software, verify a vendor signature or grant
+operator authority. It retains a fresh challenge key per registered TCP session,
+checks each `0x36` / `0x37` request MAC and exact counter, and signs replies.
+An anonymous context must be established before bounded metadata/tag reads are
+dispatched. Setters, downloads, mode changes, nested transports, signed batches
+and locator commands are rejected through this channel. Idle expiry, bad MACs,
+replay, project replacement, endpoint shutdown and TCP disconnect invalidate keys.
+The API exposes these limits in `native_session` and `key_exchange`.
+
+ACD imports read the original file's bounded `OfflineChangelog.Dat` header and
+bind its comparison identifiers to the converted L5X SHA-256. The original is
+never changed or extracted. The Windows appliance importer carries this manifest
+to the Linux model; a mismatched L5X hash is rejected before replacing a project.
+Unsupported ACD layouts remain usable through native L5X conversion but have no
+native correlation binding. Plain L5X/demo imports clear the previous binding.
+These identifiers do not prove equivalent runtime behavior or firmware identity.
+
+Class `0xAC` in this mode exposes the 32-byte, ten-attribute Change Log header.
+UID uses the ACD download UID; Image UID uses its project UID. Copy UID, timeline
+UID and online index/generation retain their distinct source meanings. The model
+has no editable change history. Standard L85E models report the Safety Controller
+object absent. Source redundancy configuration and virtual run-inhibit/download
+flags support the controller-status reads needed during connection setup.
+
+The native v35 SDK completed session/context setup and passed project identity
+comparison against the demo's own preserved ACD using this implementation. It
+sent 83 MAC-valid requests before failing on class `0xAC`, instance 1, service
+`0x4D` (Change Log search). **Go Online still failed.** Inputs and modeled memory
+were unchanged. No controller write was dispatched. Private projects, captures,
+UID values and native diagnostic scripts are excluded from the repository.
+The earlier investigations below describe the versions named in each section;
+their challenge-only limitations still apply when this optional mode is disabled.
+
+The `.29` suite passes 553 tests on Linux and 551 on Windows with two Linux-only
+tests skipped. Synthetic tests cover container bounds and source binding, fresh
+keys, context setup, counter/MAC failures, cross-connection replay, read-only
+dispatch and lifecycle cleanup. The Windows executable embeds matching browser
+assets and both new session/correlation modules. These checks are separate from
+the failed native Go Online result above.
 
 ## Start an endpoint
 
@@ -212,7 +261,7 @@ using the mathematical primitive described in
 [RFC 8017 section 5.1.1](https://www.rfc-editor.org/rfc/rfc8017.html#section-5.1.1).
 The vendor format has not been established as an RFC encryption scheme.
 
-The normal endpoint discards the nonce after constructing its reply. It does
+With native read-only mode disabled, the endpoint discards the nonce after constructing its reply. It does
 not retain a session secret, validate confirmation service `0x4C`, or dispatch
 authenticated Message Router services `0x36`–`0x38`. Those services return explicit
 unsupported errors. The API's `key_exchange` metadata reports these boundaries.

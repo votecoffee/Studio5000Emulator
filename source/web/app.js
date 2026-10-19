@@ -245,11 +245,11 @@ function renderConnectivity() {
   renderLocator(c);
   $('eip-badge').textContent=active?'LISTENING':'STOPPED';$('eip-badge').className='badge'+(active?' ready':'');
   $('eip-start').disabled=!state?.loaded||active;$('eip-stop').disabled=!active;
-  $('eip-bind').disabled=active;$('eip-port').disabled=active;$('eip-profile').disabled=active;$('eip-writes').disabled=active;$('eip-trace').disabled=!c.trace_events;
-  if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;}
+  $('eip-bind').disabled=active;$('eip-port').disabled=active;$('eip-profile').disabled=active;$('eip-native').disabled=active;$('eip-writes').disabled=active||$('eip-native').checked;$('eip-trace').disabled=!c.trace_events;
+  if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;$('eip-native').checked=!!c.native_session?.enabled;}
   $('eip-refresh').disabled=!state?.loaded;
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
-  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · anonymous native compatibility; authentication unverified':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   const discovery=c.discovery||{};
   $('eip-discovery').textContent=!active?'Start the endpoint to check broadcast discovery.':discovery.broadcast_enabled?
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:
@@ -259,7 +259,8 @@ function renderConnectivity() {
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
 }
-$('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start',{port:Number($('eip-port').value),bind_address:$('eip-bind').value.trim(),profile:$('eip-profile').value,allow_writes:$('eip-writes').checked}));}catch(e){error(e);}};
+$('eip-native').onchange=()=>{if($('eip-native').checked){$('eip-writes').checked=false;$('eip-profile').value='logix-v35-l85e';}$('eip-writes').disabled=$('eip-native').checked;};
+$('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start',{port:Number($('eip-port').value),bind_address:$('eip-bind').value.trim(),profile:$('eip-profile').value,allow_writes:$('eip-writes').checked,native_read_only:$('eip-native').checked}));}catch(e){error(e);}};
 $('eip-stop').onclick=async()=>{try{await accept(await api('connectivity-stop'));}catch(e){error(e);}};
 $('eip-refresh').onclick=async()=>{try{await accept(await api('observe'));}catch(e){error(e);}};
 $('eip-trace').onclick=async()=>{try{download(await api('connectivity-trace'),'LogixLab-protocol-trace.json');}catch(e){error(e);}};

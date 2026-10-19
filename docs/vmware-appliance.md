@@ -5,8 +5,10 @@ existing VMware host-only network. Its TCP/UDP port 44818 belongs to the guest's
 network stack, so a host application can retain its own wildcard listener.
 Studio 5000 and FactoryTalk Linx stay on Windows.
 
-This resolves host port ownership. Native Studio Go Online, project correlation,
-upload/download and online edits remain unimplemented or unverified.
+This resolves host port ownership. The appliance enables the experimental
+[anonymous native read-only session](connectivity.md#experimental-native-read-only-session).
+Native SDK tests reach Change Log search after project identity comparison;
+completed Go Online, upload/download and online edits remain unverified.
 
 ## Prepare
 

@@ -148,15 +148,16 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
-| Native handshake research | v35 public-key challenge; confirmation and authenticated Message Router services remain unsupported |
-| Offline protocol analysis | `0x36`/`0x37` request/reply MACs checked with native denial controls; structural `0x38` batches with child reply correlation; no embedded dispatch |
+| Native compatibility | Experimental anonymous read-only session; fresh keys, checked MACs/counters and bounded metadata/tag reads; peer authentication unverified |
+| Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
+| ACD correlation | Offline Change Log identifiers bound to the converted L5X hash; native SDK passes project identity comparison for the tested demo |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, controller name/description and limited Metadata Definition class discovery; security enforcement remains unsupported |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Go Online, project correlation, upload/download and online edits pending |
+| Studio online | Native SDK reaches Change Log search; completed Go Online, upload/download and online edits pending |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain

@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import controller_configuration, file_manager, key_exchange
+from . import controller_configuration, file_manager, key_exchange, native_session, signed_messages
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -479,6 +479,43 @@ class Router:
         if depth>4:raise CIPError(8,'Nested message depth limit')
         need(raw,2);service=raw[0];end=2+raw[1]*2;need(raw,end)
         path=decode_path(raw[2:end]);data=raw[end:]
+        if self.endpoint.native_read_only:
+            if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x4B,0x4C):
+                if not session.handle:raise CIPError(0x0F,'Native compatibility requires a registered TCP session')
+                try:
+                    if service==0x4B:
+                        self.endpoint.clear_native(session)
+                        if limit<134:raise CIPError(0x1B,'Challenge exceeds connection size')
+                        session.native=native_session.NativeSession()
+                        with self.endpoint.lock:self.endpoint.native_sessions[id(session)]=session.native
+                        return 0,session.native.begin(data)
+                    if not getattr(session,'native',None):raise CIPError(0x0F,'Native challenge required')
+                    return 0,session.native.acknowledge(data)
+                except (native_session.NativeError,key_exchange.OfferError) as error:raise CIPError(error.status,str(error)) from error
+            if path.class_id==2 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x36,0x37,0x38):
+                native=getattr(session,'native',None)
+                if native is None:raise CIPError(0x0F,'Native compatibility session required')
+                try:envelope=native.consume(raw)
+                except native_session.NativeError as error:raise CIPError(error.status,str(error)) from error
+                self.endpoint.record('native_verified',sequence=envelope.sequence,stage=native.stage)
+                inner=envelope.inner;inner_end=2+2*inner[1]
+                try:
+                    inner_path=decode_path(inner[2:inner_end]);payload=inner[inner_end:]
+                    result=native.registration(inner[0],inner_path,payload)
+                    if result is not None:result=reply(inner[0],0,result)
+                    elif (inner[0] in (1,3,0x0E) and inner_path.class_id is not None or
+                          inner[0] in (0x4C,0x52) and inner_path.class_id in (None,0x6B) or
+                          inner[0]==0x55 and inner_path.class_id==0x6B or inner[0]==0x4C and inner_path.class_id==0x6C):
+                        result=self.handle(inner,session,depth+1,max(4,limit-36),budget)
+                    elif (inner[0]==0x53 and inner_path.class_id==0x349 and inner_path.instance==0 and
+                          inner_path.attribute is None and not inner_path.symbols and len(payload)==26 and
+                          payload[:8]==struct.pack('<II',0x101,0)):
+                        # This model has no metadata definitions to return.
+                        result=reply(inner[0],0,struct.pack('<II',0x301,0))
+                    else:result=reply(inner[0],0x0F)
+                except (CIPError,native_session.NativeError) as error:result=reply(inner[0],error.status)
+                encoded=signed_messages.encode_response(envelope,result,native.key)
+                return 0,encoded[4:]
         if path.class_id==6 and path.instance==1 and not path.symbols and path.attribute is None:
             if service in (0x54,0x5B):return self.forward_open(data,session,service==0x5B)
             if service==0x4E:return self.forward_close(data,session)
@@ -503,7 +540,8 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<14H',13,1,2,6,0x64,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349)
+            ids=(1,2,6,0x64,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349)+( (0x378,) if self.endpoint.native_read_only else () )
+            classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
         if path.class_id in (0xF4,0xF5,0xF6):
@@ -556,10 +594,14 @@ class Router:
             if path.symbols:raise CIPError(4,'Metadata Definition paths do not take symbols')
             if path.instance!=0:raise CIPError(5,'No Metadata Definition instances are modeled')
             return self.attribute_read(service,path,data,controller_configuration.metadata_class_attributes())
+        if path.class_id==0x334 and self.app.engine.project.processor=='1756-L85E':
+            raise CIPError(5,'Standard L85E model has no Safety Controller object')
         if path.class_id==0x8E:
             if path.symbols:raise CIPError(4,'Controller configuration paths do not take symbols')
             if path.instance==0:attributes={1:b'\1\0'}
-            elif path.instance==1:attributes=self.app.engine.project.controller_configuration.attributes()
+            elif path.instance==1:
+                configuration=self.app.engine.project.controller_configuration
+                attributes=configuration.compatibility_attributes() if self.endpoint.native_read_only else configuration.attributes()
             else:raise CIPError(5,'Unknown Controller configuration instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:
@@ -569,7 +611,14 @@ class Router:
                 # and its one modeled instance, not native firmware signatures.
                 attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
             elif path.instance==1:
-                attributes=CatalogRevision.from_source(self.app.engine.project.sha256).attributes()
+                revision=CatalogRevision.from_source(self.app.engine.project.sha256)
+                attributes=revision.compatibility_attributes() if self.endpoint.native_read_only else revision.attributes()
+                native_identity=getattr(self.app,'native_project_identity',None)
+                if self.endpoint.native_read_only and native_identity is not None:
+                    if native_identity.source_l5x_sha256!=self.app.engine.project.sha256:raise CIPError(0x0C,'Native correlation source changed')
+                    attributes=native_identity.attributes()
+                if self.endpoint.native_read_only and service==1 and path.attribute is None:
+                    exact(data,0);return 0,b''.join(attributes[n] for n in range(1,11))
             else:raise CIPError(5,'Unknown controller metadata instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service==1:
@@ -643,7 +692,7 @@ def decode_cpf(data):
 
 
 class Endpoint:
-    def __init__(self,app,port=44818,allow_writes=False,profile='research',bind_address='127.0.0.1'):
+    def __init__(self,app,port=44818,allow_writes=False,profile='research',bind_address='127.0.0.1',native_read_only=False):
         from ipaddress import IPv4Address
         try:
             if not isinstance(bind_address,str):raise ValueError('Expected IPv4 text')
@@ -654,12 +703,17 @@ class Endpoint:
             raise ModelError('Bind IP must be a specific unicast IPv4 address assigned to this PC') from error
         if isinstance(port,bool) or not isinstance(port,int) or not 0<=port<=65535:raise ModelError('EtherNet/IP port must be 0..65535')
         if not isinstance(allow_writes,bool):raise ModelError('allow_writes must be boolean')
+        if not isinstance(native_read_only,bool):raise ModelError('native_read_only must be boolean')
+        if native_read_only and (allow_writes or profile!='logix-v35-l85e'):
+            raise ModelError('Native compatibility requires the experimental L85E profile and disabled tag writes')
+        self.native_read_only=native_read_only
         self.bind_address=str(address)
         self.app=app;self.allow_writes=allow_writes;self.port=port;self.router=Router(app,self)
         if app.engine is None:raise ModelError('Load a project before selecting an identity')
         self.profile=profile;self.identity=Identity.from_project(profile,app.engine.project)
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
+        self.native_sessions={}
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
         self.interface=None;self.interface_error=None;self.interface_queried=False
@@ -701,7 +755,9 @@ class Endpoint:
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
-                    'key_exchange':key_exchange.description() if self.enabled else None,
+                    'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
+                    'native_session':native_session.description(self.enabled and self.native_read_only),
+                    'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
@@ -746,10 +802,11 @@ class Endpoint:
                 session.handle=secrets.randbits(32) or 1;session.generation=self.app.generation
                 out_handle=session.handle;result=raw[24:]
         elif command in (0x66,0x6F,0x70):
+            if session.generation!=self.app.generation:self.clear_native(session)
             if not session.handle or handle!=session.handle or session.generation!=self.app.generation:error=0x64
             elif command==0x66:
                 if size:error=3
-                else:session.handle=0;session.connections.clear();return None
+                else:self.clear_native(session);session.handle=0;session.connections.clear();return None
             else:
                 try:
                     items=decode_cpf(raw[24:])
@@ -816,6 +873,7 @@ class Endpoint:
                         if response is not None:conn.sendall(response)
                 except (OSError,ValueError) as e:endpoint.record('client_closed',detail=str(e))
                 finally:
+                    endpoint.clear_native(session)
                     with endpoint.lock:endpoint.connections.discard(conn)
         class UDPHandler(socketserver.BaseRequestHandler):
             def handle(self):
@@ -847,7 +905,17 @@ class Endpoint:
         self.record('started',detail='Local research endpoint; Studio Go Online is unverified')
         return self
 
+    def clear_native(self,session):
+        with self.lock:self.native_sessions.pop(id(session),None)
+        native_session.clear(session)
+
+    def close_native_sessions(self):
+        with self.lock:
+            for native in self.native_sessions.values():native.close()
+            self.native_sessions.clear()
+
     def stop(self):
+        self.close_native_sessions()
         with self.lock:self.enabled=False;self._locator_until=0.0
         with self.lock:clients=list(self.connections)
         for conn in clients:

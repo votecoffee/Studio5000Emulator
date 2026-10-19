@@ -82,6 +82,6 @@ def challenge(data, *, nonce=None):
     return struct.pack('<H', 128) + encrypted.to_bytes(128, 'little')
 
 
-def description():
-    return {'challenge': True, 'confirmation': False, 'signed_messages': False,
-            'peer_identity_verified': False, 'session_secret_retained': False}
+def description(native_read_only=False):
+    return {'challenge': True, 'confirmation': False, 'signed_messages': native_read_only,
+            'peer_identity_verified': False, 'session_secret_retained': native_read_only}
