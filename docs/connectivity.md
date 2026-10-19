@@ -15,6 +15,21 @@ succeeded using the normal app code and fresh challenge keys. The trace verified
 This establishes that SDK connection sequence for one fixture; it does not
 establish complete Studio GUI/debugger support or native execution equivalence.
 
+A separate public-SDK hold test stayed Online/Program across five polls spanning
+about 17 seconds, without a correlation-loss event. The source ACD remained
+unchanged. `GetTagValueBOOLAsync` failed with `RxDA_E_NO_ONLINE_ADDRESS` in every
+sample: native tag address discovery is the next blocking layer. Standard CIP
+symbolic tag reads are a separate supported interface; this result does not
+establish native SDK or Studio tag/rung monitoring.
+
+The rebuilt `.30` appliance also passed the SDK sequence with an additional
+final read confirming **Offline**, plus 18 live protocol checks. Typed BOOL and
+generic byte-array reads of BOOL/DINT tags all fail the same online-address
+check, while an offline BOOL read succeeds. No symbolic or symbol-instance CIP
+tag-read request appears for those failures. That points to native address cache
+or correlation setup before the data transfer, rather than a type-specific
+tag-read response. Exact traces and source-bound receipts remain private.
+
 Use the L85E profile with **Experimental native session (read only)** enabled.
 Import the matching ACD through the Windows app or VMware tray importer so its
 source-bound identifiers accompany the L5X. Plain L5X imports do not establish

@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Current milestone: `.30` completes a read-only native SDK Go Online/Online state/
+Program mode/Go Offline sequence and stays Online across repeated polls. The
+next acceptance stage is native tag address discovery: SDK tag reads currently
+fail `RxDA_E_NO_ONLINE_ADDRESS`. Implement and verify that correlation layer
+before claiming native tag/rung monitoring or complete Studio GUI compatibility.
+See the [verified scope and limits](connectivity.md#native-sdk-online-connection).
+The version-specific notes below record earlier investigation milestones.
+
 - Preserve verified direct-IP discovery and device location. Linux broadcast
   discovery has datagram coverage; validate Linx range browsing separately with
   bounded packet captures.

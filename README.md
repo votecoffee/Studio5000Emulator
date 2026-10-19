@@ -8,8 +8,9 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** Studio 5000 GUI monitoring, upload/download and online edits remain
-unverified. Supported instructions have bounded software models; this project
+Offline.** Native SDK tag reads still fail online address discovery. Studio 5000
+GUI monitoring, upload/download and online edits remain unverified.
+Supported instructions have bounded software models; this project
 does not establish native controller equivalence.
 
 Application development is maintained on `main`.
@@ -192,7 +193,8 @@ conventions.
 
 - Expand supported instructions, data types and execution semantics.
 - Add packed BOOL arrays, built-in STRING transfers, predefined structures and more controller metadata.
-- Establish a reproducible native Studio connection and project handshake.
+- Extend the verified native SDK connection to Studio GUI acceptance.
+- Resolve native tag addresses and demonstrate SDK/Studio tag and rung monitoring.
 - Demonstrate online monitoring before advertising Studio Go Online support.
 - Add a host-only networking backend independent of VMware, evaluating free
   container and virtual-machine tooling. See the [milestones and backend comparison](docs/roadmap.md).
