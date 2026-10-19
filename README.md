@@ -165,7 +165,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, controller name/description and limited Metadata Definition class discovery; security enforcement remains unsupported |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
-| Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
+| Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Native SDK Go Online, Online state, Program mode and Go Offline verified for the demo; native programming and tag/rung monitoring remain unfinished |
 

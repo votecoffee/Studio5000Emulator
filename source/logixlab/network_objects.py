@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from .windows_network import windows_interface
 from .ethernet_link import LinkSnapshot, linux_link
+from .tcpip_configuration import TcpIpConfiguration, linux_tcpip_configuration
 
 
 def cip_string(value):
@@ -41,6 +42,7 @@ class InterfaceSnapshot:
     name: str = ''
     mac: bytes | None = None
     link: LinkSnapshot | None = None
+    tcpip: TcpIpConfiguration | None = None
 
     def __post_init__(self):
         if self.mac is not None and (not isinstance(self.mac, bytes) or len(self.mac) != 6
@@ -60,6 +62,7 @@ class InterfaceSnapshot:
                 'dns': list(self.dns), 'domain': self.domain, 'interface': self.name,
                 'mac_address': self.mac.hex(':') if self.mac else None,
                 'ethernet_link': self.link.description() if self.link else None,
+                'tcpip_configuration': self.tcpip.description() if self.tcpip else None,
                 'writable': False, 'captured_on_first_query': True}
 
 
@@ -109,7 +112,8 @@ def linux_snapshot(address):
             mac = ethernet_mac(base.joinpath('address').read_text().strip())
     except OSError:
         pass  # Missing physical-link data must not invalidate IPv4 data.
-    return InterfaceSnapshot(address, mask, gateway, tuple(dns[:2]), domain, name, mac, linux_link(name))
+    return InterfaceSnapshot(address, mask, gateway, tuple(dns[:2]), domain, name, mac, linux_link(name),
+                             linux_tcpip_configuration(name, dns))
 
 
 def windows_snapshot(address):

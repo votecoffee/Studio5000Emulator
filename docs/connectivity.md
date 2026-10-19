@@ -566,6 +566,36 @@ browser assets, displayed version and Windows artifact matched the source. A
 hidden browser check confirmed the field summary renders without JavaScript
 errors. Full upload/download, online edits and native monitoring remain unfinished.
 
+### TCP/IP configuration status
+
+Version `.45` adds TCP/IP Interface `0xF5` instance 1 attribute `1` when the
+selected IPv4 configuration is available. Attributes `2` and `3` report DHCP/DNS
+capability and startup/control flags only for the recognized Linux combination:
+one explicit ifupdown DHCP stanza and a live udhcpc process whose executable,
+interface and PID-file arguments match. Configured resolver addresses determine
+whether DNS is enabled. Includes, mappings, duplicate or static declarations,
+other managers, missing files and stale/mismatched processes remain unavailable.
+The same lazily captured interface snapshot supplies all network fields.
+
+The Configuration Settable flag stays clear. Single/list reads do not change
+adapters, spawn a DHCP client or query a DNS server. Network setters remain
+rejected, including with tag writes enabled. Unsupported fields retain their
+individual errors in mixed lists, and the diagnostic now names TCP/IP fields.
+The wire flags follow Rockwell's [TCP/IP object tables](https://literature.rockwellautomation.com/idc/groups/literature/documents/qs/2080-qs002_-en-e.pdf).
+
+An isolated SDK diagnostic accepted the five-field TCP/IP list and next requested
+Memory object `0x67` attributes `1`/`2`, which remain unsupported. That diagnostic
+temporarily substituted earlier missing metadata; those substitutes are excluded
+from the app and this result does not demonstrate successful native upload.
+
+The suite runs 701 tests: Windows passes 699 with two Linux-only skips; Linux
+passes 700 with the Windows console check skipped. Checks cover exact flags,
+missing and mismatched clients, ambiguous configuration, unavailable observations,
+cached interface selection, mixed lists and denied setters. The normal-source
+candidate preserves 12 scalar reads/descriptors and nine empty catalogs across
+196 verified signed requests, then still fails controller collection after the
+Ethernet Link list. It does not reach the new TCP/IP list in that exchange.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
@@ -1190,8 +1220,10 @@ path because no physical backplane object is implemented. Unknown ports are
 rejected rather than advertised as additional hardware.
 
 The TCP/IP Interface Object (`0xF5`) supports class attributes 1 through 3 and
-class Get_Attributes_All. Instance 1 exposes attribute 5 (IPv4 configuration) and
-6 (hostname). Attribute 4 returns the path to Ethernet Link instance 1 when its
+class Get_Attributes_All. Instance 1 exposes attribute 1 (configuration status),
+5 (IPv4 configuration) and 6 (hostname). Attributes 2/3 expose configuration
+capability/control for the [verified Linux DHCP combination](#tcpip-configuration-status).
+Attribute 4 returns the path to Ethernet Link instance 1 when its
 MAC address is known, or a zero-length path when physical-link metadata is
 unavailable. IPv4 values are CIP little-endian UDINTs; domain/hostname values use
 length-prefixed, even-padded CIP strings. The configuration uses the selected
@@ -1205,13 +1237,14 @@ the snapshot after an OS configuration change. If the selected configuration
 cannot be read or validated, the request returns a CIP error; no subnet, gateway
 or MAC address is guessed. Snapshot availability and errors are exposed in the
 connectivity state. Ethernet Link (`0xF6`) supports class attributes 1 through 3,
-class Get_Attributes_All, and single/list reads of instance 1 attribute 3. The MAC
+class Get_Attributes_All, and single/list reads of instance 1 attribute 3, with
+additional [Linux link-status fields](#controller-settings-and-linux-ethernet-status). The MAC
 is six octets in adapter order, read from that exact OS interface. Unknown,
 non-Ethernet, zero or multicast addresses are not replaced with invented MACs;
 the request returns an explicit CIP error. Loopback normally has no Ethernet MAC.
 
 Network configuration writes, TCP/IP instance Get_Attributes_All, the remaining
-TCP/IP attributes, Ethernet Link speed/flags/counters and physical-backplane services
+TCP/IP attributes, Ethernet Link counters and physical-backplane services
 remain unsupported. Enabling tag writes does not enable network reconfiguration.
 These responses do not establish native Studio path selection or Go Online.
 

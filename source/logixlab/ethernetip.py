@@ -704,16 +704,21 @@ class Router:
                 attributes={6:cip_string(socket.gethostname())}
                 # Query the local OS only when the caller needs this attribute.
                 # Unknown interface data is an error, never a guessed /24 or MAC.
-                requested=service==0x0E and path.attribute in (4,5)
+                requested=service==0x0E and path.attribute in (1,2,3,4,5)
                 if service==3 and path.attribute is None:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-                    requested=bool({4,5}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
+                    requested=bool({1,2,3,4,5}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
                 if requested:
                     snapshot=self.network_interface()
                     attributes[4]=b'\2\0\x20\xF6\x24\1' if snapshot is not None and snapshot.mac else b'\0\0'
-                    if snapshot is not None:attributes[5]=snapshot.configuration()
+                    if snapshot is not None:
+                        attributes[1]=struct.pack('<I',1)
+                        attributes[5]=snapshot.configuration()
+                        if snapshot.tcpip is not None:attributes.update(snapshot.tcpip.attributes())
                     elif path.attribute==5 or service==3:raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
+                    if service==0x0E and path.attribute not in attributes:
+                        raise CIPError(0x0C,'TCP/IP configuration attribute is unavailable on this interface')
             else:raise CIPError(5,'Unknown TCP/IP Interface object instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id in energy_catalog.CLASSES:

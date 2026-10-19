@@ -9,13 +9,15 @@ import time
 
 MAX_GAPS = 64
 CLASSES = {1: 'Identity', 0x6A: 'Data Table', 0x6B: 'Symbol',
-           0x8E: 'Controller', 0xF6: 'Ethernet Link'}
+           0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
     0x8E: {1: 'Power-loss handler reference', 3: 'Communication time slice',
            6: 'Fault handler reference', 8: 'Connection ID', 16: 'Share unused time slice'},
     0xF6: {1: 'Interface speed', 2: 'Interface flags', 3: 'MAC address',
            4: 'Interface counters', 5: 'Media counters', 6: 'Interface control',
            7: 'Interface type', 8: 'Interface state', 9: 'Administrative state'},
+    0xF5: {1: 'Configuration status', 2: 'Configuration capability',
+           3: 'Configuration control', 4: 'Physical link', 5: 'IPv4 configuration', 6: 'Host name'},
     0x6B: {1: 'Name', 2: 'Type', 3: 'Value address', 4: 'Formal type',
            5: 'Symbol address', 6: 'Control', 7: 'Element size', 8: 'Dimensions',
            9: 'Safety flag', 10: 'External access', 11: 'Constant',
