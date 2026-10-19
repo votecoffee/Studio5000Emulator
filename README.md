@@ -54,7 +54,8 @@ py -3.13 -X utf8 source/launch.py
 
 No additional Python packages are needed to run L5X projects or bundled demos.
 See [development guidance](docs/development.md) for optional tooling, including
-an offline CIP capture inspector for connection research.
+an offline CIP capture inspector with bounded signed-envelope decoding for
+connection research.
 
 ## Usage
 
@@ -127,6 +128,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Native handshake research | v35 public-key challenge; confirmation and authenticated Message Router services remain unsupported |
+| Offline protocol analysis | Observed `0x36`/`0x37` envelope structure and known-key request MAC checks; no embedded operations dispatched |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |

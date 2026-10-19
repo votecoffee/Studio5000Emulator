@@ -51,9 +51,25 @@ report when investigating an unknown service.
 Pairing requires an explicit TShark response-to frame reference, the same TCP
 stream and matching request/response service codes. Missing or conflicting
 evidence stays unpaired. Only one outer CIP message per frame is analyzed;
-multiple PDUs and unsupported paths are listed as skipped. Embedded services
-inside routed requests or Multiple Service Packets require separate inspection.
-The tool does not infer vendor semantics or successful Studio Go Online.
+multiple PDUs and unsupported paths are listed as skipped. Report format 2 also
+decodes one observed Message Router `0x36` or `0x37` layer, exposing the counter
+and embedded service/path/status fields. Successfully paired wrapper replies
+must echo that counter and match the embedded reply service. Malformed or unknown
+envelopes retain the outer evidence and an explicit structural error. Symbol
+names and bytes remain omitted by default, including inside decoded envelopes.
+
+Every decoded envelope says **integrity: NOT VERIFIED**. The capture inspector
+does not accept session keys or verify MACs. The separate pure Python codec in
+`source/logixlab/signed_messages.py` provides `verify_request(raw, key,
+expected_sequence=...)` for local known-key tests. It checks HMAC-SHA1 over the
+complete CIP request before the final MAC, with an exact expected counter.
+Callers own session state and replay tracking; the codec retains neither.
+Response MAC verification and service `0x38` remain unresolved. See the
+[observed envelope layout](connectivity.md#offline-signed-envelope-codec).
+
+Embedded services inside other routed requests or Multiple Service Packets
+require separate inspection. The tool does not infer embedded vendor-service
+meanings or successful Studio Go Online, and it never executes decoded requests.
 
 Analysis is bounded to 64 MiB input, 50,000 input packets, 128 MiB decoded JSON
 and 60 seconds. Capture completeness is reported as unassessed. The input hash

@@ -190,6 +190,44 @@ synthetic public key and an independently generated ciphertext vector. Vendor
 keys, captured replies, private projects and diagnostic harnesses are not bundled.
 The `.20` behavioral suite passed 482 tests on each of Windows and Linux.
 
+## Offline signed-envelope codec
+
+Version `0.6.0-connectivity.21` adds an offline codec and capture-report fields
+for the observed Message Router class `0x02`, instance 1 envelopes. It does not
+enable their live dispatch or change the unresolved `0x64` / `0x4C` confirmation.
+
+| Field | Observed `0x36` | Observed `0x37` |
+| --- | --- | --- |
+| Outer request | Service, two-word path `20 02 24 01` | Same path |
+| Container header | None | Little-endian UDINT `0x301`, then embedded CIP byte length |
+| Content | One complete embedded CIP request | One complete embedded CIP request |
+| Trailer | Little-endian UDINT counter, then 20-byte HMAC-SHA1 | Same trailer |
+
+The request verifier covers every outer CIP byte before the MAC, including the
+path, container header when present, embedded request and counter. A known-nonce
+native SDK `0x37` trace matches this calculation. Reference `0x36`/`0x37` framing,
+independent synthetic vectors and altered-byte tests cover both formats; a native
+`0x36` MAC has not yet been checked with a known key. `verify_request` requires a 20-byte supplied key and
+the exact expected counter. It is a stateless diagnostic function: key possession
+does not establish peer identity or permission to execute an operation.
+
+Structural reply decoding requires a successful outer response, the corresponding
+embedded reply service, valid additional-status bounds and an echoed counter.
+The `0x37` reply uses the same observed container header with its reply length.
+Reply MAC calculation remains unverified. Captures without keys receive structural
+analysis only, explicitly labeled **NOT VERIFIED** for integrity. Unknown `0x38`
+containers, unsupported format words, length mismatches and malformed inner
+headers are rejected by the codec. Capture reports retain their outer evidence.
+
+The codec accepts immutable byte messages up to 65,519 bytes and decodes one
+layer. It opens no connection, stores no key and never calls the protocol router.
+The normal endpoint still returns unsupported errors for `0x36`–`0x38`, including
+requests whose MACs are valid in an offline test. Private captures, known-nonce
+traces and operator identity payloads remain outside the public tree.
+The `.21` behavioral suite passed 496 tests on each of Windows and Linux. Offline
+validation decoded 32 paired reference exchanges and verified the saved native
+known-nonce `0x37` request; these checks do not establish native Go Online.
+
 ## Device locator
 
 Identity class `0x01`, instance 1 supports the `0x4B` Flash_LEDs service. The

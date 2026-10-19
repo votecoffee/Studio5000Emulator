@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from tools.inspect_cip_capture import describe, inspect, summarize
+from test_signed_messages import request as signed_request, response as signed_response
 
 
 def packet(frame, raw, reference=None, stream=0):
@@ -18,6 +19,61 @@ def packet(frame, raw, reference=None, stream=0):
 
 
 class CaptureInspectionTests(unittest.TestCase):
+    def test_signed_pair_exposes_inner_fields_without_verifying_integrity(self):
+        for service in (0x36, 0x37):
+            result = summarize([packet(1, signed_request(service)), packet(2, signed_response(service), 1)])
+            pair, = result['exchanges']
+            for message in (pair['request'], pair['response']):
+                envelope = message['signed_envelope']
+                self.assertEqual(envelope['structure'], 'DECODED')
+                self.assertEqual(envelope['integrity'], 'NOT VERIFIED')
+                self.assertEqual(envelope['sequence'], 7)
+                self.assertEqual(envelope['inner']['service'], 0x0E)
+            self.assertEqual(pair['request']['signed_envelope']['inner']['attribute'], 1)
+            self.assertEqual(pair['response']['signed_envelope']['inner']['status'], 0)
+            self.assertEqual(result['signed_integrity'], 'NOT VERIFIED')
+            self.assertEqual(result['studio_go_online'], 'NOT ASSESSED')
+
+    def test_signed_reports_preserve_privacy_and_opt_in_raw_bytes(self):
+        name = b'PrivateMachine'
+        path = b'\x91' + bytes((len(name),)) + name
+        inner = bytes((0x4D, len(path)//2)) + path + b'operator-private-value'
+        raw = signed_request(0x37, inner)
+        for include in (False, True):
+            report = summarize([packet(1, raw)], include)
+            nested = report['unpaired_requests'][0]['signed_envelope']['inner']
+            self.assertTrue(nested['symbolic_path'])
+            self.assertEqual('message_hex' in nested, include)
+            if not include:
+                text = json.dumps(report)
+                for private in (name.decode(), name.hex(), 'operator-private-value', raw.hex()):
+                    self.assertNotIn(private, text)
+            else:
+                self.assertEqual(nested['message_hex'], inner.hex())
+
+    def test_malformed_and_unknown_envelopes_keep_outer_evidence(self):
+        for raw in (signed_request()[:20], b'\x38'+signed_request()[1:],
+                    signed_request(0x37, b'\x0E\1\xFF\0')):
+            result = summarize([packet(1, raw)])
+            self.assertEqual(result['decoded_messages'], 1)
+            self.assertFalse(result['skipped_packets'])
+            self.assertEqual(result['unpaired_requests'][0]['signed_envelope']['structure'],
+                             'UNSUPPORTED OR MALFORMED')
+        other_class = bytearray(signed_request()); other_class[3] = 3
+        self.assertNotIn('signed_envelope', describe(bytes(other_class)))
+
+    def test_signed_reply_requires_matching_counter_and_successful_wrapper(self):
+        for raw in (signed_response(sequence=8), b'\xB6\0\x08\0'):
+            result = summarize([packet(1, signed_request()), packet(2, raw, 1)])
+            pair, = result['exchanges']
+            self.assertEqual(pair['response']['signed_envelope']['structure'], 'UNSUPPORTED OR MALFORMED')
+            self.assertNotIn('inner', pair['response']['signed_envelope'])
+
+    def test_nested_signed_envelopes_stop_after_one_layer(self):
+        message = describe(signed_request(0x37, signed_request()))
+        self.assertEqual(message['signed_envelope']['inner']['service'], 0x36)
+        self.assertNotIn('signed_envelope', message['signed_envelope']['inner'])
+
     def test_vendor_failure_is_paired_without_assigning_semantics(self):
         request = bytes.fromhex('4b0220642401a900')
         response = bytes.fromhex('cb000800')

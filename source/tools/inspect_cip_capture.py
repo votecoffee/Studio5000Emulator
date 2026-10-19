@@ -1,8 +1,9 @@
 """Inspect an existing capture with optional TShark; never capture or connect.
 
-Reports outer CIP messages and only pairs unambiguous, same-stream exchanges
+Reports CIP messages and only pairs unambiguous, same-stream exchanges
 using TShark's explicit response-to frame references. Payloads are hashed by
-default. This tool does not infer vendor-service meanings or online success.
+default. One observed signed layer can be decoded without asserting MAC validity,
+vendor-service meanings or online success.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
+from logixlab import signed_messages
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_JSON = 128 * 1024 * 1024
@@ -47,7 +49,13 @@ def number(node, name):
     return int(found[0], 0)
 
 
-def describe(raw, include_payloads=False):
+def envelope_description(envelope, include_payloads):
+    return {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
+            'sequence': envelope.sequence, 'container_format': envelope.container_format,
+            'inner': describe(envelope.inner, include_payloads, unwrap=False)}
+
+
+def describe(raw, include_payloads=False, *, unwrap=True):
     if len(raw) < 2:
         raise ValueError('Truncated CIP header')
     service = raw[0]
@@ -75,11 +83,18 @@ def describe(raw, include_payloads=False):
     message.update(payload_bytes=len(payload), payload_sha256=hashlib.sha256(payload).hexdigest())
     if include_payloads:
         message['message_hex'] = raw.hex()
+    if (unwrap and not message['response'] and path.class_id == 2 and path.instance == 1 and
+            path.attribute is None and not path.symbols and service in (0x36, 0x37, 0x38)):
+        try:
+            message['signed_envelope'] = envelope_description(signed_messages.parse_request(raw), include_payloads)
+        except (signed_messages.EnvelopeError, ValueError) as error:
+            message['signed_envelope'] = {'structure': 'UNSUPPORTED OR MALFORMED',
+                                          'integrity': 'NOT VERIFIED', 'reason': str(error)}
     return message
 
 
 def summarize(packets, include_payloads=False):
-    messages, skipped, duplicate_frames = {}, [], set()
+    messages, raw_messages, skipped, duplicate_frames = {}, {}, [], set()
     for packet in packets:
         layers = packet.get('_source', {}).get('layers', {})
         frame = None
@@ -99,9 +114,11 @@ def summarize(packets, include_payloads=False):
                 message['request_frame'] = int(references[0], 0)
             if frame in messages or frame in duplicate_frames:
                 messages.pop(frame, None)
+                raw_messages.pop(frame, None)
                 duplicate_frames.add(frame)
                 raise ValueError('Duplicate frame')
             messages[frame] = message
+            raw_messages[frame] = bytes.fromhex(raw[0])
         except (ValueError, TypeError) as error:
             skipped.append({'frame': frame, 'reason': str(error)})
     exchanges, paired_requests, paired_responses = [], set(), set()
@@ -112,10 +129,19 @@ def summarize(packets, include_payloads=False):
         if (request is None or request['response'] or request['frame'] >= response['frame'] or
                 request['stream'] != response['stream'] or request['service'] != response['service']):
             continue
+        if 'signed_envelope' in request:
+            try:
+                parsed = signed_messages.parse_request(raw_messages[request['frame']])
+                decoded = signed_messages.parse_response(raw_messages[response['frame']], parsed)
+                response['signed_envelope'] = envelope_description(decoded, include_payloads)
+            except (signed_messages.EnvelopeError, ValueError) as error:
+                response['signed_envelope'] = {'structure': 'UNSUPPORTED OR MALFORMED',
+                                               'integrity': 'NOT VERIFIED', 'reason': str(error)}
         exchanges.append({'request': request, 'response': response})
         paired_requests.add(request['frame']); paired_responses.add(response['frame'])
     counts = Counter(f"0x{value['service']:02X}" for value in messages.values() if not value['response'])
-    return {'format_version': 1, 'scope': 'outer CIP messages only',
+    return {'format_version': 2, 'scope': 'outer CIP messages and one observed signed layer',
+            'signed_integrity': 'NOT VERIFIED',
             'vendor_semantics': 'NOT INFERRED', 'studio_go_online': 'NOT ASSESSED',
             'cip_packets': len(packets), 'decoded_messages': len(messages),
             'request_services': dict(sorted(counts.items())), 'exchanges': exchanges,

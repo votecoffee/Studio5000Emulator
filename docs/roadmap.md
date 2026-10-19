@@ -17,6 +17,9 @@ native Studio connection and programming services remain unfinished.
   The `.18` probe passes controller and File Manager class-revision queries;
   `.20` adds the observed Extended Device `0x64` / `0x4B` public-key challenge.
   Confirmation and authenticated Message Router services remain unsupported.
+  `.21` adds offline `0x36`/`0x37` structural decoding and known-key request MAC
+  verification, with no live dispatch. Resolve confirmation proof and response
+  MAC semantics before connecting that codec to session handling.
   A passive reference capture now establishes the matching request and varying
   successful replies, followed by `0x64` / `0x4C` and Message Router services
   `0x36`–`0x38`; their vendor semantics still need implementation evidence.
