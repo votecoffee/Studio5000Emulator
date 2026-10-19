@@ -49,10 +49,23 @@ runs independently after import and does not depend on FactoryTalk Logix Echo.
 ```powershell
 git clone --branch main https://github.com/votecoffee/Studio5000Emulator.git
 cd Studio5000Emulator
-py -3.13 -X utf8 source/launch.py
+.\INSTALL-AND-RUN.cmd
 ```
 
+On Windows, double-click **INSTALL-AND-RUN.cmd** in the project root, or run it
+as above. It finds Python 3.13 (installing it for the current user through
+Windows Package Manager if needed), creates an ignored `.venv`, installs
+PyInstaller there, builds the current source and opens LogixLab. Missing
+dependencies require internet access. If `winget` is unavailable, install
+Python 3.13 with pip and the Python launcher first.
+
+Use `INSTALL-AND-RUN.cmd -InstallOnly` to prepare the executable without
+launching a session. After setup, `START.cmd` opens the existing build;
+rerun `INSTALL-AND-RUN.cmd` after updating the source to rebuild it.
+ACD conversion and the optional VMware appliance need their separate setup.
+
 No additional Python packages are needed to run L5X projects or bundled demos.
+To run directly from source, use `py -3.13 -X utf8 source/launch.py`.
 See [development guidance](docs/development.md) for optional tooling, including
 an offline CIP capture inspector with bounded signed-envelope decoding for
 connection research.
