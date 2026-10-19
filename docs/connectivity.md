@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.42` candidate accepts scalar Symbol descriptors and reaches controller collection | Ethernet Link/Connection Manager metadata, remaining tag kinds and project reconstruction |
+| Native upload | `.42` deployed test accepts scalar Symbol descriptors and reaches controller collection | Ethernet Link/Controller metadata, remaining tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -443,7 +443,7 @@ The `.42` candidate passed all 12 demo scalar Symbol descriptor lists and the
 preceding scalar reads/catalogs across 199 verified signed requests. Upload
 advanced to controller/device collection and failed
 `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Ethernet Link class `0xF6`
-attributes `1,2,4,5,6,7,8,9` and Connection Manager `0x8E` attributes
+attributes `1,2,4,5,6,7,8,9` and Controller `0x8E` attributes
 `3,6,1,7,8,16` remain incomplete. This is progress through native tag discovery,
 not complete tag/project transfer or demonstrated SDK tag monitoring.
 
@@ -451,6 +451,19 @@ The suite runs 670 tests: Windows passes 668 with two Linux-only skips; Linux
 passes 669 with the Windows console check skipped. New tests cover exact widths,
 backed address links, atomic values, scoped IDs, source replacement, access
 changes, unavailable tag kinds, range/response bounds and signed setter denial.
+
+The rebuilt `.42` appliance passed 82 live protocol checks, including the full
+native-requested Symbol attribute list and address/link/size checks. All eight
+SDK connection steps passed across 85 verified signed requests, ending Offline.
+Upload reproduced the candidate's 199 verified requests and controller-collection
+failure after accepting all 12 supported Symbol descriptors. A separate
+hold/read test completed 93 verified requests, reported Online/Program and ended
+Offline without correlation loss. Typed BOOL, generic BOOL and generic DINT SDK
+reads still fail `RxDA_E_NO_ONLINE_ADDRESS`. The original ACD, modeled values
+and zero scan count were preserved; network writes stayed disabled. Deployed
+modules, webpage assets and the Windows executable matched the source and version.
+Full upload/download, native online edits and Studio GUI monitoring remain
+unfinished or unverified.
 
 ### Change Log correlation
 
