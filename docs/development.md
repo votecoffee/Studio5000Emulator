@@ -30,6 +30,13 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+Windows appliance subprocesses use `tools.vmware_appliance.background_options()`
+to request `CREATE_NO_WINDOW`; apply the same policy to private SSH validation
+scripts. Preserve stdout/stderr and exit-status checks. Launcher regressions
+cover the persistent tunnel's process options, diagnostics on failure and an
+actual Windows child process with no console. That OS-specific check is skipped
+on Linux.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

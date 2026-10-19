@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.35`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.36`. Native SDK tag reads still fail
 online address discovery. Native
 upload/download and online edits are unsupported; tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -97,6 +97,7 @@ under `%LOCALAPPDATA%\LogixLab`; `--data-dir` selects another private directory.
 For a separate PLC IP while Linx retains the host's port 44818, use the optional
 [VMware host-only appliance](docs/vmware-appliance.md). After preparation,
 `START-VM.cmd` starts it with a localhost browser tunnel and Windows tray controls.
+On Windows, its SSH tunnel and helper commands run without console windows.
 The appliance answers ICMP ping on its guest IP for IP-scanner discovery. See
 [ping and IP scanners](docs/vmware-appliance.md#ping-and-ip-scanners) for the
 network to scan. The executable, tray, browser tab and webpage use the PLC

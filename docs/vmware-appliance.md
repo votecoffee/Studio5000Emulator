@@ -60,6 +60,12 @@ console windows, including when launched from the tray with `pythonw`. Output
 and failures remain captured in the private logs. The tunnel uses no interactive
 stdin; SSH remains in batch mode with pinned host-key verification.
 
+The `.36` suite ran 610 tests on each OS: Windows passed 608 with two Linux-only
+skips, and Linux passed 609 with the Windows console test skipped. The rebuilt
+appliance passed 34 live protocol checks and all eight native SDK online/offline
+steps through the hidden tunnel. Imported demo values were preserved across the
+restart; this launcher change does not add native upload or online-edit support.
+
 Read the current guest address with:
 
 ```powershell

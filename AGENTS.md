@@ -9,3 +9,6 @@
   `py -3.13 -X utf8 -m unittest discover -s tests -v`.
 - Keep changes focused. Preserve the distinction between software-model/protocol
   tests and demonstrated native Studio 5000 Go Online behavior.
+- On Windows, launch noninteractive appliance helper processes with `CREATE_NO_WINDOW`
+  and capture diagnostics. Appliance tools expose `background_options()` for
+  both `subprocess.run` and `subprocess.Popen`, including local validation scripts.
