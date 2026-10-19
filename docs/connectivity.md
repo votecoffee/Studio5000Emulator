@@ -78,6 +78,17 @@ checks. A successful broadcast reply does not establish range browsing, path
 selection or Studio Go Online. The discovery exchange follows ODVA's
 [IPv4 ListIdentity description](https://www.odva.org/wp-content/uploads/2022/06/2012_ODVA_Conference_XuYuBrooksBatke_FINAL.pdf)
 and Linux's [IPv4 socket interface](https://man7.org/linux/man-pages/man7/ip.7.html).
+The interface/destination control message follows
+[IP_PKTINFO](https://man7.org/linux/man-pages/man2/IP_PKTINFO.2const.html).
+
+Validation on 2026-10-19 with `0.6.0-connectivity.17` passed 445 behavioral tests
+on each of Windows and Linux. An unprivileged Linux datagram probe completed nine
+discovery exchanges across unicast, subnet broadcast and limited broadcast,
+with matching payloads and the selected PLC reply source. Six malformed
+broadcast requests received no reply. A Windows `pycomm3` 1.2.16 client then
+discovered the running host-only appliance with one subnet-broadcast query.
+Exact addresses, packet traces and receipts remain local. These checks do not
+establish Linx range browsing or change the native Go Online result below.
 
 ## Virtual chassis
 
