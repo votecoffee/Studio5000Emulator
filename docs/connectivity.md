@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.40` candidate reads 12 supported scalar values and passes empty motion/alarm/HMIBC catalogs; stops at Base Energy instance discovery | Remaining tag kinds, object catalogs and project reconstruction |
+| Native upload | `.41` candidate passes energy/Message catalogs and reaches Symbol descriptors | Remaining Symbol address/configuration fields, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -358,6 +358,51 @@ A separate unchanged public-SDK probe verified 93 signed requests, stayed
 Online/Program without correlation loss and finished Offline. Typed BOOL and
 generic BOOL/DINT reads still failed `RxDA_E_NO_ONLINE_ADDRESS`; HMIBC discovery
 and the energy error response do not resolve native tag/rung monitoring.
+
+### Bounded empty energy inventory and Message catalog
+
+Version `.41` provides Get Instance List (`0x4B`) for Base (`0x4E`), Electrical
+(`0x4F`) and Non-Electrical (`0x50`) Energy. This software controller has no energy
+meters, proxies, aggregation or controls. An empty inventory is available only
+for complete ordinary-tag projects with no custom data types, AOIs, external
+modules or explicit energy declarations. The only optional module is the
+controller itself, with a matching catalog number. Unknown/context configuration,
+unrecognized controller sections, tag types or data formats return unavailable
+(`0x0C`). This deliberately restricts larger projects until their inventory can
+be represented; it does not report a physical controller's energy inventory.
+
+Energy lists use global paths, inclusive cursors and the same strict payload/path
+checks as other lists. The exact no-payload `0x3B` probe at instance zero for
+each energy class returns unsupported (`0x08`) without dispatch, allowing the
+native client to fall back to `0x4B`. Other probe variants and all signed setters
+remain denied. No measurements, class revisions or energy control state are
+invented. [ODVA's energy object overview](https://www.odva.org/wp-content/uploads/2022/06/2012_ODVA_Conference_Blair_FINAL.pdf)
+describes the three related classes; no third-party implementation is bundled.
+
+Message class `0x8D` also supports a source-checked empty list. Complete source
+must contain no `MESSAGE` types, Message data format or `MessageParameters`,
+including declarations in programs and AOIs. Alarm text messages alone do not
+constitute MESSAGE objects. Nonempty/ambiguous catalogs return unavailable.
+Message configuration, transmission and MSG instruction execution are not
+implemented. The [Import/Export reference, chapter 6](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+documents the source shape; the installed v35 object description identifies the
+class number.
+
+The `.41` candidate accepted 12 supported scalar reads, the prior six empty
+motion/alarm/HMIBC lists, Base and Electrical Energy lists, and the Message list.
+The Non-Electrical class is covered by model/protocol tests; it was not requested
+in that native exchange. Upload then enumerated Symbol class `0x6B` and requested
+attributes `1,2,3,5,6,7,8,10,11,12,14,9` for the first supported tag. Unsupported
+address/configuration fields cause partial attribute-list status (`0x0A`);
+upload still fails `RxCsE_UPLOAD_OF_TAGS_FAILED`. Model values and scan count
+were preserved. Full transfer and native tag/rung monitoring remain unfinished.
+
+The `.41` suite runs 660 tests: Windows passes 658 with two Linux-only skips;
+Linux passes 659 with the Windows console check skipped. Energy checks cover the
+ordinary-source boundary, unknown configuration, module identity/context,
+replacement, all three energy lists and negative newer probes. Message checks
+cover declarations across scopes, data/configuration, alarm text, malformed
+paths and signed read-only dispatch.
 
 ### Change Log correlation
 

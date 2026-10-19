@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.40` adds source-checked empty HMIBC discovery and an explicit
+Current milestone: `.41` adds bounded empty energy inventory and source-checked
+empty Message discovery. The native candidate passes those catalogs and reaches
+Symbol address/configuration descriptors (`0x6B`); missing fields still prevent
+tag upload and native tag monitoring. Energy support is limited to ordinary-tag,
+software-controller-only projects; energy and MSG runtime behavior are unfinished.
+`.40` adds source-checked empty HMIBC discovery and an explicit
 unsupported reply to the exact native Base Energy probe. The native candidate
 passes HMIBC discovery, then falls back to Base Energy Get Instance List (`0x4B`),
 which remains unsupported. Button and energy runtime behavior remain unfinished.

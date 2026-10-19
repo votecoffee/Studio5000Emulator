@@ -149,6 +149,40 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(result.children,(b'\xBB\0\x08\0',b'\x90\0\x0F\0'))
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_all_new_energy_probes_are_negative_capabilities_without_inner_dispatch(self):
+        self.bind();count=self.endpoint.counts['cip']
+        for sequence,cls in enumerate((0x4E,0x4F,0x50),4):
+            self.assertEqual(self.signed(sequence,bytes((0x3B,2,0x20,cls,0x24,0))),b'\xBB\0\x08\0')
+        self.assertEqual(self.endpoint.counts['cip'],count+3)
+        self.assertEqual(self.signed(7,bytes.fromhex('3b0220512400'))[2],0x0F)
+
+    def test_energy_legacy_lists_require_supported_source_and_keep_other_operations_denied(self):
+        from logixlab.energy_catalog import EnergyCatalog
+        self.begin()
+        self.assertEqual(self.signed(1,bytes.fromhex('4b02204e2400'))[2],0x0F)
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        for sequence,cls in enumerate((0x4E,0x4F,0x50),4):
+            self.assertEqual(self.signed(sequence,bytes((0x4B,2,0x20,cls,0x24,0))),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(7,bytes.fromhex('4b02204e2400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(8,bytes.fromhex('1003204e24013001')+bytes(4))[2],0x0F)
+        self.app.engine.project.energy_catalog=EnergyCatalog(False)
+        self.assertEqual(self.signed(9,bytes.fromhex('4b02204e2400'))[2],0x0C)
+        raw=batch((bytes.fromhex('3b02204e2400'),bytes.fromhex('4b02204e2400'),bytes.fromhex('1003204e24013001')+bytes(4)),sequence=10)
+        raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.children,(b'\xBB\0\x08\0',b'\xCB\0\x0C\0',b'\x90\0\x0F\0'))
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_signed_message_list_requires_empty_source_and_keeps_msg_writes_denied(self):
+        from logixlab.message_catalog import MessageCatalog
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b02208d2400')),b'\xCB\0\0\0')
+        self.assertEqual(self.signed(5,bytes.fromhex('4b02208d2400')+b'\0')[2],0x15)
+        self.assertEqual(self.signed(6,bytes.fromhex('1003208d24013001')+bytes(2))[2],0x0F)
+        self.app.engine.project.message_catalog=MessageCatalog(False)
+        self.assertEqual(self.signed(7,bytes.fromhex('4b02208d2400'))[2],0x0C)
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),
