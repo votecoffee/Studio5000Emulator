@@ -6,7 +6,8 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.34` adds scoped Data Table discovery and supported tag
+Current milestone: `.35` fixes navigation to the Device I/O panel and clarifies
+the unverified native GUI boundary in the webpage banner. `.34` adds scoped Data Table discovery and supported tag
 descriptors. Native upload now reaches its first Data Table attribute list;
 address and data-use fields remain unavailable. `.33` adds bounded symbol/template instance lists and empty
 extended-property discovery needed during upload initialization. `.31` preserves

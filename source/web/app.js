@@ -174,7 +174,7 @@ function renderCoverage() {
 function renderChanges() {
   $('changes-body').innerHTML=state.changes.slice(0,500).map(c=>`<tr><td>${c.scan} / ${c.ms}</td><td>${escapeHtml(c.tag)}</td><td>${escapeHtml(c.before)} → ${escapeHtml(c.after)}</td></tr>`).join('');
 }
-function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['ladder','coverage','changes','connectivity'].forEach(id=>$(id).hidden=id!==name);}
+function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));document.querySelectorAll('.tab-content').forEach(panel=>panel.hidden=panel.id!==name);}
 async function loadDemo(sample='ConveyorDemo') {stop();$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
 async function scan() {
   if(stepping)return;stepping=true;
