@@ -97,6 +97,19 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(9,bytes.fromhex('4b0220692400'))[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_scalar_symbol_descriptor_list_and_setter_boundary(self):
+        self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
+                                              [Symbol('',0,'SpeedSetpoint',70000)])
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        path=bytes.fromhex('206b260070110100')
+        attrs=(1,2,3,5,6,7,8,10,11,12,14,9)
+        result=self.signed(4,bytes((3,len(path)//2))+path+struct.pack('<13H',len(attrs),*attrs))
+        self.assertEqual(result[:4],b'\x83\0\0\0')
+        self.assertEqual(result[4:6],struct.pack('<H',12))
+        self.assertIn(struct.pack('<HHI',12,0,70000),result)
+        self.assertEqual(self.signed(5,bytes((0x10,len(path)//2))+path+b'\0')[2],0x0F)
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_signed_axis_group_discovery_is_empty_only_for_motion_free_source(self):
         from logixlab.motion_catalog import MotionCatalog
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)

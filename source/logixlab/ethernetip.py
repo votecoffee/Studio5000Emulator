@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import controller_configuration, data_table, energy_catalog, file_manager, key_exchange, native_session, signed_messages
+from . import controller_configuration, data_table, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -479,9 +479,9 @@ class Router:
         return scope
 
     def symbol_attributes(self,symbol):
-        name=symbol['name'].encode('ascii')
-        return {1:struct.pack('<H',len(name))+name,2:struct.pack('<H',symbol['type']),
-                8:struct.pack('<III',*symbol['dimensions']),10:bytes((symbol['external_access'],))}
+        tag=self.app.engine.project.tags[symbol['ref'].lower()]
+        storage=self.scalar_storage().by_ref.get(symbol['ref'].lower())
+        return symbol_metadata.attributes(symbol,tag.constant,storage)
 
     def data_tables(self,scope=''):
         # Alias symbols refer to another tag's storage and do not create a new
@@ -532,11 +532,12 @@ class Router:
         if path.attribute is not None:raise CIPError(4,'Enumeration path does not take an attribute')
         need(data,2);n=struct.unpack_from('<H',data)[0];exact(data,2+2*n)
         attrs=struct.unpack_from('<'+'H'*n,data,2)
-        if not n or n>16 or any(a not in (1,2,8,10) for a in attrs):raise CIPError(0x14,'Only symbol attributes 1, 2, 8 and 10 are implemented')
+        if not n or n>16 or any(a not in symbol_metadata.ATTRIBUTES for a in attrs):raise CIPError(0x14,'Unsupported Symbol attribute')
         out=b''
         for symbol in self.symbols(scope):
             if symbol['id']<(path.instance or 0):continue
             values=self.symbol_attributes(symbol)
+            if any(a not in values for a in attrs):raise CIPError(0x14,'Symbol storage attribute unavailable for this tag kind')
             row=struct.pack('<I',symbol['id'])+b''.join(values[a] for a in attrs)
             if len(out)+len(row)>limit-4:
                 if not out:raise CIPError(0x1B,'One symbol row exceeds negotiated response size')
@@ -905,6 +906,7 @@ class Endpoint:
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
+                    'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,
                     'hmi_button_control':self.app.engine.project.hmi_button_catalog.description() if self.enabled else None,

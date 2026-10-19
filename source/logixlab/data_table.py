@@ -10,6 +10,7 @@ from .model import ModelError
 MAX_SCALARS = 4096
 DESCRIPTOR_BASE = 0x40000000
 VALUE_BASE = 0x50000000
+SYMBOL_BASE = 0x60000000
 
 
 @dataclass(frozen=True)
@@ -29,10 +30,19 @@ class Scalar:
     @property
     def value_address(self): return VALUE_BASE + self.slot * 8
 
+    @property
+    def symbol_address(self): return SYMBOL_BASE + self.slot * 32
+
     def header(self):
         # This is this model's descriptor layout, not a vendor firmware header.
         return struct.pack('<3IHHIIH6x', 0, 0, 0, self.code, 0,
                            self.instance, self.value_address, 0)
+
+    def symbol_header(self):
+        # Model-owned Symbol descriptor: value/table links, type, size, ID,
+        # ordinary-base control and scalar dimensions. Not a firmware layout.
+        return struct.pack('<IIHHI4I', self.value_address, self.address,
+                           self.code, self.size, self.instance, 0, 0, 0, 0)
 
     def value(self, read):
         value = read(self.ref)
@@ -57,13 +67,15 @@ class AddressSpace:
     def read(self, address, count, read):
         if type(address) is not int or type(count) is not int or not 1 <= count <= 32:
             raise ModelError('Invalid model storage range')
-        for base, stride, header in ((DESCRIPTOR_BASE, 32, True), (VALUE_BASE, 8, False)):
+        for base, stride, kind in ((DESCRIPTOR_BASE, 32, 'table'),
+                                   (VALUE_BASE, 8, 'value'), (SYMBOL_BASE, 32, 'symbol')):
             slot, offset = divmod(address - base, stride)
             if not 0 <= slot < len(self.cells): continue
             cell = self.cells[slot]
-            size = 32 if header else cell.size
+            size = cell.size if kind == 'value' else 32
             if offset + count > size: raise ModelError('Model storage read crosses a cell boundary')
-            raw = cell.header() if header else cell.value(read)
+            raw = (cell.header() if kind == 'table' else cell.symbol_header()
+                   if kind == 'symbol' else cell.value(read))
             return raw[offset:offset + count]
         raise ModelError('Unknown model storage address')
 

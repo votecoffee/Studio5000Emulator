@@ -54,11 +54,11 @@ class IdentityTests(unittest.TestCase):
 
     def test_unsupported_native_symbol_attributes_are_reported_and_counted(self):
         c=self.endpoint_for()
-        result=self.cip(c,b'\x55\x02\x20\x6B\x24\0'+struct.pack('<HHHH',3,1,3,5))
+        result=self.cip(c,b'\x55\x02\x20\x6B\x24\0'+struct.pack('<HHHH',3,1,4,5))
         self.assertEqual(result[2],0x14)
         trace=self.endpoint.state(True)
         self.assertEqual(trace['unsupported'][0]['count'],1)
-        self.assertIn('Only symbol attributes 1, 2, 8 and 10',trace['events'][-2]['detail'])
+        self.assertIn('Unsupported Symbol attribute',trace['events'][-2]['detail'])
 
     def test_identity_state_and_class_attributes(self):
         c=self.endpoint_for()

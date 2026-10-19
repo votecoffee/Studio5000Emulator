@@ -78,7 +78,7 @@ class SymbolMetadataTests(unittest.TestCase):
 
     def test_unknown_internal_attributes_and_bad_paths_do_not_mutate_memory(self):
         before=copy.deepcopy(self.app.engine.memory.values);path=self.path('Step')
-        for attr in (3,5,6,255):self.assertEqual(self.cip(0x0E,path+bytes((0x30,attr)))[2],0x14)
+        for attr in (4,13,255):self.assertEqual(self.cip(0x0E,path+bytes((0x30,attr)))[2],0x14)
         self.assertEqual(self.cip(0x55,path+b'\x30\1',b'\1\0\1\0')[2],4)
         self.assertNotEqual(self.cip(3,path,b'\2\0\1\0')[2],0)
         self.assertEqual(self.cip(0x0E,b'\x20\x6B\x25\0\xFF\xFF\x30\1')[2],5)

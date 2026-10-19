@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.41` deployed test passes energy/Message catalogs and reaches Symbol descriptors | Remaining Symbol address/configuration fields, tag kinds and project reconstruction |
+| Native upload | `.42` candidate accepts scalar Symbol descriptors and reaches controller collection | Ethernet Link/Connection Manager metadata, remaining tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -416,6 +416,42 @@ writes remained disabled. Deployed modules, browser assets and the Windows build
 matched the source, including the displayed version. Studio GUI monitoring,
 complete upload/download and native online edits remain unverified or failing.
 
+### Backed scalar Symbol descriptors
+
+Version `.42` adds Symbol attributes `3` (value address), `5` (Symbol descriptor
+address), `6` (ordinary-base control), `7` (element size), `12` (Data Table link)
+and `14` (no signature types) for supported ordinary nonconstant base scalars.
+The source also supplies `9` (Standard tag) and `11` (constant flag). Existing
+name, type, dimensions and external-access fields retain their encoding.
+Single/list reads and `0x55` enumeration use the same values; unavailable storage
+fields return unsupported rather than a zero address. Formal types and logical
+references remain unsupported. The [pycomm3 Symbol discovery implementation](https://github.com/ottowayi/pycomm3/blob/master/pycomm3/logix_driver.py)
+independently identifies the common address/control fields; installed object
+descriptions identify the additional fields. No vendor files are distributed.
+
+The value address points into the existing model value bank. The Symbol address
+points into a separate bounded bank containing a 32-byte model descriptor with
+value/table links, type, size, instance, control and scalar dimensions. This is
+an explicit model layout, not a recovered firmware layout. Reads cannot cross
+cell boundaries or expose padding/host memory. Program scopes retain distinct
+storage even when their instance numbers match. Catalog/source/access changes
+rebuild or reject the map. Arrays, structures, aliases, constants and inaccessible
+tags do not gain this scalar storage. Network setters remain denied in the
+anonymous native session.
+
+The `.42` candidate passed all 12 demo scalar Symbol descriptor lists and the
+preceding scalar reads/catalogs across 199 verified signed requests. Upload
+advanced to controller/device collection and failed
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Ethernet Link class `0xF6`
+attributes `1,2,4,5,6,7,8,9` and Connection Manager `0x8E` attributes
+`3,6,1,7,8,16` remain incomplete. This is progress through native tag discovery,
+not complete tag/project transfer or demonstrated SDK tag monitoring.
+
+The suite runs 670 tests: Windows passes 668 with two Linux-only skips; Linux
+passes 669 with the Windows console check skipped. New tests cover exact widths,
+backed address links, atomic values, scoped IDs, source replacement, access
+changes, unavailable tag kinds, range/response bounds and signed setter denial.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
@@ -676,7 +712,7 @@ their existing field layouts, and attribute writes remain unsupported.
 | File Manager | Class `0x31A`, instance 0: revision and zero storage-instance count |
 | Controller configuration | Class `0x8E` source SecurityCode and class revision; `0x64` name/description reads; `0x349` class discovery only |
 | Vendor key challenge | Extended Device `0x64`, instance 1, `0x4B`; confirmation and authenticated wrappers remain unsupported |
-| Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
+| Symbol metadata | Paginated `0x55`; single/list basic metadata and backed ordinary scalar descriptors |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
 | Structured access | Numeric, explicit user LEN/DATA string and packed-BIT UDTs, including nested structures and arrays |

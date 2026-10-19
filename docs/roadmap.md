@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.41` adds bounded empty energy inventory and source-checked
+Current milestone: `.42` adds backed ordinary scalar Symbol descriptors. The
+native upload candidate accepts all 12 supported demo descriptors and advances
+to controller/device collection; Ethernet Link and Connection Manager metadata
+remain incomplete. Complete native upload and SDK tag monitoring are unfinished.
+
+Version `.41` adds bounded empty energy inventory and source-checked
 empty Message discovery. The native candidate passes those catalogs and reaches
 Symbol address/configuration descriptors (`0x6B`); missing fields still prevent
 tag upload and native tag monitoring. Energy support is limited to ordinary-tag,
