@@ -158,6 +158,13 @@ retained topics. It verifies queued/applied acknowledgements, logic seeing devic
 inputs, output monitoring, invalid/duplicate/stale writes and late subscribers.
 It does not connect to physical devices or establish native controller parity.
 
+Version `0.6.0-connectivity.32` passed all 589 suite tests on Linux; Windows
+passed 587 with two platform-specific skips. All nine real-broker integration
+checks passed. The rebuilt appliance also passed cached HTTP reads, scoped
+authorization, paused-input queuing and cancellation checks, preserving its
+initial tag values. The existing eight-step native SDK Go Online/Go Offline
+sequence passed on that build; native Studio tag monitoring remains unresolved.
+
 Protocol references: [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
 [Paho client API](https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html),
 [OPC UA subscription model](https://reference.opcfoundation.org/specs/OPC-10000-4/5.14.1).

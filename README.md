@@ -171,7 +171,7 @@ replaced with assumed behavior.
 Read the [execution model](docs/execution-model.md) before interpreting scan
 results, and the [protocol contract](docs/connectivity.md) before using clients.
 
-## External Device Simulation
+### External Device Simulation
 
 The **Device I/O** tab enables queued external input writes. External monitors
 read consistent cached snapshots without taking the scan lock. A separate MQTT
