@@ -12,6 +12,7 @@ from logixlab.catalog_revision import CatalogRevision
 from logixlab.controller_configuration import ControllerConfiguration
 from logixlab.ethernetip import Endpoint
 from logixlab.model import ModelError
+from logixlab.native_symbols import NativeSymbols, Symbol
 from logixlab.server import Application
 from test_ethernetip import Client
 from test_key_exchange import offer
@@ -71,6 +72,20 @@ class NativeSessionTests(unittest.TestCase):
         self.assertTrue(metadata['key_exchange']['session_secret_retained'])
         self.assertFalse(metadata['key_exchange']['confirmation'])
         self.assertFalse(metadata['key_exchange']['peer_identity_verified'])
+
+    def test_signed_source_instance_read_reaches_model_and_write_remains_denied(self):
+        self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
+                                              [Symbol('',0,'SpeedSetpoint',70000)])
+        self.bind()
+        path=bytes.fromhex('206b260070110100')  # Symbol instance 70000, 32-bit path
+        read=b'\x4C\4'+path+b'\1\0'
+        expected=b'\xCC\0\0\0'+struct.pack('<Hi',0xC4,50)
+        self.assertEqual(self.signed(4,read),expected)
+        write=b'\x4D\4'+path+struct.pack('<HHi',0xC4,1,99)
+        raw=batch((read,write),sequence=5);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.children,(expected,b'\xCD\0\x0F\0'))
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'),50)
 
     def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)

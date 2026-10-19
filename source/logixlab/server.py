@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from .importers import convert_acd, default_converter
 from .native_project import NativeProjectIdentity
+from .native_symbols import NativeSymbols
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -40,6 +41,7 @@ class Application:
         self.engine = None
         self.provenance = {}
         self.native_project_identity = None
+        self.native_symbols = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -131,6 +133,14 @@ class Application:
                     correlation = data['native_project_identity']
                 native_identity = NativeProjectIdentity.from_manifest(correlation, project.sha256) if correlation is not None else None
                 if native_identity: provenance['native_project_identity'] = native_identity.manifest()
+                symbol_manifest = provenance.get('native_symbols')
+                if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_symbols' in data:
+                    symbol_manifest = data['native_symbols']
+                native_symbols = NativeSymbols.from_manifest(symbol_manifest, project.sha256) if symbol_manifest is not None else None
+                if native_symbols:
+                    if native_identity and native_symbols.source_acd_sha256 != native_identity.source_acd_sha256:
+                        raise ModelError('Native symbol and correlation manifests refer to different ACD files')
+                    provenance['native_symbols'] = native_symbols.manifest()
                 engine = Engine(project)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -140,6 +150,7 @@ class Application:
                             self.endpoint.identity=identity;self.endpoint.source_sha256=project.sha256
                     self.engine, self.provenance = engine, provenance
                     self.native_project_identity = native_identity
+                    self.native_symbols = native_symbols
                     self.generation += 1
                     if self.endpoint:self.endpoint.close_native_sessions()
                     return self.state()

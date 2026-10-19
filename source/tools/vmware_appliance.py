@@ -368,7 +368,9 @@ def import_project(directory, project, converter=None):
     result = api(session['url'], 'load', {'name': source.stem + '.L5X',
                                          'content': base64.b64encode(exported.read_bytes()).decode(),
                                          **({'native_project_identity':provenance['native_project_identity']}
-                                            if 'native_project_identity' in provenance else {})})
+                                            if 'native_project_identity' in provenance else {}),
+                                         **({'native_symbols':provenance['native_symbols']}
+                                            if 'native_symbols' in provenance else {})})
     if digest(source) != original_hash:
         raise ValueError('Source project changed during import')
     receipt = {'app_version': result['app_version'], 'project': result['name'],

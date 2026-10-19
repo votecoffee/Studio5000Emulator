@@ -30,6 +30,22 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+## ACD symbol identity
+
+`native_symbols.py` reads the optional `TagInfo.XML` schema 1.0 stream using the
+bounded container reader shared with `native_project.py`. It accepts root
+controller Symbol paths and Program/Symbol paths, with separate IDs per scope.
+Compressed members are limited to 4 MB and expanded XML to 16 MB; DTDs, entities,
+duplicate names/IDs and conflicting program mappings are rejected. It never
+extracts archive paths or imports native binaries.
+
+The importer hashes the original ACD and binds each manifest to the converted
+L5X hash. Server validation precedes project replacement. Instance reads and
+enumeration use those IDs when present, with no generated fallback for missing
+entries. Plain L5X fixtures retain their model-generated catalogs. Native type
+handles/layouts and compiled memory addresses are separate from this logical
+mapping; preserving IDs does not prove the SDK's online address cache is valid.
+
 ## Offline CIP capture inspection
 
 The optional capture inspector reads completed PCAP/PCAPNG files through a

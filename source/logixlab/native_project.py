@@ -8,10 +8,33 @@ import hashlib
 import io
 import re
 import struct
+import zlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .model import ModelError
+
+
+def acd_stream(path, stream_name, limit=4_000_000):
+    """Read one bounded container member in memory, without extracting paths."""
+    path = Path(path)
+    if not 8 <= path.stat().st_size <= 100_000_000: raise ModelError('ACD size is outside the import limit')
+    data = path.read_bytes(); digest = hashlib.sha256(data).hexdigest()
+    count, _ = struct.unpack_from('<II', data, len(data)-8)
+    table = len(data)-8-count*528
+    if data[:2] != b'\r\n' or not 1 <= count <= 4096 or table < 2:
+        raise ModelError('Unsupported ACD container directory')
+    stream = None
+    for offset in range(table, len(data)-8, 528):
+        name = data[offset:offset+520].decode('utf-16le', errors='strict').split('\0', 1)
+        if len(name) != 2: raise ModelError('Unterminated ACD directory name')
+        if name[0].casefold() != stream_name.casefold(): continue
+        size, start = struct.unpack_from('<II', data, offset+520)
+        if stream is not None or not 1 <= size <= limit or start < 2 or start+size > table:
+            raise ModelError('Invalid ACD metadata stream bounds: ' + stream_name)
+        stream = data[start:start+size]
+    if stream is None: raise ModelError('ACD has no supported metadata stream: ' + stream_name)
+    return digest, stream
 
 
 def _hash(value):
@@ -73,23 +96,7 @@ class NativeProjectIdentity:
 
     @classmethod
     def from_acd(cls, path, source_l5x_sha256):
-        path = Path(path)
-        if not 8 <= path.stat().st_size <= 100_000_000: raise ModelError('ACD size is outside the import limit')
-        data = path.read_bytes(); digest = hashlib.sha256(data).hexdigest()
-        count, _ = struct.unpack_from('<II', data, len(data)-8)
-        table = len(data)-8-count*528
-        if data[:2] != b'\r\n' or not 1 <= count <= 4096 or table < 2:
-            raise ModelError('Unsupported ACD container directory')
-        stream = None
-        for offset in range(table, len(data)-8, 528):
-            name = data[offset:offset+520].decode('utf-16le', errors='strict').split('\0', 1)
-            if len(name) != 2: raise ModelError('Unterminated ACD directory name')
-            if name[0].casefold() != 'offlinechangelog.dat': continue
-            size, start = struct.unpack_from('<II', data, offset+520)
-            if stream is not None or size < 4 or size > 4_000_000 or start < 2 or start+size > table:
-                raise ModelError('Invalid offline change-log stream bounds')
-            stream = data[start:start+size]
-        if stream is None: raise ModelError('ACD has no supported offline change-log stream')
+        digest, stream = acd_stream(path, 'OfflineChangelog.Dat')
         try:
             reader = gzip.GzipFile(fileobj=io.BytesIO(stream)) if stream[:2] == b'\x1f\x8b' else io.BytesIO(stream)
             with reader:
@@ -99,7 +106,7 @@ class NativeProjectIdentity:
                 if not 1 <= size <= 65536: raise ModelError('Offline change-log header is too large')
                 header = reader.read(size)
                 if len(header) != size: raise ModelError('Truncated offline change-log header')
-        except (OSError, EOFError) as error:
+        except (OSError, EOFError, zlib.error) as error:
             raise ModelError('Invalid compressed offline change-log stream') from error
         fields = _fields(header)
         if not {3, 8, 9, 10, 11, 12} <= fields.keys():

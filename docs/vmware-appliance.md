@@ -105,6 +105,11 @@ the configured native `l5xgit` tool, then sends the resulting L5X to the guest.
 The original ACD is preserved and rehashed. Native conversion still requires a
 compatible Studio 5000/SDK installation.
 
+Supported ACD imports also carry source-bound Change Log identifiers and the
+`TagInfo.XML` symbol catalog. The Connectivity panel shows the imported symbol
+count. These logical IDs preserve controller/program instance paths; native SDK
+address discovery and tag/rung monitoring remain unfinished.
+
 The same operation is available from the CLI:
 
 ```powershell

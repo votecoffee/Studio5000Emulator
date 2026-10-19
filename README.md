@@ -153,7 +153,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
-| ACD correlation | Offline Change Log identifiers bound to the converted L5X hash; native SDK passes project identity comparison for the tested demo |
+| ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, controller name/description and limited Metadata Definition class discovery; security enforcement remains unsupported |

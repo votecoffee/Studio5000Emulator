@@ -6,8 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.30` completes a read-only native SDK Go Online/Online state/
-Program mode/Go Offline sequence and stays Online across repeated polls. The
+Current milestone: `.31` preserves source-bound ACD symbol IDs and routes native
+controller/program instance paths. The `.30` implementation completes a
+read-only native SDK Go Online/Online state/Program mode/Go Offline sequence and
+stays Online across repeated polls. The
 next acceptance stage is native tag address discovery: SDK tag reads currently
 fail `RxDA_E_NO_ONLINE_ADDRESS`. Implement and verify that correlation layer
 before claiming native tag/rung monitoring or complete Studio GUI compatibility.

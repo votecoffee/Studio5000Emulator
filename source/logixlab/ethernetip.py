@@ -73,6 +73,7 @@ class Path:
     instance:int|None=None
     attribute:int|None=None
     symbols:list=field(default_factory=list)
+    program_instance:int|None=None
 
     def reference(self,base=''):
         result=base;indices=[]
@@ -107,10 +108,16 @@ def decode_path(raw):
             if kind==0x28:p.symbols.append(value)
             else:
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
+                # A native program tag has two object pairs: Program, Symbol.
+                if (attr=='class_id' and value==0x6B and p.class_id==0x68 and
+                    p.instance and p.attribute is None and not p.symbols and p.program_instance is None):
+                    p.program_instance=p.instance;p.class_id=value;p.instance=None
+                    continue
                 if getattr(p,attr) is not None:raise CIPError(4,'Duplicate logical segment')
                 setattr(p,attr,value)
         else:raise CIPError(4,f'Unsupported path segment 0x{code:02X}')
     if p.attribute is not None and p.class_id is None:raise CIPError(4,'Attribute without class')
+    if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program tag requires a symbol instance')
     return p
 
 
@@ -208,8 +215,12 @@ class Router:
     def symbols(self,scope=''):
         result=[];engine=self.app.engine
         if not engine:return result
+        native=getattr(self.app,'native_symbols',None)
+        if native and native.source_l5x_sha256!=engine.project.sha256:raise CIPError(0x0C,'Native symbol source changed')
         for tag in sorted(engine.project.tags.values(),key=lambda t:t.key.lower()):
             if tag.scope.lower()!=scope.lower() or tag.problem or tag.tag_class!='Standard':continue
+            mapping=native.by_key.get(tag.key.lower()) if native else None
+            if native and mapping is None:continue
             try:
                 self.access(tag.key)
                 key,parts,dtype=engine.memory.resolve(tag.key);value=engine.memory.values[key]
@@ -223,11 +234,11 @@ class Router:
                 try:self.access(tag.key,True);access=0
                 except (CIPError,ModelError):access=2
                 code=(0x8000|template.instance) if template else TYPES[dtype][0]
-                result.append({'id':len(result)+1,'name':tag.name,'ref':tag.key,'type':code|(len(dims)<<13),
+                result.append({'id':mapping.instance if mapping else len(result)+1,'name':tag.name,'ref':tag.key,'type':code|(len(dims)<<13),
                                'dimensions':(dims+[0,0,0])[:3],'external_access':access})
             except ModelError:continue
             except CIPError:continue
-        return result
+        return sorted(result,key=lambda item:item['id'])
 
     def access(self,ref,write=False,seen=()):
         """Honor root, alias target, member and AOI external-access restrictions."""
@@ -266,9 +277,9 @@ class Router:
     def reference(self,path):
         if path.attribute is not None:raise CIPError(4,'Tag service does not take an attribute')
         if path.class_id==0x6B:
-            scope='';parts=path.symbols
+            scope=self.symbol_scope(path,tag=True);parts=path.symbols
             if parts and isinstance(parts[0],str) and parts[0].lower().startswith('program:'):
-                scope=parts[0][8:];parts=parts[1:]
+                parts=parts[1:]
             symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)
             if symbol is None:raise CIPError(5,'Unknown symbol instance')
             return Path(symbols=parts).reference(symbol['ref'])
@@ -441,11 +452,20 @@ class Router:
         self.store_atomic(dtype,refs,[value])
         return 0,b''
 
-    def symbol_scope(self,path):
+    def symbol_scope(self,path,tag=False):
         scope=''
+        if path.program_instance is not None:
+            native=getattr(self.app,'native_symbols',None)
+            if native is None or path.program_instance not in native.program_ids:raise CIPError(5,'Unknown native program instance')
+            scope=native.program_ids[path.program_instance]
         if path.symbols:
-            if len(path.symbols)!=1 or not isinstance(path.symbols[0],str) or not path.symbols[0].lower().startswith('program:'):raise CIPError(4,'Unsupported symbol enumeration path')
-            scope=path.symbols[0][8:]
+            named=isinstance(path.symbols[0],str) and path.symbols[0].lower().startswith('program:')
+            if named:
+                if path.program_instance is not None:raise CIPError(4,'Cannot combine native and symbolic program scope')
+                scope=path.symbols[0][8:]
+                if not scope:raise CIPError(5,'Unknown program scope')
+            if not tag and (not named or len(path.symbols)!=1):raise CIPError(4,'Unsupported symbol enumeration path')
+        if scope:
             program=next((p for n,p in self.app.engine.project.programs.items() if n.lower()==scope.lower()),None)
             if program is None:raise CIPError(5,'Unknown program scope')
             if program['class']!='Standard':raise CIPError(0x0F,'Program is not externally accessible')
@@ -790,6 +810,7 @@ class Endpoint:
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
+                    'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,

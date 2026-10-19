@@ -30,6 +30,31 @@ tag-read request appears for those failures. That points to native address cache
 or correlation setup before the data transfer, rather than a type-specific
 tag-read response. Exact traces and source-bound receipts remain private.
 
+Version `.31` imports root-tag logical instance IDs from the original ACD's
+`TagInfo.XML` metadata. Controller tags retain their Symbol object IDs; program
+tags retain both Program and Symbol IDs. Numeric program paths and symbolic
+program prefixes address the same modeled tag. Enumeration is ordered by
+instance ID and retains gaps, including when unsupported tags are omitted.
+When a catalog is bound, unmapped tags are omitted from instance discovery;
+supported symbolic reads remain available. Generated IDs are never substituted
+inside that catalog.
+
+The Windows importer carries this separate manifest to the appliance. Both ACD
+and converted L5X hashes must agree with the correlation manifest, and a failed
+rebind leaves the existing project intact. Plain L5X/demo imports clear both
+bindings; reset retains them. The API exposes `native_symbols`, and Connectivity
+shows the imported symbol count. Unsupported metadata retains an explicit
+provenance error while offline L5X conversion remains available.
+
+These IDs are logical object paths, **not compiled controller addresses**.
+This closes an instance-routing mismatch without establishing SDK tag address
+cache population. Native type layouts and tag/rung monitoring remain separate
+acceptance work. Synthetic tests cover sparse 16/32-bit IDs, repeated IDs in
+different programs, array elements, paged enumeration, source mismatches,
+malformed/compressed XML and signed read/write-denial behavior.
+The `.31` suite passes 571 tests on Linux; Windows passes 569 with two
+Linux-only skips.
+
 Use the L85E profile with **Experimental native session (read only)** enabled.
 Import the matching ACD through the Windows app or VMware tray importer so its
 source-bound identifiers accompany the L5X. Plain L5X imports do not establish
