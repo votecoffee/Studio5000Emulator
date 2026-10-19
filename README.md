@@ -68,7 +68,9 @@ No additional Python packages are needed to run L5X projects or bundled demos.
 To run directly from source, use `py -3.13 -X utf8 source/launch.py`.
 See [development guidance](docs/development.md) for optional tooling, including
 an offline CIP capture inspector with bounded signed-envelope decoding for
-connection research.
+connection research. Its format-4 reports preserve nested object paths and
+requested attribute IDs while keeping symbols, values and raw bytes private by
+default. These analysis features do not establish native Studio Go Online.
 
 ## Usage
 

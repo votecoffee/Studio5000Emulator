@@ -49,6 +49,53 @@ def number(node, name):
     return int(found[0], 0)
 
 
+def describe_path(raw):
+    """Describe observed class/instance scopes without changing live routing.
+
+    Every parent is exactly an object path. Symbols are validated by the live
+    decoder but never returned here, including when their bytes resemble paths.
+    """
+    boundaries = [0]
+    position = 0
+    while position < len(raw):
+        start = position
+        code = raw[position]
+        position += 1
+        if code == 0x91:
+            if position == len(raw):
+                raise ValueError('Truncated symbolic segment')
+            size = raw[position]
+            position += 1 + size + size % 2
+        elif code in (0x20, 0x21, 0x22, 0x24, 0x25, 0x26,
+                      0x28, 0x29, 0x2A, 0x30, 0x31, 0x32):
+            if code in (0x20, 0x21, 0x22) and start:
+                boundaries.append(start)
+            width = (1, 2, 4)[code & 3]
+            position += width + (width > 1)
+        else:
+            raise ValueError('Unsupported request path segment')
+        if position > len(raw):
+            raise ValueError('Truncated request path segment')
+    if len(boundaries) > 16:
+        raise ValueError('Request object scope limit exceeded')
+    try:
+        scopes = [decode_path(raw[a:b]) for a, b in
+                  zip(boundaries, boundaries[1:] + [len(raw)])]
+    except CIPError as error:
+        raise ValueError('Unsupported or malformed request path') from error
+    if len(scopes) > 1:
+        if any(p.class_id is None or p.instance is None or p.attribute is not None or p.symbols
+               for p in scopes[:-1]) or scopes[-1].class_id is None or scopes[-1].instance is None:
+            raise ValueError('Unsupported object scope path')
+    fields = [dict(class_id=p.class_id, instance=p.instance, attribute=p.attribute,
+                   symbolic_path=bool(p.symbols)) for p in scopes]
+    if len(fields) == 1:
+        return fields[0]
+    # A scoped path must not look like a directly addressable leaf object.
+    return dict(class_id=None, instance=None, attribute=None,
+                symbolic_path=any(p.symbols for p in scopes), object_path=fields)
+
+
 def envelope_description(envelope, include_payloads):
     result = {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
               'sequence': envelope.sequence}
@@ -80,18 +127,20 @@ def describe(raw, include_payloads=False, *, unwrap=True):
         start = 2 + 2 * raw[1]
         if len(raw) < start:
             raise ValueError('Truncated CIP request path')
-        try:
-            path = decode_path(raw[2:start])
-        except CIPError as error:
-            raise ValueError('Unsupported or malformed request path') from error
-        message.update(class_id=path.class_id, instance=path.instance,
-                       attribute=path.attribute, symbolic_path=bool(path.symbols))
+        message.update(describe_path(raw[2:start]))
     payload = raw[start:]
     message.update(payload_bytes=len(payload), payload_sha256=hashlib.sha256(payload).hexdigest())
+    target = message.get('object_path', [message])[-1]
+    if (not message['response'] and service == 3 and target.get('class_id') is not None and
+            target['attribute'] is None and not message['symbolic_path']):
+        count = int.from_bytes(payload[:2], 'little')
+        if len(payload) >= 2 and count <= 256 and len(payload) == 2 + 2 * count:
+            message['requested_attributes'] = [int.from_bytes(payload[i:i+2], 'little')
+                                               for i in range(2, len(payload), 2)]
     if include_payloads:
         message['message_hex'] = raw.hex()
-    if (unwrap and not message['response'] and path.class_id == 2 and path.instance == 1 and
-            path.attribute is None and not path.symbols and service in (0x36, 0x37, 0x38)):
+    if (unwrap and not message['response'] and message['class_id'] == 2 and message['instance'] == 1 and
+            message['attribute'] is None and not message['symbolic_path'] and service in (0x36, 0x37, 0x38)):
         try:
             message['signed_envelope'] = envelope_description(signed_messages.parse_request(raw), include_payloads)
         except (signed_messages.EnvelopeError, ValueError) as error:
@@ -147,7 +196,7 @@ def summarize(packets, include_payloads=False):
         exchanges.append({'request': request, 'response': response})
         paired_requests.add(request['frame']); paired_responses.add(response['frame'])
     counts = Counter(f"0x{value['service']:02X}" for value in messages.values() if not value['response'])
-    return {'format_version': 3, 'scope': 'outer CIP messages and one observed signed layer',
+    return {'format_version': 4, 'scope': 'outer CIP messages and one observed signed layer',
             'signed_integrity': 'NOT VERIFIED',
             'vendor_semantics': 'NOT INFERRED', 'studio_go_online': 'NOT ASSESSED',
             'cip_packets': len(packets), 'decoded_messages': len(messages),

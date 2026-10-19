@@ -30,6 +30,11 @@ native Studio connection and programming services remain unfinished.
   class `0x8E` attribute `13` security metadata and cache/session semantics
   remain unresolved. Keep modeled revision values separate from native device
   provenance and security permissions.
+  Subsequent isolated wire-shape trials reach class `0x349` service `0x53`
+  and object-inventory discovery; they still fail before native Go Online.
+  Version `.27` preserves scoped object paths and requested attribute IDs in
+  offline capture reports to support further analysis without dispatching
+  unknown vendor operations.
   Version `.24` adds bounded offline `0x38` batch decoding and ordered child
   reply correlation, checked against 157 reference exchanges. Validate their
   MACs with a known key before adding authenticated batch dispatch.

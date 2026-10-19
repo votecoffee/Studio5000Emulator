@@ -2,11 +2,13 @@
 import hashlib
 import json
 from pathlib import Path
+import struct
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from tools.inspect_cip_capture import describe, inspect, summarize
+from logixlab.ethernetip import CIPError, decode_path
 from test_signed_messages import request as signed_request, response as signed_response
 from test_signed_batches import REQUEST as BATCH_REQUEST, RESPONSE as BATCH_RESPONSE, batch
 
@@ -23,7 +25,7 @@ class CaptureInspectionTests(unittest.TestCase):
     def test_batch_pair_exposes_ordered_children_and_partial_errors(self):
         report = summarize([packet(1, BATCH_REQUEST), packet(2, BATCH_RESPONSE, 1)])
         pair, = report['exchanges']
-        self.assertEqual(report['format_version'], 3)
+        self.assertEqual(report['format_version'], 4)
         for message in (pair['request'], pair['response']):
             envelope = message['signed_envelope']
             self.assertEqual(envelope['structure'], 'DECODED')
@@ -191,6 +193,86 @@ class CaptureInspectionTests(unittest.TestCase):
         description = describe(bytes.fromhex('030321001a03240001000100'))
         self.assertEqual((description['class_id'], description['instance']), (0x31A, 0))
         self.assertEqual(description['payload_bytes'], 4)
+
+    def test_scoped_object_path_keeps_order_without_claiming_a_flat_target(self):
+        path = bytes.fromhex('206524032100770124003009')
+        raw = bytes((0x0E, len(path)//2)) + path
+        request = describe(raw)
+        self.assertIsNone(request['class_id'])
+        self.assertIsNone(request['instance'])
+        self.assertIsNone(request['attribute'])
+        self.assertEqual(request['object_path'], [
+            dict(class_id=0x65, instance=3, attribute=None, symbolic_path=False),
+            dict(class_id=0x177, instance=0, attribute=9, symbolic_path=False)])
+        # Offline inspection does not broaden the live endpoint's path grammar.
+        with self.assertRaises(CIPError):
+            decode_path(path)
+
+    def test_scoped_requests_pair_inside_single_and_batch_wrappers(self):
+        inner = bytes.fromhex('0304206524032077240501000900')
+        for raw, response in (
+                (inner, b'\x83\0\x08\0'),
+                (signed_request(0x36, inner), signed_response(0x36, b'\x83\0\x08\0')),
+                (signed_request(0x37, inner), signed_response(0x37, b'\x83\0\x08\0')),
+                (batch((inner,)), batch((b'\x83\0\x08\0',), response=True))):
+            report = summarize([packet(1, raw), packet(2, response, 1)])
+            pair, = report['exchanges']
+            envelope = pair['request'].get('signed_envelope')
+            decoded = (envelope.get('inner') or envelope['children'][0]) if envelope else pair['request']
+            self.assertEqual(len(decoded['object_path']), 2)
+            self.assertEqual(decoded['requested_attributes'], [9])
+            self.assertFalse(report['skipped_packets'])
+            self.assertEqual(report['signed_integrity'], 'NOT VERIFIED')
+
+    def test_scoped_symbol_names_and_payload_values_stay_private(self):
+        name = b'Private0Machine'
+        path = b'\x20\x65\x24\3\x20\x77\x24\5\x91' + bytes((len(name),)) + name + b'\0'
+        raw = bytes((0x4C, len(path)//2)) + path + b'private-value'
+        result = describe(raw)
+        self.assertTrue(result['symbolic_path'])
+        self.assertTrue(result['object_path'][-1]['symbolic_path'])
+        text = json.dumps(result)
+        for value in (name.decode(), name.hex(), raw.hex(), 'private-value'):
+            self.assertNotIn(value, text)
+        self.assertEqual(describe(raw, True)['message_hex'], raw.hex())
+
+    def test_malformed_or_ambiguous_scopes_still_reject_the_request(self):
+        paths = ('206520772405', '20652403240320772405',
+                 '20652403300120772405', '206524032077',
+                 '2065240322007700', '20652403210177012405',
+                 '206524032077240591ff', '206524032077240530013002')
+        for path in paths:
+            raw = bytes.fromhex(path)
+            self.assertEqual(len(raw) % 2, 0)
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    describe(bytes((0x0E, len(raw)//2)) + raw)
+
+    def test_scope_count_and_wide_logical_segments_are_bounded(self):
+        scope = bytes.fromhex('220034120000260078560000')
+        path = scope * 16
+        raw = bytes((0x0E, len(path)//2)) + path
+        scopes = describe(raw)['object_path']
+        self.assertEqual(len(scopes), 16)
+        self.assertEqual(scopes[-1]['class_id'], 0x1234)
+        self.assertEqual(scopes[-1]['instance'], 0x5678)
+        path += scope
+        with self.assertRaisesRegex(ValueError, 'scope limit'):
+            describe(bytes((0x0E, len(path)//2)) + path)
+
+    def test_attribute_list_ids_are_structural_and_preserve_order_and_duplicates(self):
+        prefix = b'\x03\2\x20\x65\x24\3'
+        raw = prefix + struct.pack('<4H', 3, 9, 13, 9)
+        message = describe(raw)
+        self.assertEqual(message['requested_attributes'], [9, 13, 9])
+        self.assertNotIn('message_hex', message)
+        self.assertNotIn('attribute_values', message)
+        for payload in (b'', b'\1', b'\1\0', b'\0\0\1\0', struct.pack('<H', 257)+b'\1\0'*257):
+            self.assertNotIn('requested_attributes', describe(prefix + payload))
+        self.assertEqual(describe(prefix + b'\0\0')['requested_attributes'], [])
+        bound = describe(prefix + struct.pack('<H', 256) + b'\1\0'*256)
+        self.assertEqual(len(bound['requested_attributes']), 256)
+        self.assertNotIn('requested_attributes', describe(b'\x83\0\0\0' + raw[6:]))
 
     def test_completed_inputs_are_preserved_and_changing_captures_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

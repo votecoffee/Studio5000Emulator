@@ -369,6 +369,26 @@ does not validate a complete session lifecycle or replay policy. Unknown
 security flags, permissions and cache-write semantics are not guessed. The
 normal endpoint still rejects `0x64` confirmation and all signed dispatch.
 
+Later emulator-only trials supplied a synthetic four-byte zero field for
+attribute `13`. The SDK accepted that reply shape and next requested class
+`0x349`, instance 0, service `0x53`, with 26 payload bytes. An additional trial
+supplied an empty eight-byte container for that request, after which the SDK
+requested the Message Router's object inventory. Returning the model's real
+inventory did not complete the connection. All three trials still failed with
+`RxSEC_E_SECURITY_INFO_NOT_READ`; no native online session was established.
+
+These temporary replies measure client progression only. They do not establish
+the security field's meaning, authorize an operator or implement class `0x349`.
+The normal endpoint continues to reject both requests. Each trial retained the
+original model memory and dispatched no writes. The isolated native service
+and leased harness were stopped afterward, and the normal endpoint restored.
+
+The [Import/Export reference, page 58](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+defines the L5X `Security` element's `Code` as legacy RSI Security Server
+configuration. That source field alone does not establish its CIP mapping or
+FactoryTalk permission semantics, so it is not substituted for an unknown wire
+attribute.
+
 ### Capability-response investigation
 
 Additional isolated SDK trials varied the entries in the temporary `0x4C`
@@ -426,6 +446,28 @@ batches, while preserving the `inner` field for `0x36`/`0x37`. Default reports
 omit child symbols, values and raw messages. Raw bytes require the existing
 explicit `--include-payloads` option. All batch integrity fields remain
 **NOT VERIFIED**.
+
+Version `0.6.0-connectivity.27` produces capture report format 4. Requests with
+multiple class/instance scopes retain their ordered `object_path` entries.
+Their flat `class_id`, `instance` and `attribute` fields are null, preventing a
+scoped target from being mistaken for its directly addressable leaf. Every
+parent scope must contain only a class and instance; malformed segments,
+duplicate fields within a scope and paths deeper than 16 objects are rejected.
+This is an offline description, not a change to live path routing.
+
+Structurally complete Get Attribute List requests also expose ordered
+`requested_attributes` IDs, including duplicates, up to 256 entries. Replies
+retain their status, size and payload hash; unknown value widths and security
+meanings are not inferred. Missing or malformed lists retain their original
+payload hashes without a decoded ID list. Symbols and values remain absent
+from default reports, including scoped paths and embedded batch children.
+
+Reanalysis of the same saved sample retained all 1,685 paired exchanges and
+decoded six previously opaque signed requests containing scoped paths. It
+exposed 7,668 attribute-list requests across outer and embedded messages.
+Integrity remains **NOT VERIFIED** and native Go Online remains unimplemented.
+The `.27` behavioral suite passed 526 tests on Linux; Windows passed 524 with
+two Linux-only skips.
 
 Offline validation decoded all 157 saved reference batch exchanges and 4,138
 child request/reply pairs. The `.24` suite passed all 517 tests on Linux; Windows
