@@ -22,6 +22,7 @@ from .identity import Identity
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
+from .broadcast_discovery import prepare_broadcasts
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -638,6 +639,8 @@ class Endpoint:
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
         self.interface=None;self.interface_error=None;self.interface_queried=False
+        self.broadcast_servers=[]
+        self.discovery_status={'broadcast_enabled':False,'broadcast_addresses':[],'interface':None,'reason':'Endpoint is stopped'}
 
     def flash_leds(self,seconds):
         # Identification is independent of application tag-write permission.
@@ -674,6 +677,7 @@ class Endpoint:
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
+                    'discovery':{**self.discovery_status,'broadcast_enabled':self.enabled and bool(self.broadcast_servers)},
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
@@ -803,8 +807,10 @@ class Endpoint:
                 if attempt+1==attempts:
                     raise ModelError(f'Cannot bind EtherNet/IP {transport} at {self.bind_address}:{failed_port}: {e}. '
                         'Use an IP assigned to this PC and a free TCP/UDP port. A listener on 0.0.0.0 may also reserve this port.') from e
+        self.broadcast_servers,self.discovery_status=prepare_broadcasts(self.bind_address,self.port,
+            lambda raw,peer:self.packet(raw,Session(peer=str(peer)),True),self.record)
         self.enabled=True
-        for server in (self.tcp,self.udp):
+        for server in (self.tcp,self.udp,*self.broadcast_servers):
             thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':0.05},daemon=True);thread.start();self.threads.append(thread)
         self.record('started',detail='Local research endpoint; Studio Go Online is unverified')
         return self
@@ -815,6 +821,6 @@ class Endpoint:
         for conn in clients:
             try:conn.shutdown(socket.SHUT_RDWR);conn.close()
             except OSError:pass
-        for server in (self.tcp,self.udp):
+        for server in (self.tcp,self.udp,*self.broadcast_servers):
             if server:server.shutdown();server.server_close()
         self.record('stopped')

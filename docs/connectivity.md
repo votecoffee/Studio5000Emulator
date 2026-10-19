@@ -51,6 +51,34 @@ The optional [VMware host-only appliance](vmware-appliance.md) supplies an isola
 guest network stack when the host's Linx listener must remain unchanged. Its
 launcher provides a localhost browser tunnel and Windows tray controls.
 
+## Broadcast discovery
+
+Linux endpoints on an Ethernet interface with an IPv4 subnet prefix shorter than
+`/31` also listen at that subnet's directed-broadcast address and
+`255.255.255.255`. These are separate, specific UDP bindings; the TCP and unicast
+UDP listeners remain on the selected PLC address. Windows and loopback endpoints
+continue to use unicast discovery.
+
+Linux `IP_PKTINFO` metadata must identify the selected interface, its local IP
+and the matching broadcast destination. Missing, ambiguous or truncated metadata
+is rejected. Only empty ListIdentity, ListServices and ListInterfaces requests
+with zero session/status/options are answered; other broadcast datagrams are
+ignored. Replies are unicast to the sender, with the selected PLC IP and interface
+explicitly supplied to the kernel. This does not require a raw socket or network
+configuration privileges.
+
+If either additional socket cannot bind, both are closed and the endpoint
+continues with unicast discovery. **Connectivity** shows broadcast availability
+and the reason when unavailable. The API exposes this under `discovery`; traces
+include `broadcast_discovery`, `broadcast_ignored` and send-error events. No host
+adapter, Linx, firewall or routing configuration is changed.
+
+Broadcast reception and FactoryTalk Linx range browsing are separate acceptance
+checks. A successful broadcast reply does not establish range browsing, path
+selection or Studio Go Online. The discovery exchange follows ODVA's
+[IPv4 ListIdentity description](https://www.odva.org/wp-content/uploads/2022/06/2012_ODVA_Conference_XuYuBrooksBatke_FINAL.pdf)
+and Linux's [IPv4 socket interface](https://man7.org/linux/man-pages/man7/ip.7.html).
+
 ## Virtual chassis
 
 The modeled port-1/slot-0 route is an EtherNet/IP routing response; it does not

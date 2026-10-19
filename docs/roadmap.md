@@ -6,8 +6,9 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-- Reproduce direct-IP discovery, then diagnose range/broadcast discovery
-  separately with bounded packet captures.
+- Preserve verified direct-IP discovery and device location. Linux broadcast
+  discovery has datagram coverage; validate Linx range browsing separately with
+  bounded packet captures.
 - Implement the source-backed port/topology metadata and controller services
   required for native path selection and project correlation.
 - Resolve the vendor object/service gaps observed by the

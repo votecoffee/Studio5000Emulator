@@ -122,7 +122,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Projects | v35 L5X import; optional native ACD-to-L5X conversion on a copy |
 | Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic scans |
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
-| EtherNet/IP | Loopback discovery, sessions, Class 3 messaging and atomic tag services |
+| EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit packed Boolean flags and fragmented reads/writes |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |

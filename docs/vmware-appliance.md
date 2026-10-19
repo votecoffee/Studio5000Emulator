@@ -63,6 +63,12 @@ list. Linx uses port 44818 automatically. A host-only network connects the guest
 to its Windows host without placing it on the physical LAN. See
 [VMware networking types](https://knowledge.broadcom.com/external/article?legacyId=1006480).
 
+The Linux appliance also supports directed and limited broadcast discovery on
+its selected Ethernet interface. The **Connectivity** tab reports whether these
+listeners are available. Keep the direct guest-IP entry as the established Linx
+workflow; Linx range browsing still needs separate native validation. See the
+[broadcast discovery contract](connectivity.md#broadcast-discovery).
+
 The appliance starts the read-only ConveyorDemo endpoint with the experimental
 L85E v35 identity. **Allow tag writes** remains an explicit opt-in.
 

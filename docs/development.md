@@ -117,6 +117,19 @@ memory:
 py -3.13 -X utf8 tests/interop_network_objects.py --out ../.local/network-objects.json
 ```
 
+The optional Linux broadcast probe creates a temporary read-only endpoint on an
+explicitly selected local Ethernet IP and an automatic port. It sends discovery
+datagrams through that interface to the PLC IP, subnet broadcast and limited
+broadcast. It checks reply sources, equivalent payloads, ignored malformed
+requests and preserved application memory. Run it inside the host-only backend,
+using its actual address in place of the documentation address below:
+
+```sh
+python3 -X utf8 tests/interop_broadcast_discovery.py --bind-address 192.0.2.128 --out ../.local/broadcast-discovery.json
+```
+
+It does not test the Linx UI's range-browse behavior or Studio Go Online.
+
 See the [community assessment](community-projects.md#reusable-conversion-comparison)
 for the separate read-only comparison tool used to evaluate converter output.
 

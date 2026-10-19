@@ -2,6 +2,7 @@
 import socket
 import socketserver
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 from logixlab.model import ModelError
@@ -61,6 +62,43 @@ class EndpointBindingTests(unittest.TestCase):
                 with self.assertRaises(ModelError): self.endpoint.start()
             bind.assert_not_called()
         self.assertFalse(self.endpoint.enabled); self.assertIsNone(self.endpoint.tcp)
+
+    def test_unavailable_broadcast_listener_preserves_tcp_and_udp_unicast(self):
+        status = {'broadcast_enabled': False, 'broadcast_addresses': [], 'interface': None, 'reason': 'Port in use'}
+        with patch('logixlab.ethernetip.prepare_broadcasts', return_value=([], status)):
+            self.endpoint = Endpoint(self.app, 0).start()
+        self.assertFalse(self.endpoint.state()['discovery']['broadcast_enabled'])
+        self.assertEqual(self.endpoint.state()['discovery']['reason'], 'Port in use')
+        client = Client(self.endpoint.port)
+        try:
+            head, identity = client.packet(0x63)
+            self.assertEqual(head[3], 0)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+                udp.settimeout(2)
+                udp.sendto(bytes.fromhex('630000000000000000000000') + b'BROWSE17' + b'\0'*4, ('127.0.0.1', self.endpoint.port))
+                raw, _ = udp.recvfrom(4096)
+                self.assertEqual(raw[24:], identity)
+        finally:
+            client.close()
+
+    def test_endpoint_stop_closes_every_extra_broadcast_listener(self):
+        class ExtraListener:
+            def __init__(self):
+                self.done = threading.Event(); self.closed = False
+            def serve_forever(self, poll_interval): self.done.wait()
+            def shutdown(self): self.done.set()
+            def server_close(self): self.closed = True
+        extra = [ExtraListener(), ExtraListener()]
+        status = {'broadcast_enabled': True, 'broadcast_addresses': ['192.0.2.255', '255.255.255.255'], 'interface': 'eth-test', 'reason': None}
+        with patch('logixlab.ethernetip.prepare_broadcasts', return_value=(extra, status)):
+            self.endpoint = Endpoint(self.app, 0).start()
+        self.assertTrue(self.endpoint.state()['discovery']['broadcast_enabled'])
+        self.endpoint.stop()
+        self.assertFalse(self.endpoint.state()['discovery']['broadcast_enabled'])
+        for server in extra:
+            self.assertTrue(server.done.is_set()); self.assertTrue(server.closed)
+        for thread in self.endpoint.threads:
+            thread.join(timeout=1); self.assertFalse(thread.is_alive())
 
 
 if __name__ == '__main__': unittest.main()

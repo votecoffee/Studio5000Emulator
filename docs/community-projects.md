@@ -29,6 +29,10 @@ Windows metadata reads use IP Helper directly to avoid shell startup latency.
 Controller class revision and instance inventory now follow the common CIP
 class layout reviewed in OpENer. A native SDK retest confirmed that specific
 class-level revision query succeeds; the remaining vendor handshake is pending.
+Linux broadcast reception now uses separate broadcast sockets, checked interface
+metadata and a selected reply source. Its implementation follows the published
+Linux socket interface and ODVA discovery exchange; no upstream stack code is
+bundled. See [broadcast discovery](connectivity.md#broadcast-discovery).
 The scope addresses concrete browser queries without inventing physical
 controller manufacturing data. See the [protocol contract](connectivity.md#port-and-tcpip-interface-metadata)
 and `source/tests/interop_network_objects.py` for the independent-client check.
