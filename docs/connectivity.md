@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.43` candidate returns controller settings and Linux Ethernet status; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
+| Native upload | `.43` deployed test returns controller settings and Linux Ethernet status; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -517,6 +517,17 @@ passes 681 with the Windows console check skipped. New checks cover source and
 default provenance, invalid settings, incomplete/ambiguous handler declarations,
 exact link encodings, read-only ioctl framing, missing driver data, cached
 interface selection, malformed requests and signed setter denial.
+
+The rebuilt `.43` appliance passed 93 live protocol checks. Its eight SDK
+connection steps passed across 85 verified signed requests, ending Offline.
+Deployed upload reproduced the candidate's responses across 199 verified
+requests and retained the controller-collection failure. A separate SDK hold/read
+check completed 93 verified requests, reported Online/Program and ended Offline
+without correlation loss. Typed BOOL, generic BOOL and generic DINT reads still
+fail `RxDA_E_NO_ONLINE_ADDRESS`. Source ACD bytes, model values and zero scan count
+were preserved, with network writes disabled. Deployed modules, browser assets,
+displayed version and the Windows artifact matched the source. These checks do
+not establish native tag/rung monitoring, complete upload/download or online edits.
 
 ### Change Log correlation
 

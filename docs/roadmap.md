@@ -7,7 +7,7 @@ native Studio connection and programming services remain unfinished.
 ## Native Linx and Studio connection
 
 Current milestone: `.43` adds controller compatibility settings and read-only
-Linux Ethernet status. The native candidate preserves scalar tag discovery and
+Linux Ethernet status. The deployed native test preserves scalar tag discovery and
 returns these fields, but still fails controller collection. Handler-reference
 encoding, Ethernet counters and remaining controller/device metadata need further
 work. Complete native upload and SDK tag monitoring are unfinished.
