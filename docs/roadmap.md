@@ -27,14 +27,19 @@ native Studio connection and programming services remain unfinished.
   [native sequence investigation](connectivity.md#native-signed-sequence-investigation).
   Version `.26` adds the read-only virtual Identity hardware/build fields
   requested after context binding. The isolated SDK accepts that list reply;
-  class `0x8E` attribute `13` security metadata and cache/session semantics
-  remain unresolved. Keep modeled revision values separate from native device
+  later revisions address the class `0x8E` attribute `13` source metadata;
+  cache/session semantics remain unresolved. Keep modeled values separate from native device
   provenance and security permissions.
   Subsequent isolated wire-shape trials reach class `0x349` service `0x53`
   and object-inventory discovery; they still fail before native Go Online.
   Version `.27` preserves scoped object paths and requested attribute IDs in
   offline capture reports to support further analysis without dispatching
   unknown vendor operations.
+  Version `.28` adds source-backed SecurityCode and controller name/description
+  reads, plus limited class discovery. The isolated SDK accepts these responses
+  and reaches Safety Controller locked-state/signature queries. Resolve those
+  requests with evidence while preserving the distinction between source
+  metadata and live safety behavior. Native Go Online still fails.
   Version `.24` adds bounded offline `0x38` batch decoding and ordered child
   reply correlation, checked against 157 reference exchanges. Validate their
   MACs with a known key before adding authenticated batch dispatch.

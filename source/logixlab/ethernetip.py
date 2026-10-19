@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import file_manager, key_exchange
+from . import controller_configuration, file_manager, key_exchange
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -503,7 +503,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<12H',11,1,2,6,0x64,0x6B,0x6C,0xAC,0xF4,0xF5,0xF6,0x31A)
+            classes=struct.pack('<14H',13,1,2,6,0x64,0x6B,0x6C,0x8E,0xAC,0xF4,0xF5,0xF6,0x31A,0x349)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
         if path.class_id in (0xF4,0xF5,0xF6):
@@ -552,6 +552,16 @@ class Router:
             if path.symbols:raise CIPError(4,'File Manager paths do not take symbols')
             if path.instance!=0:raise CIPError(5,'No File Manager storage instances are modeled')
             return self.attribute_read(service,path,data,file_manager.class_attributes())
+        if path.class_id==0x349:
+            if path.symbols:raise CIPError(4,'Metadata Definition paths do not take symbols')
+            if path.instance!=0:raise CIPError(5,'No Metadata Definition instances are modeled')
+            return self.attribute_read(service,path,data,controller_configuration.metadata_class_attributes())
+        if path.class_id==0x8E:
+            if path.symbols:raise CIPError(4,'Controller configuration paths do not take symbols')
+            if path.instance==0:attributes={1:b'\1\0'}
+            elif path.instance==1:attributes=self.app.engine.project.controller_configuration.attributes()
+            else:raise CIPError(5,'Unknown Controller configuration instance')
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:
             if path.symbols:raise CIPError(4,'Controller metadata paths do not take symbols')
             if path.instance==0:
@@ -566,6 +576,10 @@ class Router:
             exact(data,0);name=self.app.engine.project.name.encode('ascii')
             if len(name)>255:raise CIPError(0x1B,'Controller project name exceeds supported size')
             return 0,struct.pack('<H',len(name))+name
+        if path.class_id==0x64 and path.instance==0 and not path.symbols:
+            return self.attribute_read(service,path,data,{1:b'\1\0'})
+        if path.class_id==0x64 and path.instance==1 and not path.symbols and service in (3,0x0E):
+            return self.attribute_read(service,path,data,self.app.engine.project.controller_configuration.extended_device_attributes())
         if path.class_id==0x64 and path.instance==1 and service==0x4B:
             if path.symbols or path.attribute is not None:raise CIPError(4,'Key challenge requires an object instance path')
             try:return 0,key_exchange.challenge(data)
@@ -685,6 +699,8 @@ class Endpoint:
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
+                    'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
+                    'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'key_exchange':key_exchange.description() if self.enabled else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,

@@ -171,6 +171,7 @@ their existing field layouts, and attribute writes remain unsupported.
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`: class revision/inventory and instance 1 comparison attributes |
 | File Manager | Class `0x31A`, instance 0: revision and zero storage-instance count |
+| Controller configuration | Class `0x8E` source SecurityCode and class revision; `0x64` name/description reads; `0x349` class discovery only |
 | Vendor key challenge | Extended Device `0x64`, instance 1, `0x4B`; confirmation and authenticated wrappers remain unsupported |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
@@ -357,9 +358,10 @@ candidate virtual revision metadata above, the native SDK received a successful,
 MAC-valid list reply. This verifies the reply shape and read compatibility, not
 physical hardware equivalence or completed Go Online.
 
-The next unresolved reads concern class `0x8E`, instance 1, attribute `13`:
-the SDK tries a one-entry attribute-list read and a single read. They remain
-unsupported, and the SDK reports that security access information could not be
+In the `.26` experiments, the next unresolved reads concerned class `0x8E`,
+instance 1, attribute `13`: the SDK tried a one-entry attribute-list read and a
+single read. They were unsupported at that revision, and the SDK reported that
+security access information could not be
 obtained. The harness also denied a zero-entry Set Attribute List request to
 class `0xAC`, instance 1. It performed no attribute writes or controller-state
 changes; its final memory comparison matched the original model values.
@@ -379,15 +381,32 @@ inventory did not complete the connection. All three trials still failed with
 
 These temporary replies measure client progression only. They do not establish
 the security field's meaning, authorize an operator or implement class `0x349`.
-The normal endpoint continues to reject both requests. Each trial retained the
+The `.27` endpoint continued to reject both requests. Each trial retained the
 original model memory and dispatched no writes. The isolated native service
 and leased harness were stopped afterward, and the normal endpoint restored.
 
 The [Import/Export reference, page 58](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 defines the L5X `Security` element's `Code` as legacy RSI Security Server
-configuration. That source field alone does not establish its CIP mapping or
-FactoryTalk permission semantics, so it is not substituted for an unknown wire
-attribute.
+configuration. The installed attribute definitions subsequently established its
+CIP mapping for `.28`, as described under
+[source configuration](#source-configuration-and-class-discovery). FactoryTalk
+permission semantics remain unimplemented.
+
+The `.28` candidate's source-backed attribute `13` and class-revision replies
+were accepted in a later isolated SDK test. Adding the Extended Device name and
+description list also removed that read failure. The final trial recorded 53
+ordered, MAC-valid signed requests. Its remaining reads targeted Safety
+Controller class `0x334`, instance 1: attributes `3` (Locked State) and `4`
+(Signature Exists), followed by an attribute-3 single-read fallback. Those
+remain unsupported, and the SDK still reported `RxSEC_E_SECURITY_INFO_NOT_READ`.
+
+These tests still used temporary confirmation, registration and empty-container
+wire replies. They validate the new metadata responses, not authentication,
+safety state or native Go Online. No controller write was dispatched, and the
+final memory comparison matched the original model values.
+
+The `.28` behavioral suite passed 536 tests on Linux; Windows passed 534 with
+two Linux-only skips.
 
 ### Capability-response investigation
 
@@ -583,6 +602,47 @@ guard because Multiple Service children execute independently.
 
 Only the read-only comparison attributes are implemented. Native project
 correlation, mode changes and Studio Go Online remain pending.
+
+## Source configuration and class discovery
+
+Version `0.6.0-connectivity.28` adds the following Get Attribute Single and Get
+Attribute List subsets. Revision 1 describes this implementation, not a native
+controller's object revision.
+
+| Class / instance | Attributes | Modeled values and encoding |
+| --- | --- | --- |
+| Controller `0x8E` / 0 | 1 | UINT object revision 1 |
+| Controller `0x8E` / 1 | 13 | Source `Controller/Security@Code`, four-byte unsigned value |
+| Extended Device `0x64` / 0 | 1 | UINT object revision 1 |
+| Extended Device `0x64` / 1 | 1, 2 | Source controller name and description, each prefixed by a UINT byte length |
+| Metadata Definition `0x349` / 0 | 1, 2, 3 | UINT revision 1; UDINT maximum instance 0 and instance count 0 |
+
+The layouts were checked against the installed v35 Controller, Extended Device
+and Metadata Definition Attribute Description Files. They are neither modified
+nor bundled; reference hashes remain in local receipts. The implementation
+supports only these fields, with no Metadata Definition instances or vendor
+`0x53` operation.
+
+The [Import/Export reference, page 58](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+defines L5X `Security@Code` as the legacy RSI Security Server configuration.
+The model accepts decimal values from 0 through 4,294,967,295, with at most ten
+digits. Missing, duplicated, malformed or out-of-range source settings leave
+attribute `13` unavailable (`0x14`, including per-attribute list errors). They
+never become an assumed zero. Zero and nonzero source values are returned
+exactly; neither enables security enforcement or grants permission.
+
+Extended Device text currently supports ASCII: up to 40 bytes for the name and
+128 for the description. An absent optional description is empty. Oversized,
+non-ASCII, localized or ambiguous descriptions remain unavailable, without
+truncation or a guessed language. The earlier name-only Get Attributes All
+reply retains its existing layout. Unknown attributes keep explicit errors.
+
+Message Router inventory includes the two added object classes. Connectivity
+state exposes availability and implementation boundaries under
+`controller_configuration` and `metadata_definition`. Source replacement updates
+the metadata and invalidates old sessions. Setters, operator registration,
+authority services, Safety Controller status, confirmation and authenticated
+dispatch remain unsupported even when ordinary tag writes are enabled.
 
 ## File Manager discovery
 
