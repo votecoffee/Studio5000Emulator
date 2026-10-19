@@ -85,7 +85,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Explicit transport | SendRRData, slot-0 Unconnected Send, Class 3 SendUnitData |
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
 | Objects | Identity attributes, Message Router class inventory and controller name |
-| Network metadata | Port Object `0xF4`; read-only TCP/IP Interface `0xF5` configuration and hostname |
+| Network metadata | Port/node addresses `0xF4`, TCP/IP configuration `0xF5`, Ethernet MAC `0xF6` |
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`, instance 1: attributes 1, 2, 3, 4 and 10 |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
@@ -143,27 +143,36 @@ The Port Object (`0xF4`) describes two modeled interfaces: local slot-zero
 backplane routing on port 1 and the selected EtherNet/IP endpoint on port 2.
 Class attributes 1, 2, 3, 8 and 9 support single/list reads and class
 Get_Attributes_All. The entry port is 2; the port-info array includes the reserved
-zero entry. Instance attributes 1 through 5 support single/list reads. Port 2's
+zero entry. Instance attributes 1 through 5 and 7 support single/list reads and
+instance Get_Attributes_All. Attribute 7 describes local slot zero on port 1,
+and the selected IPv4 address as a padded extended-link segment on port 2. Port 2's
 link path points to TCP/IP Interface instance 1. Port 1 has an empty link-object
 path because no physical backplane object is implemented. Unknown ports are
 rejected rather than advertised as additional hardware.
 
 The TCP/IP Interface Object (`0xF5`) supports class attributes 1 through 3 and
 class Get_Attributes_All. Instance 1 exposes attribute 5 (IPv4 configuration) and
-6 (hostname). IPv4 values are CIP little-endian UDINTs; domain/hostname values use
+6 (hostname). Attribute 4 returns the path to Ethernet Link instance 1 when its
+MAC address is known, or a zero-length path when physical-link metadata is
+unavailable. IPv4 values are CIP little-endian UDINTs; domain/hostname values use
 length-prefixed, even-padded CIP strings. The configuration uses the selected
 local address, actual subnet mask, default gateway, IPv4 DNS servers and domain.
 
-Configuration is captured lazily on the first attribute-5 query and retained for
+Configuration is captured lazily on the first IPv4/physical-link query and retained for
 that endpoint. Linux queries interface ioctls, its route table and resolver file;
-Windows uses bounded, read-only network cmdlets. Restart the endpoint to refresh
+Windows calls the read-only IP Helper API directly. It does not launch a shell
+on a CIP request. Restart the endpoint to refresh
 the snapshot after an OS configuration change. If the selected configuration
 cannot be read or validated, the request returns a CIP error; no subnet, gateway
 or MAC address is guessed. Snapshot availability and errors are exposed in the
-connectivity state.
+connectivity state. Ethernet Link (`0xF6`) supports class attributes 1 through 3,
+class Get_Attributes_All, and single/list reads of instance 1 attribute 3. The MAC
+is six octets in adapter order, read from that exact OS interface. Unknown,
+non-Ethernet, zero or multicast addresses are not replaced with invented MACs;
+the request returns an explicit CIP error. Loopback normally has no Ethernet MAC.
 
 Network configuration writes, TCP/IP instance Get_Attributes_All, the remaining
-TCP/IP attributes, Ethernet Link Object `0xF6`, and physical-backplane services
+TCP/IP attributes, Ethernet Link speed/flags/counters and physical-backplane services
 remain unsupported. Enabling tag writes does not enable network reconfiguration.
 These responses do not establish native Studio path selection or Go Online.
 
@@ -171,6 +180,8 @@ The layouts follow the published
 [Port/TCP-IP object tables](https://productinfo.se.com/pm5500/595e2aa946e0fb0001f715da/PM5500%20user%20manual/English/PM5500SeriesUserManualv02_0000044889.ditamap/$/R_Communications_EthernetIP_MessagingExplicitExchanges_PM5500_0000178841)
 and the [Rockwell port-object description](https://www.sprecherschuh.com/content/dam/sprecher-schuh/downloads/tech-docs/CEP7-UM014B-EN-P_12-11.pdf).
 This is an original, bounded implementation; no upstream stack code is bundled.
+Windows adapter layouts follow Microsoft's
+[IP Helper documentation](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses).
 
 ## Catalog refresh
 
@@ -316,6 +327,35 @@ Use `--operation go-online` for the broader connection attempt. Retain receipts
 and before/after protocol traces locally. A native failure before any endpoint
 traffic does not identify the next missing CIP service. A successful identity
 query is still distinct from successful project correlation or online monitoring.
+
+### Observed native connection gaps
+
+On 2026-10-19, an isolated RockwellMCPServer 0.8.2 instance used the native SDK
+with a matching private v35 ConveyorDemo ACD and the host-only appliance running
+`0.6.0-connectivity.15`. The project opened offline, setting and reading its
+configured Linx Ethernet/backplane/slot-zero path succeeded, and the Go Online
+attempt reached the endpoint. It returned
+`RxE_COMM_ASA_SERVICE_NOT_SUPPORTED - Unimplemented service`.
+
+The endpoint trace contains these unsupported requests:
+
+| Object path | Request | Current response |
+| --- | --- | --- |
+| Class `0xAC`, instance 0 | Get Attribute List for attribute 1 | Unknown metadata instance (`0x05`) |
+| Class `0x31A`, instance 0 | Get Attribute List and Get Attribute Single for attribute 1 | Unsupported service (`0x08`) |
+| Class `0x64`, instance 1 | Vendor service `0x4B` | Unsupported service (`0x08`) |
+
+These are observed gaps, not a complete list of requirements for native online
+operation. The trace does not establish the vendor payload layouts or which
+response prevents later phases. Service `0x4B` on class `0x64` is a different
+object request from the implemented Identity Object device locator. Unknown
+requests retain explicit errors until their behavior is established.
+
+This probe did not demonstrate the Studio GUI's Set Project Path, upload,
+download or online monitor. ACD inputs, exact target configuration, job receipts
+and packet samples remain in ignored local storage. The diagnostic CLI above
+retains its loopback restriction; the appliance test used the separately
+configured, target-allowlisted RockwellMCPServer instance.
 
 ## References
 

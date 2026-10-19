@@ -154,6 +154,13 @@ class Router:
 
     def identity(self):return self.endpoint.identity.all_attributes()
 
+    def network_interface(self):
+        if not self.endpoint.interface_queried:
+            snapshot,error=interface_snapshot(self.endpoint.bind_address)
+            with self.endpoint.lock:
+                self.endpoint.interface=snapshot;self.endpoint.interface_error=error;self.endpoint.interface_queried=True
+        return self.endpoint.interface
+
     def attribute_read(self,service,path,data,attributes):
         if service==0x0E:
             exact(data,0)
@@ -493,39 +500,49 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<10H',9,1,2,6,0x64,0x6B,0x6C,0xAC,0xF4,0xF5)
+            classes=struct.pack('<11H',10,1,2,6,0x64,0x6B,0x6C,0xAC,0xF4,0xF5,0xF6)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
-        if path.class_id in (0xF4,0xF5):
+        if path.class_id in (0xF4,0xF5,0xF6):
             if path.symbols:raise CIPError(4,'Network object paths do not take symbols')
             instance=path.instance
             if instance is None:raise CIPError(4,'Network object path requires an instance')
             if path.class_id==0xF4:
-                try:attributes=port_attributes(instance)
+                try:attributes=port_attributes(instance,self.endpoint.bind_address)
                 except KeyError:raise CIPError(5,'Unknown Port object instance')
-                if instance==0 and service==1 and path.attribute is None:
+                if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes.values())
             elif instance==0:
                 attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
                 if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes.values())
+            elif instance==1 and path.class_id==0xF6:
+                attributes={}
+                if service==0x0E:exact(data,0)
+                requested=service==0x0E and path.attribute==3
+                if service==3 and path.attribute is None:
+                    need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
+                    if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
+                    requested=3 in struct.unpack_from('<'+'H'*count,data,2)
+                if requested:
+                    snapshot=self.network_interface()
+                    if snapshot is None or snapshot.mac is None:raise CIPError(0x0C,'Ethernet MAC address is unavailable on this interface')
+                    attributes[3]=snapshot.mac
             elif instance==1:
                 if service==0x0E:exact(data,0)
                 attributes={6:cip_string(socket.gethostname())}
                 # Query the local OS only when the caller needs this attribute.
                 # Unknown interface data is an error, never a guessed /24 or MAC.
-                requested=service==0x0E and path.attribute==5
+                requested=service==0x0E and path.attribute in (4,5)
                 if service==3 and path.attribute is None:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-                    requested=5 in struct.unpack_from('<'+'H'*count,data,2)
+                    requested=bool({4,5}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
                 if requested:
-                    if not self.endpoint.interface_queried:
-                        snapshot,error=interface_snapshot(self.endpoint.bind_address)
-                        with self.endpoint.lock:
-                            self.endpoint.interface=snapshot;self.endpoint.interface_error=error;self.endpoint.interface_queried=True
-                    if self.endpoint.interface is None:raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
-                    attributes[5]=self.endpoint.interface.configuration()
+                    snapshot=self.network_interface()
+                    attributes[4]=b'\2\0\x20\xF6\x24\1' if snapshot is not None and snapshot.mac else b'\0\0'
+                    if snapshot is not None:attributes[5]=snapshot.configuration()
+                    elif path.attribute==5 or service==3:raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
             else:raise CIPError(5,'Unknown TCP/IP Interface object instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:

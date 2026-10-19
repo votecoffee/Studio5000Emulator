@@ -6,14 +6,13 @@ This module does not change adapters, resolve DNS names, or forward messages.
 from __future__ import annotations
 
 import ipaddress
-import json
-import os
+import re
 import socket
 import struct
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from .windows_network import windows_interface
 
 
 def cip_string(value):
@@ -21,6 +20,14 @@ def cip_string(value):
     if len(raw) > 255:
         raise ValueError('Network string is too long')
     return struct.pack('<H', len(raw)) + raw + b'\0' * (len(raw) % 2)
+
+
+def ethernet_mac(value):
+    """Only publish a real unicast Ethernet address; loopback has no MAC."""
+    if not isinstance(value, str) or not re.fullmatch(r'[0-9A-Fa-f]{2}(?:[:-][0-9A-Fa-f]{2}){5}', value):
+        return None
+    raw = bytes.fromhex(value.replace(':', '').replace('-', ''))
+    return raw if raw != b'\0' * 6 and not raw[0] & 1 else None
 
 
 @dataclass(frozen=True)
@@ -31,6 +38,12 @@ class InterfaceSnapshot:
     dns: tuple = ()
     domain: str = ''
     name: str = ''
+    mac: bytes | None = None
+
+    def __post_init__(self):
+        if self.mac is not None and (not isinstance(self.mac, bytes) or len(self.mac) != 6
+                                     or self.mac == b'\0' * 6 or self.mac[0] & 1):
+            raise ValueError('A physical MAC must contain six unicast Ethernet octets')
 
     def configuration(self):
         ipaddress.IPv4Network('0.0.0.0/' + self.netmask)
@@ -43,6 +56,7 @@ class InterfaceSnapshot:
     def description(self):
         return {'address': self.address, 'netmask': self.netmask, 'gateway': self.gateway,
                 'dns': list(self.dns), 'domain': self.domain, 'interface': self.name,
+                'mac_address': self.mac.hex(':') if self.mac else None,
                 'writable': False, 'captured_on_first_query': True}
 
 
@@ -85,38 +99,25 @@ def linux_snapshot(address):
                 dns.append(value)
         if len(fields) >= 2 and fields[0] in ('domain', 'search'):
             domain = fields[1]
-    return InterfaceSnapshot(address, mask, gateway, tuple(dns[:2]), domain, name)
-
-
-WINDOWS_QUERY = r"""
-$ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-$selected = Get-NetIPAddress -AddressFamily IPv4 | Where-Object IPAddress -eq $env:LOGIXLAB_INTERFACE_ADDRESS | Select-Object -First 1
-if (-not $selected -and $env:LOGIXLAB_INTERFACE_ADDRESS.StartsWith('127.')) {
-    $selected = Get-NetIPAddress -AddressFamily IPv4 | Where-Object IPAddress -eq '127.0.0.1' | Select-Object -First 1
-}
-if (-not $selected) { throw 'Selected IPv4 interface was not found' }
-$dns = @(Get-DnsClientServerAddress -InterfaceIndex $selected.InterfaceIndex -AddressFamily IPv4 | ForEach-Object ServerAddresses)
-$route = Get-NetRoute -InterfaceIndex $selected.InterfaceIndex -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1
-$domain = (Get-DnsClient -InterfaceIndex $selected.InterfaceIndex -ErrorAction SilentlyContinue).ConnectionSpecificSuffix
-@{address=$env:LOGIXLAB_INTERFACE_ADDRESS; prefix=$selected.PrefixLength; gateway=$(if ($route) {$route.NextHop} else {'0.0.0.0'}); dns=$dns; domain=[string]$domain; name=$selected.InterfaceAlias} | ConvertTo-Json -Compress
-"""
+    mac = None
+    try:
+        base = Path('/sys/class/net') / name
+        if base.joinpath('type').read_text().strip() == '1':
+            mac = ethernet_mac(base.joinpath('address').read_text().strip())
+    except OSError:
+        pass  # Missing physical-link data must not invalidate IPv4 data.
+    return InterfaceSnapshot(address, mask, gateway, tuple(dns[:2]), domain, name, mac)
 
 
 def windows_snapshot(address):
-    environment = dict(os.environ, LOGIXLAB_INTERFACE_ADDRESS=address)
-    result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', WINDOWS_QUERY],
-                            capture_output=True, timeout=12, env=environment, creationflags=0x08000000)
-    if result.returncode:
-        raise ValueError('Windows IPv4 interface query failed')
-    value = json.loads(result.stdout.decode('utf-8-sig'))
+    value = windows_interface(address)
     if value['address'] != address:
         raise ValueError('Interface query returned another address')
     prefix = value['prefix']
     if isinstance(prefix, bool) or not isinstance(prefix, int) or not 0 <= prefix <= 32:
         raise ValueError('Invalid IPv4 prefix')
     mask = str(ipaddress.IPv4Network('0.0.0.0/' + str(prefix)).netmask)
-    return InterfaceSnapshot(address, mask, value['gateway'], tuple(value['dns']), value['domain'], value['name'])
+    return InterfaceSnapshot(address, mask, value['gateway'], tuple(value['dns']), value['domain'], value['name'], ethernet_mac(value.get('mac')))
 
 
 def interface_snapshot(address):
@@ -133,11 +134,11 @@ def interface_snapshot(address):
             raise ValueError('Interface query returned another address')
         value.configuration()  # Validate before exposing any configuration.
         return value, None
-    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, KeyError, TypeError) as error:
         return None, str(error)
 
 
-def port_attributes(instance):
+def port_attributes(instance, address='127.0.0.1'):
     if instance == 0:
         # Instance zero occupies the first array entry and is reserved as zero.
         return {1: b'\1\0', 2: b'\2\0', 3: b'\2\0', 8: b'\2\0',
@@ -145,8 +146,10 @@ def port_attributes(instance):
     if instance == 1:
         # Local slot-zero routing exists; a physical backplane object does not.
         return {1: b'\1\0', 2: b'\1\0', 3: b'\0\0',
-                4: b'\x09Backplane', 5: b'\x09Backplane'}
+                4: b'\x09Backplane', 5: b'\x09Backplane', 7: b'\1\0'}
     if instance == 2:
+        text = str(ipaddress.IPv4Address(address)).encode('ascii')
+        node = bytes((0x12, len(text))) + text + b'\0' * (len(text) % 2)
         return {1: b'\4\0', 2: b'\2\0', 3: b'\2\0\x20\xF5\x24\1',
-                4: b'\x0BEtherNet/IP', 5: b'\x0BEtherNet/IP'}
+                4: b'\x0BEtherNet/IP', 5: b'\x0BEtherNet/IP', 7: node}
     raise KeyError(instance)

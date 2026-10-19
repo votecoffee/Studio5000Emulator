@@ -126,7 +126,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit packed Boolean flags and fragmented reads/writes |
 | Catalog refresh | Controller comparison attributes and source-bound cache tokens |
-| Network metadata | Read-only CIP port inventory and actual IPv4 interface configuration |
+| Network metadata | Read-only CIP port/node addresses, IPv4 configuration and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Go Online, project correlation, upload/download and online edits pending |
 

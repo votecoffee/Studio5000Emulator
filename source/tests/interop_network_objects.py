@@ -16,6 +16,7 @@ from logixlab.ethernetip import Endpoint
 
 def check(app, endpoint):
     from pycomm3 import LogixDriver, __version__
+    from pycomm3.cip import PADDED_EPATH, PortSegment
     before = copy.deepcopy(app.engine.memory.values)
     with LogixDriver(f'127.0.0.1:{endpoint.port}/0', init_tags=False) as driver:
         driver._cfg['extended forward open'] = False
@@ -32,6 +33,10 @@ def check(app, endpoint):
         assert entry.service_status == 0 and entry.data == b'\2\0'
         link = read(0xF4, 2, 3)
         assert link.service_status == 0 and link.data == b'\2\0\x20\xf5\x24\1'
+        node = read(0xF4, 2, 7)
+        assert node.service_status == 0 and node.data == PADDED_EPATH.encode([PortSegment(2, '127.0.0.1')])
+        backplane = read(0xF4, 1, 7)
+        assert backplane.service_status == 0 and backplane.data == PADDED_EPATH.encode([PortSegment(1, 0)])
         config = read(0xF5, 1, 5)
         assert config.service_status == 0, endpoint.state()['network_interface_error']
         addresses = [str(ipaddress.IPv4Address(n)) for n in struct.unpack_from('<5I', config.data)]
@@ -42,6 +47,15 @@ def check(app, endpoint):
         assert hostname.service_status == 0
         size = struct.unpack_from('<H', hostname.data)[0]
         assert hostname.data[2:2+size].decode('ascii') == socket.gethostname()
+        physical = read(0xF5, 1, 4)
+        assert physical.service_status == 0
+        snapshot = endpoint.state()['network_interface']
+        mac = read(0xF6, 1, 3)
+        if snapshot['mac_address']:
+            assert physical.data == b'\2\0\x20\xf6\x24\1'
+            assert mac.service_status == 0 and mac.data == bytes.fromhex(snapshot['mac_address'].replace(':', ''))
+        else:
+            assert physical.data == b'\0\0' and mac.service_status == 0x0C
         assert read(0xF4, 3, 3).service_status == 5
         assert read(0xF5, 1, 5, service=0x10, data=config.data).service_status == 8
         assert read(0xF4, 2, 99).service_status == 0x14
@@ -51,6 +65,8 @@ def check(app, endpoint):
     return {'client': 'pycomm3.LogixDriver', 'client_version': __version__,
             'app_version': app.state()['app_version'], 'read_only_target': not endpoint.allow_writes,
             'port_inventory': True, 'entry_port': 2, 'ethernet_link_to_tcpip': True,
+            'node_addresses_match_independent_path_encoder': True,
+            'mac_matches_selected_interface_or_explicitly_unavailable': True,
             'interface_addresses': addresses, 'configuration_writes_rejected': True,
             'unknown_instance_and_attribute_rejected': True, 'mixed_attribute_statuses': True,
             'application_memory_preserved': True, 'studio_go_online': 'NOT VERIFIED'}

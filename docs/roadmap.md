@@ -10,6 +10,9 @@ native Studio connection and programming services remain unfinished.
   separately with bounded packet captures.
 - Implement the source-backed port/topology metadata and controller services
   required for native path selection and project correlation.
+- Resolve the vendor object/service gaps observed by the
+  [native connection probe](connectivity.md#observed-native-connection-gaps),
+  with supported payload layouts and separate checks for each connection phase.
 - Demonstrate a read-only native Go Online session with a matching private ACD.
 - Add upload, download and online editing as separate, explicitly tested stages.
 

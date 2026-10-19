@@ -23,6 +23,9 @@ continues to use Python's standard library.
 ## First implemented increment
 
 Added an original read-only Port Object and TCP/IP Interface metadata subset.
+The next increment adds encoded node addresses, the TCP/IP physical-link path
+and the selected interface's actual MAC through the Ethernet Link Object.
+Windows metadata reads use IP Helper directly to avoid shell startup latency.
 The scope addresses concrete browser queries without inventing physical
 controller manufacturing data. See the [protocol contract](connectivity.md#port-and-tcpip-interface-metadata)
 and `source/tests/interop_network_objects.py` for the independent-client check.

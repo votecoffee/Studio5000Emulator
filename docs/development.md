@@ -106,7 +106,9 @@ global banner, tab changes, cancellation, expiry and page reload during an
 active request.
 
 The network-object probe checks Port Object class/instance data and actual local
-TCP/IP configuration through an independent Class 3 client. It rejects unknown
+TCP/IP configuration through an independent Class 3 client. Node addresses are
+compared with that client's own EPATH encoder. MAC reads match the selected
+interface or return an explicit unavailable status on loopback. It rejects unknown
 ports, unknown attributes and configuration writes while preserving modeled
 memory:
 
