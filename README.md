@@ -53,7 +53,8 @@ py -3.13 -X utf8 source/launch.py
 ```
 
 No additional Python packages are needed to run L5X projects or bundled demos.
-See [development guidance](docs/development.md) for optional tooling.
+See [development guidance](docs/development.md) for optional tooling, including
+an offline CIP capture inspector for connection research.
 
 ## Usage
 

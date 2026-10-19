@@ -26,6 +26,42 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+## Offline CIP capture inspection
+
+The optional capture inspector reads completed PCAP/PCAPNG files through a
+separately installed [Wireshark TShark](https://www.wireshark.org/docs/man-pages/tshark.html).
+It uses offline decoding with name resolution disabled. Wireshark remains a
+development tool; the application runtime has no new dependency.
+
+From the repository root:
+
+```powershell
+py -3.13 -X utf8 source/tools/inspect_cip_capture.py --capture .local/reference.pcapng --out .local/reference-report.json
+```
+
+Use `--tshark` to select its executable when it is unavailable on `PATH` or in
+the usual Windows installation directory. Keep captures and reports under
+ignored `.local/` storage. Capture-file extensions are also ignored repository-wide.
+
+The report includes numeric object paths, service codes, response statuses,
+byte counts, hashes and frame references. By default it omits addresses, symbol
+names and message bytes. `--include-payloads` adds full CIP bytes to the private
+report when investigating an unknown service.
+
+Pairing requires an explicit TShark response-to frame reference, the same TCP
+stream and matching request/response service codes. Missing or conflicting
+evidence stays unpaired. Only one outer CIP message per frame is analyzed;
+multiple PDUs and unsupported paths are listed as skipped. Embedded services
+inside routed requests or Multiple Service Packets require separate inspection.
+The tool does not infer vendor semantics or successful Studio Go Online.
+
+Analysis is bounded to 64 MiB input, 50,000 input packets, 128 MiB decoded JSON
+and 60 seconds. Capture completeness is reported as unassessed. The input hash
+must remain unchanged during analysis; copying a finished capture avoids races
+with a live capture writer. Validation includes synthetic request/reply,
+malformed-header, ambiguous-pairing and privacy checks. Reference PLC projects,
+captures and native connection receipts remain local.
+
 ## Optional protocol probes
 
 The probes use the optional `pycomm3` client. Version 1.2.16 is used by the

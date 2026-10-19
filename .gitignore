@@ -16,6 +16,9 @@ __pycache__/
 *.bundle
 *.ACD
 *.acd
+*.pcap
+*.pcapng
+*.etl
 /SHA256-MANIFEST.json
 /preview.jpg
 
