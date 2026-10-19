@@ -205,6 +205,15 @@ and [PEAT's class-instance read routines](https://github.com/sandialabs/PEAT/blo
 the v35 scalar request shape above comes from the local native-client exchange.
 No third-party implementation or vendor reference files are bundled.
 
+The rebuilt `.37` appliance passed 40 live protocol checks and all eight SDK
+connection steps, including final Offline confirmation, with 85 verified signed
+requests. Native upload verified 173 signed requests and accepted all 12 supported
+scalar values before failing at Axis Group discovery. The original ACD and
+modeled values remained unchanged. A separate unchanged public-SDK probe stayed
+Online/Program and went Offline; typed BOOL and generic BOOL/DINT reads still
+failed with `RxDA_E_NO_ONLINE_ADDRESS`. The scalar upload service does not yet
+resolve the SDK's native online-address cache or establish tag/rung monitoring.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
