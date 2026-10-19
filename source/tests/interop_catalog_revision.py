@@ -1,6 +1,7 @@
 """Independent cache-comparison and refresh checks across isolated imports."""
 import argparse
 import base64
+import copy
 import json
 import struct
 import tempfile
@@ -26,12 +27,21 @@ def read_revision(driver):
 
 def check(app, endpoint):
     from pycomm3 import LogixDriver, __version__
+    from pycomm3.cip import UINT, UDINT
     target = f'127.0.0.1:{endpoint.port}'
     def client():
         driver = LogixDriver(target + '/0', init_tags=False)
         driver._cfg['extended forward open'] = False; driver._cfg['connection_size'] = 256
         return driver
     with client() as driver:
+        memory = copy.deepcopy(app.engine.memory.values)
+        revision = driver.generic_message(service=0x0E, class_code=0x31A, instance=0, attribute=1, data_type=UINT)
+        count = driver.generic_message(service=0x0E, class_code=0x31A, instance=0, attribute=3, data_type=UDINT)
+        assert revision and revision.value == 1, revision
+        assert count and count.value == 0, count
+        storage = driver.generic_message(service=0x0E, class_code=0x31A, instance=1, attribute=1, return_response_packet=True).value
+        assert storage.service_status == 5
+        assert app.engine.memory.values == memory
         class_metadata = driver.generic_message(service=3, class_code=0xAC, instance=0, connected=True,
             request_data=struct.pack('<4H', 3, 1, 2, 3), return_response_packet=True).value
         assert class_metadata.service_status == 0
@@ -77,6 +87,7 @@ def check(app, endpoint):
             'catalog_adapter': 'Documented symbol/template reads; native tag upload not used',
             'controller_attributes': [1, 2, 3, 4, 10], 'attribute_widths': [2, 2, 4, 4, 4],
             'controller_class_revision': 1, 'controller_max_instance': 1, 'controller_instance_count': 1,
+            'file_manager_revision': 1, 'file_manager_instances': 0, 'file_manager_instance_reads_rejected': True,
             'runtime_changes_preserved_token': True, 'reset_preserved_token': True,
             'tag_change_detected': True, 'symbol_instances_refreshed': True,
             'udt_change_detected': True, 'record_size_before': 64, 'record_size_after': 72,

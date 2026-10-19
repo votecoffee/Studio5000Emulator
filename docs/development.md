@@ -80,7 +80,8 @@ and remaining layout restrictions are documented under
 [structured transfers](connectivity.md#structured-transfers).
 
 The catalog-revision probe checks controller class revision/inventory and
-comparison attributes through the independent client, then reconnects after
+comparison attributes, plus File Manager revision and zero storage count using
+the client's UINT/UDINT decoders. It then reconnects after
 isolated source imports. It verifies
 that runtime edits preserve tokens, an added tag shifts symbol instances, and
 a changed nested UDT changes the record layout from 64 to 72 bytes. It refreshes

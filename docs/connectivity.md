@@ -127,6 +127,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Network metadata | Port/node addresses `0xF4`, TCP/IP configuration `0xF5`, Ethernet MAC `0xF6` |
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`: class revision/inventory and instance 1 comparison attributes |
+| File Manager | Class `0x31A`, instance 0: revision and zero storage-instance count |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
@@ -255,6 +256,29 @@ guard because Multiple Service children execute independently.
 
 Only the read-only comparison attributes are implemented. Native project
 correlation, mode changes and Studio Go Online remain pending.
+
+## File Manager discovery
+
+File Manager class `0x31A`, instance 0 supports Get Attribute Single and Get
+Attribute List for attribute 1 (object revision, UINT) and attribute 3 (instance
+count, UDINT). The modeled object revision is 1 and the count is zero: this
+implementation has no emulated removable-storage devices. The four-byte count is
+specific to this object's layout; it must not use the two-byte count from the
+controller metadata class. Message Router inventory includes this implemented
+class, and connectivity state exposes its limited scope under `file_manager`.
+
+The layout was checked against the installed Studio v35 File Manager Attribute
+Description Files. These reference files are neither modified nor bundled;
+the implementation is original. Reference paths and hashes stay in local
+validation receipts.
+
+Attribute 2, instance attributes, capacity, file contents and file operations
+remain unsupported. Requests for a storage instance return path-unknown
+(`0x05`); unsupported class attributes return attribute-unsupported (`0x14`),
+including per-attribute statuses in mixed lists. Class Get Attributes All and
+mutating services remain rejected. Enabling tag writes does not enable storage
+operations. This discovery subset does not implement SD-card project loading,
+upload/download or native Studio correlation.
 
 ## Structured transfers
 
