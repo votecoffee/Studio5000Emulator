@@ -153,9 +153,35 @@ class Router:
         return self._catalog
 
     def identity_attributes(self):
-        return self.endpoint.identity.attributes()
+        attributes=self.endpoint.identity.attributes()
+        # Native compatibility exposes a virtual Program/Idle controller.
+        # Browser-driven scans do not change this native controller mode.
+        if self.endpoint.native_read_only:attributes[5]=struct.pack('<H',0x0070)
+        return attributes
 
-    def identity(self):return self.endpoint.identity.all_attributes()
+    def identity(self):
+        attributes=self.identity_attributes()
+        return b''.join(attributes[n] for n in range(1,8))
+
+    def native_read(self,inner,session,native,depth,limit,budget,*,registration=True):
+        """Apply the same read-only policy to single packets and batch children."""
+        try:
+            end=2+2*inner[1];path=decode_path(inner[2:end]);payload=inner[end:]
+            if registration:
+                result=native.registration(inner[0],path,payload)
+                if result is not None:return reply(inner[0],0,result)
+            elif native.stage!='bound':return reply(inner[0],0x0F)
+            if (inner[0] in (1,3,0x0E) and path.class_id is not None or
+                inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
+                inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
+                inner[0]==0x4F and path.class_id==0xAC):
+                return self.handle(inner,session,depth+1,limit,budget)
+            if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
+                path.attribute is None and not path.symbols and len(payload)==26 and
+                payload[:8]==struct.pack('<II',0x101,0)):
+                return reply(inner[0],0,struct.pack('<II',0x301,0))
+            return reply(inner[0],0x0F)
+        except (CIPError,native_session.NativeError) as error:return reply(inner[0],error.status)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
@@ -498,24 +524,22 @@ class Router:
                 try:envelope=native.consume(raw)
                 except native_session.NativeError as error:raise CIPError(error.status,str(error)) from error
                 self.endpoint.record('native_verified',sequence=envelope.sequence,stage=native.stage)
-                inner=envelope.inner;inner_end=2+2*inner[1]
-                try:
-                    inner_path=decode_path(inner[2:inner_end]);payload=inner[inner_end:]
-                    result=native.registration(inner[0],inner_path,payload)
-                    if result is not None:result=reply(inner[0],0,result)
-                    elif (inner[0] in (1,3,0x0E) and inner_path.class_id is not None or
-                          inner[0] in (0x4C,0x52) and inner_path.class_id in (None,0x6B) or
-                          inner[0]==0x55 and inner_path.class_id==0x6B or inner[0]==0x4C and inner_path.class_id==0x6C):
-                        result=self.handle(inner,session,depth+1,max(4,limit-36),budget)
-                    elif (inner[0]==0x53 and inner_path.class_id==0x349 and inner_path.instance==0 and
-                          inner_path.attribute is None and not inner_path.symbols and len(payload)==26 and
-                          payload[:8]==struct.pack('<II',0x101,0)):
-                        # This model has no metadata definitions to return.
-                        result=reply(inner[0],0,struct.pack('<II',0x301,0))
-                    else:result=reply(inner[0],0x0F)
-                except (CIPError,native_session.NativeError) as error:result=reply(inner[0],error.status)
-                encoded=signed_messages.encode_response(envelope,result,native.key)
-                return 0,encoded[4:]
+                if isinstance(envelope,signed_messages.BatchEnvelope):
+                    count=len(envelope.children);available=limit-30-2*count
+                    if available<4*count:raise CIPError(0x1B,'Batch reply headers exceed negotiated size')
+                    children=[]
+                    for index,inner in enumerate(envelope.children):
+                        child_limit=available-4*(count-index-1)
+                        result=self.native_read(inner,session,native,depth,child_limit,budget,registration=False)
+                        if len(result)>child_limit:result=reply(inner[0],0x1B)
+                        children.append(result);available-=len(result)
+                    encoded=signed_messages.encode_batch_response(envelope,tuple(children),native.key)
+                else:
+                    inner_limit=max(4,limit-(36 if envelope.service==0x37 else 28))
+                    result=self.native_read(envelope.inner,session,native,depth,inner_limit,budget)
+                    if len(result)>inner_limit:result=reply(envelope.inner[0],0x1B)
+                    encoded=signed_messages.encode_response(envelope,result,native.key)
+                return encoded[2],encoded[4:]
         if path.class_id==6 and path.instance==1 and not path.symbols and path.attribute is None:
             if service in (0x54,0x5B):return self.forward_open(data,session,service==0x5B)
             if service==0x4E:return self.forward_close(data,session)
@@ -609,7 +633,7 @@ class Router:
             if path.instance==0:
                 # Common class metadata describes this implementation's revision
                 # and its one modeled instance, not native firmware signatures.
-                attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+                attributes={1:struct.pack('<H',5 if self.endpoint.native_read_only else 1),2:b'\1\0',3:b'\1\0'}
             elif path.instance==1:
                 revision=CatalogRevision.from_source(self.app.engine.project.sha256)
                 attributes=revision.compatibility_attributes() if self.endpoint.native_read_only else revision.attributes()
@@ -617,6 +641,14 @@ class Router:
                 if self.endpoint.native_read_only and native_identity is not None:
                     if native_identity.source_l5x_sha256!=self.app.engine.project.sha256:raise CIPError(0x0C,'Native correlation source changed')
                     attributes=native_identity.attributes()
+                if self.endpoint.native_read_only and service==0x4F:
+                    if path.attribute is not None:raise CIPError(4,'Change Log search requires an instance path')
+                    exact(data,4)
+                    if native_identity is None:raise CIPError(0x0C,'Change Log search requires source-bound ACD correlation')
+                    cursor=attributes[1]+attributes[2]
+                    if data!=cursor:raise CIPError(0x0C,'Change Log history outside the imported cursor is unavailable')
+                    # No structural edits exist after this imported cursor.
+                    return 0,cursor
                 if self.endpoint.native_read_only and service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes[n] for n in range(1,11))
             else:raise CIPError(5,'Unknown controller metadata instance')
@@ -764,7 +796,7 @@ class Endpoint:
                     'discovery':{**self.discovery_status,'broadcast_enabled':self.enabled and bool(self.broadcast_servers)},
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
-                    'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
+                    'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
             if trace:result['events']=list(self.events)
             return result
 
@@ -772,7 +804,7 @@ class Endpoint:
         if command==0x63:
             addr=struct.pack('>HH4s8s',2,self.port,socket.inet_aton(self.bind_address),b'\0'*8)
             with self.lock:identity=self.identity
-            item=struct.pack('<H',1)+addr+identity.all_attributes()+identity.attributes()[8]
+            item=struct.pack('<H',1)+addr+self.router.identity()+identity.attributes()[8]
             return struct.pack('<HHH',1,0x0C,len(item))+item
         if command==4:
             item=struct.pack('<HH',1,0x20)+b'Communications'.ljust(16,b'\0')

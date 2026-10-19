@@ -7,8 +7,9 @@ Studio 5000 and FactoryTalk Linx stay on Windows.
 
 This resolves host port ownership. The appliance enables the experimental
 [anonymous native read-only session](connectivity.md#experimental-native-read-only-session).
-Native SDK tests reach Change Log search after project identity comparison;
-completed Go Online, upload/download and online edits remain unverified.
+The native SDK completes Go Online, reads Online/Program state and goes Offline
+for the tested demo. Studio GUI monitoring, upload/download and online edits
+remain unverified. See the [connection scope](connectivity.md#native-sdk-online-connection).
 
 ## Prepare
 

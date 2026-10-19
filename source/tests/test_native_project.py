@@ -101,6 +101,23 @@ class NativeProjectTests(unittest.TestCase):
             self.assertIsNone(app.native_project_identity); self.assertIsNone(endpoint.state()['native_correlation'])
         finally: app.close()
 
+    def test_empty_change_log_search_is_exact_source_cursor_with_no_history_fabrication(self):
+        app=Application(self.root/'search-data')
+        try:
+            app.command('load',{'name':'model.L5X','content':base64.b64encode(self.l5x.read_bytes()).decode(),
+                                'native_project_identity':self.identity().manifest()})
+            endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True).start();app.endpoint=endpoint
+            session=Session();prefix=bytes.fromhex('4f0220ac2401');cursor=struct.pack('<HH',7,3)
+            self.assertEqual(endpoint.router.handle(prefix+cursor,session),b'\xCF\0\0\0'+cursor)
+            for payload in (struct.pack('<HH',6,3),struct.pack('<HH',7,2)):
+                self.assertEqual(endpoint.router.handle(prefix+payload,session)[2],0x0C)
+            self.assertEqual(endpoint.router.handle(prefix+cursor[:-1],session)[2],0x13)
+            self.assertEqual(endpoint.router.handle(prefix+cursor+b'x',session)[2],0x15)
+            self.assertEqual(endpoint.router.handle(bytes.fromhex('0e0320ac24003001'),session)[4:],b'\5\0')
+            app.command('demo',{})
+            self.assertEqual(endpoint.router.handle(prefix+cursor,Session())[2],0x0C)
+        finally:app.close()
+
     def test_converter_records_identity_from_original_even_if_private_copy_changes(self):
         executable = self.root/'converter.exe'; executable.write_bytes(b'test double')
         def convert(command, **kwargs):

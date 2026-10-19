@@ -84,9 +84,10 @@ operation. Native positive/negative denial tests establish request/reply MAC
 compatibility for both `0x36` and `0x37`; registration and confirmation semantics
 remain separate work. Version `.24` supports structural
 batch parsing through `parse_request` and `parse_response`, returning a
-`BatchEnvelope`. Batch MAC verification and encoding remain unavailable;
-the optional `.29` anonymous read-only mode integrates single-envelope dispatch
-without claiming confirmation-proof verification or peer authentication. See the
+`BatchEnvelope`. Version `.30` adds batch MAC verification and
+`encode_batch_response`, using the complete message and one counter per batch.
+The optional native read-only mode dispatches single and batch reads without
+claiming confirmation-proof verification or peer authentication. See the
 [observed envelope layout](connectivity.md#offline-signed-envelope-codec).
 
 Embedded services inside other routed requests or Multiple Service Packets

@@ -1,5 +1,6 @@
-"""Synthetic batch framing; no captured bytes or native batch MAC claims."""
+"""Synthetic batch framing and independent MAC vectors; no vendor identity."""
 import copy
+import hmac
 import struct
 import tempfile
 import unittest
@@ -122,14 +123,42 @@ class SignedBatchTests(unittest.TestCase):
         with self.assertRaises(signed.EnvelopeError):
             signed.parse_response(bytearray(RESPONSE), signed.parse_request(REQUEST))
 
-    def test_batch_authentication_and_encoding_remain_unavailable(self):
+    def test_invalid_batch_macs_are_rejected_and_reply_encoder_checks_type(self):
         key = bytes(range(20))
         request = signed.parse_request(REQUEST)
-        with self.assertRaisesRegex(signed.EnvelopeError, 'Batch MAC verification is unsupported'):
+        with self.assertRaisesRegex(signed.EnvelopeError, 'MAC'):
             signed.verify_request(REQUEST, key, expected_sequence=7)
-        with self.assertRaisesRegex(signed.EnvelopeError, 'Batch MAC verification is unsupported'):
+        with self.assertRaisesRegex(signed.EnvelopeError, 'MAC'):
             signed.verify_response(RESPONSE, key, request=request)
         with self.assertRaises(signed.EnvelopeError): signed.encode_response(request, REPLIES[0], key)
+        for children in (REPLIES[:1], list(REPLIES), (bytearray(REPLIES[0]), REPLIES[1]), REPLIES[::-1]):
+            with self.assertRaises(signed.EnvelopeError):signed.encode_batch_response(request, children, key)
+
+    def test_verified_batches_preserve_children_errors_and_one_counter(self):
+        key=bytes(range(1,21));raw=REQUEST[:-20]+hmac.digest(key,REQUEST[:-20],'sha1')
+        # Independent PyCryptodome HMAC-SHA1 vectors over these synthetic bodies.
+        self.assertEqual(raw[-20:].hex(),'2f58af7103950be2af4e5ef238f5c200f97dbabd')
+        context=signed.verify_request(raw,key,expected_sequence=7)
+        encoded=signed.encode_batch_response(context,REPLIES,key)
+        self.assertEqual(encoded[-20:].hex(),'1db437845378483215fb6cced0fe0810dda81346')
+        reply=signed.verify_response(encoded,key,request=context)
+        self.assertEqual(reply.children,REPLIES);self.assertEqual(reply.status,0x1E)
+        self.assertEqual(reply.sequence,7)
+        with self.assertRaisesRegex(signed.EnvelopeError,'sequence'):signed.verify_request(raw,key,expected_sequence=8)
+        for position in range(len(raw)):
+            damaged=bytearray(raw);damaged[position]^=1
+            with self.assertRaises(signed.EnvelopeError):signed.verify_request(bytes(damaged),key,expected_sequence=7)
+        for position in range(len(encoded)):
+            damaged=bytearray(encoded);damaged[position]^=1
+            with self.assertRaises(signed.EnvelopeError):signed.verify_response(bytes(damaged),key,request=context)
+
+    def test_batch_reply_size_limit_and_all_success_status(self):
+        key=bytes(range(20));context=signed.parse_request(batch((b'\x0E\0',)))
+        child=b'\x8E\0\0\0'+b'x'*(signed.MAX_MESSAGE-36)
+        raw=signed.encode_batch_response(context,(child,),key)
+        self.assertEqual(len(raw),signed.MAX_MESSAGE)
+        self.assertEqual(signed.verify_response(raw,key,request=context).status,0)
+        with self.assertRaises(signed.EnvelopeError):signed.encode_batch_response(context,(child+b'x',),key)
 
     def test_nested_batches_are_kept_as_opaque_child_bytes(self):
         request = signed.parse_request(batch((REQUEST,)))

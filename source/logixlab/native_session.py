@@ -61,8 +61,6 @@ class NativeSession:
         self.check_live()
         if self.sequence is None:
             raise NativeError(0x0F, 'Compatibility acknowledgement required')
-        if raw[0] == 0x38:
-            raise NativeError(8, 'Native batch dispatch is unsupported')
         try:
             envelope = signed_messages.verify_request(raw, self.key, expected_sequence=self.sequence)
         except signed_messages.EnvelopeError as error:
@@ -102,5 +100,6 @@ def clear(session):
 def description(enabled):
     return {'enabled': enabled, 'anonymous': True, 'read_only': True,
             'confirmation_proof_verified': False, 'peer_identity_verified': False,
-            'operator_authorization': False, 'signed_batches': False,
+            'operator_authorization': False, 'signed_batches': enabled,
+            'controller_mode': 'Program' if enabled else None,
             'idle_timeout_seconds': 300 if enabled else 0}

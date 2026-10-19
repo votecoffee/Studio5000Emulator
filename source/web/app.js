@@ -249,7 +249,7 @@ function renderConnectivity() {
   if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;$('eip-native').checked=!!c.native_session?.enabled;}
   $('eip-refresh').disabled=!state?.loaded;
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
-  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · anonymous native compatibility; authentication unverified':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   const discovery=c.discovery||{};
   $('eip-discovery').textContent=!active?'Start the endpoint to check broadcast discovery.':discovery.broadcast_enabled?
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:

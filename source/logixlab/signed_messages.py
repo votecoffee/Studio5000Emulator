@@ -3,8 +3,9 @@
 Parsing establishes structure only. Verification requires the caller's 20-byte
 test/session key and covers the complete CIP message before its MAC.
 This module retains no keys, opens no connections and dispatches no operations.
-Batch 0x38 decoding is structural only; its MAC handling is unsupported.
-Confirmation, peer authentication and live dispatch remain unimplemented.
+Single and batch MACs cover the complete wrapper before its final 20 bytes.
+Confirmation and peer authentication remain unimplemented. This codec never
+dispatches requests; the optional native endpoint applies a read-only policy.
 """
 from dataclasses import dataclass
 import hmac
@@ -148,8 +149,6 @@ def verify_request(raw, key, *, expected_sequence):
     if type(expected_sequence) is not int or not 0 <= expected_sequence <= 0xFFFFFFFF:
         raise EnvelopeError('Expected sequence must be a UDINT')
     envelope = parse_request(raw)
-    if isinstance(envelope, BatchEnvelope):
-        raise EnvelopeError('Batch MAC verification is unsupported')
     if not hmac.compare_digest(hmac.digest(key, raw[:-20], 'sha1'), raw[-20:]):
         raise EnvelopeError('Request MAC verification failed')
     if envelope.sequence != expected_sequence:
@@ -192,8 +191,6 @@ def verify_response(raw, key, *, request):
     """
     _check_key(key)
     envelope = parse_response(raw, request)
-    if isinstance(envelope, BatchEnvelope):
-        raise EnvelopeError('Batch MAC verification is unsupported')
     if not hmac.compare_digest(hmac.digest(key, raw[:-20], 'sha1'), raw[-20:]):
         raise EnvelopeError('Response MAC verification failed')
     return envelope
@@ -211,5 +208,25 @@ def encode_response(request, inner, key):
     raw = bytes((request.service | 0x80, 0, 0, 0)) + body + struct.pack('<I', request.sequence)
     # Validate the same strict framing/counter/inner-header contract before
     # signing. The placeholder has the final MAC's length and is never returned.
+    parse_response(raw + b'\0'*20, request)
+    return raw + hmac.digest(key, raw, 'sha1')
+
+
+def encode_batch_response(request, children, key):
+    """Sign ordered child replies, preserving each child's service and error."""
+    _check_key(key)
+    _batch_request_context(request)
+    if not isinstance(children, tuple) or len(children) != len(request.children):
+        raise EnvelopeError('Batch replies must be an immutable matching tuple')
+    offset = 2 + 2 * len(children); offsets = []
+    for child, original in zip(children, request.children):
+        if not isinstance(child, bytes): raise EnvelopeError('Batch replies must be immutable bytes')
+        _check_inner_response(child, original[0])
+        offsets.append(offset); offset += len(child)
+    if 4 + offset + TRAILER_BYTES > MAX_MESSAGE:
+        raise EnvelopeError('Batch reply exceeds the message limit')
+    body = struct.pack('<H', len(children)) + struct.pack('<'+'H'*len(offsets), *offsets) + b''.join(children)
+    status = 0x1E if any(child[2] for child in children) else 0
+    raw = bytes((0xB8, 0, status, 0)) + body + struct.pack('<I', request.sequence)
     parse_response(raw + b'\0'*20, request)
     return raw + hmac.digest(key, raw, 'sha1')

@@ -1,5 +1,6 @@
 """Anonymous compatibility with synthetic keys; no vendor identity fixtures."""
 import copy
+import hmac
 import struct
 import tempfile
 import unittest
@@ -15,6 +16,7 @@ from logixlab.server import Application
 from test_ethernetip import Client
 from test_key_exchange import offer
 from test_signed_messages import KEY, request
+from test_signed_batches import batch
 
 
 class NativeSessionTests(unittest.TestCase):
@@ -69,6 +71,40 @@ class NativeSessionTests(unittest.TestCase):
         self.assertTrue(metadata['key_exchange']['session_secret_retained'])
         self.assertFalse(metadata['key_exchange']['confirmation'])
         self.assertFalse(metadata['key_exchange']['peer_identity_verified'])
+
+    def test_batch_reads_share_counter_and_reject_writes_nested_transport_and_locator(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        children=(bytes.fromhex('0e03200124013005'),bytes.fromhex('1003208e2401300d')+bytes(4),
+                  b'\x4B\2\x20\1\x24\1\x09',bytes.fromhex('380220022401')+bytes(30))
+        raw=batch(children,sequence=4);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.status,0x1E)
+        self.assertEqual(result.children[0],b'\x8E\0\0\0\x70\0')
+        self.assertEqual([r[2] for r in result.children[1:]],[0x0F]*3)
+        self.assertEqual(self.signed(5,bytes.fromhex('0e03200124013005')),result.children[0])
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertFalse(self.endpoint.locator_state()['active'])
+        self.assertEqual(self.cip(raw)[2],0x0F)  # replay closes the context
+
+    def test_bad_batch_mac_never_dispatches_a_child_and_unbound_batch_cannot_register(self):
+        self.bind();count=self.endpoint.counts['cip']
+        raw=batch((bytes.fromhex('0e03200124013005'),),sequence=4)
+        self.assertEqual(self.cip(raw)[2],0x0F)
+        self.assertEqual(self.endpoint.counts['cip'],count+1)
+        self.begin()
+        raw=batch((b'\x5C\2\x20\x8E\x24\1operator',),sequence=1)
+        raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.children[0][2],0x0F)
+        native,=self.endpoint.native_sessions.values();self.assertEqual(native.stage,'acknowledged')
+
+    def test_native_identity_status_agrees_across_single_all_and_discovery(self):
+        status=self.cip(bytes.fromhex('0e03200124013005'))[4:]
+        self.assertEqual(status,b'\x70\0')
+        all_attributes=self.cip(bytes.fromhex('010220012401'))[4:]
+        self.assertEqual(all_attributes[8:10],status)
+        identity=self.endpoint.discovery(0x63)
+        self.assertEqual(identity[32:34],status)
 
     def test_all_setters_nested_transports_and_locator_are_denied(self):
         self.bind()

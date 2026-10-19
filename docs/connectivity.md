@@ -1,8 +1,56 @@
 # EtherNet/IP connectivity
 
 The endpoint is an experimental explicit-message target backed by the loaded
-project's modeled memory. Completed Studio Go Online, upload/download,
-online edits and native debugger services remain unimplemented or unverified.
+project's modeled memory. The native v35 SDK can connect to the tested demo in
+anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
+and native debugger services remain unimplemented or unverified.
+
+## Native SDK online connection
+
+Version `0.6.0-connectivity.30` completed the native SDK sequence: open the
+preserved demo ACD, select the emulator path, Go Online, read connected state
+**Online**, read controller mode **Program**, and Go Offline. All seven steps
+succeeded using the normal app code and fresh challenge keys. The trace verified
+87 signed requests, including batch status reads, with no correlation-loss event.
+This establishes that SDK connection sequence for one fixture; it does not
+establish complete Studio GUI/debugger support or native execution equivalence.
+
+Use the L85E profile with **Experimental native session (read only)** enabled.
+Import the matching ACD through the Windows app or VMware tray importer so its
+source-bound identifiers accompany the L5X. Plain L5X imports do not establish
+an ACD binding. Select the guest's EtherNet/IP address and backplane slot zero
+in Linx. The appliance enables native read-only mode by default.
+
+The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
+only the exact imported index/generation cursor and returns those two UINTs,
+without a length prefix or invented history. An older/different cursor or a
+missing ACD binding returns unavailable (`0x0C`); malformed lengths are rejected.
+This model has no structural edits after the imported cursor. It cannot replay
+native editing history or reconcile a changed offline project.
+
+`0x38` batch requests use the same full-message HMAC-SHA1 coverage as `0x36` and
+`0x37`. The complete batch is checked before any child dispatch, and one batch
+consumes one session counter. Ordered replies retain individual CIP errors;
+the outer status is `0x1E` when a child fails. Each child follows the same bounded
+read-only policy. Nested transports, context registration inside batches,
+setters, mode changes and downloads remain denied. Reply accounting reserves
+space for every remaining child's error header before dispatching each read.
+
+The native identity reports virtual Program/Idle status `0x0070`, consistently
+across discovery and attribute reads. The SDK reads it as Program. This is model
+state: browser-driven Step/Run scans do not change the native PLC mode, and native
+mode changes are not implemented. The idle status encoding follows Rockwell's
+[Identity Object status table](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/icm-um002_-en-e.pdf).
+
+The opaque confirmation proof and peer identity remain **unverified**. Successful
+MAC verification proves possession of this endpoint's fresh nonce, not vendor
+identity or operator authority. The endpoint remains anonymous and read-only.
+
+The `.30` suite passes all 559 tests on Linux; Windows passes 557 with two
+Linux-only skips. Synthetic tests cover exact source cursors, independent batch
+MAC vectors, altered bytes, replay, child errors, reply bounds, denied writes,
+and matching identity status across discovery and explicit reads. The following
+`.29` section records the earlier milestone and its then-unresolved search.
 
 ## Experimental native read-only session
 
