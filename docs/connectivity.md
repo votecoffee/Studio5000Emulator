@@ -87,7 +87,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Objects | Identity attributes, Message Router class inventory and controller name |
 | Network metadata | Port/node addresses `0xF4`, TCP/IP configuration `0xF5`, Ethernet MAC `0xF6` |
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
-| Catalog refresh | Controller class `0xAC`, instance 1: attributes 1, 2, 3, 4 and 10 |
+| Catalog refresh | Controller class `0xAC`: class revision/inventory and instance 1 comparison attributes |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
@@ -184,6 +184,16 @@ Windows adapter layouts follow Microsoft's
 [IP Helper documentation](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses).
 
 ## Catalog refresh
+
+Controller class `0xAC`, instance 0 supports Get Attribute Single and Get Attribute
+List for the common class attributes 1 (object revision), 2 (maximum instance)
+and 3 (instance count), each a UINT. The modeled object revision is 1, with one
+implemented instance numbered 1. This revision describes the model's object
+interface, independently of the source comparison tokens or advertised firmware
+identity. Class-level Get Attributes All and configuration writes are unsupported.
+The common attribute definitions follow the
+[OpENer class implementation](https://github.com/EIPStackGroup/OpENer/blob/d8820ef41ce30dda06d213438ba81c81de33ffe2/source/src/cip/cipcommon.c#L329).
+No upstream code is bundled.
 
 Controller class `0xAC`, instance 1 supports Get Attribute Single and Get Attribute
 List for attributes 1, 2, 3, 4 and 10. Their wire widths are 2, 2, 4, 4 and 4 bytes

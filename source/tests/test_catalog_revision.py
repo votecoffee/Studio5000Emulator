@@ -160,7 +160,7 @@ class CatalogRevisionTests(unittest.TestCase):
         before = self.revision(); memory = copy.deepcopy(self.app.engine.memory.values)
         for payload in (b'', b'\0\0', b'\1\0', b'\1\0\1\0x', struct.pack('<H', 33) + b'\1\0'*33):
             self.assertNotEqual(self.cip(b'\x03\2' + OBJECT_PATH + payload)[2], 0)
-        for path in (b'\x20\xAC\x24\0', b'\x20\xAC\x24\2', OBJECT_PATH + symbol_path('Extra'), OBJECT_PATH + b'\x28\0'):
+        for path in (b'\x20\xAC', b'\x20\xAC\x24\2', OBJECT_PATH + symbol_path('Extra'), OBJECT_PATH + b'\x28\0'):
             self.assertNotEqual(self.cip(b'\x03' + bytes((len(path)//2,)) + path + b'\1\0\1\0')[2], 0)
         self.assertEqual(self.revision(), before); self.assertEqual(self.app.engine.memory.values, memory)
 
@@ -182,6 +182,44 @@ class CatalogRevisionTests(unittest.TestCase):
     def test_small_reply_limit_rejects_oversized_attribute_list(self):
         response = self.endpoint.router.handle(REVISION_REQUEST, Session(), limit=16)
         self.assertEqual(response, b'\x83\0\x1B\0')
+
+    def test_native_class_revision_request_and_common_inventory(self):
+        # Exact class-level revision request seen during the native SDK probe.
+        self.assertEqual(self.cip(bytes.fromhex('030220ac240001000100')),
+                         bytes.fromhex('830000000100010000000100'))
+        for attribute in (1, 2, 3):
+            single = b'\x0E\3\x20\xAC\x24\0' + bytes((0x30, attribute))
+            self.assertEqual(self.cip(single), b'\x8E\0\0\0\1\0')
+        extended = b'\x03\3\x20\xAC\x25\0\0\0' + struct.pack('<4H', 3, 1, 2, 3)
+        self.assertEqual(self.cip(extended), b'\x83\0\0\0' + struct.pack('<10H', 3, 1, 0, 1, 2, 0, 1, 3, 0, 1))
+
+    def test_class_attributes_preserve_order_and_per_attribute_errors(self):
+        path = b'\x20\xAC\x24\0'
+        response = self.cip(b'\x03\2' + path + struct.pack('<5H', 4, 3, 99, 1, 3))
+        self.assertEqual(response, b'\x83\0\x0A\0' + struct.pack('<12H', 4, 3, 0, 1, 99, 0x14, 1, 0, 1, 3, 0, 1))
+        self.assertEqual(self.cip(b'\x0E\3' + path + b'\x30\x0A')[2], 0x14)
+
+    def test_class_reads_do_not_change_tokens_values_or_instance_attributes(self):
+        token = self.revision(); memory = copy.deepcopy(self.app.engine.memory.values)
+        for attribute in (1, 2, 3):
+            self.cip(b'\x0E\3\x20\xAC\x24\0' + bytes((0x30, attribute)))
+        self.assertEqual(self.revision(), token)
+        self.assertEqual(self.app.engine.memory.values, memory)
+        self.assertEqual(self.cip(b'\x0E\3' + OBJECT_PATH + b'\x30\x0A')[4:], token[10])
+
+    def test_class_malformed_reads_and_writes_are_rejected_without_mutation(self):
+        token = self.revision(); memory = copy.deepcopy(self.app.engine.memory.values)
+        path = b'\x20\xAC\x24\0'
+        for payload in (b'', b'\0\0', b'\1\0', b'\1\0\1\0x'):
+            self.assertNotEqual(self.cip(b'\x03\2' + path + payload)[2], 0)
+        self.assertEqual(self.cip(b'\x0E\3' + path + b'\x30\1x')[2], 0x15)
+        self.assertEqual(self.cip(b'\x10\3' + path + b'\x30\1\2\0')[2], 8)
+        for service in (1, 0x4B, 0x4D, 0x55):
+            self.assertEqual(self.cip(bytes((service, 2)) + path)[2], 8)
+        for extra in (symbol_path('Extra'), b'\x28\0'):
+            malformed = path + extra
+            self.assertEqual(self.cip(b'\x03' + bytes((len(malformed)//2,)) + malformed + b'\1\0\1\0')[2], 4)
+        self.assertEqual(self.revision(), token); self.assertEqual(self.app.engine.memory.values, memory)
 
 
 if __name__ == '__main__': unittest.main()

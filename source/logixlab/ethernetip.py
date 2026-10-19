@@ -547,8 +547,13 @@ class Router:
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:
             if path.symbols:raise CIPError(4,'Controller metadata paths do not take symbols')
-            if path.instance!=1:raise CIPError(5,'Unknown controller metadata instance')
-            attributes=CatalogRevision.from_source(self.app.engine.project.sha256).attributes()
+            if path.instance==0:
+                # Common class metadata describes this implementation's revision
+                # and its one modeled instance, not native firmware signatures.
+                attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+            elif path.instance==1:
+                attributes=CatalogRevision.from_source(self.app.engine.project.sha256).attributes()
+            else:raise CIPError(5,'Unknown controller metadata instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service==1:
             exact(data,0);name=self.app.engine.project.name.encode('ascii')

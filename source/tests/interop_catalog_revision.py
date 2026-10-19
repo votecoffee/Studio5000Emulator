@@ -32,6 +32,10 @@ def check(app, endpoint):
         driver._cfg['extended forward open'] = False; driver._cfg['connection_size'] = 256
         return driver
     with client() as driver:
+        class_metadata = driver.generic_message(service=3, class_code=0xAC, instance=0, connected=True,
+            request_data=struct.pack('<4H', 3, 1, 2, 3), return_response_packet=True).value
+        assert class_metadata.service_status == 0
+        assert class_metadata.data == struct.pack('<10H', 3, 1, 0, 1, 2, 0, 1, 3, 0, 1)
         before = read_revision(driver)
         driver._tags = documented_catalog(driver, structures=True)
         old_instance = driver.tags['Records']['instance_id']
@@ -72,6 +76,7 @@ def check(app, endpoint):
     return {'client': 'pycomm3.LogixDriver', 'client_version': __version__, 'target': target,
             'catalog_adapter': 'Documented symbol/template reads; native tag upload not used',
             'controller_attributes': [1, 2, 3, 4, 10], 'attribute_widths': [2, 2, 4, 4, 4],
+            'controller_class_revision': 1, 'controller_max_instance': 1, 'controller_instance_count': 1,
             'runtime_changes_preserved_token': True, 'reset_preserved_token': True,
             'tag_change_detected': True, 'symbol_instances_refreshed': True,
             'udt_change_detected': True, 'record_size_before': 64, 'record_size_after': 72,
