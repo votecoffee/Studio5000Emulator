@@ -89,6 +89,10 @@ under `%LOCALAPPDATA%\LogixLab`; `--data-dir` selects another private directory.
 For a separate PLC IP while Linx retains the host's port 44818, use the optional
 [VMware host-only appliance](docs/vmware-appliance.md). After preparation,
 `START-VM.cmd` starts it with a localhost browser tunnel and Windows tray controls.
+The appliance answers ICMP ping on its guest IP for IP-scanner discovery. See
+[ping and IP scanners](docs/vmware-appliance.md#ping-and-ip-scanners) for the
+network to scan. The executable, tray, browser tab and webpage use the PLC
+simulator icon bundled with the app.
 
 ### CLI
 

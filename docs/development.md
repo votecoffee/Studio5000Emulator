@@ -2,6 +2,10 @@
 
 The tested development environment is Windows with Python 3.13. The application
 runtime uses the standard library. UI assets are plain HTML, CSS and JavaScript.
+The PLC artwork lives in `source/web/icons/`. The multi-size ICO contains the
+original 16–256 pixel PNG frames and is used by the Windows executable and tray;
+the browser serves the same ICO as its favicon and PNG variants in the header.
+Both the executable build and appliance image include these assets.
 
 The running version comes from `source/logixlab/__init__.py`. Bump it for each
 committed application revision; the HTML, API, tray tooltip and session receipt

@@ -203,7 +203,10 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
                 if self.headers.get("X-Logix-Token") != token: return self.send(403, {"error": "Session token required"})
                 with app.lock: return self.send(200, app.state())
             assets = {"/": ("index.html", "text/html; charset=utf-8"),
-                      "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css")}
+                      "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"),
+                      "/favicon.ico": ("icons/plc-simulator.ico", "image/vnd.microsoft.icon"),
+                      "/icons/plc-simulator-64.png": ("icons/plc-simulator-64.png", "image/png"),
+                      "/icons/plc-simulator-128.png": ("icons/plc-simulator-128.png", "image/png")}
             if path not in assets: return self.send(404, {"error": "Not found"})
             name, mime = assets[path]
             content = (BASE / "web" / name).read_bytes()

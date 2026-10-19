@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import sys
 import threading
 import webbrowser
@@ -95,7 +96,9 @@ class TrayIcon:
         bind(user, 'TranslateMessage', w.BOOL, c.POINTER(w.MSG))
         bind(user, 'DispatchMessageW', result_type, c.POINTER(w.MSG))
         bind(user, 'RegisterWindowMessageW', w.UINT, w.LPCWSTR)
-        bind(user, 'LoadIconW', w.HICON, w.HINSTANCE, c.c_void_p)
+        bind(user, 'LoadImageW', w.HANDLE, w.HINSTANCE, w.LPCWSTR, w.UINT, c.c_int, c.c_int, w.UINT)
+        bind(user, 'GetSystemMetrics', c.c_int, c.c_int)
+        bind(user, 'DestroyIcon', w.BOOL, w.HICON)
         bind(user, 'CreatePopupMenu', w.HMENU)
         bind(user, 'AppendMenuW', w.BOOL, w.HMENU, w.UINT, c.c_size_t, w.LPCWSTR)
         bind(user, 'SetMenuDefaultItem', w.BOOL, w.HMENU, w.UINT, w.UINT)
@@ -113,6 +116,7 @@ class TrayIcon:
         instance = kernel.GetModuleHandleW(None)
         class_name = f'LogixLab.Tray.{os.getpid()}.{id(self)}'
         registered = False
+        owned_icon = None
 
         def add_icon():
             icon.flags = 1 | 2 | 4 | 0x80  # MESSAGE, ICON, TIP, SHOWTIP
@@ -183,8 +187,14 @@ class TrayIcon:
             return user.DefWindowProcW(hwnd, message, wp, lp)
 
         try:
+            icon_path = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1])) / 'web/icons/plc-simulator.ico'
+            owned_icon = user.LoadImageW(None, str(icon_path), 1,
+                                        user.GetSystemMetrics(49), user.GetSystemMetrics(50), 0x10)
+            if not owned_icon:
+                raise c.WinError(c.get_last_error())
             wc = WindowClass()
             wc.wndproc, wc.instance, wc.class_name = window_proc, instance, class_name
+            wc.icon = owned_icon
             if not user.RegisterClassW(c.byref(wc)):
                 raise c.WinError(c.get_last_error())
             registered = True
@@ -198,7 +208,7 @@ class TrayIcon:
                 return
             icon.size, icon.window, icon.id = c.sizeof(icon), self._hwnd, 1
             icon.message = callback_message
-            icon.icon = user.LoadIconW(None, c.c_void_p(32512))  # shared Windows application icon
+            icon.icon = owned_icon
             icon.tip = f'LogixLab {__version__}\n{self.url}'[:127]
             if not add_icon():
                 raise OSError('Windows could not add the notification icon')
@@ -222,4 +232,6 @@ class TrayIcon:
             self.available = False
             if registered:
                 user.UnregisterClassW(class_name, instance)
+            if owned_icon:
+                user.DestroyIcon(owned_icon)
             self._ready.set()

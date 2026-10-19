@@ -58,6 +58,8 @@ lease 192.0.2.1 { hardware ethernet 00:50:56:3a:12:34; }'''
             with tarfile.open(fileobj=io.BytesIO(vm.overlay(directory))) as archive:
                 names = archive.getnames()
                 self.assertEqual(sum(name.endswith('.L5X') for name in names), 9)
+                self.assertEqual(archive.extractfile('opt/logixlab/web/icons/plc-simulator.ico').read(),
+                                 (vm.SOURCE / 'web/icons/plc-simulator.ico').read_bytes())
                 self.assertFalse(any(name.lower().endswith(('.acd', '.exe', '.pyc', '.dll')) for name in names))
                 self.assertEqual(archive.getmember('etc/ssh/ssh_host_ed25519_key').mode, 0o600)
                 config = archive.extractfile('etc/ssh/sshd_config').read().decode()

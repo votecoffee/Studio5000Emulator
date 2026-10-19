@@ -134,6 +134,8 @@ def overlay(directory):
 set -eu
 ip=$(ip -4 -o addr show dev eth0 scope global | awk '{split($4,a,"/"); print a[1]; exit}')
 test -n "$ip"
+# ICMP echo is answered by the guest network stack, independently of CIP ports.
+sysctl -w net.ipv4.icmp_echo_ignore_all=0 >/dev/null
 id logixlab >/dev/null 2>&1 || adduser -D -h /var/lib/logixlab -s /sbin/nologin logixlab
 mkdir -p /var/lib/logixlab
 chown logixlab:logixlab /var/lib/logixlab
@@ -163,7 +165,7 @@ PermitOpen 127.0.0.1:8786
              ('etc/ssh/ssh_host_ed25519_key', (directory / 'host-key').read_bytes(), 0o600),
              ('etc/ssh/ssh_host_ed25519_key.pub', (directory / 'host-key.pub').read_bytes(), 0o644),
              ('root/.ssh/authorized_keys', key + '\n', 0o600)]
-    for pattern in ('logixlab/*.py', 'web/*', 'samples/*.L5X', 'tests/*.py', 'launch.py'):
+    for pattern in ('logixlab/*.py', 'web/*', 'web/icons/*', 'samples/*.L5X', 'tests/*.py', 'launch.py'):
         for path in sorted(SOURCE.glob(pattern)):
             if path.is_file():
                 files.append(('opt/logixlab/' + path.relative_to(SOURCE).as_posix(), path.read_bytes(), 0o644))

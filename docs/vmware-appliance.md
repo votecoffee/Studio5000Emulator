@@ -72,6 +72,28 @@ workflow; Linx range browsing still needs separate native validation. See the
 The appliance starts the read-only ConveyorDemo endpoint with the experimental
 L85E v35 identity. **Allow tag writes** remains an explicit opt-in.
 
+## Ping and IP scanners
+
+The appliance answers IPv4 ICMP echo requests at the **guest IP** shown in the
+webpage header and `status` output. Startup explicitly enables unicast echo
+replies in the guest network stack. Ping has no TCP or UDP port setting and
+continues to work while the VM is powered on, even if the CIP endpoint is stopped.
+
+Run the IP scanner on the Windows host and select the existing host-only adapter
+and its subnet. Enable ICMP echo discovery, or probe TCP port 44818 while the
+endpoint is running. The browser's `127.0.0.1:8786` address is the local UI tunnel;
+use the guest IP as the scanner target. An HTTP-only scan will not find the UI
+at the guest IP because the guest web service binds to loopback.
+
+The host-only network is separate from the physical LAN. Scanning it from
+another physical computer requires separately configured routing; this launcher
+does not add routes or change the Windows firewall. For an app running directly
+on Windows, ICMP replies come from Windows and depend on that host's firewall
+configuration. The Python CIP endpoint does not create an ICMP listener.
+
+Ping confirms IP reachability. EtherNet/IP identity discovery and Studio Go
+Online remain separate checks.
+
 ## Import projects
 
 Complete L5X exports can be opened directly in the browser. For ACD files, use
