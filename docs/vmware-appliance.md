@@ -55,6 +55,11 @@ The web service remains on guest loopback; the forwarded Windows address is
 `http://127.0.0.1:8786`. The header shows the exact running version, PLC endpoint IP and VMware appliance
 status. The Windows launcher supplies the tray controls.
 
+On Windows, appliance commands and the persistent OpenSSH tunnel run without
+console windows, including when launched from the tray with `pythonw`. Output
+and failures remain captured in the private logs. The tunnel uses no interactive
+stdin; SSH remains in batch mode with pinned host-key verification.
+
 Read the current guest address with:
 
 ```powershell

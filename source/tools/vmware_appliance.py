@@ -40,9 +40,15 @@ WORLD = ('alpine-base', 'openssl', 'python3', 'python3-pycache-pyc0',
 UI_PORT = 8786
 
 
+def background_options(**options):
+    """Keep CLI children from opening console windows under pythonw on Windows."""
+    options['creationflags'] = options.get('creationflags', 0) | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+    return options
+
+
 def run(args, timeout=30, check=True, **kwargs):
     result = subprocess.run([str(a) for a in args], capture_output=True, text=True,
-                            timeout=timeout, **kwargs)
+                            timeout=timeout, **background_options(**kwargs))
     if check and result.returncode:
         raise RuntimeError(f'{Path(str(args[0])).name} failed: {result.stderr or result.stdout}')
     return result.stdout.strip()
@@ -472,7 +478,8 @@ def start(directory, open_browser=True, tray=True):
     url = f'http://127.0.0.1:{UI_PORT}'
     try:
         with (directory / 'ssh.log').open('a', encoding='utf-8') as log:
-            tunnel = subprocess.Popen(tunnel_args, stdout=subprocess.DEVNULL, stderr=log)
+            tunnel = subprocess.Popen(tunnel_args, stdin=subprocess.DEVNULL,
+                                      stdout=subprocess.DEVNULL, stderr=log, **background_options())
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
             if tunnel.poll() is not None:

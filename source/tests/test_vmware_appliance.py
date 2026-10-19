@@ -1,17 +1,65 @@
 """Guard appliance isolation, package completeness and session ownership."""
 import io
 import json
+import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from logixlab.server import Application
 from tools import vmware_appliance as vm
 
 
 class ApplianceTests(unittest.TestCase):
+    def test_background_commands_capture_output_without_windows_console(self):
+        with patch.object(subprocess, 'CREATE_NO_WINDOW', 0x08000000, create=True), \
+                patch.object(subprocess, 'run', return_value=Mock(returncode=0, stdout='ready\n')) as launch:
+            self.assertEqual(vm.run(['ssh', 'host', 'true'], creationflags=4), 'ready')
+            self.assertEqual(launch.call_args.kwargs['creationflags'], 0x08000004)
+            self.assertTrue(launch.call_args.kwargs['capture_output'])
+            self.assertEqual(launch.call_args.kwargs['timeout'], 30)
+            launch.return_value = Mock(returncode=1, stderr='diagnostic retained', stdout='')
+            with self.assertRaisesRegex(RuntimeError, 'diagnostic retained'):
+                vm.run(['ssh', 'host', 'true'])
+        with patch.object(subprocess, 'CREATE_NO_WINDOW', 0, create=True):
+            self.assertEqual(vm.background_options(), {'creationflags': 0})
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows console process behavior')
+    def test_windows_background_child_has_no_console(self):
+        result = vm.run([sys.executable, '-c',
+                         'import ctypes; print(ctypes.windll.kernel32.GetConsoleWindow())'])
+        self.assertEqual(result, '0')
+
+    def test_tunnel_runs_without_console_or_interactive_stdin(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            config = {'vmx': str(directory / 'LogixLab.vmx'), 'subnet': '192.0.2.0/24',
+                      'host_ip': '192.0.2.1', 'app_version': vm.__version__}
+            (directory / 'appliance.json').write_text(json.dumps(config))
+            (directory / 'host-key.pub').write_text('ssh-ed25519 example-key')
+            state = {'app_version': vm.__version__, 'instance_id': 'test-instance',
+                     'connectivity': {'address': '192.0.2.9:44818'}}
+            tunnel = Mock(pid=123, poll=Mock(return_value=None))
+            with patch.object(subprocess, 'CREATE_NO_WINDOW', 0x08000000, create=True), \
+                    patch.object(subprocess, 'Popen', return_value=tunnel) as launch, \
+                    patch.object(vm, 'vmrun', return_value='vmrun'), \
+                    patch.object(vm, 'run', side_effect=[config['vmx'], '192.0.2.9', '']) as command, \
+                    patch.object(vm, 'api', side_effect=[state, KeyboardInterrupt]), \
+                    patch.object(vm.time, 'sleep'):
+                vm.start(directory, open_browser=False, tray=False)
+            self.assertEqual(launch.call_args.kwargs['creationflags'], 0x08000000)
+            self.assertEqual(launch.call_args.kwargs['stdin'], subprocess.DEVNULL)
+            self.assertEqual(launch.call_args.kwargs['stdout'], subprocess.DEVNULL)
+            self.assertIn('BatchMode=yes', launch.call_args.args[0])
+            self.assertIn('StrictHostKeyChecking=yes', launch.call_args.args[0])
+            self.assertIn('127.0.0.1:8786:127.0.0.1:8786', launch.call_args.args[0])
+            self.assertEqual(command.call_args.args[0][-1], 'poweroff')
+            tunnel.terminate.assert_called_once()
+            tunnel.wait.assert_called_once_with(timeout=8)
+
     def test_package_closure_includes_virtual_providers_and_handles_cycles(self):
         records = [{'P': 'runtime', 'V': '1', 'D': 'so:libc.so.1 helper>=1'},
                    {'P': 'libc', 'V': '1', 'p': 'so:libc.so.1=1'},
