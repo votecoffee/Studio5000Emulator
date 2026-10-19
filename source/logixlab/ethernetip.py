@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import controller_configuration, data_table, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
+from . import attribute_gaps, controller_configuration, data_table, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -205,15 +205,19 @@ class Router:
     def attribute_read(self,service,path,data,attributes):
         if service==0x0E:
             exact(data,0)
-            if path.attribute not in attributes:raise CIPError(0x14,'Unsupported attribute')
+            if path.attribute not in attributes:
+                self.endpoint.record_attribute_gap(path,[path.attribute],service)
+                raise CIPError(0x14,'Unsupported attribute')
             return 0,attributes[path.attribute]
         if service==3 and path.attribute is None:
             need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
             if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-            result=struct.pack('<H',count);failed=False
+            result=struct.pack('<H',count);failed=False;missing=[]
             for number in struct.unpack_from('<'+'H'*count,data,2):
                 value=attributes.get(number);status=0 if value is not None else 0x14
+                if status:missing.append(number)
                 failed|=status!=0;result+=struct.pack('<HH',number,status)+(value if value is not None else b'')
+            if missing:self.endpoint.record_attribute_gap(path,missing,service)
             return 0x0A if failed else 0,result
         raise CIPError(8,'Unsupported attribute service')
 
@@ -866,6 +870,7 @@ class Endpoint:
         self.profile=profile;self.identity=Identity.from_project(profile,app.engine.project)
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
+        self.attribute_gaps=attribute_gaps.AttributeGaps()
         self.native_sessions={}
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
@@ -925,9 +930,18 @@ class Endpoint:
                     'discovery':{**self.discovery_status,'broadcast_enabled':self.enabled and bool(self.broadcast_servers)},
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
+                    'attribute_gaps':self.attribute_gaps.snapshot(self.app.generation),
                     'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
             if trace:result['events']=list(self.events)
             return result
+
+    def record_attribute_gap(self,path,missing,service):
+        # Store IDs and scope only, never field values, requests or session keys.
+        missing=[number for number in missing if isinstance(number,int)]
+        scope=path.symbols[0] if path.symbols else ''
+        with self.lock:
+            self.attribute_gaps.record(path.class_id,path.instance,path.program_instance,
+                                       scope,missing,self.app.generation,service)
 
     def discovery(self,command):
         if command==0x63:

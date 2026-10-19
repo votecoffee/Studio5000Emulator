@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.43` adds controller compatibility settings and read-only
+Current milestone: `.44` adds field-level unsupported-read diagnostics to the
+Connectivity panel, API and trace export. Native upload still fails controller
+collection; missing fields are reported without assigning a root cause. Complete
+native upload and SDK tag monitoring are unfinished.
+
+Version `.43` adds controller compatibility settings and read-only
 Linux Ethernet status. The deployed native test preserves scalar tag discovery and
 returns these fields, but still fails controller collection. Handler-reference
 encoding, Ethernet counters and remaining controller/device metadata need further

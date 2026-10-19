@@ -529,6 +529,31 @@ were preserved, with network writes disabled. Deployed modules, browser assets,
 displayed version and the Windows artifact matched the source. These checks do
 not establish native tag/rung monitoring, complete upload/download or online edits.
 
+### Unsupported attribute diagnostics
+
+Version `.44` adds `attribute_gaps` to the Connectivity state and trace export.
+It records unsupported single-attribute reads and the unavailable fields in a
+mixed attribute list, including object class, instance, program scope, service,
+field IDs/names, status `0x14`, count and last-seen time. Protocol replies are
+unchanged. A missing field does not establish why an SDK operation failed.
+
+The endpoint retains at most 64 groups and the panel displays the eight most
+recent. Repeated reads increment a group's count. Only the current project load's
+groups are exposed; a new endpoint starts empty. The summary contains no field
+values, message bytes or session keys. Scope names can still identify project
+content, and the existing trace events can contain tag values.
+
+The suite runs 690 tests: Windows passes 688 with two Linux-only skips; Linux
+passes 689 with the Windows console check skipped. New checks cover grouping,
+eviction, scoped reads, project replacement, immutable snapshots, malformed
+requests and unchanged partial replies. The normal-source candidate preserves
+12 scalar reads, their Symbol descriptors and nine empty catalogs across 197
+verified signed requests. Its last ordinary read is the Ethernet Link list, with
+counter attributes `4` and `5` unavailable; this exchange does not request the
+Controller handler list. Upload still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. The client sequence can vary;
+the diagnostic reports observed requests rather than assuming the earlier order.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

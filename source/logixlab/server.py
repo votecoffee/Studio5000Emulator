@@ -60,7 +60,7 @@ class Application:
             'controller_configuration':None,'metadata_definition':None,'data_table':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
-            'counts':{},'unsupported':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
+            'counts':{},'unsupported':[],'attribute_gaps':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
 
     def close(self):
         with self.connectivity_lock:

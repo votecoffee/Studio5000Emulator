@@ -264,6 +264,14 @@ function renderConnectivity() {
   $('eip-identity').textContent=identity ? `${identity.product_name} · revision ${identity.revision.major}.${identity.revision.minor} · virtual hardware ${identity.hardware_revision?.major ?? '?'}.${identity.hardware_revision?.minor ?? '?'} · virtual firmware build ${identity.firmware_build ?? '?'} · experimental profile · research serial ${identity.serial}. Studio Go Online remains unverified.` : 'The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.';
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
+  const gaps=c.attribute_gaps||[];
+  $('eip-attribute-gaps').innerHTML=gaps.slice(0,8).map(x=>{
+    const target=`${x.class_name} (0x${x.class_id.toString(16).toUpperCase()}), instance ${x.instance}`;
+    const scope=x.scope||(x.program_instance!=null?`Program instance ${x.program_instance}`:'Controller scope');
+    const fields=x.attributes.map(a=>`${a.name} (${a.id}, status 0x14)`).join(', ');
+    return `<div class="issue">${escapeHtml(target)} · ${escapeHtml(scope)}<br>${escapeHtml(fields)} × ${x.count}</div>`;
+  }).join('')||'No unsupported attribute reads recorded.';
+  if(gaps.length>8)$('eip-attribute-gaps').innerHTML+=`<p>${gaps.length-8} more groups in the protocol trace.</p>`;
 }
 $('eip-native').onchange=()=>{if($('eip-native').checked){$('eip-writes').checked=false;$('eip-profile').value='logix-v35-l85e';}$('eip-writes').disabled=$('eip-native').checked;};
 $('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start',{port:Number($('eip-port').value),bind_address:$('eip-bind').value.trim(),profile:$('eip-profile').value,allow_writes:$('eip-writes').checked,native_read_only:$('eip-native').checked}));}catch(e){error(e);}};
