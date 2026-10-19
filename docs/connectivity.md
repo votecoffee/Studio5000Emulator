@@ -156,6 +156,21 @@ pagination, signed requests and denied value/writing services. Installed v35
 attribute descriptions were consulted for field numbers and widths; vendor
 files are not modified or distributed.
 
+The rebuilt `.35` appliance passed 34 live protocol checks. All eight native SDK
+connection steps succeeded, including Online/Program reads and final Offline
+confirmation, with 85 verified signed requests. A separate native upload verified
+148 signed requests, accepted the 12-entry Data Table list and reached the same
+unavailable descriptor fields before failing with `RxCsE_UPLOAD_OF_TAGS_FAILED`.
+The original ACD and modeled values remained unchanged. Upload, download, native
+tag/rung monitoring and online edits remain unfinished.
+
+Version `.35` also fixes the Device I/O panel's tab navigation; browser checks
+verified that each of the five tabs shows only its own panel. The served version
+and assets match the rebuilt app. Cached device reads and queued-write
+cancellation checks passed, with external writes disabled at the end.
+
+### Change Log correlation
+
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
 only the exact imported index/generation cursor and returns those two UINTs,
 without a length prefix or invented history. An older/different cursor or a
