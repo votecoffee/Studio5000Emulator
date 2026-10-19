@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.43` deployed test returns controller settings and Linux Ethernet status; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
+| Native upload | `.44` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -553,6 +553,18 @@ counter attributes `4` and `5` unavailable; this exchange does not request the
 Controller handler list. Upload still fails
 `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. The client sequence can vary;
 the diagnostic reports observed requests rather than assuming the earlier order.
+
+The rebuilt `.44` appliance passed 93 live protocol checks, including the new
+field summaries. Its eight SDK connection steps passed across 85 verified signed
+requests and ended Offline. Deployed upload verified 196 signed requests and
+reproduced the candidate's supported replies and controller-collection failure,
+without requesting the handler list. A separate hold/read check completed 93
+verified requests without correlation loss and ended Offline; the three SDK tag
+reads still fail `RxDA_E_NO_ONLINE_ADDRESS`. Source ACD bytes, model values and
+zero scan count were preserved with writes disabled. Deployed modules, served
+browser assets, displayed version and Windows artifact matched the source. A
+hidden browser check confirmed the field summary renders without JavaScript
+errors. Full upload/download, online edits and native monitoring remain unfinished.
 
 ### Change Log correlation
 
