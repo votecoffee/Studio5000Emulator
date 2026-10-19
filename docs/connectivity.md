@@ -128,6 +128,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`: class revision/inventory and instance 1 comparison attributes |
 | File Manager | Class `0x31A`, instance 0: revision and zero storage-instance count |
+| Vendor key challenge | Extended Device `0x64`, instance 1, `0x4B`; confirmation and authenticated wrappers remain unsupported |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
 | Templates | Class `0x6C` attributes 1, 2, 4 and 5; offset-based `0x4C` definition reads |
 | Atomic access | BOOL and supported signed/unsigned integers and REAL; arrays and atomic members |
@@ -149,6 +150,45 @@ Supported atomic wire types are BOOL, SINT, INT, DINT, LINT, USINT, UINT, UDINT,
 ULINT and REAL. Explicit user-defined LEN/DATA string structures support whole
 and fragmented transfers. Built-in STRING transfers and packed BOOL arrays
 remain unsupported. Atomic built-in STRING members can be addressed individually.
+
+## Vendor key challenge
+
+Version `0.6.0-connectivity.20` adds the observed first phase of the native v35
+key exchange: Extended Device class `0x64`, instance 1, service `0x4B`. The
+bounded offer parser checks format words, unique feature IDs/versions, parameter
+tags and lengths, a public exponent of 65537, an odd 1,024-bit modulus and the
+declared offer boundary. The final 128 opaque bytes are length checked; their
+trust/signature semantics are unimplemented. Peer identity is not authenticated.
+
+Each accepted request generates a fresh 20-byte nonce and applies the raw RSA
+public primitive. The modulus is big-endian; the nonce integer and resulting
+ciphertext use little-endian encoding. The response contains a UINT length of
+128 followed by those ciphertext bytes. This is the observed vendor format,
+using the mathematical primitive described in
+[RFC 8017 section 5.1.1](https://www.rfc-editor.org/rfc/rfc8017.html#section-5.1.1).
+The vendor format has not been established as an RFC encryption scheme.
+
+The normal endpoint discards the nonce after constructing its reply. It does
+not retain a session secret, validate confirmation service `0x4C`, or dispatch
+authenticated Message Router services `0x36`–`0x38`. Those services return explicit
+unsupported errors. The API's `key_exchange` metadata reports these boundaries.
+The challenge works with tag writes disabled and preserves modeled memory,
+project generation and catalog state. Identity class `0x01` service `0x4B` remains
+the separate device-locator operation below.
+
+Separate, temporary native SDK trials established the raw-RSA encoding and
+verified HMAC-SHA1 requests over the complete outer CIP request plus its counter,
+excluding the final 20-byte MAC. Three trials matched using independently
+generated nonces. The MAC uses the nonce's little-endian byte sequence as its
+key. Confirmation proof semantics and authenticated reply/container handling
+remain research work; the temporary trials rejected their embedded operations.
+The generic HMAC construction is defined in
+[RFC 2104](https://www.rfc-editor.org/rfc/rfc2104).
+
+The implementation uses the Python standard library. Public tests use a
+synthetic public key and an independently generated ciphertext vector. Vendor
+keys, captured replies, private projects and diagnostic harnesses are not bundled.
+The `.20` behavioral suite passed 482 tests on each of Windows and Linux.
 
 ## Device locator
 

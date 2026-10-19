@@ -15,7 +15,8 @@ native Studio connection and programming services remain unfinished.
   [native connection probe](connectivity.md#observed-native-connection-gaps),
   with supported payload layouts and separate checks for each connection phase.
   The `.18` probe passes controller and File Manager class-revision queries;
-  the observed Extended Device `0x64` / `0x4B` request remains unsupported.
+  `.20` adds the observed Extended Device `0x64` / `0x4B` public-key challenge.
+  Confirmation and authenticated Message Router services remain unsupported.
   A passive reference capture now establishes the matching request and varying
   successful replies, followed by `0x64` / `0x4C` and Message Router services
   `0x36`–`0x38`; their vendor semantics still need implementation evidence.

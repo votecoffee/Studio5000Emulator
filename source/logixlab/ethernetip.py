@@ -23,7 +23,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import file_manager
+from . import file_manager, key_exchange
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -565,6 +565,10 @@ class Router:
             exact(data,0);name=self.app.engine.project.name.encode('ascii')
             if len(name)>255:raise CIPError(0x1B,'Controller project name exceeds supported size')
             return 0,struct.pack('<H',len(name))+name
+        if path.class_id==0x64 and path.instance==1 and service==0x4B:
+            if path.symbols or path.attribute is not None:raise CIPError(4,'Key challenge requires an object instance path')
+            try:return 0,key_exchange.challenge(data)
+            except key_exchange.OfferError as error:raise CIPError(error.status,str(error)) from error
         if path.class_id==2 and path.instance==1 and service==0x0A and not path.symbols and path.attribute is None:
             need(data,2);count=struct.unpack_from('<H',data)[0]
             if not 1<=count<=16:raise CIPError(3,'Multiple Service Packet limit is 16')
@@ -680,6 +684,7 @@ class Endpoint:
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
+                    'key_exchange':key_exchange.description() if self.enabled else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
