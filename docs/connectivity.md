@@ -112,6 +112,11 @@ assemble operations. All tested controller/source tag values remained intact.
 The `.33` suite passes 598 tests on Linux; Windows passes 596 with two
 platform-specific skips. Tests cover sparse 32-bit IDs, program isolation,
 pagination, private tags, malformed paths/payloads and signed read-only policy.
+The rebuilt `.33` appliance passed 26 live protocol checks and all eight native
+SDK connection steps, including a final Offline-state read, with 86 verified
+signed requests. Upload on that deployed build verified 149 signed requests and
+failed at the same Data Table discovery step. Initial model values and the
+original ACD remained unchanged; no scans ran during these checks.
 Wire-format reference: Sandia's
 [Get Instance List reader](https://sandialabs.github.io/PEAT/_modules/peat/modules/rockwell/clx_cip.html#get_instance_list_data_from_reply).
 No PEAT source is copied or included in the runtime.
