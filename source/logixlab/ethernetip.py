@@ -21,6 +21,7 @@ from .model import ModelError
 from .identity import Identity
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
+from .network_objects import interface_snapshot, port_attributes, cip_string
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -492,9 +493,41 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:b'\x08\x00'})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            classes=struct.pack('<HHHHHHHH',7,1,2,6,0x64,0x6B,0x6C,0xAC)
+            classes=struct.pack('<10H',9,1,2,6,0x64,0x6B,0x6C,0xAC,0xF4,0xF5)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
+        if path.class_id in (0xF4,0xF5):
+            if path.symbols:raise CIPError(4,'Network object paths do not take symbols')
+            instance=path.instance
+            if instance is None:raise CIPError(4,'Network object path requires an instance')
+            if path.class_id==0xF4:
+                try:attributes=port_attributes(instance)
+                except KeyError:raise CIPError(5,'Unknown Port object instance')
+                if instance==0 and service==1 and path.attribute is None:
+                    exact(data,0);return 0,b''.join(attributes.values())
+            elif instance==0:
+                attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+                if service==1 and path.attribute is None:
+                    exact(data,0);return 0,b''.join(attributes.values())
+            elif instance==1:
+                if service==0x0E:exact(data,0)
+                attributes={6:cip_string(socket.gethostname())}
+                # Query the local OS only when the caller needs this attribute.
+                # Unknown interface data is an error, never a guessed /24 or MAC.
+                requested=service==0x0E and path.attribute==5
+                if service==3 and path.attribute is None:
+                    need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
+                    if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
+                    requested=5 in struct.unpack_from('<'+'H'*count,data,2)
+                if requested:
+                    if not self.endpoint.interface_queried:
+                        snapshot,error=interface_snapshot(self.endpoint.bind_address)
+                        with self.endpoint.lock:
+                            self.endpoint.interface=snapshot;self.endpoint.interface_error=error;self.endpoint.interface_queried=True
+                    if self.endpoint.interface is None:raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
+                    attributes[5]=self.endpoint.interface.configuration()
+            else:raise CIPError(5,'Unknown TCP/IP Interface object instance')
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:
             if path.symbols:raise CIPError(4,'Controller metadata paths do not take symbols')
             if path.instance!=1:raise CIPError(5,'Unknown controller metadata instance')
@@ -582,6 +615,7 @@ class Endpoint:
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
+        self.interface=None;self.interface_error=None;self.interface_queried=False
 
     def flash_leds(self,seconds):
         # Identification is independent of application tag-write permission.
@@ -616,6 +650,8 @@ class Endpoint:
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'locator':self.locator_state(),
+                    'network_interface':self.interface.description() if self.interface else None,
+                    'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'studio_go_online':'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}

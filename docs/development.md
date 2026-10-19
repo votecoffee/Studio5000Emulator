@@ -105,6 +105,18 @@ operate the FactoryTalk Linx interface. Browser checks should also cover the
 global banner, tab changes, cancellation, expiry and page reload during an
 active request.
 
+The network-object probe checks Port Object class/instance data and actual local
+TCP/IP configuration through an independent Class 3 client. It rejects unknown
+ports, unknown attributes and configuration writes while preserving modeled
+memory:
+
+```powershell
+py -3.13 -X utf8 tests/interop_network_objects.py --out ../.local/network-objects.json
+```
+
+See the [community assessment](community-projects.md#reusable-conversion-comparison)
+for the separate read-only comparison tool used to evaluate converter output.
+
 ## Optional ACD conversion
 
 Configure `l5xgit` through **Import settings**, the `LOGIXLAB_CONVERTER` environment

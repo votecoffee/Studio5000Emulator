@@ -85,6 +85,7 @@ active. Compatible replacements update identity data and invalidate old sessions
 | Explicit transport | SendRRData, slot-0 Unconnected Send, Class 3 SendUnitData |
 | Connections | Standard/Large Forward Open and Forward Close; sequence/replay checks |
 | Objects | Identity attributes, Message Router class inventory and controller name |
+| Network metadata | Port Object `0xF4`; read-only TCP/IP Interface `0xF5` configuration and hostname |
 | Device locator | Identity instance 1, `0x4B` Flash_LEDs; timed webpage indicator |
 | Catalog refresh | Controller class `0xAC`, instance 1: attributes 1, 2, 3, 4 and 10 |
 | Symbol metadata | Paginated `0x55`; single/list attribute reads for 1, 2, 8 and 10 |
@@ -135,6 +136,41 @@ project selection, Go Online and upload/download. Extended identity and vendor
 metadata remain incomplete. Manufacturing dates, warranty identifiers and other
 physical-device data are not inferred from an ACD or invented to fill empty
 fields in a device-information view.
+
+## Port and TCP/IP interface metadata
+
+The Port Object (`0xF4`) describes two modeled interfaces: local slot-zero
+backplane routing on port 1 and the selected EtherNet/IP endpoint on port 2.
+Class attributes 1, 2, 3, 8 and 9 support single/list reads and class
+Get_Attributes_All. The entry port is 2; the port-info array includes the reserved
+zero entry. Instance attributes 1 through 5 support single/list reads. Port 2's
+link path points to TCP/IP Interface instance 1. Port 1 has an empty link-object
+path because no physical backplane object is implemented. Unknown ports are
+rejected rather than advertised as additional hardware.
+
+The TCP/IP Interface Object (`0xF5`) supports class attributes 1 through 3 and
+class Get_Attributes_All. Instance 1 exposes attribute 5 (IPv4 configuration) and
+6 (hostname). IPv4 values are CIP little-endian UDINTs; domain/hostname values use
+length-prefixed, even-padded CIP strings. The configuration uses the selected
+local address, actual subnet mask, default gateway, IPv4 DNS servers and domain.
+
+Configuration is captured lazily on the first attribute-5 query and retained for
+that endpoint. Linux queries interface ioctls, its route table and resolver file;
+Windows uses bounded, read-only network cmdlets. Restart the endpoint to refresh
+the snapshot after an OS configuration change. If the selected configuration
+cannot be read or validated, the request returns a CIP error; no subnet, gateway
+or MAC address is guessed. Snapshot availability and errors are exposed in the
+connectivity state.
+
+Network configuration writes, TCP/IP instance Get_Attributes_All, the remaining
+TCP/IP attributes, Ethernet Link Object `0xF6`, and physical-backplane services
+remain unsupported. Enabling tag writes does not enable network reconfiguration.
+These responses do not establish native Studio path selection or Go Online.
+
+The layouts follow the published
+[Port/TCP-IP object tables](https://productinfo.se.com/pm5500/595e2aa946e0fb0001f715da/PM5500%20user%20manual/English/PM5500SeriesUserManualv02_0000044889.ditamap/$/R_Communications_EthernetIP_MessagingExplicitExchanges_PM5500_0000178841)
+and the [Rockwell port-object description](https://www.sprecherschuh.com/content/dam/sprecher-schuh/downloads/tech-docs/CEP7-UM014B-EN-P_12-11.pdf).
+This is an original, bounded implementation; no upstream stack code is bundled.
 
 ## Catalog refresh
 

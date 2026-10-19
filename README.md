@@ -126,6 +126,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit packed Boolean flags and fragmented reads/writes |
 | Catalog refresh | Controller comparison attributes and source-bound cache tokens |
+| Network metadata | Read-only CIP port inventory and actual IPv4 interface configuration |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Go Online, project correlation, upload/download and online edits pending |
 
@@ -141,6 +142,8 @@ results, and the [protocol contract](docs/connectivity.md) before using clients.
 
 The code, public L5X fixtures, tests and browser assets are under `source/`.
 Shared technical documentation is under `docs/`. Build output goes to `dist/`.
+See the [community project assessment](docs/community-projects.md) for reusable
+components, licensing and conversion-validation results.
 
 Run the behavioral suite from the repository root:
 
