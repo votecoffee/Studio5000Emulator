@@ -8,7 +8,7 @@ native Studio connection and programming services remain unfinished.
 
 Current milestone: `.45` adds TCP/IP configuration status and verified Linux
 DHCP/DNS flags. An isolated SDK diagnostic accepts that list and then requests
-the unimplemented Memory object (`0x67`); earlier missing fields still prevent
+the unimplemented PCCC mapping object (`0x67`); earlier missing fields still prevent
 normal upload. Complete native upload and SDK tag monitoring are unfinished.
 
 Version `.44` adds field-level unsupported-read diagnostics to the

@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.44`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.45`. Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.

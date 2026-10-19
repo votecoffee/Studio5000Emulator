@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.44` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
+| Native upload | `.45` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -584,7 +584,7 @@ individual errors in mixed lists, and the diagnostic now names TCP/IP fields.
 The wire flags follow Rockwell's [TCP/IP object tables](https://literature.rockwellautomation.com/idc/groups/literature/documents/qs/2080-qs002_-en-e.pdf).
 
 An isolated SDK diagnostic accepted the five-field TCP/IP list and next requested
-Memory object `0x67` attributes `1`/`2`, which remain unsupported. That diagnostic
+PCCC mapping object `0x67` attributes `1`/`2`, which remain unsupported. That diagnostic
 temporarily substituted earlier missing metadata; those substitutes are excluded
 from the app and this result does not demonstrate successful native upload.
 
@@ -595,6 +595,17 @@ cached interface selection, mixed lists and denied setters. The normal-source
 candidate preserves 12 scalar reads/descriptors and nine empty catalogs across
 196 verified signed requests, then still fails controller collection after the
 Ethernet Link list. It does not reach the new TCP/IP list in that exchange.
+
+The rebuilt `.45` appliance passed 97 live protocol checks, including single and
+list reads of the observed TCP/IP flags. Its eight SDK connection steps passed
+across 85 verified signed requests and ended Offline. Deployed upload reproduced
+the candidate's partial transfer and controller-collection failure across 196
+verified requests. A separate hold/read check completed 93 verified requests
+without correlation loss and ended Offline; typed BOOL, generic BOOL and DINT
+reads still fail `RxDA_E_NO_ONLINE_ADDRESS`. Source ACD bytes, model values and
+zero scan count were preserved with writes disabled. Deployed modules, served
+web files, app version and Windows artifact matched source. Native GUI monitoring,
+full upload/download and online edits remain unfinished.
 
 ### Change Log correlation
 
