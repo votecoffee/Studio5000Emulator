@@ -18,8 +18,10 @@ native Studio connection and programming services remain unfinished.
   `.20` adds the observed Extended Device `0x64` / `0x4B` public-key challenge.
   Confirmation and authenticated Message Router services remain unsupported.
   `.21` adds offline `0x36`/`0x37` structural decoding and known-key request MAC
-  verification, with no live dispatch. Resolve confirmation proof and response
-  MAC semantics before connecting that codec to session handling.
+  verification, with no live dispatch. `.22` adds reply signing/verification;
+  native `0x37` denial tests distinguish valid MACs from a damaged-MAC control.
+  Resolve confirmation proof and session lifecycle before connecting that codec
+  to live dispatch. Native `0x36` MAC validation remains a separate check.
   A passive reference capture now establishes the matching request and varying
   successful replies, followed by `0x64` / `0x4C` and Message Router services
   `0x36`–`0x38`; their vendor semantics still need implementation evidence.

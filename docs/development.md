@@ -64,7 +64,13 @@ does not accept session keys or verify MACs. The separate pure Python codec in
 expected_sequence=...)` for local known-key tests. It checks HMAC-SHA1 over the
 complete CIP request before the final MAC, with an exact expected counter.
 Callers own session state and replay tracking; the codec retains neither.
-Response MAC verification and service `0x38` remain unresolved. See the
+Version `.22` adds `verify_response(raw, key, request=...)` and
+`encode_response(request, inner, key)`. They correlate the embedded service and
+echoed counter, preserve embedded CIP errors and check or produce the MAC over
+the complete reply before its final 20 bytes. These functions never dispatch an
+operation. Native positive/negative tests establish `0x37` reply compatibility;
+`0x36` MACs retain synthetic coverage only. Service `0x38`, confirmation and live
+session integration remain unresolved. See the
 [observed envelope layout](connectivity.md#offline-signed-envelope-codec).
 
 Embedded services inside other routed requests or Multiple Service Packets

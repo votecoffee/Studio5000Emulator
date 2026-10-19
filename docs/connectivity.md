@@ -180,8 +180,9 @@ Separate, temporary native SDK trials established the raw-RSA encoding and
 verified HMAC-SHA1 requests over the complete outer CIP request plus its counter,
 excluding the final 20-byte MAC. Three trials matched using generated nonces,
 including a deterministic test vector. The MAC uses the nonce's little-endian byte sequence as its
-key. Confirmation proof semantics and authenticated reply/container handling
-remain research work; the temporary trials rejected their embedded operations.
+key. Confirmation proof and session-bound live dispatch remain research work.
+The offline codec below covers observed request/reply containers; temporary
+native trials reject their embedded operations.
 The generic HMAC construction is defined in
 [RFC 2104](https://www.rfc-editor.org/rfc/rfc2104).
 
@@ -214,8 +215,8 @@ does not establish peer identity or permission to execute an operation.
 Structural reply decoding requires a successful outer response, the corresponding
 embedded reply service, valid additional-status bounds and an echoed counter.
 The `0x37` reply uses the same observed container header with its reply length.
-Reply MAC calculation remains unverified. Captures without keys receive structural
-analysis only, explicitly labeled **NOT VERIFIED** for integrity. Unknown `0x38`
+Captures without keys receive structural analysis only, explicitly labeled
+**NOT VERIFIED** for integrity. Unknown `0x38`
 containers, unsupported format words, length mismatches and malformed inner
 headers are rejected by the codec. Capture reports retain their outer evidence.
 
@@ -227,6 +228,36 @@ traces and operator identity payloads remain outside the public tree.
 The `.21` behavioral suite passed 496 tests on each of Windows and Linux. Offline
 validation decoded 32 paired reference exchanges and verified the saved native
 known-nonce `0x37` request; these checks do not establish native Go Online.
+
+Version `0.6.0-connectivity.22` adds known-key reply verification and reply
+encoding. Both directions use HMAC-SHA1 over the complete outer CIP message
+through the echoed counter, excluding the final MAC. Verification also requires
+the corresponding embedded reply service and exact request counter. Encoding
+frames and signs supplied reply bytes; it performs no embedded operation.
+An authenticated embedded error remains an error.
+
+An isolated native SDK test returned an explicit CIP `0x0F` privilege denial
+inside a correctly signed `0x37` reply. The client reported access denied. A
+second reply differing in exactly one MAC byte produced a data-integrity error.
+Repeating the correctly signed denial with a different nonce again produced
+access denied. Public encoder output matches both accepted reply byte sequences;
+the verifier rejects the damaged-MAC control. CIP `0x0F` is defined as privilege
+violation in Rockwell's
+[generic CIP status table](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1444-um001_-en-p.pdf).
+
+Those private tests supplied a temporary capability response solely to reach the
+wrapper experiment, without validating `0x64` / `0x4C`. The normal endpoint still
+rejects confirmation and all signed dispatch. No embedded operator-identity
+operation was performed. Native MAC evidence covers `0x37`; `0x36` encoding and
+verification are tested with independent synthetic vectors. Service `0x38`
+remains unsupported.
+
+A separate repeated-nonce test produced identical confirmation bytes across
+different EtherNet/IP session IDs, with identical offers and ciphertexts. This
+narrows the confirmation investigation but does not establish its calculation.
+The `.22` behavioral suite passed 501 tests on each of Windows and Linux,
+including independent reply vectors, altered bytes, wrong keys, mismatched
+request contexts, malformed headers and maximum-length replies.
 
 ## Device locator
 

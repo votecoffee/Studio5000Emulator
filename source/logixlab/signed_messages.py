@@ -1,7 +1,7 @@
 """Offline codec for the observed v35 Message Router 0x36/0x37 envelopes.
 
-Parsing establishes structure only. Request verification requires the caller's
-20-byte test/session key and covers the complete CIP message before its MAC.
+Parsing establishes structure only. Verification requires the caller's 20-byte
+test/session key and covers the complete CIP message before its MAC.
 This module retains no keys, opens no connections and dispatches no operations.
 Confirmation, peer authentication and service 0x38 remain unimplemented.
 """
@@ -48,6 +48,21 @@ def _inner(data, service):
     return data[8:], format_word
 
 
+def _check_key(key):
+    if not isinstance(key, bytes) or len(key) != 20:
+        raise EnvelopeError('MAC calculation requires a 20-byte key')
+
+
+def _request_context(request):
+    if (not isinstance(request, Envelope) or type(request.service) is not int or
+            request.service not in (0x36, 0x37) or
+            type(request.sequence) is not int or not 0 <= request.sequence <= 0xFFFFFFFF or
+            not isinstance(request.inner, bytes) or not 2 <= len(request.inner) <= MAX_MESSAGE or
+            request.inner[0] & 0x80 or 2 + 2 * request.inner[1] > len(request.inner) or
+            request.container_format != (CONTAINER_FORMAT if request.service == 0x37 else None)):
+        raise EnvelopeError('A supported parsed request is required')
+
+
 def parse_request(raw):
     """Decode one observed envelope without asserting MAC validity."""
     _bounded(raw)
@@ -69,8 +84,7 @@ def verify_request(raw, key, *, expected_sequence):
     A valid MAC proves possession of the supplied key, not vendor identity or
     permission to execute the embedded operation. No session is advanced here.
     """
-    if not isinstance(key, bytes) or len(key) != 20:
-        raise EnvelopeError('Request verification requires a 20-byte key')
+    _check_key(key)
     if type(expected_sequence) is not int or not 0 <= expected_sequence <= 0xFFFFFFFF:
         raise EnvelopeError('Expected sequence must be a UDINT')
     envelope = parse_request(raw)
@@ -84,13 +98,11 @@ def verify_request(raw, key, *, expected_sequence):
 def parse_response(raw, request):
     """Decode a successful wrapper response paired with a parsed request.
 
-    Response MAC semantics have not been independently verified. This function
-    checks framing, embedded service and the echoed counter only.
+    This function checks framing, embedded service and the echoed counter only.
+    Use verify_response for a known-key MAC check.
     """
     _bounded(raw)
-    if (not isinstance(request, Envelope) or request.service not in (0x36, 0x37) or
-            not request.inner or request.inner[0] & 0x80):
-        raise EnvelopeError('A supported parsed request is required')
+    _request_context(request)
     if raw[:4] != bytes((request.service | 0x80, 0, 0, 0)):
         raise EnvelopeError('Expected a successful corresponding wrapper response')
     inner, format_word = _inner(raw[4:-TRAILER_BYTES], request.service)
@@ -101,3 +113,32 @@ def parse_response(raw, request):
     if sequence != request.sequence:
         raise EnvelopeError('Response counter does not match its request')
     return Envelope(request.service, sequence, inner, format_word)
+
+
+def verify_response(raw, key, *, request):
+    """Authenticate a reply against its parsed request and supplied session key.
+
+    As with request verification, the caller owns session identity and replay
+    state. An authenticated embedded CIP error remains an error.
+    """
+    _check_key(key)
+    envelope = parse_response(raw, request)
+    if not hmac.compare_digest(hmac.digest(key, raw[:-20], 'sha1'), raw[-20:]):
+        raise EnvelopeError('Response MAC verification failed')
+    return envelope
+
+
+def encode_response(request, inner, key):
+    """Frame and sign supplied CIP reply bytes without executing any operation."""
+    _check_key(key)
+    _request_context(request)
+    if not isinstance(inner, bytes) or len(inner) > MAX_MESSAGE:
+        raise EnvelopeError('Embedded reply must be bounded immutable bytes')
+    body = inner
+    if request.service == 0x37:
+        body = struct.pack('<II', CONTAINER_FORMAT, len(inner)) + inner
+    raw = bytes((request.service | 0x80, 0, 0, 0)) + body + struct.pack('<I', request.sequence)
+    # Validate the same strict framing/counter/inner-header contract before
+    # signing. The placeholder has the final MAC's length and is never returned.
+    parse_response(raw + b'\0'*20, request)
+    return raw + hmac.digest(key, raw, 'sha1')
