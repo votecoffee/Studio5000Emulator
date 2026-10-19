@@ -347,13 +347,22 @@ configured Linx Ethernet/backplane/slot-zero path succeeded, and the Go Online
 attempt reached the endpoint. It returned
 `RxE_COMM_ASA_SERVICE_NOT_SUPPORTED - Unimplemented service`.
 
-The endpoint trace contains these unsupported requests:
+The baseline endpoint trace contains these unsupported requests:
 
-| Object path | Request | Current response |
+| Object path | Request | Response in `.15` |
 | --- | --- | --- |
 | Class `0xAC`, instance 0 | Get Attribute List for attribute 1 | Unknown metadata instance (`0x05`) |
 | Class `0x31A`, instance 0 | Get Attribute List and Get Attribute Single for attribute 1 | Unsupported service (`0x08`) |
 | Class `0x64`, instance 1 | Vendor service `0x4B` | Unsupported service (`0x08`) |
+
+The same native operation was repeated against `0.6.0-connectivity.16` after
+adding controller class metadata. Its class `0xAC`, instance 0 revision request
+received a successful reply with object revision 1. The `0x31A` requests and
+class `0x64` service `0x4B` still returned unsupported-service errors. Go Online
+still failed with `RxE_COMM_ASA_SERVICE_NOT_SUPPORTED`. Both native attempts used
+the same preserved ACD content; the original and private input hashes remained
+unchanged. Independent client checks and 433 behavioral tests on each of Windows
+and Linux passed for `.16`.
 
 These are observed gaps, not a complete list of requirements for native online
 operation. The trace does not establish the vendor payload layouts or which

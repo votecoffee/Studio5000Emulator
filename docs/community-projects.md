@@ -26,6 +26,9 @@ Added an original read-only Port Object and TCP/IP Interface metadata subset.
 The next increment adds encoded node addresses, the TCP/IP physical-link path
 and the selected interface's actual MAC through the Ethernet Link Object.
 Windows metadata reads use IP Helper directly to avoid shell startup latency.
+Controller class revision and instance inventory now follow the common CIP
+class layout reviewed in OpENer. A native SDK retest confirmed that specific
+class-level revision query succeeds; the remaining vendor handshake is pending.
 The scope addresses concrete browser queries without inventing physical
 controller manufacturing data. See the [protocol contract](connectivity.md#port-and-tcpip-interface-metadata)
 and `source/tests/interop_network_objects.py` for the independent-client check.
