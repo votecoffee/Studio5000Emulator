@@ -75,7 +75,26 @@ Offline with the source/model preserved and temporary state empty.
 The 939-test suite covers malformed containers and streams, exact expansion
 capacity, excessive expansion, record/path limits, scope preservation, cached
 results, owner/source guards, cleanup, summary privacy and input preservation.
-Rebuilt-runtime acceptance is recorded separately after deployment.
+The suite passes on Windows with two expected skips and Linux with one expected
+skip. The public offline tool also decodes the captured sample while preserving
+its input.
+
+The rebuilt `.70` runtime's application modules and served webpage match source.
+The Windows executable's embedded version, webpage and decoder module were
+checked separately. It passes 291 wire checks. The public SDK probes report:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Online address discovery still fails before value reads |
+| Upload | 199 | Controller-collection upload still fails |
+| Download | 181 | 904 records inspected; execution denied; no records applied |
+
+All four probes confirm Offline cleanup, an unchanged source/model and empty
+temporary state. Final state has zero TCP clients, a free uninhibited lease,
+idle preparation, closed transport, no allocated fragment buffer and idle
+inspection with zero byte/record totals. Scans and model time remain zero.
+The communications and SDK services remain running.
 
 Next work requires semantic validation and temporary models for the batch's
 Template, Symbol, Data Table and other object operations before any execution

@@ -109,6 +109,11 @@ The `.70` suite runs 939 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt decodes all 904 batch-record paths, including six
 scoped records, then retains the execution denial with no records applied. See
 [payload inspection validation](device-payload-inspection.md#validation-and-remaining-work).
+The rebuilt endpoint passes 291 wire checks and the nine-step SDK connection
+probe. Download verifies 181 signed requests and records one structural
+inspection of 904 records before its execution denial. The connection, tag-read,
+upload and download cases each confirm Offline cleanup, idle inspection state
+and unchanged source/model.
 
 The `.69` suite runs 924 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt completes temporary fragment staging and reaches

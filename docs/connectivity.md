@@ -9,6 +9,12 @@ Version `.70` adds [structural inspection of staged device batches](device-paylo
 The tested SDK batch decodes into 904 request records, including six scoped records.
 Service `0x06` still returns execution denial; no batch operation is applied.
 
+The rebuilt `.70` endpoint passes 291 wire checks and the nine-step SDK
+connection/Offline probe. Download verifies 181 signed requests and decodes all
+904 records before returning the expected execution denial. All four probes
+confirm Offline cleanup, empty temporary state and preserved source/model.
+See [deployed inspection validation](device-payload-inspection.md#validation-and-remaining-work).
+
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The normal-source SDK attempt stages 82,534 bytes in 21 fragments and reaches a
 device-operation request (`0x06`) on class `0x412`, which remains rejected. No
