@@ -16,6 +16,12 @@ remain unknown. Prescan and scan behavior use explicit modeled rules. Runtime
 faults stop and roll back the current modeled scan, including parameter copies
 and AOI state; native controller fault handling can differ.
 
+The application retains imported values in Program and validates prescan with
+a rollback preview. [Run entry](run-entry.md) commits initialization once and
+rearms `S:FS`; the first manual Step also initializes once. Repeated Run requests
+do not repeat prescan. A failed prescan restores values and execution context,
+keeps the controller stopped and reports a fault.
+
 Scans and prescan have instruction budgets. Traces and tag-change histories are
 bounded. The UI logic monitor displays execution evidence from this model, not
 native Studio debugger state.

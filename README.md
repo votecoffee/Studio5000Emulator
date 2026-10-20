@@ -10,6 +10,7 @@ and executable use the name **LogixLab**.
 anonymous compatibility mode, read its connected state, request Remote Run or
 Program and read the emulator's actual mode, then Go Offline.** Version `.74`
 ties native mode requests and webpage controls to the same scan worker.
+Version `.75` adds transactional Run-entry prescan and first-scan initialization.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
@@ -125,13 +126,17 @@ definitions, device processing and active-project commit remain unfinished.
 Version `.74` adds [shared Remote Run/Program control](docs/controller-mode.md).
 Native requests start/stop actual scans, and local controls report back through
 the native identity. Closing the browser or going offline leaves Run active.
+Version `.75` adds [Run-entry initialization](docs/run-entry.md), rearming
+`S:FS` and applying bounded prescan rules once per transition. Initialization
+failures restore prior values and leave the controller faulted and stopped.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 987-test suite passes on Windows and Linux with expected platform skips.
+The behavioral suite covers Run-entry initialization, scan execution and native
+protocol boundaries; platform-specific checks use expected skips.
 Current SDK upload, tag-read and download probes still fail their native
 acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
 for the mode probe and its limits.
@@ -143,6 +148,8 @@ Choose a bundled demo or open a complete L5X export. Check **Coverage**, then us
 **Program** stops continuous scans and preserves the current values. The same
 state is used by native Remote Run/Program requests. Scanning runs in the app
 and continues with the webpage closed.
+Entering Run performs modeled prescan, which can reset non-retentive values and
+execute enabled AOI Prescan routines. Repeated Run requests do not repeat it.
 The header shows the running app's full version and PLC endpoint IP. On Windows,
 its tray icon offers
 **Open app** and **Quit LogixLab**; hover over it to see the version and session

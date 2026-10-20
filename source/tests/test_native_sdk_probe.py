@@ -92,10 +92,11 @@ class NativeSdkProbeTests(unittest.TestCase):
 
     def test_mode_probe_requires_executable_stopped_remote_controller(self):
         state=self.state()
-        state.update(controller={'running':False,'mode':'Program','keyswitch':'Remote','scan_interval_ms':10},blockers=[],fault='')
+        state.update(controller={'running':False,'mode':'Program','keyswitch':'Remote','scan_interval_ms':10,'prescan_count':0,'first_scan_pending':True},blockers=[],fault='')
         state['connectivity']['native_session']['controller_mode_requests']=True
         validate_mode_probe(state)
-        for field,value in (('running',True),('mode','Faulted'),('keyswitch','Run'),('scan_interval_ms',101),('scan_interval_ms',True)):
+        for field,value in (('running',True),('mode','Faulted'),('keyswitch','Run'),('scan_interval_ms',101),('scan_interval_ms',True),
+                            ('prescan_count',-1),('prescan_count',True),('prescan_count',None),('first_scan_pending',None)):
             other=copy.deepcopy(state);other['controller'][field]=value
             with self.subTest(field=field),self.assertRaises(ValueError):validate_mode_probe(other)
         for field,value in (('blockers',['unsupported']),('fault','scan failed')):

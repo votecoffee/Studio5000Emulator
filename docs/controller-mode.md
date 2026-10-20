@@ -1,12 +1,14 @@
 # Remote Run and Program
 
 Version `0.6.0-connectivity.74` gives the emulator one shared controller mode.
+Version `.75` adds [Run-entry prescan and first-scan initialization](run-entry.md).
 The application owns continuous scanning. The webpage's **Run** and **Program**
 buttons and supported native Studio requests use the same mode operation.
 Closing a page, Go Offline, disconnecting a client or stopping EtherNet/IP
 leaves a running simulation running. **Program**, reset, project replacement,
 execution-scope replacement and application shutdown stop it. Restart starts
-in Program. Tag values are retained on a Run/Program change.
+in Program. Program retains tag values; entering Run applies the bounded prescan
+rules, which can reset non-retentive values or execute AOI initialization.
 
 ## Status and controls
 
@@ -14,7 +16,7 @@ in Program. Tag values are retained on a Run/Program change.
 from the execution scope's existing `mode` (`project` or `routine`):
 
 ```json
-{"mode":"Program","running":false,"keyswitch":"Remote","scan_interval_ms":10}
+{"mode":"Program","running":false,"keyswitch":"Remote","scan_interval_ms":10,"prescan_count":0,"first_scan_pending":true}
 ```
 
 The authenticated local action `POST /api/controller-mode` accepts
@@ -71,10 +73,11 @@ history; use a private demonstration project. Other probe operations do not
 request mode changes and still require unchanged modeled state.
 
 These checks establish the tested SDK/model exchange. Studio GUI monitoring
-and the complete controller mode-transition/prescan contract remain unverified.
+and the complete native controller mode-transition contract remain unverified.
 This is a software execution control, not a safety function or physical I/O
 mode implementation.
 
+The `.74` milestone below predates the expanded `.75` mode probe.
 The rebuilt `.74` runtime passes all 291 live protocol checks. The 987-test
 behavioral suite passes on Windows (985 passed, two platform skips) and Linux
 (986 passed, one platform skip). The deployed native acceptance results are:

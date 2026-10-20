@@ -162,11 +162,13 @@ def validate_idle(state):
 def validate_mode_probe(state):
     controller=state.get('controller') or {}
     interval=controller.get('scan_interval_ms')
+    prescans=controller.get('prescan_count')
     if (controller.get('running') is not False or controller.get('mode')!='Program' or
             controller.get('keyswitch')!='Remote' or type(interval) is not int or not 1<=interval<=100 or
+            type(prescans) is not int or prescans<0 or type(controller.get('first_scan_pending')) is not bool or
             state.get('blockers')!=[] or state.get('fault') or
             state.get('connectivity',{}).get('native_session',{}).get('controller_mode_requests') is not True):
-        raise ValueError('Mode probe requires executable Remote Program with a 1..100 ms interval')
+        raise ValueError('Mode probe requires executable Remote Program, Run-entry status and a 1..100 ms interval')
 
 
 def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=8):

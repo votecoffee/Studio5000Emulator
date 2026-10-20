@@ -96,32 +96,50 @@ try
         await Step("ReadControllerModeAsync", async () => (await project!.ReadControllerModeAsync()).ToString());
         if (options.Operation == "modes")
         {
-            await Step("SDK Run advances emulator scans", async () => {
-                var before = await Backend();
-                if (before.GetProperty("controller").GetProperty("mode").GetString() != "Program")
-                    throw new InvalidOperationException("Mode probe must start in Program");
-                await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Run);
-                await CheckMode("Run");
-                await Task.Delay(250);
-                var after = await Backend();
-                if (!after.GetProperty("controller").GetProperty("running").GetBoolean() ||
-                    after.GetProperty("scan").GetInt64() <= before.GetProperty("scan").GetInt64())
-                    throw new InvalidOperationException("SDK Run did not advance scans");
-                return new { scanBefore = before.GetProperty("scan").GetInt64(), scanAfter = after.GetProperty("scan").GetInt64() };
-            });
-            await Step("SDK Program stops emulator scans", async () => {
-                await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Program);
-                await CheckMode("Program");
-                var before = await Backend();await Task.Delay(150);var after = await Backend();
-                if (after.GetProperty("controller").GetProperty("running").GetBoolean() ||
-                    after.GetProperty("scan").GetInt64() != before.GetProperty("scan").GetInt64())
-                    throw new InvalidOperationException("SDK Program did not stop scans");
-                return after.GetProperty("scan").GetInt64();
-            });
-            foreach (var mode in new [] { "Run", "Program" })
-                await Step("Web control visible to SDK:" + mode, async () => {
-                    await Backend(mode);await CheckMode(mode);return mode;
+            for (int cycle = 1; cycle <= 2; cycle++) {
+                await Step("SDK Run advances emulator scans:" + cycle, async () => {
+                    var before = await Backend();
+                    if (before.GetProperty("controller").GetProperty("mode").GetString() != "Program")
+                        throw new InvalidOperationException("Mode probe must start in Program");
+                    await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Run);
+                    await CheckMode("Run");
+                    await Task.Delay(250);
+                    var after = await Backend();
+                    if (!after.GetProperty("controller").GetProperty("running").GetBoolean() ||
+                        after.GetProperty("scan").GetInt64() <= before.GetProperty("scan").GetInt64() ||
+                        after.GetProperty("controller").GetProperty("prescan_count").GetInt64() != before.GetProperty("controller").GetProperty("prescan_count").GetInt64() + 1 ||
+                        after.GetProperty("controller").GetProperty("first_scan_pending").GetBoolean())
+                        throw new InvalidOperationException("SDK Run did not initialize once and advance scans");
+                    return new { scanBefore = before.GetProperty("scan").GetInt64(), scanAfter = after.GetProperty("scan").GetInt64(),
+                                 prescanCount = after.GetProperty("controller").GetProperty("prescan_count").GetInt64() };
                 });
+                await Step("SDK Program stops emulator scans:" + cycle, async () => {
+                    await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Program);
+                    await CheckMode("Program");
+                    var before = await Backend();await Task.Delay(150);var after = await Backend();
+                    if (after.GetProperty("controller").GetProperty("running").GetBoolean() ||
+                        after.GetProperty("scan").GetInt64() != before.GetProperty("scan").GetInt64())
+                        throw new InvalidOperationException("SDK Program did not stop scans");
+                    return after.GetProperty("scan").GetInt64();
+                });
+            }
+            foreach (var mode in new [] { "Run", "Program" })
+            {
+                await Step("Web control visible to SDK:" + mode, async () => {
+                    var before = await Backend();var after = await Backend(mode);await CheckMode(mode);
+                    long expected = before.GetProperty("controller").GetProperty("prescan_count").GetInt64() + (mode == "Run" ? 1 : 0);
+                    if (after.GetProperty("controller").GetProperty("prescan_count").GetInt64() != expected)
+                        throw new InvalidOperationException("Web mode change did not retain the expected initialization count");
+                    return mode;
+                });
+                if (mode == "Run")
+                    await Step("Repeated web Run does not repeat prescan", async () => {
+                        var before = await Backend();var after = await Backend("Run");
+                        if (after.GetProperty("controller").GetProperty("prescan_count").GetInt64() != before.GetProperty("controller").GetProperty("prescan_count").GetInt64())
+                            throw new InvalidOperationException("Repeated Run performed another prescan");
+                        return after.GetProperty("controller").GetProperty("prescan_count").GetInt64();
+                    });
+            }
         }
         // Tag-read failures are recorded independently; still attempt cleanup.
         foreach (var tag in options.Tags)

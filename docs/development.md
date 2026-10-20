@@ -94,6 +94,9 @@ resulting emulated tag values and scan history. Other operations do not request
 mode changes and require unchanged modeled values/time.
 The SDK caches externally changed modes until its next background status poll;
 the mode probe allows up to eight seconds for each expected readback.
+Version `.75` extends this probe to two SDK Run/Program cycles and checks the
+controller's committed prescan count, consumed first-scan flag and idempotent
+webpage Run requests. It requires the `.75` Run-entry status fields.
 
 For example, run the same probe with the explicit operation:
 

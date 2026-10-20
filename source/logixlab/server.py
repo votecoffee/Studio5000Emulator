@@ -59,6 +59,7 @@ class Application:
         self._scan_condition = threading.Condition(self.lock)
         self._scan_thread = None
         self._closed = False
+        self._scan_epoch = 0
 
     def scan_inhibited(self):
         # Caller owns app.lock; protocol dispatch uses this same lock order.
@@ -70,7 +71,9 @@ class Application:
     def controller_state(self):
         fault = bool(self.engine and self.engine.fault)
         return {'mode':'Faulted' if fault else 'Run' if self.running else 'Program',
-                'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms}
+                'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
+                'prescan_count':self.engine.prescan_count if self.engine else 0,
+                'first_scan_pending':self.engine.memory.first_scan if self.engine else False}
 
     def default_scan_interval(self):
         tasks=self.engine.project.tasks
@@ -85,6 +88,7 @@ class Application:
         # Shared by HTTP controls and verified native requests. Caller owns app.lock.
         if mode not in ('Run','Program'):raise ModelError('Supported controller modes are Run and Program')
         if mode == 'Program':
+            if self.running:self._scan_epoch+=1
             self.running = False
             self._scan_condition.notify_all()
             return
@@ -96,8 +100,12 @@ class Application:
         if type(interval) is not int:raise ModelError('Scan interval must be an integer in milliseconds')
         self.engine.validate_interval(interval)
         if self.running and interval == self.scan_interval_ms:return
+        if not self.running:
+            self.engine.enter_run()
+            self._io_dirty=True
         self.scan_interval_ms = interval
         self.running = True
+        self._scan_epoch+=1
         if self._scan_thread is None:
             self._scan_thread = threading.Thread(target=self._scan_loop,name='LogixLab scans',daemon=True)
             self._scan_thread.start()
@@ -111,11 +119,12 @@ class Application:
                     continue
                 # Wait releases app.lock. No catch-up burst after a slow scan or import.
                 deadline = time.monotonic()+self.scan_interval_ms/1000
-                while self.running and not self._closed:
+                epoch=self._scan_epoch
+                while self.running and not self._closed and epoch==self._scan_epoch:
                     remaining = deadline-time.monotonic()
                     if remaining <= 0:break
                     self._scan_condition.wait(remaining)
-                if not self.running or self._closed:continue
+                if not self.running or self._closed or epoch!=self._scan_epoch:continue
                 if self.busy or self.scan_inhibited():
                     self.set_controller_mode('Program')
                     continue
@@ -238,7 +247,7 @@ class Application:
                     if native_identity and native_symbols.source_acd_sha256 != native_identity.source_acd_sha256:
                         raise ModelError('Native symbol and correlation manifests refer to different ACD files')
                     provenance['native_symbols'] = native_symbols.manifest()
-                engine = Engine(project)
+                engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
                         from .identity import Identity
@@ -268,7 +277,7 @@ class Application:
             if self.engine is None: raise ModelError("Load a project first")
             e = self.engine
             if action == "configure":
-                engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
+                engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True)
                 self.set_controller_mode('Program')
                 self.engine = engine
                 self.scan_interval_ms = self.default_scan_interval()
@@ -285,7 +294,7 @@ class Application:
                             raise ModelError('Native programming preparation inhibits scans; release or disconnect the owning client')
                 count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
-                self.engine.validate_interval(dt)
+                self.engine.prepare_step(dt)
                 for _ in range(count):
                     self.device_io.apply(self)
                     self._io_dirty = True
@@ -298,7 +307,7 @@ class Application:
                 self._io_dirty = True
             elif action == "reset":
                 self.set_controller_mode('Program')
-                self.engine = Engine(e.project, e.mode, e.selected)
+                self.engine = Engine(e.project, e.mode, e.selected,defer_prescan=True)
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()

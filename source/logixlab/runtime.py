@@ -21,7 +21,7 @@ class JumpRoutine(Exception):
 
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
-    def __init__(self, project, mode="project", routine=""):
+    def __init__(self, project, mode="project", routine="", *, defer_prescan=False):
         self.project = project
         self.mode = mode
         self.selected = routine.lower()
@@ -36,6 +36,8 @@ class Engine:
         self.trace = []
         self.changes = []
         self.fault = ""
+        self.prescan_count = 0
+        self._initial_prescan_pending = defer_prescan
         self.entries = []
         self.active = set()
         self.blockers = []
@@ -44,12 +46,41 @@ class Engine:
         self.structured = Structured(self)
         self._plan()
         if not self.blockers:
-            before=copy.deepcopy(self.memory.values)
-            try: self._prescan()
-            except (ModelError,ArithmeticError,ValueError,TypeError,KeyError,IndexError) as e:
-                self.memory.values=before;self.last_timer={}
+            try:self._apply_prescan(preview=defer_prescan,report_fault=False)
+            except ModelError as e:
                 self.blockers.append(f"Prescan: {e}")
             self.trace=[]
+
+    def _apply_prescan(self, *, preview=False, report_fault=True):
+        # AOI prescan routines can copy parameters and mutate instance state.
+        # Preserve bindings and execution context as well as values on failure.
+        before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
+                              self.addons.instances,self.calls.stack,self.last_timer,
+                              self.memory.first_scan,self.trace,self.budget))
+        def restore():
+            (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
+             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget)=before
+        self.budget=self.instruction_limit
+        self.last_timer={}
+        self.memory.first_scan=True
+        self.trace=[]
+        try:self._prescan()
+        except Exception as error:
+            restore()
+            message=f'Prescan rolled back: {str(error) or type(error).__name__}'
+            if report_fault:self.fault=message
+            raise ModelError(message) from error
+        if preview:restore()
+        else:
+            self.prescan_count+=1
+            self._initial_prescan_pending=False
+            self.trace=[]
+
+    def enter_run(self):
+        """Initialize a Program-to-Run transition without a normal scan."""
+        if self.blockers:raise ModelError('Execution blocked; inspect the coverage report')
+        if self.fault:raise ModelError('Reset the faulted project before running')
+        self._apply_prescan()
 
     def _plan(self):
         if self.mode == "routine":
@@ -215,8 +246,12 @@ class Engine:
             rate = float(self.project.tasks[0]["rate"])
             if dt != rate: raise ModelError(f"Periodic task requires a {rate:g} ms scan interval")
 
-    def step(self, dt=10):
+    def prepare_step(self, dt=10):
         self.validate_interval(dt)
+        if self._initial_prescan_pending:self.enter_run()
+
+    def step(self, dt=10):
+        self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace)
         self.time_ms += dt
