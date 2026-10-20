@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.50` removes the fixed 480-byte cap from connected replies.
+Current milestone: `.51` adds Symbol and Template class revision/count reads.
+Maximum IDs and counts match each exposed catalog, including scoped Symbols
+and nested Templates; private or unreferenced Templates are excluded from
+enumeration. Native tag address discovery and full upload remain unfinished.
+
+Version `.50` removes the fixed 480-byte cap from connected replies.
 Class 3 messaging uses the negotiated T-to-O budget, up to 4,000 bytes including
 its sequence word. Signed single/batch replies retain their bounds and write
 denials. Native upload still needs earlier metadata gaps resolved.

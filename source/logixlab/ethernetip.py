@@ -355,10 +355,12 @@ class Router:
         return [memory.address(key,p) for p in paths]
 
     def template_service(self,service,path,data,limit):
-        if path.symbols:raise CIPError(4,'Template paths do not take symbols')
-        scopes=['']+[n for n,p in self.app.engine.project.programs.items() if p['class']=='Standard']
-        instances={s['type']&0xFFF for scope in scopes for s in self.symbols(scope) if s['type']&0x8000}
-        template=self.templates().closure(instances).get(path.instance)
+        if path.symbols or path.program_instance is not None:raise CIPError(4,'Template paths must be controller scoped')
+        if path.instance is None:raise CIPError(4,'Template path requires an instance')
+        templates=self.exposed_templates()
+        if path.instance==0:
+            return self.attribute_read(service,path,data,self.catalog_class_attributes(templates))
+        template=templates.get(path.instance)
         if template is None:raise CIPError(5,'Unknown or unexposed template instance')
         if service in (3,0x0E):return self.attribute_read(service,path,data,template.attributes())
         if service!=0x4C:raise CIPError(8,'Unsupported template service')
@@ -487,6 +489,18 @@ class Router:
         storage=self.scalar_storage().by_ref.get(symbol['ref'].lower())
         return symbol_metadata.attributes(symbol,tag.constant,storage)
 
+    @staticmethod
+    def catalog_class_attributes(instances):
+        # Model revision 1, sparse maximum ID and visible instance count.
+        # These are catalog metadata, never native compiler signatures.
+        return {1:struct.pack('<H',1),2:struct.pack('<I',max(instances,default=0)),
+                3:struct.pack('<I',len(instances))}
+
+    def exposed_templates(self):
+        scopes=['']+[n for n,p in self.app.engine.project.programs.items() if p['class']=='Standard']
+        instances={s['type']&0xFFF for scope in scopes for s in self.symbols(scope) if s['type']&0x8000}
+        return self.templates().closure(instances)
+
     def data_tables(self,scope=''):
         # Alias symbols refer to another tag's storage and do not create a new
         # Data Table instance. Reuse discovery's type/access/source checks.
@@ -499,8 +513,7 @@ class Router:
         if path.instance is None:raise CIPError(4,'Data Table path requires an instance')
         tables=self.data_tables(scope)
         if path.instance==0:
-            attributes={1:struct.pack('<H',1),2:struct.pack('<I',max((s['id'] for s in tables),default=0)),
-                        3:struct.pack('<I',len(tables))}
+            attributes=self.catalog_class_attributes([s['id'] for s in tables])
         else:
             table=next((s for s in tables if s['id']==path.instance),None)
             if table is None:raise CIPError(5,'Unknown modeled Data Table instance')
@@ -570,7 +583,7 @@ class Router:
                 raise CIPError(0x0C,'Energy inventory is unavailable for this source configuration')
             if path.class_id==0x8D and not self.app.engine.project.message_catalog.empty:
                 raise CIPError(0x0C,'Message catalog is nonempty or unavailable from this source')
-            ids=sorted(t.instance for t in self.templates().types.values()) if path.class_id==0x6C else []
+            ids=sorted(self.exposed_templates()) if path.class_id==0x6C else []
         ids=[instance for instance in ids if instance>=path.instance]
         capacity=max(0,(limit-4)//4)
         if ids and not capacity:raise CIPError(0x1B,'One instance ID exceeds negotiated response size')
@@ -836,7 +849,11 @@ class Router:
         if path.class_id==0x6C:return self.template_service(service,path,data,limit)
         if path.class_id==0x6B and service in (3,0x0E):
             scope=self.symbol_scope(path)
-            symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)
+            if path.instance is None:raise CIPError(4,'Symbol path requires an instance')
+            symbols=self.symbols(scope)
+            if path.instance==0:
+                return self.attribute_read(service,path,data,self.catalog_class_attributes([s['id'] for s in symbols]))
+            symbol=next((s for s in symbols if s['id']==path.instance),None)
             if symbol is None:raise CIPError(5,'Unknown symbol instance')
             return self.attribute_read(service,path,data,self.symbol_attributes(symbol))
         if service in (0x4C,0x52,0x4D,0x53,0x4E) and path.class_id in (None,0x6B):

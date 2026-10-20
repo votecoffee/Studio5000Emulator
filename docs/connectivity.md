@@ -888,6 +888,28 @@ Deployed modules, served web assets, app version and Windows artifact matched
 source. Complete upload/download, Studio GUI monitoring and online edits remain
 unfinished.
 
+### Symbol and Template class metadata
+
+Version `.51` supports Get Attribute Single and Get Attribute List for Symbol
+(`0x6B`) and Template (`0x6C`) instance 0. Attributes 1, 2 and 3 are the model's
+UINT revision 1, UDINT maximum visible instance ID and UDINT visible instance
+count. Maximum ID and count remain distinct for sparse source-bound IDs; an
+empty catalog reports zero for both. Symbol class reads use the same controller
+or program scope, source binding and access checks as Symbol enumeration.
+
+Template class reads, instance lists and individual reads now use one shared
+set: the transitive closure of supported types referenced by exposed tags.
+Nested types remain discoverable, while unused definitions and types referenced
+only by private or safety tags are omitted. Template paths remain controller
+scoped. Changes to tag visibility update these results without publishing the
+unused definitions in the model's internal type catalog.
+
+Class metadata does not provide compiled addresses or native compiler
+signatures. Unknown attributes retain their per-field unsupported status;
+malformed requests, insufficient reply budgets and writes remain denied. Seven
+additional tests cover sparse IDs, empty catalogs, program scope, nested type
+closure, access filtering, list ordering and invalid requests.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts
