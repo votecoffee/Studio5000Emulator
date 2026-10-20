@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous compatibility mode with bounded Run/Program control. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.75` adds [transactional Run-entry initialization](run-entry.md),
+including first-scan rearming and idempotent Run requests. The rebuilt runtime
+passes 291 live protocol checks and the 17-step native mode probe (119 verified
+signed requests). The 1,002-test behavioral suite passes with expected platform
+skips. Project transfer and native tag/rung monitoring remain unfinished.
+
 Version `.74` adds [shared Remote Run/Program control](controller-mode.md).
 The deployed native SDK test passes both directions: native requests start/stop
 actual scans, and webpage controls read back through the SDK's status polling.

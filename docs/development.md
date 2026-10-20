@@ -97,6 +97,10 @@ the mode probe allows up to eight seconds for each expected readback.
 Version `.75` extends this probe to two SDK Run/Program cycles and checks the
 controller's committed prescan count, consumed first-scan flag and idempotent
 webpage Run requests. It requires the `.75` Run-entry status fields.
+Cleanup allows up to 40 seconds for Linx transports that remain open after
+Forward Close until the endpoint's 30-second idle timeout. This wait still
+requires zero TCP clients, a free uninhibited lease and empty temporary state,
+and rechecks the bound source and instance on every poll.
 
 For example, run the same probe with the explicit operation:
 

@@ -171,8 +171,12 @@ def validate_mode_probe(state):
         raise ValueError('Mode probe requires executable Remote Program, Run-entry status and a 1..100 ms interval')
 
 
-def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=8):
-    """SDK Dispose may return before the TCP handler releases its lease."""
+def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=40):
+    """Allow the endpoint's 30-second idle transport close after SDK Dispose.
+
+    Every poll still requires the same bound source/instance; success requires
+    zero clients and a free, uninhibited lease with empty temporary state.
+    """
     deadline = time.monotonic() + timeout
     while True:
         state = api(url, 'state')

@@ -226,7 +226,7 @@ class NativeSdkProbeTests(unittest.TestCase):
                                     instance='one-session',l5x_hash='2'*64)
         self.assertEqual(result,idle);self.assertEqual(sleep.call_count,1)
         with patch('tools.probe_native_sdk.api',return_value=dirty), \
-                patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,10)):
+                patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,41)):
             with self.assertRaisesRegex(ValueError,'staging'):
                 wait_for_cleanup('http://127.0.0.1:8786',r'TestDriver\192.0.2.8\Backplane\0','1'*64,
                                  instance='one-session',l5x_hash='2'*64)
@@ -239,12 +239,22 @@ class NativeSdkProbeTests(unittest.TestCase):
             elif failure=='source':state['connectivity']['source_l5x_sha256']='3'*64
             else:state['instance_id']='replacement'
             with self.subTest(failure=failure),patch('tools.probe_native_sdk.api',return_value=state) as api, \
-                    patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,10)), \
+                    patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,41)), \
                     patch('tools.probe_native_sdk.time.sleep') as sleep:
                 with self.assertRaises(ValueError):
                     wait_for_cleanup('http://127.0.0.1:8786',r'TestDriver\192.0.2.8\Backplane\0','1'*64,
                                      instance='one-session',l5x_hash='2'*64)
                 self.assertEqual(api.call_count,1);sleep.assert_not_called()
+
+    def test_cleanup_allows_idle_transport_close_without_weakening_final_guards(self):
+        busy=self.state();busy['connectivity']['active_tcp_clients']=1
+        clean=self.state()
+        with patch('tools.probe_native_sdk.api',side_effect=(busy,clean)), \
+                patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,31)), \
+                patch('tools.probe_native_sdk.time.sleep') as sleep:
+            result=wait_for_cleanup('http://127.0.0.1:8786',r'TestDriver\192.0.2.8\Backplane\0','1'*64,
+                                    instance='one-session',l5x_hash='2'*64)
+        self.assertEqual(result,clean);sleep.assert_called_once()
 
     def test_cleanup_failure_keeps_post_call_trace_and_reports_incomplete(self):
         with tempfile.TemporaryDirectory() as folder:

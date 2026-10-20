@@ -135,8 +135,9 @@ Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The behavioral suite covers Run-entry initialization, scan execution and native
-protocol boundaries; platform-specific checks use expected skips.
+The 1,002-test suite passes on Windows and Linux with expected platform skips.
+The rebuilt `.75` runtime passes 291 protocol checks and a 17-step native mode
+probe covering repeated Run-entry initialization and bidirectional mode readback.
 Current SDK upload, tag-read and download probes still fail their native
 acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
 for the mode probe and its limits.

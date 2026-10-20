@@ -77,3 +77,29 @@ and AOI scan modes in the
 [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 These references describe the intended semantics; they are separate from the
 model and SDK verification described above.
+
+## Deployed verification
+
+The rebuilt `.75` application and served browser assets match source. Its
+1,002-test suite passes on Windows (1,000 passed, two platform skips) and Linux
+(1,001 passed, one platform skip). All 291 live protocol checks pass.
+
+The deployed 17-step native mode probe verifies 119 signed requests. Its two
+SDK Run cycles advance 30 and 34 scans, with committed prescan counts of one
+and two. Program stops scans between cycles. Webpage Run produces count three;
+a repeated Run retains three, and its Program change reads back through the SDK.
+Loading the demo in Program was separately checked against saved source values,
+with zero normal scans and zero committed prescans.
+
+Go Online/Offline still passes the nine-step connection probe. Native tag reads,
+upload and download retain their known failures, with source/model preservation
+and final Offline/TCP/lease cleanup. One upload probe exposed a transport that
+closed at the endpoint's normal 30-second idle timeout. The probe now allows a
+bounded 40-second cleanup wait while retaining every source, instance, lease,
+inhibit and temporary-state check; the repeated upload probe confirms cleanup.
+The initial incomplete report remains private evidence.
+
+The original ACD remains byte-identical, and FactoryTalk Linx and the SDK service
+remain running. The application is left stopped in Remote Program, with the
+three committed initializations retained in its diagnostic count. Studio GUI
+monitoring and native instruction equivalence remain unverified.
