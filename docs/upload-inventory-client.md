@@ -10,7 +10,7 @@ from tools.upload_inventory import collect_inventory, Limits
 
 report = collect_inventory(owned_endpoint, read_values=True,
                            limits=Limits(instances=4096, programs=128,
-                                         pages=128, requests=16384))
+                                         tasks=32, pages=128, requests=16384))
 ```
 
 The existing independent `AnonymousClient` performs a fresh TCP challenge and
@@ -24,8 +24,17 @@ The reader:
   the same application instance, source bytes and generation for every request.
 - Reads Controller configuration and retains unsupported aggregate and handler
   responses as evidence. It does not invent a `POINTER` decoder.
-- Enumerates Program, Symbol and Data Table catalogs with bounded sparse-ID
+- Enumerates Program, Task, Symbol and Data Table catalogs with bounded sparse-ID
   pagination, independent class counts and exact attribute-list framing.
+- Reads Task priority, output-update/inhibit flags and explicitly available
+  rate/watchdog values in wire microseconds. Task attribute 16 remains an
+  individual unavailable row: a native CIP Task path ID is not assumed to be
+  the Task GSV Instance slot.
+- Decodes Task attribute 1 as a UINT16 count followed by ordered UDINT Program
+  IDs, bounded to the installed plain v35 Task ADF's 1,028 entries. Zero IDs,
+  repeats, truncation, trailing bytes and excessive counts fail decoding.
+- Resolves each scheduled Program reference against the separately discovered
+  source-bound Program catalog, preserving schedule order and sparse IDs.
 - Keeps controller and Program namespaces distinct and checks Symbol/Data Table
   links, types, dimensions, value addresses and scalar element sizes.
 - Reads supported scalar bytes through Data Table service `0x4F` with selector
@@ -38,10 +47,25 @@ aliases, constants, arrays and unsupported types do not acquire zero values.
 Unknown scalar values retain their read failure. Nonfinite floating-point
 encodings retain raw bytes and an explicit label rather than invalid JSON.
 
+Task catalogs require a matching `NativeTasks` source binding. Task schedules
+also require matching source-bound Program identities and an explicit complete
+schedule. Missing bindings or schedules retain unavailable status and `null`
+data. An explicit empty schedule decodes to `[]`; it is not inferred from an
+unsupported attribute. The reader never derives native IDs from source order.
+
+`scheduling_consistency` reports `consistent`, `inconsistent` or `unavailable`,
+with a corresponding `true`, `false` or `null` result. Each Task row retains its
+ordered schedule and resolved Program names where available. Unknown Program
+IDs and references shared by multiple Tasks are explicit consistency errors;
+unavailable Program inventory leaves references unresolved. Unscheduled
+Programs are listed only when both inventories and every schedule are known.
+This checks source-bound readback relationships, not runtime scheduling or
+firmware acceptance.
+
 `read_values=False` collects metadata without issuing scalar reads. Values read
 with the default option are individually observed values, not one simultaneous
 snapshot; the reader does not freeze ongoing simulation. It closes only its
-own connection. Request, instance, Program and page budgets stop unexpectedly
+own connection. Request, instance, Program, Task and page budgets stop unexpectedly
 large or non-progressing inventories.
 
 Reports include project names, tag names, observed values and raw read traffic.
@@ -52,4 +76,4 @@ This is a model inventory, not an ACD export or a complete project upload.
 `project_upload_complete` is always false and native Studio acceptance remains
 unassessed. Focused tests cover malformed framing, duplicate/ordered fields,
 sparse pagination, scoped values, unsupported storage, source replacement,
-request budgets, denied targets and actual owned TCP reads.
+request budgets, denied targets, schedule resolution and actual owned TCP reads.

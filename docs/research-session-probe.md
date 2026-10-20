@@ -21,12 +21,15 @@ py -3.13 -X utf8 source/tools/probe_research_session.py --acd .local/Controller.
 Select a complete L5X converted from the same unchanged ACD. The tool binds
 metadata to both input hashes, checks them again afterward and preserves both
 files. Reports require a new path and should stay in ignored `.local/` storage.
-They contain source hashes and protocol counts; private controller resources
-remain inside the temporary application.
+Reports contain source hashes and protocol counts. Add `--inventory` to read
+the owned emulator through a fresh independent session and include its
+[Task, Program and tag inventory](upload-inventory-client.md). That optional
+report also contains names, values and raw read traffic; keep it private.
 
 The basic case exercises anonymous context binding, a supported BOOL value,
 available Controller source settings, the edit reservation, Program Disabled
-readback and reservation release. The client checks the same application,
+readback, source-bound Task settings, scheduling/time fields and reservation
+release. The client checks the same application,
 endpoint, project generation, source hash and read-only policy before and after
 every transport request. It cannot accept an arbitrary network address.
 
@@ -44,3 +47,9 @@ resource readbacks and two historical coordination transitions. This establishes
 the custom emulator's tested behavior. Native Studio Go Online, tag-address
 discovery, complete upload/download and online-edit acceptance remain separate
 tests. An unavailable SDK service does not prevent this isolated probe.
+
+The `.81` owned-payload case passes 24 signed protocol checks, including the
+ordered Task Program list, explicit watchdog time and unavailable Task execution
+slot. With `--inventory`, a separate session completes 56 inventory reads and
+checks the discovered Task-to-Program links. The source and model are preserved;
+the report still marks complete native upload and SDK acceptance as unassessed.

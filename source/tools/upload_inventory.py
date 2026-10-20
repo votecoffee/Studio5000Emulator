@@ -23,9 +23,10 @@ class Limits:
     programs: int = 128
     pages: int = 128
     requests: int = 16384
+    tasks: int = 32
 
     def __post_init__(self):
-        for name, maximum in (('instances',4096),('programs',4096),('pages',256),('requests',32768)):
+        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('pages',256),('requests',32768)):
             value=getattr(self,name)
             if type(value) is not int or not 1<=value<=maximum:
                 raise InventoryError('Invalid inventory '+name+' limit')
@@ -52,6 +53,27 @@ def decode_reply(raw, service):
     return raw[2],raw[end:],extra
 
 
+MAX_TASK_PROGRAMS=1028
+
+
+def decode_task_program_list(data):
+    """Decode the plain Task ADF's UINT count plus ordered UDINT references.
+
+    These are Program path IDs, not array indices. Framing, uniqueness and
+    bounds are checked independently; target resolution happens against the
+    separately discovered Program catalog.
+    """
+    if not isinstance(data,bytes) or len(data)<2:
+        raise InventoryError('Truncated Task Program list count')
+    count=struct.unpack_from('<H',data)[0]
+    if count>MAX_TASK_PROGRAMS or len(data)!=2+4*count:
+        raise InventoryError('Task Program list exceeds its bound or exact framing')
+    ids=list(struct.unpack_from('<'+'I'*count,data,2))
+    if 0 in ids or len(set(ids))!=len(ids):
+        raise InventoryError('Task Program references are zero or repeated')
+    return ids
+
+
 def decode_attribute_list(raw, requested, schema):
     """Preserve order/duplicates and absent fields; require exact framing."""
     status,data,extra=decode_reply(raw,3)
@@ -70,7 +92,12 @@ def decode_attribute_list(raw, requested, schema):
         if field_status==0:
             encoding=schema.get(number)
             start=offset
-            if encoding in ('ascii16','ascii32'):
+            if encoding=='task_program_list':
+                if offset+2>len(data):raise InventoryError('Truncated Task Program list count')
+                count=struct.unpack_from('<H',data,offset)[0]
+                end=offset+2+4*count
+                row['value']=decode_task_program_list(data[offset:end]);offset=end
+            elif encoding in ('ascii16','ascii32'):
                 width=2 if encoding=='ascii16' else 4
                 if offset+width>len(data):raise InventoryError('Truncated inventory string length')
                 size=int.from_bytes(data[offset:offset+width],'little');offset+=width
@@ -113,6 +140,7 @@ CONTROLLER_SCHEMA={3:2,7:2,8:2,9:1,13:4,15:1,16:2,17:1,23:1,25:4,26:4}
 SYMBOL_SCHEMA={1:'ascii16',2:2,3:4,5:4,6:4,7:2,8:12,9:1,10:1,11:1,12:4,14:4}
 TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
 PROGRAM_SCHEMA={19:1,28:'ascii32'}
+TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
 ATOMS={0xC1:('BOOL','B'),0xC2:('SINT','b'),0xC3:('INT','h'),0xC4:('DINT','i'),
        0xC5:('LINT','q'),0xC6:('USINT','B'),0xC7:('UINT','H'),0xC8:('UDINT','I'),
        0xC9:('ULINT','Q'),0xCA:('REAL','f'),0xCB:('LREAL','d')}
@@ -120,6 +148,55 @@ ATOMS={0xC1:('BOOL','B'),0xC2:('SINT','b'),0xC3:('INT','h'),0xC4:('DINT','i'),
 
 def values(reply):
     return {row['attribute']:row['value'] for row in reply.get('attributes') or [] if row['status']==0}
+
+
+def match_task_schedules(task_catalog,task_rows,program_catalog,program_rows):
+    """Resolve every ordered Task reference against the observed Program IDs.
+
+    Missing bindings and missing schedules remain unavailable. Unknown IDs
+    and references shared by multiple tasks are explicit consistency errors;
+    they never become empty lists or fabricated Program objects.
+    """
+    task_ids=task_catalog['instances'];program_ids=program_catalog['instances']
+    summary={'state':'unavailable','consistent':None,
+             'task_inventory_available':task_ids is not None,
+             'program_inventory_available':program_ids is not None,
+             'unavailable_task_instances':[],'unresolved_references':[],
+             'multiply_scheduled_programs':[],'unscheduled_program_instances':None}
+    if task_ids is None:return summary
+    names={row['instance']:values(row['metadata']).get(28) for row in program_rows}
+    known=set(program_ids or []);owners={};unavailable=program_ids is None
+    for task in task_rows:
+        attributes=task['metadata'].get('attributes')
+        attribute=next((row for row in attributes or [] if row['attribute']==1),None)
+        ids=values(task['metadata']).get(1)
+        schedule={'state':'unavailable','attribute_status':attribute['status'] if attribute else None,
+                  'program_instances':ids,'programs':None,'unresolved_program_instances':[]}
+        task['schedule']=schedule
+        if ids is None:
+            unavailable=True;summary['unavailable_task_instances'].append(task['instance']);continue
+        refs=[]
+        for instance in ids:
+            resolved=program_ids is not None and instance in known
+            refs.append({'instance':instance,'name':names.get(instance),'resolved':resolved})
+            if resolved:owners.setdefault(instance,[]).append(task['instance'])
+            else:
+                schedule['unresolved_program_instances'].append(instance)
+                summary['unresolved_references'].append({'task_instance':task['instance'],
+                    'program_instance':instance,'reason':'program_inventory_unavailable' if program_ids is None
+                                                         else 'program_not_discovered'})
+        schedule['programs']=refs
+        schedule['state']='unavailable' if program_ids is None else 'unresolved' if schedule['unresolved_program_instances'] else 'resolved'
+        if program_ids is None:unavailable=True
+    summary['multiply_scheduled_programs']=[{'program_instance':instance,'task_instances':tasks}
+                                            for instance,tasks in owners.items() if len(tasks)>1]
+    errors=bool(summary['multiply_scheduled_programs'] or any(
+        row['reason']=='program_not_discovered' for row in summary['unresolved_references']))
+    if not unavailable and program_ids is not None:
+        summary['unscheduled_program_instances']=[instance for instance in program_ids if instance not in owners]
+    summary['state']='inconsistent' if errors else 'unavailable' if unavailable else 'consistent'
+    summary['consistent']=False if errors else None if unavailable else True
+    return summary
 
 
 class _Reader:
@@ -130,7 +207,7 @@ class _Reader:
         # Fixed read services only. In particular 0x4B is a list service only
         # for these catalog classes, never a Create/setup opcode elsewhere.
         if (service not in (1,3,0x0E,0x4B,0x4F) or
-                service==0x4B and class_id not in (0x68,0x6A,0x6B) or
+                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x70) or
                 service==0x4F and class_id!=0x6A or service==0x0E and attribute is None):
             raise InventoryError('Unsupported inventory read service')
         if len(self.requests)>=self.limits.requests:raise InventoryError('Inventory request budget exceeded')
@@ -153,7 +230,7 @@ class _Reader:
         raw=self.exchange(3,class_id,instance,struct.pack('<'+'H'*(len(requested)+1),len(requested),*requested),program)
         return decode_attribute_list(raw,requested,schema)
 
-    def catalog(self,class_id,program=None):
+    def catalog(self,class_id,program=None,max_instances=None):
         metadata=self.attributes(class_id,0,CLASS_SCHEMA,program)
         ids=[];cursor=0
         for _ in range(self.limits.pages):
@@ -161,7 +238,8 @@ class _Reader:
             if page['instances'] is None:
                 return {'status':page['status'],'instances':None,'metadata':metadata}
             ids.extend(page['instances'])
-            if len(ids)>self.limits.instances:raise InventoryError('Inventory instance budget exceeded')
+            if len(ids)>min(self.limits.instances,max_instances or self.limits.instances):
+                raise InventoryError('Inventory instance budget exceeded')
             if page['status']==0:
                 expected=values(metadata)
                 if 2 in expected and expected[2]!=max(ids,default=0) or 3 in expected and expected[3]!=len(ids):
@@ -248,6 +326,12 @@ class _Reader:
             metadata=self.attributes(0x68,instance,PROGRAM_SCHEMA)
             program_rows.append({'instance':instance,'metadata':metadata})
             scopes.append(self.scope(instance,values(metadata).get(28)))
+        task_catalog=self.catalog(0x70,max_instances=self.limits.tasks)
+        task_rows=None
+        if task_catalog['instances'] is not None:
+            task_rows=[{'instance':instance,'metadata':self.attributes(0x70,instance,TASK_SCHEMA)}
+                       for instance in task_catalog['instances']]
+        scheduling=match_task_schedules(task_catalog,task_rows,programs,program_rows)
         after=self.attributes(0xAC,1,REVISION_SCHEMA)
         if after!=before:raise InventoryError('Catalog revision changed during inventory')
         self.client.check_target()
@@ -257,6 +341,7 @@ class _Reader:
                 'controller_configuration':controller,'controller_get_all':controller_all,
                 'controller_handlers':handlers,
                 'program_catalog':programs,'programs':program_rows,'scopes':scopes,
+                'task_catalog':task_catalog,'tasks':task_rows,'scheduling_consistency':scheduling,
                 'requests':self.requests,'request_count':len(self.requests),
                 'scalar_values_requested':self.read_values,'values_are_one_snapshot':False,
                 'project_upload_complete':False,'native_acceptance':'NOT ASSESSED'}

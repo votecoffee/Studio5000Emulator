@@ -12,11 +12,12 @@ from xml.etree import ElementTree as E
 
 from logixlab.ethernetip import Endpoint
 from logixlab.native_symbols import NativeSymbols, Symbol
+from logixlab.native_tasks import NativeTasks
 from logixlab.server import Application
 from tools.anonymous_client import AnonymousClient, ProbeError
 from tools.upload_inventory import (InventoryError, Limits, _Reader, collect_inventory,
                                     decode_attribute_list, decode_instance_page, decode_reply,
-                                    logical_path, values)
+                                    decode_task_program_list, logical_path, match_task_schedules, values)
 
 
 class InventoryFramingTests(unittest.TestCase):
@@ -42,6 +43,54 @@ class InventoryFramingTests(unittest.TestCase):
         self.assertEqual(values(decode_attribute_list(raw,(28,),{28:'ascii32'})),{28:'Main'})
         missing=decode_instance_page(bytes.fromhex('cb000c00'),0)
         self.assertEqual(missing['status'],0x0C);self.assertIsNone(missing['instances'])
+
+    def test_task_program_count_and_order_are_independent_of_attribute_alignment(self):
+        payload=struct.pack('<HII',2,70000,3)
+        self.assertEqual(decode_task_program_list(payload),[70000,3])
+        self.assertEqual(decode_task_program_list(bytes(2)),[])
+        self.assertEqual(len(decode_task_program_list(struct.pack('<H',1028)+
+                         b''.join(struct.pack('<I',i) for i in range(1,1029)))),1028)
+        raw=(bytes.fromhex('83000a00')+struct.pack('<HHH',3,1,0)+payload+
+             struct.pack('<HH',16,0x14)+struct.pack('<HHH',6,0,10))
+        result=decode_attribute_list(raw,(1,16,6),{1:'task_program_list',16:4,6:2})
+        self.assertEqual(values(result),{1:[70000,3],6:10})
+        self.assertEqual(result['attributes'][0]['data_hex'],payload.hex())
+        self.assertEqual(result['attributes'][1]['status'],0x14)
+
+    def test_task_program_lists_reject_truncation_trailing_bytes_zero_duplicate_and_excess(self):
+        invalid=(b'',b'\0',bytes(2)+b'\0',struct.pack('<H',1),struct.pack('<HI',2,3),
+                 struct.pack('<HI',1,0),struct.pack('<HII',2,3,3),struct.pack('<H',1029),
+                 bytearray(2))
+        for payload in invalid:
+            with self.subTest(payload=payload),self.assertRaises(InventoryError):decode_task_program_list(payload)
+        for payload in (b'',struct.pack('<H',1029),struct.pack('<HI',2,3)):
+            raw=bytes.fromhex('83000000')+struct.pack('<HHH',1,1,0)+payload
+            with self.assertRaises(InventoryError):decode_attribute_list(raw,(1,),{1:'task_program_list'})
+
+    def test_task_schedule_report_keeps_unknown_references_and_absent_bindings_explicit(self):
+        programs={'instances':[3,70000]}
+        rows=[{'instance':3,'metadata':{'attributes':[{'attribute':28,'status':0,'value':'Second'}]}},
+              {'instance':70000,'metadata':{'attributes':[{'attribute':28,'status':0,'value':'Main'}]}}]
+        def task(instance,ids,status=0):
+            return {'instance':instance,'metadata':{'attributes':[{'attribute':1,'status':status,'value':ids}]}}
+        tasks=[task(256,[70000,123,3]),task(7,[3]),task(9,None,0x14)]
+        report=match_task_schedules({'instances':[7,9,256]},tasks,programs,rows)
+        self.assertEqual(report['state'],'inconsistent');self.assertFalse(report['consistent'])
+        self.assertEqual(tasks[0]['schedule']['program_instances'],[70000,123,3])
+        self.assertEqual([r['name'] for r in tasks[0]['schedule']['programs']],['Main',None,'Second'])
+        self.assertEqual(report['unresolved_references'],[{'task_instance':256,'program_instance':123,'reason':'program_not_discovered'}])
+        self.assertEqual(report['multiply_scheduled_programs'],[{'program_instance':3,'task_instances':[256,7]}])
+        self.assertEqual(report['unavailable_task_instances'],[9])
+        self.assertIsNone(report['unscheduled_program_instances'])
+        report=match_task_schedules({'instances':None},None,programs,rows)
+        self.assertEqual(report['state'],'unavailable');self.assertIsNone(report['consistent'])
+        tasks=[task(256,[70000])]
+        report=match_task_schedules({'instances':[256]},tasks,{'instances':None},[])
+        self.assertIsNone(report['consistent']);self.assertEqual(tasks[0]['schedule']['state'],'unavailable')
+        self.assertEqual(report['unresolved_references'][0]['reason'],'program_inventory_unavailable')
+        tasks=[task(256,[70000])]
+        report=match_task_schedules({'instances':[256]},tasks,programs,rows)
+        self.assertTrue(report['consistent']);self.assertEqual(report['unscheduled_program_instances'],[3])
 
     def test_malformed_lists_reject_count_order_truncation_padding_and_status_contradiction(self):
         good=bytes.fromhex('830000000100010000000300')
@@ -77,7 +126,7 @@ class InventoryFramingTests(unittest.TestCase):
         self.assertEqual(client.requests[-1],bytes.fromhex('4b03206b25000001'))
 
     def test_limits_reject_booleans_and_request_budget_stops_before_next_exchange(self):
-        for name in ('instances','programs','pages','requests'):
+        for name in ('instances','programs','tasks','pages','requests'):
             for value in (0,True,-1,1.5,100000):
                 with self.subTest(name=name,value=value),self.assertRaises(InventoryError):Limits(**{name:value})
         class Fake:
@@ -130,6 +179,8 @@ class InventoryTcpTests(unittest.TestCase):
         self.assertEqual(values(report['controller_configuration'])[17],5)
         self.assertEqual(values(report['controller_configuration'])[23],1)
         self.assertEqual(report['program_catalog']['instances'],[70000])
+        self.assertEqual(report['task_catalog']['status'],0x0C)
+        self.assertIsNone(report['tasks']);self.assertIsNone(report['scheduling_consistency']['consistent'])
         self.assertEqual(values(report['programs'][0]['metadata'])[19],0)
         scopes=report['scopes'];self.assertEqual([s['program_instance'] for s in scopes],[None,70000])
         rows={values(row['metadata'])[1]:row for row in scopes[0]['symbols']}
@@ -156,6 +207,53 @@ class InventoryTcpTests(unittest.TestCase):
         self.assertFalse(any(r['service']==0x4F for r in report['requests']))
         self.assertTrue(all(r['value_state']=='not_requested' or r['value_state']=='table_unavailable'
                             for r in report['scopes'][0]['symbols']))
+
+    def test_bound_sparse_tasks_read_ordered_schedules_and_keep_gsv_instance_unavailable(self):
+        controller=self.tree.getroot().find('Controller')
+        programs=controller.find('Programs');second=copy.deepcopy(programs[0])
+        second.set('Name','SecondProgram');second.find('Tags').clear();programs.append(second)
+        task=controller.find('./Tasks/Task');task.set('Type','PERIODIC');task.set('Rate','2.5')
+        task.set('DisableUpdateOutputs','true')
+        E.SubElement(task.find('ScheduledPrograms'),'ScheduledProgram',Name='SecondProgram')
+        other=E.SubElement(controller.find('Tasks'),'Task',Name='OtherTask',Type='CONTINUOUS',
+                           Priority='1',Watchdog='500',Class='Standard',InhibitTask='true',DisableUpdateOutputs='false')
+        E.SubElement(other,'ScheduledPrograms')
+        self.load()
+        # Explicit synthetic fixture bindings exercise sparse wire IDs. No
+        # native ACD extraction or firmware identity is claimed by this test.
+        self.app.native_symbols=NativeSymbols('a'*64,self.app.engine.project.sha256,
+            tuple(self.app.native_symbols.by_key.values()),programs=[{'name':'MainProgram','instance':70000},
+                                                 {'name':'SecondProgram','instance':3}])
+        self.app.native_tasks=NativeTasks('a'*64,self.app.engine.project.sha256,
+            [{'name':'MainTask','instance':256},{'name':'OtherTask','instance':7}])
+        before=copy.deepcopy(self.app.engine.memory.values)
+        report=collect_inventory(self.endpoint,read_values=False)
+        self.assertEqual(report['task_catalog']['instances'],[7,256])
+        self.assertEqual(values(report['task_catalog']['metadata']),{1:2,2:256,3:2})
+        tasks={row['instance']:row for row in report['tasks']}
+        self.assertEqual(values(tasks[256]['metadata']),{1:[70000,3],2:2500,6:10,12:500000,18:1,19:0})
+        self.assertEqual(tasks[256]['schedule']['program_instances'],[70000,3])
+        self.assertEqual([r['name'] for r in tasks[256]['schedule']['programs']],['MainProgram','SecondProgram'])
+        self.assertEqual(values(tasks[7]['metadata']),{1:[],6:1,12:500000,18:0,19:1})
+        self.assertEqual(next(r['status'] for r in tasks[256]['metadata']['attributes'] if r['attribute']==16),0x14)
+        self.assertTrue(report['scheduling_consistency']['consistent'])
+        self.assertEqual(report['scheduling_consistency']['unscheduled_program_instances'],[])
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+        self.assertEqual(report['endpoint_clients_after_close'],0)
+        self.assertFalse(self.endpoint.state()['native_programming_lease']['owned'])
+        with self.assertRaises(InventoryError):collect_inventory(self.endpoint,limits=Limits(tasks=1))
+
+    def test_missing_or_stale_program_binding_withholds_schedule_and_stale_task_binding_withholds_catalog(self):
+        self.app.native_tasks=NativeTasks('a'*64,self.app.engine.project.sha256,[{'name':'MainTask','instance':256}])
+        self.app.native_symbols=None
+        report=collect_inventory(self.endpoint,read_values=False)
+        self.assertEqual(report['task_catalog']['instances'],[256])
+        self.assertEqual(report['tasks'][0]['schedule']['attribute_status'],0x14)
+        self.assertIsNone(report['tasks'][0]['schedule']['program_instances'])
+        self.assertIsNone(report['scheduling_consistency']['consistent'])
+        self.app.native_tasks=NativeTasks('a'*64,'b'*64,[{'name':'MainTask','instance':256}])
+        report=collect_inventory(self.endpoint,read_values=False)
+        self.assertIsNone(report['task_catalog']['instances']);self.assertIsNone(report['tasks'])
 
     def test_request_budget_and_source_replacement_close_owned_client_without_running_logic(self):
         with self.assertRaises(InventoryError):collect_inventory(self.endpoint,limits=Limits(requests=2))

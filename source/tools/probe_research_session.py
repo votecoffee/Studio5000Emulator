@@ -26,6 +26,7 @@ from logixlab.native_tasks import NativeTasks
 from logixlab.model import Project,ModelError
 from logixlab.resilient_transport import DEVICE_HEADER,MAX_BUFFER_BYTES
 from tools.anonymous_client import AnonymousClient
+from tools.upload_inventory import collect_inventory
 
 
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -63,6 +64,13 @@ def exercise(app,client,payload=None,expanded=None):
         for row in rows:
             path=b'\x20\x70'+logical(0x24,row['id'])
             attrs=app.engine.project.task_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
+            attrs.update(app.engine.project.task_timing.attributes(row['name'],source_sha256=app.engine.project.sha256))
+            if app.native_symbols is not None:
+                attrs.update(app.engine.project.task_configuration.scheduled_attributes(
+                    row['name'],source_sha256=app.engine.project.sha256,
+                    source_acd_sha256=app.native_tasks.source_acd_sha256,program_ids=app.native_symbols.programs,
+                    program_source_l5x_sha256=app.native_symbols.source_l5x_sha256,
+                    program_source_acd_sha256=app.native_symbols.source_acd_sha256))
             if attrs:
                 request=bytes((3,len(path)//2))+path+struct.pack('<H',len(attrs))
                 expected=bytes.fromhex('83000000')+struct.pack('<H',len(attrs))
@@ -72,6 +80,13 @@ def exercise(app,client,payload=None,expanded=None):
             if 19 in attrs:
                 check('task_inhibit_source',bytes((0x0E,len(path)//2+1))+path+b'\x30\x13',
                       bytes.fromhex('8e000000')+attrs[19])
+            for number in (1,12):
+                if number in attrs:
+                    check('task_programs_source' if number==1 else 'task_watchdog_source',
+                          bytes((0x0E,len(path)//2+1))+path+b'\x30'+bytes((number,)),
+                          bytes.fromhex('8e000000')+attrs[number])
+            check('task_execution_slot_unavailable',bytes((0x0E,len(path)//2+1))+path+b'\x30\x10',
+                  bytes.fromhex('8e001400'))
     check('edit_release',bytes.fromhex('4c04208e240120742401'),bytes.fromhex('cc000000'))
     image_receipt=None
     if payload is not None:
@@ -109,7 +124,9 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--acd',type=Path,required=True);p.add_argument('--l5x',type=Path,required=True)
     p.add_argument('--device-payload',type=Path);p.add_argument('--expanded-bytes',type=int)
-    p.add_argument('--output',type=Path,required=True);args=p.parse_args()
+    p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--inventory',action='store_true',help='Read private Task/Program/tag inventory through a fresh owned TCP session')
+    args=p.parse_args()
     if bool(args.device_payload)!=(args.expanded_bytes is not None):p.error('Supply both payload and expanded size')
     if args.acd.suffix.lower()!='.acd' or args.l5x.suffix.lower()!='.l5x':p.error('Select an ACD and complete L5X export')
     for path in (args.acd,args.l5x):
@@ -139,6 +156,7 @@ def main():
             app.endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True).start()
             with AnonymousClient(app.endpoint) as client:
                 checks,image=exercise(app,client,args.device_payload.read_bytes() if args.device_payload else None,args.expanded_bytes)
+            inventory=collect_inventory(app.endpoint) if args.inventory else None
             deadline=time.monotonic()+3
             while app.endpoint.state()['active_tcp_clients'] and time.monotonic()<deadline:time.sleep(.02)
             after=app.state();lease=app.endpoint.state()['native_programming_lease']
@@ -152,10 +170,12 @@ def main():
                 'source_acd_sha256':acd_hash,'source_l5x_sha256':l5x_hash,'checks':checks,
                 'native_task_binding':app.native_tasks.description() if app.native_tasks is not None else None,
                 'native_task_binding_error':task_error,
+                'upload_inventory':inventory,
                 'prepared_image':image,'cleanup_confirmed':True,'source_and_model_preserved':True,
                 'native_sdk_acceptance':'NOT ASSESSED','studio_gui_acceptance':'NOT ASSESSED'}
             args.output.write_text(json.dumps(report,indent=2),encoding='utf-8')
             print(json.dumps({'version':__version__,'checks':len(checks),'records':image['records_prepared'] if image else 0,
+                              'inventory_requests':inventory['request_count'] if inventory else None,
                               'source_and_model_preserved':True,'report':str(args.output),'native_sdk_acceptance':'NOT ASSESSED'}))
         finally:app.close()
 
