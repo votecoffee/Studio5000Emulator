@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from .model import ModelError
 from .native_project import _hash, acd_stream
+from .native_programs import read_programs, MAX_PROGRAMS
 
 MAX_XML = 16_000_000
 MAX_SYMBOLS = 100_000
@@ -45,12 +46,30 @@ class Symbol:
 
 
 class NativeSymbols:
-    def __init__(self, source_acd_sha256, source_l5x_sha256, symbols):
+    def __init__(self, source_acd_sha256, source_l5x_sha256, symbols, programs=(), program_inventory_error=None):
         self.source_acd_sha256 = _hash(source_acd_sha256)
         self.source_l5x_sha256 = _hash(source_l5x_sha256)
         symbols = tuple(symbols)
         if len(symbols) > MAX_SYMBOLS: raise ModelError('Native symbol catalog is too large')
         self.by_key = {}; self.programs = {}; self.program_ids = {}; instances = set()
+        if not isinstance(programs, (list, tuple)) or len(programs) > MAX_PROGRAMS:
+            raise ModelError('Invalid explicit native program inventory')
+        self.explicit_programs = []
+        for program in programs:
+            if not isinstance(program, dict) or set(program) != {'name', 'instance'}:
+                raise ModelError('Invalid native program fields')
+            name, instance = program['name'], program['instance']
+            if not isinstance(name, str) or not NAME.fullmatch(name) or type(instance) is not int or not 1 <= instance <= 0xFFFFFFFF:
+                raise ModelError('Invalid native program identity')
+            if name.lower() in self.programs or instance in self.program_ids:
+                raise ModelError('Duplicate native program identity')
+            self.programs[name.lower()] = instance; self.program_ids[instance] = name.lower()
+            self.explicit_programs.append(dict(program))
+        if program_inventory_error is not None and (not isinstance(program_inventory_error, str) or not 1 <= len(program_inventory_error) <= 256):
+            raise ModelError('Invalid program inventory diagnostic')
+        if self.explicit_programs and program_inventory_error is not None:
+            raise ModelError('Program inventory cannot be both bound and unavailable')
+        self.program_inventory_error = program_inventory_error
         for symbol in symbols:
             if not isinstance(symbol, Symbol): raise ModelError('Invalid native symbol entry')
             scope = symbol.scope.lower(); pair = (scope, symbol.instance)
@@ -65,7 +84,8 @@ class NativeSymbols:
 
     @classmethod
     def from_manifest(cls, manifest, source_l5x_sha256):
-        if not isinstance(manifest, dict) or set(manifest) != {'source_acd_sha256', 'source_l5x_sha256', 'symbols'}:
+        required = {'source_acd_sha256', 'source_l5x_sha256', 'symbols'}
+        if not isinstance(manifest, dict) or not required <= manifest.keys() or manifest.keys() - required - {'programs', 'program_inventory_error'}:
             raise ModelError('Invalid native symbol manifest')
         if manifest['source_l5x_sha256'] != source_l5x_sha256:
             raise ModelError('Native symbol catalog does not match the loaded L5X bytes')
@@ -76,7 +96,8 @@ class NativeSymbols:
             if not isinstance(row, dict) or set(row) != {'scope', 'program_instance', 'name', 'instance'}:
                 raise ModelError('Invalid native symbol fields')
             symbols.append(Symbol(**row))
-        return cls(manifest['source_acd_sha256'], source_l5x_sha256, symbols)
+        return cls(manifest['source_acd_sha256'], source_l5x_sha256, symbols,
+                   manifest.get('programs', ()), manifest.get('program_inventory_error'))
 
     @classmethod
     def from_acd(cls, path, source_l5x_sha256):
@@ -114,13 +135,34 @@ class NativeSymbols:
                 else: raise ModelError('Unsupported native symbol logical path')
                 symbols.append(Symbol(scope, program_instance, tag.get('Name'), instance))
                 if len(symbols) > MAX_SYMBOLS: raise ModelError('Native symbol catalog is too large')
-        return cls(digest, source_l5x_sha256, symbols)
+        programs = []; inventory_error = None
+        if len(groups) > 1:
+            try:
+                program_digest, programs = read_programs(path, [name for name, _ in groups[1:]])
+            except ModelError as error:
+                inventory_error = str(error)
+            else:
+                if program_digest != digest:
+                    raise ModelError('ACD changed while reading program inventory')
+                try:
+                    cls(digest, source_l5x_sha256, symbols, programs)
+                except ModelError as error:
+                    # Optional component metadata cannot discard valid TagInfo
+                    # tag paths or replace their independently supplied IDs.
+                    programs = []; inventory_error = str(error)
+        return cls(digest, source_l5x_sha256, symbols, programs, inventory_error)
 
     def manifest(self):
-        return dict(source_acd_sha256=self.source_acd_sha256, source_l5x_sha256=self.source_l5x_sha256,
-                    symbols=[s.manifest() for s in self.by_key.values()])
+        result = dict(source_acd_sha256=self.source_acd_sha256, source_l5x_sha256=self.source_l5x_sha256,
+                      symbols=[s.manifest() for s in self.by_key.values()])
+        if self.explicit_programs: result['programs'] = [dict(row) for row in self.explicit_programs]
+        if self.program_inventory_error is not None: result['program_inventory_error'] = self.program_inventory_error
+        return result
 
     def description(self):
         return dict(bound=True, source='ACD TagInfo.XML logical paths', symbols=len(self.by_key),
                     programs=len(self.programs), compiled_addresses=False,
+                    explicit_programs=len(self.explicit_programs),
+                    program_inventory_source='Comps.Dat Program format 19 and TagInfo names' if self.explicit_programs else None,
+                    program_inventory_error=self.program_inventory_error,
                     source_acd_sha256=self.source_acd_sha256, source_l5x_sha256=self.source_l5x_sha256)

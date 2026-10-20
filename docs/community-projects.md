@@ -64,6 +64,16 @@ is bundled and no new runtime package is required. Logic and initial values
 still come from the native converter; this header reader is not an ACD-to-L5X
 replacement. Its public tests build synthetic containers and identifiers.
 
+Version `.52` uses the same project's
+[component record layouts](https://github.com/hutcheb/acd/blob/main/acd/record/comps.py)
+as a reference for an original, bounded Program identity reader. It checks
+`Comps.Dat` Program format 19 paths against the active program names in
+`TagInfo.XML`, including programs without local tags. It does not reconstruct
+the component database or its indexes, and rejects ambiguous historical paths.
+Unsupported optional metadata leaves TagInfo tag mappings available and reports
+a diagnostic. No upstream parser code, native database files or additional
+runtime packages are bundled.
+
 ## Reusable conversion comparison
 
 From the repository root:

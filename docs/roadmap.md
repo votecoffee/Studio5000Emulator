@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.51` adds Symbol and Template class revision/count reads.
+Current milestone: `.52` preserves source-bound Program IDs even for programs
+without local tags. Read-only Program discovery supplies instance lists, class
+counts and names; numeric program paths address their empty child catalogs.
+Compiled address discovery and full native upload remain unfinished.
+
+Version `.51` adds Symbol and Template class revision/count reads.
 Maximum IDs and counts match each exposed catalog, including scoped Symbols
 and nested Templates; private or unreferenced Templates are excluded from
 enumeration. Native tag address discovery and full upload remain unfinished.

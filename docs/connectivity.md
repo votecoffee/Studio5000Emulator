@@ -933,6 +933,43 @@ disabled. Deployed modules, served web assets and the Windows artifact matched
 source. Studio GUI monitoring, complete upload/download and online edits remain
 unfinished.
 
+### Source-bound Program discovery
+
+Version `.52` preserves Program IDs that cannot be recovered from local-tag
+paths alone. A program without local tags has a name in `TagInfo.XML`, but no
+tag path from which to derive its Program instance. The optional bounded reader
+checks those declared names against unambiguous Program format 19 paths in
+`Comps.Dat`. It reads logical identities only; native conversion still supplies
+the executable model and initial values.
+
+The reader bounds compressed/expanded sizes, logical database and record
+ranges, record counts and program counts. It excludes free records and the
+inactive physical tail, and withholds bindings for unsupported layouts, missing
+names, conflicting IDs or ambiguous historical paths. It does not walk the
+database indexes or reconstruct component updates. An ACD hash change between
+metadata reads rejects the import. Failure of the optional inventory retains
+valid TagInfo mappings and records `program_inventory_error`; conflicting
+component IDs never replace tag-derived program IDs.
+
+Manifests accept an optional `programs` list of name/instance pairs and retain
+compatibility with earlier tag-only manifests. Both source hashes remain bound
+to the loaded project. The Connectivity summary shows the bound program count.
+
+Program `0x68` supports read-only Get Instance List (`0x4B`), class attributes
+1/2/3 (UINT model revision 1, UDINT maximum visible ID and count), and instance
+attribute 28 (UDINT-length ASCII name, up to 40 bytes). Lists are ordered,
+cursor-inclusive and bounded by the negotiated reply size. Only Standard
+programs with source-bound IDs are exposed. An incomplete or unbound inventory
+returns unavailable rather than a successful empty list; class revision remains
+readable independently. Numeric program prefixes also address empty scoped
+Symbol and Data Table catalogs.
+
+Program configuration, forces, scheduling pointers, compiled addresses and
+programming services remain unsupported. Unknown fields report their per-field
+status. Twelve additional synthetic tests cover database limits, inactive
+records, ambiguity, manifests, source drift, empty programs, access filtering,
+scoped child paths and signed read/write-denial behavior.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

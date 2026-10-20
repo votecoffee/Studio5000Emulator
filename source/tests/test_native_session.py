@@ -73,6 +73,17 @@ class NativeSessionTests(unittest.TestCase):
         self.assertFalse(metadata['key_exchange']['confirmation'])
         self.assertFalse(metadata['key_exchange']['peer_identity_verified'])
 
+    def test_signed_program_discovery_keeps_names_read_only_and_source_bound(self):
+        self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,[],
+                                             [{'name':'MainProgram','instance':1234}])
+        self.bind()
+        self.assertEqual(self.signed(4,bytes.fromhex('4b0220682400')),b'\xCB\0\0\0'+struct.pack('<I',1234))
+        path=bytes.fromhex('20682500')+struct.pack('<H',1234)+b'\x30\x1C'
+        self.assertEqual(self.signed(5,bytes((0x0E,len(path)//2))+path,0x37),
+                         b'\x8E\0\0\0'+struct.pack('<I',11)+b'MainProgram')
+        self.assertEqual(self.signed(6,bytes((0x10,len(path)//2))+path+b'\0\0\0\0')[2],0x0F)
+        self.assertEqual(self.app.engine.project.programs['MainProgram']['main'],'MainRoutine')
+
     def test_signed_source_instance_read_reaches_model_and_write_remains_denied(self):
         self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
                                               [Symbol('',0,'SpeedSetpoint',70000)])

@@ -8,7 +8,7 @@ import time
 
 
 MAX_GAPS = 64
-CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x6A: 'Data Table', 0x6B: 'Symbol',
+CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x6A: 'Data Table', 0x6B: 'Symbol',
            0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
     0x43: {1: 'PTP enable', 2: 'Synchronization status', 3: 'Time in microseconds',
@@ -24,6 +24,7 @@ NAMES = {
     0x64: {1: 'Project name', 2: 'Project description', 3: 'Device location',
            6: 'Device locale', 7: 'Trusted slot list', 8: 'System operator identity'},
     0x67: {1: 'PLC-2 file', 2: 'PCCC mapping descriptor'},
+    0x68: {15: 'SFC force enable', 24: 'SFC transition force list', 25: 'SFC leg force list', 28: 'Program name'},
     0x8E: {1: 'Power-loss handler reference', 3: 'Communication time slice',
            6: 'Fault handler reference', 8: 'Connection ID', 16: 'Share unused time slice'},
     0xF6: {1: 'Interface speed', 2: 'Interface flags', 3: 'MAC address',
