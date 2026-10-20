@@ -3,12 +3,15 @@ import copy
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 import unittest
+import struct
 from xml.etree import ElementTree as E
+from unittest.mock import patch
 
 from logixlab.task_configuration import TaskConfiguration, TaskSettings
 
 SOURCE = Path(__file__).resolve().parents[1]/'samples/ConveyorDemo.L5X'
 HASH = 'a'*64
+ACD_HASH = 'c'*64
 
 
 def source():
@@ -16,7 +19,121 @@ def source():
     return root,root.find('Controller')
 
 
+def scheduled(config, task='MainTask', **updates):
+    arguments=dict(source_sha256=HASH,source_acd_sha256=ACD_HASH,program_ids={'MainProgram':26038},
+                   program_source_l5x_sha256=HASH,program_source_acd_sha256=ACD_HASH)
+    arguments.update(updates)
+    return config.scheduled_attributes(task,**arguments)
+
+
 class TaskConfigurationTests(unittest.TestCase):
+    def test_program_list_preserves_source_order_using_real_bound_ids_instead_of_source_order_ids(self):
+        root,controller=source();programs=controller.find('Programs')
+        for name in ('Second','Third'):
+            other=copy.deepcopy(programs[0]);other.set('Name',name);programs.append(other)
+        target=controller.find('./Tasks/Task/ScheduledPrograms');target.clear()
+        for name in ('third','MainProgram','SECOND'):E.SubElement(target,'ScheduledProgram',Name=name)
+        config=TaskConfiguration.from_source(root,controller,HASH)
+        result=scheduled(config,program_ids={'MainProgram':70000,'Second':12,'Third':0x12345678})
+        self.assertEqual(result,{1:struct.pack('<HIII',3,0x12345678,70000,12)})
+        self.assertEqual(config._tasks['maintask'].scheduled_programs,('Third','MainProgram','Second'))
+        self.assertEqual(config.attributes('MainTask',source_sha256=HASH),{6:b'\x0a\0',18:bytes(4),19:bytes(4)})
+        self.assertNotIn(16,result)
+
+    def test_only_explicit_canonical_empty_program_list_can_establish_zero_entries(self):
+        root,controller=source();task=controller.find('./Tasks/Task');task.find('ScheduledPrograms').clear()
+        config=TaskConfiguration.from_source(root,controller,HASH)
+        self.assertEqual(scheduled(config,program_ids={}),{1:b'\0\0'})
+        task.remove(task.find('ScheduledPrograms'))
+        unknown=TaskConfiguration.from_source(root,controller,HASH)
+        self.assertIsNone(unknown._tasks['maintask'].scheduled_programs)
+        self.assertEqual(scheduled(unknown,program_ids={}),{})
+        self.assertEqual(config.attributes('MainTask',source_sha256=HASH),unknown.attributes('MainTask',source_sha256=HASH))
+
+    def test_malformed_unknown_duplicate_and_safety_schedule_targets_do_not_hide_other_settings(self):
+        for kind in ('dangling','duplicate','case-duplicate','safety','unknown-class','missing-name','alias',
+                'namespace','tagcase','list-context','entry-context','unknown-child','nested-list','second-list','entry-child',
+                'list-text','entry-tail'):
+            root,controller=source();task=controller.find('./Tasks/Task');group=task.find('ScheduledPrograms');entry=group[0]
+            if kind=='dangling':entry.set('Name','UnknownProgram')
+            elif kind in ('duplicate','case-duplicate'):
+                other=copy.deepcopy(entry)
+                if kind=='case-duplicate':other.set('Name','MAINPROGRAM')
+                group.append(other)
+            elif kind=='safety':controller.find('./Programs/Program').set('Class','Safety')
+            elif kind=='unknown-class':controller.find('./Programs/Program').set('Class','Unknown')
+            elif kind=='missing-name':entry.attrib.pop('Name')
+            elif kind=='alias':entry.set('name','UnknownProgram')
+            elif kind=='namespace':entry.tag='{other}ScheduledProgram'
+            elif kind=='tagcase':entry.tag='scheduledprogram'
+            elif kind=='list-context':group.set('Use','Context')
+            elif kind=='entry-context':entry.set('Use','Context')
+            elif kind=='unknown-child':E.SubElement(group,'VendorProgramList')
+            elif kind=='nested-list':E.SubElement(task,'Wrapper').append(copy.deepcopy(group))
+            elif kind=='second-list':task.append(copy.deepcopy(group))
+            elif kind=='list-text':group.text='Unmodeled scheduling data'
+            elif kind=='entry-tail':entry.tail='Unmodeled scheduling data'
+            else:E.SubElement(entry,'VendorData')
+            with self.subTest(kind=kind):
+                config=TaskConfiguration.from_source(root,controller,HASH)
+                self.assertTrue(config.source_complete)
+                self.assertEqual(scheduled(config),{})
+                self.assertEqual(config.attributes('MainTask',source_sha256=HASH),{6:b'\x0a\0',18:bytes(4),19:bytes(4)})
+
+    def test_ambiguous_program_declarations_and_cross_task_scheduling_withhold_the_lists(self):
+        for kind in ('duplicate-program','alias-program','nested-program','two-task-owners','unscoped-list'):
+            root,controller=source();program=controller.find('./Programs/Program')
+            if kind=='duplicate-program':controller.find('Programs').append(copy.deepcopy(program))
+            elif kind=='alias-program':program.set('{other}Name','OtherProgram')
+            elif kind=='nested-program':E.SubElement(controller,'Wrapper').append(copy.deepcopy(program))
+            elif kind=='unscoped-list':E.SubElement(controller,'Wrapper').append(copy.deepcopy(controller.find('./Tasks/Task/ScheduledPrograms')))
+            else:
+                other=copy.deepcopy(controller.find('./Tasks/Task'));other.set('Name','OtherTask');controller.find('Tasks').append(other)
+            with self.subTest(kind=kind):
+                config=TaskConfiguration.from_source(root,controller,HASH)
+                self.assertEqual(scheduled(config),{})
+                self.assertTrue(config.attributes('MainTask',source_sha256=HASH))
+                if kind=='two-task-owners':self.assertEqual(scheduled(config,'OtherTask'),{})
+
+    def test_source_and_program_binding_hashes_missing_ids_and_invalid_maps_never_return_a_partial_list(self):
+        root,controller=source();config=TaskConfiguration.from_source(root,controller,HASH)
+        self.assertEqual(scheduled(config),{1:struct.pack('<HI',1,26038)})
+        changes=({'source_sha256':'b'*64},{'program_source_l5x_sha256':'b'*64},
+                 {'source_acd_sha256':'d'*64},{'source_acd_sha256':''},{'program_source_acd_sha256':'d'*64},
+                 {'program_ids':{}},{'program_ids':None},{'program_ids':[]},{'program_ids':{'MainProgram':0}},
+                 {'program_ids':{'MainProgram':True}},{'program_ids':{'MainProgram':-1}},
+                 {'program_ids':{'MainProgram':0x100000000}},{'program_ids':{'MainProgram':1,'MAINPROGRAM':2}},
+                 {'program_ids':{'MainProgram':1,'Other':1}},{'program_ids':{'MainProgram':1,'bad.name':2}})
+        for change in changes:
+            with self.subTest(change=change):self.assertEqual(scheduled(config,**change),{})
+        self.assertEqual(scheduled(config,program_ids={'MainProgram':0xFFFFFFFF}),{1:struct.pack('<HI',1,0xFFFFFFFF)})
+        self.assertEqual(scheduled(config,'MissingTask'),{})
+        self.assertEqual(scheduled(config,None),{})
+        with patch('logixlab.task_configuration.MAX_PROGRAMS',0):self.assertEqual(scheduled(config),{})
+
+    def test_schedule_snapshot_order_and_returned_bytes_cannot_be_changed_by_mutating_source_or_bindings(self):
+        root,controller=source();config=TaskConfiguration.from_source(root,controller,HASH)
+        bindings={'mainprogram':26038};before=scheduled(config,program_ids=bindings)
+        controller.find('./Tasks/Task/ScheduledPrograms').clear();bindings['mainprogram']=5
+        self.assertEqual(before,{1:struct.pack('<HI',1,26038)})
+        self.assertEqual(scheduled(config),before)
+        with self.assertRaises(FrozenInstanceError):config._tasks['maintask'].scheduled_programs=()
+        for invalid in ([],('MainProgram','MAINPROGRAM'),('bad.name',),('Program'+str(i) for i in range(2))):
+            with self.assertRaises(ValueError):TaskSettings('MainTask',scheduled_programs=invalid)
+        self.assertEqual(TaskSettings('MainTask',scheduled_programs=()).scheduled_programs,())
+
+    def test_excessive_explicit_schedule_is_unavailable_while_explicit_settings_still_read_back(self):
+        root,controller=source();programs=controller.find('Programs');programs.clear()
+        group=controller.find('./Tasks/Task/ScheduledPrograms');group.clear()
+        for index in range(1029):
+            name='Program'+str(index)
+            program=E.SubElement(programs,'Program',Name=name,Class='Standard');E.SubElement(program,'Tags')
+            E.SubElement(group,'ScheduledProgram',Name=name)
+        config=TaskConfiguration.from_source(root,controller,HASH)
+        self.assertTrue(config.source_complete);self.assertEqual(scheduled(config),{})
+        self.assertTrue(config.attributes('MainTask',source_sha256=HASH))
+        with self.assertRaises(ValueError):TaskSettings('MainTask',scheduled_programs=tuple('Program'+str(i) for i in range(1029)))
+
     def test_independent_explicit_fields_keep_their_exact_wire_widths(self):
         root,controller=source();tasks=controller.find('Tasks')
         other=copy.deepcopy(tasks[0]);other.set('Name','Other');other.set('Priority','1')

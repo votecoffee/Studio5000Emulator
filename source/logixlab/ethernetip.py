@@ -727,6 +727,15 @@ class Router:
             if task is None:raise CIPError(5,'Unknown or unexposed Task instance')
             attributes=self.app.engine.project.task_configuration.attributes(
                 task['name'],source_sha256=self.app.engine.project.sha256)
+            attributes.update(self.app.engine.project.task_timing.attributes(
+                task['name'],source_sha256=self.app.engine.project.sha256))
+            programs=getattr(self.app,'native_symbols',None)
+            if programs is not None:
+                attributes.update(self.app.engine.project.task_configuration.scheduled_attributes(
+                    task['name'],source_sha256=self.app.engine.project.sha256,
+                    source_acd_sha256=self.app.native_tasks.source_acd_sha256,program_ids=programs.programs,
+                    program_source_l5x_sha256=programs.source_l5x_sha256,
+                    program_source_acd_sha256=programs.source_acd_sha256))
         return self.attribute_read(service,path,data,attributes)
 
     @staticmethod
@@ -1287,6 +1296,7 @@ class Endpoint:
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
+                    'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
