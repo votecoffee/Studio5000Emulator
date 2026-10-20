@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.52` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.53` deployed test preserves scalar discovery and Ethernet status and returns source pass-through configuration; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -556,6 +556,23 @@ source mode, numeric mask and provenance. This is configuration metadata:
 pass-through forwarding to other devices is not implemented, and controller
 setters remain rejected. Ethernet counters remain unsupported because the
 available Linux statistics do not establish every required counter's semantics.
+
+The `.53` suite runs 774 tests: Windows passes 772 with two Linux-only skips;
+Linux passes 773 with one Windows-only skip. The rebuilt appliance passes 175
+live protocol checks. All eight SDK connection steps succeed across 83 verified
+signed requests, ending Offline. Native upload completes 194 verified signed
+requests, including 24 successful pass-through configuration reads, the existing
+12 scalar reads and 12 Symbol descriptors. It still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`; the last ordinary collection read
+retains errors for Ethernet counters. This identifies remaining protocol gaps
+without proving which one causes the SDK failure.
+
+A separate hold/read test stays Online/Program across 91 verified requests and
+ends Offline without correlation loss. Typed BOOL and generic BOOL/DINT reads
+still report `RxDA_E_NO_ONLINE_ADDRESS`. Original ACD bytes, modeled values and
+zero scan count are preserved, with network writes disabled. The deployed source,
+webpage version/assets and Windows executable match `.53`. These results do not
+establish full upload/download, native online edits or Studio GUI tag monitoring.
 
 ### Unsupported attribute diagnostics
 
