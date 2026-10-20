@@ -6,7 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.92` verifies replacement followed by insertion in the same
+Current milestone: `.93` resolves source-bound references inside
+[native CPT expressions](routine-source.md#cpt-expression-references). CPT and
+conditional arithmetic imports reconnect and execute with queued external
+inputs, and saved L5X logic reloads. Native address-cache refresh still fails
+before tag-address requests. Version `.92` verifies replacement followed by insertion in the same
 routine and [native SDK import/save/reopen of an edited ACD](edited-logic-l5x.md#optional-native-acd-save-diagnostic).
 The saved ACD also passes a fresh SDK connection against an isolated emulator
 loaded from its new source pair, and its saved edits execute. The post-edit SDK

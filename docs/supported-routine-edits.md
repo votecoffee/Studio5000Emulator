@@ -141,3 +141,21 @@ succeed across 316 verified requests, but the read still fails with
 `RxDA_E_NO_ONLINE_ADDRESS`. That diagnostic is reported as failed despite
 confirmed applied edits, clean native Offline and endpoint cleanup. Executing
 the edits in the emulator does not establish native tag-monitoring support.
+
+### CPT and conditional arithmetic
+
+Version `.93` adds [CPT expression reference translation](routine-source.md#cpt-expression-references).
+The native SDK appends a CPT calculation at position 9 and conditional ADD at
+position 10 of the demo's `MainRoutine`. Both imports and reconnects succeed
+across 314 verified signed requests. The original nine rungs remain present;
+activation advances logic revision to 2 without executing scans or changing
+values/history.
+
+With `SpeedSetpoint=50` and `StartPB=false`, a scan sets `SpeedCommand=107`.
+Queued external inputs remain invisible until the next scan, when setpoint 60
+and StartPB true produce 137. Setpoint 75 and StartPB false then produce 157.
+Each input transaction has an applied acknowledgement for its scan boundary.
+The saved L5X retains original initial values, reloads and reproduces 107/137.
+Native Offline and endpoint cleanup succeed, no fatal SDK fault is reported,
+and the original ACD/main demo remain unchanged. Studio GUI acceptance and
+native tag monitoring remain unverified.

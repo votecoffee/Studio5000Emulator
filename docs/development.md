@@ -564,6 +564,31 @@ main demo remains stopped in Program at logic revision 0 with supported edit
 access enabled; isolated edited instances are stopped. Upload/download and
 Run/Program cycling were not repeated in this focused iteration.
 
+Version `.93` adds [source-bound CPT expression translation](routine-source.md#cpt-expression-references).
+For the isolated demo's original nine-rung routine, the native edit diagnostic
+can append the two checked rungs with:
+
+```powershell
+--operation edits --apply-supported-edits --edit-code 'CPT(SpeedCommand,(SpeedSetpoint*2)+7);' --edit-insert-position 9 --second-edit-code 'XIC(StartPB)ADD(SpeedCommand,10,SpeedCommand);' --second-edit-insert-position 10 --reconnect-edits
+```
+
+The native case succeeds across 314 verified signed requests. Its edit-time
+checks preserve values, scan history and unrelated routines. Three later scans
+produce SpeedCommand 107, 137 and 157 as queued device inputs change; HTTP
+snapshots and per-transaction receipts confirm application at scan boundaries.
+An exported L5X reloads and reproduces 107/137 from the original initial values.
+Final native Offline and endpoint cleanup succeed without a reported fatal SDK
+fault. The iteration passes 70 focused tests; the full suite was not run.
+
+Before this fix, the native CPT transfer reached source decoding but failed
+reference translation. That case preserves the active model and closes the
+endpoint, while native Go Offline returns `RxE_COMM_NOTOPEN` and remains
+unconfirmed. A separate private cache-refresh experiment still fails
+`RxCL_E_CANNOT_UPLOAD_PHYS_ADDR` before tag-address requests; it confirms native
+Offline and model preservation. Its correlation override is not shipped.
+These failures do not establish monitoring support. Original ACD data and the
+separate main demo remain preserved.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

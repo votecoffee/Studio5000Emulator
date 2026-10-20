@@ -67,5 +67,26 @@ class SourceIoiTests(unittest.TestCase):
         with self.assertRaises(SourceError):validate_plan(source,neutral,self.project,'MainProgram')
         with self.assertRaises(SourceError):validate_plan(self.source('UNKNOWN();'),('UNKNOWN();',),self.project,'MainProgram')
 
+    def test_cpt_expression_resolves_each_source_bound_scalar_and_member(self):
+        text='CPT(@107 14 0 0 0 0@,(@107 14 0 0 0 0@*2)+@107 12 0 0 0 0@.@108 3971 34046 2 0 0@);'
+        neutral=self.translate(text)
+        self.assertEqual(neutral,('CPT(SpeedSetpoint,(SpeedSetpoint*2)+StartDelay.PRE);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        from logixlab.routine_source import candidate_project
+        from logixlab.runtime import Engine
+        candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+        engine=Engine(candidate,defer_prescan=True);engine.step()
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),1100)
+        self.assertEqual(self.project.initial['speedsetpoint'],50)
+
+    def test_cpt_expression_cannot_smuggle_unbound_names_paths_or_syntax(self):
+        known='@107 14 0 0 0 0@'
+        for expression in (known+'+Missing',known+'+SpeedSetpoint',known+'[1]',known+'.ACC',
+                known+'+@107 99 0 0 0 0@',known+'+@bad@',known+';NOP()',
+                'UNKNOWN('+known+')','"'+known+'"',known+'+'+'1'*4096):
+            with self.subTest(expression=expression),self.assertRaises(SourceError):
+                self.translate('CPT('+known+','+expression+');')
+        with self.assertRaises(SourceError):self.translate('MOV('+known+'+1,'+known+');')
+
 
 if __name__=='__main__':unittest.main()

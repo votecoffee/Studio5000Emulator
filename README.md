@@ -86,6 +86,11 @@ L5X, saves a new edited ACD, reopens it and checks the re-exported logic and
 initial values. That new ACD also passes a fresh SDK Go Online/Offline connection
 to an emulator loaded from the saved project. Studio GUI acceptance remains
 unverified.
+Version `.93` resolves source-bound tag/member references inside native CPT
+expressions. A CPT import followed by conditional arithmetic passes SDK
+reconnects and executes with queued external inputs. The edited L5X reloads
+and reproduces the tested results. See the
+[expression reference profile](docs/routine-source.md#cpt-expression-references).
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

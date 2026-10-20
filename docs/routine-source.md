@@ -55,6 +55,31 @@ a fully validated candidate with its post-source record survives Program
 release until Controller completion or phase cleanup; incomplete pairs are
 discarded at Program release.
 
+## CPT expression references
+
+Version `.93` extends reference translation to CPT's second operand. Complete
+source-bound scalar/member chains can appear inside the existing bounded
+expression grammar, including arithmetic and parentheses. Each chain resolves
+through the same Symbol and DataType catalogs as a direct operand. The parser's
+reference list must match those resolved chains, including repeated occurrences;
+unencoded names and member/index suffixes cannot add references implicitly.
+
+Expressions are limited to 4,096 characters and the parser's existing token,
+nesting, function and numeric-type limits. Unknown IDs, malformed markers,
+quoted expression strings, unsupported functions and hidden members are rejected.
+The detached execution-plan check still validates destination/operand types and
+supported arithmetic. Array/indirect IOI paths and other instruction expression
+positions remain outside this translation profile. No compiled address is
+assigned and the opaque native ELF is not executed.
+
+The native test appends `CPT(SpeedCommand,(SpeedSetpoint*2)+7);`, then
+`XIC(StartPB)ADD(SpeedCommand,10,SpeedCommand);`, with Offline/Online after each
+import. Both imports succeed across 314 verified signed requests. A scan
+produces 107; queued device inputs then produce 137 and 157. The exported L5X
+reloads with original initial values and reproduces the first two cases.
+Native Offline and endpoint cleanup are confirmed without a reported fatal SDK
+fault. See [supported edit validation](supported-routine-edits.md#cpt-and-conditional-arithmetic).
+
 ## Scope
 
 The decoder/translator establishes a source path toward the custom execution

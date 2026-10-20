@@ -133,7 +133,23 @@ def resolve(source,project,symbols,routines,types,program):
     by_id={(s.program_instance,s.instance):s for s in symbols.by_key.values()}
     token=re.compile(r'@[0-9]{1,10}(?: [0-9]{1,10}){5}@')
 
-    def argument(value,routine=False):
+    def argument(value,routine=False,expression=False):
+        if expression and '@' in value:
+            # Only CPT's expression operand uses this profile. Resolve complete
+            # IOI/member chains individually, then check the existing bounded
+            # grammar and require every tag reference to originate in a chain.
+            from .expressions import Expression
+            if len(value)>4096:raise SourceError('ioi_expression_limit')
+            references=[]
+            def substitute(match):
+                name=argument(match.group());references.append(name.casefold());return name
+            translated=re.sub(token.pattern+r'(?:\.'+token.pattern+r')*',substitute,value)
+            if '@' in translated:raise SourceError('ioi_expression_profile_unsupported')
+            try:parsed=Expression(translated)
+            except ModelError as error:raise SourceError('ioi_expression_syntax_unsupported') from error
+            if sorted(ref.casefold() for ref in parsed.refs)!=sorted(references):
+                raise SourceError('ioi_expression_reference_unsupported')
+            return translated
         if '@' not in value or len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"):return value
         found=list(token.finditer(value))
         if not found or not re.fullmatch(r'#(?:\.#)*',token.sub('#',value)):
@@ -176,7 +192,7 @@ def resolve(source,project,symbols,routines,types,program):
         result=[]
         for node in nodes:
             if isinstance(node,Branch):result.append('['+','.join(emit(path) for path in node.paths)+']')
-            else:result.append(node.name+'('+','.join(argument(a,node.name=='JSR' and i==0)
+            else:result.append(node.name+'('+','.join(argument(a,node.name=='JSR' and i==0,node.name=='CPT' and i==1)
                                                      for i,a in enumerate(node.args))+')')
         return ''.join(result)
     try:return tuple(emit(parse_rung(r.text_ioi))+';' for r in source.rungs)
