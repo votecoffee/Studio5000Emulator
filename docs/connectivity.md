@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.66` adds [metadata-definition staging](metadata-staging.md).
+Prepared owners can create/delete bounded temporary definition names. The
+final-source SDK attempt accepts 23 definitions and reaches a rejected
+metadata-value write (`0x4F`), retaining its metadata-definition download error.
+The active project catalog, values and transfer/commit authority remain unchanged.
+
 Version `.65` adds [library descriptor staging and the observed `0x39` envelope](library-staging.md).
 Create/Delete affect only a prepared owner's bounded temporary descriptors.
 Signed transfer messages share the native session counter and read policy;
@@ -233,7 +239,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.65` stages library descriptors and verifies transfer envelopes; data writes and Metadata Definition Create remain denied | Validated metadata and library-data staging, transfer and atomic model replacement |
+| Native download | `.66` stages library and metadata descriptors; library-data and metadata-value writes remain denied | Validated values and library-data staging, transfer and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template

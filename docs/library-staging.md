@@ -1,5 +1,9 @@
 # Native library descriptors and transfer envelopes
 
+Version `.66` extends the lease with [metadata-definition staging](metadata-staging.md).
+The notes below record the `.65` milestone and its then-current Metadata
+Definition Create boundary.
+
 Version `0.6.0-connectivity.65` adds temporary library descriptors and the
 observed single-inner Message Router `0x39` envelope. The tested SDK now reaches
 Metadata Definition creation. Library binaries, project replacement and native

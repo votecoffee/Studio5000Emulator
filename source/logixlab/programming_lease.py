@@ -6,6 +6,7 @@ operator name or reusable session number. The endpoint serializes access.
 import math
 import time
 from .library_staging import LibraryStaging
+from .metadata_staging import MetadataStaging
 
 
 class LeaseError(ValueError):
@@ -18,12 +19,16 @@ class ProgrammingLease:
     def __init__(self, clock=time.monotonic):
         self.clock=clock
         self.libraries=LibraryStaging()
+        self.metadata=MetadataStaging()
         self.clear()
 
     def clear(self):
         self.owner=None;self.generation=None;self.source_sha256=None
         self.run_inhibit=0;self.prepared=False
-        self.libraries.clear()
+        self.clear_staging()
+
+    def clear_staging(self):
+        self.libraries.clear();self.metadata.clear()
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -54,7 +59,7 @@ class ProgrammingLease:
             raise LeaseError(3,'invalid_request')
         self.require_owner(native,generation,source_sha256)
         self.run_inhibit=value
-        if not value:self.prepared=False;self.libraries.clear()
+        if not value:self.prepared=False;self.clear_staging()
 
     def require_owner(self, native, generation, source_sha256):
         if not self.live(generation,source_sha256) or self.owner is not native:
@@ -72,7 +77,7 @@ class ProgrammingLease:
     def end_preparation(self, native, generation, source_sha256):
         self.require_owner(native,generation,source_sha256)
         self.prepared=False
-        self.libraries.clear()
+        self.clear_staging()
 
     def require_prepared(self, native, generation, source_sha256):
         self.require_owner(native,generation,source_sha256)
@@ -91,6 +96,7 @@ class ProgrammingLease:
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,
                 'library_staging':self.libraries.description(),
+                'metadata_staging':self.metadata.description(),
                 'remaining_ms':max(0,math.ceil((self.owner.deadline-self.clock())*1000)) if owned else 0,
                 'owner_identity_exposed':False,'project_transfer':False,'online_edits':False,
                 'controller_mode_changes':False,'tag_write_authority':False}

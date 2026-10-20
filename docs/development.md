@@ -66,8 +66,8 @@ project-transfer authority remains disabled. Its temporary coordination lease
 and Run Mode Inhibit can be exercised. Version `.64` adds owner-scoped
 [preparation](programming-preparation.md) and retention of source-established
 disabled redundancy. Full native download is unfinished; the current
-implementation rejects library-data writes and Metadata Definition Create on
-class `0x349`, after `.65` descriptor staging. This expected
+implementation rejects library-data writes and metadata-value writes (`0x4F`)
+on class `0x349`, after `.66` definition staging. This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
 
@@ -182,6 +182,12 @@ filesystem. `signed_messages.TransferEnvelope` covers only the observed
 `0x39` format/control; unsupported controls fail before dispatch. Its live policy
 requires an already bound context and preserves library-data write denials.
 See [library staging](library-staging.md) for limits, vectors and native evidence.
+
+`metadata_staging.py` keeps bounded definition names alongside the library stage.
+Both share lease cleanup and source checks. Active catalog reads remain separate;
+staging never changes the loaded project or accepts proposed property values.
+Class `0x349` uses UDINT IDs/replies, independently of library UINT instances.
+See [metadata staging](metadata-staging.md) before extending value transfer.
 
 ## Device I/O
 
