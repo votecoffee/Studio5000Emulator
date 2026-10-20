@@ -1145,12 +1145,10 @@ class Router:
                                 try:edit_state=self.receive_edit_fragment(envelope,native,lease)
                                 except CIPError:
                                     lease.edit_transfer.clear();raise
-                                if edit_state['complete'] and edit_state['component_kind']=='source':
-                                    # Acknowledge validated temporary storage.
-                                    # Later edit operations still need their own
-                                    # contracts before any active replacement.
-                                    if not lease.edit_transfer.plan_validated:
-                                        raise CIPError(0x0F,'Compiled edit candidate unsupported')
+                                # A fragment ACK confirms bounded temporary
+                                # storage only. Unsupported source is denied by
+                                # the following signed post-source operation;
+                                # it never becomes an attachable/active edit.
                             else:
                                 lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
                                 lease.transport.accept(envelope)

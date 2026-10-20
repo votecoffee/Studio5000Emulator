@@ -68,8 +68,9 @@ Expressions are limited to 4,096 characters and the parser's existing token,
 nesting, function and numeric-type limits. Unknown IDs, malformed markers,
 quoted expression strings, unsupported functions and hidden members are rejected.
 The detached execution-plan check still validates destination/operand types and
-supported arithmetic. Array/indirect IOI paths and other instruction expression
-positions remain outside this translation profile. No compiled address is
+supported arithmetic. Version `.94` adds CMP's first operand with comparison and
+Boolean syntax; its detached plan must produce a typed Boolean condition.
+Other instruction expression positions remain outside this profile. No compiled address is
 assigned and the opaque native ELF is not executed.
 
 The native test appends `CPT(SpeedCommand,(SpeedSetpoint*2)+7);`, then
@@ -79,6 +80,25 @@ produces 107; queued device inputs then produce 137 and 157. The exported L5X
 reloads with original initial values and reproduces the first two cases.
 Native Offline and endpoint cleanup are confirmed without a reported fatal SDK
 fault. See [supported edit validation](supported-routine-edits.md#cpt-and-conditional-arithmetic).
+
+## Static array operands
+
+Version `.94` accepts a decimal subscript suffix on a resolved Symbol/member
+chain. Each index is checked against the original imported value's array shape,
+with exact rank required when subscripting. The same complete references can
+appear in direct operands, CPT calculations and CMP conditions. Unknown IDs,
+out-of-range or negative indices, repeated subscript groups, unresolved members
+and arithmetic/indirect index expressions remain rejected. Existing hidden
+member, type-ID and source-binding checks still apply.
+
+Software tests cover one- and two-dimensional numeric arrays, wrong ranks and
+bounds, scalar-as-array errors and rejected indirect forms. Native SDK evidence
+covers a one-dimensional DINT array in a separately generated demo. Its two
+imports use an indexed MOV source, indexed CMP/CPT sources and an indexed CPT
+destination; reconnects pass across 315 verified signed requests. Scans and
+queued external array writes exercise both true and false CMP outcomes, and
+an edited L5X reload reproduces them. Broader native array/type coverage remains
+unverified. See [comparison and array validation](supported-routine-edits.md#comparisons-and-array-operands).
 
 ## Scope
 

@@ -132,10 +132,22 @@ def resolve(source,project,symbols,routines,types,program):
     if program_id is None:raise SourceError('ioi_program_unavailable')
     by_id={(s.program_instance,s.instance):s for s in symbols.by_key.values()}
     token=re.compile(r'@[0-9]{1,10}(?: [0-9]{1,10}){5}@')
+    segment=token.pattern+r'(?:\[[0-9]{1,10}(?:,[0-9]{1,10}){0,2}\])?'
+    reference=segment+r'(?:\.'+segment+r')*'
 
-    def argument(value,routine=False,expression=False):
+    def indexed(name,value,suffix):
+        if not suffix:return name,value
+        indices=tuple(map(int,suffix[1:-1].split(',')))
+        for index in indices:
+            if not isinstance(value,list) or not 0<=index<len(value):
+                raise SourceError('ioi_array_subscript_unavailable')
+            value=value[index]
+        if isinstance(value,list):raise SourceError('ioi_array_rank_unsupported')
+        return name+'['+','.join(map(str,indices))+']',value
+
+    def argument(value,routine=False,expression=None):
         if expression and '@' in value:
-            # Only CPT's expression operand uses this profile. Resolve complete
+            # Only CPT/CMP expression operands use this profile. Resolve complete
             # IOI/member chains individually, then check the existing bounded
             # grammar and require every tag reference to originate in a chain.
             from .expressions import Expression
@@ -143,22 +155,23 @@ def resolve(source,project,symbols,routines,types,program):
             references=[]
             def substitute(match):
                 name=argument(match.group());references.append(name.casefold());return name
-            translated=re.sub(token.pattern+r'(?:\.'+token.pattern+r')*',substitute,value)
+            translated=re.sub(reference,substitute,value)
             if '@' in translated:raise SourceError('ioi_expression_profile_unsupported')
-            try:parsed=Expression(translated)
+            try:parsed=Expression(translated,condition=expression=='CMP')
             except ModelError as error:raise SourceError('ioi_expression_syntax_unsupported') from error
             if sorted(ref.casefold() for ref in parsed.refs)!=sorted(references):
                 raise SourceError('ioi_expression_reference_unsupported')
             return translated
         if '@' not in value or len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"):return value
-        found=list(token.finditer(value))
-        if not found or not re.fullmatch(r'#(?:\.#)*',token.sub('#',value)):
+        if not re.fullmatch(reference,value):
             raise SourceError('ioi_argument_profile_unsupported')
+        parts=list(re.finditer(segment,value));found=[token.match(part.group()) for part in parts]
+        suffixes=[part.group()[len(match.group()):] for part,match in zip(parts,found)]
         words=[tuple(map(int,t.group()[1:-1].split())) for t in found]
         if any(n>0xFFFFFFFF for word in words for n in word):raise SourceError('ioi_integer_limit')
         first=words[0]
         if routine:
-            if len(words)!=1 or first[:3]!=(0x68,program_id,0x6D) or first[4:]!=(0,0):
+            if len(words)!=1 or suffixes[0] or first[:3]!=(0x68,program_id,0x6D) or first[4:]!=(0,0):
                 raise SourceError('ioi_routine_scope_unsupported')
             row=routines.by_instance.get((program_id,first[3]))
             if row is None or (row.program+'/'+row.name).casefold() not in project.routines:
@@ -173,9 +186,9 @@ def resolve(source,project,symbols,routines,types,program):
         if tag.problem or tag.tag_class!='Standard':raise SourceError('ioi_symbol_source_unsupported')
         name=(symbol.name if not symbol.scope or symbol.scope.casefold()==program.casefold()
               else 'Program:'+symbol.scope+'.'+symbol.name)
-        dtype=tag.dtype;array=isinstance(tag.value,list)
-        for word in words[1:]:
-            if array or word[0]!=0x6C or word[2]!=0x84FE or word[4:]!=(0,0):
+        name,current=indexed(name,tag.value,suffixes[0]);dtype=tag.dtype
+        for word,suffix in zip(words[1:],suffixes[1:]):
+            if isinstance(current,list) or word[0]!=0x6C or word[2]!=0x84FE or word[4:]!=(0,0):
                 raise SourceError('ioi_member_profile_unsupported')
             definition=types.types.get(dtype.casefold())
             if definition is None or types.type_ids.get(dtype.casefold())!=word[1]:
@@ -185,14 +198,17 @@ def resolve(source,project,symbols,routines,types,program):
             if not 1<=word[3]<=len(definition.members):raise SourceError('ioi_member_index_unavailable')
             member=definition.members[word[3]-1]
             if member.hidden:raise SourceError('ioi_hidden_member_unsupported')
-            name+='.'+member.name;dtype=member.dtype;array=bool(member.dimensions)
+            keys=[key for key in current if key.casefold()==member.name.casefold()] if isinstance(current,dict) else []
+            if len(keys)!=1:raise SourceError('ioi_member_source_unavailable')
+            name,current=indexed(name+'.'+member.name,current[keys[0]],suffix);dtype=member.dtype
         return name
 
     def emit(nodes):
         result=[]
         for node in nodes:
             if isinstance(node,Branch):result.append('['+','.join(emit(path) for path in node.paths)+']')
-            else:result.append(node.name+'('+','.join(argument(a,node.name=='JSR' and i==0,node.name=='CPT' and i==1)
+            else:result.append(node.name+'('+','.join(argument(a,node.name=='JSR' and i==0,
+                    node.name if (node.name=='CPT' and i==1 or node.name=='CMP' and i==0) else None)
                                                      for i,a in enumerate(node.args))+')')
         return ''.join(result)
     try:return tuple(emit(parse_rung(r.text_ioi))+';' for r in source.rungs)

@@ -1,6 +1,7 @@
 """Known source identifiers translate; unknown paths never guess operands."""
 import copy
 from pathlib import Path
+import tempfile
 import unittest
 from xml.etree import ElementTree as ET
 
@@ -87,6 +88,55 @@ class SourceIoiTests(unittest.TestCase):
             with self.subTest(expression=expression),self.assertRaises(SourceError):
                 self.translate('CPT('+known+','+expression+');')
         with self.assertRaises(SourceError):self.translate('MOV('+known+'+1,'+known+');')
+
+    def test_cmp_resolves_numeric_and_boolean_references_with_typed_condition_validation(self):
+        text='CMP((@107 14 0 0 0 0@>55)&&@107 5 0 0 0 0@)MOV(7,@107 14 0 0 0 0@);'
+        neutral=self.translate(text)
+        self.assertEqual(neutral,('CMP((SpeedSetpoint>55)&&RunLatch)MOV(7,SpeedSetpoint);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        from logixlab.routine_source import candidate_project
+        from logixlab.runtime import Engine
+        candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+        engine=Engine(candidate,defer_prescan=True)
+        engine.memory.write('SpeedSetpoint',60);engine.step();self.assertEqual(engine.memory.read('SpeedSetpoint'),60)
+        engine.memory.write('RunLatch',True);engine.step();self.assertEqual(engine.memory.read('SpeedSetpoint'),7)
+        numeric=self.source('CMP(@107 14 0 0 0 0@+1);')
+        with self.assertRaises(SourceError):validate_plan(numeric,self.translate(numeric.rungs[0].text_ioi),self.project,'MainProgram')
+        for instruction in ('CMP(@107 14 0 0 0 0@>Missing);','CMP(@107 14 0 0 0 0@>);',
+                'CPT(@107 14 0 0 0 0@,@107 14 0 0 0 0@>55);'):
+            with self.subTest(instruction=instruction),self.assertRaises(SourceError):self.translate(instruction)
+
+    def test_static_array_indices_use_source_bounds_in_direct_and_expression_operands(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=ET.parse(self.project.path).getroot();tags=root.find('./Controller/Tags')
+            for name,dims,entries in (('Samples','4',[('[0]',10),('[1]',20),('[2]',30),('[3]',40)]),
+                    ('Grid','2,2',[('[0,0]',1),('[0,1]',2),('[1,0]',3),('[1,1]',4)])):
+                tag=ET.SubElement(tags,'Tag',Name=name,TagType='Base',DataType='DINT',Dimensions=dims)
+                array=ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='DINT',Dimensions=dims)
+                for index,value in entries:ET.SubElement(array,'Element',Index=index,Value=str(value))
+            path=Path(folder)/'arrays.L5X';ET.ElementTree(root).write(path)
+            self.project=Project(path);sha=self.project.sha256
+            self.symbols=NativeSymbols('a'*64,sha,[Symbol('',0,'SpeedSetpoint',14),Symbol('',0,'Samples',17),
+                Symbol('',0,'Grid',18)],programs=[{'name':'MainProgram','instance':300}])
+            self.routines=NativeRoutines('a'*64,sha,[dict(program='MainProgram',name=n,program_instance=300,instance=700+i)
+                for i,n in enumerate(('MainRoutine','Reporting'))])
+            self.types=NativeTypes('a'*64,sha,[])
+            text='MOV(@107 17 0 0 0 0@[2],@107 14 0 0 0 0@)CPT(@107 17 0 0 0 0@[1],@107 17 0 0 0 0@[0]+@107 18 0 0 0 0@[1,1]);'
+            neutral=self.translate(text)
+            self.assertEqual(neutral,('MOV(Samples[2],SpeedSetpoint)CPT(Samples[1],Samples[0]+Grid[1,1]);',))
+            validate_plan(self.source(text),neutral,self.project,'MainProgram')
+            from logixlab.routine_source import candidate_project
+            from logixlab.runtime import Engine
+            candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+            engine=Engine(candidate,defer_prescan=True);engine.step()
+            self.assertEqual(engine.memory.read('SpeedSetpoint'),30);self.assertEqual(engine.memory.read('Samples[1]'),14)
+            for operand in ('@107 17 0 0 0 0@[4]','@107 17 0 0 0 0@[-1]','@107 17 0 0 0 0@[SpeedSetpoint]',
+                    '@107 17 0 0 0 0@[1+1]','@107 17 0 0 0 0@[1][0]','@107 17 0 0 0 0@[1,0]',
+                    '@107 18 0 0 0 0@[1]','@107 18 0 0 0 0@[2,0]','@107 14 0 0 0 0@[0]'):
+                with self.subTest(operand=operand),self.assertRaises(SourceError):
+                    self.translate('MOV('+operand+',@107 14 0 0 0 0@);')
+                with self.subTest(expression=operand),self.assertRaises(SourceError):
+                    self.translate('CPT(@107 14 0 0 0 0@,'+operand+'+1);')
 
 
 if __name__=='__main__':unittest.main()

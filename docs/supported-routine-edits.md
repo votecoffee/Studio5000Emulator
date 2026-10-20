@@ -159,3 +159,29 @@ The saved L5X retains original initial values, reloads and reproduces 107/137.
 Native Offline and endpoint cleanup succeed, no fatal SDK fault is reported,
 and the original ACD/main demo remain unchanged. Studio GUI acceptance and
 native tag monitoring remain unverified.
+
+### Comparisons and array operands
+
+Version `.94` translates source-bound references in CMP expressions and
+[static array operands](routine-source.md#static-array-operands). One demo case
+appends `CMP(SpeedSetpoint>55)MOV(111,SpeedCommand);` and
+`CMP((SpeedSetpoint+5)>=65)ADD(SpeedCommand,9,SpeedCommand);`. Both imports and
+reconnects pass across 314 verified signed requests. Setpoints 50, 60 and 56
+produce commands 0, 120 and 111 respectively. The saved L5X reproduces all three.
+
+A separate native demo declares a four-element DINT array `Samples` with initial values
+10, 20, 30 and 40. Native imports append `MOV(Samples[2],SpeedCommand);` and
+`CMP(Samples[0]>0)CPT(Samples[1],Samples[0]+SpeedCommand);`. Both imports and
+reconnects pass across 315 requests. The first scan sets the command to 30 and
+element 1 to 40. Queued external writes setting elements 0/2 to 100/7 produce
+command 7 and element 1 equal to 107. Setting them to 0/9 produces command 9
+while the false CMP retains element 1 at 107. Receipts confirm each write batch
+at its scan boundary, and an exported L5X reproduces the cases from original
+initial values. No fatal SDK fault is reported; Offline and cleanup succeed.
+
+Before each translator extension, the corresponding unsupported import is
+rejected without altering active logic or values. The
+[signed rejection path](edit-post-source.md) now preserves native Offline and
+endpoint cleanup. All private candidates are separate from the original main
+demo. These checks do not establish native tag-address discovery, firmware
+execution equivalence, Studio GUI acceptance or Test/Untest/Assemble support.

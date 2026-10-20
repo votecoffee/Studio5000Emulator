@@ -5,6 +5,21 @@ supported object references resolve and its detached execution plan validates.
 Code, source and subsequent records remain temporary, owned storage. The active
 routine and execution state are unchanged.
 
+Version `.94` separates decoded source receipt from operation acceptance. A
+bounded, correctly targeted source container receives its signed fragment ACK
+even when reference translation or execution-plan validation fails. The next
+signed post-source operation rejects that unsupported candidate. It cannot
+retain the post-source record or pass Controller completion without the
+existing source/plan gates. This keeps the signed counter synchronized so a
+native client can go Offline after a semantic rejection. Malformed containers,
+invalid ownership/targets and transport limits retain their errors.
+
+Two native diagnostics exercise unresolved CMP and array operands before their
+respective translator changes. Both fail the post-source operation across 120
+verified requests, preserve active logic/values and confirm native Offline and
+endpoint cleanup without a reported fatal SDK fault. Fragment acknowledgement
+alone never accepts unsupported execution.
+
 ## Signed transfer control
 
 The next observed request uses Message Router service `0x39`, container format

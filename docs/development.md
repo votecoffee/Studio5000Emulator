@@ -598,6 +598,29 @@ access enabled. Isolated candidates are stopped and external writes are
 disabled. Upload/download and Run/Program cycling were not repeated in this
 focused iteration.
 
+Version `.94` extends the supported edit profile to
+[CMP expressions and static array operands](supported-routine-edits.md#comparisons-and-array-operands).
+For the original nine-rung demo, append:
+
+```powershell
+--operation edits --apply-supported-edits --edit-code 'CMP(SpeedSetpoint>55)MOV(111,SpeedCommand);' --edit-insert-position 9 --second-edit-code 'CMP((SpeedSetpoint+5)>=65)ADD(SpeedCommand,9,SpeedCommand);' --second-edit-insert-position 10 --reconnect-edits
+```
+
+The comparison case succeeds across 314 verified signed requests and reproduces
+all three tested outcomes after L5X export/reload. A separate array-demo case
+succeeds across 315 and verifies indexed reads/destinations, CMP/CPT expressions,
+queued external array writes and export/reload. Both reach revision 2 without
+changing values or executing scans at import. Native Offline and endpoint
+cleanup succeed with no reported fatal SDK fault. The new array ACD is generated
+and reopened offline in private storage; original demo sources remain preserved.
+
+Before each translation fix, an isolated unsupported import verifies the new
+[signed rejection path](edit-post-source.md) across 120 requests. Both preserve
+the model and confirm native Offline/endpoint cleanup. Container receipt remains
+separate from execution-plan validation and activation. The iteration passes
+131 focused software tests; the full suite was not run. Native tag monitoring,
+upload/download and Test/Untest/Assemble remain unfinished.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

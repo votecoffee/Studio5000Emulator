@@ -10,6 +10,7 @@ from logixlab.ethernetip import logical
 from logixlab.native_routines import NativeRoutines
 from logixlab import signed_messages as sm
 from test_signed_messages import KEY
+from test_signed_transfer import controlled_request
 import test_edit_preparation as edits
 import test_program_reservations as reservations
 from test_transport_fragments import message,part
@@ -194,7 +195,7 @@ class EditTransferSignedTests(unittest.TestCase):
         self.assertEqual((stage['status'],stage['received_bytes']),('complete',72))
         self.assertEqual(stage['container_sha256'],hashlib.sha256(container()).hexdigest())
         source=source_container();self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48])
-        self.assertEqual(self.fragment(0x201,48,source[48:],15),bytes.fromhex('b9000f00'))
+        self.fragment(0x201,48,source[48:])
         stage=self.endpoint.state()['native_programming_lease']['edit_transfer']
         self.assertEqual(stage['source_description']['rungs'],1)
         self.assertFalse(stage['source_description']['source_applied'])
@@ -202,10 +203,20 @@ class EditTransferSignedTests(unittest.TestCase):
         self.assertFalse(stage['routine_installed'] or stage['accepted_edits'])
         self.assertFalse(self.endpoint.programming_lease.transport.description()['open'])
         for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
-        # Our independent client advances after an outer error; the live context
-        # can still read and clean up without accepting the embedded operation.
+        # Temporary storage is acknowledged. Unsupported logic is denied inside
+        # the next signed operation, preserving counter/connection cleanup.
+        body=prefix(routine=self.routine)[:14]+struct.pack('<5I',2,5,0,1,123)
+        raw=controlled_request(body,self.sequence);self.sequence+=1
+        denied=sm.verify_response(self.cip(raw),KEY,request=sm.parse_request(raw)).inner
+        self.assertEqual(denied[2],12)
+        self.assertFalse(self.endpoint.programming_lease.edit_transfer.ready())
+        self.assertIsNone(self.endpoint.programming_lease.applied_edit)
         self.assertEqual(self.send(bytes.fromhex('0e03200124013001'))[2],0)
-        self.send(reservations.message(0x4C,payload=b''));self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
+        self.app.allow_routine_edits=True
+        self.send(reservations.message(0x4C,payload=b''))
+        self.assertEqual(self.send(bytes.fromhex('5902208e2401')+bytes(4))[2],12)
+        for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
+        self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
         self.assertEqual(self.endpoint.state()['native_programming_lease']['edit_transfer']['status'],'idle')
 
     def test_source_name_must_match_reserved_routine_and_bad_source_discards_both_components(self):

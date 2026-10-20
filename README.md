@@ -91,6 +91,10 @@ expressions. A CPT import followed by conditional arithmetic passes SDK
 reconnects and executes with queued external inputs. The edited L5X reloads
 and reproduces the tested results. See the
 [expression reference profile](docs/routine-source.md#cpt-expression-references).
+Version `.94` adds source-bound CMP expressions and static array operands.
+Native imports reconnect and execute comparisons, indexed reads and indexed
+destinations; saved L5X copies reproduce the results. Unsupported decoded logic
+is rejected by a signed edit operation while preserving native Offline cleanup.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

@@ -6,7 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.93` resolves source-bound references inside
+Current milestone: `.94` adds [CMP expressions and static array operands](supported-routine-edits.md#comparisons-and-array-operands).
+Native imports reconnect, execute with changing inputs and retain behavior
+through edited L5X reloads. Unsupported decoded source is rejected at a signed
+edit operation with confirmed native Offline cleanup. Version `.93` resolves source-bound references inside
 [native CPT expressions](routine-source.md#cpt-expression-references). CPT and
 conditional arithmetic imports reconnect and execute with queued external
 inputs, and saved L5X logic reloads. Native address-cache refresh still fails
