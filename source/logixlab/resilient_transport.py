@@ -9,6 +9,7 @@ from . import device_payload
 from .template_staging import TemplateStaging,TemplateError
 from .diagnostic_staging import DiagnosticStaging,DiagnosticError
 from .object_staging import ObjectStaging,ObjectError
+from .download_image import DownloadImage,ImageError
 from .native_types import verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
 
@@ -38,6 +39,7 @@ class ResilientTransport:
         self.diagnostics=DiagnosticStaging();self.diagnostic_error=None
         self.objects=ObjectStaging();self.object_error=None
         self.source_type_verification=verification();self.type_error=None;self._type_catalog=None
+        self.download_image=DownloadImage();self.image_error=None
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
@@ -50,6 +52,7 @@ class ResilientTransport:
         if self.diagnostic_error:raise TransportError(3,self.diagnostic_error)
         if self.object_error:raise TransportError(3,self.object_error)
         if self.type_error:raise TransportError(3,self.type_error)
+        if self.image_error:raise TransportError(3,self.image_error)
         if self.inspection['status']=='decoded' and self._type_catalog is not native_types:
             raise TransportError(0x0C,'native_type_binding_changed')
         if self.inspection['status']=='decoded':return self.inspection
@@ -79,7 +82,14 @@ class ResilientTransport:
         if self.source_type_verification['status']=='mismatch':
             self.type_error='source_type_verification_failed'
             raise TransportError(3,self.type_error)
+        try:
+            image=DownloadImage.prepare(batch,templates,diagnostics,objects,native_types,
+                                        self.source_type_verification)
+        except ImageError as error:
+            self.image_error=error.reason
+            raise TransportError(3,error.reason) from error
         self.templates=templates;self.diagnostics=diagnostics;self.objects=objects
+        self.download_image=image
         return self.inspection
 
     def expire(self):
@@ -137,6 +147,7 @@ class ResilientTransport:
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},
+                'download_image':{**self.download_image.description(),**({'status':'invalid','reason':self.image_error} if self.image_error else {})},
                 'template_staging':{**self.templates.description(),**({'status':'invalid','reason':self.template_error} if self.template_error else {})},
                 'diagnostic_staging':{**self.diagnostics.description(),**({'status':'invalid','reason':self.diagnostic_error} if self.diagnostic_error else {})},
                 'object_staging':{**self.objects.description(),**({'status':'invalid','reason':self.object_error} if self.object_error else {})},
