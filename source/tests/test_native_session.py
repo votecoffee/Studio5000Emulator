@@ -368,6 +368,17 @@ class NativeSessionTests(unittest.TestCase):
         self.bind()
         self.assertEqual(self.signed(4,bytes.fromhex('0e042100340324013003')),b'\x8E\0\5\0')
 
+    def test_signed_pass_through_setting_is_read_only_source_metadata(self):
+        self.app.engine.project.controller_configuration=ControllerConfiguration.from_controller(
+            E.fromstring('<Controller PassThroughConfiguration="EnabledWithAppend"/>'))
+        self.bind()
+        self.assertEqual(self.signed(4,bytes.fromhex('0302208e240101001900')),
+                         bytes.fromhex('8300000001001900000003000000'))
+        self.assertEqual(self.signed(5,bytes.fromhex('0e03208e24013019'),0x37),
+                         bytes.fromhex('8e00000003000000'))
+        self.assertEqual(self.signed(6,bytes.fromhex('1003208e24013019')+bytes(4))[2],0x0F)
+        self.assertEqual(self.app.engine.project.controller_configuration.pass_through_configuration,'EnabledWithAppend')
+
     def test_virtual_change_log_all_agrees_with_single_and_list_reads(self):
         self.bind()
         fields=CatalogRevision.from_source(self.app.engine.project.sha256).compatibility_attributes()

@@ -536,6 +536,27 @@ were preserved, with network writes disabled. Deployed modules, browser assets,
 displayed version and the Windows artifact matched the source. These checks do
 not establish native tag/rung monitoring, complete upload/download or online edits.
 
+### Source pass-through configuration
+
+Version `.53` returns Controller `0x8E` instance 1 attribute `25`, a read-only
+UDINT containing an explicitly declared `Controller@PassThroughConfiguration`.
+The accepted source values are `Disabled` (`0`), `Enabled` (`1`) and
+`EnabledWithAppend` (`3`). The source options are documented in Rockwell's
+[Import/Export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
+Three isolated, offline v35 SDK import/save/export round trips preserved these
+options and changed only the corresponding byte in the component configuration
+block, establishing the `0/1/3` encoding. The installed plain-text attribute
+definition identifies its wire width as BITS32; no vendor files are distributed.
+
+The field is available in experimental native read-only mode. Single/list reads
+share the same source value, including repeated entries and mixed unsupported
+fields. Missing, noncanonical, unknown or conflicting namespaced declarations
+remain unsupported, with no default substituted. Endpoint diagnostics report the
+source mode, numeric mask and provenance. This is configuration metadata:
+pass-through forwarding to other devices is not implemented, and controller
+setters remain rejected. Ethernet counters remain unsupported because the
+available Linux statistics do not establish every required counter's semantics.
+
 ### Unsupported attribute diagnostics
 
 Version `.44` adds `attribute_gaps` to the Connectivity state and trace export.

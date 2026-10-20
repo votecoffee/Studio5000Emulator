@@ -10,6 +10,9 @@ import struct
 from .tag_catalog import complete_tag_source
 
 
+PASS_THROUGH = {'Disabled': 0, 'Enabled': 1, 'EnabledWithAppend': 3}
+
+
 @dataclass(frozen=True)
 class ControllerConfiguration:
     security_code: int | None
@@ -22,6 +25,7 @@ class ControllerConfiguration:
     share_unused_defaulted: bool = True
     empty_power_loss_handler: bool = False
     empty_fault_handler: bool = False
+    pass_through_configuration: str | None = None
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -40,6 +44,11 @@ class ControllerConfiguration:
                     if re.fullmatch(r'[0-9]{1,2}',slice_text) and 10<=int(slice_text)<=90 else None)
         share=(1 if share_text is None else {'0':0,'1':1}.get(share_text))
         complete=root is not None and complete_tag_source(root,controller)
+        pass_fields=[name for name in controller.attrib
+                     if name.rsplit('}',1)[-1].casefold()=='passthroughconfiguration']
+        pass_mode=controller.get('PassThroughConfiguration')
+        if pass_fields!=['PassThroughConfiguration'] or pass_mode not in PASS_THROUGH:
+            pass_mode=None
         def empty_handler(*names):
             # A missing name is meaningful only in a complete source. UId-only
             # or namespaced handler declarations must not be replaced by null.
@@ -55,7 +64,7 @@ class ControllerConfiguration:
                    {'true':True,'false':False}.get(enabled),time_slice,share,
                    slice_text is None,share_text is None,
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
-                   empty_handler('MajorFaultProgram'))
+                   empty_handler('MajorFaultProgram'),pass_mode)
 
     def attributes(self):
         return {13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
@@ -68,6 +77,10 @@ class ControllerConfiguration:
         if self.share_unused_time_slice is not None:values[16]=struct.pack('<H',self.share_unused_time_slice)
         # Anonymous model sessions do not own a multi-workstation edit slot.
         values[8]=bytes(2)
+        # Source configuration only: the endpoint does not forward traffic to
+        # other controllers. v35 offline round trips establish the 0/1/3 mask.
+        if self.pass_through_configuration in PASS_THROUGH:
+            values[25]=struct.pack('<I',PASS_THROUGH[self.pass_through_configuration])
         # Source absence is known, but the native handler-reference wire
         # encoding is unresolved. Do not acknowledge guessed null pointers.
         if self.redundancy_configured is not None:values[9]=bytes((self.redundancy_configured,))
@@ -94,6 +107,10 @@ class ControllerConfiguration:
                 'time_slice_defaulted':self.time_slice_defaulted,'share_unused_defaulted':self.share_unused_defaulted,
                 'compatibility_defaults':{'time_slice':20,'share_unused_time_slice':1},
                 'native_time_slice_scheduling':False,
+                'pass_through_configuration':self.pass_through_configuration,
+                'pass_through_configuration_code':PASS_THROUGH.get(self.pass_through_configuration),
+                'pass_through_source':'Controller@PassThroughConfiguration',
+                'pass_through_routing':False,
                 'empty_power_loss_handler':self.empty_power_loss_handler,'empty_fault_handler':self.empty_fault_handler,
                 'handler_reference_encoding':False,
                 'handler_execution':False,'multi_workstation_edit_slot':False,
