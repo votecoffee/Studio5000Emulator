@@ -94,6 +94,12 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+The `.65` suite runs 877 tests, with two Windows skips and one Linux skip.
+The rebuilt endpoint passes 277 wire checks and the nine-step connection/Offline
+probe. Download reaches Metadata Definition creation after descriptor staging;
+library-data writes remain denied. All four public probes confirm cleanup and
+unchanged source/model state. See [current native validation](library-staging.md#validation-and-remaining-work).
+
 The `.64` suite passes all 861 tests, with two Windows skips and one Linux skip.
 The rebuilt endpoint passes 273 wire checks and repeats the nine-step SDK
 connection/Offline sequence. Download now accepts preparation and unchanged

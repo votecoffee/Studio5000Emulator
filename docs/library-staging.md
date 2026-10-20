@@ -67,6 +67,19 @@ to Metadata Definition Create on class `0x349`, which remains denied, and report
 hashes, modeled values, scan count and model time preserved. Preparation ends
 and the descriptor stage is empty. Library binaries remain uninstalled.
 
+The rebuilt `.65` runtime reproduces that 115-request download sequence and
+passes 277 wire checks. The deployed modules and packaged/served browser assets
+match source. The public SDK probe completes all nine connection/Offline steps
+with 81 verified requests. Tag reads still fail online-address discovery across
+83 requests; upload still fails controller collection across 197 requests,
+after accepting twelve scalar reads and their Symbol descriptors. These are
+observed counts for the recorded runs.
+
+All four public probes confirm SDK Offline and endpoint cleanup, unchanged
+source hashes and modeled state. Final state has no TCP clients, an empty
+descriptor stage, idle preparation, a free lease, zero scan inhibit and scan
+count zero. FactoryTalk Linx and the Logix Designer SDK service remained running.
+
 Next work must define validated metadata staging and the actual library-data
 contract, followed by source-aware project validation, atomic commit and
 rollback. Full native upload/download, tag monitoring, Studio GUI acceptance

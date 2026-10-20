@@ -12,6 +12,13 @@ library-data writes remain denied. A final-source SDK attempt reaches Metadata
 Definition Create on class `0x349`, which is still rejected. No native library
 binaries or project changes are installed.
 
+The rebuilt `.65` endpoint passes 277 wire checks and the nine-step public SDK
+connection/Offline probe. The download probe verifies 115 signed requests,
+stages five descriptors, denies three transfer writes and fails
+`RxCsE_DOWNLOAD_OF_METADATA_DEFS_FAILED`. All four probe cases confirm Offline
+and endpoint cleanup with source/model state preserved. See
+[deployed staging validation](library-staging.md#validation-and-remaining-work).
+
 Version `.64` adds [owner-scoped download preparation](programming-preparation.md).
 The lease owner can begin/end preparation and acknowledge source-established
 disabled redundancy without changing configuration. Single/list reads expose
