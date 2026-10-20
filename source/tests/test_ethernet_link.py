@@ -80,7 +80,7 @@ class EthernetLinkTests(unittest.TestCase):
                     self.assertEqual(endpoint.router.handle(bytes.fromhex('0e0320f624013001'),Session())[4:],struct.pack('<I',1000))
                     reader.assert_called_once_with('127.0.0.1')
                 for attr in (4,5):self.assertEqual(endpoint.router.handle(bytes.fromhex('0e0320f6240130')+bytes((attr,)),Session())[2],0x14)
-                self.assertFalse(link.description()['media_counters'])
+                self.assertIn('ethernet_counters',link.description()['counter_status'])
             finally:app.close()
 
     def test_unavailable_link_does_not_invent_values_or_enable_network_setters(self):

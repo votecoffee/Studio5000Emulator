@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
+from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -735,18 +735,23 @@ class Router:
                     exact(data,0);return 0,b''.join(attributes.values())
             elif instance==1 and path.class_id==0xF6:
                 attributes={}
+                if service==0x4C and path.attribute in (4,5):
+                    exact(data,0)
+                    raise CIPError(0x0F,'Clearing Ethernet diagnostics is not authorized')
                 if service==0x0E:exact(data,0)
-                requested=service==0x0E and path.attribute in (1,2,3,6,7,8,9)
+                selected={path.attribute} if service==0x0E else set()
                 if service==3 and path.attribute is None:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-                    requested=bool({1,2,3,6,7,8,9}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
-                if requested:
+                    selected=set(struct.unpack_from('<'+'H'*count,data,2))
+                if {1,2,3,4,5,6,7,8,9}.intersection(selected):
                     snapshot=self.network_interface()
                     if snapshot is not None:
                         if snapshot.mac is not None:attributes[3]=snapshot.mac
                         if snapshot.link is not None:attributes.update(snapshot.link.attributes())
-                    if service==0x0E and path.attribute not in attributes:
+                        if {4,5}.intersection(selected):
+                            attributes.update(self.endpoint.ethernet_counters.read(snapshot.name))
+                    if service==0x0E and path.attribute not in attributes and path.attribute not in (4,5):
                         raise CIPError(0x0C,'Ethernet link attribute is unavailable on this interface')
             elif instance==1:
                 if service==0x0E:exact(data,0)
@@ -960,6 +965,7 @@ class Endpoint:
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
         self.attribute_gaps=attribute_gaps.AttributeGaps()
+        self.ethernet_counters=ethernet_counters.CounterCache()
         self.native_sessions={}
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
@@ -1020,6 +1026,7 @@ class Endpoint:
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
+                    'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
                     'discovery':{**self.discovery_status,'broadcast_enabled':self.enabled and bool(self.broadcast_servers)},
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),

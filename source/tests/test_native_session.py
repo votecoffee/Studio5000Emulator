@@ -84,6 +84,23 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(6,bytes((0x10,len(path)//2))+path+b'\0\0\0\0')[2],0x0F)
         self.assertEqual(self.app.engine.project.programs['MainProgram']['main'],'MainRoutine')
 
+    def test_signed_driver_counters_keep_clear_services_denied_and_values_unchanged(self):
+        from logixlab.ethernet_counters import CounterSnapshot
+        from logixlab.network_objects import InterfaceSnapshot
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        snapshot=CounterSnapshot(tuple(range(11)),tuple(range(12)))
+        interface=InterfaceSnapshot('127.0.0.1','255.0.0.0',name='test0')
+        with patch('logixlab.ethernetip.interface_snapshot',return_value=(interface,None)),\
+             patch('logixlab.ethernet_counters.linux_counters',return_value=snapshot) as provider:
+            result=self.signed(4,bytes.fromhex('030220f62401020004000500'))
+            self.assertEqual(result,bytes.fromhex('83000000020004000000')+snapshot.attributes()[4]+
+                             bytes.fromhex('05000000')+snapshot.attributes()[5])
+            self.assertEqual(self.signed(5,bytes.fromhex('4c0320f624013004'))[2],0x0F)
+            self.assertEqual(self.signed(6,bytes.fromhex('100320f624013005'))[2],0x0F)
+            provider.assert_called_once_with('test0')
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
+
     def test_signed_sfc_force_status_is_empty_for_non_sfc_source(self):
         self.bind()
         self.assertEqual(self.signed(4,bytes.fromhex('03022068240003000f0018001900')),

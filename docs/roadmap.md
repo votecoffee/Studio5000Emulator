@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.55` provides a repeatable, read-only native SDK acceptance
+Current milestone: `.56` adds driver-backed Ethernet Link counter structures for
+the tested Linux `e1000e` interface. Normal-source SDK upload now accepts that
+list and reaches the incomplete Time Sync object. Full upload/download and
+native tag/rung monitoring remain unfinished.
+
+Version `.55` provides a repeatable, read-only native SDK acceptance
 probe with private ACD copies, per-step results, runtime/source hashes and protocol
 traces. Its rebuilt endpoint passes the SDK connection sequence; tag address
 discovery and complete native upload/download remain unfinished. `.54` supplies

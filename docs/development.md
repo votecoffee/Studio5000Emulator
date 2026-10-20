@@ -78,6 +78,13 @@ cover the persistent tunnel's process options, diagnostics on failure and an
 actual Windows child process with no console. That OS-specific check is skipped
 on Linux.
 
+`ethernet_counters.py` reads bounded `e1000e` tables on demand and caches them for
+one second. Its API distinguishes observed values from unimplemented wire-zero
+fields. Counter reads and API snapshots share an immutable sample; invalid or
+failed refreshes remove expired availability. See the
+[counter model and limitations](ethernet-counters.md) before extending driver
+mappings or interpreting a zero as a measurement.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

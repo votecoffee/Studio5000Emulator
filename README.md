@@ -80,6 +80,9 @@ default. These analysis features do not establish native Studio Go Online.
 An optional [native SDK acceptance probe](docs/development.md#native-sdk-acceptance-probe)
 records connection, tag-read and upload attempts against the running emulator
 using private ACD copies and reports.
+The Linux appliance also exposes a documented subset of
+[Ethernet diagnostic counters](docs/ethernet-counters.md) from its virtual NIC
+driver, with unavailable diagnostic fields identified in the API.
 
 ## Usage
 
@@ -164,7 +167,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status; native project transfer remains unfinished |
+| Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |
 | PLC message mapping | Source-checked empty PCCC mapping descriptors; configured mappings and PCCC commands remain unsupported |
 | Time Sync | Source-backed PTP enable/priorities, read-only local UTC time and explicit unsynchronized/empty-port state; PTP networking remains unsupported |

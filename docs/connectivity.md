@@ -5,6 +5,14 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.56` adds [driver-backed Ethernet counters](ethernet-counters.md) for
+the tested Linux `e1000e` interface. A normal-source native SDK upload accepts
+the complete Ethernet Link list, continues through Extended Device, TCP/IP and
+PCCC mapping reads, and reaches the incomplete Time Sync list. Upload still
+fails controller collection; tag address discovery and programming remain
+unfinished. Unimplemented counter fields are identified separately in the API
+and use documented zero placeholders on the wire.
+
 The optional [native SDK acceptance probe](development.md#native-sdk-acceptance-probe)
 records repeatable connection, online tag-read and upload results using an ACD
 copy. Version `.55` adds this diagnostic without expanding the endpoint's native
@@ -101,7 +109,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.55` deployed probe preserves scalar discovery and supported controller metadata; I/O/SFC status polls succeed; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.56` normal-source test accepts Ethernet counters and reaches Time Sync; controller collection still fails | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -521,7 +529,8 @@ discovery; these additional link observations currently require Linux.
 The wire fields follow Rockwell's
 [Ethernet Link object table](https://literature.rockwellautomation.com/idc/groups/literature/documents/qs/2080-qs002_-en-e.pdf)
 and the Linux [ethtool UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/ethtool.h).
-Interface/media counters `4` and `5` remain unsupported. A mixed attribute list
+Interface/media counters `4` and `5` were unsupported through `.55`; `.56` adds
+the [partial Linux counter model](ethernet-counters.md). Previously a mixed attribute list
 preserves supported values and per-field errors; no counter is replaced with an
 invented zero. Network setters remain rejected even when tag writes are enabled.
 
@@ -1739,9 +1748,11 @@ additional [Linux link-status fields](#controller-settings-and-linux-ethernet-st
 is six octets in adapter order, read from that exact OS interface. Unknown,
 non-Ethernet, zero or multicast addresses are not replaced with invented MACs;
 the request returns an explicit CIP error. Loopback normally has no Ethernet MAC.
+Linux `e1000e` interfaces additionally support the
+[read-only counter structures](ethernet-counters.md) in attributes `4` and `5`.
 
 Network configuration writes, TCP/IP instance Get_Attributes_All, the remaining
-TCP/IP attributes, Ethernet Link counters and physical-backplane services
+TCP/IP attributes and physical-backplane services
 remain unsupported. Enabling tag writes does not enable network reconfiguration.
 These responses do not establish native Studio path selection or Go Online.
 

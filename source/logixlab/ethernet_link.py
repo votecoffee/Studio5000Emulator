@@ -44,7 +44,8 @@ class LinkSnapshot:
                 'enabled': self.enabled, 'interface_type': self.interface_type,
                 'source': 'Linux sysfs and read-only ETHTOOL_GSET',
                 'negotiation_status': 'Inferred from carrier and autonegotiation configuration',
-                'interface_counters': False, 'media_counters': False, 'writable': False}
+                'counter_status': 'See endpoint ethernet_counters for on-demand diagnostic coverage',
+                'writable': False}
 
 
 def linux_link(name):
