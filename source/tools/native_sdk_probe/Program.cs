@@ -2,13 +2,16 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Net.Http;
 using RockwellAutomation.LogixDesigner;
 using RockwellAutomation.LogixDesigner.Logging;
 
 // Only the public SDK is used. Inputs and reports belong in private storage.
 if (args.Length != 2) return 2;
 var options = JsonSerializer.Deserialize<Options>(File.ReadAllText(args[0]))!;
-if (options.Operation is not ("connection" or "upload" or "download") || options.Tags.Length > 32 ||
+if (options.Operation is not ("connection" or "upload" or "download" or "modes") || options.Tags.Length > 32 ||
     options.Operation != "connection" && options.Tags.Length != 0)
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
@@ -17,6 +20,33 @@ var steps = new List<object>();
 var logger = new Capture();
 LogixProject? project = null;
 bool passed = true;
+using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(5) };
+async Task<JsonElement> Backend(string? mode = null)
+{
+    if (!Uri.TryCreate(options.BackendUrl, UriKind.Absolute, out var url) || url.Scheme != "http" ||
+        !url.IsLoopback || !string.IsNullOrEmpty(url.UserInfo) || string.IsNullOrEmpty(options.InstanceId))
+        throw new InvalidOperationException("Mode probe requires a pinned local emulator URL");
+    var script = await http.GetStringAsync(new Uri(url, "/session.js"));
+    var token = JsonSerializer.Deserialize<string>(Regex.Match(script, "LOGIX_TOKEN = (\".*?\")").Groups[1].Value)!;
+    async Task<JsonElement> Call(string action, object body) {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, "/api/" + action));
+        request.Headers.Add("X-Logix-Token", token);
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+        using var response = await http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var state = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
+        if (state.GetProperty("instance_id").GetString() != options.InstanceId ||
+            state.GetProperty("connectivity").GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
+            throw new InvalidOperationException("Emulator instance/source changed");
+        return state;
+    }
+    var current = await Call("observe", new {});
+    return mode is null ? current : await Call("controller-mode", new { mode });
+}
+async Task CheckMode(string expected) {
+    var mode = (await project!.ReadControllerModeAsync()).ToString();
+    if (mode != expected) throw new InvalidOperationException($"Expected SDK {expected}, got {mode}");
+}
 async Task Step(string name, Func<Task<object?>> action)
 {
     var clock = Stopwatch.StartNew();
@@ -57,6 +87,35 @@ try
             return state.ToString();
         });
         await Step("ReadControllerModeAsync", async () => (await project!.ReadControllerModeAsync()).ToString());
+        if (options.Operation == "modes")
+        {
+            await Step("SDK Run advances emulator scans", async () => {
+                var before = await Backend();
+                if (before.GetProperty("controller").GetProperty("mode").GetString() != "Program")
+                    throw new InvalidOperationException("Mode probe must start in Program");
+                await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Run);
+                await CheckMode("Run");
+                await Task.Delay(250);
+                var after = await Backend();
+                if (!after.GetProperty("controller").GetProperty("running").GetBoolean() ||
+                    after.GetProperty("scan").GetInt64() <= before.GetProperty("scan").GetInt64())
+                    throw new InvalidOperationException("SDK Run did not advance scans");
+                return new { scanBefore = before.GetProperty("scan").GetInt64(), scanAfter = after.GetProperty("scan").GetInt64() };
+            });
+            await Step("SDK Program stops emulator scans", async () => {
+                await project!.ChangeControllerModeAsync(LogixProject.RequestedControllerMode.Program);
+                await CheckMode("Program");
+                var before = await Backend();await Task.Delay(150);var after = await Backend();
+                if (after.GetProperty("controller").GetProperty("running").GetBoolean() ||
+                    after.GetProperty("scan").GetInt64() != before.GetProperty("scan").GetInt64())
+                    throw new InvalidOperationException("SDK Program did not stop scans");
+                return after.GetProperty("scan").GetInt64();
+            });
+            foreach (var mode in new [] { "Run", "Program" })
+                await Step("Web control visible to SDK:" + mode, async () => {
+                    await Backend(mode);await CheckMode(mode);return mode;
+                });
+        }
         // Tag-read failures are recorded independently; still attempt cleanup.
         foreach (var tag in options.Tags)
             try { await Step("GetTagValueAsync:" + tag, async () =>
@@ -75,6 +134,9 @@ finally
 {
     if (project is not null)
     {
+        if (options.Operation == "modes")
+            try { await Step("Restore Program", async () => { await Backend("Program"); return true; }); }
+            catch { passed = false; }
         try
         {
             // A failed Upload can leave Connected rather than Online.
@@ -100,7 +162,8 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;
 
-sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags);
+sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags,
+                      string? BackendUrl = null, string? InstanceId = null);
 sealed class Capture : IOperationEvent
 {
     public ConcurrentQueue<object> Events { get; } = new();

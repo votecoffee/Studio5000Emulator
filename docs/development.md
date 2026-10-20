@@ -82,7 +82,16 @@ Version `.73` adds [object graphs](object-staging.md), reciprocal references and
 scoped coordination checks, published atomically with the other models.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
-online edits, tag setters and mode changes remain outside this tool.
+online edits and tag setters remain outside this tool.
+
+Version `.74` adds explicit `--operation modes` for
+[Remote Run/Program validation](controller-mode.md). This case executes logic:
+SDK Run must advance scans, SDK Program must freeze them, and webpage API
+Run/Program must read back through the SDK. It requires an executable project
+stopped in Remote Program, with a 1..100 ms interval and external writes disabled.
+It restores Program and Offline, preserves the source ACD, and retains the
+resulting emulated tag values and scan history. Other operations do not request
+mode changes and require unchanged modeled values/time.
 
 For example, run the same probe with the explicit operation:
 

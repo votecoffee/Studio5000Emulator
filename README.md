@@ -7,8 +7,10 @@ traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
-anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.73`. Native SDK tag reads still fail
+anonymous compatibility mode, read its connected state, request Remote Run or
+Program and read the emulator's actual mode, then Go Offline.** Version `.74`
+ties native mode requests and webpage controls to the same scan worker.
+Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -120,21 +122,27 @@ batch. The remaining 41 records and complete batch execution are unsupported.
 Version `.73` adds [temporary object graphs and reference checks](docs/object-staging.md).
 All 904 records in the tested batch now have bounded temporary models. Compiled
 definitions, device processing and active-project commit remain unfinished.
+Version `.74` adds [shared Remote Run/Program control](docs/controller-mode.md).
+Native requests start/stop actual scans, and local controls report back through
+the native identity. Closing the browser or going offline leaves Run active.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 976-test suite passes on Windows and Linux with expected platform skips;
-the rebuilt `.73` endpoint passes 291 wire checks and the SDK connection/Offline
-sequence. Current SDK upload, tag-read and download probes still fail their
-native acceptance steps.
+The 987-test suite passes on Windows and Linux with expected platform skips.
+Current SDK upload, tag-read and download probes still fail their native
+acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
+for the mode probe and its limits.
 
 ## Usage
 
 Choose a bundled demo or open a complete L5X export. Check **Coverage**, then use
 **Step scan** or **Run**. Edit inputs in **Tag Watch** and inspect the logic trace.
+**Program** stops continuous scans and preserves the current values. The same
+state is used by native Remote Run/Program requests. Scanning runs in the app
+and continues with the webpage closed.
 The header shows the running app's full version and PLC endpoint IP. On Windows,
 its tray icon offers
 **Open app** and **Quit LogixLab**; hover over it to see the version and session
@@ -225,7 +233,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, Online state, Program mode and Go Offline verified for the demo; native programming and tag/rung monitoring remain unfinished |
+| Studio online | Native SDK Go Online, Run/Program requests and mode readback, and Go Offline for the demo; native project transfer and tag/rung monitoring remain unfinished |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain

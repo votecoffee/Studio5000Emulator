@@ -1,5 +1,9 @@
 # Native session policy and diagnostics
 
+Version `.74` adds narrowly supported [Remote Run/Program requests](controller-mode.md)
+and actual mode reporting. The historical `.58` operations below do not grant
+that authority; the session still denies native tag/project edits.
+
 Version `0.6.0-connectivity.58` retains the anonymous native read-only session
 boundary while admitting two additional bounded compatibility operations.
 Neither operation enables project transfer, online editing, tag setters,

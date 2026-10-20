@@ -1,5 +1,11 @@
 # Native Run Mode Inhibit
 
+Version `.74` connects this guard to the shared
+[Remote Run/Program state](controller-mode.md). Setting the inhibit stops
+continuous execution in Program; clearing/releasing it does not resume Run.
+Native mode reporting now reflects the shared state. The notes below record
+the earlier `.61` behavior before that integration.
+
 Version `.64` extends this guard with
 [owner-scoped download preparation](programming-preparation.md). The notes
 below record the `.61` milestone and its then-current service `0x60` boundary.

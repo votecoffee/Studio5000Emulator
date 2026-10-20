@@ -1302,10 +1302,11 @@ read-only policy. Nested transports, context registration inside batches,
 setters, mode changes and downloads remain denied. Reply accounting reserves
 space for every remaining child's error header before dispatching each read.
 
-The native identity reports virtual Program/Idle status `0x0070`, consistently
-across discovery and attribute reads. The SDK reads it as Program. This is model
-state: browser-driven Step/Run scans do not change the native PLC mode, and native
-mode changes are not implemented. The idle status encoding follows Rockwell's
+At this earlier milestone the native identity reported virtual Program/Idle
+status `0x0070`, independently of browser-driven scans. Version `.74` replaces
+that behavior with [shared Remote Run/Program control](controller-mode.md):
+status `0x3070`/`0x3060`, app-owned scans and supported native mode requests.
+The earlier idle status encoding follows Rockwell's
 [Identity Object status table](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/icm-um002_-en-e.pdf).
 
 The opaque confirmation proof and peer identity remain **unverified**. Successful

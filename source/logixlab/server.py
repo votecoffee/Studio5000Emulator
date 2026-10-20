@@ -7,6 +7,7 @@ import os
 import secrets
 import sys
 import threading
+import time
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -53,6 +54,84 @@ class Application:
         self.device_io = DeviceIO(self.instance_id)
         self._io_dirty = False
         self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')
+        self.running = False
+        self.scan_interval_ms = 10
+        self._scan_condition = threading.Condition(self.lock)
+        self._scan_thread = None
+        self._closed = False
+
+    def scan_inhibited(self):
+        # Caller owns app.lock; protocol dispatch uses this same lock order.
+        if self.endpoint and self.endpoint.native_read_only:
+            with self.endpoint.lock:
+                return bool(self.endpoint.programming_lease.inhibit(self.generation,self.engine.project.sha256))
+        return False
+
+    def controller_state(self):
+        fault = bool(self.engine and self.engine.fault)
+        return {'mode':'Faulted' if fault else 'Run' if self.running else 'Program',
+                'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms}
+
+    def default_scan_interval(self):
+        tasks=self.engine.project.tasks
+        if self.engine.mode=='project' and tasks and tasks[0]['type']=='Periodic':
+            try:
+                rate=float(tasks[0]['rate'])
+                if rate.is_integer() and 1<=rate<=60000:return int(rate)
+            except (ValueError,TypeError,KeyError):pass
+        return 10
+
+    def set_controller_mode(self, mode, dt=None):
+        # Shared by HTTP controls and verified native requests. Caller owns app.lock.
+        if mode not in ('Run','Program'):raise ModelError('Supported controller modes are Run and Program')
+        if mode == 'Program':
+            self.running = False
+            self._scan_condition.notify_all()
+            return
+        if self._closed:raise ModelError('Application is shutting down')
+        if self.busy or self.engine is None:raise ModelError('Load a project before running')
+        if self.engine.fault:raise ModelError('Reset the faulted project before running')
+        if self.scan_inhibited():raise ModelError('Native programming preparation inhibits scans')
+        interval = self.scan_interval_ms if dt is None else dt
+        if type(interval) is not int:raise ModelError('Scan interval must be an integer in milliseconds')
+        self.engine.validate_interval(interval)
+        if self.running and interval == self.scan_interval_ms:return
+        self.scan_interval_ms = interval
+        self.running = True
+        if self._scan_thread is None:
+            self._scan_thread = threading.Thread(target=self._scan_loop,name='LogixLab scans',daemon=True)
+            self._scan_thread.start()
+        self._scan_condition.notify_all()
+
+    def _scan_loop(self):
+        with self._scan_condition:
+            while not self._closed:
+                if not self.running:
+                    self._scan_condition.wait()
+                    continue
+                # Wait releases app.lock. No catch-up burst after a slow scan or import.
+                deadline = time.monotonic()+self.scan_interval_ms/1000
+                while self.running and not self._closed:
+                    remaining = deadline-time.monotonic()
+                    if remaining <= 0:break
+                    self._scan_condition.wait(remaining)
+                if not self.running or self._closed:continue
+                if self.busy or self.scan_inhibited():
+                    self.set_controller_mode('Program')
+                    continue
+                try:
+                    self.device_io.apply(self)
+                    self._io_dirty = True
+                    self.engine.step(self.scan_interval_ms)
+                    if self.device_io.sample_due():self.publish_device_io()
+                except Exception as error:
+                    if not self.engine.fault:self.engine.fault = str(error) or type(error).__name__
+                    self.set_controller_mode('Program')
+                    self.publish_device_io()
+
+    def stop_connectivity(self):
+        with self.connectivity_lock:
+            if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
@@ -63,13 +142,17 @@ class Application:
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
 
     def close(self):
-        with self.connectivity_lock:
-            if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
+        with self.lock:
+            self.set_controller_mode('Program')
+            self._closed = True
+            self._scan_condition.notify_all()
+        if self._scan_thread and self._scan_thread is not threading.current_thread():self._scan_thread.join(timeout=5)
+        self.stop_connectivity()
 
     def state(self):
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
                     'instance_id': self.instance_id, 'execution_environment': self.execution_environment,
-                    'device_io':self.device_io.description()}
+                    'device_io':self.device_io.description(), 'controller':self.controller_state()}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
         tags = e.memory.leaves()
@@ -101,7 +184,7 @@ class Application:
         if action.startswith('connectivity-'):
             with self.connectivity_lock:
                 if action=='connectivity-stop':
-                    self.close()
+                    self.stop_connectivity()
                     with self.lock:return self.state()
                 if action=='connectivity-trace':return self.connectivity(True)
                 if action=='connectivity-start':
@@ -116,6 +199,7 @@ class Application:
         if action in ("load", "demo"):
             with self.lock:
                 if self.busy: raise ModelError("An import is already running")
+                self.set_controller_mode('Program')
                 self.busy = True
             try:
                 if action == "demo":
@@ -162,6 +246,7 @@ class Application:
                         with self.endpoint.lock:
                             self.endpoint.identity=identity;self.endpoint.source_sha256=project.sha256
                     self.engine, self.provenance = engine, provenance
+                    self.scan_interval_ms = self.default_scan_interval()
                     self.native_project_identity = native_identity
                     self.native_symbols = native_symbols
                     self.generation += 1
@@ -183,11 +268,17 @@ class Application:
             if self.engine is None: raise ModelError("Load a project first")
             e = self.engine
             if action == "configure":
-                self.engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
+                engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""))
+                self.set_controller_mode('Program')
+                self.engine = engine
+                self.scan_interval_ms = self.default_scan_interval()
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()
+            elif action == 'controller-mode':
+                self.set_controller_mode(data.get('mode'),data.get('dt'))
             elif action == "step":
+                if self.running:raise ModelError('Switch to Program before stepping manually')
                 if self.endpoint and self.endpoint.native_read_only:
                     with self.endpoint.lock:
                         if self.endpoint.programming_lease.inhibit(self.generation,e.project.sha256):
@@ -206,6 +297,7 @@ class Application:
                 e.memory.write(data["tag"], data["value"])
                 self._io_dirty = True
             elif action == "reset":
+                self.set_controller_mode('Program')
                 self.engine = Engine(e.project, e.mode, e.selected)
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True
@@ -217,7 +309,8 @@ class Application:
                 return report
             elif action == "snapshot":
                 return {"report": e.report(), "import_provenance": self.provenance,
-                        "scan": e.scan_count, "ms": e.time_ms, "tags": e.memory.leaves(), "changes": e.changes}
+                        "scan": e.scan_count, "ms": e.time_ms, "tags": e.memory.leaves(), "changes": e.changes,
+                        'controller':self.controller_state()}
             else: raise ModelError(f"Unknown action {action}")
             return self.state()
 

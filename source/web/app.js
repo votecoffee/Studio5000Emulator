@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let state = null, selected = '', selectedContext = '', running = false, stepping = false, currentTab = 'ladder', report = null, editTag = null;
+let state = null, selected = '', selectedContext = '', running = false, stepping = false, modePending = false, observing = false, currentTab = 'ladder', report = null, editTag = null;
 let connectivityPoll = null;
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name);
@@ -11,10 +11,10 @@ async function api(action, data = {}) {
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
-function error(e) { stop(); $('alert').hidden = false; $('alert').textContent = e.message; }
-function stop() { running = false; $('run').textContent = '▶ Run'; }
+function error(e) { $('alert').hidden = false; $('alert').textContent = e.message; }
 async function accept(value, refreshReport = false) {
   state = value;
+  running = !!value.controller?.running;
   if (refreshReport && value.loaded) report = await api('report');
   render();
 }
@@ -43,10 +43,13 @@ function render() {
   $('routine-count').textContent = state.routines.length;
   const blocked = state.blockers.length > 0;
   const inhibited=!!state.connectivity?.native_programming_lease?.scan_inhibited;
-  if(inhibited&&running)stop();
-  $('status').textContent = blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'RUNNING' : state.fault ? 'FAULT · ROLLED BACK' : 'READY TO SCAN';
+  $('status').textContent = state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
   $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
-  $('step').disabled = blocked||inhibited; $('run').disabled = blocked||inhibited;
+  $('step').disabled = blocked||inhibited||running||modePending;
+  $('run').disabled = modePending||(!running&&(blocked||inhibited||!!state.fault));
+  $('run').textContent = running ? '■ Program' : '▶ Run';
+  $('dt').disabled = running||modePending;
+  if(running)$('dt').value=state.controller.scan_interval_ms;
   $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : 'One modeled task · scheduled programs in order.';
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
@@ -177,17 +180,16 @@ function renderChanges() {
   $('changes-body').innerHTML=state.changes.slice(0,500).map(c=>`<tr><td>${c.scan} / ${c.ms}</td><td>${escapeHtml(c.tag)}</td><td>${escapeHtml(c.before)} → ${escapeHtml(c.after)}</td></tr>`).join('');
 }
 function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));document.querySelectorAll('.tab-content').forEach(panel=>panel.hidden=panel.id!==name);}
-async function loadDemo(sample='ConveyorDemo') {stop();$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
+async function loadDemo(sample='ConveyorDemo') {$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
 async function scan() {
   if(stepping)return;stepping=true;
   try{await accept(await api('step',{dt:Number($('dt').value),count:1}));}catch(e){error(e);try{const res=await fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}});await accept(await res.json());}catch(_){} }finally{stepping=false;}
 }
-async function tick() {if(!running)return;await scan();if(running)setTimeout(tick,Math.max(30,Number($('dt').value)));}
 function download(data,name) {const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('open').onclick=()=>{$('file').value='';$('file').click();};
 $('file').onchange=async()=>{
   const file=$('file').files[0];if(!file)return;if(file.size>100000000)return error(new Error('100 MB file limit'));
-  stop();$('busy-text').textContent='Importing ' + file.name + '…';$('busy').hidden=false;
+  $('busy-text').textContent='Importing ' + file.name + '…';$('busy').hidden=false;
   try{const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});selected='';await accept(await api('load',{name:file.name,content}),true);$('mode').value='project';const task=state.tasks[0];if(task?.type==='Periodic')$('dt').value=Number(task.rate);render();if(state.blockers.length)selectTab('coverage');}catch(e){error(e);}finally{$('busy').hidden=true;}
 };
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
@@ -200,10 +202,12 @@ $('flag-demo').onclick=()=>loadDemo('FlagLab');
 $('aoi-context').onchange=()=>{selectedContext=$('aoi-context').value;renderLadder();};
 $('step').onclick=scan;
   $('device-apply').onclick=async()=>{try{await accept(await api('device-io-configure',{allow_writes:$('device-writes').checked}));}catch(e){error(e);}};
-$('run').onclick=()=>{if(running){stop();render();}else{running=true;$('run').textContent='Ⅱ Pause';render();tick();}};
-$('reset').onclick=async()=>{stop();try{await accept(await api('reset'),true);}catch(e){error(e);}};
+$('run').onclick=async()=>{if(modePending)return;modePending=true;let failure=null;render();try{
+  await accept(await api('controller-mode',{mode:running?'Program':'Run',dt:Number($('dt').value)}));
+}catch(e){failure=e;}finally{modePending=false;render();if(failure)error(failure);}};
+$('reset').onclick=async()=>{try{await accept(await api('reset'),true);}catch(e){error(e);}};
 $('mode').onchange=()=>{$('harness').disabled=$('mode').value!=='routine';};
-$('apply').onclick=async()=>{stop();try{await accept(await api('configure',{mode:$('mode').value,routine:$('harness').value}),true);}catch(e){error(e);}};
+$('apply').onclick=async()=>{try{await accept(await api('configure',{mode:$('mode').value,routine:$('harness').value}),true);}catch(e){error(e);}};
 $('filter').oninput=()=>{if(state?.loaded)renderTags();};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>selectTab(b.dataset.tab));
 $('settings').onclick=()=>{$('converter').value=state?.converter || '';$('settings-dialog').showModal();};
@@ -213,7 +217,7 @@ $('cancel-edit').onclick=()=>$('edit-dialog').close();
 $('save-edit').onclick=async()=>{try{let value=$('edit-value').value;if(editTag.kind==='integer_text'){if(!/^[+-]?\d+$/.test(value))throw new Error('Enter an integer in decimal notation');}else if(editTag.kind!=='string'){value=Number(value);if(!Number.isFinite(value))throw new Error('Enter a finite numeric value');}await accept(await api('write',{tag:editTag.name,value}));$('edit-dialog').close();}catch(e){error(e);}};
 $('edit-value').onkeydown=e=>{if(e.key==='Enter')$('save-edit').click();};
 $('report').onclick=async()=>{try{download(await api('report'),'LogixLab-coverage.json');}catch(e){error(e);}};
-$('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);clearLocator();try{
+$('quit').onclick=async()=>{clearInterval(connectivityPoll);clearLocator();try{
   await api('quit');$('plc-address').dataset.active='false';$('plc-address').textContent='PLC endpoint stopped';
   $('alert').hidden=false;$('alert').textContent=state?.execution_environment==='vmware-host-only'
     ?'Session ended. You can close this tab. Run START-VM.cmd to start the appliance again.'
@@ -221,7 +225,7 @@ $('quit').onclick=async()=>{stop();clearInterval(connectivityPoll);clearLocator(
   document.querySelectorAll('button').forEach(b=>b.disabled=true);
 }catch(e){error(e);}};
 $('snapshot').onclick=async()=>{try{download(await api('snapshot'),'LogixLab-snapshot.json');}catch(e){error(e);}};
-window.addEventListener('beforeunload',()=>{stop();clearInterval(connectivityPoll);clearLocator();});
+window.addEventListener('beforeunload',()=>{clearInterval(connectivityPoll);clearLocator();});
 fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}}).then(r=>r.json()).then(async value=>{if(value.loaded){$('mode').value=value.mode;await accept(value,true);}else{state=value;render();}}).catch(error);
 
 function clearLocator() {
@@ -297,4 +301,4 @@ $('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start'
 $('eip-stop').onclick=async()=>{try{await accept(await api('connectivity-stop'));}catch(e){error(e);}};
 $('eip-refresh').onclick=async()=>{try{await accept(await api('observe'));}catch(e){error(e);}};
 $('eip-trace').onclick=async()=>{try{download(await api('connectivity-trace'),'LogixLab-protocol-trace.json');}catch(e){error(e);}};
-connectivityPoll=setInterval(async()=>{if(state?.connectivity?.enabled&&!running&&!stepping){try{await accept(await api('observe'));}catch(_){}}},2000);
+connectivityPoll=setInterval(async()=>{if(state?.loaded&&!stepping&&!modePending&&!observing){observing=true;try{await accept(await api('observe'));}catch(_){}finally{observing=false;}}},500);

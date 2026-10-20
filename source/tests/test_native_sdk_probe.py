@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_url,
-                                    validate_operation, validate_idle, wait_for_cleanup, run)
+                                    validate_operation, validate_idle, validate_mode_probe, wait_for_cleanup, run)
 
 
 class NativeSdkProbeTests(unittest.TestCase):
@@ -82,13 +82,25 @@ class NativeSdkProbeTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_url(url)
 
     def test_download_is_explicit_and_transfer_operations_cannot_include_tag_reads(self):
-        for operation in ('connection','upload','download'):
+        for operation in ('connection','upload','download','modes'):
             validate_operation(operation,[])
         validate_operation('connection',['Controller/Tags/Tag'])
         for operation,tags in (('download',['Controller/Tags/Tag']),('upload',['tag']),
                 ('edit',[]),('connection',['']),('connection',['x'*1025]),('connection',['tag']*33)):
             with self.subTest(operation=operation,tags_count=len(tags)),self.assertRaises(ValueError):
                 validate_operation(operation,tags)
+
+    def test_mode_probe_requires_executable_stopped_remote_controller(self):
+        state=self.state()
+        state.update(controller={'running':False,'mode':'Program','keyswitch':'Remote','scan_interval_ms':10},blockers=[],fault='')
+        state['connectivity']['native_session']['controller_mode_requests']=True
+        validate_mode_probe(state)
+        for field,value in (('running',True),('mode','Faulted'),('keyswitch','Run'),('scan_interval_ms',101),('scan_interval_ms',True)):
+            other=copy.deepcopy(state);other['controller'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_mode_probe(other)
+        for field,value in (('blockers',['unsupported']),('fault','scan failed')):
+            other=copy.deepcopy(state);other[field]=value
+            with self.assertRaises(ValueError):validate_mode_probe(other)
 
     def test_busy_inhibited_unknown_or_programmable_endpoints_are_not_admitted(self):
         state=self.state();before=copy.deepcopy(state);validate_idle(state)

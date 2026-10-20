@@ -169,9 +169,10 @@ class Router:
 
     def identity_attributes(self):
         attributes=self.endpoint.identity.attributes()
-        # Native compatibility exposes a virtual Program/Idle controller.
-        # Browser-driven scans do not change this native controller mode.
-        if self.endpoint.native_read_only:attributes[5]=struct.pack('<H',0x0070)
+        if self.endpoint.native_read_only:
+            mode=self.app.controller_state()['mode']
+            # Logix Status: bits 12..13 Remote, bits 4..7 Run/Program/Faulted.
+            attributes[5]=struct.pack('<H',0x3000 | {'Run':0x60,'Program':0x70,'Faulted':0x450}[mode])
         return attributes
 
     def identity(self):
@@ -190,6 +191,22 @@ class Router:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
             elif native.stage!='bound':return reject(0x0F,'unbound_context')
+            if inner[0] in (6,7) and path.class_id==0x8E:
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance!=1:return reject(5,'invalid_request')
+                exact(payload,0)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    self.endpoint.programming_lease.require_owner(native,self.app.generation,self.app.engine.project.sha256)
+                mode='Run' if inner[0]==6 else 'Program'
+                try:self.app.set_controller_mode(mode)
+                except ModelError:return reject(0x0C,'controller_mode_unavailable')
+                with self.endpoint.lock:self.endpoint.counts['native_mode_'+mode.lower()]+=1
+                return reply(inner[0])
             if any(inner==bytes((0x3B,2,0x20,cls,0x24,0)) for cls in energy_catalog.CLASSES):
                 # This newer probe is unimplemented. Return an error without
                 # dispatching it; callers may try the supported legacy list.
@@ -313,6 +330,7 @@ class Router:
                     self.endpoint.programming_lease.set_run_inhibit(native,self.app.generation,
                         self.app.engine.project.sha256,struct.unpack_from('<H',payload,4)[0])
                     self.endpoint.counts['native_run_inhibit_updates']+=1
+                    if payload[4:]==b'\1\0':self.app.set_controller_mode('Program')
                 return reply(4,0,b'\1\0\7\0\0\0')
             if (inner[0]==4 and path.class_id==0xAC and path.instance==1 and path.attribute is None
                     and not path.symbols and path.program_instance is None and payload[:4]==b'\1\0\x0A\0'):
@@ -1232,7 +1250,10 @@ class Endpoint:
                     'program_forces':self.app.engine.project.program_forces.description() if self.enabled else None,
                     'io_map':self.app.engine.project.io_map.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
-                    'native_session':native_session.description(self.enabled and self.native_read_only),
+                    'native_session':{**native_session.description(self.enabled and self.native_read_only),
+                        'controller_mode':self.app.controller_state()['mode'] if self.enabled and self.native_read_only else None,
+                        'keyswitch':'Remote' if self.enabled and self.native_read_only else None,
+                        'controller_mode_requests':self.enabled and self.native_read_only},
                     'native_programming_lease':{**self.programming_lease.description(self.app.generation,self.source_sha256),
                         'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,

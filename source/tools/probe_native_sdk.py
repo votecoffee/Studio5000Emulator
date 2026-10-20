@@ -3,7 +3,9 @@
 The optional installed SDK runs on a private ACD copy. Download attempts require
 disabled project transfer; temporary programming coordination is permitted.
 Reports contain private project metadata and default to ignored .local storage.
-This tool never edits, changes controller mode or manages Windows services.
+Only explicit --operation modes changes Run/Program and executes scans. It
+restores Program; resulting tag values and scan history are retained. Other
+operations never request mode changes. Windows services are never managed.
 """
 from __future__ import annotations
 
@@ -71,8 +73,8 @@ def validate_target(state, path, source_hash, *, instance=None, l5x_hash=None):
 
 
 def validate_operation(operation, tags):
-    if operation not in ('connection', 'upload', 'download'):
-        raise ValueError('Expected connection, upload or download')
+    if operation not in ('connection', 'upload', 'download', 'modes'):
+        raise ValueError('Expected connection, upload, download or modes')
     if operation != 'connection' and tags:
         raise ValueError('Tag reads belong to a connection probe')
     if len(tags) > 32 or any(not tag or len(tag) > 1024 for tag in tags):
@@ -143,6 +145,8 @@ def validate_staging(lease):
 def validate_idle(state):
     """Do not share a programming test with an existing native connection."""
     cip = state.get('connectivity', {})
+    if 'controller' in state and (state['controller'].get('running') is not False or state['controller'].get('mode')!='Program'):
+        raise ValueError('Probe requires the emulator stopped in Program')
     lease = cip.get('native_programming_lease') or {}
     validate_staging(lease)
     clients = cip.get('active_tcp_clients')
@@ -153,6 +157,16 @@ def validate_idle(state):
             lease.get('controller_mode_changes') is not False or lease.get('online_edits') is not False or
             lease.get('tag_write_authority') is not False):
         raise ValueError('Probe requires an idle endpoint, free uninhibited lease and disabled programming authority')
+
+
+def validate_mode_probe(state):
+    controller=state.get('controller') or {}
+    interval=controller.get('scan_interval_ms')
+    if (controller.get('running') is not False or controller.get('mode')!='Program' or
+            controller.get('keyswitch')!='Remote' or type(interval) is not int or not 1<=interval<=100 or
+            state.get('blockers')!=[] or state.get('fault') or
+            state.get('connectivity',{}).get('native_session',{}).get('controller_mode_requests') is not True):
+        raise ValueError('Mode probe requires executable Remote Program with a 1..100 ms interval')
 
 
 def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=8):
@@ -182,6 +196,7 @@ def run(args):
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
     validate_idle(initial)
+    if args.operation=='modes':validate_mode_probe(initial)
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
         time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8])
@@ -192,6 +207,7 @@ def run(args):
         raise ValueError('Source changed while creating the private copy')
     config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag)
+    if args.operation=='modes':config.update(BackendUrl=url,InstanceId=instance)
     (output / 'request.json').write_text(json.dumps(config, indent=2), encoding='utf-8')
     command = ['dotnet', 'build', str(SOURCE / 'tools/native_sdk_probe/NativeSdkProbe.csproj'),
                '-c', 'Release', '--nologo', '--output', str(output / 'bin'),
@@ -208,6 +224,7 @@ def run(args):
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
     validate_idle(state)
+    if args.operation=='modes':validate_mode_probe(state)
     if digest(source) != source_hash or digest(copied) != source_hash:
         raise ValueError('Source changed before the native call')
     before = api(url, 'connectivity-trace', {})
@@ -232,10 +249,16 @@ def run(args):
         try:
             final = api(url, 'state')
             validate_target(final, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
+            if args.operation=='modes':
+                final=api(url,'controller-mode',{'mode':'Program'})
+                validate_target(final,args.path,source_hash,instance=instance,l5x_hash=l5x_hash)
             (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
             trace = api(url, 'connectivity-trace', {})
             (output / 'trace.json').write_text(json.dumps(trace, indent=2), encoding='utf-8')
             summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
+            if args.operation=='modes':
+                summary['mode_restored']=final.get('controller',{}).get('mode')=='Program' and not final['controller']['running']
+                summary['scans_advanced']=final['scan']>state['scan']
             summary['native_verified_requests'] = (trace.get('counts', {}).get('native_verified', 0) -
                                                    before.get('counts', {}).get('native_verified', 0))
             summary['target_rechecked'] = True
@@ -245,7 +268,8 @@ def run(args):
             summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
-        if not summary['source_unchanged'] or summary.get('model_unchanged') is False:
+        model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('model_unchanged') is not False
+        if not summary['source_unchanged'] or not model_ok:
             summary['status'] = 'failed'
         (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
         print(json.dumps({'report': str(output / 'summary.json'), **summary}, indent=2))
@@ -257,7 +281,8 @@ def main():
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
-    parser.add_argument('--operation', choices=('connection', 'upload', 'download'), default='connection')
+    parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes'), default='connection',
+                        help='modes runs logic using SDK and webpage controls, then restores Program')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--output', help='New private output directory; default .local/native-probes/<unique run>')
     parser.add_argument('--sdk-feed', help='Optional installed SDK NuGet feed directory')

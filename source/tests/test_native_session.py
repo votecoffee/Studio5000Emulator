@@ -357,7 +357,7 @@ class NativeSessionTests(unittest.TestCase):
         raw=batch(children,sequence=4);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
         result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
         self.assertEqual(result.status,0x1E)
-        self.assertEqual(result.children[0],b'\x8E\0\0\0\x70\0')
+        self.assertEqual(result.children[0],b'\x8E\0\0\0\x70\x30')
         self.assertEqual([r[2] for r in result.children[1:]],[0x0F]*3)
         self.assertEqual(self.signed(5,bytes.fromhex('0e03200124013005')),result.children[0])
         self.assertEqual(self.app.engine.memory.values,before)
@@ -394,7 +394,7 @@ class NativeSessionTests(unittest.TestCase):
 
     def test_native_identity_status_agrees_across_single_all_and_discovery(self):
         status=self.cip(bytes.fromhex('0e03200124013005'))[4:]
-        self.assertEqual(status,b'\x70\0')
+        self.assertEqual(status,b'\x70\x30')
         all_attributes=self.cip(bytes.fromhex('010220012401'))[4:]
         self.assertEqual(all_attributes[8:10],status)
         identity=self.endpoint.discovery(0x63)
