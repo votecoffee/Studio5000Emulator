@@ -11,10 +11,23 @@ import xml.etree.ElementTree as ET
 
 from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_url,
                                     validate_operation, validate_idle, validate_mode_probe, wait_for_cleanup, run,
-                                    edit_request, rejection_delta, edit_trace_evidence)
+                                    edit_request, rejection_delta, edit_trace_evidence, sdk_diagnostic_codes)
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_diagnostic_codes_include_import_log_mnemonic_and_wrapped_sdk_errors(self):
+        report={'steps':[{'status':'failed','errors':[
+            {'message':'XMLSrv_E_IMPORT_ABORTED_NO_CHANGES - See import log'},
+            {'message':'RxDA_E_NO_ONLINE_ADDRESS - Tag unavailable'}]},
+            {'method':'Dispose','status':'failed','error':'LgxSrv_E_SERVER_FAULTED'}],
+            'events':[{'kind':'status','message':"ImportLog <Exception Severity='Error' Mnemonic='RxCsE_ASA_ATTRIBUTE_LIST_ERROR'>"},
+                {'kind':'error','message':'XMLSrv_E_IMPORT_ABORTED_NO_CHANGES'},
+                {'kind':'status','message':'Open project succeeded'},
+                {'kind':'status','message':'user.RxSomething and a lowercase_value'}]}
+        self.assertEqual(sdk_diagnostic_codes(report),['LgxSrv_E_SERVER_FAULTED',
+            'RxCsE_ASA_ATTRIBUTE_LIST_ERROR','RxDA_E_NO_ONLINE_ADDRESS','XMLSrv_E_IMPORT_ABORTED_NO_CHANGES'])
+        self.assertEqual(sdk_diagnostic_codes({'steps':[],'events':[]}),[])
+
     def test_native_server_fault_and_sdk_offline_remain_distinct_from_endpoint_cleanup(self):
         from tools.probe_native_sdk import digest
         with tempfile.TemporaryDirectory() as folder:

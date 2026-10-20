@@ -47,6 +47,22 @@ def runtime_hashes(folder):
             if path.is_file() and path.suffix.lower() in ('.exe', '.dll', '.json')}
 
 
+def sdk_diagnostic_codes(report):
+    """Retain SDK codes from exceptions and the separately logged import XML.
+
+    Import failures can wrap the useful mnemonic in ImportLog status events.
+    Codes identify reported diagnostics, not the cause of a protocol failure.
+    """
+    messages=[]
+    for step in report.get('steps',[]):
+        messages.extend(item.get('message','') for item in step.get('errors',[]))
+        messages.append(step.get('error',''))
+    messages.extend(item.get('message','') for item in report.get('events',[]))
+    pattern=r'\b(?:Rx[A-Za-z0-9]*(?:_E|E)|LgxSrv_E|XMLSrv_E)_[A-Z][A-Z0-9_]{0,127}\b'
+    return sorted({code for message in messages if isinstance(message,str)
+                   for code in re.findall(pattern,message)})
+
+
 def validate_url(url):
     value = urlsplit(url)
     if (value.scheme != 'http' or value.hostname != '127.0.0.1' or
@@ -439,7 +455,8 @@ def run(args):
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
         summary.update(sdk_server_faulted=report.get('serverFaulted'),
-                       native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'))
+                       native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'),
+                       native_sdk_diagnostic_codes=sdk_diagnostic_codes(report))
     finally:
         summary['source_unchanged'] = digest(source) == source_hash and digest(copied) == source_hash
         try:
