@@ -106,6 +106,13 @@ def validate_staging(lease):
             value=stage.get(field,0)
             if type(value) is not int or value!=0:raise ValueError('Probe requires empty transport fragment staging')
         if stage.get('complete',False) is not False:raise ValueError('Probe requires empty transport fragment staging')
+        if 'template_staging' in stage:
+            templates=stage['template_staging']
+            if (not isinstance(templates,dict) or templates.get('status')!='idle'
+                    or any(templates.get(field) is not False for field in ('definitions_exposed','active_catalog_replaced','commit'))):
+                raise ValueError('Probe requires empty temporary templates and disabled installation')
+            for field in ('templates','definition_bytes','write_fragments','records_modeled','unsupported_records'):
+                if type(templates.get(field)) is not int or templates[field]!=0:raise ValueError('Probe requires empty temporary templates')
         if 'inspection' in stage:
             inspection=stage['inspection']
             if (not isinstance(inspection,dict) or inspection.get('status')!='idle' or inspection.get('operations')!=[]

@@ -1,5 +1,10 @@
 # Structural device-batch inspection
 
+This describes the `.70` milestone. Version `.71` adds
+[temporary Template models](template-staging.md) after structural decoding;
+complete batch execution remains denied. Those opaque models now remain in
+temporary storage until assembly cleanup; expanded request records are discarded.
+
 Version `0.6.0-connectivity.70` inspects the completed
 [temporary device-transfer payload](transport-fragments.md) when its prepared
 owner requests service `0x06` on class `0x412`, instance `0`. It decodes the

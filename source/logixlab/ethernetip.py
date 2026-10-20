@@ -259,6 +259,9 @@ class Router:
                         exact(payload,0);inspection=lease.transport.inspect_payload()
                         self.endpoint.record('native_transport_inspection',expanded_bytes=inspection['expanded_bytes'],
                             record_count=inspection['record_count'],scoped_records=inspection['scoped_records'],records_executed=0)
+                        staged=lease.transport.templates.description()
+                        self.endpoint.record('native_template_staging',templates=staged['templates'],definition_bytes=staged['definition_bytes'],
+                            records_modeled=staged['records_modeled'],write_fragments=staged['write_fragments'],unsupported_records=staged['unsupported_records'])
                         return reject(0x0F,'device_batch_execution_unimplemented')
                     if inner[0]==0x4B:lease.transport.open(payload)
                     else:exact(payload,0);lease.transport.clear()

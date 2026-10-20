@@ -72,6 +72,9 @@ implementation stages supported definition values and accepts temporary
 processing, library-data and active metadata writes remain unsupported. Version
 `.70` adds [structural payload inspection](device-payload-inspection.md), shared
 by the runtime's denied `0x06` operation and an offline summary tool.
+Version `.71` adds [temporary Template models](template-staging.md) in the
+runtime. Descriptor and contiguous-write checks do not interpret compiled types
+or enable batch execution.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
@@ -93,6 +96,8 @@ allocated fragment buffer, zero fragment counts/byte totals and empty
 advertised descriptor/value stages.
 Any advertised payload-inspection state must also be idle and empty, with no
 execution or signature-verification authority.
+Any advertised Template stage must be empty, with installation and definition
+exposure disabled.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
@@ -104,6 +109,12 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+
+The `.71` suite runs 949 tests, with two Windows skips and one Linux skip.
+The normal-source SDK download attempt models 242 temporary Templates and
+346,596 opaque definition bytes, then retains execution denial for the batch.
+The source/model remain unchanged and cleanup empties all temporary state. See
+[Template staging validation](template-staging.md#validation-and-remaining-work).
 
 The `.70` suite runs 939 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt decodes all 904 batch-record paths, including six

@@ -6,6 +6,7 @@ Fragments stay in a temporary buffer. No records execute and no active project c
 import struct
 import time
 from . import device_payload
+from .template_staging import TemplateStaging,TemplateError
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
 
 MAX_BUFFER_BYTES = 262144
@@ -30,6 +31,7 @@ class ResilientTransport:
 
     def clear_fragments(self):
         self._data=bytearray();self.total_bytes=0;self.fragments=0;self.complete=False;self.deadline=0
+        self.templates=TemplateStaging();self.template_error=None
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
@@ -38,6 +40,7 @@ class ResilientTransport:
         self.expire()
         if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
         if self.inspection['status']=='invalid':raise TransportError(3,self.inspection['reason'])
+        if self.template_error:raise TransportError(3,self.template_error)
         if self.inspection['status']=='decoded':return self.inspection
         expected=struct.unpack_from('<I',self.setup,12)[0]
         try:
@@ -45,6 +48,10 @@ class ResilientTransport:
             self.inspection=device_payload.summary(batch,expected)
         except device_payload.PayloadError as error:
             self.inspection={**self.inspection,'status':'invalid','reason':error.reason}
+            raise TransportError(3,error.reason) from error
+        try:self.templates=TemplateStaging.from_batch(batch)
+        except TemplateError as error:
+            self.template_error=error.reason
             raise TransportError(3,error.reason) from error
         return self.inspection
 
@@ -101,4 +108,5 @@ class ResilientTransport:
                 'complete':self.complete,'max_fragments':MAX_FRAGMENTS,'assembly_timeout_seconds':ASSEMBLY_SECONDS,
                 'payload_transfer':False,'commit':False,
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
+                'template_staging':{**self.templates.description(),**({'status':'invalid','reason':self.template_error} if self.template_error else {})},
                 'configuration_exposed':False}
