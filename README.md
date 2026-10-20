@@ -28,6 +28,9 @@ challenge and signed transfer paths independently of the optional native SDK.
 Version `.80` adds [source-bound Task settings and native Task IDs](docs/task-metadata.md),
 an [SDK-independent upload inventory reader](docs/upload-inventory-client.md) and an
 [offline download capture comparison](docs/download-replay.md).
+Version `.81` extends Task metadata with ordered native Program links and exact
+source period/watchdog reads. The independent inventory reader checks those
+Task-to-Program relationships without using the native SDK.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

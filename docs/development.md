@@ -196,6 +196,19 @@ browser assets match source and the packaged Windows version. Native SDK use
 remains paused, so these results do not establish native transfer or online-edit
 acceptance.
 
+Version `.81` adds ordered source-bound Task Program lists, explicit periodic
+rates and positive watchdog settings in exact microseconds. The independent
+inventory reader checks Task catalogs, native Program links, unknown references
+and duplicate scheduling while retaining unavailable bindings. Its four owned
+TCP scenarios complete 139 verified signed exchanges. The iteration passes
+43 focused tests (27 Task and 16 inventory tests); the full suite was not rerun.
+Task execution slot attribute 16 remains unavailable. Native SDK use remains
+paused, and the upload/download/edit acceptance boundaries are unchanged.
+The frozen `.81` protocol probe passes 24 signed checks plus 56 independent
+inventory reads against the retained source pair. The rebuilt appliance passes
+15 focused wire checks; all 69 application modules and the served/packaged
+browser assets match source and version.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.
