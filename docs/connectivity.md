@@ -10,11 +10,12 @@ The tested SDK batch's 242 Templates and 136 Diagnostics Messages cover 863 of
 904 records. The remaining 41 records are unsupported. Service `0x06` still
 returns execution denial; no batch operation is applied to the active project.
 
-The rebuilt `.71` endpoint passes 291 wire checks and the nine-step SDK
-connection/Offline probe. Download verifies 181 signed requests and decodes all
-904 records, modeling 242 temporary Templates before the execution denial. All four probes
+The rebuilt `.72` endpoint passes 291 wire checks and the nine-step SDK
+connection/Offline probe. Download verifies 180 signed requests and decodes all
+904 records, modeling 242 Templates and 136 Diagnostics Messages before the
+execution denial. All four probes
 confirm Offline cleanup, empty temporary state and preserved source/model.
-See [deployed Template validation](template-staging.md#validation-and-remaining-work).
+See [deployed Diagnostics Message validation](diagnostic-staging.md#validation-and-remaining-work).
 
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The normal-source SDK attempt stages 82,534 bytes in 21 fragments and reaches a

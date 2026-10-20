@@ -73,6 +73,24 @@ signed requests, source/owner guards and lifecycle cleanup.
 The 960-test suite passes on Windows with two expected skips and Linux with
 one expected skip.
 
+The rebuilt `.72` runtime's application modules and served webpage match source.
+The Windows executable's embedded version, webpage and staging module were
+checked separately. The running endpoint passes 291 wire checks. Its public
+SDK probes report:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Address discovery fails before value reads |
+| Upload | 197 | Controller-collection upload still fails |
+| Download | 180 | 863 records modeled; batch execution denied |
+
+All four cases confirm Offline cleanup, unchanged source/model and empty
+temporary stages. The final state has zero TCP clients, an uninhibited free
+lease, idle preparation, closed transport, no fragment buffer, idle inspection
+and empty Template/diagnostic models. Scans and model time remain zero. The
+communications and SDK services remain running.
+
 Next work covers the remaining object contracts and references, compiled
 definition interpretation, further transfer stages and atomic model commit.
 Native upload/download, online tag monitoring and online edits remain unfinished;

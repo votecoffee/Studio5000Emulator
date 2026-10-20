@@ -121,6 +121,12 @@ The normal-source SDK download attempt models 136 Diagnostics Messages and
 unsupported. The batch is denied; cleanup returns Offline with unchanged
 source/model and empty temporary stages. See
 [Diagnostics Message validation](diagnostic-staging.md#validation-and-remaining-work).
+The rebuilt `.72` runtime passes 291 wire checks and the nine-step SDK
+connection/Offline sequence. Download verifies 180 signed requests, models all
+136 Diagnostics Messages and retains execution denial. All four public SDK
+cases confirm Offline cleanup, empty temporary stages and preserved source/model.
+Application modules and the served webpage match source; the Windows artifact
+also contains the new module and matching version.
 
 The `.71` suite runs 949 tests, with two Windows skips and one Linux skip.
 The normal-source SDK download attempt models 242 temporary Templates and
