@@ -167,7 +167,7 @@ class FragmentSignedTests(unittest.TestCase):
         self.first();self.assertEqual(self.send(inhibits.SINGLE)[2],0)
         self.fragment(1,2,b'C');self.fragment(0x201,3,b'DE')
         self.assertTrue(self.description()['complete']);self.assertEqual(self.description()['received_bytes'],5)
-        self.assertEqual(self.send(bytes.fromhex('0603210012042400')),bytes.fromhex('86000f00'))
+        self.assertEqual(self.send(bytes.fromhex('0603210012042400')),bytes.fromhex('86000300'))
         self.assertTrue(self.description()['complete']);self.assertEqual(self.endpoint.counts['native_transport_fragment'],3)
         for key in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[key],before[key])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)

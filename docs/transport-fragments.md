@@ -1,5 +1,8 @@
 # Temporary device-transfer fragments
 
+This records the `.69` milestone. See [structural device-batch inspection](device-payload-inspection.md)
+for the current payload contract and validation boundary.
+
 Version `0.6.0-connectivity.69` adds bounded fragment staging to the
 [Resilient Transport setup](resilient-transport.md) milestone. The tested native
 SDK sends an entire device payload, then reaches a device-operation request

@@ -108,13 +108,16 @@ Version `.69` adds [bounded temporary device-transfer fragments](docs/transport-
 The normal-source SDK attempt stages a complete device payload and reaches a
 denied device-operation request (`0x06`). Active values, library-data writes and
 project commit remain unsupported.
+Version `.70` adds [structural inspection of compressed device batches](docs/device-payload-inspection.md).
+The SDK's staged payload decodes into request records with parent scopes preserved;
+batch execution and project commit remain unsupported.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 924-test suite passes on Windows and Linux with expected platform skips;
+The 939-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.69` endpoint passes 291 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.

@@ -1,10 +1,11 @@
 """Lease-local setup for the observed Resilient Transport Object dialect.
 
-The last setup word and reassembled payload are opaque. Fragments stay in a
-bounded temporary buffer. No device payload is installed or project changed.
+The final setup word bounds the expected expanded size in the inspected profile.
+Fragments stay in a temporary buffer. No records execute and no active project changes.
 """
 import struct
 import time
+from . import device_payload
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
 
 MAX_BUFFER_BYTES = 262144
@@ -29,6 +30,23 @@ class ResilientTransport:
 
     def clear_fragments(self):
         self._data=bytearray();self.total_bytes=0;self.fragments=0;self.complete=False;self.deadline=0
+        self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
+                         'operations':[],'execution_supported':False,'records_executed':0,
+                         'payloads_exposed':False,'signature_verified':False}
+
+    def inspect_payload(self):
+        self.expire()
+        if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
+        if self.inspection['status']=='invalid':raise TransportError(3,self.inspection['reason'])
+        if self.inspection['status']=='decoded':return self.inspection
+        expected=struct.unpack_from('<I',self.setup,12)[0]
+        try:
+            batch=device_payload.decode(bytes(self._data),expected)
+            self.inspection=device_payload.summary(batch,expected)
+        except device_payload.PayloadError as error:
+            self.inspection={**self.inspection,'status':'invalid','reason':error.reason}
+            raise TransportError(3,error.reason) from error
+        return self.inspection
 
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear_fragments()
@@ -82,4 +100,5 @@ class ResilientTransport:
                 'received_bytes':len(self._data),'total_bytes':self.total_bytes,'fragments':self.fragments,
                 'complete':self.complete,'max_fragments':MAX_FRAGMENTS,'assembly_timeout_seconds':ASSEMBLY_SECONDS,
                 'payload_transfer':False,'commit':False,
+                'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
                 'configuration_exposed':False}

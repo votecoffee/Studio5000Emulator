@@ -244,7 +244,7 @@ class Router:
                     lease.metadata.stage_values(payload,path.instance)
                     self.endpoint.counts['native_metadata_value_packets']+=1
                 return reply(inner[0])
-            if inner[0] in (0x4B,9) and path.class_id==0x412:
+            if inner[0] in (0x4B,9,6) and path.class_id==0x412:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
                     return reject(4,'invalid_request')
@@ -255,6 +255,11 @@ class Router:
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if inner[0]==6:
+                        exact(payload,0);inspection=lease.transport.inspect_payload()
+                        self.endpoint.record('native_transport_inspection',expanded_bytes=inspection['expanded_bytes'],
+                            record_count=inspection['record_count'],scoped_records=inspection['scoped_records'],records_executed=0)
+                        return reject(0x0F,'device_batch_execution_unimplemented')
                     if inner[0]==0x4B:lease.transport.open(payload)
                     else:exact(payload,0);lease.transport.clear()
                     self.endpoint.counts['native_transport_'+('setup' if inner[0]==0x4B else 'delete')]+=1

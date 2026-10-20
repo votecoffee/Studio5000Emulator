@@ -106,6 +106,14 @@ def validate_staging(lease):
             value=stage.get(field,0)
             if type(value) is not int or value!=0:raise ValueError('Probe requires empty transport fragment staging')
         if stage.get('complete',False) is not False:raise ValueError('Probe requires empty transport fragment staging')
+        if 'inspection' in stage:
+            inspection=stage['inspection']
+            if (not isinstance(inspection,dict) or inspection.get('status')!='idle' or inspection.get('operations')!=[]
+                    or inspection.get('execution_supported') is not False or inspection.get('payloads_exposed') is not False
+                    or inspection.get('signature_verified') is not False):
+                raise ValueError('Probe requires empty structural inspection and disabled batch execution')
+            for field in ('expanded_bytes','record_count','scoped_records','records_executed'):
+                if type(inspection.get(field)) is not int or inspection[field]!=0:raise ValueError('Probe requires empty structural inspection')
     if ('preparation_state' in lease and lease['preparation_state']!='idle' or
             'preparation_status' in lease and (type(lease['preparation_status']) is not int or lease['preparation_status']!=0)):
         raise ValueError('Probe requires idle programming preparation')

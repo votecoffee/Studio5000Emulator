@@ -5,6 +5,10 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.70` adds [structural inspection of staged device batches](device-payload-inspection.md).
+The tested SDK batch decodes into 904 request records, including six scoped records.
+Service `0x06` still returns execution denial; no batch operation is applied.
+
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The normal-source SDK attempt stages 82,534 bytes in 21 fragments and reaches a
 device-operation request (`0x06`) on class `0x412`, which remains rejected. No
@@ -280,7 +284,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.69` stages contiguous device fragments; device processing and library-data writes remain denied | Verified payload and processing contract, further transfer stages and atomic model replacement |
+| Native download | `.70` structurally inspects staged device batches; batch execution and library-data writes remain denied | Semantic object models and validation, further transfer stages and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template

@@ -69,7 +69,9 @@ disabled redundancy. Full native download is unfinished; the current
 implementation stages supported definition values and accepts temporary
 [Resilient Transport setup](resilient-transport.md) and
 [bounded device fragments](transport-fragments.md) on class `0x412`. Device
-processing, library-data and active metadata writes remain unsupported.
+processing, library-data and active metadata writes remain unsupported. Version
+`.70` adds [structural payload inspection](device-payload-inspection.md), shared
+by the runtime's denied `0x06` operation and an offline summary tool.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
@@ -89,6 +91,8 @@ cleanup passively waits up to eight seconds for asynchronous socket closure,
 lease release, a zero inhibit mask, closed Resilient Transport setup with no
 allocated fragment buffer, zero fragment counts/byte totals and empty
 advertised descriptor/value stages.
+Any advertised payload-inspection state must also be idle and empty, with no
+execution or signature-verification authority.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
@@ -100,6 +104,11 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+
+The `.70` suite runs 939 tests, with two Windows skips and one Linux skip.
+The normal-source SDK attempt decodes all 904 batch-record paths, including six
+scoped records, then retains the execution denial with no records applied. See
+[payload inspection validation](device-payload-inspection.md#validation-and-remaining-work).
 
 The `.69` suite runs 924 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt completes temporary fragment staging and reaches

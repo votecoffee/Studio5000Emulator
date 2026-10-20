@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
+Current milestone: `.70` adds [structural device-batch inspection](device-payload-inspection.md).
+The SDK's completed payload now has a bounded container and record decoder with
+scoped paths preserved. Execution remains denied. Next: semantic validation and
+temporary object models for Template, Symbol, Data Table and other batch
+operations, followed by the remaining transfer stages and atomic model commit.
+
+Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The SDK stages a complete device payload and advances to service `0x06`,
 which remains denied. Next: establish the full payload and operation contract,
 then verified device preparation, further transfer stages, source-aware project

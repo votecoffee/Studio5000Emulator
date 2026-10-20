@@ -118,6 +118,19 @@ class NativeSdkProbeTests(unittest.TestCase):
             proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']=value
             with self.assertRaises(ValueError):validate_idle(proposed)
 
+    def test_payload_inspection_must_be_empty_and_cannot_advertise_execution_or_signature_authority(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();state['connectivity']['native_programming_lease']['resilient_transport']=ResilientTransport().description()
+        validate_idle(state)
+        for field,value in (('status','decoded'),('operations',[{}]),('expanded_bytes',1),('record_count',1),
+                ('scoped_records',1),('records_executed',1),('record_count',False),('execution_supported',True),
+                ('signature_verified',True),('payloads_exposed',True)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['inspection'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(proposed)
+        for value in (None,{},'unknown'):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['inspection']=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+
     def test_async_tcp_close_and_lease_release_finish_before_cleanup_is_confirmed(self):
         connected=self.state();connected['connectivity']['active_tcp_clients']=1
         owned=self.state();owned['connectivity']['native_programming_lease'].update(owned=True,run_mode_inhibit=1,scan_inhibited=True)
