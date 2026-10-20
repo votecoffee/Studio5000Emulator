@@ -15,6 +15,49 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_post_edit_read_and_native_save_options_require_explicit_edit_application(self):
+        from tools.probe_native_sdk import validate_edit_extensions
+        validate_edit_extensions('connection',False,[],False)
+        validate_edit_extensions('edits',True,['Controller/Tags/Tag[@Name=\'Value\']'],True)
+        for operation,apply,tags,save in [('connection',True,[],True),('edits',False,[],True),
+                ('download',True,['Value'],False),('edits',True,['x']*9,False),('edits',True,[''],False),
+                ('edits',True,['x\0y'],False),('edits',True,[None],False),('edits',True,[],1)]:
+            with self.subTest(operation=operation,apply=apply,tags=tags,save=save),self.assertRaises(ValueError):
+                validate_edit_extensions(operation,apply,tags,save)
+
+    def test_saved_acd_validation_requires_reopen_receipt_matching_logic_values_and_hashes(self):
+        from tools.probe_native_sdk import saved_acd_effect,digest
+        from logixlab.server import Application
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import xml_source,container
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);app=Application(root/'app')
+            try:
+                app.command('demo',{'sample':'ConveyorDemo'})
+                code='MOV(123,SpeedSetpoint);'
+                source=decode(container(ET.tostring(xml_source(text=code))))
+                app.engine,_=prepare(app.engine,source,(code,),'MainProgram',0)
+                export=app.command('export-edited-l5x',{})
+                for name in ('emulator-edited.L5X','reopened.L5X'):(root/name).write_text(export['content'],encoding='utf-8')
+                (root/'edited.ACD').write_bytes(b'synthetic-native-evidence-fixture')
+                receipt={'nativeAcdReopened':True,'offlineOnly':True,'inputL5xSha256':digest(root/'emulator-edited.L5X'),
+                    'acdSha256':digest(root/'edited.ACD'),'reopenedL5xSha256':digest(root/'reopened.L5X')}
+                self.assertTrue(saved_acd_effect(app.state(),root,receipt))
+                self.assertFalse(saved_acd_effect(app.state(),root,None))
+                for field in ('nativeAcdReopened','offlineOnly','acdSha256'):
+                    wrong=dict(receipt);wrong[field]=False
+                    self.assertFalse(saved_acd_effect(app.state(),root,wrong))
+                for text in (export['content'].replace('MOV(123,','MOV(124,'),
+                        export['content'].replace('Value="50"','Value="51"')):
+                    self.assertNotEqual(text,export['content'])
+                    (root/'reopened.L5X').write_text(text,encoding='utf-8')
+                    wrong=dict(receipt,reopenedL5xSha256=digest(root/'reopened.L5X'))
+                    self.assertFalse(saved_acd_effect(app.state(),root,wrong))
+                (root/'reopened.L5X').write_text(export['content'],encoding='utf-8')
+                (root/'edited.ACD').unlink();self.assertFalse(saved_acd_effect(app.state(),root,receipt))
+            finally:app.close()
+
     def test_temporary_routine_metadata_must_be_empty_and_without_active_write_authority(self):
         from logixlab.edit_transfer import EditTransfer
         state=self.state();transfer=EditTransfer().description()

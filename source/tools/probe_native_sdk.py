@@ -125,6 +125,40 @@ def validate_tag_read_type(operation,tags,read_type):
     return read_type
 
 
+def validate_edit_extensions(operation,apply,tags,save):
+    if type(save) is not bool or not isinstance(tags,(list,tuple)) or len(tags)>8 or any(
+            not isinstance(tag,str) or not 1<=len(tag)<=1024 or '\0' in tag for tag in tags):
+        raise ValueError('At most eight bounded post-edit DINT tag XPaths and a boolean save option')
+    if (save or tags) and (operation!='edits' or apply is not True):
+        raise ValueError('Post-edit reads and ACD save require explicit supported-edit application')
+
+
+def saved_acd_effect(state,folder,receipt):
+    """Check native save/reopen evidence and the resulting neutral project source."""
+    from logixlab.model import Project,Memory,ModelError
+    from logixlab.runtime import Engine
+    from logixlab.server import serialize_nodes
+    try:
+        if not isinstance(receipt,dict) or receipt.get('nativeAcdReopened') is not True or receipt.get('offlineOnly') is not True:return False
+        for filename,key in (('emulator-edited.L5X','inputL5xSha256'),('edited.ACD','acdSha256'),('reopened.L5X','reopenedL5xSha256')):
+            path=folder/filename
+            if not path.is_file() or not 8<=path.stat().st_size<=150_000_000 or digest(path)!=receipt.get(key):return False
+        original=Project(folder/'emulator-edited.L5X');reopened=Project(folder/'reopened.L5X')
+        expected={r['key'].casefold():(r['kind'],[row['nodes'] for row in r['rungs']]) for r in state['routines']}
+        for project in (original,reopened):
+            actual={key:(r.kind,[serialize_nodes(row['nodes']) for row in r.rungs]) for key,r in project.routines.items()}
+            engine=Engine(project,defer_prescan=True)
+            if actual!=expected or engine.blockers or engine.entries!=state['entry_routines']:return False
+        def leaves(project):
+            return {row['name'].casefold():{k:row[k] for k in ('type','value','kind','constant','alias','unknown','problem')}
+                    for row in Memory(project).leaves()}
+        if leaves(original)!=leaves(reopened):return False
+        if original.task_configuration.names!=reopened.task_configuration.names:return False
+        if original.executable_configuration.program_names!=reopened.executable_configuration.program_names:return False
+        return True
+    except (OSError,ValueError,KeyError,TypeError,ModelError):return False
+
+
 def edit_request(state, program, routine, option, *, code='NOP();',apply=False,position=0,replace=0):
     """Create one checked rung insert for an ordinary RLL routine, never arbitrary XML."""
     if option not in ('LeaveEdits', 'AcceptEdits'):
@@ -534,6 +568,8 @@ def run(args):
     validate_operation(args.operation, args.tag)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
     apply_edits=getattr(args,'apply_supported_edits',False)
+    edit_tags=getattr(args,'post_edit_tag',[]);save_acd=getattr(args,'save_edited_acd',False)
+    validate_edit_extensions(args.operation,apply_edits,edit_tags,save_acd)
     edit_code=getattr(args,'edit_code',None)
     if edit_code is None:edit_code='NOP();'
     second_code=getattr(args,'second_edit_code',None)
@@ -576,6 +612,7 @@ def run(args):
     if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
+    config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
         edit_file=output/('nop-rung.L5X' if index==0 else 'second-rung.L5X')
@@ -623,13 +660,15 @@ def run(args):
             rung_sha256=config['Edit']['Sha256'], code=edit_code, active_edits_authorized=apply_edits,
             second_code=second_code,second_xpath=config.get('SecondEdit',{}).get('XPath'),
             second_range=ranges[1] if len(ranges)>1 else None,reconnect_after_each=reconnect,finalize_edits=False, assembly=False)
+        summary['post_edit_tag_reads']=dict(type='DINT',tags=edit_tags)
+        summary['save_edited_acd_requested']=save_acd
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
     if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
     report = None;final=None
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
-                                    stdout=log, stderr=subprocess.STDOUT, timeout=120, **background_options())
+                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd else 120, **background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
         summary['tag_read_type']=tag_read_type
@@ -673,8 +712,12 @@ def run(args):
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
         if apply_edits:summary['supported_edit_applied']=supported_sequence_effect(state,final,edits,edit_codes,output,reconnect=reconnect)
+        if save_acd:
+            summary['saved_edited_acd_verified']=saved_acd_effect(final,output,report.get('savedEditedProject') if report else None)
+            summary['saved_edited_project']=report.get('savedEditedProject') if report else None
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
-        if not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False:
+        if (not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False
+                or save_acd and not summary.get('saved_edited_acd_verified')):
             summary['status'] = 'failed'
         (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
         print(json.dumps({'report': str(output / 'summary.json'), **summary}, indent=2))
@@ -702,6 +745,8 @@ def main():
     parser.add_argument('--second-edit-insert-position',type=int,default=0)
     parser.add_argument('--second-edit-replace-count',type=int,default=0)
     parser.add_argument('--reconnect-edits',action='store_true',help='Explicit supported edits only: go Offline/Online after each checked insert')
+    parser.add_argument('--post-edit-tag',action='append',default=[],help='Explicit supported edits only: diagnose a DINT SDK read after the imports, before Offline; may repeat up to eight times')
+    parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')

@@ -6,11 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.91` verifies [rung replacement across routines](supported-routine-edits.md#rung-replacement-across-routines)
-and adds [edited-logic L5X working copies](edited-logic-l5x.md). The native SDK
-reconnects after each replacement, and both edits execute before and after
-export/reload in the emulator. Version `.90` also checks consecutive inserts
-while continuously online. Next: broader operand/routine coverage,
+Current milestone: `.92` verifies replacement followed by insertion in the same
+routine and [native SDK import/save/reopen of an edited ACD](edited-logic-l5x.md#optional-native-acd-save-diagnostic).
+The saved ACD also passes a fresh SDK connection against an isolated emulator
+loaded from its new source pair, and its saved edits execute. The post-edit SDK
+tag-read diagnostic still fails online address discovery. Version `.91` verifies
+[rung replacement across routines](supported-routine-edits.md#rung-replacement-across-routines),
+and `.90` checks consecutive inserts while continuously online.
+Next: broader operand/routine coverage,
 Studio GUI acceptance and the native Test/Untest/Assemble lifecycle. Source-aware
 upload/download completion and native tag-address discovery remain separate gaps.
 

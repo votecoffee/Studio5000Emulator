@@ -524,6 +524,38 @@ staging/value tests pass, bringing targeted software checks to 164. The main
 demo remains in Program at revision 0, with supported edit access enabled.
 Isolated edited instances are stopped; the original ACD is unchanged.
 
+Version `.92` adds `--save-edited-acd` and repeatable `--post-edit-tag` options.
+Both require `--operation edits --apply-supported-edits`. For a demo replacement
+followed by an insertion in the same routine, append:
+
+```powershell
+--operation edits --apply-supported-edits --edit-code 'MOV(123,SpeedSetpoint);' --edit-insert-position 1 --edit-replace-count 1 --second-edit-code 'MOV(456,Parts.PRE);' --second-edit-insert-position 2 --reconnect-edits --save-edited-acd
+```
+
+The save option runs after Go Offline and creates new private
+`emulator-edited.L5X`, `edited.ACD` and `reopened.L5X` files through native SDK
+import/save/reopen. Its receipt and the reopened source must pass
+[logic and initial-value checks](edited-logic-l5x.md#optional-native-acd-save-diagnostic)
+before `saved_edited_acd_verified` is true. It does not save the original native
+project or automatically load the new source into the emulator.
+
+`--post-edit-tag "Controller/Tags/Tag[@Name='SpeedSetpoint']"` diagnoses a DINT SDK
+read after imports/reconnects and before final Offline. Up to eight bounded
+XPaths are accepted. Read failures mark the overall diagnostic failed while
+retaining separate `supported_edit_applied` evidence and attempting ordinary
+cleanup; a fatal SDK fault prevents further native operations. This is separate
+from the connection-only `--tag` option.
+
+The mixed-edit save case succeeds across 313 verified signed requests. Native
+save/reopen preserves the edited ASTs and initial tag values. Rebinding a private
+emulator to the resulting ACD/L5X pair permits a fresh SDK connection/Offline
+case across 79 requests; one subsequent emulator scan executes both changes.
+The post-edit tag-read repeat applies both edits across 316 requests but fails
+`RxDA_E_NO_ONLINE_ADDRESS`, confirming that monitoring remains unfinished.
+All cases confirm native Offline and endpoint cleanup without a reported fatal
+SDK fault. The main demo and original ACD remain unchanged. The iteration passes
+49 focused software tests; the full suite was not run.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

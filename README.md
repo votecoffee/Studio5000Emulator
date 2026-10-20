@@ -79,7 +79,13 @@ Version `.91` adds scoped metadata retention needed by native rung replacement
 and verifies replacements in two routines with reconnects. **Save edited L5X**
 now saves a separate [working copy of edited logic](docs/edited-logic-l5x.md)
 with original imported tag initial values. That copy reloads and executes in
-the emulator; native Studio import of the exported L5X remains unverified.
+the emulator.
+Version `.92` verifies a replacement followed by an insertion in the same
+routine, with reconnects. The optional native diagnostic imports the exported
+L5X, saves a new edited ACD, reopens it and checks the re-exported logic and
+initial values. That new ACD also passes a fresh SDK Go Online/Offline connection
+to an emulator loaded from the saved project. Studio GUI acceptance remains
+unverified.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

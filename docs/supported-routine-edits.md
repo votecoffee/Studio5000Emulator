@@ -16,13 +16,14 @@ disconnected. This control is separate from direct tag-write access.
 The webpage reports a logic revision after application. Changes stay in memory.
 Reset restores imported tag values while retaining the edited logic; reload the
 original ACD or L5X to restore its routines. No original or input-copy file is
-overwritten, and no edited ACD is generated.
+overwritten. Activating an edit does not automatically save a project file.
 
 Version `.91` adds **Save edited L5X** for a separate
 [working copy](edited-logic-l5x.md). Stop the emulator and finish the native edit
 transaction before saving. The copy contains edited routines and original
 imported tag initial values. Reloading it starts a new L5X artifact without
-inheriting the original ACD's native correlation manifests.
+inheriting the original ACD's native correlation manifests. Version `.92` adds
+an optional [native ACD save/reopen diagnostic](edited-logic-l5x.md#optional-native-acd-save-diagnostic).
 
 ## Transaction and activation
 
@@ -99,8 +100,9 @@ native member reference. Both cases produce the same runtime logic digest.
 The original ACD and the separate main demo remain unchanged.
 
 Reconnect here means the same open, updated SDK project going Offline/Online.
-Reopening an original ACD with stale logic, saving an edited ACD, upload/download
-and Studio GUI editing are separate unverified paths. The native diagnostic
+Reopening an original ACD with stale logic, upload/download and Studio GUI
+editing remain separate unverified paths. Version `.92` separately tests a new
+saved ACD as described below. The native diagnostic
 requires revision 0 before opening its fresh ACD copy, preventing a new test
 from unintentionally replacing prior in-memory edits with stale project logic.
 
@@ -124,3 +126,18 @@ main demo remain unchanged. Native Studio import of that L5X remains unverified.
 Replacement additionally sends the [removed-rung metadata profile](edit-post-source.md#replacement-metadata).
 Unknown metadata forms remain rejected; retained records never write active
 metadata or relax execution validation.
+
+### Replacement followed by insertion
+
+Version `.92` tests replacing rung 1 and then inserting a rung at position 2 in
+`MainRoutine`, with Offline/Online after each transaction. The resulting routine
+has ten rungs and logic revision 2. A scan executes both imported instructions.
+One diagnostic then saves and reopens a new native ACD, rebinds an isolated
+emulator to the saved project and confirms a fresh native SDK connection and
+execution. See the [save diagnostic](edited-logic-l5x.md#optional-native-acd-save-diagnostic).
+
+A separate repeat adds a post-edit DINT SDK read. Both imports and reconnects
+succeed across 316 verified requests, but the read still fails with
+`RxDA_E_NO_ONLINE_ADDRESS`. That diagnostic is reported as failed despite
+confirmed applied edits, clean native Offline and endpoint cleanup. Executing
+the edits in the emulator does not establish native tag-monitoring support.
