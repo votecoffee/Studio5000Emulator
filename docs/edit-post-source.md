@@ -47,3 +47,11 @@ active-edit contract is unresolved and the public app rejects it. Temporary
 receipt does not acknowledge accepted edits, source activation, Test, Untest
 or Assemble. The source ACD remains preserved. Native results are recorded
 separately from the synthetic codec, TCP and staging checks.
+
+The final isolated `.88` native case retains 5,016 bytes across the code/source
+containers and this record. It verifies 120 signed requests, resolves all 27
+source references into 10 rungs and validates their detached plan. It fails at
+Controller `0x59` with `RxCsE_ASA_NO_PERMISSION`. Native Go Offline/readback,
+project close and endpoint cleanup succeed. Active source/model remain
+unchanged and no fatal SDK fault is reported. This result advances temporary
+transfer compatibility; it does not establish accepted controller edits.

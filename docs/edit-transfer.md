@@ -83,5 +83,5 @@ deadline; neither changes active execution.
 
 Version `.88` acknowledges validated source storage and retains the observed
 [post-source record](edit-post-source.md), under the same ownership, target,
-combined capacity and deadline. The next Controller completion operation is
+combined capacity and deadline. The next Controller operation is
 still denied. Source activation and accepted controller edits remain unfinished.

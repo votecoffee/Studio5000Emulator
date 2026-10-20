@@ -84,3 +84,10 @@ retained synthetic code container, starts its paired source container, and
 checks that Program release clears both components. The full source decoder,
 IOI resolver and detached execution planner have separate focused tests and
 native capture evidence; the independent client does not apply source.
+
+The `.88` case passes 44 signed checks, 60 inventory reads and all 904 temporary
+download-record checks. It completes and validates the synthetic source,
+retains a control-8 post-source record, confirms Controller `0x59` is denied,
+and verifies Program release clears every component. Each reply's MAC and
+counter is checked by the independently keyed TCP client. The source/model
+remain unchanged; native SDK and Studio GUI results are separate evidence.

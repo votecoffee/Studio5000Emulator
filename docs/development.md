@@ -393,6 +393,35 @@ three cases confirm native Offline and endpoint cleanup with no reported fatal
 SDK fault. Mode-test history is retained and Program is restored. Native upload
 was not repeated; earlier controller-collection failures remain separate.
 
+Version `.88` acknowledges validated source storage, parses signed control 8
+and retains the observed [post-source record](edit-post-source.md). The opaque
+record shares the existing ownership, source binding, capacity and deadline;
+its receipt does not update native identities or accept active edits. Unknown
+inner operations receive signed errors without invalidating the session.
+The iteration passes 201 focused tests, 44 independent signed checks, 60
+inventory reads and all 904 temporary download-record checks. The full suite
+was not rerun.
+
+An isolated native import using final public `.88` application sources retains
+the 4,304-byte code container, 692-byte source and 20-byte post-source record.
+All 27 object references resolve to 10 candidate rungs and the execution-plan
+check passes. The case verifies 120 signed requests, then fails at Controller
+`0x59` with four zero payload bytes. Its contract remains unresolved and the
+public endpoint denies it. Unlike `.87`, native Go Offline/readback succeeds;
+endpoint cleanup also completes, source/model are unchanged and no fatal SDK
+fault is reported. The earlier receipt-only hypotheses are private diagnostic
+evidence, separate from this final-source result. Active source replacement,
+accepted controller edits, Test, Untest and Assemble remain unfinished.
+
+The rebuilt `.88` main runtime passes 27 wire checks; all 73 application
+modules, served assets and the packaged version match source. A fresh native
+connection/Offline succeeds across 79 verified requests. Upload still fails
+controller collection across 197; download still fails device transfer across
+180 after preparing all 904 temporary records. All three cases confirm native
+Offline and endpoint cleanup, preserve source/model and report no fatal SDK
+fault. The runtime is left stopped in Program. Native mode cycling was not
+repeated in this iteration; its earlier results remain separate.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

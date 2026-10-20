@@ -174,3 +174,13 @@ plan. The NOP is present and the original nine parsed rungs are preserved.
 The final case verifies 115 signed requests and still rejects installation;
 native Offline cleanup remains unconfirmed, while project close and endpoint
 cleanup complete with unchanged active source/model and no fatal SDK fault.
+
+Version `.88` adds [signed control-8 and post-source staging](edit-post-source.md).
+The final public-source native attempt acknowledges the validated source pair
+and retains the next 20-byte record. It verifies 120 signed requests and
+advances to the denied Controller `0x59` operation with four zero bytes. The
+source remains inactive. Native Go Offline and its Offline readback now
+succeed, as do project close and endpoint cleanup, with unchanged source/model
+and no reported fatal SDK fault. No wrapper rejection occurs during this
+import. The previous context loss was caused by the unsupported container
+control; the next active-edit contract remains unresolved.
