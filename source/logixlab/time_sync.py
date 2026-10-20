@@ -1,7 +1,8 @@
-"""Read-only Time Sync settings from L5X, without a PTP clock implementation."""
+"""Source Time Sync settings and local software-clock capability metadata."""
 from dataclasses import dataclass
 import re
 from .tag_catalog import complete_tag_source
+from . import software_clock
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,7 @@ class TimeSync:
 
     def attributes(self):
         # v35 Time Synchronize uses one byte for each of these settings.
-        # Dynamic clock, port and vendor fields require a separate PTP model.
+        # Runtime clock and empty port state are supplied independently.
         values = ((1, self.ptp_enabled), (16, self.priority1), (17, self.priority2))
         return {number: bytes((value,)) for number, value in values if value is not None}
 
@@ -43,5 +44,8 @@ class TimeSync:
         return {'object_revision': 1, 'ptp_enabled': self.ptp_enabled,
                 'priority1': self.priority1, 'priority2': self.priority2,
                 'source': 'Controller/TimeSynchronize PTPEnable/Priority1/Priority2',
-                'available_attributes': list(self.attributes()), 'settings_writable': False,
-                'ptp_engine': False, 'clock_measurements': False, 'port_metadata': False}
+                'source_attributes': list(self.attributes()),
+                'available_attributes': sorted(set(self.attributes()) | set(software_clock.STATIC_ATTRIBUTES)),
+                'dynamic_attributes': list(software_clock.TIME_ATTRIBUTES), 'settings_writable': False,
+                'ptp_engine': False, 'clock_measurements': True, 'port_metadata': True,
+                'software_clock': software_clock.description()}

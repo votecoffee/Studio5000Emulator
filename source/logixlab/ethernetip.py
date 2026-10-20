@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
+from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -746,7 +746,15 @@ class Router:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'Time Sync paths must be controller scoped')
             if path.instance==0:attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
-            elif path.instance==1:attributes=self.app.engine.project.time_sync.attributes()
+            elif path.instance==1:
+                requested=False
+                if service==0x0E:
+                    exact(data,0);requested=path.attribute in software_clock.TIME_ATTRIBUTES
+                if service==3 and path.attribute is None:
+                    need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
+                    if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
+                    requested=bool(set(software_clock.TIME_ATTRIBUTES).intersection(struct.unpack_from('<'+'H'*count,data,2)))
+                attributes={**self.app.engine.project.time_sync.attributes(),**software_clock.attributes(read_time=requested)}
             elif path.instance is None:raise CIPError(4,'Time Sync requires an instance')
             else:raise CIPError(5,'Unknown Time Sync instance')
             return self.attribute_read(service,path,data,attributes)

@@ -134,6 +134,17 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(10,bytes.fromhex('4b0321002b032400')),b'\xCB\0\0\0')
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_software_time_read_and_setter_denial_preserve_scan_clock(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        timestamp=1_700_000_000_123_456_789
+        with patch('logixlab.software_clock.time.time_ns',return_value=timestamp):
+            self.assertEqual(self.signed(4,bytes.fromhex('030220432401020003000400')),
+                bytes.fromhex('83000000020003000000')+struct.pack('<q',timestamp//1000)+
+                bytes.fromhex('04000000')+struct.pack('<q',timestamp))
+        self.assertEqual(self.signed(5,bytes.fromhex('1003204324013003')+bytes(8))[2],0x0F)
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual((self.app.engine.time_ms,self.app.engine.scan_count),(0,0))
+
     def test_signed_extended_device_defaults_do_not_authorize_an_operator_or_writes(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         query=bytes.fromhex('03022064240104000300060007000800')

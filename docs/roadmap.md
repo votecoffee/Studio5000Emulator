@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.48` adds Extended Device software-model metadata: unassigned
+Current milestone: `.49` adds a read-only local UTC clock to Time Sync, with
+coherent microsecond/nanosecond list reads, explicit unsynchronized status and
+zero PTP ports. Master offsets, clock descriptions and PTP networking remain
+unfinished, alongside earlier Ethernet counter and handler-reference gaps.
+
+Version `.48` adds Extended Device software-model metadata: unassigned
 location, English locale, no trusted slots and no authorized system operator.
 Source project name/description remain independent. Native upload still needs
 Ethernet counters, handler references and remaining controller/clock metadata.

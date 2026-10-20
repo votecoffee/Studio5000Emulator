@@ -761,6 +761,63 @@ Deployed modules, served browser assets, app version and Windows artifact
 matched source. Native GUI monitoring, full upload/download and online edits
 remain unfinished.
 
+### Local software-clock reads
+
+Version `.49` extends Time Sync `0x43` instance 1 with a read-only local UTC
+clock. Attributes `3` and `4` return signed 64-bit microseconds and nanoseconds
+since January 1, 1970. They use the emulator host's `time.time_ns()`, sampled
+once per read request. Duplicate fields and both units in one attribute list
+refer to the same instant. Integer arithmetic preserves the available precision.
+
+This time runs independently of deterministic scan time, including while the
+scan engine is idle. Host clock adjustments are visible and can move this clock
+backward. No host clock, time zone or daylight-saving setting is changed. A
+nanosecond wire value does not establish nanosecond accuracy or PTP synchronization.
+Negative, failed or unrepresentable observations stay unavailable; a time field
+is never replaced with an assumed epoch value. Each unit has its own signed
+64-bit range, so nanosecond overflow need not hide representable microseconds.
+
+Attribute `2` reports not synchronized. Attribute `11` reports zero PTP ports;
+port-state, enable, interval, profile and address arrays (`12`–`15`, `24`–`26`)
+contain a zero UINT count and no entries. This describes the software model's
+absent PTP engine independently of the requested source enable flag. The
+existing source settings remain source-backed, including when unavailable.
+Source absence does not hide the known local-clock/empty-port state.
+
+Connectivity `time_sync` metadata now separates `source_attributes`, available
+static attributes and dynamic time attributes. Its `software_clock` member
+reports the clock basis and limits. Static queries, setters, class discovery
+and malformed requests do not sample the host clock. A mixed list preserves
+known state and reports per-field errors if a time observation fails.
+
+Master offsets/delays, grandmaster/parent/local clock descriptions, system-time
+offset structures and remaining vendor fields stay unavailable. Setters, time
+synchronization, PTP traffic, GSV/SSV clock execution and hardware-clock claims
+remain unsupported. These reads do not complete native upload or tag monitoring.
+
+Rockwell's [TimeSynchronize object reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-timesynchronize-object.html)
+describes the time/status/port fields, and its
+[Time Synchronization module manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um542_-en-p.pdf)
+defines the system-time epoch and units. The installed v35 attribute definitions
+provide the CIP byte widths; GSV storage widths are not assumed to be identical.
+
+The suite runs 741 tests: Windows passes 739 with two Linux-only skips; Linux
+passes 740 with the Windows console check skipped. New checks cover exact epoch
+and integer boundaries, independent unit overflow, one-snapshot duplicate lists,
+host-clock failures/adjustments, empty port encodings, scan independence, source
+absence, malformed requests and signed setter denial.
+
+The unmodified source candidate preserves 12 scalar reads and Symbol descriptors
+and nine empty catalogs across 195 verified signed requests, then still fails
+controller collection after the Ethernet Link list, before Time Sync. In a
+separate diagnostic with earlier counter/handler fields substituted, the SDK
+requests the 32-field Time Sync list. The actual clock implementation returns
+14 supported fields in a 170-byte partial reply; wire checks confirm coherent
+units and zero PTP ports. Eighteen remaining fields are unavailable and upload
+still fails across 199 verified signed requests. The substitutions are excluded
+from the app. Source bytes, tag values and zero scan count were preserved with
+writes disabled; these results do not establish complete native upload.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

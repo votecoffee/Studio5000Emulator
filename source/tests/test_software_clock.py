@@ -1,0 +1,119 @@
+"""Local UTC reads stay coherent without asserting PTP synchronization."""
+import copy
+import struct
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from logixlab import software_clock
+from logixlab.ethernetip import Endpoint, Session
+from logixlab.server import Application
+
+
+class SoftwareClockTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.app = Application(self.tmp.name)
+        self.app.command('demo', {'sample': 'ConveyorDemo'})
+        self.endpoint = Endpoint(self.app, 0, True, 'logix-v35-l85e')
+        self.app.endpoint = self.endpoint
+
+    def tearDown(self):
+        self.app.close()
+        self.tmp.cleanup()
+
+    def send(self, service=0x0E, path=bytes.fromhex('204324013003'), data=b''):
+        return self.endpoint.router.handle(bytes((service, len(path)//2))+path+data, Session())
+
+    def test_epoch_large_integer_and_signed_64_bit_boundary_preserve_exact_units(self):
+        for timestamp in (0, 999, 1000, 1_700_000_000_123_456_789, 0x7FFFFFFFFFFFFFFF):
+            with self.subTest(timestamp=timestamp), patch('logixlab.software_clock.time.time_ns', return_value=timestamp):
+                values = software_clock.attributes(read_time=True)
+                self.assertEqual(struct.unpack('<q', values[3])[0], timestamp//1000)
+                self.assertEqual(struct.unpack('<q', values[4])[0], timestamp)
+                self.assertEqual(len(values[3]), 8)
+                self.assertEqual(len(values[4]), 8)
+
+    def test_invalid_or_unrepresentable_host_time_is_unavailable_without_fallback_zero(self):
+        for timestamp in (-1, 0x8000000000000000*1000, 1.5, True, None, '1000'):
+            with self.subTest(timestamp=timestamp), patch('logixlab.software_clock.time.time_ns', return_value=timestamp):
+                values = software_clock.attributes(read_time=True)
+                self.assertNotIn(3, values); self.assertNotIn(4, values)
+                self.assertEqual(values[2], b'\0')
+                self.assertEqual(values[11], bytes(2))
+        for error in (OSError('clock unavailable'), OverflowError('range'), ValueError('clock unavailable')):
+            with patch('logixlab.software_clock.time.time_ns', side_effect=error):
+                self.assertEqual(self.send(), bytes.fromhex('8e001400'))
+
+    def test_nanosecond_overflow_does_not_hide_representable_microseconds(self):
+        for timestamp in (0x8000000000000000, 0x7FFFFFFFFFFFFFFF*1000+999):
+            with self.subTest(timestamp=timestamp), patch('logixlab.software_clock.time.time_ns', return_value=timestamp):
+                values = software_clock.attributes(read_time=True)
+                self.assertEqual(struct.unpack('<q', values[3])[0], timestamp//1000)
+                self.assertNotIn(4, values)
+                self.assertEqual(self.send(path=bytes.fromhex('204324013004')), bytes.fromhex('8e001400'))
+
+    def test_single_reads_and_duplicate_list_fields_use_one_clock_snapshot(self):
+        timestamp = 1_700_000_000_123_456_789
+        with patch('logixlab.software_clock.time.time_ns', return_value=timestamp) as clock:
+            self.assertEqual(self.send(), bytes.fromhex('8e000000')+struct.pack('<q', timestamp//1000))
+            self.assertEqual(self.send(path=bytes.fromhex('204324013004')),
+                             bytes.fromhex('8e000000')+struct.pack('<q', timestamp))
+            self.assertEqual(clock.call_count, 2)
+        order = (4, 3, 4)
+        expected = (bytes.fromhex('83000000030004000000')+struct.pack('<q', timestamp)+
+                    bytes.fromhex('03000000')+struct.pack('<q', timestamp//1000)+
+                    bytes.fromhex('04000000')+struct.pack('<q', timestamp))
+        with patch('logixlab.software_clock.time.time_ns', side_effect=(timestamp, timestamp+1000)) as clock:
+            self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<4H', 3, *order)), expected)
+            clock.assert_called_once_with()
+
+    def test_empty_ptp_ports_have_exact_counted_structures_and_no_network_activity(self):
+        with patch('logixlab.software_clock.time.time_ns', side_effect=AssertionError('Unneeded clock read')):
+            self.assertEqual(self.send(path=bytes.fromhex('204324013002')), bytes.fromhex('8e00000000'))
+            for attr in (11, 12, 13, 14, 15, 24, 25, 26):
+                self.assertEqual(self.send(path=bytes.fromhex('2043240130')+bytes((attr,))), bytes.fromhex('8e0000000000'))
+        info = self.app.engine.project.time_sync.description()['software_clock']
+        self.assertEqual(info['ptp_port_count'], 0)
+        for name in ('synchronized', 'ptp_engine', 'accuracy_claimed', 'set_time', 'master_offset_measurements', 'hardware_clock'):
+            self.assertFalse(info[name])
+
+    def test_static_unknown_class_and_malformed_or_mutating_queries_do_not_sample_clock(self):
+        with patch('logixlab.software_clock.time.time_ns', side_effect=AssertionError('Unneeded clock read')):
+            self.assertEqual(self.send(path=bytes.fromhex('204324003001')), bytes.fromhex('8e0000000100'))
+            self.assertEqual(self.send(path=bytes.fromhex('204324013005')), bytes.fromhex('8e001400'))
+            self.assertEqual(self.send(3, bytes.fromhex('20432401'), bytes.fromhex('01000b00')), bytes.fromhex('8300000001000b0000000000'))
+            for service, path, data in ((0x0E, bytes.fromhex('204324013003'), b'\0'),
+                    (3, bytes.fromhex('20432401'), b''), (3, bytes.fromhex('20432401'), bytes(2)),
+                    (3, bytes.fromhex('20432401'), bytes.fromhex('02000300')),
+                    (0x10, bytes.fromhex('204324013003'), bytes(8)),
+                    (4, bytes.fromhex('20432401'), bytes.fromhex('01000300')+bytes(8)),
+                    (1, bytes.fromhex('20432401'), b'')):
+                self.assertNotEqual(self.send(service, path, data)[2], 0)
+
+    def test_clock_failure_preserves_known_fields_in_a_mixed_list(self):
+        with patch('logixlab.software_clock.time.time_ns', side_effect=OSError('unavailable')):
+            self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<5H', 4, 2, 3, 11, 4)),
+                             bytes.fromhex('83000a0004000200000000030014000b000000000004001400'))
+
+    def test_clock_is_independent_of_source_presence_scan_time_and_host_adjustments(self):
+        before = copy.deepcopy(self.app.engine.memory.values)
+        timestamp = 1_700_000_000_123_456_789
+        self.app.engine.time_ms = 5000
+        with patch('logixlab.software_clock.time.time_ns', side_effect=(timestamp, timestamp-1000)):
+            first = struct.unpack('<q', self.send()[4:])[0]
+            second = struct.unpack('<q', self.send()[4:])[0]
+        self.assertEqual(first-second, 1)
+        self.assertEqual(self.app.engine.memory.values, before)
+        self.assertEqual(self.app.engine.time_ms, 5000)
+        self.assertEqual(self.app.engine.scan_count, 0)
+        # This authored demo has no TimeSynchronize source declaration.
+        self.assertEqual(self.send(path=bytes.fromhex('204324013001')), bytes.fromhex('8e001400'))
+        self.assertEqual(self.send(path=bytes.fromhex('204324013002')), bytes.fromhex('8e00000000'))
+        info = self.app.engine.project.time_sync.description()['software_clock']
+        self.assertTrue(info['scan_time_independent'])
+        self.assertTrue(info['host_adjustments_visible'])
+
+
+if __name__ == '__main__':
+    unittest.main()

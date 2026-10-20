@@ -4,6 +4,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 from logixlab.ethernetip import Endpoint, Session, symbol_path
@@ -46,9 +47,13 @@ class TimeSyncTests(unittest.TestCase):
             self.assertEqual(settings.attributes(), {1: bytes((enabled,)), 16: b'\x80', 17: b'\x80'})
             desc = settings.description()
             self.assertEqual(desc['ptp_enabled'], enabled)
-            self.assertEqual(desc['available_attributes'], [1, 16, 17])
-            for key in ('settings_writable', 'ptp_engine', 'clock_measurements', 'port_metadata'):
+            self.assertEqual(desc['source_attributes'], [1, 16, 17])
+            self.assertEqual(desc['available_attributes'], [1, 2, 11, 12, 13, 14, 15, 16, 17, 24, 25, 26])
+            self.assertEqual(desc['dynamic_attributes'], [3, 4])
+            for key in ('settings_writable', 'ptp_engine'):
                 self.assertFalse(desc[key])
+            self.assertTrue(desc['clock_measurements'])
+            self.assertTrue(desc['port_metadata'])
 
     def test_absent_declaration_or_missing_fields_do_not_gain_defaults(self):
         self.node.attrib.clear()
@@ -111,19 +116,24 @@ class TimeSyncTests(unittest.TestCase):
         self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<4H', 3, 17, 1, 16)),
                          bytes.fromhex('830000000300110000008001000000001000000080'))
 
-    def test_native_requested_list_reports_all_unknown_measurements_and_labels(self):
+    def test_native_requested_list_reports_local_time_and_unknown_master_measurements(self):
         order = (*range(1, 29), 102, 103, 104, 105)
-        values = self.settings().attributes()
+        timestamp = 1_700_000_000_123_456_789
+        values = {**self.settings().attributes(), 2: b'\0',
+                  3: struct.pack('<q', timestamp//1000), 4: struct.pack('<q', timestamp),
+                  **{attr: bytes(2) for attr in (11, 12, 13, 14, 15, 24, 25, 26)}}
         expected = struct.pack('<H', len(order))
         for attr in order:
             expected += struct.pack('<HH', attr, 0 if attr in values else 0x14) + values.get(attr, b'')
-        self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<33H', 32, *order)),
-                         bytes.fromhex('83000a00')+expected)
+        with patch('logixlab.software_clock.time.time_ns', return_value=timestamp) as clock:
+            self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<33H', 32, *order)),
+                             bytes.fromhex('83000a00')+expected)
+            clock.assert_called_once_with()
         gap = self.endpoint.state()['attribute_gaps'][0]
         self.assertEqual(gap['class_name'], 'Time Sync')
         self.assertEqual([row['id'] for row in gap['attributes']], [a for a in order if a not in values])
-        self.assertEqual(gap['attributes'][0]['name'], 'Synchronization status')
-        self.assertEqual(self.send(path=bytes.fromhex('204324013002')), bytes.fromhex('8e001400'))
+        self.assertEqual(gap['attributes'][0]['name'], 'Offset from master')
+        self.assertEqual(self.send(path=bytes.fromhex('204324013002')), bytes.fromhex('8e00000000'))
 
     def test_class_discovery_describes_one_model_instance(self):
         for attr in (1, 2, 3):
