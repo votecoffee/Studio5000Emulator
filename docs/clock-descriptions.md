@@ -54,6 +54,23 @@ for the fifteen remaining unsupported fields.
 The 848-test suite passes on Windows and Linux with two and one expected
 platform skips, respectively.
 
+The packaged and deployed `.62` runtime and served browser assets match the
+committed source. All 268 wire checks pass, including exact single and reversed
+list description replies and a retained setter denial. The public native SDK
+completes its nine-step connection/Offline sequence with 81 verified signed
+requests. Its upload request receives all three descriptions with successful
+per-field statuses, alongside errors for the fifteen remaining unsupported Time
+Sync fields. Upload still fails controller collection across 197 requests; tag
+reads still fail online-address discovery across 83 requests without sending
+tag-read packets. These probes preserve source bytes and modeled state.
+
+A fresh native download probe verifies 104 signed requests, accepts Run Mode
+Inhibit and fails `RxCsE_ASA_NO_PERMISSION` at Controller service `0x60`. Every
+probe confirms Offline cleanup. The final endpoint has no TCP clients, a free
+lease, zero inhibit mask and scan count zero. Original ACD bytes, modeled values
+and model time remain unchanged. FactoryTalk Linx and the Logix Designer SDK
+service remained running.
+
 Native upload and download acceptance, Studio GUI monitoring and online edits
 remain separate milestones. Controller service `0x60` still rejects download
 preparation; an operation-identifier substitution also left the SDK polling and

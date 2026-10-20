@@ -11,6 +11,15 @@ user description. These identify the software clock without assigning hardware
 identity or synchronization measurements. Fifteen requested Time Sync fields
 remain unavailable; complete native upload is unfinished.
 
+The rebuilt `.62` endpoint passes 268 wire checks and the SDK's nine-step
+connection/Offline sequence with 81 verified signed requests. Its upload trace
+includes successful per-field description replies while still failing controller
+collection across 197 requests. Tag reads retain the online-address failure
+across 83 requests. Source and modeled state are preserved. See the
+[deployed clock-description validation](clock-descriptions.md#validation).
+Download verifies 104 requests, still fails at Controller service `0x60`, and
+confirms Offline cleanup with its lease and inhibit cleared.
+
 Version `.61` adds an owner-scoped [Run Mode Inhibit](run-mode-inhibit.md).
 The accepted UINT mask is reflected in single/list reads and prevents scans
 until cleared or the owning lease ends. The native download probe now reaches
