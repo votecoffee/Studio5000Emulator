@@ -118,6 +118,10 @@ Version `.99` adds bounded [atomic-array Data Table storage](docs/atomic-array-s
 Native upload now reads the tested array's descriptors and values, advancing
 beyond its previous missing-storage error. Full upload and SDK tag-address
 discovery remain unfinished.
+Version `.100` adds [structured Data Table storage](docs/structured-storage.md)
+using the existing symbolic UDT layouts, with real network readback and queued
+external member writes. Native UDT upload stops at earlier Template metadata;
+native tag monitoring and full upload/download remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio
@@ -341,7 +345,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches and observed single-inner `0x39` transfers with reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
+| Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |
 | PLC message mapping | Source-checked empty PCCC mapping descriptors; configured mappings and PCCC commands remain unsupported |
 | Time Sync | Source-backed PTP enable/priorities, read-only local UTC time and explicit unsynchronized/empty-port state; PTP networking remains unsupported |

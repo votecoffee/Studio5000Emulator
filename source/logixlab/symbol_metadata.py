@@ -1,4 +1,4 @@
-"""Symbol descriptors for ordinary scalars in this model's address space.
+"""Symbol descriptors for supported values in this model's address space.
 
 Addresses identify backed model bytes, never firmware or host-process memory.
 Unsupported tag kinds retain basic discovery without invented storage fields.
@@ -22,13 +22,14 @@ def attributes(symbol, constant, storage=None):
                        5: struct.pack('<I', storage.symbol_address),
                        6: bytes(4), 7: struct.pack('<H', storage.element_size),
                        12: struct.pack('<I', storage.instance),
-                       14: bytes(4)})  # Ordinary local base scalars have no signatures.
+                       14: bytes(4)})  # Model storage does not claim native signatures.
     return result
 
 
 def description():
     return {'read_attributes': [1, 2, 8, 9, 10, 11],
             'scalar_attributes': [3, 5, 6, 7, 12, 14],
-            'scalar_storage': 'Ordinary nonconstant base atomic scalars and arrays',
+            'scalar_storage': 'Nonconstant base atoms and supported explicit user structures',
+            'shared_symbolic_layouts': True,
             'modeled_addresses': True, 'physical_addresses': False,
             'formal_types': False, 'native_project_upload': False}

@@ -1,4 +1,4 @@
-"""Read-only Data Table descriptors and bounded atomic model storage.
+"""Read-only Data Table descriptors and bounded model storage.
 
 IDs belong to this model and reuse the corresponding Symbol ID in each scope.
 They are not native compiled Data Table IDs or physical controller addresses.
@@ -17,17 +17,32 @@ SYMBOL_BASE = 0x60000000
 
 
 @dataclass(frozen=True)
+class StructureLayout:
+    """Reuse the symbolic wire catalog; this is never a native memory layout."""
+    catalog: object
+    template: object
+
+    @property
+    def size(self): return self.template.size
+
+    def encode(self, ref, read): return self.catalog.encode(self.template,ref,read)
+
+
+@dataclass(frozen=True)
 class Cell:
     ref: str
     instance: int
     code: int
-    fmt: str
+    fmt: str | StructureLayout
     slot: int
     dimensions: tuple = (0,0,0)
     array_offset: int = 0
 
     @property
-    def element_size(self): return struct.calcsize(self.fmt)
+    def element_size(self): return self.fmt.size if isinstance(self.fmt,StructureLayout) else struct.calcsize(self.fmt)
+
+    @property
+    def aggregate(self): return isinstance(self.fmt,StructureLayout) or any(self.dimensions)
 
     @property
     def size(self):
@@ -41,7 +56,7 @@ class Cell:
 
     @property
     def value_address(self):
-        return ARRAY_VALUE_BASE+self.array_offset if any(self.dimensions) else VALUE_BASE+self.slot*8
+        return ARRAY_VALUE_BASE+self.array_offset if self.aggregate else VALUE_BASE+self.slot*8
 
     @property
     def symbol_address(self): return SYMBOL_BASE + self.slot * 32
@@ -53,27 +68,35 @@ class Cell:
 
     def symbol_header(self):
         # Model-owned Symbol descriptor: value/table links, type, size, ID,
-        # ordinary-base control and scalar dimensions. Not a firmware layout.
+        # ordinary-base control and dimensions. Not a firmware layout.
         return struct.pack('<IIHHI4I', self.value_address, self.address,
                            self.code, self.element_size, self.instance, 0, *self.dimensions)
 
     def value(self, read):
         value = read(self.ref)
-        if value is None: raise ModelError('Unknown Data Table scalar value')
+        structured=isinstance(self.fmt,StructureLayout)
+        if value is None: raise ModelError('Unknown Data Table value')
         if any(self.dimensions):
             items=[];shape=tuple(d for d in self.dimensions if d)
-            def flatten(part,depth):
+            def flatten(part,depth,ref):
                 if depth==len(shape):
-                    if part is None or isinstance(part,(list,dict)):
+                    if part is None or isinstance(part,list) or isinstance(part,dict)!=structured:
                         raise ModelError('Invalid Data Table array element')
-                    items.append(part);return
+                    items.append(ref if structured else part);return
                 if not isinstance(part,list) or len(part)!=shape[depth]:
                     raise ModelError('Data Table array shape changed')
-                for item in part:flatten(item,depth+1)
-            flatten(value,0)
-            try:return struct.pack('<'+self.fmt.removeprefix('<')*len(items),*items)
+                for index,item in enumerate(part):flatten(item,depth+1,ref+'['+str(index)+']')
+            flatten(value,0,self.ref)
+            try:
+                if structured:return b''.join(self.fmt.encode(ref,read) for ref in items)
+                return struct.pack('<'+self.fmt.removeprefix('<')*len(items),*items)
             except (TypeError,ValueError,OverflowError,struct.error) as error:
                 raise ModelError('Invalid Data Table array value') from error
+        if structured:
+            if not isinstance(value,dict):raise ModelError('Invalid Data Table structure value')
+            try:return self.fmt.encode(self.ref,read)
+            except (TypeError,ValueError,OverflowError,struct.error) as error:
+                raise ModelError('Invalid Data Table structure value') from error
         try: return struct.pack(self.fmt, int(value) if self.code == 0xC1 else value)
         except (TypeError, ValueError, OverflowError, struct.error) as error:
             raise ModelError('Invalid Data Table scalar value') from error
@@ -95,7 +118,7 @@ class AddressSpace:
                     or (symbol['type']>>13)&3!=sum(d>0 for d in dimensions)):
                 raise ModelError('Invalid Data Table array dimensions')
             cell=Cell(symbol['ref'],symbol['id'],symbol['type'],fmt,slot,dimensions,array_bytes)
-            if any(dimensions):
+            if cell.aggregate:
                 if symbol['type']&0x1FFF==0xC1:continue  # Packed BOOL arrays remain unsupported.
                 size=(cell.size+7)//8*8
                 if cell.size>MAX_ARRAY_BYTES or array_bytes+size>MAX_ARRAY_STORAGE_BYTES:continue
@@ -115,14 +138,14 @@ class AddressSpace:
             # omitted, so resolve descriptor slots rather than tuple positions.
             cell=self.by_slot.get(slot)
             if cell is None:continue
-            if kind=='value' and any(cell.dimensions):continue
+            if kind=='value' and cell.aggregate:continue
             size = cell.size if kind == 'value' else 32
             if offset + count > size: raise ModelError('Model storage read crosses a cell boundary')
             raw = (cell.header() if kind == 'table' else cell.symbol_header()
                    if kind == 'symbol' else cell.value(read))
             return raw[offset:offset + count]
         for cell in self.cells:
-            if not any(cell.dimensions) or not cell.value_address<=address<cell.value_address+cell.size:continue
+            if not cell.aggregate or not cell.value_address<=address<cell.value_address+cell.size:continue
             offset=address-cell.value_address
             if offset+count>cell.size:raise ModelError('Model storage read crosses a cell boundary')
             return cell.value(read)[offset:offset+count]
@@ -141,9 +164,11 @@ def attributes(symbol, storage=None):
 def description():
     return {'object_revision':1,'instance_list':True,'read_attributes':[1,2,8],
             'scalar_attributes':[3,6,7,9],'scalar_value_service':'0x4F',
-            'scalar_storage':'Ordinary nonconstant base atomic scalars and arrays; zero data-use flags',
+            'scalar_storage':'Nonconstant base atoms and supported explicit user structures; zero data-use flags',
             'scalar_storage_limit':MAX_SCALARS,'modeled_addresses':True,
             'atomic_arrays':True,'array_byte_limit':MAX_ARRAY_BYTES,'array_storage_byte_limit':MAX_ARRAY_STORAGE_BYTES,
+            'explicit_user_structures':True,'aggregate_byte_limit':MAX_ARRAY_BYTES,
+            'aggregate_storage_byte_limit':MAX_ARRAY_STORAGE_BYTES,'shared_symbolic_layouts':True,
             'id_policy':'Model IDs reuse Symbol IDs within each program scope',
             'coverage':'Supported externally readable base tags; aliases excluded',
             'physical_addresses':False,'formal_types':False,'native_project_upload':False}

@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.99` adds [backed atomic-array Data Table storage](atomic-array-storage.md).
+Current milestone: `.100` adds [structured Data Table storage](structured-storage.md)
+using the existing symbolic UDT layouts. Real TCP reads agree with symbolic
+values before and after queued external writes. Native UDT upload stops at
+earlier Template metadata, before exercising the new storage path.
+
+Version `.99` adds [backed atomic-array Data Table storage](atomic-array-storage.md).
 The native array upload advances from 167 to 200 verified requests, passing its
 array metadata/value reads before the remaining Controller collection failure.
 External queued values are visible through subsequent Data Table reads. Native

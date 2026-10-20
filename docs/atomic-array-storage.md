@@ -6,6 +6,9 @@ catalogs retain their source-bound IDs, dimensions, types and access checks.
 Aliases, private/safety tags, structures and packed BOOL arrays remain outside
 this storage profile.
 
+Version `.100` also supports [explicit user structures](structured-storage.md).
+Structures and atomic arrays share the aggregate allocation bounds below.
+
 ## Descriptors and values
 
 Supported arrays now expose Data Table attributes 3, 6, 7 and 9, plus the linked
