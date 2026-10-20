@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.48` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.49` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -817,6 +817,19 @@ units and zero PTP ports. Eighteen remaining fields are unavailable and upload
 still fails across 199 verified signed requests. The substitutions are excluded
 from the app. Source bytes, tag values and zero scan count were preserved with
 writes disabled; these results do not establish complete native upload.
+
+The rebuilt `.49` appliance passed 131 live protocol checks, including coherent
+duplicate time fields, unsynchronized status, all eight empty port fields and
+denied time writes. Its eight native SDK connection steps passed across 84
+verified signed requests and ended Offline. Deployed upload preserved 12 scalar
+reads and Symbol descriptors and nine empty catalogs across 196 verified
+requests, but still failed controller collection after the Ethernet Link list;
+it did not reach Time Sync. A separate hold/read check completed 92 verified
+requests without correlation loss and ended Offline; typed/generic BOOL and DINT
+reads still fail `RxDA_E_NO_ONLINE_ADDRESS`. Original ACD bytes, tag values and
+zero scan count were preserved with writes disabled. Deployed modules, served
+web assets, app version and Windows artifact matched source. Full upload/download,
+native GUI monitoring and online edits remain unfinished.
 
 ### Change Log correlation
 
