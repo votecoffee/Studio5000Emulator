@@ -91,7 +91,7 @@ Version `.59` adds the [nested I/O Connection class-revision read](docs/io-conne
 used by native discovery, with its parent scope preserved in diagnostics.
 Full native upload and online tag monitoring remain unfinished.
 The 825-test suite passes on Windows and Linux with expected platform skips;
-the running `.58` endpoint previously passed 236 wire checks. Current SDK upload, tag-read
+the running `.59` endpoint passes 248 wire checks. Current SDK upload, tag-read
 and download probes still fail their native acceptance steps.
 
 ## Usage

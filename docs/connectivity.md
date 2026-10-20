@@ -11,6 +11,14 @@ software class revision read. Module instances and I/O Connection instances
 remain unsupported. The native SDK accepts this read; full upload still fails
 controller collection.
 
+The rebuilt `.59` endpoint passes 248 wire checks and the public SDK's nine-step
+connection/Offline cleanup probe with 82 verified signed requests. Tag and
+upload probes verify 84 and 198 requests; they retain their online-address and
+controller-collection failures. A fresh download probe verifies 96 requests,
+still fails `RxCsE_ASA_INVALID_IOI_SEGMENT_TYPE`, and confirms Offline cleanup.
+Source bytes and modeled state are preserved. See the
+[deployed validation and remaining nested Semaphore path](io-connection-discovery.md#validation-boundary).
+
 Version `.58` adds [native session policy and diagnostics](native-session-policy.md):
 empty Data Logging discovery, existing Timeline UID acknowledgements without
 metadata replacement, and visible pre-dispatch native rejections. These bounded

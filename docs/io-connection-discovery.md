@@ -65,3 +65,20 @@ Time Sync list. Across those two probes, 280 signed requests verify, and the
 former nested-path rejection is absent. Modeled values and scan count remain
 unchanged. This closes a demonstrated protocol gap without establishing full
 upload, native tag-address discovery, programming or Studio GUI monitoring.
+
+The rebuilt and restarted `.59` appliance passes 248 wire checks. Its embedded
+version, served web assets and deployed source hashes match the release. The
+deployed public SDK connection probe passes all nine steps with 82 verified
+signed requests. Separate tag and upload probes verify 84 and 198 requests;
+the upload accepts the nested revision response and retains 12 scalar reads
+and 12 Symbol descriptors. Both tag reads still fail before a tag-read packet
+is sent, with `RxDA_E_NO_ONLINE_ADDRESS`.
+
+A fresh private public-SDK download probe verifies 96 requests and still fails
+with `RxCsE_ASA_INVALID_IOI_SEGMENT_TYPE`. The trace also contains a different
+unsupported nested path: Controller `0x8E`, instance `1` / Semaphore `0x74`,
+instance `1`, service `0x4B`. Its error alone does not establish the SDK's root
+failure or the semantics of a programming session. That service is unimplemented.
+All four probes confirm Offline cleanup and preserve the original ACD, modeled
+values, scan count and scan time. Client connections close, both application
+write gates remain disabled, and no Windows service is reconfigured.

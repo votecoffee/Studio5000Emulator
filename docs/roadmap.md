@@ -11,6 +11,9 @@ supports a source-checked class-revision read. The SDK accepts that discovery
 request; upload still fails controller collection. See
 [I/O Connection discovery](io-connection-discovery.md).
 Native tag-address discovery and programming remain unfinished.
+The latest download trace also rejects a nested Controller / Semaphore path.
+Investigate that programming-session service and its ownership/lifecycle rules
+separately; accepting a class-revision read does not provide download authority.
 
 Version `.58` adds source-checked empty Data Logging discovery,
 acknowledgements that retain an existing source Timeline UID, and visible native
