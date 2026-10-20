@@ -148,6 +148,32 @@ The [isolated research session probe](research-session-probe.md) can exercise
 the custom emulator's signed protocol without that service; its results remain
 separate from native Studio acceptance.
 
+The helper closes backend HTTP connections explicitly and permits at most three
+attempts for pure session-token and observation reads after a transport error.
+Recovered read failures are recorded as `backendReadRecoveries`. SDK operations
+and controller-mode commands are never retried. An initial `.79` mode test
+failed on a prematurely ended backend HTTP read after successful SDK mode
+cycles. A fresh test passed all 17 steps and 114 verified signed requests with
+no recovered reads; the first failure's cause remains unconfirmed.
+
+The `.79` suite runs 1,118 tests: two skips on Windows and four on Linux, where
+three additional independent-client tests require optional `cryptography`.
+The rebuilt appliance passes 301 live wire checks. All 66 application modules
+and served browser assets match source, and the Windows artifact includes the
+new modules with the matching version. An independent client using a fresh key
+and the server's ordinary nonce passes 18 real TCP checks, including preparation
+and typed readback of all 904 records in the retained device payload.
+
+Native `.79` connection/Offline passes nine steps and 81 verified requests.
+Tag reads remain unavailable across 83 requests; upload still fails across 199,
+and download fails across 182 after temporary image preparation succeeds.
+Those cases confirm cleanup. The mode repeat described above confirms both SDK
+and webpage Run/Program propagation. The isolated edit test verifies 98 signed
+requests but again faults the SDK and leaves native cleanup unconfirmed;
+explicit emulator cleanup restores the main listener. Source ACD hashes remain
+unchanged. Native SDK testing is paused; complete transfers and online edits
+remain unimplemented.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

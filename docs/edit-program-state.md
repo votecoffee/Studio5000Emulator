@@ -25,10 +25,14 @@ byte. Attribute-list reads retain the ordinary count, attribute ID and
 per-attribute status fields before that byte. Unknown attributes still receive
 their ordinary unavailable status.
 
-This metadata does not change execution state or accept an online edit. The
-earlier native import failed fatally after reading this previously unavailable
-field and later Controller metadata. The available packets do not establish
-which missing field caused the SDK failure. Program readback can be checked
-independently while native SDK edit testing remains suspended pending a healthy
-SDK service. Compiled routine identity, edit storage, acceptance, testing,
-assembly and commit remain separate work.
+This metadata does not change execution state or accept an online edit. A `.79`
+native import successfully read the Program field. Its next unavailable read
+was class `0x70`, instance `1`, attribute `19`; later Controller reads also
+returned unsupported fields. The SDK again reported `LgxSrv_E_FATAL_ERROR`.
+These packets do not establish which missing field caused the SDK failure.
+Source and model remained unchanged, but native cleanup was unconfirmed; the
+isolated emulator connection was explicitly closed and the main endpoint
+restored. Native SDK tests are paused. Program readback can be checked with the
+[independent protocol client](research-session-probe.md). Compiled routine
+identity, edit storage, acceptance, testing, assembly and commit remain separate
+work.

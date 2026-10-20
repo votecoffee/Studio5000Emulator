@@ -77,3 +77,13 @@ the lingering connection before its original address and the normal endpoint
 were restored. Both application instances and source/model state were retained.
 No automatic SDK-service restart or repeated edit attempt followed. Further SDK
 testing requires a healthy SDK service.
+
+Version `.79` supplies the source-bound [Program Disable field](edit-program-state.md).
+An isolated native repeat read it successfully and verified 98 signed requests.
+The first unavailable import read then targeted class `0x70`, instance `1`,
+attribute `19`. Later Controller reads remained partial or unsupported, and the
+SDK repeated `LgxSrv_E_FATAL_ERROR`. No active edit-write or commit was observed.
+The report remains `incomplete`, with native cleanup unconfirmed. Explicit
+emulator socket cleanup restored the main listener, and the original ACD and
+modeled state were preserved. Native SDK testing is paused after this result;
+source work and isolated protocol testing can continue without the SDK.
