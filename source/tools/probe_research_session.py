@@ -54,6 +54,11 @@ def exercise(app,client,payload=None,expanded=None):
         if value is not None:check(f'controller_source_field_{number}',bytes.fromhex('0e03208e240130')+bytes((number,)),b'\x8e\0\0\0'+value)
     check('edit_reservation',bytes.fromhex('4b04208e24012074240101'),bytes.fromhex('cb000000'))
     for row in app.endpoint.router.programs():
+        semaphore=b'\x20\x68'+logical(0x24,row['id'])+b'\x20\x74\x24\1'
+        check('program_reservation',bytes((0x4B,len(semaphore)//2))+semaphore+b'\0',bytes.fromhex('cb000000'))
+        assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
+        check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
+        assert not app.endpoint.state()['native_programming_lease']['scan_inhibited']
         attrs=app.engine.project.program_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
         if 19 in attrs:
             path=b'\x20\x68'+logical(0x24,row['id'])

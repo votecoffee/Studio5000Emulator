@@ -11,10 +11,19 @@ import xml.etree.ElementTree as ET
 
 from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_url,
                                     validate_operation, validate_idle, validate_mode_probe, wait_for_cleanup, run,
-                                    edit_request, rejection_delta, edit_trace_evidence, sdk_diagnostic_codes)
+                                    edit_request, rejection_delta, edit_trace_evidence, sdk_diagnostic_codes, validate_tag_read_type)
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_typed_tag_getters_are_explicit_and_require_a_tag_connection_case(self):
+        for kind in ('BYTE_ARRAY','BOOL','DINT','REAL'):
+            self.assertEqual(validate_tag_read_type('connection',['tag'],kind),kind)
+        for kind in ('BOOL','DINT','REAL'):
+            for operation,tags in (('connection',[]),('upload',[]),('download',[]),('edits',[])):
+                with self.assertRaises(ValueError):validate_tag_read_type(operation,tags,kind)
+        for kind in ('bool','STRING','',None):
+            with self.assertRaises(ValueError):validate_tag_read_type('connection',['tag'],kind)
+
     def test_diagnostic_codes_include_import_log_mnemonic_and_wrapped_sdk_errors(self):
         report={'steps':[{'status':'failed','errors':[
             {'message':'XMLSrv_E_IMPORT_ABORTED_NO_CHANGES - See import log'},
@@ -73,6 +82,9 @@ class NativeSdkProbeTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_idle(other)
         for value in (None,{},[]):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+        for value in (1,-1,True,False,None,'0'):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation']['program_reservations']=value
             with self.assertRaises(ValueError):validate_idle(other)
 
     def test_download_image_requires_empty_unbound_idle_storage_with_all_authority_disabled(self):

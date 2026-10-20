@@ -71,7 +71,7 @@ class Application:
         # Caller owns app.lock; protocol dispatch uses this same lock order.
         if self.endpoint and self.endpoint.native_read_only:
             with self.endpoint.lock:
-                return bool(self.endpoint.programming_lease.inhibit(self.generation,self.engine.project.sha256))
+                return self.endpoint.programming_lease.scan_inhibited(self.generation,self.engine.project.sha256)
         return False
 
     def controller_state(self):

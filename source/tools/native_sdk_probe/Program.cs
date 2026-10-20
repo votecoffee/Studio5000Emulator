@@ -12,7 +12,9 @@ using RockwellAutomation.LogixDesigner.Logging;
 if (args.Length != 2) return 2;
 var options = JsonSerializer.Deserialize<Options>(File.ReadAllText(args[0]))!;
 if (options.Operation is not ("connection" or "upload" or "download" or "modes" or "edits") || options.Tags.Length > 32 ||
-    options.Operation != "connection" && options.Tags.Length != 0)
+    options.Operation != "connection" && options.Tags.Length != 0 ||
+    options.TagReadType is not ("BYTE_ARRAY" or "BOOL" or "DINT" or "REAL") ||
+    options.TagReadType != "BYTE_ARRAY" && (options.Operation != "connection" || options.Tags.Length == 0))
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
@@ -221,8 +223,15 @@ try
         foreach (var tag in options.Tags)
         {
             if (serverFaulted) break;
-            try { await Step("GetTagValueAsync:" + tag, async () =>
-                (await project!.GetTagValueAsync(tag, LogixProject.OperationMode.Online, LogixProject.DataType.BYTE_ARRAY)).ToBase64()); }
+            string method = options.TagReadType switch {
+                "BOOL" => "GetTagValueBOOLAsync", "DINT" => "GetTagValueDINTAsync",
+                "REAL" => "GetTagValueREALAsync", _ => "GetTagValueAsync" };
+            try { await Step(method + ":" + tag, async () => {
+                if (options.TagReadType == "BOOL") return await project!.GetTagValueBOOLAsync(tag, LogixProject.OperationMode.Online);
+                if (options.TagReadType == "DINT") return await project!.GetTagValueDINTAsync(tag, LogixProject.OperationMode.Online);
+                if (options.TagReadType == "REAL") return await project!.GetTagValueREALAsync(tag, LogixProject.OperationMode.Online);
+                return (await project!.GetTagValueAsync(tag, LogixProject.OperationMode.Online, LogixProject.DataType.BYTE_ARRAY)).ToBase64();
+            }); }
             catch { }
         }
         if (!serverFaulted)
@@ -274,7 +283,8 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
 return passed ? 0 : 1;
 
 sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags,
-                      string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null);
+                      string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null,
+                      string TagReadType = "BYTE_ARRAY");
 sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption);
 sealed class Capture : IOperationEvent
 {

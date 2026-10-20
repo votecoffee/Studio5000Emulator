@@ -68,6 +68,12 @@ reconfigured.
 The default connection test records Go Online, connected state, controller mode,
 Go Offline and cleanup state. Add `--tag "Controller/Tags/Tag[@Name='Example']"`
 to test a generic online byte-array read; repeated `--tag` options are supported.
+Version `.84` adds `--tag-read-type BOOL`, `DINT` or `REAL` to call the matching
+typed SDK getter. The default `BYTE_ARRAY` keeps the generic byte-array API.
+The selected type applies to every `--tag` in that invocation. Typed reads
+require a connection case with at least one tag; upload/download/edit/mode
+cases cannot select a typed getter. Reports retain the requested API type and
+the actual method result. A typed getter does not establish native addresses.
 Use `--operation upload` for a separate upload attempt. Version `.63` adds
 `--operation download` to call the public SDK's `DownloadAsync` against that same
 source-bound endpoint. This tests programming preparation while the endpoint's

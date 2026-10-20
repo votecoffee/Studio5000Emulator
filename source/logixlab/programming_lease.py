@@ -9,6 +9,7 @@ from .library_staging import LibraryStaging
 from .metadata_staging import MetadataStaging
 from .resilient_transport import ResilientTransport
 
+MAX_PROGRAM_RESERVATIONS=128
 
 class LeaseError(ValueError):
     def __init__(self, status, reason):
@@ -32,6 +33,7 @@ class ProgrammingLease:
 
     def clear_staging(self):
         self.libraries.clear();self.metadata.clear();self.transport.clear()
+        self.program_reservations=set()
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -85,6 +87,23 @@ class ProgrammingLease:
         if self.selector!=1:
             raise LeaseError(0x0F,'edit_reservation_required')
 
+    def reserve_program(self,native,generation,source_sha256,program):
+        self.require_edit_owner(native,generation,source_sha256)
+        if type(program) is not int or not 1<=program<=0xFFFFFFFF:
+            raise LeaseError(3,'invalid_program_reservation')
+        if program not in self.program_reservations and len(self.program_reservations)>=MAX_PROGRAM_RESERVATIONS:
+            raise LeaseError(2,'program_reservation_limit')
+        self.program_reservations.add(program)
+
+    def release_program(self,native,generation,source_sha256,program):
+        self.require_edit_owner(native,generation,source_sha256)
+        if type(program) is not int or not 1<=program<=0xFFFFFFFF:
+            raise LeaseError(3,'invalid_program_reservation')
+        self.program_reservations.discard(program)
+
+    def scan_inhibited(self,generation,source_sha256):
+        return self.live(generation,source_sha256) and bool(self.run_inhibit or self.program_reservations)
+
     def inhibit(self, generation, source_sha256):
         return self.run_inhibit if self.live(generation,source_sha256) else 0
 
@@ -116,8 +135,8 @@ class ProgrammingLease:
                 'edit_preparation':{'status':'reserved' if owned and self.selector==1 else 'idle',
                     'reserved':owned and self.selector==1,'source_bound':owned and self.selector==1,
                     'changes_staged':0,'active_changes':False,'accepted':False,'testing':False,
-                    'assembled':False,'commit':False},
-                'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':owned and bool(self.run_inhibit),
+                    'assembled':False,'commit':False,'program_reservations':len(self.program_reservations) if owned else 0},
+                'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':self.scan_inhibited(generation,source_sha256),
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,
                 'library_staging':self.libraries.description(),

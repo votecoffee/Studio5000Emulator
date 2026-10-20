@@ -113,6 +113,14 @@ def validate_operation(operation, tags):
         raise ValueError('At most 32 nonempty tag XPaths of at most 1024 characters')
 
 
+def validate_tag_read_type(operation,tags,read_type):
+    if read_type not in ('BYTE_ARRAY','BOOL','DINT','REAL'):
+        raise ValueError('Supported SDK tag-read types are BYTE_ARRAY, BOOL, DINT and REAL')
+    if read_type!='BYTE_ARRAY' and (operation!='connection' or not tags):
+        raise ValueError('A typed SDK read requires a connection probe and at least one --tag')
+    return read_type
+
+
 def edit_request(state, program, routine, option):
     """Create one NOP insert for a loaded, ordinary RLL routine, never arbitrary XML."""
     if option not in ('LeaveEdits', 'AcceptEdits'):
@@ -224,6 +232,8 @@ def validate_staging(lease):
                 any(edit.get(field) is not False for field in ('reserved', 'source_bound', 'active_changes',
                     'accepted', 'testing', 'assembled', 'commit'))):
             raise ValueError('Probe requires an empty idle edit reservation without active edits')
+        if 'program_reservations' in edit and (type(edit['program_reservations']) is not int or edit['program_reservations']!=0):
+            raise ValueError('Probe requires empty Program reservations')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]
@@ -376,6 +386,7 @@ def run(args):
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
+    tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
     edit_options = tuple(getattr(args, name, None) for name in ('edit_program', 'edit_routine', 'edit_import_option'))
     if args.operation != 'edits' and any(value is not None for value in edit_options):
         raise ValueError('Edit options belong to an edits diagnostic')
@@ -398,7 +409,7 @@ def run(args):
     if digest(copied) != source_hash:
         raise ValueError('Source changed while creating the private copy')
     config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
-                  Operation=args.operation, Tags=args.tag)
+                  Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
     if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
     if edit_payload is not None:
         edit_file = output / 'nop-rung.L5X'
@@ -454,6 +465,7 @@ def run(args):
                                     stdout=log, stderr=subprocess.STDOUT, timeout=120, **background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
+        summary['tag_read_type']=tag_read_type
         summary.update(sdk_server_faulted=report.get('serverFaulted'),
                        native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'),
                        native_sdk_diagnostic_codes=sdk_diagnostic_codes(report))
@@ -508,6 +520,8 @@ def main():
     parser.add_argument('--edit-import-option', choices=('LeaveEdits', 'AcceptEdits'),
                         help='edits only: defaults to AcceptEdits to test the controller request; LeaveEdits is a local pending-edit comparison')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
+    parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
+                        help='Use the generic byte-array API or a typed SDK getter for every selected tag')
     parser.add_argument('--output', help='New private output directory; default .local/native-probes/<unique run>')
     parser.add_argument('--sdk-feed', help='Optional installed SDK NuGet feed directory')
     args = parser.parse_args()

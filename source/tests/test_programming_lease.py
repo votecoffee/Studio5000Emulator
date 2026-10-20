@@ -10,7 +10,7 @@ from logixlab import signed_messages
 from logixlab.ethernetip import CIPError,Endpoint,Session,decode_path,logical,symbol_path
 from logixlab.native_project import NativeProjectIdentity
 from logixlab.native_session import NativeSession
-from logixlab.programming_lease import LeaseError,ProgrammingLease
+from logixlab.programming_lease import LeaseError,ProgrammingLease,MAX_PROGRAM_RESERVATIONS
 from logixlab.server import Application
 import test_native_session as native_tests
 from test_ethernetip import Client
@@ -22,6 +22,27 @@ RELEASE=bytes.fromhex('4c04208e240120742401')
 
 
 class ProgrammingLeaseModelTests(unittest.TestCase):
+    def test_program_reservations_are_owned_bounded_idempotent_and_inhibit_scans(self):
+        self.lease.acquire(self.first,1,'a'*64,selector=1)
+        for program in range(1,MAX_PROGRAM_RESERVATIONS+1):
+            self.lease.reserve_program(self.first,1,'a'*64,program)
+        self.lease.reserve_program(self.first,1,'a'*64,1)
+        self.assertEqual(len(self.lease.program_reservations),MAX_PROGRAM_RESERVATIONS)
+        with self.assertRaises(LeaseError) as error:self.lease.reserve_program(self.first,1,'a'*64,MAX_PROGRAM_RESERVATIONS+1)
+        self.assertEqual(error.exception.status,2)
+        for value in (True,False,0,-1,1<<32,'1'):
+            with self.assertRaises(LeaseError):self.lease.reserve_program(self.first,1,'a'*64,value)
+            with self.assertRaises(LeaseError):self.lease.release_program(self.first,1,'a'*64,value)
+        with self.assertRaises(LeaseError):self.lease.release_program(self.second,1,'a'*64,1)
+        self.assertTrue(self.lease.scan_inhibited(1,'a'*64))
+        self.assertEqual(self.lease.inhibit(1,'a'*64),0)
+        for program in range(1,MAX_PROGRAM_RESERVATIONS+1):self.lease.release_program(self.first,1,'a'*64,program)
+        self.lease.release_program(self.first,1,'a'*64,1)
+        self.assertFalse(self.lease.scan_inhibited(1,'a'*64))
+        self.lease.release(self.first,1,'a'*64)
+        self.lease.acquire(self.first,1,'a'*64,selector=0)
+        with self.assertRaises(LeaseError):self.lease.reserve_program(self.first,1,'a'*64,1)
+
     def setUp(self):
         self.now=100.;self.lease=ProgrammingLease(lambda:self.now)
         self.first=self.context();self.second=self.context()
@@ -98,6 +119,7 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
     def test_edit_reservation_clears_with_owner_release_disconnect_source_generation_and_expiry(self):
         for kind in ('release','discard','source','generation','expiry','closed','key','stage'):
             self.now=100;first=self.context();self.lease.acquire(first,1,'a'*64,selector=1)
+            self.lease.reserve_program(first,1,'a'*64,300)
             generation=1;source='a'*64
             if kind=='release':self.lease.release(first,1,source)
             elif kind=='discard':self.lease.discard(first)
@@ -113,6 +135,8 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
                 self.assertEqual(state['edit_preparation']['status'],'idle')
                 self.assertFalse(state['edit_preparation']['reserved'] or state['edit_preparation']['source_bound'])
                 self.assertIsNone(self.lease.owner)
+                self.assertEqual(self.lease.program_reservations,set())
+                self.assertFalse(self.lease.scan_inhibited(generation,source))
 
     def test_unknown_or_boolean_selector_never_acquires_or_changes_an_existing_reservation(self):
         for owned in (False,True):
@@ -134,7 +158,7 @@ class SemaphorePathTests(unittest.TestCase):
             self.assertIsNone(path.program_instance);self.assertIsNone(path.io_map_instance)
 
     def test_missing_mixed_and_deeper_paths_are_invalid(self):
-        for raw in ('208e24012074','208e240020742401','2068240120742401',
+        for raw in ('208e24012074','208e240020742401','2068240020742401',
                     '208e240120742401206b2401','208e2401300120742401'):
             with self.subTest(path=raw),self.assertRaises(CIPError):decode_path(bytes.fromhex(raw))
 

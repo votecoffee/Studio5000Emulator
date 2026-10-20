@@ -42,6 +42,9 @@ requested during native online import, and retains SDK import-log error codes
 in diagnostic summaries. The isolated native import advances to a denied
 controller operation. A separate local pending NOP import while online succeeds;
 controller acceptance and active edits remain unavailable.
+Version `.84` adds [Program preparation reservations](docs/program-reservations.md)
+and explicit typed SDK tag-read diagnostics. Accepted controller edits remain
+unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

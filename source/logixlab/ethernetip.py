@@ -112,7 +112,7 @@ def decode_path(raw):
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
-                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B,0x6D)
+                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B,0x6D,0x74)
                          else 'io_map_instance' if p.class_id==0x69 and value==0x7E
                          else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
                 if (attr=='class_id' and scope and p.instance and p.attribute is None and not p.symbols
@@ -211,6 +211,27 @@ class Router:
                 # This newer probe is unimplemented. Return an error without
                 # dispatching it; callers may try the supported legacy list.
                 return reject(8,'unsupported_probe')
+            if path.class_id==0x74 and path.program_instance is not None and inner[0] in (0x4B,0x4C):
+                if path.symbols or path.attribute is not None:
+                    return reject(4,'invalid_request')
+                if path.instance!=1:return reject(5,'invalid_request')
+                exact(payload,1 if inner[0]==0x4B else 0)
+                if inner[0]==0x4B and payload!=b'\0':return reject(3,'invalid_program_semaphore_selector')
+                identity=self.app.native_project_identity
+                symbols=self.app.native_symbols
+                source=self.app.engine.project.sha256
+                if (identity is None or identity.source_l5x_sha256!=source or symbols is None
+                        or symbols.source_acd_sha256!=identity.source_acd_sha256):
+                    return reject(0x0C,'source_correlation_unavailable')
+                if not any(row['id']==path.program_instance for row in self.programs()):
+                    return reject(5,'unknown_program_reservation')
+                if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    action=lease.reserve_program if inner[0]==0x4B else lease.release_program
+                    action(native,self.app.generation,source,path.program_instance)
+                    self.endpoint.counts['native_program_reserve' if inner[0]==0x4B else 'native_program_release']+=1
+                return reply(inner[0])
             if path.class_id==0x74 and path.controller_instance is not None and inner[0] in (0x4B,0x4C):
                 if path.symbols or path.attribute is not None:
                     return reject(4,'invalid_request')
@@ -1085,6 +1106,11 @@ class Router:
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x74:
             if path.symbols or path.instance is None:raise CIPError(4,'Semaphore paths require a logical instance')
+            if path.program_instance is not None:
+                if not any(row['id']==path.program_instance for row in self.programs()):raise CIPError(5,'Unknown Semaphore Program parent')
+                if path.instance==0:return self.attribute_read(service,path,data,{1:b'\1\0'})
+                if path.instance!=1:raise CIPError(5,'Unknown Program Semaphore instance')
+                raise CIPError(0x0F,'Program reservation requires a bound signed edit context')
             if path.controller_instance not in (None,1):raise CIPError(5,'Unknown Semaphore parent')
             if path.instance==0:return self.attribute_read(service,path,data,{1:b'\1\0'})
             if path.controller_instance!=1 or path.instance!=1:raise CIPError(5,'Unknown Semaphore instance')
