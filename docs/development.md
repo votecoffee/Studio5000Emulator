@@ -364,6 +364,35 @@ and report no fatal SDK fault. The resulting mode-test execution history is
 retained and Program is restored. Native upload was not repeated; its `.85`
 controller-collection failure remains separate from `.86` acceptance.
 
+Version `.87` adds paired compressed Routine source staging, active format-177
+DataType IDs, supported six-word IOI translation and a detached execution-plan
+check. Source and code share their storage limits, owner/target binding and
+absolute deadline. Preflight/cleanup require both to be empty. The iteration
+passes 186 focused tests, 41 independent signed checks, 60 inventory reads and
+all 904 temporary download-record checks. The full suite was not rerun.
+
+An isolated native import using final public `.87` sources receives the
+4,304-byte compiled container and a 692-byte source container in 13 fragments.
+The 1,790-byte XML decodes into 10 rungs; all 27 object references resolve using
+the original symbol/routine identities and 242 native DataType IDs. Candidate
+planning succeeds without touching active execution. Independent reconstruction
+matches the recorded content/neutral-text hashes; the original nine parsed
+rungs are unchanged after the inserted NOP. The import still fails at the
+installation boundary across 115 verified requests. Project close and endpoint
+cleanup succeed; native Offline reports `RxE_COMM_NOTOPEN` and remains
+unconfirmed for this case. No fatal SDK fault is reported. Earlier isolated
+captures used a modified code receipt or a decoder-only `.87` snapshot and do
+not establish acceptance of the final implementation.
+
+The rebuilt `.87` main runtime passes 27 wire checks. All 73 application
+modules, served assets and the executable version match source. Native
+connection/Offline succeeds across 79 verified requests; SDK/webpage mode
+control succeeds across 113 with scan/prescan checks. Download still fails
+device transfer across 180 after 904 temporary records are prepared. These
+three cases confirm native Offline and endpoint cleanup with no reported fatal
+SDK fault. Mode-test history is retained and Program is restored. Native upload
+was not repeated; earlier controller-collection failures remain separate.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

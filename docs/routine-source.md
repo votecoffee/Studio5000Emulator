@@ -57,3 +57,21 @@ prove ELF/source equivalence, resolve native relocations, apply source, accept
 controller edits or implement Test/Untest/Assemble. Those operations remain
 unsupported. Native results and conditional capture experiments are recorded
 separately from software-model tests.
+
+## Native result
+
+The final isolated `.87` SDK import uses unchanged public application sources.
+It retains the 4,304-byte compiled container and a 692-byte source container,
+decoding 1,790 XML bytes and 81 auxiliary bytes. The source container's size
+varies with compressed content; it is not fixed at the earlier 688-byte sample.
+All 27 object-reference occurrences resolve to 10 neutral ladder rungs using
+242 original DataType IDs. A detached execution-plan check succeeds. Independent
+offline reconstruction matches the receiver's hashes; the new first rung is
+NOP and the other nine parsed rungs match the original source exactly.
+
+The import still fails at the explicit installation boundary across 115
+verified requests. Native Go Offline reports `RxE_COMM_NOTOPEN`, so native
+cleanup remains unconfirmed for this case. Project close and endpoint cleanup
+succeed without explicit socket cleanup; source/model are unchanged and no
+fatal SDK fault is reported. This result establishes translation and candidate
+validation, not accepted controller edits or an active routine replacement.

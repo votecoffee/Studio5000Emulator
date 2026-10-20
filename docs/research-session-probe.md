@@ -77,3 +77,10 @@ all 904 temporary download-record checks. The additional checks send synthetic
 partial compiled Routine fragments under a source-bound edit reservation,
 verify actual retained bytes, and verify Program release discards them. They
 do not install native code or request accepted edits.
+
+The `.87` source-pair case passes 41 signed checks, 60 inventory reads and all
+904 temporary download-record checks. It additionally acknowledges an actually
+retained synthetic code container, starts its paired source container, and
+checks that Program release clears both components. The full source decoder,
+IOI resolver and detached execution planner have separate focused tests and
+native capture evidence; the independent client does not apply source.

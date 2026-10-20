@@ -166,3 +166,11 @@ still returns `RxE_COMM_NOTOPEN`; project close succeeds and no fatal SDK
 exception is reported. Native cleanup remains unconfirmed for the edit case.
 Controller acceptance, active routine replacement, Test/Untest and Assemble
 remain unfinished.
+
+Version `.87` adds [Routine source decoding and reference translation](routine-source.md).
+The native import retains both containers, translates all 27 supported object
+references into 10 neutral ladder rungs, and validates a detached execution
+plan. The NOP is present and the original nine parsed rungs are preserved.
+The final case verifies 115 signed requests and still rejects installation;
+native Offline cleanup remains unconfirmed, while project close and endpoint
+cleanup complete with unchanged active source/model and no fatal SDK fault.
