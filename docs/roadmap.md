@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.49` adds a read-only local UTC clock to Time Sync, with
+Current milestone: `.50` removes the fixed 480-byte cap from connected replies.
+Class 3 messaging uses the negotiated T-to-O budget, up to 4,000 bytes including
+its sequence word. Signed single/batch replies retain their bounds and write
+denials. Native upload still needs earlier metadata gaps resolved.
+
+Version `.49` adds a read-only local UTC clock to Time Sync, with
 coherent microsecond/nanosecond list reads, explicit unsynchronized status and
 zero PTP ports. Master offsets, clock descriptions and PTP networking remain
 unfinished, alongside earlier Ethernet counter and handler-reference gaps.

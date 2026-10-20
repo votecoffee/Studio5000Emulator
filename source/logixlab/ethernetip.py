@@ -1034,7 +1034,9 @@ class Endpoint:
                             response=conn.last_reply
                         else:
                             if conn.last_sequence is not None and not 0<(seq-conn.last_sequence)&0xFFFF<0x8000:raise CIPError(1,'Stale connected sequence')
-                            response=data[:2]+self.router.handle(data[2:],session,limit=min(REPLY_LIMIT,conn.outgoing_size-2))
+                            # Connected replies use the negotiated T->O size;
+                            # the two-byte transport sequence shares that budget.
+                            response=data[:2]+self.router.handle(data[2:],session,limit=conn.outgoing_size-2)
                             conn.last_sequence,conn.last_request,conn.last_reply=seq,data,response
                         result=cpf([(0xA1,struct.pack('<I',conn.outgoing)),(0xB1,response)])
                 except CIPError as e:error=3;self.record('cpf_error',request=raw,status=e.status,detail=str(e))

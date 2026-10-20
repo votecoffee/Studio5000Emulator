@@ -831,6 +831,50 @@ zero scan count were preserved with writes disabled. Deployed modules, served
 web assets, app version and Windows artifact matched source. Full upload/download,
 native GUI monitoring and online edits remain unfinished.
 
+### Negotiated connected reply sizes
+
+Version `.50` removes an unnecessary fixed 480-byte ceiling from Class 3
+connected replies. Previously a 4,000-byte Large Forward Open was accepted,
+but its reply budget was still capped at 480 bytes. This could fragment tag
+reads early or reject a metadata reply that fit the negotiated connection.
+
+Connected replies now use the connection's T-to-O size minus the two-byte
+transport sequence. The implementation still accepts sizes only from 16 through
+4,000 bytes. A 500-byte connection can carry 498 CIP bytes, and a 4,000-byte
+connection can carry 3,998 CIP bytes. O-to-T and T-to-O limits remain independent:
+the request limit does not grant a larger reply budget. UCMM replies retain the
+existing 480-byte budget, independently of other open connections.
+
+Atomic reads still use partial status and byte-offset continuation when needed.
+Fixed attribute replies that exceed their connection budget return `0x1B`;
+they are not truncated into successful metadata. Transport replay returns the
+cached reply without redispatch, including large replies. Oversized requests
+are rejected before dispatch and sequence consumption.
+
+Signed `0x36`/`0x37` single replies reserve their MAC/counter/container overhead
+inside that same budget. Signed `0x38` batches retain their offset/header and
+minimum child-reply budgets. Larger transport sizes do not enable writes or
+establish peer authentication, native programming or complete upload.
+
+A read-only check on `.49` reproduced a 614-byte Symbol metadata reply rejected
+on both 500-byte and 4,000-byte connections. The larger negotiated size should
+accommodate that reply; this is distinct from the controller metadata gaps that
+currently stop native upload.
+
+The suite runs 750 tests: Windows passes 748 with two Linux-only skips; Linux
+passes 749 with the Windows console check skipped. New socket tests cover exact
+500-/4,000-byte boundaries, fragmented continuation, asymmetric sizes, connection
+isolation, incoming rejection, cached replay, larger fixed metadata, signed
+single/container/batch overhead and write denial.
+
+The `.50` unmodified source candidate returns the same 614-byte metadata over
+the 4,000-byte connection while correctly rejecting it on a 500-byte connection.
+Its normal native upload preserves 12 scalar reads and Symbol descriptors and
+nine empty catalogs across 195 verified signed requests, but still fails
+controller collection after the Ethernet Link list. Source ACD bytes, tag values
+and zero scan count were preserved with writes disabled. This transport fix does
+not resolve the earlier missing controller/device fields.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

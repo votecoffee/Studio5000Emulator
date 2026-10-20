@@ -155,6 +155,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic scans |
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
 | EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
+| Connected reply sizes | Standard/Large Forward Open replies use their negotiated size up to 4,000 bytes, including sequence and signed-message overhead |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
