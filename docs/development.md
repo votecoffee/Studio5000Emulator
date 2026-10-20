@@ -91,6 +91,19 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+The `.63` suite runs 853 tests on Windows and Linux, with two and one expected
+platform skips. New tests cover operation selection, busy or programmable
+targets, asynchronous closure, persistent leases, target replacement and trace
+retention after cleanup failure. The rebuilt runtime passes 268 wire checks.
+The public CLI completes all nine connection/Offline steps with 81 verified
+signed requests. Tag-read and upload probes still fail across 83 and 197
+requests. The public download probe verifies 104 requests, accepts Run Mode
+Inhibit and fails `RxCsE_ASA_NO_PERMISSION` at Controller service `0x60`.
+All four probes report `cleanup_confirmed: true`, preserve original/copy hashes
+and model state, and confirm SDK Offline cleanup. The final lease is free with
+zero inhibit mask and no TCP clients. Packaged/served assets and app version
+match source; FactoryTalk Linx and the SDK service remained running.
+
 Windows appliance subprocesses use `tools.vmware_appliance.background_options()`
 to request `CREATE_NO_WINDOW`; apply the same policy to private SSH validation
 scripts. Preserve stdout/stderr and exit-status checks. Launcher regressions

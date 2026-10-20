@@ -12,6 +12,18 @@ SDK starts. Cleanup now confirms those conditions again, with a bounded wait for
 asynchronous socket closure. Failed operations remain failures. This revision
 does not add native transfer dispatch or compiled tag-address discovery.
 
+The rebuilt `.63` endpoint passes 268 wire checks. Its public CLI completes the
+nine-step SDK connection/Offline sequence with 81 verified signed requests. Tag,
+upload and download attempts retain their failures across 83, 197 and 104
+requests. Each probe reports confirmed endpoint cleanup, unchanged source/model
+state and SDK Offline cleanup. Download still rejects Controller service `0x60`.
+
+Private isolation trials supplied a complete Time Sync reply hypothesis,
+withheld Time Sync, or added a Memory class/catalog hypothesis. Each still
+failed controller collection and returned Offline with the source and model
+preserved. These substitutions are not shipped and do not establish any missing
+wire contract or prove that the remaining Time Sync fields cause upload failure.
+
 Version `.62` adds read-only [software clock descriptions](clock-descriptions.md)
 to Time Sync inventory: the product name, current app version and unassigned
 user description. These identify the software clock without assigning hardware
