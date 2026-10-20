@@ -15,6 +15,10 @@ Version `.76` adds [member inspection of temporary native type definitions](docs
 as groundwork for validating storage layouts; encoded offsets and trailers remain opaque.
 Version `.77` [checks staged members against the original ACD type metadata](docs/source-type-verification.md)
 and rejects source/layout mismatches. Native storage mapping remains unfinished.
+Version `.78` adds a [source-bound temporary download image](docs/download-image.md),
+coherent [software system time](docs/upload-inventory.md), and an
+[online-edit diagnostic](docs/native-online-edits.md) that requests acceptance
+of a generated NOP rung on a private project copy.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
@@ -85,7 +89,7 @@ connection research. Its format-4 reports preserve nested object paths and
 requested attribute IDs while keeping symbols, values and raw bytes private by
 default. These analysis features do not establish native Studio Go Online.
 An optional [native SDK acceptance probe](docs/development.md#native-sdk-acceptance-probe)
-records connection, tag-read, upload and download-preparation attempts against the running emulator
+records connection, tag-read, upload, download-preparation and online-edit attempts against the running emulator
 using private ACD copies and reports.
 The Linux appliance also exposes a documented subset of
 [Ethernet diagnostic counters](docs/ethernet-counters.md) from its virtual NIC

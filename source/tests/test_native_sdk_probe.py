@@ -7,12 +7,31 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import xml.etree.ElementTree as ET
 
 from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_url,
-                                    validate_operation, validate_idle, validate_mode_probe, wait_for_cleanup, run)
+                                    validate_operation, validate_idle, validate_mode_probe, wait_for_cleanup, run,
+                                    edit_request, rejection_delta, edit_trace_evidence)
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_download_image_requires_empty_unbound_idle_storage_with_all_authority_disabled(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();state['connectivity']['native_programming_lease']['resilient_transport']=ResilientTransport().description()
+        validate_idle(state)
+        for field,value in (('status','prepared'),('source_bound',True),('temporary_readback',True),
+                ('record_sha256','a'*64),('reason','blocked'),('initial_values_applied',True),
+                ('compiled_routines_installed',True),('active_catalog_replaced',True),('native_execution_supported',True),
+                ('commit',True),('values_exposed',True),('records_prepared',False),('tables_allocated',1),
+                ('templates_retained',1),('diagnostics_retained',1),('programs_retained',1),('routines_retained',1),
+                ('storage_bytes',1),('symbols_linked',1),('symbols_unresolved',1)):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['download_image'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,{},[]):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['resilient_transport']['download_image']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_source_type_verification_must_be_idle_and_not_retain_prior_matches(self):
         from logixlab.resilient_transport import ResilientTransport
         state=self.state();lease=state['connectivity']['native_programming_lease']
@@ -115,13 +134,133 @@ class NativeSdkProbeTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_url(url)
 
     def test_download_is_explicit_and_transfer_operations_cannot_include_tag_reads(self):
-        for operation in ('connection','upload','download','modes'):
+        for operation in ('connection','upload','download','modes','edits'):
             validate_operation(operation,[])
         validate_operation('connection',['Controller/Tags/Tag'])
         for operation,tags in (('download',['Controller/Tags/Tag']),('upload',['tag']),
                 ('edit',[]),('connection',['']),('connection',['x'*1025]),('connection',['tag']*33)):
             with self.subTest(operation=operation,tags_count=len(tags)),self.assertRaises(ValueError):
                 validate_operation(operation,tags)
+
+    def edit_state(self):
+        state = self.state()
+        state.update(name='Controller_A', version='35', controller={'mode':'Program', 'running':False},
+                     routines=[{'key':'MainProgram/MainRoutine','kind':'RLL','harness':True,'rungs':[]}])
+        return state
+
+    def test_edit_payload_is_one_nop_insert_bound_to_a_loaded_rll_routine(self):
+        state = self.edit_state(); before = copy.deepcopy(state)
+        for option in ('LeaveEdits', 'AcceptEdits'):
+            payload, config = edit_request(state, 'MainProgram', 'MainRoutine', option)
+            root = ET.fromstring(payload)
+            self.assertEqual(root.attrib['TargetType'], 'Rung')
+            self.assertEqual(root.attrib['TargetCount'], '1')
+            self.assertEqual(root.find('Controller').attrib['Name'], 'Controller_A')
+            self.assertEqual([node.text for node in root.findall('.//Text')], ['NOP();'])
+            self.assertEqual(len(root.findall('.//Rung')), 1)
+            self.assertEqual(config, dict(XPath="Controller/Programs/Program[@Name='MainProgram']/Routines/Routine[@Name='MainRoutine']",
+                InsertPosition=0, ReplaceCount=0, ImportOption=option))
+        self.assertEqual(state, before)
+
+    def test_edit_diagnostic_rejects_unloaded_nonladder_aoi_ambiguous_or_writable_target(self):
+        state = self.edit_state()
+        for replacement in ([], [{'key':'MainProgram/MainRoutine','kind':'ST','harness':True,'rungs':[]}],
+                [{'key':'MainProgram/MainRoutine','kind':'RLL','harness':False,'rungs':[]}],
+                [{'key':'MainProgram/MainRoutine','kind':'RLL','harness':True}], state['routines'] * 2):
+            other = copy.deepcopy(state); other['routines'] = replacement
+            with self.assertRaises(ValueError):edit_request(other, 'MainProgram', 'MainRoutine', 'AcceptEdits')
+        for change in ({'mode':'Run','running':True}, {'mode':'Faulted','running':False}, {'mode':'Program'}):
+            other = copy.deepcopy(state); other['controller'] = change
+            with self.assertRaises(ValueError):edit_request(other, 'MainProgram', 'MainRoutine', 'AcceptEdits')
+        for value in (True, None, 0):
+            other = copy.deepcopy(state);other['connectivity']['native_programming_lease']['online_edits'] = value
+            with self.assertRaises(ValueError):edit_request(other, 'MainProgram', 'MainRoutine', 'AcceptEdits')
+
+    def test_edit_diagnostic_rejects_finalize_bad_names_and_wrong_project_version(self):
+        state = self.edit_state()
+        for name in ('', 'x'*41, "name']", 'AOI:one', '<other>', None):
+            with self.subTest(name=name),self.assertRaises(ValueError):edit_request(state, name, 'MainRoutine', 'AcceptEdits')
+            with self.assertRaises(ValueError):edit_request(state, 'MainProgram', name, 'AcceptEdits')
+        for option in ('FinalizeEdits', '', None):
+            with self.assertRaises(ValueError):edit_request(state, 'MainProgram', 'MainRoutine', option)
+        for version in ('34','36', None):
+            other = copy.deepcopy(state);other['version'] = version
+            with self.assertRaises(ValueError):edit_request(other, 'MainProgram', 'MainRoutine', 'AcceptEdits')
+
+    def test_rejection_delta_does_not_count_previous_native_failures_or_changed_status_as_the_same_request(self):
+        old = dict(generation=2, service=6, class_id=1042, instance=0, status=15, reason='unsupported', count=4, last_seen=10)
+        new = dict(old, count=5, last_seen=20)
+        different = dict(old, status=8, count=2, last_seen=30)
+        before = {'native_rejections':[old]}; after = {'native_rejections':[different, new]}
+        result = rejection_delta(before, after)
+        self.assertEqual([item['probe_count'] for item in result], [1,2])
+        self.assertEqual([item['status'] for item in result], [15,8])
+        self.assertEqual(rejection_delta(after, after), [])
+        self.assertNotIn('probe_count', new)
+
+    def test_edit_trace_pairs_signed_inner_failures_only_during_the_sdk_import_interval(self):
+        import struct
+        # Opaque synthetic MACs deliberately prove framing does not imply authentication.
+        child = bytes.fromhex('0603210012042400')
+        raw = bytes.fromhex('360220022401') + child + struct.pack('<I', 7) + b'x'*20
+        reply = bytes.fromhex('b600000086000f00') + struct.pack('<I', 7) + b'y'*20
+        event = dict(time=1.5, kind='cip', request_hex=raw.hex(), response_hex=reply.hex(), truncated=False)
+        report = {'steps':[dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits', status='failed',
+            startedAt='1970-01-01T00:00:01+00:00', finishedAt='1970-01-01T00:00:02+00:00')]}
+        trace = {'events':[dict(event,time=.5),event,dict(event,time=2.5),dict(event,time=1.7,truncated=True)]}
+        result = edit_trace_evidence(trace, report)
+        self.assertEqual(result['requests_observed'],1)
+        self.assertEqual(result['unparsed_events'],1)
+        self.assertEqual(result['first_failed_request'],dict(time=1.5,service=6,class_id=0x412,instance=0,
+            attribute=None,program_instance=None,io_map_instance=None,controller_instance=None,symbolic=False,
+            status=15,sequence=7,payload_bytes=0))
+        self.assertEqual(result['mac_verification'],'not performed by report parser')
+        self.assertEqual(edit_trace_evidence(trace, {'steps':[]})['status'],'import_not_reached')
+
+    def test_edit_trace_keeps_absent_or_incomplete_network_evidence_distinct_from_sdk_success(self):
+        report = {'steps':[dict(method='PartialImportRungsFromXmlFileAsync:LeaveEdits', status='succeeded',
+            startedAt='1970-01-01T00:00:01+00:00', finishedAt='1970-01-01T00:00:02+00:00')]}
+        for events in ([], [dict(kind='cip',time=1.5,request_hex='bad hex',response_hex='00')]):
+            result = edit_trace_evidence({'events':events}, report)
+            self.assertEqual(result['status'],'no_complete_cip_during_import')
+            self.assertIsNone(result['first_failed_request'])
+            self.assertEqual(result['sdk_status'],'succeeded')
+
+    def test_edit_probe_preserves_routine_model_and_reports_local_pending_success_without_native_acceptance(self):
+        from tools.probe_native_sdk import digest
+        for mutation in (None, 'routines', 'controller', 'input'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+                output=root/'report'
+                args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                    path=r'TestDriver\192.0.2.8\Backplane\0',operation='edits',tag=[],output=str(output),sdk_feed=None,
+                    edit_program=None,edit_routine=None,edit_import_option='LeaveEdits')
+                state=self.edit_state();state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='project',tasks=[],entry_routines=[])
+                state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+                final=copy.deepcopy(state)
+                if mutation=='routines':final['routines'][0]['rungs'].append({'text':'NOP();'})
+                if mutation=='controller':final['controller']['prescan_count']=1
+                trace={'events':[],'counts':{'native_verified':0}}
+                def process(command,**kwargs):
+                    if command[0]=='dotnet':
+                        (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'test-apphost')
+                        (output/'bin/NativeSdkProbe.dll').write_bytes(b'test-managed-code')
+                        return subprocess.CompletedProcess(command,0)
+                    if mutation=='input':(output/'nop-rung.L5X').write_bytes(b'changed private input')
+                    Path(command[2]).write_text(json.dumps({'status':'succeeded','steps':[]}))
+                    return subprocess.CompletedProcess(command,0)
+                with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                        patch('tools.probe_native_sdk.background_options',return_value={}), \
+                        patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                        patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,final,trace)), \
+                        patch('tools.probe_native_sdk.wait_for_cleanup',return_value=final),patch('builtins.print'):
+                    self.assertEqual(run(args),0 if mutation is None else 1)
+                report=json.loads((output/'summary.json').read_text())
+                self.assertEqual(report['status'],'succeeded' if mutation is None else 'failed')
+                self.assertTrue(report['source_unchanged'] and report['cleanup_confirmed'])
+                self.assertEqual(report['edit_diagnostic']['import_option'],'LeaveEdits')
+                self.assertFalse(report['edit_diagnostic']['active_edits_authorized'])
+                self.assertEqual(report['edit_trace']['status'],'import_not_reached')
 
     def test_mode_probe_requires_executable_stopped_remote_controller(self):
         state=self.state()

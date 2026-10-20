@@ -5,26 +5,34 @@ disabled project transfer; temporary programming coordination is permitted.
 Reports contain private project metadata and default to ignored .local storage.
 Only explicit --operation modes changes Run/Program and executes scans. It
 restores Program; resulting tag values and scan history are retained. Other
-operations never request mode changes. Windows services are never managed.
+operations never request mode changes. The edits diagnostic imports a generated
+NOP rung on a private copy with LeaveEdits or AcceptEdits. It requires advertised
+online-edit authority to be disabled and never finalizes or assembles edits.
+Windows services are never managed.
 """
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import hashlib
 import ipaddress
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import time
 from urllib.parse import urlsplit
 import uuid
+import xml.etree.ElementTree as ET
 
 SOURCE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE))
 from tools.vmware_appliance import api, background_options
+from logixlab import signed_messages
+from logixlab.ethernetip import CIPError, decode_path
 
 
 def digest(path):
@@ -73,12 +81,103 @@ def validate_target(state, path, source_hash, *, instance=None, l5x_hash=None):
 
 
 def validate_operation(operation, tags):
-    if operation not in ('connection', 'upload', 'download', 'modes'):
-        raise ValueError('Expected connection, upload, download or modes')
+    if operation not in ('connection', 'upload', 'download', 'modes', 'edits'):
+        raise ValueError('Expected connection, upload, download, modes or edits')
     if operation != 'connection' and tags:
         raise ValueError('Tag reads belong to a connection probe')
     if len(tags) > 32 or any(not tag or len(tag) > 1024 for tag in tags):
         raise ValueError('At most 32 nonempty tag XPaths of at most 1024 characters')
+
+
+def edit_request(state, program, routine, option):
+    """Create one NOP insert for a loaded, ordinary RLL routine, never arbitrary XML."""
+    if option not in ('LeaveEdits', 'AcceptEdits'):
+        raise ValueError('Edit diagnostics allow LeaveEdits or AcceptEdits; never FinalizeEdits')
+    names = (state.get('name'), program, routine)
+    if any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,39}', name)
+           for name in names):
+        raise ValueError('Edit controller, program and routine names must be ordinary Logix identifiers')
+    if str(state.get('version')) not in ('35', '35.00'):
+        raise ValueError('Edit diagnostic requires a source-bound Logix v35 project')
+    candidates = [item for item in state.get('routines', []) if item.get('key') == program + '/' + routine]
+    if (len(candidates) != 1 or candidates[0].get('kind') != 'RLL' or
+            candidates[0].get('harness') is not True or not isinstance(candidates[0].get('rungs'), list)):
+        raise ValueError('Edit diagnostic requires one loaded ordinary RLL routine')
+    if state.get('controller', {}).get('mode') != 'Program' or state['controller'].get('running') is not False:
+        raise ValueError('Edit diagnostic requires stopped Program mode')
+    if state.get('connectivity', {}).get('native_programming_lease', {}).get('online_edits') is not False:
+        raise ValueError('Edit diagnostic requires disabled controller online-edit authority')
+    root = ET.Element('RSLogix5000Content', SchemaRevision='1.0', SoftwareRevision='35.00',
+                      TargetType='Rung', TargetCount='1', ContainsContext='true',
+                      ExportOptions='References NoRawData L5KData DecoratedData Context Dependencies ForceProtectedEncoding AllProjDocTrans')
+    controller = ET.SubElement(root, 'Controller', Use='Context', Name=names[0])
+    programs = ET.SubElement(controller, 'Programs', Use='Context')
+    parent = ET.SubElement(programs, 'Program', Use='Context', Name=program)
+    routines = ET.SubElement(parent, 'Routines', Use='Context')
+    target = ET.SubElement(routines, 'Routine', Use='Context', Name=routine, Type='RLL')
+    content = ET.SubElement(target, 'RLLContent')
+    rung = ET.SubElement(content, 'Rung', Number='0', Type='N')
+    ET.SubElement(rung, 'Text').text = 'NOP();'
+    payload = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+    return payload, dict(XPath=f"Controller/Programs/Program[@Name='{program}']/Routines/Routine[@Name='{routine}']",
+                         InsertPosition=0, ReplaceCount=0, ImportOption=option)
+
+
+def rejection_delta(before, after):
+    """Report newly rejected structural requests without mistaking earlier probes for this one."""
+    fields = ('generation', 'service', 'class_id', 'instance', 'attribute', 'program_instance',
+              'io_map_instance', 'controller_instance', 'symbolic', 'status', 'reason')
+    previous = {tuple(row.get(field) for field in fields): row.get('count', 0)
+                for row in before.get('native_rejections', [])}
+    rows = []
+    for row in after.get('native_rejections', []):
+        count = row.get('count', 0) - previous.get(tuple(row.get(field) for field in fields), 0)
+        if count > 0:
+            rows.append({**row, 'probe_count': count})
+    return sorted(rows, key=lambda row: row.get('last_seen', 0))
+
+
+def edit_trace_evidence(trace, report):
+    """Correlate the import interval with paired structural CIP failures, never MAC claims."""
+    steps = [item for item in report.get('steps', [])
+             if item.get('method', '').startswith('PartialImportRungsFromXmlFileAsync:')]
+    if len(steps) != 1:return {'status':'import_not_reached', 'failed_requests':[], 'first_failed_request':None}
+    step = steps[0]
+    start = datetime.fromisoformat(step['startedAt']).timestamp()
+    finish = datetime.fromisoformat(step['finishedAt']).timestamp()
+    failures = []; matched = skipped = 0
+    for event in trace.get('events', []):
+        if event.get('kind') != 'cip' or not start <= event.get('time', 0) <= finish:continue
+        if event.get('truncated'):skipped += 1;continue
+        try:
+            raw = bytes.fromhex(event.get('request_hex', ''))
+            response = bytes.fromhex(event.get('response_hex', ''))
+            if len(raw) < 2 or len(response) < 4:raise ValueError('Missing CIP header')
+            children = ((raw, response),)
+            sequence = None
+            if raw[0] in (0x36, 0x37, 0x38, 0x39):
+                request = signed_messages.parse_request(raw)
+                reply = signed_messages.parse_response(response, request)
+                sequence = request.sequence
+                if isinstance(request, signed_messages.FragmentEnvelope):continue
+                children = (tuple(zip(request.children, reply.children))
+                            if isinstance(request, signed_messages.BatchEnvelope) else ((request.inner, reply.inner),))
+            for child, result in children:
+                matched += 1
+                if not result[2]:continue
+                path = decode_path(child[2:2 + child[1] * 2])
+                failures.append(dict(time=event['time'], service=child[0], class_id=path.class_id,
+                    instance=path.instance, attribute=path.attribute, program_instance=path.program_instance,
+                    io_map_instance=path.io_map_instance, controller_instance=path.controller_instance,
+                    symbolic=bool(path.symbols), status=result[2], sequence=sequence,
+                    payload_bytes=len(child) - 2 - child[1]*2))
+        except (ValueError, IndexError, CIPError):skipped += 1
+    failures.sort(key=lambda item:item['time'])
+    return dict(status='observed' if matched else 'no_complete_cip_during_import',
+                sdk_method=step['method'], sdk_status=step['status'], started_at=step['startedAt'],
+                finished_at=step['finishedAt'], requests_observed=matched, unparsed_events=skipped,
+                failed_requests=failures[:64], failures_truncated=len(failures)>64,
+                first_failed_request=failures[0] if failures else None, mac_verification='not performed by report parser')
 
 
 def validate_staging(lease):
@@ -131,6 +230,18 @@ def validate_staging(lease):
                     any(check.get(f) is not False for f in ('member_locations_verified','storage_mapping_supported',
                         'signature_verified','definitions_exposed','execution_supported'))):
                 raise ValueError('Probe requires empty source type verification')
+        if 'download_image' in stage:
+            image = stage['download_image']
+            if (not isinstance(image, dict) or image.get('status') != 'idle' or
+                    image.get('record_sha256') is not None or image.get('reason') is not None or
+                    any(image.get(field) is not False for field in ('source_bound', 'temporary_readback',
+                        'initial_values_applied', 'compiled_routines_installed', 'active_catalog_replaced',
+                        'native_execution_supported', 'commit', 'values_exposed'))):
+                raise ValueError('Probe requires an idle empty download image without readback or installation authority')
+            for field in ('records_prepared', 'tables_allocated', 'templates_retained', 'diagnostics_retained',
+                          'programs_retained', 'routines_retained', 'storage_bytes', 'symbols_linked', 'symbols_unresolved'):
+                if type(image.get(field)) is not int or image[field] != 0:
+                    raise ValueError('Probe requires an empty download image')
         if 'diagnostic_staging' in stage:
             diagnostics=stage['diagnostic_staging']
             if (not isinstance(diagnostics,dict) or diagnostics.get('status')!='idle'
@@ -214,11 +325,18 @@ def run(args):
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
+    edit_options = tuple(getattr(args, name, None) for name in ('edit_program', 'edit_routine', 'edit_import_option'))
+    if args.operation != 'edits' and any(value is not None for value in edit_options):
+        raise ValueError('Edit options belong to an edits diagnostic')
     source_hash = digest(source)
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
     validate_idle(initial)
     if args.operation=='modes':validate_mode_probe(initial)
+    edit_payload = edit_config = None
+    if args.operation == 'edits':
+        edit_payload, edit_config = edit_request(initial, edit_options[0] or 'MainProgram',
+                                                edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits')
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
         time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8])
@@ -229,7 +347,11 @@ def run(args):
         raise ValueError('Source changed while creating the private copy')
     config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag)
-    if args.operation=='modes':config.update(BackendUrl=url,InstanceId=instance)
+    if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
+    if edit_payload is not None:
+        edit_file = output / 'nop-rung.L5X'
+        edit_file.write_bytes(edit_payload)
+        config['Edit'] = dict(edit_config, File=str(edit_file), Sha256=digest(edit_file))
     (output / 'request.json').write_text(json.dumps(config, indent=2), encoding='utf-8')
     command = ['dotnet', 'build', str(SOURCE / 'tools/native_sdk_probe/NativeSdkProbe.csproj'),
                '-c', 'Release', '--nologo', '--output', str(output / 'bin'),
@@ -247,6 +369,12 @@ def run(args):
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
     validate_idle(state)
     if args.operation=='modes':validate_mode_probe(state)
+    if args.operation == 'edits':
+        payload, details = edit_request(state, edit_options[0] or 'MainProgram',
+                                        edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits')
+        if (payload != edit_payload or details != edit_config or digest(edit_file) != config['Edit']['Sha256'] or
+                any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines'))):
+            raise ValueError('Edit target or generated rung changed before the native call')
     if digest(source) != source_hash or digest(copied) != source_hash:
         raise ValueError('Source changed before the native call')
     before = api(url, 'connectivity-trace', {})
@@ -260,6 +388,14 @@ def run(args):
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
                    status='incomplete', cleanup_confirmed=False,
                    native_controller_equivalence='NOT ASSESSED')
+    if args.operation == 'edits':
+        summary['edit_diagnostic'] = dict(import_option=config['Edit']['ImportOption'],
+            xpath=config['Edit']['XPath'], insert_position=0, replace_count=0,
+            rung_sha256=config['Edit']['Sha256'], code='NOP();', active_edits_authorized=False,
+            finalize_edits=False, assembly=False)
+    model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
+    if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
+    report = None
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
@@ -277,21 +413,25 @@ def run(args):
             (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
             trace = api(url, 'connectivity-trace', {})
             (output / 'trace.json').write_text(json.dumps(trace, indent=2), encoding='utf-8')
-            summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
+            summary['model_unchanged'] = all(state[key] == final[key] for key in model_fields)
             if args.operation=='modes':
                 summary['mode_restored']=final.get('controller',{}).get('mode')=='Program' and not final['controller']['running']
                 summary['scans_advanced']=final['scan']>state['scan']
             summary['native_verified_requests'] = (trace.get('counts', {}).get('native_verified', 0) -
                                                    before.get('counts', {}).get('native_verified', 0))
+            summary['native_rejections'] = rejection_delta(before, trace)
+            if args.operation == 'edits' and report is not None:
+                summary['edit_trace'] = edit_trace_evidence(trace, report)
             summary['target_rechecked'] = True
             final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
             summary['cleanup_confirmed'] = True
             (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
-            summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
+            summary['model_unchanged'] = all(state[key] == final[key] for key in model_fields)
+            if args.operation == 'edits':summary['edit_payload_unchanged'] = digest(edit_file) == config['Edit']['Sha256']
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('model_unchanged') is not False
-        if not summary['source_unchanged'] or not model_ok:
+        if not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False:
             summary['status'] = 'failed'
         (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
         print(json.dumps({'report': str(output / 'summary.json'), **summary}, indent=2))
@@ -303,8 +443,12 @@ def main():
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
-    parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes'), default='connection',
-                        help='modes runs logic using SDK and webpage controls, then restores Program')
+    parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes', 'edits'), default='connection',
+                        help='modes runs logic then restores Program; edits diagnoses a generated NOP import with editing disabled')
+    parser.add_argument('--edit-program', help='edits only: loaded program; default MainProgram')
+    parser.add_argument('--edit-routine', help='edits only: loaded RLL routine; default MainRoutine')
+    parser.add_argument('--edit-import-option', choices=('LeaveEdits', 'AcceptEdits'),
+                        help='edits only: defaults to AcceptEdits to test the controller request; LeaveEdits is a local pending-edit comparison')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--output', help='New private output directory; default .local/native-probes/<unique run>')
     parser.add_argument('--sdk-feed', help='Optional installed SDK NuGet feed directory')

@@ -11,11 +11,14 @@ using RockwellAutomation.LogixDesigner.Logging;
 // Only the public SDK is used. Inputs and reports belong in private storage.
 if (args.Length != 2) return 2;
 var options = JsonSerializer.Deserialize<Options>(File.ReadAllText(args[0]))!;
-if (options.Operation is not ("connection" or "upload" or "download" or "modes") || options.Tags.Length > 32 ||
+if (options.Operation is not ("connection" or "upload" or "download" or "modes" or "edits") || options.Tags.Length > 32 ||
     options.Operation != "connection" && options.Tags.Length != 0)
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
+if (options.Operation == "edits" && (options.Edit is null ||
+    options.Edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") || options.Edit.InsertPosition != 0 || options.Edit.ReplaceCount != 0 ||
+    Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Edit.File))).ToLowerInvariant() != options.Edit.Sha256)) return 2;
 var steps = new List<object>();
 var logger = new Capture();
 LogixProject? project = null;
@@ -25,7 +28,7 @@ async Task<JsonElement> Backend(string? mode = null)
 {
     if (!Uri.TryCreate(options.BackendUrl, UriKind.Absolute, out var url) || url.Scheme != "http" ||
         !url.IsLoopback || !string.IsNullOrEmpty(url.UserInfo) || string.IsNullOrEmpty(options.InstanceId))
-        throw new InvalidOperationException("Mode probe requires a pinned local emulator URL");
+        throw new InvalidOperationException("Native diagnostic requires a pinned local emulator URL");
     var script = await http.GetStringAsync(new Uri(url, "/session.js"));
     var token = JsonSerializer.Deserialize<string>(Regex.Match(script, "LOGIX_TOKEN = (\".*?\")").Groups[1].Value)!;
     async Task<JsonElement> Call(string action, object body) {
@@ -57,10 +60,12 @@ async Task CheckMode(string expected) {
 async Task Step(string name, Func<Task<object?>> action)
 {
     var clock = Stopwatch.StartNew();
+    var startedAt = DateTimeOffset.UtcNow;
     try
     {
         var value = await action();
-        steps.Add(new { method = name, status = "succeeded", value, elapsedMs = clock.Elapsed.TotalMilliseconds });
+        steps.Add(new { method = name, status = "succeeded", value, startedAt, finishedAt = DateTimeOffset.UtcNow,
+                        elapsedMs = clock.Elapsed.TotalMilliseconds });
     }
     catch (Exception error)
     {
@@ -68,7 +73,8 @@ async Task Step(string name, Func<Task<object?>> action)
         var chain = new List<object>();
         for (Exception? item = error; item is not null && chain.Count < 16; item = item.InnerException)
             chain.Add(new { type = item.GetType().FullName, message = item.Message, hresult = $"0x{item.HResult:X8}" });
-        steps.Add(new { method = name, status = "failed", errors = chain, elapsedMs = clock.Elapsed.TotalMilliseconds });
+        steps.Add(new { method = name, status = "failed", errors = chain, startedAt, finishedAt = DateTimeOffset.UtcNow,
+                        elapsedMs = clock.Elapsed.TotalMilliseconds });
         throw;
     }
 }
@@ -94,6 +100,24 @@ try
             return state.ToString();
         });
         await Step("ReadControllerModeAsync", async () => (await project!.ReadControllerModeAsync()).ToString());
+        if (options.Operation == "edits")
+        {
+            await Step("Verify disabled controller edit authority", async () => {
+                var state = await Backend();
+                var controller = state.GetProperty("controller");
+                if (controller.GetProperty("mode").GetString() != "Program" || controller.GetProperty("running").GetBoolean() ||
+                    state.GetProperty("connectivity").GetProperty("native_programming_lease").GetProperty("online_edits").GetBoolean())
+                    throw new InvalidOperationException("Edit diagnostic requires stopped Program and disabled online edits");
+                await CheckMode("Program");
+                return true;
+            });
+            var edit = options.Edit!;
+            await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption, async () => {
+                var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
+                await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
+                return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
+            });
+        }
         if (options.Operation == "modes")
         {
             for (int cycle = 1; cycle <= 2; cycle++) {
@@ -188,7 +212,8 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
 return passed ? 0 : 1;
 
 sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags,
-                      string? BackendUrl = null, string? InstanceId = null);
+                      string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null);
+sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption);
 sealed class Capture : IOperationEvent
 {
     public ConcurrentQueue<object> Events { get; } = new();

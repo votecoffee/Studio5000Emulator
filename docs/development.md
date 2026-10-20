@@ -81,8 +81,11 @@ active controller diagnostics.
 Version `.73` adds [object graphs](object-staging.md), reciprocal references and
 scoped coordination checks, published atomically with the other models.
 This expected
-SDK failure still produces exit code one. Upload/download probes reject `--tag`;
-online edits and tag setters remain outside this tool.
+SDK failure still produces exit code one. Upload/download probes reject `--tag`.
+Tag setters remain outside this tool. Version `.78` adds an
+[online-edit diagnostic](native-online-edits.md) with a generated NOP-only
+`AcceptEdits` request and an independent `LeaveEdits` comparison; finalizing and
+assembling edits remain unavailable.
 
 Version `.74` adds explicit `--operation modes` for
 [Remote Run/Program validation](controller-mode.md). This case executes logic:
@@ -125,6 +128,9 @@ Advertised diagnostic stages must also be idle and empty, with installation and
 definition exposure disabled.
 An advertised object stage must also be idle and empty, with reference-validation
 state reset, closed temporary coordination and installation disabled.
+An advertised [download image](download-image.md) must be idle with no allocated
+tables, retained records, source binding or temporary readback. Initial-value
+transfer, compiled-routine installation and commit authority remain disabled.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
