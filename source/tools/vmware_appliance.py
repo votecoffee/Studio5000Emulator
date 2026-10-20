@@ -378,7 +378,9 @@ def import_project(directory, project, converter=None):
                                          **({'native_symbols':provenance['native_symbols']}
                                             if 'native_symbols' in provenance else {}),
                                          **({'native_types':provenance['native_types']}
-                                            if 'native_types' in provenance else {})})
+                                            if 'native_types' in provenance else {}),
+                                         **({'native_tasks':provenance['native_tasks']}
+                                            if 'native_tasks' in provenance else {})})
     if digest(source) != original_hash:
         raise ValueError('Source project changed during import')
     receipt = {'app_version': result['app_version'], 'project': result['name'],

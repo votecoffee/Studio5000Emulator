@@ -36,3 +36,8 @@ restored. Native SDK tests are paused. Program readback can be checked with the
 [independent protocol client](research-session-probe.md). Compiled routine
 identity, edit storage, acceptance, testing, assembly and commit remain separate
 work.
+
+Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)
+identified in that retained trace. Task and Program settings use their own exact
+field widths and identities. This change has focused protocol validation only;
+native SDK testing remains paused.

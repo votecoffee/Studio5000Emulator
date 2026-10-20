@@ -20,6 +20,7 @@ from .pccc_mapping import PcccMapping
 from .time_sync import TimeSync
 from .program_forces import ProgramForces
 from .program_configuration import ProgramConfiguration
+from .task_configuration import TaskConfiguration
 from .io_map import IOMap
 
 
@@ -307,6 +308,7 @@ class Project:
         self.time_sync = TimeSync.from_source(root, c)
         self.program_forces = ProgramForces.from_source(root, c)
         self.program_configuration = ProgramConfiguration.from_source(root, c, self.sha256)
+        self.task_configuration = TaskConfiguration.from_source(root, c, self.sha256)
         self.io_map = IOMap.from_source(root, c)
         self.controller_configuration = ControllerConfiguration.from_controller(c, root)
         self.name = c.get("Name", "Controller")

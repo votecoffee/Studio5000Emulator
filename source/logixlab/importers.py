@@ -4,12 +4,15 @@ import json
 import os
 import shutil
 import subprocess
+from xml.etree import ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from .model import ModelError
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
+from .native_tasks import NativeTasks
+from .task_configuration import TaskConfiguration
 
 def default_converter():
     """Resolve optional native tooling without depending on a checkout location."""
@@ -62,6 +65,13 @@ def convert_acd(source, destination, converter=None):
         manifest['native_types'] = NativeTypes.from_acd(source, manifest['l5x_sha256']).manifest()
     except (ModelError, UnicodeError, OSError) as error:
         manifest['native_types_error'] = str(error)
+    try:
+        root = ET.parse(destination).getroot()
+        settings = TaskConfiguration.from_source(root, root.find('Controller'), manifest['l5x_sha256'])
+        if not settings.source_complete:raise ModelError('Native Task binding needs complete v35 source')
+        manifest['native_tasks'] = NativeTasks.from_acd(source, manifest['l5x_sha256'], settings.names).manifest()
+    except (ModelError, UnicodeError, OSError, ET.ParseError) as error:
+        manifest['native_tasks_error'] = str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

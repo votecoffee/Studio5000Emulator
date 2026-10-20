@@ -18,6 +18,7 @@ from .importers import convert_acd, default_converter
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
+from .native_tasks import NativeTasks
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -46,6 +47,7 @@ class Application:
         self.native_project_identity = None
         self.native_symbols = None
         self.native_types = None
+        self.native_tasks = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -147,7 +149,7 @@ class Application:
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
+            'controller_configuration':None,'task_configuration':None,'native_tasks':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -260,6 +262,18 @@ class Application:
                     # Keep the full catalog in its own bound object. Polling and
                     # snapshot provenance must not repeat megabytes of members.
                     provenance['native_types'] = native_types.description()
+                task_manifest = provenance.get('native_tasks')
+                if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_tasks' in data:
+                    task_manifest = data['native_tasks']
+                native_tasks = NativeTasks.from_manifest(task_manifest, project.sha256) if task_manifest is not None else None
+                if native_tasks:
+                    if any(binding and binding.source_acd_sha256 != native_tasks.source_acd_sha256
+                           for binding in (native_identity, native_symbols, native_types)):
+                        raise ModelError('Native Task and project manifests refer to different ACD files')
+                    if (not project.task_configuration.source_complete or
+                            set(native_tasks.tasks) != {name.casefold() for name in project.task_configuration.names}):
+                        raise ModelError('Native Task identities do not match the complete ordinary Task source')
+                    provenance['native_tasks'] = native_tasks.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -272,6 +286,7 @@ class Application:
                     self.native_project_identity = native_identity
                     self.native_symbols = native_symbols
                     self.native_types = native_types
+                    self.native_tasks = native_tasks
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True
