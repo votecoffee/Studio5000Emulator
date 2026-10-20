@@ -7,6 +7,8 @@
 - Application code, tests, public L5X fixtures and browser assets are under `source/`.
 - Run relevant checks before committing. The behavioral suite runs from `source/`:
   `py -3.13 -X utf8 -m unittest discover -s tests -v`.
+- Use affected tests and focused protocol checks for small iterations. Reserve
+  the full behavioral suite for milestones or failures that justify broader checks.
 - Keep changes focused. Preserve the distinction between software-model/protocol
   tests and demonstrated native Studio 5000 Go Online behavior.
 - On Windows, launch noninteractive appliance helper processes with `CREATE_NO_WINDOW`

@@ -22,6 +22,15 @@ py -3.13 -X utf8 source/launch.py --sample TextLab --data-dir .local/session
 
 From `source/`:
 
+Use affected modules for ordinary iterations, for example:
+
+```powershell
+py -3.13 -X utf8 -m unittest discover -s tests -p 'test_task*.py' -v
+```
+
+Run the complete behavioral suite at milestones, or when failures or changes to
+shared behavior justify broader checks:
+
 ```powershell
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
@@ -173,6 +182,19 @@ requests but again faults the SDK and leaves native cleanup unconfirmed;
 explicit emulator cleanup restores the main listener. Source ACD hashes remain
 unchanged. Native SDK testing is paused; complete transfers and online edits
 remain unimplemented.
+
+Version `.80` adds source-bound [Task identities and settings](task-metadata.md),
+an independent [upload inventory reader](upload-inventory-client.md) and an
+[offline download capture comparator](download-replay.md). This iteration passes
+91 focused tests covering those changes and related routing/import/appliance
+behavior. The full suite was not rerun. The signed research session passes
+21 owned TCP checks, including the Task Inhibit read and all 904 temporary
+download results. A separate upload inventory replay reads three scalar values
+in 23 requests while preserving source, model and scan state. The rebuilt
+appliance passes 11 focused wire checks; all 68 application modules and served
+browser assets match source and the packaged Windows version. Native SDK use
+remains paused, so these results do not establish native transfer or online-edit
+acceptance.
 
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
