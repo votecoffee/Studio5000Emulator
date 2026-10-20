@@ -53,3 +53,9 @@ ordered Task Program list, explicit watchdog time and unavailable Task execution
 slot. With `--inventory`, a separate session completes 56 inventory reads and
 checks the discovered Task-to-Program links. The source and model are preserved;
 the report still marks complete native upload and SDK acceptance as unassessed.
+
+The `.83` owned-payload case passes 31 signed checks, including the explicit
+Controller overflow-reporting flag and Program-scoped Routine catalogs. The
+independent inventory session completes 60 reads. All 904 temporary preparation
+results remain verifiable, and source/model state is preserved. These checks
+use the custom protocol client; native SDK results are recorded separately.

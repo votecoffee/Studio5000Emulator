@@ -32,7 +32,7 @@ returned unsupported fields. The SDK again reported `LgxSrv_E_FATAL_ERROR`.
 These packets do not establish which missing field caused the SDK failure.
 Source and model remained unchanged, but native cleanup was unconfirmed; the
 isolated emulator connection was explicitly closed and the main endpoint
-restored. Native SDK tests are paused. Program readback can be checked with the
+restored. Native SDK tests were paused at that revision. Program readback can be checked with the
 [independent protocol client](research-session-probe.md). Compiled routine
 identity, edit storage, acceptance, testing, assembly and commit remain separate
 work.
@@ -40,4 +40,10 @@ work.
 Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)
 identified in that retained trace. Task and Program settings use their own exact
 field widths and identities. This change has focused protocol validation only;
-native SDK testing remains paused.
+native SDK testing remained paused at that revision.
+
+SDK testing resumed in `.82`. With the Task read and later Controller
+[overflow-reporting setting](controller-overflow-setting.md), the `.83` native
+import advances to a denied Controller service `0x55` and confirms Offline and
+endpoint cleanup. Active edit acceptance, testing, assembly and commit remain
+unfinished.

@@ -39,7 +39,9 @@ edit diagnostic returns an attribute-list error and confirms cleanup without a
 reported fatal SDK exception.
 Version `.83` adds the source-bound [overflow-reporting setting](docs/controller-overflow-setting.md)
 requested during native online import, and retains SDK import-log error codes
-in diagnostic summaries.
+in diagnostic summaries. The isolated native import advances to a denied
+controller operation. A separate local pending NOP import while online succeeds;
+controller acceptance and active edits remain unavailable.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

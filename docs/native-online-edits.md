@@ -115,3 +115,10 @@ enumeration. The repeat verifies 99 signed requests, reports no fatal SDK fault,
 and confirms native Offline and endpoint cleanup with unchanged source/model.
 Handler references and Controller Get Attributes All remain incomplete too.
 No active edit acceptance, testing, assembly or commit is established.
+
+On the rebuilt `.83` main instance, the separate `LeaveEdits` comparison
+succeeds across 93 verified signed requests and confirms native Offline plus
+endpoint cleanup. This is a local pending NOP import on the probe's private
+ACD copy while online; it does not establish accepted controller edits. The
+source ACD and emulated routines, task configuration, values and scan state
+remain unchanged. The SDK project is closed without saving over the input.

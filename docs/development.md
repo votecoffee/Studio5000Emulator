@@ -151,6 +151,10 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+Version `.83` retains `native_sdk_diagnostic_codes` from both exception chains
+and logged import XML. The top-level import exception can omit the useful
+mnemonic reported inside an `ImportLog` event. The sorted, unique code list
+records those diagnostics without inferring which packet caused them.
 Version `.79` checks that `LdSdkService` is Running before creating the SDK
 helper or opening a native project. This check reads service status only.
 Version `.82` stops further tag reads and ordinary Offline calls after an
@@ -241,6 +245,28 @@ it alone causes the import failure. This attempt reports no fatal SDK exception,
 confirms native Offline and endpoint cleanup, and preserves the source/model.
 The isolated instance is stopped and the main listener restored. Full native
 transfers, tag monitoring and active online edits remain unfinished.
+
+Version `.83` adds the explicit source-bound [overflow-reporting
+setting](controller-overflow-setting.md) requested by online import. The
+iteration passes 38 focused Controller configuration/mode tests and 33 SDK-probe
+tests. The full suite was not rerun. The independent signed session passes 31
+owned TCP checks and 60 inventory reads, including preparation/readback of all
+904 temporary download results. The rebuilt appliance passes 22 focused wire
+checks; all 71 application modules and served/packaged version/assets match
+source. The isolated native import reads the new field, then reports
+`RxCsE_ASA_NO_PERMISSION` at a denied Controller service `0x55`. It verifies
+99 signed requests, confirms native Offline and endpoint cleanup, and preserves
+the source/model. No fatal SDK fault is reported in that attempt.
+
+Fresh `.83` SDK connection/Offline succeeds across 79 verified requests. Tag
+reads still fail online-address discovery across 81; upload still fails
+controller collection across 197; download still fails device transfer across
+180 after preparing all 904 records. A separate `LeaveEdits` NOP import while
+online succeeds across 93 requests. That result establishes a local pending
+import on the private SDK project, not controller acceptance. Each case confirms
+native Offline and endpoint cleanup, unchanged source/model state, and no
+reported fatal/server-faulted SDK exception. Complete native tag monitoring,
+upload/download and active edits remain unfinished.
 
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
