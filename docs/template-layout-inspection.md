@@ -77,3 +77,35 @@ and nested types, bind source names and native IDs, and implement a verified
 device-operation and atomic commit contract. The native SDK still fails online
 tag-address resolution before emitting value reads. Full upload/download and
 online edits remain unsupported; Studio GUI monitoring remains unverified.
+
+## Deployed validation
+
+The rebuilt `.76` appliance decodes those same 242 Templates, 13,312 members,
+26,990 trailer bytes and 5,337 encoded offsets during a fresh native SDK
+download attempt. All 904 batch records retain temporary models. Execution
+remains denied, and the SDK reports `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`.
+No active tags, source binding, scans or model time change during that attempt.
+
+The 1,013-test suite passes on Windows (1,011 passed, two platform skips) and
+Linux (1,012 passed, one platform skip). All 291 live protocol checks pass.
+All 61 deployed application modules match source, and the served browser assets
+and Windows executable's embedded assets/version were checked separately.
+
+| Native SDK probe | Verified signed requests | Result |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Online-address failure before any tag-value request |
+| Upload | 199 | Controller-collection upload still fails |
+| Download | 181 | Member definitions decode; device execution remains denied |
+| Modes | 116 | All 17 steps succeed, including SDK and webpage Run/Program control |
+
+Two SDK Run cycles advance 30 and 34 scans with committed prescan counts one
+and two. A webpage Run advances the count to three; repeated Run retains it,
+and Program reads back through the SDK and stops scans. This mode test
+intentionally executes supported logic; its resulting values remain available.
+
+Every probe finishes Offline with confirmed TCP/lease/inhibit/staging cleanup.
+The original ACD remains byte-identical, and the communications and SDK services
+remain running. Final emulator state is Remote Program with no clients, no
+allocated transfer buffer and idle, empty member inspection. These checks do
+not establish full transfer, native tag/rung monitoring or instruction equivalence.
