@@ -143,6 +143,18 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+Version `.78` also uses the Linux kernel's read-only address dump to discover
+secondary IPv4 addresses and their actual prefixes. The network objects no
+longer depend on an ioctl that returns only an adapter's primary address.
+Loopback subnet matching remains available. A valid network-object response
+does not establish that Linx has registered that address as a usable native
+communications path; test that separately before a transfer or edit probe.
+
+The `.78` suite runs 1,068 tests, with two Windows skips and one Linux skip.
+Independent temporary download storage, source checks and readback, coherent
+clock fields, online-edit probe admission/cleanup and Linux address enumeration
+are covered. Native transfer/edit outcomes require the separate SDK tests.
+
 The `.73` suite runs 976 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt models all 904 batch records, validates reciprocal
 links and preserves scoped Symbols/Routines, then denies execution. Cleanup

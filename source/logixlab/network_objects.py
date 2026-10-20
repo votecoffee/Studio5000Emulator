@@ -15,6 +15,7 @@ from pathlib import Path
 from .windows_network import windows_interface
 from .ethernet_link import LinkSnapshot, linux_link
 from .tcpip_configuration import TcpIpConfiguration, linux_tcpip_configuration
+from .linux_network import linux_ipv4_addresses
 
 
 def cip_string(value):
@@ -67,24 +68,15 @@ class InterfaceSnapshot:
 
 
 def linux_snapshot(address):
-    import fcntl
-    selected = None
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
-        for _, name in socket.if_nameindex():
-            request = struct.pack('256s', name.encode()[:15])
-            try:
-                local = socket.inet_ntoa(fcntl.ioctl(probe, 0x8915, request)[20:24])
-                mask = socket.inet_ntoa(fcntl.ioctl(probe, 0x891B, request)[20:24])
-            except OSError:
-                continue
-            if local == address or (ipaddress.IPv4Address(address).is_loopback
-                                    and ipaddress.IPv4Address(local).is_loopback
-                                    and ipaddress.IPv4Address(address) in ipaddress.IPv4Network(local + '/' + mask, strict=False)):
-                selected = name, mask
-                break
+    rows=linux_ipv4_addresses();selected=next((row for row in rows if row.address==address),None)
+    if selected is None and ipaddress.IPv4Address(address).is_loopback:
+        selected=next((row for row in rows if ipaddress.IPv4Address(row.address).is_loopback
+                       and ipaddress.IPv4Address(address) in ipaddress.IPv4Network(
+                           row.address+'/'+str(row.prefix),strict=False)),None)
     if selected is None:
         raise ValueError('Selected IPv4 interface was not found')
-    name, mask = selected
+    name=socket.if_indextoname(selected.index)
+    mask=str(ipaddress.IPv4Network('0.0.0.0/'+str(selected.prefix)).netmask)
     gateway = '0.0.0.0'
     routes = []
     for line in Path('/proc/net/route').read_text().splitlines()[1:]:
