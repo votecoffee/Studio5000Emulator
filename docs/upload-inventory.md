@@ -33,6 +33,15 @@ Controller requests, with no further native request after that list. These
 private hypotheses establish neither the correct `POINTER` representation
 nor a unique cause for the collection failure; they are excluded from the app.
 
+A further isolated experiment combines a two-byte absent-handler hypothesis
+with Controller Get All in the installed definition's six-field order. The
+Get All read succeeds and returns twelve bytes; the SDK no longer sends the
+fallback attribute list, but upload still fails controller collection after
+196 verified signed requests. Source/model state is unchanged, and native
+Offline/endpoint cleanup are confirmed without a fatal SDK fault. This proves
+the combined experiment was exercised; it does not validate the guessed
+handler representation. The experiment remains outside application behavior.
+
 An audit of every nonzero inner reply in that baseline found 48 class-revision
 discovery failures, two motion-catalog class-count failures, four unsupported
 energy probes followed by supported empty fallbacks, one expected absent
