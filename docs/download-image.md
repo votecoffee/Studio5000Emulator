@@ -123,6 +123,14 @@ image, return guessed native results or commit the temporary image. This makes
 the remaining download blocker identifiable in native rejection reports while
 preserving the existing negative wire response.
 
+The `.95` native SDK retest reaches one such query with all 904 prepared records
+and their 904 retained results. Download still fails with
+`RxCsE_DOWNLOAD_OF_DEVICES_FAILED` across 182 verified signed requests; separate
+library-data writes remain denied. Native Offline and endpoint cleanup succeed,
+the original source and active model are unchanged, and no fatal SDK fault is
+reported. This validates the diagnostic boundary without establishing a native
+result codec or a completed download.
+
 The unit tests cover independent temporary allocation, typed attributes,
 source checks, unknown operations, allocation/read bounds, unresolved symbols,
 atomic failure, cached inspection and cleanup. Owned native traces can be
