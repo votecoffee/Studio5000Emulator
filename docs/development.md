@@ -85,6 +85,14 @@ failed refreshes remove expired availability. See the
 [counter model and limitations](ethernet-counters.md) before extending driver
 mappings or interpreting a zero as a measurement.
 
+`aoi_catalog.py` inspects original complete source before permitting an empty
+UDI Definition (`0x338`) list. `alarm_catalog.py` applies the same conservative
+alarm-absence check to instruction and tag-alarm catalogs; `io_map.py` admits
+an empty module list only without external I/O configuration. Keep these source
+checks independent of runtime type filtering. Their native read-policy entries
+authorize discovery only. See [native inventory discovery](native-inventory.md)
+for schemas, source boundaries and deployed validation.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

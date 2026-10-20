@@ -49,9 +49,17 @@ distributed. Source checks and protocol handlers are original implementation.
 
 Tests cover exact byte widths, cursors, native signed reads, source replacement,
 configured/protected/context/ambiguous source, malformed requests and write
-denials. A leased normal-source `.57` native SDK run accepted the five newly
-admitted inventory reads and the embedded-server enable field, preserved source
-and model values, and completed its connection/Offline cleanup sequence. Full
+denials. The `.57` suite passes 804 tests on Windows and Linux, with two Windows
+skips and one Linux skip. The rebuilt executable and running webpage match the
+source version and assets; the deployed appliance passes 220 wire checks.
+
+The deployed native SDK upload accepted the five newly admitted inventory reads
+and the embedded-server enable field across 197 verified signed requests. A
+separate connection probe completed all nine connection/Offline cleanup steps
+with 82 verified requests. A two-tag BOOL/DINT probe verified 84 requests but
+both reads failed with `RxDA_E_NO_ONLINE_ADDRESS`, without sending tag-read
+packets. All probes preserved source and model values and confirmed Offline
+cleanup. Full
 upload still failed controller collection after the incomplete Time Sync list.
 These accepted reads do not establish full native upload or GUI monitoring.
 

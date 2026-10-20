@@ -85,6 +85,9 @@ The Linux appliance also exposes a documented subset of
 driver, with unavailable diagnostic fields identified in the API.
 Read-only [native inventory discovery](docs/native-inventory.md) now covers
 source-checked empty I/O, alarm and Add-On Instruction catalogs.
+Version `.57` passes 804 behavioral tests on Windows and Linux, with expected
+platform skips, and 220 checks against the running protocol endpoint. Full
+native upload and online tag monitoring still fail their SDK probes.
 
 ## Usage
 
