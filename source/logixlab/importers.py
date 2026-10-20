@@ -13,6 +13,8 @@ from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
 from .native_tasks import NativeTasks
 from .task_configuration import TaskConfiguration
+from .native_routines import NativeRoutines
+from .executable_configuration import ExecutableConfiguration
 
 def default_converter():
     """Resolve optional native tooling without depending on a checkout location."""
@@ -72,6 +74,16 @@ def convert_acd(source, destination, converter=None):
         manifest['native_tasks'] = NativeTasks.from_acd(source, manifest['l5x_sha256'], settings.names).manifest()
     except (ModelError, UnicodeError, OSError, ET.ParseError) as error:
         manifest['native_tasks_error'] = str(error)
+    try:
+        root = ET.parse(destination).getroot()
+        configuration = ExecutableConfiguration.from_source(root, root.find('Controller'), manifest['l5x_sha256'])
+        if not configuration.source_complete:raise ModelError('Native Executable binding needs complete v35 source')
+        symbols = NativeSymbols.from_manifest(manifest.get('native_symbols'), manifest['l5x_sha256'])
+        expected = [{'program':program,'name':name} for program in configuration.program_names
+                    for name in configuration.routine_names(program,source_sha256=manifest['l5x_sha256'])]
+        manifest['native_routines'] = NativeRoutines.from_acd(source,manifest['l5x_sha256'],expected,symbols).manifest()
+    except (ModelError, UnicodeError, OSError, ET.ParseError) as error:
+        manifest['native_routines_error'] = str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

@@ -22,6 +22,7 @@ from .program_forces import ProgramForces
 from .program_configuration import ProgramConfiguration
 from .task_configuration import TaskConfiguration
 from .task_timing import TaskTiming
+from .executable_configuration import ExecutableConfiguration
 from .io_map import IOMap
 
 
@@ -311,6 +312,7 @@ class Project:
         self.program_configuration = ProgramConfiguration.from_source(root, c, self.sha256)
         self.task_configuration = TaskConfiguration.from_source(root, c, self.sha256)
         self.task_timing = TaskTiming.from_source(root, c, self.sha256, self.task_configuration)
+        self.executable_configuration = ExecutableConfiguration.from_source(root, c, self.sha256)
         self.io_map = IOMap.from_source(root, c)
         self.controller_configuration = ControllerConfiguration.from_controller(c, root)
         self.name = c.get("Name", "Controller")

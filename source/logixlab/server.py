@@ -19,6 +19,7 @@ from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
 from .native_tasks import NativeTasks
+from .native_routines import NativeRoutines
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -48,6 +49,7 @@ class Application:
         self.native_symbols = None
         self.native_types = None
         self.native_tasks = None
+        self.native_routines = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -149,7 +151,7 @@ class Application:
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
+            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'executable_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -274,6 +276,23 @@ class Application:
                             set(native_tasks.tasks) != {name.casefold() for name in project.task_configuration.names}):
                         raise ModelError('Native Task identities do not match the complete ordinary Task source')
                     provenance['native_tasks'] = native_tasks.description()
+                routine_manifest = provenance.get('native_routines')
+                if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_routines' in data:
+                    routine_manifest = data['native_routines']
+                native_routines = NativeRoutines.from_manifest(routine_manifest, project.sha256) if routine_manifest is not None else None
+                if native_routines:
+                    if any(binding and binding.source_acd_sha256 != native_routines.source_acd_sha256
+                           for binding in (native_identity, native_symbols, native_types, native_tasks)):
+                        raise ModelError('Native Executable and project manifests refer to different ACD files')
+                    configuration = project.executable_configuration
+                    expected = {(program.casefold(),name.casefold()) for program in configuration.program_names
+                                for name in configuration.routine_names(program,source_sha256=project.sha256)}
+                    if (not configuration.source_complete or native_symbols is None
+                            or set(native_routines.by_key) != expected
+                            or any(native_symbols.programs.get(row.program.casefold()) != row.program_instance
+                                   for row in native_routines.rows)):
+                        raise ModelError('Native Executable identities do not match the complete ordinary source and Program bindings')
+                    provenance['native_routines'] = native_routines.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -287,6 +306,7 @@ class Application:
                     self.native_symbols = native_symbols
                     self.native_types = native_types
                     self.native_tasks = native_tasks
+                    self.native_routines = native_routines
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

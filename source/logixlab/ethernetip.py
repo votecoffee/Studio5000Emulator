@@ -112,7 +112,7 @@ def decode_path(raw):
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
-                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B)
+                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B,0x6D)
                          else 'io_map_instance' if p.class_id==0x69 and value==0x7E
                          else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
                 if (attr=='class_id' and scope and p.instance and p.attribute is None and not p.symbols
@@ -355,7 +355,7 @@ class Router:
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E) or
+                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E) or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -708,6 +708,43 @@ class Router:
             rows.append({'id':instance,'name':name})
         return sorted(rows,key=lambda row:row['id'])
 
+    def routines(self,program_instance):
+        program=next((row for row in self.programs() if row['id']==program_instance),None)
+        if program is None:raise CIPError(5,'Unknown or unexposed Program for Executable inventory')
+        project=self.app.engine.project
+        names=project.executable_configuration.routine_names(program['name'],source_sha256=project.sha256)
+        native=getattr(self.app,'native_routines',None)
+        symbols=self.app.native_symbols
+        if (names is None or native is None or native.source_l5x_sha256!=project.sha256
+                or native.source_acd_sha256!=symbols.source_acd_sha256):
+            raise CIPError(0x0C,'Executable inventory requires matching complete source and native identities')
+        rows=[]
+        for name in names:
+            routine=native.lookup(program['name'],name)
+            if routine is None or routine.program_instance!=program_instance:
+                raise CIPError(0x0C,'Native Executable inventory is incomplete for this Program')
+            rows.append({'id':routine.instance,'name':name,'program':program['name'],'program_instance':program_instance})
+        return sorted(rows,key=lambda row:row['id'])
+
+    def routine_service(self,service,path,data,limit):
+        if path.symbols or path.instance is None:
+            raise CIPError(4,'Executable metadata requires a numeric instance path')
+        if path.program_instance is None:
+            if path.instance==0 and service in (3,0x0E):
+                # Partial legacy layout revision only; never flatten Programs.
+                return self.attribute_read(service,path,data,{1:struct.pack('<H',1)})
+            raise CIPError(4,'Executable inventory and instance reads require a parent Program')
+        if service==0x4B:return self.instance_list(path,data,limit)
+        rows=self.routines(path.program_instance)
+        if path.instance==0:
+            attributes=self.catalog_class_attributes([row['id'] for row in rows])
+        else:
+            routine=next((row for row in rows if row['id']==path.instance),None)
+            if routine is None:raise CIPError(5,'Unknown Executable instance in the selected Program')
+            attributes=self.app.engine.project.executable_configuration.attributes(
+                routine['program'],routine['name'],source_sha256=self.app.engine.project.sha256)
+        return self.attribute_read(service,path,data,attributes)
+
     def task_service(self,service,path,data,limit):
         if path.symbols or path.program_instance is not None or path.instance is None:
             raise CIPError(4,'Task metadata requires a controller-scoped instance path')
@@ -825,6 +862,9 @@ class Router:
         elif path.class_id==0x70:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'Task discovery must be controller scoped')
             ids=[task['id'] for task in self.tasks()]
+        elif path.class_id==0x6D:
+            if path.symbols or path.program_instance is None:raise CIPError(4,'Executable discovery requires a parent Program')
+            ids=[routine['id'] for routine in self.routines(path.program_instance)]
         else:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'This instance list requires a global class path')
@@ -964,7 +1004,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x70,0x71,0x74,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x74,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -1173,6 +1213,7 @@ class Router:
             return (0x1E if any(r[2] for r in results) else 0),struct.pack('<H'+'H'*count,count,*positions)+b''.join(results)
         if path.class_id==0x68:return self.program_service(service,path,data,limit)
         if path.class_id==0x70:return self.task_service(service,path,data,limit)
+        if path.class_id==0x6D:return self.routine_service(service,path,data,limit)
         if path.class_id==0x6A:return self.data_table_service(service,path,data,limit)
         if path.class_id in (0x6B,0x6C) and service==0x4B:return self.instance_list(path,data,limit)
         if path.class_id==0x6B and service==0x55:return self.enumerate_symbols(path,data,limit)
@@ -1297,6 +1338,7 @@ class Endpoint:
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
+                    'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
@@ -1323,6 +1365,7 @@ class Endpoint:
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
                     'native_tasks':self.app.native_tasks.description() if self.enabled and getattr(self.app,'native_tasks',None) else None,
+                    'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,
