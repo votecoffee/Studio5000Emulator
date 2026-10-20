@@ -438,6 +438,8 @@ def run(args):
                                     stdout=log, stderr=subprocess.STDOUT, timeout=120, **background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
+        summary.update(sdk_server_faulted=report.get('serverFaulted'),
+                       native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'))
     finally:
         summary['source_unchanged'] = digest(source) == source_hash and digest(copied) == source_hash
         try:

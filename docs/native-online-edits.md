@@ -85,5 +85,23 @@ attribute `19`. Later Controller reads remained partial or unsupported, and the
 SDK repeated `LgxSrv_E_FATAL_ERROR`. No active edit-write or commit was observed.
 The report remains `incomplete`, with native cleanup unconfirmed. Explicit
 emulator socket cleanup restored the main listener, and the original ACD and
-modeled state were preserved. Native SDK testing is paused after this result;
+modeled state were preserved. Native SDK testing was paused after this result;
 source work and isolated protocol testing can continue without the SDK.
+
+Version `.82` resumed SDK testing on the rebuilt runtime with source-bound Task
+and Program-scoped Routine metadata. An isolated `AcceptEdits` attempt verifies
+95 signed requests. The SDK returns `XMLSrv_E_IMPORT_ABORTED_NO_CHANGES` with
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR` in its import log. The paired import trace
+contains a Controller `0x8E/1` attribute-list read of attribute `31`, returned
+unavailable (`0x14`, overall list status `0x0A`). That missing field is a concrete
+next investigation point; the trace does not establish that supplying it would
+complete an edit.
+
+This attempt reports no fatal SDK exception. Native Go Offline and its readback
+succeed, the project closes, and the endpoint's clients, lease and temporary
+state clear. Source and model remain unchanged; no active edit-write or commit
+is observed. The isolated application is stopped and the main listener restored.
+This result does not establish that the earlier SDK fault is fixed. The helper
+now stops further ordinary SDK calls after an observed fatal/server-faulted
+exception and records native Offline confirmation separately from endpoint
+cleanup.

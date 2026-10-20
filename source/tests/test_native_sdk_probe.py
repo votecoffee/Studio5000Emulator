@@ -15,6 +15,37 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_native_server_fault_and_sdk_offline_remain_distinct_from_endpoint_cleanup(self):
+        from tools.probe_native_sdk import digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+            output=root/'report';state=self.state()
+            state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='connection',tag=[],output=str(output),sdk_feed=None)
+            trace={'events':[],'counts':{'native_verified':0}}
+            def process(command,**kwargs):
+                if command[0]=='dotnet':
+                    (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                    (output/'bin/NativeSdkProbe.dll').write_bytes(b'fake-code')
+                    return subprocess.CompletedProcess(command,0)
+                Path(command[2]).write_text(json.dumps({'status':'failed','steps':[],
+                    'serverFaulted':True,'sdkOfflineConfirmed':False}))
+                return subprocess.CompletedProcess(command,1)
+            with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                    patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                    patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state),patch('builtins.print'):
+                self.assertEqual(run(args),1)
+            report=json.loads((output/'summary.json').read_text())
+            self.assertEqual(report['status'],'failed')
+            self.assertTrue(report['cleanup_confirmed'])
+            self.assertTrue(report['sdk_server_faulted'])
+            self.assertIs(report['native_sdk_offline_confirmed'],False)
+
     def test_edit_reservation_must_be_idle_empty_unbound_and_without_active_edit_authority(self):
         from logixlab.programming_lease import ProgrammingLease
         state=self.state();lease=ProgrammingLease().description(1,'a'*64);lease['available']=True

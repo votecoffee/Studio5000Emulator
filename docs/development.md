@@ -153,6 +153,11 @@ Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 Version `.79` checks that `LdSdkService` is Running before creating the SDK
 helper or opening a native project. This check reads service status only.
+Version `.82` stops further tag reads and ordinary Offline calls after an
+observed fatal/server-faulted SDK exception. It still attempts project disposal
+and records `sdk_server_faulted` separately from `native_sdk_offline_confirmed`
+and endpoint `cleanup_confirmed`. Cleared emulator sockets do not prove that
+the SDK reached Offline. This guard does not repair the underlying SDK fault.
 The [isolated research session probe](research-session-probe.md) can exercise
 the custom emulator's signed protocol without that service; its results remain
 separate from native Studio acceptance.
@@ -180,7 +185,7 @@ Those cases confirm cleanup. The mode repeat described above confirms both SDK
 and webpage Run/Program propagation. The isolated edit test verifies 98 signed
 requests but again faults the SDK and leaves native cleanup unconfirmed;
 explicit emulator cleanup restores the main listener. Source ACD hashes remain
-unchanged. Native SDK testing is paused; complete transfers and online edits
+unchanged. Native SDK testing was paused at that revision; complete transfers and online edits
 remain unimplemented.
 
 Version `.80` adds source-bound [Task identities and settings](task-metadata.md),
@@ -208,6 +213,34 @@ The frozen `.81` protocol probe passes 24 signed checks plus 56 independent
 inventory reads against the retained source pair. The rebuilt appliance passes
 15 focused wire checks; all 69 application modules and the served/packaged
 browser assets match source and version.
+
+Version `.82` adds [Program-scoped native Routine identities and limited legacy
+Executable descriptions](executable-metadata.md). The independent inventory
+reader preserves Program scope when child IDs overlap and checks each nested
+catalog independently. The iteration passes 100 focused routing, import,
+appliance and inventory tests, plus 32 SDK-probe tests. The full suite was not
+rerun. The signed research session passes 30 owned TCP checks and 60 independent
+inventory reads, including preparation/readback of all 904 temporary download
+results. The rebuilt appliance passes 19 focused wire checks; all 71 application
+modules, served browser assets and packaged Windows version match source.
+
+SDK testing resumed for `.82`. Connection/Offline succeeds in nine steps with
+79 verified signed requests. Native tag reads still report
+`RxDA_E_NO_ONLINE_ADDRESS` across 81 requests. Upload still fails controller
+collection across 197; download still fails device transfer across 180 after
+preparing all 904 records, 16 tables, two routines and 15 linked symbols.
+All these cases confirm endpoint cleanup and unchanged source/model state.
+
+The rebuilt fault-aware helper separately passes connection/Offline with 79
+verified requests and an explicit native Offline confirmation. An isolated
+`AcceptEdits` attempt verifies 95 signed requests and reports
+`XMLSrv_E_IMPORT_ABORTED_NO_CHANGES`; its import log contains
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR`. The import interval includes an unsupported
+Controller attribute 31 read. This identifies a missing field without proving
+it alone causes the import failure. This attempt reports no fatal SDK exception,
+confirms native Offline and endpoint cleanup, and preserves the source/model.
+The isolated instance is stopped and the main listener restored. Full native
+transfers, tag monitoring and active online edits remain unfinished.
 
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no

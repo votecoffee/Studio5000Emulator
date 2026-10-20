@@ -23,6 +23,15 @@ var steps = new List<object>();
 var logger = new Capture();
 LogixProject? project = null;
 bool passed = true;
+bool serverFaulted = false;
+bool sdkOfflineConfirmed = false;
+void ObserveServerFault(Exception error)
+{
+    for (Exception? item = error; item is not null; item = item.InnerException)
+        if (item.Message.Contains("LgxSrv_E_FATAL_ERROR", StringComparison.Ordinal) ||
+            item.Message.Contains("LgxSrv_E_SERVER_FAULTED", StringComparison.Ordinal))
+            serverFaulted = true;
+}
 using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(5) };
 http.DefaultRequestHeaders.ConnectionClose = true;
 var backendReadRecoveries = new List<object>();
@@ -107,6 +116,7 @@ async Task Step(string name, Func<Task<object?>> action)
     catch (Exception error)
     {
         passed = false;
+        ObserveServerFault(error);
         var chain = new List<object>();
         for (Exception? item = error; item is not null && chain.Count < 16; item = item.InnerException)
             chain.Add(new { type = item.GetType().FullName, message = item.Message, hresult = $"0x{item.HResult:X8}" });
@@ -209,15 +219,21 @@ try
         }
         // Tag-read failures are recorded independently; still attempt cleanup.
         foreach (var tag in options.Tags)
+        {
+            if (serverFaulted) break;
             try { await Step("GetTagValueAsync:" + tag, async () =>
                 (await project!.GetTagValueAsync(tag, LogixProject.OperationMode.Online, LogixProject.DataType.BYTE_ARRAY)).ToBase64()); }
             catch { }
-        await Step("GoOfflineAsync", async () => { await project!.GoOfflineAsync(); return true; });
-        await Step("ReadConnectedStateAsync:final", async () => {
-            var state = await project!.ReadConnectedStateAsync();
-            if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("SDK did not report Offline");
-            return state.ToString();
-        });
+        }
+        if (!serverFaulted)
+        {
+            await Step("GoOfflineAsync", async () => { await project!.GoOfflineAsync(); return true; });
+            await Step("ReadConnectedStateAsync:final", async () => {
+                var state = await project!.ReadConnectedStateAsync();
+                if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("SDK did not report Offline");
+                return state.ToString();
+            });
+        }
     }
 }
 catch { passed = false; }
@@ -228,7 +244,9 @@ finally
         if (options.Operation == "modes")
             try { await Step("Restore Program", async () => { await Backend("Program"); return true; }); }
             catch { passed = false; }
-        try
+        if (serverFaulted)
+            steps.Add(new { method = "SDK Offline cleanup", status = "skipped", reason = "native_server_faulted" });
+        else try
         {
             // A failed Upload can leave Connected rather than Online.
             if (await project.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
@@ -238,10 +256,11 @@ finally
                 if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("SDK cleanup did not report Offline");
                 return state.ToString();
             });
+            sdkOfflineConfirmed = true;
         }
-        catch { passed = false; }
+        catch (Exception error) { passed = false; ObserveServerFault(error); }
         try { project.Dispose(); }
-        catch (Exception error) { passed = false; steps.Add(new { method = "Dispose", status = "failed", error = error.Message }); }
+        catch (Exception error) { passed = false; ObserveServerFault(error); steps.Add(new { method = "Dispose", status = "failed", error = error.Message }); }
     }
 }
 var unchanged = Hash() == options.SourceSha256;
@@ -249,7 +268,7 @@ passed &= unchanged;
 await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;

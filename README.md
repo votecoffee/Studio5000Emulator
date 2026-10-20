@@ -31,6 +31,12 @@ an [SDK-independent upload inventory reader](docs/upload-inventory-client.md) an
 Version `.81` extends Task metadata with ordered native Program links and exact
 source period/watchdog reads. The independent inventory reader checks those
 Task-to-Program relationships without using the native SDK.
+Version `.82` adds [Program-scoped native Routine inventory](docs/executable-metadata.md),
+including original ACD object IDs and a limited legacy description read.
+The independent inventory reader preserves parent Programs when routine IDs overlap.
+SDK testing has resumed: the rebuilt demo passes connection/Offline; its isolated
+edit diagnostic returns an attribute-list error and confirms cleanup without a
+reported fatal SDK exception.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
