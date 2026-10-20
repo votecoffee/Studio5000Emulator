@@ -12,12 +12,18 @@ evidence to assign the failure to that object.
 
 | Object | Supported behavior | Remaining contract |
 | --- | --- | --- |
-| Data Table and Symbol | Bounded model descriptors and scalar values correlated to imported tag identifiers | Native compiled addresses, layouts and complete type upload |
+| Data Table and Symbol | Bounded model descriptors and atomic scalar/array values correlated to imported tag identifiers | Native compiled addresses, layouts and complete type upload |
 | Network inventory | Actual selected interface information and supported host counters | Device-specific fields without a host or source counterpart |
 | Time Sync | Imported PTP configuration, unsynchronized status, empty PTP port set, software descriptions and current host UTC | PTP master, parent, identity and synchronization measurements |
 | Controller | Supported source settings, run mode and programming lease state | Native handler-reference encoding and complete upload collection |
 | Task | Bound native IDs, ordered Program references and explicit source settings/times | Execution slot, measured timing and complete native Task upload |
 | Executable | Bound Program-scoped Routine IDs and limited legacy descriptions | Native type/UID mapping, compiled addresses/bodies and complete native Routine upload |
+
+Version `.99` adds [backed atomic-array storage](atomic-array-storage.md).
+The native array-demo upload now passes its Data Table metadata/value read and
+linked Symbol descriptors, advancing from 167 to 200 verified signed requests.
+It still fails later Controller collection; this is a narrower demonstrated
+improvement than a complete upload.
 
 Isolated prior diagnostic profiles supplied hypothetical PTP descriptions or
 made the clock object unavailable; both still failed controller collection.
@@ -50,6 +56,21 @@ unsupported Time Sync/Controller reads described above. The SDK continued
 after the early discovery failures. No Program read failed in those traces;
 complete native Task, Executable, Memory, Fault Log, CST and Wall Clock upload
 contracts remain separate work.
+
+## Native address-cache checks
+
+The installed SDK documents its explicit build method as v37-or-newer only,
+so it is not invoked as a v35 cache-repair step. A private comparison advertises
+the captured Table/Symbol class revisions while retaining instance data and
+permissions. The typed tag read still fails `RxDA_E_NO_ONLINE_ADDRESS`; native
+upload still fails Controller collection. An earlier changed-download-UID
+comparison failed Go Online with `RxCL_E_CANNOT_UPLOAD_PHYS_ADDR`. Combining
+that UID change with the captured class revisions instead reaches Online,
+but the typed tag read still fails `RxDA_E_NO_ONLINE_ADDRESS`. These cases
+preserve source/model state and confirm native Offline/endpoint cleanup
+without a fatal SDK fault. Neither override is
+part of application behavior. Supported model descriptors and array values
+remain distinct from native SDK address-cache population.
 
 ## Source Controller flags
 
