@@ -37,6 +37,9 @@ The independent inventory reader preserves parent Programs when routine IDs over
 SDK testing has resumed: the rebuilt demo passes connection/Offline; its isolated
 edit diagnostic returns an attribute-list error and confirms cleanup without a
 reported fatal SDK exception.
+Version `.83` adds the source-bound [overflow-reporting setting](docs/controller-overflow-setting.md)
+requested during native online import, and retains SDK import-log error codes
+in diagnostic summaries.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

@@ -29,6 +29,7 @@ class ControllerConfiguration:
     match_project_to_controller: bool | None = None
     automatic_firmware_update_inhibit: int | None = None
     can_use_rpi_from_producer: bool | None = None
+    report_minor_overflow: bool | None = None
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -56,6 +57,7 @@ class ControllerConfiguration:
             return controller.get(name) if complete and related==[name] else None
         match_project={'true':True,'false':False}.get(source_setting('MatchProjectToController'))
         producer_rpi={'true':True,'false':False}.get(source_setting('CanUseRPIFromProducer'))
+        report_overflow={'true':True,'false':False}.get(source_setting('ReportMinorOverflow'))
         firmware_text=source_setting('InhibitAutomaticFirmwareUpdate')
         firmware=(int(firmware_text) if firmware_text is not None
                   and re.fullmatch(r'[0-9]{1,3}',firmware_text) and int(firmware_text)<=255 else None)
@@ -80,16 +82,17 @@ class ControllerConfiguration:
                    slice_text is None,share_text is None,
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
                    empty_handler('MajorFaultProgram'),pass_mode,
-                   match_project,firmware,producer_rpi)
+                   match_project,firmware,producer_rpi,report_overflow)
 
     def attributes(self):
         values={13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
-        # v35 Controller attributes 15, 17 and 23 are individual BITS8 fields.
+        # v35 Controller attributes 15, 17, 23 and 31 are BITS8 settings.
         # These are source configuration reads, not hardware behavior or
         # permission to match/download a project, update firmware or use I/O.
         for number,value in ((15,self.match_project_to_controller),
                              (17,self.automatic_firmware_update_inhibit),
-                             (23,self.can_use_rpi_from_producer)):
+                             (23,self.can_use_rpi_from_producer),
+                             (31,self.report_minor_overflow)):
             if value is not None:values[number]=bytes((value,))
         return values
 
@@ -138,12 +141,15 @@ class ControllerConfiguration:
                 'match_project_to_controller':self.match_project_to_controller,
                 'automatic_firmware_update_inhibit':self.automatic_firmware_update_inhibit,
                 'can_use_rpi_from_producer':self.can_use_rpi_from_producer,
+                'report_minor_overflow':self.report_minor_overflow,
                 'source_read_attributes':sorted(self.attributes()),
                 'source_flag_attributes':{'15':'Controller@MatchProjectToController',
                                           '17':'Controller@InhibitAutomaticFirmwareUpdate',
-                                          '23':'Controller@CanUseRPIFromProducer'},
+                                          '23':'Controller@CanUseRPIFromProducer',
+                                          '31':'Controller@ReportMinorOverflow'},
                 'project_serial_matching_enforced':False,'firmware_update_services':False,
                 'producer_rpi_negotiation':False,'source_settings_writable':False,
+                'native_minor_overflow_fault_reporting':False,
                 'empty_power_loss_handler':self.empty_power_loss_handler,'empty_fault_handler':self.empty_fault_handler,
                 'handler_reference_encoding':False,
                 'handler_execution':False,'multi_workstation_edit_slot':False,

@@ -105,3 +105,13 @@ This result does not establish that the earlier SDK fault is fixed. The helper
 now stops further ordinary SDK calls after an observed fatal/server-faulted
 exception and records native Offline confirmation separately from endpoint
 cleanup.
+
+Version `.83` supplies the source-bound [overflow-reporting setting](controller-overflow-setting.md).
+An isolated native import successfully reads Controller attribute 31 and
+advances to signed Controller `0x8E/1` service `0x55`, with no request payload.
+The read-only endpoint denies that unresolved operation (`0x0F`); the SDK reports
+`RxCsE_ASA_NO_PERMISSION`. This request is distinct from Symbol object `0x55`
+enumeration. The repeat verifies 99 signed requests, reports no fatal SDK fault,
+and confirms native Offline and endpoint cleanup with unchanged source/model.
+Handler references and Controller Get Attributes All remain incomplete too.
+No active edit acceptance, testing, assembly or commit is established.

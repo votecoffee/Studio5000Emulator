@@ -49,7 +49,7 @@ def exercise(app,client,payload=None,expanded=None):
         path=symbol_path(scalar.name)
         expected=bytes.fromhex('cc000000c100')+bytes((int(app.engine.memory.read(scalar.name)),))
         check('signed_actual_bool_value',bytes((0x4C,len(path)//2))+path+b'\1\0',expected)
-    for number in (15,17,23):
+    for number in (15,17,23,31):
         value=app.engine.project.controller_configuration.compatibility_attributes().get(number)
         if value is not None:check(f'controller_source_field_{number}',bytes.fromhex('0e03208e240130')+bytes((number,)),b'\x8e\0\0\0'+value)
     check('edit_reservation',bytes.fromhex('4b04208e24012074240101'),bytes.fromhex('cb000000'))
