@@ -161,6 +161,13 @@ The `.78` suite runs 1,081 tests, with two Windows skips and one Linux skip.
 Independent temporary download storage, source checks and readback, coherent
 clock fields, online-edit probe admission/cleanup and Linux address enumeration
 are covered. Native transfer/edit outcomes require the separate SDK tests.
+The rebuilt `.78` appliance passes 294 live wire checks, including coherent
+system time and denied unsigned edit reservations. All 64 application modules
+and served browser assets match source; the Windows artifact contains the new
+modules and matching version. Web Run advances scans with one prescan, and
+Program freezes them. Fresh SDK tests on this rebuilt instance remain pending
+SDK-service restoration after the fatal isolated edit test; previous candidate
+results are retained separately.
 
 The `.73` suite runs 976 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt models all 904 batch records, validates reciprocal
