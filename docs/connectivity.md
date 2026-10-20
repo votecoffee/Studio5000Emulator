@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.60` adds [native programming coordination](programming-coordination.md).
+The SDK can acquire and release a session-owned Semaphore lease and read the
+supported Local controller's source-backed link address. The normal-source
+download probe advances past its earlier IOI errors and reaches a Run Mode
+Inhibit write, which remains denied. Project transfer is unfinished.
+
 Version `.59` adds [nested I/O Connection class discovery](io-connection-discovery.md).
 The live parser preserves its I/O Map parent scope and accepts the source-checked
 software class revision read. Module instances and I/O Connection instances

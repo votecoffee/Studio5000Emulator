@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_rejections, native_session, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_rejections, native_session, programming_lease, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -75,6 +75,7 @@ class Path:
     symbols:list=field(default_factory=list)
     program_instance:int|None=None
     io_map_instance:int|None=None
+    controller_instance:int|None=None
 
     def reference(self,base=''):
         result=base;indices=[]
@@ -112,9 +113,10 @@ def decode_path(raw):
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
                 scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B)
-                         else 'io_map_instance' if p.class_id==0x69 and value==0x7E else None)
+                         else 'io_map_instance' if p.class_id==0x69 and value==0x7E
+                         else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
                 if (attr=='class_id' and scope and p.instance and p.attribute is None and not p.symbols
-                        and p.program_instance is None and p.io_map_instance is None):
+                        and p.program_instance is None and p.io_map_instance is None and p.controller_instance is None):
                     setattr(p,scope,p.instance);p.class_id=value;p.instance=None
                     continue
                 if getattr(p,attr) is not None:raise CIPError(4,'Duplicate logical segment')
@@ -123,6 +125,7 @@ def decode_path(raw):
     if p.attribute is not None and p.class_id is None:raise CIPError(4,'Attribute without class')
     if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program object requires a child instance')
     if p.io_map_instance is not None and p.instance is None:raise CIPError(4,'I/O Map object requires a child instance')
+    if p.controller_instance is not None and p.instance is None:raise CIPError(4,'Controller object requires a child instance')
     return p
 
 
@@ -191,6 +194,22 @@ class Router:
                 # This newer probe is unimplemented. Return an error without
                 # dispatching it; callers may try the supported legacy list.
                 return reject(8,'unsupported_probe')
+            if path.class_id==0x74 and path.controller_instance is not None and inner[0] in (0x4B,0x4C):
+                if path.symbols or path.attribute is not None:
+                    return reject(4,'invalid_request')
+                if path.controller_instance!=1 or path.instance!=1:
+                    return reject(5,'invalid_request')
+                exact(payload,1 if inner[0]==0x4B else 0)
+                if inner[0]==0x4B:
+                    if payload!=b'\0':return reject(3,'invalid_request')
+                    identity=self.app.native_project_identity
+                    if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                        return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    operation=self.endpoint.programming_lease.acquire if inner[0]==0x4B else self.endpoint.programming_lease.release
+                    operation(native,self.app.generation,self.app.engine.project.sha256)
+                    self.endpoint.counts['native_semaphore_acquire' if inner[0]==0x4B else 'native_semaphore_release']+=1
+                return reply(inner[0])
             if (inner[0]==4 and path.class_id==0xAC and path.instance==1 and path.attribute is None
                     and not path.symbols and path.program_instance is None and payload[:4]==b'\1\0\x0A\0'):
                 exact(payload,8)
@@ -213,6 +232,7 @@ class Router:
             return reject(0x0F,'read_only_policy')
         except CIPError as error:return reject(error.status,'invalid_request')
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
+        except programming_lease.LeaseError as error:return reject(error.status,error.reason)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
@@ -741,7 +761,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x71,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x71,0x74,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -808,6 +828,8 @@ class Router:
             if path.symbols or path.program_instance is not None or path.instance is None:
                 raise CIPError(4,'I/O Map status requires a controller-scoped instance path')
             if service==0x4B:return self.instance_list(path,data,limit)
+            if path.instance==1 and self.app.engine.project.io_map.root_link_address is not None:
+                return self.attribute_read(service,path,data,{10:struct.pack('<I',self.app.engine.project.io_map.root_link_address)})
             if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
             return self.attribute_read(service,path,data,self.app.engine.project.io_map.class_attributes())
         if path.class_id==0x7E:
@@ -818,6 +840,12 @@ class Router:
             attributes=self.app.engine.project.io_map.connection_class_attributes()
             if attributes is None:raise CIPError(0x0C,'I/O Connection source inventory is unavailable')
             return self.attribute_read(service,path,data,attributes)
+        if path.class_id==0x74:
+            if path.symbols or path.instance is None:raise CIPError(4,'Semaphore paths require a logical instance')
+            if path.controller_instance not in (None,1):raise CIPError(5,'Unknown Semaphore parent')
+            if path.instance==0:return self.attribute_read(service,path,data,{1:b'\1\0'})
+            if path.controller_instance!=1 or path.instance!=1:raise CIPError(5,'Unknown Semaphore instance')
+            raise CIPError(0x0F,'Semaphore coordination requires a bound signed native context')
         if path.class_id in energy_catalog.CLASSES:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only bounded empty energy inventory discovery is supported')
@@ -1015,6 +1043,7 @@ class Endpoint:
         self.native_rejections=native_rejections.NativeRejections()
         self.ethernet_counters=ethernet_counters.CounterCache()
         self.native_sessions={}
+        self.programming_lease=programming_lease.ProgrammingLease()
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
         self.interface=None;self.interface_error=None;self.interface_queried=False
@@ -1072,6 +1101,8 @@ class Endpoint:
                     'io_map':self.app.engine.project.io_map.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
+                    'native_programming_lease':{**self.programming_lease.description(self.app.generation,self.source_sha256),
+                        'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'locator':self.locator_state(),
@@ -1093,7 +1124,8 @@ class Endpoint:
         scope=path.symbols[0] if path.symbols else ''
         with self.lock:
             self.attribute_gaps.record(path.class_id,path.instance,path.program_instance,
-                                       scope,missing,self.app.generation,service,io_map_instance=path.io_map_instance)
+                                       scope,missing,self.app.generation,service,io_map_instance=path.io_map_instance,
+                                       controller_instance=path.controller_instance)
 
     def record_native_rejection(self,service,path,status,reason):
         with self.lock:
@@ -1240,13 +1272,16 @@ class Endpoint:
         return self
 
     def clear_native(self,session):
-        with self.lock:self.native_sessions.pop(id(session),None)
+        with self.lock:
+            self.programming_lease.discard(getattr(session,'native',None))
+            self.native_sessions.pop(id(session),None)
         native_session.clear(session)
 
     def close_native_sessions(self):
         with self.lock:
             for native in self.native_sessions.values():native.close()
             self.native_sessions.clear()
+            self.programming_lease.clear()
 
     def stop(self):
         self.close_native_sessions()

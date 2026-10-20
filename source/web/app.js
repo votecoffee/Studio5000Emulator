@@ -255,7 +255,7 @@ function renderConnectivity() {
   if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;$('eip-native').checked=!!c.native_session?.enabled;}
   $('eip-refresh').disabled=!state?.loaded;
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
-  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   const discovery=c.discovery||{};
   $('eip-discovery').textContent=!active?'Start the endpoint to check broadcast discovery.':discovery.broadcast_enabled?
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:
@@ -265,18 +265,18 @@ function renderConnectivity() {
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
   const rejected=c.native_rejections||[];
-  const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable'};
+  const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable',programming_lease_conflict:'Another native client holds the transfer lock',programming_lease_owner_required:'Only the owning native client can release the transfer lock'};
   $('eip-native-rejections').innerHTML=rejected.slice(0,8).map(x=>{
     const target=x.class_id==null?(x.symbolic?'Symbolic path':'Unparsed path'):`Class 0x${x.class_id.toString(16).toUpperCase()}, instance ${x.instance}`;
     const service=`0x${x.service.toString(16).toUpperCase()}`, status=`0x${x.status.toString(16).toUpperCase()}`;
-    const scope=x.io_map_instance!=null?` · I/O Map instance ${x.io_map_instance}`:x.program_instance==null?'':` · Program instance ${x.program_instance}`;
+    const scope=x.controller_instance!=null?` · Controller instance ${x.controller_instance}`:x.io_map_instance!=null?` · I/O Map instance ${x.io_map_instance}`:x.program_instance==null?'':` · Program instance ${x.program_instance}`;
     return `<div class="issue">${escapeHtml(target+scope)} · service ${escapeHtml(service)} · status ${escapeHtml(status)}<br>${escapeHtml(rejectionReasons[x.reason]||x.reason)} × ${x.count}</div>`;
   }).join('')||'No native policy rejections recorded.';
   if(rejected.length>8)$('eip-native-rejections').innerHTML+=`<p>${rejected.length-8} more groups in the protocol trace.</p>`;
   const gaps=c.attribute_gaps||[];
   $('eip-attribute-gaps').innerHTML=gaps.slice(0,8).map(x=>{
     const target=`${x.class_name} (0x${x.class_id.toString(16).toUpperCase()}), instance ${x.instance}`;
-    const scope=x.scope||(x.io_map_instance!=null?`I/O Map instance ${x.io_map_instance}`:x.program_instance!=null?`Program instance ${x.program_instance}`:'Controller scope');
+    const scope=x.scope||(x.controller_instance!=null?`Controller instance ${x.controller_instance}`:x.io_map_instance!=null?`I/O Map instance ${x.io_map_instance}`:x.program_instance!=null?`Program instance ${x.program_instance}`:'Controller scope');
     const fields=x.attributes.map(a=>`${a.name} (${a.id}, status 0x14)`).join(', ');
     return `<div class="issue">${escapeHtml(target)} · ${escapeHtml(scope)}<br>${escapeHtml(fields)} × ${x.count}</div>`;
   }).join('')||'No unsupported attribute reads recorded.';

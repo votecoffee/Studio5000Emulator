@@ -89,9 +89,13 @@ Version `.58` also adds [Data Logging discovery and native policy diagnostics](d
 including acknowledgements that retain an existing source Timeline UID.
 Version `.59` adds the [nested I/O Connection class-revision read](docs/io-connection-discovery.md)
 used by native discovery, with its parent scope preserved in diagnostics.
+Version `.60` adds [native programming coordination](docs/programming-coordination.md):
+an exclusive session lease with cleanup and a source-backed Local link-address
+read. The download probe advances to a Run Mode Inhibit write, which remains
+denied by the read-only policy.
 Full native upload and online tag monitoring remain unfinished.
-The 825-test suite passes on Windows and Linux with expected platform skips;
-the running `.59` endpoint passes 248 wire checks. Current SDK upload, tag-read
+The 838-test suite passes on Windows and Linux with expected platform skips;
+the running `.59` endpoint previously passed 248 wire checks. Current SDK upload, tag-read
 and download probes still fail their native acceptance steps.
 
 ## Usage

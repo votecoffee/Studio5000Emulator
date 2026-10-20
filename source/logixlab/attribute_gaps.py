@@ -8,7 +8,7 @@ import time
 
 
 MAX_GAPS = 64
-CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol', 0x71:'Data Logging', 0x7E:'I/O Connection',
+CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol', 0x71:'Data Logging', 0x74:'Semaphore', 0x7E:'I/O Connection',
            0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
     0x43: {1: 'PTP enable', 2: 'Synchronization status', 3: 'Time in microseconds',
@@ -25,7 +25,8 @@ NAMES = {
            6: 'Device locale', 7: 'Trusted slot list', 8: 'System operator identity'},
     0x67: {1: 'PLC-2 file', 2: 'PCCC mapping descriptor'},
     0x68: {15: 'SFC force enable', 24: 'SFC transition force list', 25: 'SFC leg force list', 28: 'Program name'},
-    0x69: {9:'I/O force status', 11:'I/O LED status'},
+    0x69: {9:'I/O force status', 10:'Link address', 11:'I/O LED status'},
+    0x74: {1:'Revision'},
     0x7E: {1:'Revision'},
     0x8E: {1: 'Power-loss handler reference', 3: 'Communication time slice',
            6: 'Fault handler reference', 8: 'Connection ID', 16: 'Share unused time slice',
@@ -48,15 +49,16 @@ class AttributeGaps:
     def __init__(self):
         self.rows = OrderedDict()
 
-    def record(self, class_id, instance, program_instance, scope, missing, generation, service, *, io_map_instance=None):
+    def record(self, class_id, instance, program_instance, scope, missing, generation, service, *, io_map_instance=None, controller_instance=None):
         missing = tuple(sorted(set(missing)))
         if not missing:
             return
-        key = (generation, class_id, instance, program_instance, io_map_instance, scope, missing, service)
+        key = (generation, class_id, instance, program_instance, io_map_instance, controller_instance, scope, missing, service)
         previous = self.rows.pop(key, None)
         self.rows[key] = {'generation': generation, 'class_id': class_id,
                          'instance': instance, 'program_instance': program_instance,
                          'io_map_instance':io_map_instance,
+                         'controller_instance':controller_instance,
                          'scope': scope, 'missing': missing, 'service': service,
                          'count': previous['count'] + 1 if previous else 1,
                          'last_seen': time.time()}

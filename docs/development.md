@@ -105,6 +105,14 @@ when dispatching or diagnosing the child; do not flatten it into a global class.
 Only a source-checked class-revision read is supported. See
 [I/O Connection discovery](io-connection-discovery.md) for the namespace and limits.
 
+`programming_lease.py` keeps one native context's coordination ownership under
+the endpoint lock. Close, invalidation, reload and stop paths clear ownership;
+expiry is also checked before state inspection or another acquisition. The
+`controller_instance` path field is distinct from Program and I/O Map parents.
+The lease does not authorize a project write. See
+[programming coordination](programming-coordination.md) before extending
+download preparation or transfer dispatch.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

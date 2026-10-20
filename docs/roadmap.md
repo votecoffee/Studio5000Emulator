@@ -6,14 +6,22 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.59` recognizes nested I/O Connection class paths and
+Current milestone: `.60` adds a session-owned coordination lease and a
+source-backed Local link-address read. Native download preparation advances
+to a Run Mode Inhibit write; the current read-only policy still denies it.
+See [programming coordination](programming-coordination.md). Next: implement
+the inhibit/state lifecycle, validated transfer staging and atomic commit or
+rollback before admitting project changes. Full native transfer and monitoring
+remain unfinished.
+
+Version `.59` recognizes nested I/O Connection class paths and
 supports a source-checked class-revision read. The SDK accepts that discovery
 request; upload still fails controller collection. See
 [I/O Connection discovery](io-connection-discovery.md).
 Native tag-address discovery and programming remain unfinished.
-The latest download trace also rejects a nested Controller / Semaphore path.
-Investigate that programming-session service and its ownership/lifecycle rules
-separately; accepting a class-revision read does not provide download authority.
+The `.59` download trace rejected a nested Controller / Semaphore path.
+Version `.60` supplies bounded coordination for that path; it grants no
+project-transfer authority.
 
 Version `.58` adds source-checked empty Data Logging discovery,
 acknowledgements that retain an existing source Timeline UID, and visible native

@@ -1,5 +1,9 @@
 # Nested I/O Connection class discovery
 
+Version `.60` adds [programming coordination](programming-coordination.md) and
+one source-backed Local root link-address field. The notes below describe the
+`.59` class-discovery milestone and its then-current limits.
+
 Version `0.6.0-connectivity.59` recognizes the I/O Connection class path below
 the root I/O Map namespace:
 

@@ -29,6 +29,9 @@ does not create an external I/O Map connection instance. Module instances and
 their I/O Connection instances remain unsupported. Version `.59` supports the
 [nested I/O Connection class revision](io-connection-discovery.md) below the root
 I/O Map namespace without creating module or connection instances.
+Version `.60` adds a narrowly scoped, source-backed Local root link-address
+read; other module fields and connections remain unavailable. See
+[programming coordination](programming-coordination.md).
 
 The new `aoi_catalog` connectivity field identifies the source check and its
 limits. The existing `alarm_catalog` reports the covered class IDs; `io_map`

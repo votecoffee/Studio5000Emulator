@@ -6,6 +6,7 @@ from .tag_catalog import complete_tag_source
 @dataclass(frozen=True)
 class IOMap:
     empty: bool = False
+    root_link_address: int|None = None
 
     @classmethod
     def from_source(cls, root, controller):
@@ -30,6 +31,7 @@ class IOMap:
             if any(any(word in name.lower() for word in ('force', 'encoded', 'encrypted', 'protected'))
                    for name in node.attrib):
                 return cls()
+        root_link_address=None
         if modules:
             # A native full-controller export includes its own Local module.
             # It is not an I/O Map connection to an external module.
@@ -43,7 +45,18 @@ class IOMap:
             if any(child.tag not in ('Module', 'EKey', 'Key', 'Ports', 'Port', 'Bus', 'Description')
                    for child in module.iter()):
                 return cls()
-        return cls(True)
+            # The supported endpoint's backplane route is fixed at slot zero.
+            # Read it only from a canonical Local ICP port, never from a
+            # guessed address, hardware status word or model memory pointer.
+            ports=module.findall('Ports')
+            candidates=module.findall('./Ports/Port[@Id="1"]')
+            if (len(ports)==1 and len(candidates)==1 and candidates[0].get('Address')=='0'
+                    and len([node for node in module.iter() if node.tag=='Ports'])==1
+                    and len([node for node in module.iter() if node.tag=='Port' and node.get('Id')=='1'])==1
+                    and candidates[0].get('Type')=='ICP' and candidates[0].get('Upstream')=='false'
+                    and module.get('ParentModPortId')=='1'):
+                root_link_address=0
+        return cls(True,root_link_address)
 
     def attributes(self):
         # No installed/enabled I/O forces; LED 0 means no Module objects.
@@ -67,4 +80,6 @@ class IOMap:
                 'instance_count':0 if self.empty else None, 'instance_list':self.empty,
                 'connection_class_revision':1 if self.empty else None,
                 'connection_class_parent':1 if self.empty else None,
+                'root_link_address':self.root_link_address,
+                'root_link_address_available':self.root_link_address is not None,
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

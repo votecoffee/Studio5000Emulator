@@ -16,6 +16,55 @@ def source():
 
 
 class IOMapTests(unittest.TestCase):
+    def local_route(self):
+        root,controller=source()
+        module=E.SubElement(controller.find('Modules'),'Module',Name='Local',ParentModule='Local',Vendor='1',
+                            ProductType='14',CatalogNumber='1756-L85E',ParentModPortId='1')
+        ports=E.SubElement(module,'Ports')
+        port=E.SubElement(ports,'Port',Id='1',Type='ICP',Address='0',Upstream='false')
+        E.SubElement(port,'Bus',Size='17')
+        return root,controller,module,ports,port
+
+    def test_root_link_address_requires_canonical_supported_local_backplane(self):
+        root,controller,module,ports,port=self.local_route()
+        catalog=IOMap.from_source(root,controller)
+        self.assertTrue(catalog.empty);self.assertEqual(catalog.root_link_address,0)
+        self.assertTrue(catalog.description()['root_link_address_available'])
+        self.assertIsNone(IOMap.from_source(*source()).root_link_address)
+
+    def test_root_link_address_is_withheld_for_ambiguous_missing_or_unsupported_route(self):
+        for kind in ('missing-address','other-slot','wrong-type','upstream','parent-port','duplicate-port','nested-port','duplicate-ports'):
+            root,controller,module,ports,port=self.local_route()
+            if kind=='missing-address':del port.attrib['Address']
+            elif kind=='other-slot':port.set('Address','1')
+            elif kind=='wrong-type':port.set('Type','Ethernet')
+            elif kind=='upstream':port.set('Upstream','true')
+            elif kind=='parent-port':module.set('ParentModPortId','2')
+            elif kind=='duplicate-port':ports.append(copy.deepcopy(port))
+            elif kind=='nested-port':E.SubElement(port.find('Bus'),'Port',Id='1',Address='0')
+            else:E.SubElement(module,'Ports')
+            with self.subTest(kind=kind):
+                self.assertIsNone(IOMap.from_source(root,controller).root_link_address)
+
+    def test_root_route_wire_widths_partial_lists_and_write_denials(self):
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'})
+            endpoint=Endpoint(app,0,True)
+            try:
+                root,controller,*_=self.local_route()
+                app.command('load',{'name':'local.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+                before=copy.deepcopy(app.engine.memory.values)
+                call=lambda raw:endpoint.router.handle(bytes.fromhex(raw),Session())
+                self.assertEqual(call('03022069240101000a00'),bytes.fromhex('8300000001000a00000000000000'))
+                self.assertEqual(call('0e0320692401300a'),bytes.fromhex('8e00000000000000'))
+                self.assertEqual(call('03022069240102000a000c00'),bytes.fromhex('83000a0002000a000000000000000c001400'))
+                self.assertEqual(call('100320692401300a01000000')[2],8)
+                self.assertEqual(call('0e0320692402300a')[2],5)
+                app.command('demo',{'sample':'ConveyorDemo'})
+                self.assertEqual(call('0e0320692401300a')[2],5)
+                self.assertEqual(app.engine.memory.values,before)
+            finally:app.close()
+
     def test_empty_and_controller_only_source_report_no_modules_or_forces(self):
         root,controller=source()
         self.assertEqual(IOMap.from_source(root,controller).attributes(),{9:bytes(2),11:bytes(2)})
