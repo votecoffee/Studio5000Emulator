@@ -152,6 +152,13 @@ applied receipts identifying each boundary. External writes are disabled after
 the isolated test. This validates that integration case; native SDK tag-address
 discovery and MQTT transport acceptance remain separate checks.
 
+The `.94` array case additionally writes two indexed DINT inputs in each queued
+batch. Snapshots remain unchanged before the scan, receipts identify the applied
+boundary, and the edited MOV/CMP/CPT logic produces the expected array output.
+A false comparison retains the previous destination value. Export/reload
+reproduces the cases with original initial data. These are isolated HTTP and
+execution-model checks, separate from native Studio tag monitoring.
+
 The standard suite tests reader independence from the runtime lock, consistent
 snapshots, queue bounds, expiry, atomic rollback, access checks, idempotency,
 source changes and scoped HTTP tokens. The optional real-broker check starts an

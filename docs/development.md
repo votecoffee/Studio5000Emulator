@@ -621,6 +621,15 @@ separate from execution-plan validation and activation. The iteration passes
 131 focused software tests; the full suite was not run. Native tag monitoring,
 upload/download and Test/Untest/Assemble remain unfinished.
 
+The rebuilt `.94` main runtime passes 27 live protocol checks. All 75 application
+modules, served webpage and Windows executable match source and version. A
+fresh SDK connection/Offline case succeeds across 79 verified signed requests,
+preserving model state and confirming cleanup without a reported fatal SDK
+fault. The original main demo remains stopped in Program at revision 0 with
+supported edit access enabled. Test candidates are stopped, external writes
+are disabled and temporary SSH forwarding is restored. Upload/download and
+Run/Program cycling were not repeated in this focused iteration.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.
