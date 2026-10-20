@@ -151,12 +151,12 @@ try
         await Step("ReadControllerModeAsync", async () => (await project!.ReadControllerModeAsync()).ToString());
         if (options.Operation == "edits")
         {
-            await Step("Verify disabled controller edit authority", async () => {
+            await Step("Verify explicit controller edit access", async () => {
                 var state = await Backend();
                 var controller = state.GetProperty("controller");
                 if (controller.GetProperty("mode").GetString() != "Program" || controller.GetProperty("running").GetBoolean() ||
-                    state.GetProperty("connectivity").GetProperty("native_programming_lease").GetProperty("online_edits").GetBoolean())
-                    throw new InvalidOperationException("Edit diagnostic requires stopped Program and disabled online edits");
+                    state.GetProperty("connectivity").GetProperty("native_programming_lease").GetProperty("online_edits").GetBoolean() != options.ApplySupportedEdits)
+                    throw new InvalidOperationException("Edit access does not match the explicit supported-edit option");
                 await CheckMode("Program");
                 return true;
             });
@@ -284,7 +284,7 @@ return passed ? 0 : 1;
 
 sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags,
                       string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null,
-                      string TagReadType = "BYTE_ARRAY");
+                      string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false);
 sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption);
 sealed class Capture : IOperationEvent
 {

@@ -61,6 +61,7 @@ class Application:
         self._io_dirty = False
         self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')
         self.running = False
+        self.allow_routine_edits = False
         self.scan_interval_ms = 10
         self._scan_condition = threading.Condition(self.lock)
         self._scan_thread = None
@@ -165,7 +166,9 @@ class Application:
         self.stop_connectivity()
 
     def state(self):
+        from .routine_edits import description as routine_edit_description
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
+                    'routine_edits':routine_edit_description(self),
                     'instance_id': self.instance_id, 'execution_environment': self.execution_environment,
                     'device_io':self.device_io.description(), 'controller':self.controller_state()}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
@@ -316,6 +319,18 @@ class Application:
                 with self.lock: self.busy = False
         with self.lock:
             if self.busy: raise ModelError("Import in progress")
+            if action=='routine-edits-configure':
+                enabled=data.get('allow_writes')
+                if type(enabled) is not bool:raise ModelError('Supported Studio edits must be boolean')
+                if enabled!=self.allow_routine_edits:
+                    if self.running:raise ModelError('Switch to Program before changing Studio edit access')
+                    if self.endpoint and self.endpoint.enabled:
+                        with self.endpoint.lock:
+                            lease=self.endpoint.programming_lease
+                            if self.endpoint.state()['active_tcp_clients'] or lease.live(self.generation,self.engine.project.sha256):
+                                raise ModelError('Disconnect native clients before changing Studio edit access')
+                    self.allow_routine_edits=enabled
+                return self.state()
             if action == 'device-io-configure':
                 self.device_io.configure(data.get('allow_writes',False))
                 return self.state()

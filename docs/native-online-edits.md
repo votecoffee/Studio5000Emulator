@@ -1,5 +1,9 @@
 # Native online-edit diagnostics
 
+Version `.89` adds [supported Program-mode routine replacement](supported-routine-edits.md)
+through an explicit `--apply-supported-edits` option. The default diagnostic
+below continues to require disabled edit access and unchanged model state.
+
 The optional public SDK probe has an `edits` operation that inserts one generated
 `NOP();` rung into a loaded RLL routine on a private ACD copy. It exercises the
 native import path while LogixLab continues to advertise disabled online-edit
@@ -184,3 +188,12 @@ succeed, as do project close and endpoint cleanup, with unchanged source/model
 and no reported fatal SDK fault. No wrapper rejection occurs during this
 import. The previous context loss was caused by the unsupported container
 control; the next active-edit contract remains unresolved.
+
+The `.89` active case enables only the supported Program-mode RLL profile and
+imports `MOV(123,SpeedSetpoint);`. The SDK import succeeds across 119 verified
+requests. The probe independently verifies the exact inserted rung, the nine
+unchanged original rung ASTs, unchanged values/history/scheduling and the new
+logic revision/digest. Native Offline/readback and cleanup succeed, with no
+fatal SDK fault reported. One later isolated scan changes the setpoint from
+50 to 123. This establishes a bounded SDK-to-model edit and execution path;
+native Test/Untest/Assemble and Studio GUI edit acceptance remain unverified.

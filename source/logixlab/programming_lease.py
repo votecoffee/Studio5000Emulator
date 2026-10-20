@@ -38,6 +38,7 @@ class ProgrammingLease:
         self.program_reservations=set()
         self.edit_phase_open=False;self.program_stack_preparations={}
         self.edit_transfer.clear()
+        self.applied_edit=None
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -105,16 +106,19 @@ class ProgrammingLease:
             raise LeaseError(3,'invalid_program_reservation')
         self.program_reservations.discard(program)
         self.program_stack_preparations.pop(program,None)
-        if self.edit_transfer.target and self.edit_transfer.target[0]==program:self.edit_transfer.clear()
+        if self.edit_transfer.target and self.edit_transfer.target[0]==program:
+            if self.edit_transfer.ready():self.edit_transfer.program_released=True
+            else:self.edit_transfer.clear()
 
     def open_edit_preparation(self,native,generation,source_sha256):
         self.require_edit_owner(native,generation,source_sha256)
+        if not self.edit_phase_open:self.applied_edit=None
         self.edit_phase_open=True
 
     def close_edit_preparation(self,native,generation,source_sha256):
         self.require_edit_owner(native,generation,source_sha256)
         if self.program_reservations:raise LeaseError(0x0C,'release_program_reservations_first')
-        self.program_stack_preparations.clear();self.edit_transfer.clear();self.edit_phase_open=False
+        self.program_stack_preparations.clear();self.edit_transfer.clear();self.edit_phase_open=False;self.applied_edit=None
 
     def prepare_zero_program_stack(self,native,generation,source_sha256,program,value):
         self.require_edit_owner(native,generation,source_sha256)
@@ -157,12 +161,14 @@ class ProgrammingLease:
                 'request_selector':self.selector if owned else None,
                 'edit_preparation':{'status':'open' if owned and self.edit_phase_open else 'reserved' if owned and self.selector==1 else 'idle',
                     'reserved':owned and self.selector==1,'source_bound':owned and self.selector==1,
-                    'changes_staged':0,'active_changes':False,'accepted':False,'testing':False,
-                    'assembled':False,'commit':False,'program_reservations':len(self.program_reservations) if owned else 0,
+                    'changes_staged':int(self.edit_transfer.ready()),'active_changes':self.applied_edit is not None,
+                    'accepted':self.applied_edit is not None,'testing':False,
+                    'assembled':False,'commit':self.applied_edit is not None,'program_reservations':len(self.program_reservations) if owned else 0,
                     'phase_open':owned and self.edit_phase_open,
                     'program_stack_preparations':len(self.program_stack_preparations) if owned else 0,
                     'stack_bytes_allocated':0,'active_stack_changed':False},
                 'edit_transfer':self.edit_transfer.description(),
+                'applied_routine_edit':self.applied_edit,
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':self.scan_inhibited(generation,source_sha256),
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,

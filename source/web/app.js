@@ -260,8 +260,11 @@ function renderConnectivity() {
   $('eip-bind').disabled=active;$('eip-port').disabled=active;$('eip-profile').disabled=active;$('eip-native').disabled=active;$('eip-writes').disabled=active||$('eip-native').checked;$('eip-trace').disabled=!c.trace_events;
   if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;$('eip-native').checked=!!c.native_session?.enabled;}
   $('eip-refresh').disabled=!state?.loaded;
+  $('studio-edits').checked=!!state?.routine_edits?.enabled;
+  $('studio-edits').disabled=!state?.loaded||!!state?.controller?.running||!!c.active_tcp_clients;
+  $('studio-edit-state').textContent=(state?.routine_edits?.modified?`Edited logic revision ${state.routine_edits.revision}. `:'')+'Enable before connecting Studio. Program mode, standard ladder routines; changes stay in memory.';
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
-  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+(c.native_programming_lease.scan_inhibited?' · scans inhibited':'')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'tag reads only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+(c.native_programming_lease.scan_inhibited?' · scans inhibited':'')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   if(c.native_programming_lease?.preparation_state==='ready') $('eip-summary').textContent+=' · native preparation ready';
   const staged=c.native_programming_lease?.library_staging?.instances||0;
   if(staged) $('eip-summary').textContent+=` · ${staged} staged library descriptors; library data unsupported`;
@@ -298,6 +301,7 @@ function renderConnectivity() {
 }
 $('eip-native').onchange=()=>{if($('eip-native').checked){$('eip-writes').checked=false;$('eip-profile').value='logix-v35-l85e';}$('eip-writes').disabled=$('eip-native').checked;};
 $('eip-start').onclick=async()=>{try{await accept(await api('connectivity-start',{port:Number($('eip-port').value),bind_address:$('eip-bind').value.trim(),profile:$('eip-profile').value,allow_writes:$('eip-writes').checked,native_read_only:$('eip-native').checked}));}catch(e){error(e);}};
+$('studio-edits').onchange=async()=>{try{await accept(await api('routine-edits-configure',{allow_writes:$('studio-edits').checked}));}catch(e){error(e);}};
 $('eip-stop').onclick=async()=>{try{await accept(await api('connectivity-stop'));}catch(e){error(e);}};
 $('eip-refresh').onclick=async()=>{try{await accept(await api('observe'));}catch(e){error(e);}};
 $('eip-trace').onclick=async()=>{try{download(await api('connectivity-trace'),'LogixLab-protocol-trace.json');}catch(e){error(e);}};

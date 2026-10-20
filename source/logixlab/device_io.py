@@ -93,6 +93,7 @@ class DeviceIO:
         metadata = {'format_version': 1, 'app_version': __version__, 'instance_id': self.instance_id,
                     'project_generation': generation, 'loaded': True, 'project_name': engine.project.name,
                     'source_l5x_sha256': engine.project.sha256, 'scan': engine.scan_count,
+                    'logic_revision':getattr(engine.project,'runtime_revision',0),
                     'simulation_ms': engine.time_ms, 'captured_at': datetime.now(timezone.utc).isoformat(),
                     'fault': engine.fault, 'blocked': bool(engine.blockers),
                     'tag_count': len(tags), 'truncated': len(tags) > MAX_TAGS}

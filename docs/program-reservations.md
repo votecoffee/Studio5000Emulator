@@ -87,3 +87,10 @@ widths, source and ownership mismatch, capacity, malformed payloads, unchanged
 execution state, Run inhibition and cleanup. The independent research client
 also checks phase open/close, Program acquire/release and zero-stack proposal
 and readback against the original imported source pair.
+
+Version `.89` retains a fully validated code/source/post-source candidate
+through Program release, under the owning Controller lease. The following
+supported completion may [replace the Program-mode routine](supported-routine-edits.md).
+Incomplete candidates still clear at Program release; phase close, expiry,
+disconnect or source replacement discard any uncommitted candidate. Reservation
+cleanup does not undo a replacement that already completed.

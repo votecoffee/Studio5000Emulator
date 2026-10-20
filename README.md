@@ -65,9 +65,13 @@ Version `.88` acknowledges validated source storage and retains the following
 [post-source record](docs/edit-post-source.md). Its signed transfer parser keeps
 the native session alive through the next unsupported operation, allowing
 the edit diagnostic to complete Go Offline. Active edit completion remains unfinished.
+Version `.89` adds [supported Program-mode routine edits](docs/supported-routine-edits.md).
+A native SDK rung import now replaces the translated routine in the execution
+model; the inserted instruction executes on the next scan. The webpage exposes
+edit access and an in-memory logic revision. Original ACD/L5X files are preserved.
 Native SDK tag reads still fail
-online address discovery. Native upload/download and online edits are unsupported;
-tested attempts fail. Studio
+online address discovery. Native upload/download and the full Test/Untest/Assemble
+edit lifecycle remain unfinished. Studio
 5000 GUI monitoring remains unverified.
 Supported instructions have bounded software models; this project
 does not establish native controller equivalence.
@@ -205,6 +209,10 @@ state is used by native Remote Run/Program requests. Scanning runs in the app
 and continues with the webpage closed.
 Entering Run performs modeled prescan, which can reset non-retentive values and
 execute enabled AOI Prescan routines. Repeated Run requests do not repeat it.
+For supported Studio edits, select **Connectivity → Allow supported Studio edits**
+before connecting. This profile replaces an existing standard RLL routine in
+**Program** mode. Changes stay in memory; reload the original project to restore
+its logic. Native SDK import is tested; the Studio GUI edit workflow is unverified.
 The header shows the running app's full version and PLC endpoint IP. On Windows,
 its tray icon offers
 **Open app** and **Quit LogixLab**; hover over it to see the version and session

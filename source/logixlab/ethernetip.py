@@ -191,6 +191,39 @@ class Router:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
             elif native.stage!='bound':return reject(0x0F,'unbound_context')
+            if inner[0]==0x59 and path.class_id==0x8E:
+                if (path.instance!=1 or path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                exact(payload,4)
+                if payload!=bytes(4):return reject(3,'unsupported_edit_completion_profile')
+                if not self.app.allow_routine_edits:return reject(0x0F,'supported_routine_edits_disabled')
+                if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease;source=self.app.engine.project.sha256
+                    lease.require_edit_owner(native,self.app.generation,source)
+                    if not lease.edit_phase_open or lease.program_reservations:
+                        return reject(0x0C,'edit_preparation_not_released')
+                    if lease.applied_edit is not None:return reply(inner[0])
+                    stage=lease.edit_transfer
+                    if not stage.ready() or not stage.program_released:return reject(0x0C,'complete_routine_candidate_required')
+                    program=self.source_bound_program(stage.target[0])
+                    if not self.zero_program_stack_supported(program):return reject(0x0C,'source_correlation_unavailable')
+                    routine=next((r for r in self.routines(stage.target[0]) if r['id']==stage.target[1]),None)
+                    if routine is None or routine['name'].casefold()!=stage.source.name.casefold():return reject(0x0C,'source_correlation_changed')
+                    from .routine_source import resolve,SourceError
+                    from .routine_edits import prepare
+                    try:
+                        neutral=resolve(stage.source,self.app.engine.project,self.app.native_symbols,
+                            self.app.native_routines,self.app.native_types,program['name'])
+                        if neutral!=stage.translated_rungs:return reject(0x0C,'source_correlation_changed')
+                        candidate,receipt=prepare(self.app.engine,stage.source,neutral,program['name'],stage.base_revision)
+                    except (SourceError,ModelError):return reject(0x0C,'routine_replacement_validation_failed')
+                    self.app.engine=candidate;self.app._io_dirty=True
+                    self._catalog=None;self._storage=None;self._storage_key=None
+                    lease.applied_edit=receipt;stage.clear()
+                    self.endpoint.record('native_routine_edit_applied',**receipt)
+                return reply(inner[0])
             if inner[0]==0x5C and path.class_id==0x6D:
                 if transfer_control!=8:return reject(0x0F,'edit_transfer_control_required')
                 if (path.program_instance is None or not path.instance or path.attribute is not None or path.symbols
@@ -824,7 +857,9 @@ class Router:
             if lease.edit_transfer.translated_rungs is not None:
                 try:validate_plan(decoded,lease.edit_transfer.translated_rungs,self.app.engine.project,routine['program'])
                 except SourceError as error:lease.edit_transfer.plan_error=str(error)
-                else:lease.edit_transfer.plan_validated=True
+                else:
+                    lease.edit_transfer.plan_validated=True
+                    lease.edit_transfer.base_revision=getattr(self.app.engine.project,'runtime_revision',0)
         state=lease.edit_transfer.description()
         self.endpoint.record('native_edit_fragment',container_format=envelope.container_format,
             position=envelope.position,received_bytes=state['received_bytes'],total_bytes=state['total_bytes'],
@@ -1517,6 +1552,7 @@ class Endpoint:
                         'keyswitch':'Remote' if self.enabled and self.native_read_only else None,
                         'controller_mode_requests':self.enabled and self.native_read_only},
                     'native_programming_lease':{**self.programming_lease.description(self.app.generation,self.source_sha256),
+                        'online_edits':self.app.allow_routine_edits,'online_edit_scope':'standard_rll_program_mode',
                         'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,

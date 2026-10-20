@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from logixlab import __version__
+from tools.vmware_appliance import background_options
 
 
 class ApplicationLifecycleTests(unittest.TestCase):
@@ -20,7 +21,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1]
         self.process = subprocess.Popen([sys.executable, str(source / 'launch.py'), '--no-browser',
                                          '--no-tray', '--data-dir', self.tmp.name],
-                                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,**background_options())
         deadline = time.monotonic() + 8
         receipt = Path(self.tmp.name) / 'last-session.json'
         while time.monotonic() < deadline:

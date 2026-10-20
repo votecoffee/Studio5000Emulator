@@ -50,15 +50,18 @@ Reference resolution is reported separately from successful plan validation.
 content hashes, reference/plan status and redacted failure reasons. It exposes
 neither source text nor auxiliary bytes. The code and source buffers share the
 262,144-byte cap, 128-fragment cap and absolute 30-second deadline. Existing
-owner, Program, source-change, expiry and endpoint cleanup clear both buffers.
+owner, source-change, expiry and endpoint cleanup clear both buffers. In `.89`,
+a fully validated candidate with its post-source record survives Program
+release until Controller completion or phase cleanup; incomplete pairs are
+discarded at Program release.
 
 ## Scope
 
-This establishes a source path toward the custom execution model. It does not
-prove ELF/source equivalence, resolve native relocations, apply source, accept
-controller edits or implement Test/Untest/Assemble. Those operations remain
-unsupported. Native results and conditional capture experiments are recorded
-separately from software-model tests.
+The decoder/translator establishes a source path toward the custom execution
+model. It does not prove ELF/source equivalence or resolve native relocations.
+Version `.89` adds a separate, explicitly enabled [Program-mode activation](supported-routine-edits.md).
+Native Test/Untest/Assemble remain unsupported. Native results and conditional
+capture experiments are recorded separately from software-model tests.
 
 ## Native result
 

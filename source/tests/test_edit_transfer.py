@@ -228,6 +228,8 @@ class EditTransferSignedTests(unittest.TestCase):
         self.assertFalse(state['routine_installed'] or state['accepted_edits'])
         for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
         self.send(reservations.message(0x4C,payload=b''))
+        self.assertTrue(self.endpoint.programming_lease.edit_transfer.description()['program_released'])
+        self.send(edits.CLOSE)
         self.assertFalse(self.endpoint.programming_lease.edit_transfer.description()['post_source_record']['staged'])
 
     def test_owner_phase_program_hold_and_matching_routine_binding_are_required(self):

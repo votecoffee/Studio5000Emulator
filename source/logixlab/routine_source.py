@@ -183,11 +183,9 @@ def resolve(source,project,symbols,routines,types,program):
     except ModelError as error:raise SourceError('ioi_ladder_syntax_unsupported') from error
 
 
-def validate_plan(source,neutral,project,program):
-    """Check a detached candidate using existing parser/planner and preview prescan."""
+def candidate_project(source,neutral,project,program):
+    """Build an independent routine table; preserve original artifact bindings."""
     import copy
-    from .runtime import Engine
-    from .model import ModelError
     if len(neutral)!=len(source.rungs):raise SourceError('ioi_candidate_rung_count_mismatch')
     key=(program+'/'+source.name).casefold()
     if key not in project.routines:raise SourceError('ioi_candidate_routine_unavailable')
@@ -195,6 +193,18 @@ def validate_plan(source,neutral,project,program):
     node=ET.Element('Routine',Name=source.name,Type='RLL');content=ET.SubElement(node,'RLLContent')
     for index,text in enumerate(neutral):ET.SubElement(ET.SubElement(content,'Rung',Type='N',Number=str(index)),'Text').text=text
     candidate.routines[key]=candidate._routine(node,program,count=False)
+    old=list(project.routines[key].rungs)
+    for rung in candidate.routines[key].rungs:
+        match=next((i for i,item in enumerate(old) if item['nodes']==rung['nodes']),None)
+        if match is not None:rung['comment']=old.pop(match)['comment']
+    return candidate,key
+
+
+def validate_plan(source,neutral,project,program):
+    """Check a detached candidate using existing parser/planner and preview prescan."""
+    from .runtime import Engine
+    from .model import ModelError
+    candidate,key=candidate_project(source,neutral,project,program)
     try:
         engine=Engine(candidate,defer_prescan=True)
         if key not in engine.active:

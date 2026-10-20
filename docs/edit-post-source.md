@@ -40,10 +40,10 @@ disconnect and endpoint shutdown clear it with the source and code. Status
 reports byte count, SHA-256 and an uninterpreted flag, without its payload or
 opaque value. SDK probe admission requires empty record storage.
 
-## Remaining boundary
+## Controller completion
 
-The following observed Controller `0x59` request carries four zero bytes. Its
-active-edit contract is unresolved and the public app rejects it. Temporary
+The following observed Controller `0x59` request carries four zero bytes. In
+`.88`, its active-edit contract is unresolved and the public app rejects it. Temporary
 receipt does not acknowledge accepted edits, source activation, Test, Untest
 or Assemble. The source ACD remains preserved. Native results are recorded
 separately from the synthetic codec, TCP and staging checks.
@@ -55,3 +55,8 @@ Controller `0x59` with `RxCsE_ASA_NO_PERMISSION`. Native Go Offline/readback,
 project close and endpoint cleanup succeed. Active source/model remain
 unchanged and no fatal SDK fault is reported. This result advances temporary
 transfer compatibility; it does not establish accepted controller edits.
+
+Version `.89` adds an explicitly enabled [Program-mode replacement](supported-routine-edits.md)
+for this observed completion profile. Completed candidates survive Program
+release until completion or cleanup; incomplete candidates are still discarded.
+This software transaction does not implement the native Test/Untest/Assemble lifecycle.

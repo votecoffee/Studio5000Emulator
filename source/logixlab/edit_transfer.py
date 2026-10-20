@@ -29,6 +29,7 @@ class EditTransfer:
         self.translated_rungs=None;self.reference_error=None
         self.plan_validated=False;self.plan_error=None
         self._attachment=None
+        self.program_released=False;self.base_revision=None
 
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear()
@@ -109,6 +110,12 @@ class EditTransfer:
             raise EditTransferError(0x0C,'edit_post_source_record_conflict')
         self._attachment=data
 
+    def ready(self):
+        self.expire()
+        return (self.complete and self.kind=='source' and self.source is not None
+                and self.translated_rungs is not None and self.plan_validated and self._attachment is not None
+                and type(self.base_revision) is int and self.base_revision>=0)
+
     def description(self):
         self.expire()
         return {'status':'complete' if self.complete else 'receiving' if self.fragments else 'idle',
@@ -119,6 +126,7 @@ class EditTransfer:
                 'container_sha256':hashlib.sha256(self._data).hexdigest() if self.complete else None,
                 'container_length_verified':bool(self.fragments),'elf_structural_validation':False,
                 'component_kind':self.kind,'retained_bytes':len(self._data)+len(self._code or b'')+len(self._attachment or b''),
+                'program_released':self.program_released,'base_logic_revision':self.base_revision,
                 'post_source_record':{'staged':self._attachment is not None,'bytes':len(self._attachment or b''),
                     'sha256':hashlib.sha256(self._attachment).hexdigest() if self._attachment is not None else None,
                     'interpreted':False,'payload_exposed':False},

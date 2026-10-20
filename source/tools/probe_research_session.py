@@ -109,8 +109,9 @@ def exercise(app,client,payload=None,expanded=None):
                     check('unimplemented_edit_completion_denied',bytes.fromhex('5902208e2401')+bytes(4),bytes.fromhex('d9000f00'))
                     assert not app.endpoint.state()['native_programming_lease']['edit_transfer']['accepted_edits']
         check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
-        assert app.endpoint.state()['native_programming_lease']['edit_transfer']['status']=='idle'
-        assert not app.endpoint.state()['native_programming_lease']['edit_transfer']['post_source_record']['staged']
+        transfer=app.endpoint.state()['native_programming_lease']['edit_transfer']
+        if transfer['post_source_record']['staged']:assert transfer['program_released']
+        else:assert transfer['status']=='idle'
         assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
         attrs=app.engine.project.program_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
         if 19 in attrs:
@@ -166,6 +167,7 @@ def exercise(app,client,payload=None,expanded=None):
                       b'\x8e\0\0\0'+attrs[7] if 7 in attrs else bytes.fromhex('8e001400'))
                 check('executable_type_unavailable',bytes((0x0E,len(path)//2+1))+path+b'\x30\1',bytes.fromhex('8e001400'))
     check('edit_preparation_close',bytes.fromhex('5702208e2401'),bytes.fromhex('d7000000'))
+    assert app.endpoint.state()['native_programming_lease']['edit_transfer']['status']=='idle'
     lease=app.endpoint.state()['native_programming_lease']
     assert not lease['scan_inhibited'] and lease['edit_preparation']['program_stack_preparations']==0
     assert not lease['edit_preparation']['active_stack_changed']

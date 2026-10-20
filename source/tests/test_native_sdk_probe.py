@@ -267,6 +267,38 @@ class NativeSdkProbeTests(unittest.TestCase):
                 InsertPosition=0, ReplaceCount=0, ImportOption=option))
         self.assertEqual(state, before)
 
+    def test_custom_rung_application_requires_explicit_enabled_supported_profile(self):
+        state=self.edit_state()
+        with self.assertRaises(ValueError):edit_request(state,'MainProgram','MainRoutine','AcceptEdits',code='MOV(123,Value);')
+        state['connectivity']['native_programming_lease'].update(online_edits=True,online_edit_scope='standard_rll_program_mode')
+        state['routine_edits']={'enabled':True,'revision':0}
+        payload,_=edit_request(state,'MainProgram','MainRoutine','AcceptEdits',code='MOV(123,Value);',apply=True)
+        self.assertEqual(ET.fromstring(payload).findtext('.//Text'),'MOV(123,Value);')
+        for code in ('','MOV(1);','UNKNOWN();','MOV(1,@107 1 0 0 0 0@);'):
+            with self.assertRaises(ValueError):edit_request(state,'MainProgram','MainRoutine','AcceptEdits',code=code,apply=True)
+        with self.assertRaises(ValueError):edit_request(state,'MainProgram','MainRoutine','LeaveEdits',apply=True)
+        with self.assertRaises(ValueError):validate_idle(state)
+        validate_idle(state,allow_supported_edits=True)
+
+    def test_applied_edit_verification_requires_exact_insert_and_unchanged_values_history_and_other_routines(self):
+        from logixlab.server import Application
+        from tools.probe_native_sdk import supported_edit_effect
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'})
+            before=app.state();_,config=edit_request({**before,'connectivity':self.state()['connectivity']},'MainProgram','MainRoutine','AcceptEdits')
+            after=copy.deepcopy(before);routine=next(r for r in after['routines'] if r['key']=='MainProgram/MainRoutine')
+            from logixlab.server import serialize_nodes
+            from logixlab.model import parse_rung
+            routine['rungs'].insert(0,{'nodes':serialize_nodes(parse_rung('MOV(123,SpeedSetpoint);'))})
+            after['routine_edits'].update(revision=1,logic_sha256='a'*64)
+            self.assertTrue(supported_edit_effect(before,after,config,'MOV(123,SpeedSetpoint);'))
+            for field,value in (('scan',1),('tags',[]),('controller',{})):
+                changed=copy.deepcopy(after);changed[field]=value
+                self.assertFalse(supported_edit_effect(before,changed,config,'MOV(123,SpeedSetpoint);'))
+            after['routine_edits']['revision']=0
+            self.assertFalse(supported_edit_effect(before,after,config,'MOV(123,SpeedSetpoint);'))
+            app.close()
+
     def test_edit_diagnostic_rejects_unloaded_nonladder_aoi_ambiguous_or_writable_target(self):
         state = self.edit_state()
         for replacement in ([], [{'key':'MainProgram/MainRoutine','kind':'ST','harness':True,'rungs':[]}],

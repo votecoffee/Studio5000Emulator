@@ -6,8 +6,10 @@ Reports contain private project metadata and default to ignored .local storage.
 Only explicit --operation modes changes Run/Program and executes scans. It
 restores Program; resulting tag values and scan history are retained. Other
 operations never request mode changes. The edits diagnostic imports a generated
-NOP rung on a private copy with LeaveEdits or AcceptEdits. It requires advertised
-online-edit authority to be disabled and never finalizes or assembles edits.
+NOP rung on a private copy with LeaveEdits or AcceptEdits. The default requires
+disabled online edits. --apply-supported-edits instead requires explicitly
+enabled Program-mode RLL replacement and verifies the exact resulting insert.
+It never requests native Test, Untest, FinalizeEdits or Assemble.
 Windows services are never managed.
 """
 from __future__ import annotations
@@ -121,8 +123,8 @@ def validate_tag_read_type(operation,tags,read_type):
     return read_type
 
 
-def edit_request(state, program, routine, option):
-    """Create one NOP insert for a loaded, ordinary RLL routine, never arbitrary XML."""
+def edit_request(state, program, routine, option, *, code='NOP();',apply=False):
+    """Create one checked rung insert for an ordinary RLL routine, never arbitrary XML."""
     if option not in ('LeaveEdits', 'AcceptEdits'):
         raise ValueError('Edit diagnostics allow LeaveEdits or AcceptEdits; never FinalizeEdits')
     names = (state.get('name'), program, routine)
@@ -137,8 +139,20 @@ def edit_request(state, program, routine, option):
         raise ValueError('Edit diagnostic requires one loaded ordinary RLL routine')
     if state.get('controller', {}).get('mode') != 'Program' or state['controller'].get('running') is not False:
         raise ValueError('Edit diagnostic requires stopped Program mode')
-    if state.get('connectivity', {}).get('native_programming_lease', {}).get('online_edits') is not False:
-        raise ValueError('Edit diagnostic requires disabled controller online-edit authority')
+    lease=state.get('connectivity', {}).get('native_programming_lease', {})
+    if lease.get('online_edits') is not apply:
+        raise ValueError('Edit access must match the explicit supported-edit option')
+    if apply and (option!='AcceptEdits' or lease.get('online_edit_scope')!='standard_rll_program_mode'
+            or state.get('routine_edits',{}).get('enabled') is not True):
+        raise ValueError('Active edit requires enabled supported Program-mode RLL replacement')
+    if not isinstance(code,str) or not 1<=len(code)<=4096 or '@' in code or not apply and code!='NOP();':
+        raise ValueError('Custom rung text requires explicit supported-edit application')
+    from logixlab.model import parse_rung,operations,ARITIES,operand_problem,ModelError
+    try:
+        nodes=parse_rung(code)
+        if not list(operations(nodes)) or any(op.name not in ARITIES or operand_problem(op) for op in operations(nodes)):
+            raise ValueError('Rung requires supported ordinary instructions')
+    except ModelError as error:raise ValueError('Invalid rung syntax') from error
     root = ET.Element('RSLogix5000Content', SchemaRevision='1.0', SoftwareRevision='35.00',
                       TargetType='Rung', TargetCount='1', ContainsContext='true',
                       ExportOptions='References NoRawData L5KData DecoratedData Context Dependencies ForceProtectedEncoding AllProjDocTrans')
@@ -149,7 +163,7 @@ def edit_request(state, program, routine, option):
     target = ET.SubElement(routines, 'Routine', Use='Context', Name=routine, Type='RLL')
     content = ET.SubElement(target, 'RLLContent')
     rung = ET.SubElement(content, 'Rung', Number='0', Type='N')
-    ET.SubElement(rung, 'Text').text = 'NOP();'
+    ET.SubElement(rung, 'Text').text = code
     payload = ET.tostring(root, encoding='utf-8', xml_declaration=True)
     return payload, dict(XPath=f"Controller/Programs/Program[@Name='{program}']/Routines/Routine[@Name='{routine}']",
                          InsertPosition=0, ReplaceCount=0, ImportOption=option)
@@ -167,6 +181,23 @@ def rejection_delta(before, after):
         if count > 0:
             rows.append({**row, 'probe_count': count})
     return sorted(rows, key=lambda row: row.get('last_seen', 0))
+
+
+def supported_edit_effect(before,after,config,code):
+    """Verify the generated insert plus preserved model values/history/config."""
+    from logixlab.model import parse_rung,ModelError
+    from logixlab.server import serialize_nodes
+    try:
+        names=re.findall(r"@Name='([^']+)'",config['XPath']);key='/'.join(names[-2:])
+        old={r['key']:r for r in before['routines']};new={r['key']:r for r in after['routines']}
+        if set(old)!=set(new) or key not in old:return False
+        if any(old[k]!=new[k] for k in old if k!=key):return False
+        expected=[serialize_nodes(parse_rung(code))]+[r['nodes'] for r in old[key]['rungs']]
+        if [r['nodes'] for r in new[key]['rungs']]!=expected:return False
+        if after['routine_edits']['revision']!=before['routine_edits']['revision']+1:return False
+        if not re.fullmatch(r'[a-f0-9]{64}',after['routine_edits']['logic_sha256']):return False
+        return all(before[k]==after[k] for k in ('instance_id','tags','scan','ms','changes','mode','tasks','entry_routines','controller'))
+    except (KeyError,TypeError,IndexError,ModelError):return False
 
 
 def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
@@ -267,12 +298,15 @@ def validate_staging(lease):
         for field in ('retained_bytes','code_bytes'):
             if field in transfer and (type(transfer[field]) is not int or transfer[field]!=0):
                 raise ValueError('Probe requires empty paired Routine containers')
+        if transfer.get('program_released',False) is not False or transfer.get('base_logic_revision') is not None:
+            raise ValueError('Probe requires no released Routine candidate')
         if 'post_source_record' in transfer:
             record=transfer['post_source_record']
             if (not isinstance(record,dict) or any(record.get(field) is not False
                     for field in ('staged','interpreted','payload_exposed'))
                     or type(record.get('bytes')) is not int or record['bytes']!=0 or record.get('sha256') is not None):
                 raise ValueError('Probe requires empty post-source edit storage')
+    if lease.get('applied_routine_edit') is not None:raise ValueError('Probe requires no active edit transaction receipt')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]
@@ -369,7 +403,7 @@ def validate_staging(lease):
         raise ValueError('Probe requires idle programming preparation')
 
 
-def validate_idle(state):
+def validate_idle(state, *, allow_supported_edits=False):
     """Do not share a programming test with an existing native connection."""
     cip = state.get('connectivity', {})
     if 'controller' in state and (state['controller'].get('running') is not False or state['controller'].get('mode')!='Program'):
@@ -381,9 +415,12 @@ def validate_idle(state):
     if (type(clients) is not int or clients != 0 or lease.get('available') is not True or
             lease.get('owned') is not False or type(mask) is not int or mask != 0 or
             lease.get('scan_inhibited') is not False or lease.get('project_transfer') is not False or
-            lease.get('controller_mode_changes') is not False or lease.get('online_edits') is not False or
+            lease.get('controller_mode_changes') is not False or lease.get('online_edits') is not allow_supported_edits or
             lease.get('tag_write_authority') is not False):
         raise ValueError('Probe requires an idle endpoint, free uninhibited lease and disabled programming authority')
+    if allow_supported_edits and (lease.get('online_edit_scope')!='standard_rll_program_mode'
+            or state.get('routine_edits',{}).get('enabled') is not True):
+        raise ValueError('Only explicitly enabled Program-mode RLL edits are supported')
 
 
 def validate_mode_probe(state):
@@ -398,7 +435,7 @@ def validate_mode_probe(state):
         raise ValueError('Mode probe requires executable Remote Program, Run-entry status and a 1..100 ms interval')
 
 
-def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=40):
+def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=40,allow_supported_edits=False):
     """Allow the endpoint's 30-second idle transport close after SDK Dispose.
 
     Every poll still requires the same bound source/instance; success requires
@@ -409,7 +446,7 @@ def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=40):
         state = api(url, 'state')
         validate_target(state, path, source_hash, instance=instance, l5x_hash=l5x_hash)
         try:
-            validate_idle(state)
+            validate_idle(state,allow_supported_edits=allow_supported_edits)
             return state
         except ValueError as error:
             if time.monotonic() >= deadline:
@@ -426,18 +463,22 @@ def run(args):
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
+    apply_edits=getattr(args,'apply_supported_edits',False)
+    edit_code=getattr(args,'edit_code',None)
+    if edit_code is None:edit_code='NOP();'
+    if (apply_edits or edit_code!='NOP();') and args.operation!='edits':raise ValueError('Supported edits belong to an edits case')
     edit_options = tuple(getattr(args, name, None) for name in ('edit_program', 'edit_routine', 'edit_import_option'))
     if args.operation != 'edits' and any(value is not None for value in edit_options):
         raise ValueError('Edit options belong to an edits diagnostic')
     source_hash = digest(source)
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
-    validate_idle(initial)
+    validate_idle(initial,allow_supported_edits=apply_edits)
     if args.operation=='modes':validate_mode_probe(initial)
     edit_payload = edit_config = None
     if args.operation == 'edits':
         edit_payload, edit_config = edit_request(initial, edit_options[0] or 'MainProgram',
-                                                edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits')
+                                                edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits',code=edit_code,apply=apply_edits)
     require_sdk_service()
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
@@ -450,6 +491,7 @@ def run(args):
     config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
     if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
+    config['ApplySupportedEdits']=apply_edits
     if edit_payload is not None:
         edit_file = output / 'nop-rung.L5X'
         edit_file.write_bytes(edit_payload)
@@ -469,11 +511,11 @@ def run(args):
     # Build can take time: recheck identity, policies and both source hashes now.
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
-    validate_idle(state)
+    validate_idle(state,allow_supported_edits=apply_edits)
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         payload, details = edit_request(state, edit_options[0] or 'MainProgram',
-                                        edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits')
+                                        edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits',code=edit_code,apply=apply_edits)
         if (payload != edit_payload or details != edit_config or digest(edit_file) != config['Edit']['Sha256'] or
                 any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines'))):
             raise ValueError('Edit target or generated rung changed before the native call')
@@ -493,11 +535,11 @@ def run(args):
     if args.operation == 'edits':
         summary['edit_diagnostic'] = dict(import_option=config['Edit']['ImportOption'],
             xpath=config['Edit']['XPath'], insert_position=0, replace_count=0,
-            rung_sha256=config['Edit']['Sha256'], code='NOP();', active_edits_authorized=False,
+            rung_sha256=config['Edit']['Sha256'], code=edit_code, active_edits_authorized=apply_edits,
             finalize_edits=False, assembly=False)
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
     if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
-    report = None
+    report = None;final=None
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
@@ -532,14 +574,15 @@ def run(args):
                 summary['edit_trace'] = edit_trace_evidence(trace, report,
                     before_edit=edit_traces.get('before'), after_edit=edit_traces.get('after'))
             summary['target_rechecked'] = True
-            final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
+            final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash,allow_supported_edits=apply_edits)
             summary['cleanup_confirmed'] = True
             (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
             summary['model_unchanged'] = all(state[key] == final[key] for key in model_fields)
             if args.operation == 'edits':summary['edit_payload_unchanged'] = digest(edit_file) == config['Edit']['Sha256']
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
-        model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('model_unchanged') is not False
+        if apply_edits:summary['supported_edit_applied']=supported_edit_effect(state,final,edit_config,edit_code)
+        model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
         if not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False:
             summary['status'] = 'failed'
         (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
@@ -553,11 +596,13 @@ def main():
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
     parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes', 'edits'), default='connection',
-                        help='modes runs logic then restores Program; edits diagnoses a generated NOP import with editing disabled')
+                        help='modes cycles Run/Program; edits defaults to a NOP diagnostic with editing disabled')
     parser.add_argument('--edit-program', help='edits only: loaded program; default MainProgram')
     parser.add_argument('--edit-routine', help='edits only: loaded RLL routine; default MainRoutine')
     parser.add_argument('--edit-import-option', choices=('LeaveEdits', 'AcceptEdits'),
                         help='edits only: defaults to AcceptEdits to test the controller request; LeaveEdits is a local pending-edit comparison')
+    parser.add_argument('--apply-supported-edits',action='store_true',help='Require enabled Program-mode RLL replacement and verify the applied routine')
+    parser.add_argument('--edit-code',help='One neutral-text rung for an explicit supported-edit case; default NOP();')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')
