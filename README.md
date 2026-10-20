@@ -114,6 +114,10 @@ Version `.98` adds source-bound
 [indirect integer-bit operands](docs/routine-source.md#indirect-integer-bit-operands)
 to native imports and the corresponding typed CMP condition syntax. Index
 references remain live, with type checks and bounds faults at execution.
+Version `.99` adds bounded [atomic-array Data Table storage](docs/atomic-array-storage.md).
+Native upload now reads the tested array's descriptors and values, advancing
+beyond its previous missing-storage error. Full upload and SDK tag-address
+discovery remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

@@ -118,13 +118,14 @@ class DataTableTests(unittest.TestCase):
             self.assertNotEqual(self.cip(service,path,bytes(8))[2],0)
         self.assertEqual(self.app.engine.memory.values,initial)
 
-    def test_scalar_storage_excludes_arrays_constants_private_tags_and_aliases(self):
+    def test_atomic_storage_retains_arrays_but_excludes_constants_private_tags_and_aliases(self):
         self.add('Const',constant=True);self.add('Private',external_access='None')
         self.add('Alias',None,alias='Step')
         self.bind(Symbol('',0,'Step',3),Symbol('',0,'Values',4),Symbol('',0,'Const',5),
                   Symbol('',0,'Private',6),Symbol('',0,'Alias',7))
-        self.assertEqual(set(self.router.scalar_storage().by_ref),{'step'})
-        for instance in (4,5):
+        self.assertEqual(set(self.router.scalar_storage().by_ref),{'step','values'})
+        self.assertEqual(self.cip(0x4F,bytes.fromhex('206a2404'),struct.pack('<IH',0,20))[2],0)
+        for instance in (5,):
             path=bytes((0x20,0x6A,0x24,instance))
             self.assertEqual(self.cip(0x0E,path+b'\x30\3')[2],0x14)
             self.assertEqual(self.cip(0x4F,path,struct.pack('<IH',0,4))[2],8)

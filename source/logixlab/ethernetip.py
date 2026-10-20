@@ -1004,11 +1004,11 @@ class Router:
             if service==0x4F:
                 if path.attribute is not None:raise CIPError(4,'Scalar reads do not take an attribute')
                 exact(data,6);selector,count=struct.unpack('<IH',data)
-                if storage is None:raise CIPError(8,'No supported scalar storage for this table')
-                if selector!=0 or count!=storage.size:raise CIPError(3,'Only zero-selector full scalar reads are supported')
+                if storage is None:raise CIPError(8,'No supported atomic storage for this table')
+                if selector!=0 or count!=storage.size:raise CIPError(3,'Only zero-selector full atomic reads are supported')
                 if count>limit-4:raise CIPError(0x1B,'Response cannot hold the full scalar')
                 return 0,storage.value(self.app.engine.memory.read)
-        # Only this model's backed scalar addresses are exposed. Formal types,
+        # Only this model's backed atomic addresses are exposed. Formal types,
         # native physical memory and programming services remain unavailable.
         return self.attribute_read(service,path,data,attributes)
 
@@ -1018,10 +1018,10 @@ class Router:
         for scope in scopes:
             for symbol in self.data_tables(scope):
                 tag=project.tags[symbol['ref'].lower()]
-                if tag.constant or symbol['type']&0xE000:continue
+                if tag.constant or symbol['type']&0x8000:continue
                 dtype=self.access(symbol['ref'])[2]
                 if dtype in TYPES:rows.append((symbol,'<'+TYPES[dtype][1]))
-        key=(project,tuple((s['ref'],s['id'],s['type'],fmt) for s,fmt in rows))
+        key=(project,tuple((s['ref'],s['id'],s['type'],tuple(s['dimensions']),fmt) for s,fmt in rows))
         if key!=self._storage_key:
             self._storage=data_table.AddressSpace(rows);self._storage_key=key
         return self._storage

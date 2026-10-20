@@ -20,7 +20,7 @@ def attributes(symbol, constant, storage=None):
     if storage is not None:
         result.update({3: struct.pack('<I', storage.value_address),
                        5: struct.pack('<I', storage.symbol_address),
-                       6: bytes(4), 7: struct.pack('<H', storage.size),
+                       6: bytes(4), 7: struct.pack('<H', storage.element_size),
                        12: struct.pack('<I', storage.instance),
                        14: bytes(4)})  # Ordinary local base scalars have no signatures.
     return result
@@ -29,6 +29,6 @@ def attributes(symbol, constant, storage=None):
 def description():
     return {'read_attributes': [1, 2, 8, 9, 10, 11],
             'scalar_attributes': [3, 5, 6, 7, 12, 14],
-            'scalar_storage': 'Ordinary nonconstant base scalar atoms only',
+            'scalar_storage': 'Ordinary nonconstant base atomic scalars and arrays',
             'modeled_addresses': True, 'physical_addresses': False,
             'formal_types': False, 'native_project_upload': False}

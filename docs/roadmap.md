@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.98` adds [source-bound indirect bit indices](routine-source.md#indirect-integer-bit-operands),
+Current milestone: `.99` adds [backed atomic-array Data Table storage](atomic-array-storage.md).
+The native array upload advances from 167 to 200 verified requests, passing its
+array metadata/value reads before the remaining Controller collection failure.
+External queued values are visible through subsequent Data Table reads. Native
+SDK tag-address discovery and full upload/download remain unfinished.
+
+Version `.98` adds [source-bound indirect bit indices](routine-source.md#indirect-integer-bit-operands),
 with native imports, reconnects, scan execution, queued external inputs and
 saved L5X reloads. Typed CMP conditions share the new syntax in software tests.
 Version `.97` adds [source-bound indirect array indices](routine-source.md#indirect-array-indices)
