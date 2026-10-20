@@ -285,6 +285,7 @@ class NativeSdkProbeTests(unittest.TestCase):
                     Path(command[2]).write_text(json.dumps({'status':'succeeded','steps':[]}))
                     return subprocess.CompletedProcess(command,0)
                 with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                        patch('tools.probe_native_sdk.require_sdk_service'), \
                         patch('tools.probe_native_sdk.background_options',return_value={}), \
                         patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
                         patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,final,trace)), \
@@ -484,6 +485,7 @@ class NativeSdkProbeTests(unittest.TestCase):
                 Path(command[2]).write_text(json.dumps({'status':'failed'}))
                 return subprocess.CompletedProcess(command,1)
             with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                    patch('tools.probe_native_sdk.require_sdk_service'), \
                     patch('tools.probe_native_sdk.background_options',return_value={}), \
                     patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
                     patch('tools.probe_native_sdk.api',side_effect=(state,state,before,busy,after)), \

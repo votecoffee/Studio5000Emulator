@@ -56,6 +56,15 @@ def validate_url(url):
     return url
 
 
+def require_sdk_service():
+    """Read service status before any native build/project call; never control it."""
+    result=subprocess.run(['powershell','-NoProfile','-NonInteractive','-Command',
+        '(Get-Service -Name LdSdkService -ErrorAction Stop).Status.ToString()'],
+        capture_output=True,text=True,timeout=10,**background_options())
+    if result.returncode or result.stdout.strip()!='Running':
+        raise ValueError('Logix Designer SDK Service (LdSdkService) must be Running; this tool never starts or restarts it')
+
+
 def validate_target(state, path, source_hash, *, instance=None, l5x_hash=None):
     """Require one source-bound anonymous endpoint; never retarget the app."""
     parts = path.split('\\')
@@ -259,6 +268,15 @@ def validate_staging(lease):
                           'programs_retained', 'routines_retained', 'storage_bytes', 'symbols_linked', 'symbols_unresolved'):
                 if type(image.get(field)) is not int or image[field] != 0:
                     raise ValueError('Probe requires an empty download image')
+            if 'preparation_results' in image:
+                results=image['preparation_results']
+                if (not isinstance(results,dict) or results.get('status')!='idle' or
+                        type(results.get('records')) is not int or results['records']!=0 or
+                        results.get('operations')!=[] or
+                        any(results.get(field) is not True for field in ('immutable','private_internal_only')) or
+                        any(results.get(field) is not False for field in ('wire_encoding_supported','vendor_status_exposed',
+                            'request_bytes_exposed','object_identifiers_exposed'))):
+                    raise ValueError('Probe requires an empty immutable private preparation result ledger')
         if 'diagnostic_staging' in stage:
             diagnostics=stage['diagnostic_staging']
             if (not isinstance(diagnostics,dict) or diagnostics.get('status')!='idle'
@@ -354,6 +372,7 @@ def run(args):
     if args.operation == 'edits':
         edit_payload, edit_config = edit_request(initial, edit_options[0] or 'MainProgram',
                                                 edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits')
+    require_sdk_service()
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
         time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8])

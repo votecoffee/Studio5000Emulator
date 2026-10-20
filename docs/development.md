@@ -142,6 +142,11 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+Version `.79` checks that `LdSdkService` is Running before creating the SDK
+helper or opening a native project. This check reads service status only.
+The [isolated research session probe](research-session-probe.md) can exercise
+the custom emulator's signed protocol without that service; its results remain
+separate from native Studio acceptance.
 
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no

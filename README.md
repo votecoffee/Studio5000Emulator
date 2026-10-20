@@ -21,6 +21,10 @@ coherent [software system time](docs/upload-inventory.md), and an
 of a generated NOP rung on a private project copy. Download now starts a real
 temporary image, and online edits can acquire a separate exclusive reservation.
 Subsequent transfer and edit operations remain incomplete.
+Version `.79` adds the [Program Disabled read used by online imports](docs/edit-program-state.md),
+three more source-backed Controller settings and [per-record download results](docs/download-image.md#per-operation-preparation-results).
+An [isolated protocol probe](docs/research-session-probe.md) exercises the actual
+challenge and signed transfer paths independently of the optional native SDK.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
