@@ -32,6 +32,7 @@ class SoftwareClockTests(unittest.TestCase):
                 values = software_clock.attributes(read_time=True)
                 self.assertEqual(struct.unpack('<q', values[3])[0], timestamp//1000)
                 self.assertEqual(struct.unpack('<q', values[4])[0], timestamp)
+                self.assertEqual(struct.unpack('<qq', values[28]), (0, timestamp//1000))
                 self.assertEqual(len(values[3]), 8)
                 self.assertEqual(len(values[4]), 8)
 
@@ -39,7 +40,7 @@ class SoftwareClockTests(unittest.TestCase):
         for timestamp in (-1, 0x8000000000000000*1000, 1.5, True, None, '1000'):
             with self.subTest(timestamp=timestamp), patch('logixlab.software_clock.time.time_ns', return_value=timestamp):
                 values = software_clock.attributes(read_time=True)
-                self.assertNotIn(3, values); self.assertNotIn(4, values)
+                self.assertNotIn(3, values); self.assertNotIn(4, values); self.assertNotIn(28, values)
                 self.assertEqual(values[2], b'\0')
                 self.assertEqual(values[11], bytes(2))
         for error in (OSError('clock unavailable'), OverflowError('range'), ValueError('clock unavailable')):
@@ -51,6 +52,7 @@ class SoftwareClockTests(unittest.TestCase):
             with self.subTest(timestamp=timestamp), patch('logixlab.software_clock.time.time_ns', return_value=timestamp):
                 values = software_clock.attributes(read_time=True)
                 self.assertEqual(struct.unpack('<q', values[3])[0], timestamp//1000)
+                self.assertEqual(struct.unpack('<qq', values[28]), (0, timestamp//1000))
                 self.assertNotIn(4, values)
                 self.assertEqual(self.send(path=bytes.fromhex('204324013004')), bytes.fromhex('8e001400'))
 
@@ -78,6 +80,43 @@ class SoftwareClockTests(unittest.TestCase):
         self.assertEqual(info['ptp_port_count'], 0)
         for name in ('synchronized', 'ptp_engine', 'accuracy_claimed', 'set_time', 'master_offset_measurements', 'hardware_clock'):
             self.assertFalse(info[name])
+
+    def test_system_time_and_offset_single_read_uses_the_host_clock_without_a_master(self):
+        timestamp = 1_700_000_000_123_456_789
+        before = copy.deepcopy(self.app.engine.memory.values)
+        with patch('logixlab.software_clock.time.time_ns', return_value=timestamp) as clock:
+            self.assertEqual(self.send(path=bytes.fromhex('20432401301c')),
+                             bytes.fromhex('8e000000')+struct.pack('<qq', 0, timestamp//1000))
+            clock.assert_called_once_with()
+        info = self.app.engine.project.time_sync.description()['software_clock']
+        self.assertEqual(info['system_time_offset_microseconds'], 0)
+        self.assertFalse(info['master_offset_measurements'])
+        self.assertEqual(self.app.engine.memory.values, before)
+        self.assertEqual(self.app.engine.scan_count, 0)
+
+    def test_system_time_and_offset_duplicates_share_microsecond_and_nanosecond_snapshot(self):
+        timestamp = 1_700_000_000_123_456_789
+        order = (28, 4, 3, 28)
+        values = {28: struct.pack('<qq', 0, timestamp//1000),
+                  4: struct.pack('<q', timestamp), 3: struct.pack('<q', timestamp//1000)}
+        expected = bytes.fromhex('83000000')+struct.pack('<H', len(order))
+        expected += b''.join(struct.pack('<HH', attr, 0)+values[attr] for attr in order)
+        with patch('logixlab.software_clock.time.time_ns', side_effect=(timestamp, timestamp+9999)) as clock:
+            self.assertEqual(self.send(3, bytes.fromhex('20432401'),
+                                       struct.pack('<5H', len(order), *order)), expected)
+            clock.assert_called_once_with()
+
+    def test_system_time_and_offset_failure_and_setters_do_not_invent_or_change_clock(self):
+        path = bytes.fromhex('20432401301c')
+        with patch('logixlab.software_clock.time.time_ns', side_effect=OSError('unavailable')):
+            self.assertEqual(self.send(path=path), bytes.fromhex('8e001400'))
+            response = self.send(3, bytes.fromhex('20432401'), struct.pack('<4H', 3, 2, 28, 11))
+            self.assertEqual(response, bytes.fromhex('83000a00030002000000001c0014000b0000000000'))
+        with patch('logixlab.software_clock.time.time_ns', side_effect=AssertionError('Invalid reads cannot sample')):
+            self.assertEqual(self.send(path=path, data=b'\0')[2], 0x15)
+            self.assertEqual(self.send(0x10, path, bytes(16))[2], 8)
+            self.assertEqual(self.send(4, bytes.fromhex('20432401'),
+                                       struct.pack('<2H', 1, 28)+bytes(16))[2], 8)
 
     def test_static_unknown_class_and_malformed_or_mutating_queries_do_not_sample_clock(self):
         with patch('logixlab.software_clock.time.time_ns', side_effect=AssertionError('Unneeded clock read')):

@@ -12,7 +12,7 @@ from . import __version__
 PORT_ATTRIBUTES = (11, 12, 13, 14, 15, 24, 25, 26)
 DESCRIPTION_ATTRIBUTES = (21, 22, 23)
 STATIC_ATTRIBUTES = (2, *PORT_ATTRIBUTES, *DESCRIPTION_ATTRIBUTES)
-TIME_ATTRIBUTES = (3, 4)
+TIME_ATTRIBUTES = (3, 4, 28)
 
 
 def description_attributes():
@@ -44,6 +44,11 @@ def attributes(*, read_time=False):
                 microseconds = nanoseconds // 1000
                 if microseconds <= 0x7FFFFFFFFFFFFFFF:
                     values[3] = struct.pack('<q', microseconds)
+                    # The emulator uses this same host UTC clock for local and
+                    # system time, so their offset is exactly zero. The v35
+                    # attribute layout puts the offset before system time.
+                    # This is independent of any offset to a PTP master.
+                    values[28] = struct.pack('<qq', 0, microseconds)
                 if nanoseconds <= 0x7FFFFFFFFFFFFFFF:
                     values[4] = struct.pack('<q', nanoseconds)
         except (OSError, OverflowError, ValueError):
@@ -56,6 +61,8 @@ def description():
             'dynamic_attributes': list(TIME_ATTRIBUTES), 'static_attributes': list(STATIC_ATTRIBUTES),
             'snapshot_scope': 'one CIP read request', 'scan_time_independent': True,
             'host_adjustments_visible': True, 'synchronized': False, 'ptp_port_count': 0,
+            'system_time_offset_microseconds': 0,
+            'system_time_offset_source': 'local and system time use the same host UTC clock',
             'ptp_engine': False, 'accuracy_claimed': False, 'set_time': False,
             'master_offset_measurements': False, 'hardware_clock': False,
             'description_attributes': list(description_attributes()),
