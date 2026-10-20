@@ -514,6 +514,16 @@ ACD are preserved. Native Studio L5X import, GUI editing and the full native
 edit lifecycle remain unverified. The iteration passes 142 focused software
 checks and browser JavaScript syntax validation; the full suite was not run.
 
+The rebuilt `.91` main runtime passes 27 live protocol checks; its 75 application
+modules, served webpage and Windows package match source. A fresh SDK
+connection/Offline case succeeds across 79 verified signed requests. Upload
+still fails controller-collection processing (197), and download still fails
+device transfer (180); both preserve the model and confirm Offline/endpoint
+cleanup without a reported fatal SDK fault. An additional 22 existing metadata
+staging/value tests pass, bringing targeted software checks to 164. The main
+demo remains in Program at revision 0, with supported edit access enabled.
+Isolated edited instances are stopped; the original ACD is unchanged.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.
