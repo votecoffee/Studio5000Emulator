@@ -669,9 +669,10 @@ class Router:
         if path.attribute is not None:raise CIPError(4,'Template reads do not take an attribute')
         exact(data,6);offset,count=struct.unpack('<IH',data)
         if not count:raise CIPError(3,'Template byte count must be positive')
-        if offset>=len(template.definition):raise CIPError(0x20,'Template offset outside definition')
+        storage=template.definition_storage
+        if offset>=len(storage):raise CIPError(0x20,'Template offset outside definition')
         if limit<=4:raise CIPError(0x1B,'Response cannot hold a template data byte')
-        end=min(offset+count,len(template.definition));chunk=template.definition[offset:min(end,offset+limit-4)]
+        end=min(offset+count,len(storage));chunk=storage[offset:min(end,offset+limit-4)]
         return 6 if offset+len(chunk)<end else 0,chunk
 
     def store_atomic(self,dtype,refs,values):

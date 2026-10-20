@@ -35,11 +35,13 @@ a scalar member and an array member remain queued until the next scan; both
 read paths then show the applied values. Original ACD and L5X files remain
 unchanged.
 
-The native SDK upload of that project stops earlier at Template attributes
+In `.100`, the native SDK upload of that project stops earlier at Template attributes
 6, 7 and 8: Family Type, Multiply Code and Recon Data. It does not reach the
 new structured-storage reads. Its request-count difference is not evidence of
-upload advancement. These fields, native address-cache population, full
-upload/download and Studio GUI monitoring remain unfinished.
+upload advancement. Version `.101` adds the [source-known family read and
+aligned model extent](template-metadata.md). Multiply Code, Recon Data, native
+address-cache population, full upload/download and Studio GUI monitoring remain
+unfinished.
 
 A separate native download of the same UDT project prepares 911 temporary
 records, 243 Templates and 18 Data Tables. It reaches the unresolved transport

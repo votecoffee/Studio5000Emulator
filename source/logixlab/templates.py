@@ -47,10 +47,22 @@ class Template:
     handle: int
     depth: int
     alignment: int
+    family: int | None = None
+
+    @property
+    def definition_storage(self):
+        # Attribute 4's words describe the model's aligned allocation. The
+        # compact read extent excludes these three reserved bytes; larger
+        # bounded reads may include them, without crossing into another type.
+        return self.definition+bytes(3)
 
     def attributes(self):
-        return {1: struct.pack('<H', self.handle), 2: struct.pack('<H', len(self.members)),
+        values={1: struct.pack('<H', self.handle), 2: struct.pack('<H', len(self.members)),
                 4: struct.pack('<I', (len(self.definition) + 23) // 4), 5: struct.pack('<I', self.size)}
+        # The supported explicit NoFamily declaration maps to the source's
+        # family value. Missing declarations do not become native metadata.
+        if self.family is not None:values[6]=struct.pack('<H',self.family)
+        return values
 
 
 class Catalog:
@@ -146,9 +158,11 @@ class Catalog:
         definition = info + names_data
         # Attribute 4 includes 23 bytes of template overhead and is in words.
         definition += b'\0' * (-(len(definition) + 23) % 4)
-        if len(definition) > MAX_BYTES: raise ModelError('Wire template definition exceeds 32768 bytes')
+        if len(definition)+3 > MAX_BYTES: raise ModelError('Wire template definition exceeds 32768 bytes')
         handle = binascii.crc_hqx(definition, 0xFFFF)
-        template = Template(self.ids[key], type_name, tuple(members), offset, definition, handle, depth, alignment)
+        family_fields=[field for field in schema.attrib if field.rsplit('}',1)[-1].casefold()=='family']
+        family=0 if family_fields==['Family'] and schema.get('Family')=='NoFamily' else None
+        template = Template(self.ids[key], type_name, tuple(members), offset, definition, handle, depth, alignment,family)
         self.types[key] = template
         return template
 

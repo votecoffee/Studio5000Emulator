@@ -13,7 +13,7 @@ evidence to assign the failure to that object.
 | Object | Supported behavior | Remaining contract |
 | --- | --- | --- |
 | Data Table and Symbol | Bounded model descriptors and supported atomic/UDT scalar and array values correlated to imported tag identifiers | Native compiled addresses, layouts and complete type upload |
-| Template | Shared explicit UDT layouts and existing basic metadata | Family Type, Multiply Code, Recon Data and complete native type upload |
+| Template | Shared explicit UDT layouts, aligned reads, basic metadata and explicit NoFamily values | Multiply Code, Recon Data and complete native type upload |
 | Network inventory | Actual selected interface information and supported host counters | Device-specific fields without a host or source counterpart |
 | Time Sync | Imported PTP configuration, unsynchronized status, empty PTP port set, software descriptions and current host UTC | PTP master, parent, identity and synchronization measurements |
 | Controller | Supported source settings, run mode and programming lease state | Native handler-reference encoding and complete upload collection |
@@ -29,6 +29,9 @@ improvement than a complete upload.
 Version `.100` adds [structured storage](structured-storage.md) with independent
 TCP readback and queued external writes. The native UDT project upload fails
 earlier at Template attributes 6, 7 and 8 and does not exercise these new reads.
+Version `.101` adds the [source-known Family Type read and aligned model
+definition extent](template-metadata.md). Independent signed TCP checks pass;
+native SDK retesting is held after a private metadata hypothesis faulted the SDK.
 
 Isolated prior diagnostic profiles supplied hypothetical PTP descriptions or
 made the clock object unavailable; both still failed controller collection.

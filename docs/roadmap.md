@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.100` adds [structured Data Table storage](structured-storage.md)
+Current milestone: `.101` adds [Template family metadata and aligned reads](template-metadata.md).
+Signed TCP checks verify the source-known family and both definition extents.
+Unresolved metadata overrides remain excluded; a private experiment faulted
+the SDK, so native retesting is held pending service recovery.
+
+Version `.100` adds [structured Data Table storage](structured-storage.md)
 using the existing symbolic UDT layouts. Real TCP reads agree with symbolic
 values before and after queued external writes. Native UDT upload stops at
 earlier Template metadata, before exercising the new storage path.
