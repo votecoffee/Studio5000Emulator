@@ -482,6 +482,14 @@ execution model; persistent edited-project round trips, Studio GUI editing and
 the full edit lifecycle remain unverified. The iteration passes 133 focused
 software tests; the full milestone suite was not repeated.
 
+The rebuilt `.90` main runtime passes 27 live wire checks. Its 74 application
+modules, served webpage and Windows package match source. A fresh SDK
+connection/Offline case passes across 79 verified signed requests with unchanged
+logic/values, clean connection cleanup and no reported fatal SDK fault. The main
+demo remains stopped in Program at logic revision 0, with supported edit access
+enabled. Isolated edited instances are stopped. Upload/download and Run/Program
+mode cycling were not repeated in this iteration.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

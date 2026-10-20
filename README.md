@@ -310,6 +310,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Native SDK Go Online, bidirectional Run/Program control and Go Offline verified for the demo; native project transfer and tag/rung monitoring remain unfinished |
+| Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK rung imports and reconnection using the same updated project verified; changes remain in memory |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain
