@@ -65,8 +65,24 @@ contract, source validation and atomic model replacement.
 
 Protocol tests cover setup bounds, conflicts, source/owner/preparation checks,
 exact paths, signed batches, denied payload writes and lifecycle cleanup.
-The current source suite has 910 tests, with expected platform skips.
-Rebuilt-runtime acceptance is recorded separately after deployment.
+The current source suite has 910 tests, with two Windows skips and one Linux skip.
+
+The rebuilt `.68` runtime's Python modules and served webpage match the source;
+the Windows executable's embedded version and webpage were also checked. It
+passes 287 wire checks. The public SDK probes report:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Online address discovery still fails before value reads |
+| Upload | 199 | Controller-collection upload still fails |
+| Download | 155 | Setup accepted; segmented container rejected as described above |
+
+All four probes confirm cleanup, an Offline final state and unchanged source
+and model. The endpoint finishes with zero TCP clients, a free uninhibited lease,
+idle preparation, empty descriptor/value stages and closed transport with zero
+requested bytes. Scans and model time remain zero. The separately installed
+communications and SDK services remain running.
 
 Full native upload/download, native tag monitoring, online edits and Studio GUI
 monitoring remain unfinished or unverified.

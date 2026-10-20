@@ -9,6 +9,12 @@ Version `.68` adds [temporary Resilient Transport setup and cleanup](resilient-t
 The final-source SDK attempt passes setup and reaches a segmented device-data
 container, which remains rejected. No device data or active project is installed.
 
+The rebuilt `.68` endpoint passes 287 wire checks and the nine-step public SDK
+connection/Offline probe. Download verifies 155 requests, accepts setup and fails
+`RxCsE_ASA_NO_PERMISSION` at the unsupported segmented container. All four probes
+confirm Offline and empty temporary state with source/model state preserved. See
+[deployed transport validation](resilient-transport.md#validation-and-next-boundary).
+
 Version `.67` accepts [typed value proposals for staged definitions](metadata-values.md).
 Bulk/single `0x4F` requests are checked atomically with source/ownership guards,
 resource bounds and complete cleanup. Active project values remain unchanged.

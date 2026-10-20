@@ -101,7 +101,11 @@ the .NET apphost EXE alone does not identify the executed implementation.
 
 The `.68` suite runs 910 tests, with two Windows skips and one Linux skip.
 The final-source candidate passes Resilient Transport setup and fails at an
-unsupported segmented device-data container. See the
+unsupported segmented device-data container. The rebuilt runtime passes 287 wire
+checks and the nine-step SDK connection/Offline probe. Download verifies 155
+requests and confirms closed transport and empty temporary state after its
+expected failure. All four probes preserve source/model state and confirm
+Offline cleanup. See the
 [transport contract and validation](resilient-transport.md#validation-and-next-boundary).
 
 The `.67` suite runs 901 tests, with two Windows skips and one Linux skip.
