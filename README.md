@@ -100,6 +100,10 @@ array elements. Reconnects, scan-boundary external writes and saved L5X reloads
 pass. Controller references that would bind to a shadowing Program tag are
 rejected. Download diagnostics now distinguish a prepared image's unsupported
 result encoding from a general write-policy rejection.
+Version `.96` adds [checkpointed native transfer reports](docs/native-transfer-diagnostics.md)
+for upload/download investigations, plus an offline report reader. Reports
+separate object errors, fragment acknowledgements and temporary preparation
+state; they preserve the distinction between protocol observations and SDK success.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

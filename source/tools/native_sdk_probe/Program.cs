@@ -83,9 +83,9 @@ async Task<JsonElement> Backend(string? mode = null)
     var current = await BackendRead("observe", () => Call("observe", new {}));
     return mode is null ? current : await Call("controller-mode", new { mode });
 }
-async Task CaptureEditTrace(string fileName)
+async Task CaptureProtocolTrace(string fileName, string operation = "edit")
 {
-    await Step("Capture edit protocol checkpoint:" + fileName, async () => {
+    await Step("Capture " + operation + " protocol checkpoint:" + fileName, async () => {
         await Backend(); // Pin instance and source on both sides of this trace read.
         var url = new Uri(options.BackendUrl!);
         var script = await BackendRead("edit trace token", () => http.GetStringAsync(new Uri(url, "/session.js")));
@@ -102,7 +102,7 @@ async Task CaptureEditTrace(string fileName)
         });
         var trace = JsonDocument.Parse(text).RootElement;
         if (trace.GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
-            throw new InvalidOperationException("Edit trace source changed");
+            throw new InvalidOperationException("Protocol trace source changed");
         await Backend();
         await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), text);
         return true;
@@ -242,10 +242,18 @@ try
         await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
     });
     await Step("ReadConnectedStateAsync:initial", async () => (await project!.ReadConnectedStateAsync()).ToString());
-    if (options.Operation == "upload")
-        await Step("UploadAsync", async () => { await project!.UploadAsync(); return true; });
-    else if (options.Operation == "download")
-        await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
+    if (options.Operation is "upload" or "download")
+    {
+        await CaptureProtocolTrace("before-transfer-trace.json", options.Operation);
+        try
+        {
+            if (options.Operation == "upload")
+                await Step("UploadAsync", async () => { await project!.UploadAsync(); return true; });
+            else
+                await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
+        }
+        finally { await CaptureProtocolTrace("after-transfer-trace.json", options.Operation); }
+    }
     else
     {
         await Step("GoOnlineAsync", async () => { await project!.GoOnlineAsync(); return true; });
@@ -277,7 +285,7 @@ try
                         CheckEditState(beforeEdit, edit, false); return Task.FromResult<object?>(true);
                     });
                 await SaveState("before-" + suffix + "-state.json", beforeEdit);
-                await CaptureEditTrace("before-" + suffix + "-trace.json");
+                await CaptureProtocolTrace("before-" + suffix + "-trace.json");
                 try
                 {
                     await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption + (editIndex == 1 ? "" : ":2"), async () => {
@@ -286,7 +294,7 @@ try
                         return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
                     });
                 }
-                finally { await CaptureEditTrace("after-" + suffix + "-trace.json"); }
+                finally { await CaptureProtocolTrace("after-" + suffix + "-trace.json"); }
                 var afterEdit = await Backend();
                 await SaveState("after-" + suffix + "-state.json", afterEdit);
                 if (options.ApplySupportedEdits)

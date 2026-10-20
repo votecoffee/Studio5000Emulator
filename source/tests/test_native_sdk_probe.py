@@ -775,5 +775,38 @@ class NativeSdkProbeTests(unittest.TestCase):
             self.assertEqual(json.loads((output/'trace.json').read_text()),after)
             self.assertEqual(json.loads((output/'after-state.json').read_text()),busy)
 
+    def test_transfer_diagnostic_failure_still_checks_endpoint_cleanup_and_pins_backend(self):
+        from tools.probe_native_sdk import digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+            output=root/'report';state=self.state()
+            state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='upload',tag=[],output=str(output),sdk_feed=None)
+            trace={'events':[],'counts':{'native_verified':0}}
+            def process(command,**kwargs):
+                if command[0]=='dotnet':
+                    (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                    return subprocess.CompletedProcess(command,0)
+                request=json.loads(Path(command[1]).read_text())
+                self.assertEqual(request['BackendUrl'],args.url);self.assertEqual(request['InstanceId'],state['instance_id'])
+                Path(command[2]).write_text(json.dumps({'status':'failed','steps':[],
+                    'serverFaulted':False,'sdkOfflineConfirmed':True}))
+                (output/'before-transfer-trace.json').write_text('invalid JSON')
+                (output/'after-transfer-trace.json').write_text('{}')
+                return subprocess.CompletedProcess(command,1)
+            with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                    patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                    patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state) as cleanup,patch('builtins.print'):
+                self.assertEqual(run(args),1)
+            cleanup.assert_called_once()
+            report=json.loads((output/'summary.json').read_text())
+            self.assertTrue(report['cleanup_confirmed']);self.assertTrue(report['target_rechecked'])
+            self.assertEqual(report['transfer_trace'],dict(status='analysis_failed',analysis_complete=False))
+
 
 if __name__=='__main__':unittest.main()

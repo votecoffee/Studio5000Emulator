@@ -41,6 +41,10 @@ local.
 
 ## Native SDK acceptance probe
 
+Upload/download cases also retain [transfer-specific checkpoints and an offline
+analysis report](native-transfer-diagnostics.md), independent of the SDK result
+and cleanup confirmations.
+
 The optional `tools/probe_native_sdk.py` runs the public Logix Designer SDK
 against an already running, source-bound LogixLab endpoint. It requires Windows,
 the .NET 8 SDK and a separately installed compatible Logix Designer SDK. The

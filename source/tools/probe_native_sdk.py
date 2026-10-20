@@ -609,7 +609,7 @@ def run(args):
         raise ValueError('Source changed while creating the private copy')
     config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
-    if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
+    if args.operation in ('modes','edits','upload','download'):config.update(BackendUrl=url,InstanceId=instance)
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
@@ -693,6 +693,17 @@ def run(args):
             summary['native_verified_requests'] = (trace.get('counts', {}).get('native_verified', 0) -
                                                    before.get('counts', {}).get('native_verified', 0))
             summary['native_rejections'] = rejection_delta(before, trace)
+            if args.operation in ('upload','download'):
+                try:
+                    from tools.analyze_native_transfer import analyze,read_json
+                    checkpoints={name:read_json(output/(name+'-transfer-trace.json'))
+                                 for name in ('before','after') if (output/(name+'-transfer-trace.json')).is_file()}
+                    if len(checkpoints)==2:
+                        summary['transfer_trace']=analyze(checkpoints['before'],checkpoints['after'],args.operation,report)
+                    else:summary['transfer_trace']={'status':'checkpoints_unavailable','analysis_complete':False}
+                except (OSError,ValueError,TypeError,KeyError):
+                    # Diagnostic decoding must never suppress endpoint cleanup.
+                    summary['transfer_trace']={'status':'analysis_failed','analysis_complete':False}
             if args.operation == 'edits' and report is not None:
                 edit_traces = {name:json.loads((output / (name + '-edit-trace.json')).read_text(encoding='utf-8'))
                                for name in ('before', 'after') if (output / (name + '-edit-trace.json')).is_file()}
