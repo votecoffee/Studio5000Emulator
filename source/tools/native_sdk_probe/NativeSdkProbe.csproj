@@ -4,8 +4,12 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Probe-specific intermediate folders must not include a prior normal
+         build's generated C# files from the project's default obj folder. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Program.cs" />
     <PackageReference Include="RockwellAutomation.LogixDesigner.CSClient" Version="2.1.974" GeneratePathProperty="true" />
     <None Include="$(PkgRockwellAutomation_LogixDesigner_CSClient)/FtspAdapter/FtspAdapter.exe" Link="FtspAdapter.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
