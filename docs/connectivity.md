@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.50` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.51` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -909,6 +909,29 @@ signatures. Unknown attributes retain their per-field unsupported status;
 malformed requests, insufficient reply budgets and writes remain denied. Seven
 additional tests cover sparse IDs, empty catalogs, program scope, nested type
 closure, access filtering, list ordering and invalid requests.
+
+The `.51` source candidate passed the 757-test suite on Windows and Linux
+(two and one platform skips, respectively). Its native SDK trace contains
+successful signed class-revision reads for both objects. Across 287 verified
+signed requests, the online/read probe still reported Online/Program and ended
+Offline, but three native tag reads still failed `RxDA_E_NO_ONLINE_ADDRESS`.
+The subsequent upload preserved scalar discovery and stopped at the Ethernet
+Link list with `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Source ACD bytes,
+tag values and zero scan count were preserved with writes disabled. The class
+metadata fix does not resolve compiled address discovery or controller upload.
+
+The rebuilt `.51` appliance passed 156 live protocol checks, including ordered
+and duplicate class fields, exact maximum/count values, unknown fields and
+denied writes. All eight native SDK connection steps passed across 84 verified
+signed requests and ended Offline. Deployed upload retained 12 scalar reads,
+12 Symbol descriptors and nine empty catalogs across 195 verified signed
+requests, then failed after the Ethernet Link list. A separate 92-request SDK
+session stayed Online/Program without correlation loss and ended Offline;
+the three native tag reads still returned `RxDA_E_NO_ONLINE_ADDRESS`.
+Source ACD bytes, tag values and zero scan count were preserved with writes
+disabled. Deployed modules, served web assets and the Windows artifact matched
+source. Studio GUI monitoring, complete upload/download and online edits remain
+unfinished.
 
 ### Change Log correlation
 
