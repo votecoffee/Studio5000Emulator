@@ -88,6 +88,9 @@ source-checked empty I/O, alarm and Add-On Instruction catalogs.
 Version `.58` also adds [Data Logging discovery and native policy diagnostics](docs/native-session-policy.md),
 including acknowledgements that retain an existing source Timeline UID.
 Full native upload and online tag monitoring remain unfinished.
+The 817-test suite passes on Windows and Linux with expected platform skips;
+the running `.58` endpoint passes 236 wire checks. Current SDK upload, tag-read
+and download probes still fail their native acceptance steps.
 
 ## Usage
 

@@ -82,3 +82,22 @@ header readback, unavailable correlation, malformed proposals, source replacemen
 configured and ambiguous logs, retained write denials, collector bounds and
 payload-free summaries. These checks do not establish native tag address
 discovery, complete project upload/download or Studio GUI monitoring.
+
+The `.58` release passes 817 tests on both Windows and Linux, with two Windows
+skips and one Linux skip. The executable and deployed webpage match source and
+version; the running endpoint passes 236 wire checks. All nine public SDK
+connection/Offline cleanup steps pass with 82 verified signed requests.
+
+Separate deployed probes verify 84 requests for two failing BOOL/DINT reads and
+198 for the failing upload. The SDK accepts the Data Logging list and Timeline
+acknowledgements; subsequent UID readback matches the imported source. Tag
+reads still fail with `RxDA_E_NO_ONLINE_ADDRESS` before any tag-read packet is
+sent. Upload still fails with `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`
+after the incomplete Time Sync list; it retains 12 scalar reads and 12 Symbol
+descriptors. There is no demonstrated root-cause fix for controller collection.
+
+A fresh private public-SDK download probe fails with
+`RxCsE_ASA_INVALID_IOI_SEGMENT_TYPE` after 96 verified signed requests. It confirms
+Offline cleanup; its client connection closes. The original ACD, modeled values,
+scan count and scan time remain unchanged. No Windows service is reconfigured.
+Native programming and Studio GUI monitoring remain unfinished.
