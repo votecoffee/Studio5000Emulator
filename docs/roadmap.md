@@ -9,7 +9,7 @@ native Studio connection and programming services remain unfinished.
 Current milestone: `.71` adds [temporary native Template models](template-staging.md).
 The SDK batch's 242 Templates pass descriptor and contiguous-write validation,
 covering 727 of its 904 records. Definitions remain opaque and execution stays
-denied. Next: Symbol, Data Table, Program, Routine and other object contracts,
+denied. Next: Symbol, Data Table, Program, Routine and Diagnostics Message object contracts,
 reference validation, further transfer stages and atomic model commit.
 
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).

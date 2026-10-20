@@ -115,6 +115,12 @@ The normal-source SDK download attempt models 242 temporary Templates and
 346,596 opaque definition bytes, then retains execution denial for the batch.
 The source/model remain unchanged and cleanup empties all temporary state. See
 [Template staging validation](template-staging.md#validation-and-remaining-work).
+The rebuilt `.71` runtime passes 291 wire checks and the nine-step SDK
+connection/Offline sequence. Download verifies 181 signed requests and models
+all 242 Templates before the expected execution denial. The connection,
+tag-read, upload and download cases each confirm Offline cleanup, empty
+temporary stages and preserved source/model. Application modules and the served
+webpage match source; the rebuilt Windows artifact also contains the new module.
 
 The `.70` suite runs 939 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt decodes all 904 batch-record paths, including six

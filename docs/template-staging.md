@@ -71,6 +71,24 @@ it does not establish complete download or Studio GUI monitoring.
 The 949-test suite passes on Windows with two expected skips and Linux with
 one expected skip.
 
+The rebuilt `.71` runtime's application modules and served webpage match source.
+The Windows executable's embedded version, webpage and new staging module were
+checked separately. The running endpoint passes 291 wire checks. Its public SDK
+probes report:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Address discovery fails before value reads |
+| Upload | 197 | Controller-collection upload still fails |
+| Download | 181 | 242 temporary Templates modeled; batch execution denied |
+
+All four probes confirm Offline cleanup, unchanged source/model and empty
+temporary state. Final state has zero TCP clients, an uninhibited free lease,
+idle preparation, closed transport, empty fragment/inspection/Template stages,
+zero scans and zero model time. The communications and SDK services remain
+running. No active Template catalog, tag value or project was replaced.
+
 Next work covers the batch's Symbol, Data Table, Program, Routine and other
 object contracts, reference validation, the remaining transfer stages and an
 atomic model commit. Native upload/download, online tag monitoring and online
