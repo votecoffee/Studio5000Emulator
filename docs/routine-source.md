@@ -152,6 +152,34 @@ inputs and an edited L5X reload reproduce the results. Native evidence covers
 DINT array elements; other integer widths and members have software tests only.
 See [bit operand validation](supported-routine-edits.md#integer-bit-operands).
 
+## Indirect integer-bit operands
+
+Version `.98` accepts a final `.[index]` suffix when its index is a source-bound
+native Symbol/member reference. The target must resolve to a scalar integer;
+the index must resolve to a scalar SINT, INT or DINT. Both bindings use the
+existing scope, shadowing, member/type-ID and visibility checks. An index may
+contain a static array/member path, but nested indirect indices, unencoded
+names and arithmetic inside the native bit index remain unsupported.
+
+Translation retains the index reference instead of sampling its initial value.
+The detached plan validates initial bounds, and each execution checks the
+target's declared bit width again. Out-of-range accesses fault and roll back
+the scan. Bit instructions and CMP conditions accept the translated reference;
+numeric CPT expressions retain their existing BOOL-operand restriction.
+The condition lexer now accepts this suffix using the existing typed condition
+and memory rules. Structured Text behavior is unchanged.
+
+The native SDK case appends a low-bit latch using a DINT index tag, then a
+sign-bit latch/read using that same tag after changing its value to 31. Both
+imports and Offline/Online reconnects pass across 315 verified signed requests.
+Scans change array elements 20/30 to 21/-2147483618; queued external inputs
+exercise both positive and negative values at acknowledged scan boundaries.
+The saved L5X retains original initial values and reproduces the scans. Native
+Offline/endpoint cleanup are confirmed without a fatal SDK fault. Source files
+and the original demo remain unchanged. Native evidence covers DINT array
+elements and a scalar DINT index; CMP conditions and other target widths have
+software validation only.
+
 ## Scope
 
 The decoder/translator establishes a source path toward the custom execution

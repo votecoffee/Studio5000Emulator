@@ -265,13 +265,43 @@ class SourceIoiTests(unittest.TestCase):
                 result=self.translate(instruction);self.assertEqual(result,(expected,))
                 validate_plan(self.source(instruction),result,self.project,'MainProgram')
             for subscript in ('@107 99 0 0 0 0@','@107 5 0 0 0 0@',index+'.0',index+'+1',
-                    samples+'['+index+']','SpeedCommand'):
+                    samples+'['+index+']','SpeedCommand',samples):
                 instruction='MOV('+samples+'['+subscript+'],'+target+');'
                 with self.subTest(subscript=subscript),self.assertRaises(SourceError):self.translate(instruction)
             # Member index references retain their native member/type binding.
             member='@107 12 0 0 0 0@.@108 3971 34046 2 0 0@'
             self.assertEqual(self.translate('MOV('+samples+'['+member+'],'+target+');'),
                 ('MOV(Samples[StartDelay.PRE],SpeedSetpoint);',))
+
+    def test_indirect_integer_bits_preserve_live_indices_and_reject_invalid_index_types(self):
+        self.symbols=NativeSymbols('a'*64,self.project.sha256,[*self.symbols.by_key.values(),
+            Symbol('',0,'SpeedCommand',13)],programs=[{'name':'MainProgram','instance':300}])
+        target='@107 14 0 0 0 0@';index='@107 13 0 0 0 0@';bit=target+'.['+index+']'
+        text='OTL('+bit+')XIC('+bit+')OTE(@107 5 0 0 0 0@);';neutral=self.translate(text)
+        self.assertEqual(neutral,('OTL(SpeedSetpoint.[SpeedCommand])XIC(SpeedSetpoint.[SpeedCommand])OTE(RunLatch);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        from logixlab.routine_source import candidate_project
+        from logixlab.runtime import Engine
+        candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+        engine=Engine(candidate,defer_prescan=True);engine.step()
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),51);self.assertTrue(engine.memory.read('RunLatch'))
+        engine.memory.write('SpeedCommand',31);engine.step()
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),-2147483597)
+        for value in (32,-1):
+            engine.memory.write('SpeedCommand',value);before=copy.deepcopy(engine.memory.values);scan=engine.scan_count
+            with self.assertRaisesRegex(ModelError,'bit selection'):engine.step()
+            self.assertEqual(engine.memory.values,before);self.assertEqual(engine.scan_count,scan)
+        text='CMP('+bit+')OTU('+bit+');';neutral=self.translate(text)
+        self.assertEqual(neutral,('CMP(SpeedSetpoint.[SpeedCommand])OTU(SpeedSetpoint.[SpeedCommand]);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+        engine=Engine(candidate,defer_prescan=True);engine.memory.write('SpeedCommand',1);engine.step()
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),48)
+        for invalid in ('@107 5 0 0 0 0@','@107 99 0 0 0 0@','SpeedCommand',index+'+1',bit,index+'.0'):
+            with self.subTest(index=invalid),self.assertRaises(SourceError):self.translate('OTL('+target+'.['+invalid+']);')
+        with self.assertRaises(SourceError):self.translate('OTL(@107 5 0 0 0 0@.['+index+']);')
+        with self.assertRaises(SourceError):self.translate('CPT('+target+','+bit+'+1);')
+        self.assertEqual(self.project.initial['speedsetpoint'],50)
 
 
 if __name__=='__main__':unittest.main()

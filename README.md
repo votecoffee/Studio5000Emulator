@@ -110,6 +110,10 @@ limits and evictions are exposed in diagnostic state. It also adds
 [source-bound indirect array indices](docs/routine-source.md#indirect-array-indices)
 to supported native imports. Indexed reads and CPT destinations pass reconnect,
 execution, queued external input and saved L5X reload checks.
+Version `.98` adds source-bound
+[indirect integer-bit operands](docs/routine-source.md#indirect-integer-bit-operands)
+to native imports and the corresponding typed CMP condition syntax. Index
+references remain live, with type checks and bounds faults at execution.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

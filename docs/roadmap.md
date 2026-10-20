@@ -6,7 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.97` adds [source-bound indirect array indices](routine-source.md#indirect-array-indices)
+Current milestone: `.98` adds [source-bound indirect bit indices](routine-source.md#indirect-integer-bit-operands),
+with native imports, reconnects, scan execution, queued external inputs and
+saved L5X reloads. Typed CMP conditions share the new syntax in software tests.
+Version `.97` adds [source-bound indirect array indices](routine-source.md#indirect-array-indices)
 to native imports, with reconnects, execution, queued external inputs and edited
 L5X reloads. Complete native transfer packets now fit in a bounded diagnostic
 ring, exposing capture retention and eviction. Version `.96` adds

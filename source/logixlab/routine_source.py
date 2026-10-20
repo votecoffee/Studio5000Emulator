@@ -136,11 +136,26 @@ def resolve(source,project,symbols,routines,types,program):
     index_reference=static_segment+r'(?:\.'+static_segment+r')*(?:\.[0-9]{1,10})?'
     index_term=r'(?:[0-9]{1,10}|'+index_reference+r')'
     segment=token.pattern+r'(?:\['+index_term+r'(?:,'+index_term+r'){0,2}\])?'
-    reference=segment+r'(?:\.'+segment+r')*(?:\.[0-9]{1,10})?'
+    base_reference=segment+r'(?:\.'+segment+r')*'
+    bit_reference=r'(?:[0-9]{1,10}|\['+index_reference+r'\])'
+    reference=base_reference+r'(?:\.'+bit_reference+r')?'
     index_memory=None
 
-    def indexed(name,value,suffix):
+    def resolved_index(text,kind):
         nonlocal index_memory
+        if not re.fullmatch(index_reference,text):raise SourceError('ioi_'+kind+'_index_profile_unsupported')
+        resolved=argument(text)
+        if index_memory is None:
+            index_memory=Memory(project);index_memory.structural=True
+        try:
+            dtype=index_memory.resolve(resolved,program)[2]
+            value=index_memory.read(resolved,program)
+        except ModelError as error:raise SourceError('ioi_'+kind+'_index_source_unavailable') from error
+        if dtype not in ('SINT','INT','DINT') or type(value) is not int:
+            raise SourceError('ioi_'+kind+'_index_type_unsupported')
+        return resolved
+
+    def indexed(name,value,suffix):
         if not suffix:return name,value
         indices=[]
         for text in split_indices(suffix[1:-1]):
@@ -150,14 +165,7 @@ def resolve(source,project,symbols,routines,types,program):
                 # Resolve its scope/type, but never freeze its initial value.
                 # Nested indirect indices and index arithmetic remain outside
                 # this profile; static member/element index references work.
-                if not re.fullmatch(index_reference,text):raise SourceError('ioi_array_index_profile_unsupported')
-                resolved=argument(text)
-                if index_memory is None:
-                    index_memory=Memory(project);index_memory.structural=True
-                try:dtype=index_memory.resolve(resolved,program)[2]
-                except ModelError as error:raise SourceError('ioi_array_index_source_unavailable') from error
-                if dtype not in ('SINT','INT','DINT'):raise SourceError('ioi_array_index_type_unsupported')
-                indices.append(resolved);index=0  # Shape/type validation only.
+                indices.append(resolved_index(text,'array'));index=0  # Shape/type validation only.
             if not isinstance(value,list) or not 0<=index<len(value):
                 raise SourceError('ioi_array_subscript_unavailable')
             value=value[index]
@@ -182,13 +190,14 @@ def resolve(source,project,symbols,routines,types,program):
                 raise SourceError('ioi_expression_reference_unsupported')
             return translated
         if '@' not in value or len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"):return value
-        if not re.fullmatch(reference,value):
+        match=re.fullmatch(r'(?P<base>'+base_reference+r')(?:\.(?P<bit>'+bit_reference+r'))?',value)
+        if match is None:
             raise SourceError('ioi_argument_profile_unsupported')
-        parts=list(re.finditer(segment,value));found=[token.match(part.group()) for part in parts]
+        parts=list(re.finditer(segment,match['base']));found=[token.match(part.group()) for part in parts]
         suffixes=[part.group()[len(match.group()):] for part,match in zip(parts,found)]
         words=[tuple(map(int,t.group()[1:-1].split())) for t in found]
         if any(n>0xFFFFFFFF for word in words for n in word):raise SourceError('ioi_integer_limit')
-        first=words[0];bit=re.search(r'\.([0-9]{1,10})\Z',value)
+        first=words[0];bit=match['bit']
         if routine:
             if len(words)!=1 or suffixes[0] or bit or first[:3]!=(0x68,program_id,0x6D) or first[4:]!=(0,0):
                 raise SourceError('ioi_routine_scope_unsupported')
@@ -226,9 +235,12 @@ def resolve(source,project,symbols,routines,types,program):
             if len(keys)!=1:raise SourceError('ioi_member_source_unavailable')
             name,current=indexed(name+'.'+member.name,current[keys[0]],suffix);dtype=member.dtype
         if bit:
-            if dtype.upper() not in INT_BITS or type(current) is not int or int(bit[1])>=INT_BITS[dtype.upper()]:
+            if dtype.upper() not in INT_BITS or type(current) is not int:
                 raise SourceError('ioi_integer_bit_unavailable')
-            name+='.'+str(int(bit[1]))
+            if bit.startswith('['):name+='.['+resolved_index(bit[1:-1],'bit')+']'
+            else:
+                if int(bit)>=INT_BITS[dtype.upper()]:raise SourceError('ioi_integer_bit_unavailable')
+                name+='.'+str(int(bit))
         return name
 
     def emit(nodes):

@@ -226,3 +226,21 @@ case also confirms Offline/cleanup without a fatal SDK fault. Index references
 stay live during execution, and out-of-range access has software tests for
 scan rollback. Broader native index/type coverage and the complete edit
 lifecycle remain unfinished.
+
+### Indirect integer-bit operands
+
+Version `.98` adds [source-bound bit indices](routine-source.md#indirect-integer-bit-operands).
+The native case appends `MOV(0,SpeedCommand)OTL(Samples[1].[SpeedCommand]);`, then
+`MOV(31,SpeedCommand)OTL(Samples[2].[SpeedCommand])XIC(Samples[2].[SpeedCommand])MOV(777,SpeedSetpoint);`.
+Both imports and reconnects pass across 315 verified signed requests. The first
+scan latches element 1's low bit and element 2's sign bit, producing
+21/-2147483618; the selected sign bit also enables the setpoint write to 777.
+Queued external inputs produce 3/-1 and 2147483647/-2147483648. The saved L5X
+reproduces these cases from original initial values.
+
+The previously unsupported source form was first captured from a rejected
+import that preserves the model and confirms native Offline/cleanup. The
+successful case also confirms Offline/cleanup without a fatal SDK fault.
+Software checks cover live index changes, CMP conditions, invalid index types
+and bounds faults with scan rollback. Full upload/download, Studio GUI
+monitoring and Test/Untest/Assemble remain separate unfinished milestones.

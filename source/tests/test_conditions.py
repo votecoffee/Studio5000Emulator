@@ -79,5 +79,18 @@ class ConditionTests(unittest.TestCase):
         self.assertTrue(self.engine(['CMP(Prefix=1)OTE(HighBit);']).blockers)
         self.assertTrue(self.engine(["CMP(Prefix='VALUE ')OTE(HighBit);"]).blockers)
 
+    def test_indirect_bit_conditions_re_evaluate_indices_and_fault_atomically(self):
+        e=self.engine(['MOV(99,Result);','CMP(PackedWord.[InputValue])OTE(CompareOK);'])
+        self.assertEqual(e.blockers,[])
+        e.memory.write('PackedWord',5)
+        for index,expected in ((0,True),(1,False),(2,True)):
+            e.memory.write('InputValue',index);e.step()
+            self.assertEqual(e.memory.read('CompareOK'),expected)
+        e.memory.write('InputValue',32);e.memory.write('Result',12);scan=e.scan_count
+        with self.assertRaisesRegex(ModelError,'bit selection'):e.step()
+        self.assertEqual(e.memory.read('Result'),12);self.assertEqual(e.scan_count,scan)
+        for index in ('RealInput','Enabled'):
+            self.assertTrue(self.engine(['CMP(PackedWord.['+index+'])OTE(CompareOK);']).blockers)
+
 
 if __name__=='__main__':unittest.main()

@@ -61,7 +61,7 @@ class Expression:
                 self.tokens.append((word, word)); continue
             while pos < len(text):
                 if text[pos] == '.':
-                    if structured and text[pos:pos+2]=='.[':
+                    if (structured or condition) and text[pos:pos+2]=='.[':
                         pos+=1;continue
                     member = re.match(r'\.[\w]+', text[pos:])
                     if not member: raise ModelError('Invalid expression member')
