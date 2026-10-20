@@ -79,10 +79,32 @@ def validate_operation(operation, tags):
         raise ValueError('At most 32 nonempty tag XPaths of at most 1024 characters')
 
 
+def validate_staging(lease):
+    """Older endpoints may omit stages; advertised stages must be empty."""
+    for name in ('library_staging','metadata_staging'):
+        if name not in lease:continue
+        stage=lease[name]
+        if not isinstance(stage,dict):raise ValueError('Probe requires empty temporary stages')
+        for field in ('instances','name_bytes','value_targets','value_count','value_bytes'):
+            value=stage.get(field) if field in ('instances','name_bytes') else stage.get(field,0)
+            if type(value) is not int or value!=0:raise ValueError('Probe requires empty temporary stages')
+        if (stage.get('commit') is not False or stage.get('data_transfer',False) is not False
+                or stage.get('active_values_transfer',False) is not False):
+            raise ValueError('Probe requires disabled commit and active data transfer')
+        if stage.get('values_transfer',False) is not False and (
+                name!='metadata_staging' or stage.get('values_transfer') is not True or
+                stage.get('values_scope')!='staged_definitions' or stage.get('active_values_transfer') is not False):
+            raise ValueError('Metadata values must remain scoped to temporary definitions')
+    if ('preparation_state' in lease and lease['preparation_state']!='idle' or
+            'preparation_status' in lease and (type(lease['preparation_status']) is not int or lease['preparation_status']!=0)):
+        raise ValueError('Probe requires idle programming preparation')
+
+
 def validate_idle(state):
     """Do not share a programming test with an existing native connection."""
     cip = state.get('connectivity', {})
     lease = cip.get('native_programming_lease') or {}
+    validate_staging(lease)
     clients = cip.get('active_tcp_clients')
     mask = lease.get('run_mode_inhibit')
     if (type(clients) is not int or clients != 0 or lease.get('available') is not True or
@@ -104,7 +126,7 @@ def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=8):
             return state
         except ValueError as error:
             if time.monotonic() >= deadline:
-                raise ValueError('SDK cleanup did not close clients and clear the lease/inhibit') from error
+                raise ValueError('SDK cleanup did not close clients and clear the lease/inhibit/staging') from error
             time.sleep(.2)
 
 

@@ -118,6 +118,43 @@ class NativeSdkProbeTests(unittest.TestCase):
         self.assertEqual(sleep.call_count,2)
         self.assertEqual([call.args for call in api.call_args_list],[('http://127.0.0.1:8786','state')]*3)
 
+    def test_staging_admission_requires_empty_counts_and_only_definition_value_capability(self):
+        from logixlab.library_staging import LibraryStaging
+        from logixlab.metadata_staging import MetadataStaging
+        state=self.state();lease=state['connectivity']['native_programming_lease']
+        lease.update(library_staging=LibraryStaging().description(),metadata_staging=MetadataStaging().description(),
+                     preparation_state='idle',preparation_status=0)
+        validate_idle(state)
+        for section,field,value in (('metadata_staging','value_count',1),('metadata_staging','value_targets',1),
+                ('metadata_staging','value_bytes',1),('library_staging','instances',1),
+                ('metadata_staging','name_bytes',1),('metadata_staging','value_count',False),
+                ('metadata_staging','commit',True),('metadata_staging','active_values_transfer',True),
+                ('metadata_staging','values_scope','active_objects'),('library_staging','data_transfer',True)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease'][section][field]=value
+            with self.subTest(section=section,field=field),self.assertRaises(ValueError):validate_idle(proposed)
+        for value in (None,{}, {'instances':0},'unknown'):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['metadata_staging']=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+        for field,value in (('preparation_state','ready'),('preparation_status',2)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease'][field]=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+
+    def test_cleanup_waits_for_staged_values_and_does_not_confirm_persistent_values(self):
+        from logixlab.metadata_staging import MetadataStaging
+        idle=self.state();idle['connectivity']['native_programming_lease']['metadata_staging']=MetadataStaging().description()
+        dirty=copy.deepcopy(idle);dirty['connectivity']['native_programming_lease']['metadata_staging']['value_count']=1
+        with patch('tools.probe_native_sdk.api',side_effect=(dirty,idle)), \
+                patch('tools.probe_native_sdk.time.monotonic',return_value=0), \
+                patch('tools.probe_native_sdk.time.sleep') as sleep:
+            result=wait_for_cleanup('http://127.0.0.1:8786',r'TestDriver\192.0.2.8\Backplane\0','1'*64,
+                                    instance='one-session',l5x_hash='2'*64)
+        self.assertEqual(result,idle);self.assertEqual(sleep.call_count,1)
+        with patch('tools.probe_native_sdk.api',return_value=dirty), \
+                patch('tools.probe_native_sdk.time.monotonic',side_effect=(0,10)):
+            with self.assertRaisesRegex(ValueError,'staging'):
+                wait_for_cleanup('http://127.0.0.1:8786',r'TestDriver\192.0.2.8\Backplane\0','1'*64,
+                                 instance='one-session',l5x_hash='2'*64)
+
     def test_cleanup_timeout_and_target_replacement_remain_failures(self):
         for failure in ('busy','lease','source','instance'):
             state=self.state()

@@ -99,15 +99,17 @@ reached library-object creation in that revision.
 Version `.65` adds [temporary library descriptors and signed transfer envelopes](docs/library-staging.md).
 The SDK reached Metadata Definition creation in that revision.
 Version `.66` adds [temporary metadata definitions](docs/metadata-staging.md).
-The SDK now reaches a metadata-value write; value transfer, library-data writes
-and project commit remain denied.
+The SDK reached a metadata-value write in that revision.
+Version `.67` adds [typed values for staged definitions](docs/metadata-values.md).
+The SDK now reaches Resilient Transport setup; active values, library-data writes
+and project commit remain unsupported.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 887-test suite passes on Windows and Linux with expected platform skips;
+The 901-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.66` endpoint passes 281 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.

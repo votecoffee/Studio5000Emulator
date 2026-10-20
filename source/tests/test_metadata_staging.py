@@ -29,7 +29,8 @@ def object_request(service,instance,data=b''):
 
 def create(instance=1,name=b'ExampleProperty'):return object_request(8,instance,payload(name))
 def delete(instance=1):return object_request(9,instance)
-VALUES=object_request(0x4F,0,b'proposed metadata values')
+_UNSUPPORTED_TARGET=struct.pack('<HIIIH',0x6B,1,0,0,1)
+VALUES=object_request(0x4F,0,struct.pack('<II',0x301,len(_UNSUPPORTED_TARGET))+_UNSUPPORTED_TARGET)
 
 
 class MetadataModelTests(unittest.TestCase):
@@ -106,7 +107,8 @@ class MetadataSignedTests(unittest.TestCase):
         self.assertEqual(self.send(object_request(3,0,struct.pack('<3H',2,2,3))),
                          bytes.fromhex('83000000020002000000000000000300000000000000'))
         state=self.endpoint.state()['native_programming_lease']
-        self.assertNotIn('Property_',json.dumps(state));self.assertFalse(state['metadata_staging']['values_transfer'])
+        self.assertNotIn('Property_',json.dumps(state));self.assertFalse(state['metadata_staging']['active_values_transfer'])
+        self.assertEqual(state['metadata_staging']['values_scope'],'staged_definitions')
         for name in ('project_transfer','online_edits','controller_mode_changes','tag_write_authority'):self.assertFalse(state[name])
         after=self.app.state()
         for name in ('tags','scan','ms','mode','changes'):self.assertEqual(after[name],before[name])

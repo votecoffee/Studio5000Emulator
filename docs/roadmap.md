@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.66` adds [temporary metadata definitions](metadata-staging.md).
+Current milestone: `.67` adds [typed values for staged definitions](metadata-values.md).
+The SDK advances to Resilient Transport setup, which remains denied. Next:
+establish that transport contract and bounded device preparation, then further
+transfer stages, source-aware project validation, atomic commit and rollback.
+Library data, full native transfer, tag monitoring and online edits remain unfinished.
+
+Version `.66` adds [temporary metadata definitions](metadata-staging.md).
 The SDK accepts definition names and reaches a metadata-value write, which
 remains denied. Next: establish the metadata-value format and validation before
 staging values, followed by library data, source-aware project validation, atomic

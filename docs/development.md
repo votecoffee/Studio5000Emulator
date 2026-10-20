@@ -66,8 +66,9 @@ project-transfer authority remains disabled. Its temporary coordination lease
 and Run Mode Inhibit can be exercised. Version `.64` adds owner-scoped
 [preparation](programming-preparation.md) and retention of source-established
 disabled redundancy. Full native download is unfinished; the current
-implementation rejects library-data writes and metadata-value writes (`0x4F`)
-on class `0x349`, after `.66` definition staging. This expected
+implementation stages supported definition values and rejects Resilient Transport
+setup on class `0x412`. Library-data and active metadata writes remain unsupported.
+This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
 
@@ -83,7 +84,9 @@ values. SDK results include each step, error types/messages, timings and
 timestamped events. Exit zero requires the requested steps to succeed, cleanup
 to confirm Offline, endpoint cleanup and source/model checks to pass. Endpoint
 cleanup passively waits up to eight seconds for asynchronous socket closure,
-lease release and a zero inhibit mask. `cleanup_confirmed` records that check;
+lease release, a zero inhibit mask and empty advertised descriptor/value stages.
+Admission also checks those stages and rejects active transfer/commit authority.
+`cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
 tags, scans, model time, change history and mode must remain unchanged.
 Failed tag reads, upload or download are retained as failures even when
@@ -194,6 +197,13 @@ Both share lease cleanup and source checks. Active catalog reads remain separate
 staging never changes the loaded project or accepts proposed property values.
 Class `0x349` uses UDINT IDs/replies, independently of library UINT instances.
 See [metadata staging](metadata-staging.md) before extending value transfer.
+
+Version `.67` extends `metadata_staging.py` with exact bulk/single value framing
+and atomic, bounded proposals for staged definition objects only. Keep active
+catalogs, source metadata and tag memory independent of these proposals. The
+probe's `validate_staging` checks both empty counts and scoped authority before
+admission and cleanup. See [staged values](metadata-values.md) for supported types,
+selectors, resource limits and native validation.
 
 ## Device I/O
 

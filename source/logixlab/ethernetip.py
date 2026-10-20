@@ -231,7 +231,19 @@ class Router:
                     self.endpoint.counts[f'native_{kind}_'+('create' if inner[0]==8 else 'delete')]+=1
                 return reply(inner[0],0,value)
             if inner[0]==0x4F and path.class_id==0x349:
-                return reject(0x0F,'metadata_values_not_permitted')
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance is None:return reject(5,'invalid_request')
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    lease.metadata.stage_values(payload,path.instance)
+                    self.endpoint.counts['native_metadata_value_packets']+=1
+                return reply(inner[0])
             if inner[0] in (0x60,0x62) and path.class_id==0x8E:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):

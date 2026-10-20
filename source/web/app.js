@@ -262,7 +262,7 @@ function renderConnectivity() {
   const staged=c.native_programming_lease?.library_staging?.instances||0;
   if(staged) $('eip-summary').textContent+=` · ${staged} staged library descriptors; library data unsupported`;
   const stagedMetadata=c.native_programming_lease?.metadata_staging?.instances||0;
-  if(stagedMetadata) $('eip-summary').textContent+=` · ${stagedMetadata} staged metadata definitions; values transfer unsupported`;
+  if(stagedMetadata) $('eip-summary').textContent+=` · ${stagedMetadata} staged metadata definitions · ${c.native_programming_lease.metadata_staging.value_count||0} staged definition values; project commit unsupported`;
   const discovery=c.discovery||{};
   $('eip-discovery').textContent=!active?'Start the endpoint to check broadcast discovery.':discovery.broadcast_enabled?
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:
@@ -275,7 +275,7 @@ function renderConnectivity() {
   const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable',programming_lease_conflict:'Another native client holds the transfer lock',programming_lease_owner_required:'This operation requires the client that owns the transfer lock'};
   Object.assign(rejectionReasons,{run_mode_inhibit_required:'The owning client must inhibit scans before preparation',programming_preparation_required:'The owning client must complete preparation first',configuration_change_not_permitted:'This acknowledgement cannot change configuration',source_configuration_unavailable:'The source does not establish the supported configuration'});
   Object.assign(rejectionReasons,{library_type_not_permitted:'This library type is unsupported',library_stage_conflict:'A staged descriptor conflicts with this request',library_stage_full:'The library descriptor limit has been reached',library_stage_missing:'The staged descriptor does not exist'});
-  Object.assign(rejectionReasons,{metadata_stage_conflict:'A staged metadata definition conflicts with this request',metadata_stage_full:'The metadata definition limit has been reached',metadata_stage_missing:'The staged metadata definition does not exist',metadata_values_not_permitted:'Metadata values transfer is unsupported'});
+  Object.assign(rejectionReasons,{metadata_stage_conflict:'A staged metadata definition conflicts with this request',metadata_stage_full:'The metadata definition limit has been reached',metadata_stage_missing:'The staged metadata definition does not exist',metadata_values_not_permitted:'The metadata target is outside staged definitions',metadata_value_selector_not_permitted:'The metadata selector is unsupported',metadata_value_type_not_permitted:'The metadata value type is unsupported',metadata_value_conflict:'A staged metadata value conflicts with this request',metadata_values_full:'The metadata value limit has been reached'});
   $('eip-native-rejections').innerHTML=rejected.slice(0,8).map(x=>{
     const target=x.class_id==null?(x.symbolic?'Symbolic path':'Unparsed path'):`Class 0x${x.class_id.toString(16).toUpperCase()}, instance ${x.instance}`;
     const service=`0x${x.service.toString(16).toUpperCase()}`, status=`0x${x.status.toString(16).toUpperCase()}`;

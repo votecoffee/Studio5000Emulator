@@ -1,5 +1,8 @@
 # Native metadata-definition staging
 
+Version `.67` extends this stage with [typed definition values](metadata-values.md).
+The notes below record the `.66` milestone and its then-current value-write boundary.
+
 Version `0.6.0-connectivity.66` stages temporary Metadata Definition names during
 native download preparation. The tested SDK accepts the definitions and then
 attempts a metadata-value write, which remains denied. Definitions and values
