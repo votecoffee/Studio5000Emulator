@@ -422,6 +422,38 @@ Offline and endpoint cleanup, preserve source/model and report no fatal SDK
 fault. The runtime is left stopped in Program. Native mode cycling was not
 repeated in this iteration; its earlier results remain separate.
 
+Version `.89` adds [atomic Program-mode RLL replacement](supported-routine-edits.md).
+Completed, validated candidates survive Program release under the owning
+Controller lease. The observed zero-payload-word `0x59` profile rechecks source
+bindings and runtime revision, validates a detached engine with preserved live
+values/history, and publishes it under the scan lock. Access defaults off and
+has a dedicated webpage control. Active logic receives a separate revision and
+digest; the original artifact binding remains unchanged and no file is written.
+
+The isolated native SDK `AcceptEdits` import succeeds across 119 verified signed
+requests. It inserts `MOV(123,SpeedSetpoint);`, preserves the original nine rung
+ASTs and other routine, and leaves values/scan history unchanged at activation.
+An independent subsequent scan changes the setpoint from 50 to 123. Native
+Offline/readback and endpoint cleanup succeed with no reported fatal SDK fault.
+The private empty-success hypothesis remains separate from this actual
+replacement/execution evidence. Full native edit lifecycle and GUI acceptance
+are still unverified.
+
+The milestone software suite runs 1,263 tests successfully, with two expected
+Linux-only listener checks skipped on Windows. The independent source-pair
+check passes 44 signed checks, 60 inventory reads and all 904 temporary
+download-record checks, with edit application disabled. Browser JavaScript
+syntax checks pass. These checks are separate from native SDK acceptance.
+
+The rebuilt `.89` main runtime passes 27 wire checks. All 74 application modules,
+served assets and the packaged version match source. Fresh native
+connection/Offline passes across 79 verified requests; two-way Run/Program
+control and scan/prescan checks pass across 112. Both confirm Offline and
+endpoint cleanup with no reported fatal SDK fault. Mode-test history is retained
+and Program is restored. The isolated edited routine is separate from the
+original main demo. Upload/download were not repeated in this milestone; their
+earlier incomplete native results remain separate.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

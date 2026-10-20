@@ -69,6 +69,7 @@ Version `.89` adds [supported Program-mode routine edits](docs/supported-routine
 A native SDK rung import now replaces the translated routine in the execution
 model; the inserted instruction executes on the next scan. The webpage exposes
 edit access and an in-memory logic revision. Original ACD/L5X files are preserved.
+The `.89` Windows milestone runs 1,263 tests successfully with two platform skips.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

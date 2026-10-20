@@ -91,3 +91,9 @@ retains a control-8 post-source record, confirms Controller `0x59` is denied,
 and verifies Program release clears every component. Each reply's MAC and
 counter is checked by the independently keyed TCP client. The source/model
 remain unchanged; native SDK and Studio GUI results are separate evidence.
+
+The `.89` read-only case retains all 44 signed checks, 60 inventory reads and
+904 temporary download-record checks. It verifies that a completed candidate
+survives Program release and that phase close discards it when application is
+disabled. Active Program-mode replacement has separate signed-wire, native SDK
+and subsequent execution evidence.
