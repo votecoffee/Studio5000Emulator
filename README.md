@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.52`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.54`. Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -77,6 +77,9 @@ an offline CIP capture inspector with bounded signed-envelope decoding for
 connection research. Its format-4 reports preserve nested object paths and
 requested attribute IDs while keeping symbols, values and raw bytes private by
 default. These analysis features do not establish native Studio Go Online.
+An optional [native SDK acceptance probe](docs/development.md#native-sdk-acceptance-probe)
+records connection, tag-read and upload attempts against the running emulator
+using private ACD copies and reports.
 
 ## Usage
 

@@ -5,6 +5,16 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+The optional [native SDK acceptance probe](development.md#native-sdk-acceptance-probe)
+records repeatable connection, online tag-read and upload results using an ACD
+copy. Version `.55` adds this diagnostic without expanding the endpoint's native
+programming capabilities. A fresh `.54` SDK download attempt passed the I/O,
+locale and controller status reads, then failed with
+`RxCsE_ASA_INVALID_IOI_SEGMENT_TYPE` before a project-transfer request. Upload
+still fails controller collection. Private Time Sync layout/revision and context
+handle experiments did not resolve these failures and are not included in the
+application.
+
 ## Native SDK online connection
 
 Version `0.6.0-connectivity.30` completed the native SDK sequence: open the

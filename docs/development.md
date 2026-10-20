@@ -30,6 +30,45 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+## Native SDK acceptance probe
+
+The optional `tools/probe_native_sdk.py` runs the public Logix Designer SDK
+against an already running, source-bound LogixLab endpoint. It requires Windows,
+the .NET 8 SDK and a separately installed compatible Logix Designer SDK. The
+client package is pinned to `2.1.974`; SDK binaries are never included in this
+repository or the app. The installed SDK's local NuGet feed is detected under
+the public Documents folder; `--sdk-feed` selects another local feed.
+
+Import the matching ACD into LogixLab, enable the L85E anonymous native read-only
+endpoint, and disable protocol and Device I/O writes. Use the current UI URL and
+the actual Linx path for that endpoint:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0'
+```
+
+The address above is a documentation example; substitute the emulator IP. The
+probe checks the endpoint address, port, profile, source ACD/L5X hashes, instance
+and read-only policies before calling the SDK and again afterward. It builds its
+helper and opens an ACD copy in a new ignored `.local/native-probes/` directory.
+Windows helper processes run without console windows. No service is stopped or
+reconfigured.
+
+The default connection test records Go Online, connected state, controller mode,
+Go Offline and cleanup state. Add `--tag "Controller/Tags/Tag[@Name='Example']"`
+to test a generic online byte-array read; repeated `--tag` options are supported.
+Use `--operation upload` for a separate upload attempt. Download, online editing,
+tag setters and mode changes are intentionally absent from this diagnostic.
+
+`summary.json`, `sdk-result.json`, before/after protocol traces and build/SDK logs
+remain private. SDK results include each step, error types/messages, timings and
+timestamped events. Exit zero requires the requested steps to succeed, cleanup
+to confirm Offline, and source/model checks to pass. Failed tag reads or upload
+are retained as failures even when connection succeeds. A timeout is incomplete;
+inspect the retained diagnostics before starting another attempt. Concurrent
+client traffic can contribute to the endpoint's request-count delta. These
+results do not establish Studio GUI monitoring or native controller equivalence.
+
 Windows appliance subprocesses use `tools.vmware_appliance.background_options()`
 to request `CREATE_NO_WINDOW`; apply the same policy to private SSH validation
 scripts. Preserve stdout/stderr and exit-status checks. Launcher regressions
