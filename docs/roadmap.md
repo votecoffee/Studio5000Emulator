@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.94` adds [CMP expressions and static array operands](supported-routine-edits.md#comparisons-and-array-operands).
+Current milestone: `.97` adds [source-bound indirect array indices](routine-source.md#indirect-array-indices)
+to native imports, with reconnects, execution, queued external inputs and edited
+L5X reloads. Complete native transfer packets now fit in a bounded diagnostic
+ring, exposing capture retention and eviction. Version `.96` adds
+[transfer checkpoints and offline reports](native-transfer-diagnostics.md);
+`.95` adds checked integer-bit operands. Full upload/download, native tag
+monitoring, Studio GUI acceptance and Test/Untest/Assemble remain unfinished.
+
+Version `.94` adds [CMP expressions and static array operands](supported-routine-edits.md#comparisons-and-array-operands).
 Native imports reconnect, execute with changing inputs and retain behavior
 through edited L5X reloads. Unsupported decoded source is rejected at a signed
 edit operation with confirmed native Offline cleanup. Version `.93` resolves source-bound references inside

@@ -208,3 +208,21 @@ successful case also confirms Offline/cleanup without a fatal SDK fault.
 Original source files and the main demo are preserved. Software tests
 additionally reject controller IOIs that would become shadowing Program-local
 names. Native tag monitoring and the full edit lifecycle remain unfinished.
+
+### Indirect array operands
+
+Version `.97` extends the source-bound translator with
+[indirect indices](routine-source.md#indirect-array-indices). Native imports
+append `MOV(2,SpeedCommand)MOV(Samples[SpeedCommand],SpeedSetpoint);` and
+`CPT(Samples[SpeedCommand],Samples[SpeedCommand]+5);` to the separate array demo.
+Both imports and reconnects pass across 315 verified signed requests. The first
+scan reads element 2 as 30, then writes 35. Queued external inputs of 200 and
+-3 produce read/write pairs 200/205 and -3/2 at acknowledged scan boundaries.
+The edited L5X retains original initial values and reproduces these scans.
+
+The unsupported form was first captured from a rejected native import; that
+case preserves the model and confirms native Offline/cleanup. The successful
+case also confirms Offline/cleanup without a fatal SDK fault. Index references
+stay live during execution, and out-of-range access has software tests for
+scan rollback. Broader native index/type coverage and the complete edit
+lifecycle remain unfinished.

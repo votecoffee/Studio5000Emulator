@@ -96,3 +96,29 @@ The SDK harness also compiles successfully after a conventional local build and
 with isolated intermediate/output folders. Its explicit `Program.cs` input
 prevents a prior build's generated C# files from entering a later isolated
 compilation.
+
+### Complete capture in `.97`
+
+The rebuilt `.97` upload verifies 197 signed envelopes and decodes 200 inner
+requests, with no incomplete events. It reaches Controller Get All and the
+six-attribute handler/configuration read after the unchanged Time Sync profile.
+The SDK still reports `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. The
+different final request in `.96` therefore does not establish a clock-code fault;
+no speculative Time Sync values or handler encodings are added.
+
+Download verifies 181 signed envelopes and decodes 185 inner requests plus all
+21 fragment acknowledgements. Framing analysis is complete, with zero unparsed
+or truncated events. The fragments contain 82,550 bytes, including the 16-byte
+device header. Offline reconstruction retains the complete 82,534-byte encoded
+payload, expands 371,787 bytes, and matches all 904 per-operation fingerprints
+and preparation effects against the captured receipt. No payload bytes remain
+uncaptured. This is framing/model evidence; the reader does not verify MACs or
+establish native execution.
+
+The SDK still reports `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`. The image result query
+retains its explicit unsupported error; temporary preparation does not replace
+the active model. Both transfer cases preserve source/model state, confirm
+native Offline and endpoint cleanup, and report no fatal SDK fault. A separate
+native indexed-edit case succeeds across 315 signed requests and reproduces its
+scans with queued external inputs and a saved L5X reload. Seventy-two focused
+software tests pass; the full suite is not rerun.
