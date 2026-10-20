@@ -25,23 +25,46 @@ shutdown discard all subordinate reservations.
 the aggregate count. The SDK probe requires zero reservations before a case
 and during cleanup. Detailed Program IDs remain in private protocol evidence.
 
-## Native evidence and limits
+## Controller preparation and zero stack
 
-The ordinary app still denies unresolved Controller services `0x55` and `0x57`.
-A private experiment supplied a hypothetical empty success reply for `0x55`;
-that reply is absent from the app. With that experimental precondition, the SDK
-issued the Program acquire, accepted its real reservation response, then issued
-a Program attribute-27 write. The app denied the write. The SDK released the
-Program and Controller reservations and confirmed Offline cleanup, with the
-source/model unchanged and no reported fatal SDK fault.
+Version `.85` models the observed Controller `0x8E/1` services `0x55` and `0x57`
+as opening and closing a software preparation phase. Both require an empty
+payload, stopped Program mode, the current source identity and the live owner
+of selector 1. Opening is idempotent and blocks Run even when no Programs are
+held. Closing fails while a subordinate Program remains reserved; otherwise it
+clears preparation and releases the phase's Run inhibition. Controller release,
+disconnect, expiry, source replacement and endpoint shutdown also clear it.
 
 The installed v35 Program attribute description identifies attribute 27 as the
-UDI Stack Size, a BITS32 value. Its active write and stack-allocation contract
-remain unimplemented. The trace establishes the requested path and request
-ordering; it does not establish the Controller `0x55`/`0x57` contract, active
-stack changes, compiled edit storage, accepted edits, testing or assembly.
+UDI Stack Size, a BITS32 value. The emulator exposes a modeled zero only for a
+complete, unprotected source with an explicit empty AOI-definition section, no
+runtime AOIs or execution blockers, and complete executable inventory for the
+Program. Other cases leave the attribute unavailable. An exact one-attribute
+set-list proposal of zero additionally requires the open phase, matching
+original ACD/L5X bindings and the requesting owner's Program reservation.
+Nonzero values, unknown attributes and unsupported scopes are rejected. The
+proposal records temporary preparation; it allocates no memory and changes no
+active stack, tags, routines or source. Program release removes its proposal.
+
+The state reports `phase_open`, aggregate `program_stack_preparations`,
+`stack_bytes_allocated: 0` and `active_stack_changed: false`. Probe preflight
+and cleanup require all preparation to be idle. The independent inventory
+reader distinguishes an available zero from an unavailable attribute.
+
+## Native evidence and limits
+
+The `.84` private experiment supplied a hypothetical empty success reply for
+Controller `0x55`. It exposed the Program reservation and zero attribute-27
+proposal, which the ordinary `.84` app denied. The SDK released its reservations
+and confirmed Offline cleanup without a reported fatal SDK fault. Version `.85`
+replaces that hypothesis with the preparation state described above. The
+observed request order and local attribute description guide this bounded
+software model; they do not prove the complete firmware contract for these
+services, native stack allocation, compiled edit storage, accepted edits,
+testing or assembly.
 
 Focused tests cover real signed TCP reservations, parent IDs of different
 widths, source and ownership mismatch, capacity, malformed payloads, unchanged
 execution state, Run inhibition and cleanup. The independent research client
-also checks Program acquire/release against the original imported source pair.
+also checks phase open/close, Program acquire/release and zero-stack proposal
+and readback against the original imported source pair.

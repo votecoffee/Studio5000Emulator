@@ -53,12 +53,19 @@ def exercise(app,client,payload=None,expanded=None):
         value=app.engine.project.controller_configuration.compatibility_attributes().get(number)
         if value is not None:check(f'controller_source_field_{number}',bytes.fromhex('0e03208e240130')+bytes((number,)),b'\x8e\0\0\0'+value)
     check('edit_reservation',bytes.fromhex('4b04208e24012074240101'),bytes.fromhex('cb000000'))
+    check('edit_preparation_open',bytes.fromhex('5502208e2401'),bytes.fromhex('d5000000'))
     for row in app.endpoint.router.programs():
         semaphore=b'\x20\x68'+logical(0x24,row['id'])+b'\x20\x74\x24\1'
         check('program_reservation',bytes((0x4B,len(semaphore)//2))+semaphore+b'\0',bytes.fromhex('cb000000'))
         assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
+        path=b'\x20\x68'+logical(0x24,row['id'])
+        if app.endpoint.router.zero_program_stack_supported(row):
+            check('program_zero_stack_preparation',bytes((4,len(path)//2))+path+b'\1\0\x1b\0'+bytes(4),
+                  bytes.fromhex('8400000001001b000000'))
+            check('program_zero_stack_readback',bytes((0x0E,len(path)//2+1))+path+b'\x30\x1b',
+                  bytes.fromhex('8e00000000000000'))
         check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
-        assert not app.endpoint.state()['native_programming_lease']['scan_inhibited']
+        assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
         attrs=app.engine.project.program_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
         if 19 in attrs:
             path=b'\x20\x68'+logical(0x24,row['id'])
@@ -112,6 +119,10 @@ def exercise(app,client,payload=None,expanded=None):
                 check('executable_legacy_description',bytes((0x0E,len(path)//2+1))+path+b'\x30\7',
                       b'\x8e\0\0\0'+attrs[7] if 7 in attrs else bytes.fromhex('8e001400'))
                 check('executable_type_unavailable',bytes((0x0E,len(path)//2+1))+path+b'\x30\1',bytes.fromhex('8e001400'))
+    check('edit_preparation_close',bytes.fromhex('5702208e2401'),bytes.fromhex('d7000000'))
+    lease=app.endpoint.state()['native_programming_lease']
+    assert not lease['scan_inhibited'] and lease['edit_preparation']['program_stack_preparations']==0
+    assert not lease['edit_preparation']['active_stack_changed']
     check('edit_release',bytes.fromhex('4c04208e240120742401'),bytes.fromhex('cc000000'))
     image_receipt=None
     if payload is not None:

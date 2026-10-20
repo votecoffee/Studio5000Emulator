@@ -191,6 +191,35 @@ class Router:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
             elif native.stage!='bound':return reject(0x0F,'unbound_context')
+            if inner[0] in (0x55,0x57) and path.class_id==0x8E:
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance!=1:return reject(5,'invalid_request')
+                exact(payload,0)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    operation=lease.open_edit_preparation if inner[0]==0x55 else lease.close_edit_preparation
+                    operation(native,self.app.generation,self.app.engine.project.sha256)
+                    self.endpoint.counts['native_edit_preparation_open' if inner[0]==0x55 else 'native_edit_preparation_close']+=1
+                return reply(inner[0])
+            if inner[0]==4 and path.class_id==0x68 and payload[:4]==b'\1\0\x1b\0':
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                exact(payload,8)
+                program=self.source_bound_program(path.instance)
+                if not self.zero_program_stack_supported(program):return reject(0x0C,'zero_udi_stack_source_unavailable')
+                if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                with self.endpoint.lock:
+                    self.endpoint.programming_lease.prepare_zero_program_stack(native,self.app.generation,
+                        self.app.engine.project.sha256,path.instance,struct.unpack_from('<I',payload,4)[0])
+                    self.endpoint.counts['native_zero_program_stack_preparations']+=1
+                return reply(4,0,b'\1\0\x1b\0\0\0')
             if inner[0] in (6,7) and path.class_id==0x8E:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
@@ -217,14 +246,8 @@ class Router:
                 if path.instance!=1:return reject(5,'invalid_request')
                 exact(payload,1 if inner[0]==0x4B else 0)
                 if inner[0]==0x4B and payload!=b'\0':return reject(3,'invalid_program_semaphore_selector')
-                identity=self.app.native_project_identity
-                symbols=self.app.native_symbols
                 source=self.app.engine.project.sha256
-                if (identity is None or identity.source_l5x_sha256!=source or symbols is None
-                        or symbols.source_acd_sha256!=identity.source_acd_sha256):
-                    return reject(0x0C,'source_correlation_unavailable')
-                if not any(row['id']==path.program_instance for row in self.programs()):
-                    return reject(5,'unknown_program_reservation')
+                self.source_bound_program(path.program_instance)
                 if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
@@ -714,7 +737,23 @@ class Router:
         attributes.update(self.app.engine.project.program_forces.attributes(program['name']))
         attributes.update(self.app.engine.project.program_configuration.attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
+        if self.zero_program_stack_supported(program):attributes[27]=bytes(4)
         return self.attribute_read(service,path,data,attributes)
+
+    def source_bound_program(self,instance):
+        identity=self.app.native_project_identity;symbols=self.app.native_symbols
+        source=self.app.engine.project.sha256
+        if (identity is None or identity.source_l5x_sha256!=source or symbols is None
+                or symbols.source_acd_sha256!=identity.source_acd_sha256):
+            raise CIPError(0x0C,'Original Program source correlation unavailable')
+        program=next((row for row in self.programs() if row['id']==instance),None)
+        if program is None:raise CIPError(5,'Unknown source-bound Program')
+        return program
+
+    def zero_program_stack_supported(self,program):
+        project=self.app.engine.project
+        return (project.aoi_catalog.empty and not project.aois and not self.app.engine.blockers
+                and project.executable_configuration.routine_names(program['name'],source_sha256=project.sha256) is not None)
 
     def tasks(self):
         project=self.app.engine.project

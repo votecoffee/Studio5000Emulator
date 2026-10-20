@@ -120,6 +120,8 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
         for kind in ('release','discard','source','generation','expiry','closed','key','stage'):
             self.now=100;first=self.context();self.lease.acquire(first,1,'a'*64,selector=1)
             self.lease.reserve_program(first,1,'a'*64,300)
+            self.lease.open_edit_preparation(first,1,'a'*64)
+            self.lease.prepare_zero_program_stack(first,1,'a'*64,300,0)
             generation=1;source='a'*64
             if kind=='release':self.lease.release(first,1,source)
             elif kind=='discard':self.lease.discard(first)
@@ -136,6 +138,8 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
                 self.assertFalse(state['edit_preparation']['reserved'] or state['edit_preparation']['source_bound'])
                 self.assertIsNone(self.lease.owner)
                 self.assertEqual(self.lease.program_reservations,set())
+                self.assertEqual(self.lease.program_stack_preparations,{})
+                self.assertFalse(self.lease.edit_phase_open)
                 self.assertFalse(self.lease.scan_inhibited(generation,source))
 
     def test_unknown_or_boolean_selector_never_acquires_or_changes_an_existing_reservation(self):

@@ -21,6 +21,17 @@ from tools.upload_inventory import (InventoryError, Limits, _Reader, collect_inv
 
 
 class InventoryFramingTests(unittest.TestCase):
+    def test_program_zero_stack_keeps_unavailable_distinct_and_preserves_following_name(self):
+        from tools.upload_inventory import PROGRAM_SCHEMA
+        for status in (0,0x14):
+            raw=bytes((0x83,0,0x0A if status else 0,0))+struct.pack('<HHH',2,27,status)
+            if not status:raw+=bytes(4)
+            raw+=struct.pack('<HHI',28,0,4)+b'Main'
+            result=decode_attribute_list(raw,(27,28),PROGRAM_SCHEMA)
+            self.assertEqual(result['attributes'][0]['value'],None if status else 0)
+            self.assertEqual(result['attributes'][0]['status'],status)
+            self.assertEqual(result['attributes'][1]['value'],'Main')
+
     def test_sparse_numeric_program_paths_use_8_16_and_32_bit_segments(self):
         self.assertEqual(logical_path(0x6B,3),bytes.fromhex('206b2403'))
         self.assertEqual(logical_path(0x6A,70000,70000),bytes.fromhex('2068260070110100206a260070110100'))

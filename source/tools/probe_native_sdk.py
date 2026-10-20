@@ -234,6 +234,11 @@ def validate_staging(lease):
             raise ValueError('Probe requires an empty idle edit reservation without active edits')
         if 'program_reservations' in edit and (type(edit['program_reservations']) is not int or edit['program_reservations']!=0):
             raise ValueError('Probe requires empty Program reservations')
+        for field in ('phase_open','active_stack_changed'):
+            if field in edit and edit[field] is not False:raise ValueError('Probe requires closed edit preparation')
+        for field in ('program_stack_preparations','stack_bytes_allocated'):
+            if field in edit and (type(edit[field]) is not int or edit[field]!=0):
+                raise ValueError('Probe requires empty Program stack preparation')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]

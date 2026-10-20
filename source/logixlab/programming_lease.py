@@ -34,6 +34,7 @@ class ProgrammingLease:
     def clear_staging(self):
         self.libraries.clear();self.metadata.clear();self.transport.clear()
         self.program_reservations=set()
+        self.edit_phase_open=False;self.program_stack_preparations={}
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -100,9 +101,27 @@ class ProgrammingLease:
         if type(program) is not int or not 1<=program<=0xFFFFFFFF:
             raise LeaseError(3,'invalid_program_reservation')
         self.program_reservations.discard(program)
+        self.program_stack_preparations.pop(program,None)
+
+    def open_edit_preparation(self,native,generation,source_sha256):
+        self.require_edit_owner(native,generation,source_sha256)
+        self.edit_phase_open=True
+
+    def close_edit_preparation(self,native,generation,source_sha256):
+        self.require_edit_owner(native,generation,source_sha256)
+        if self.program_reservations:raise LeaseError(0x0C,'release_program_reservations_first')
+        self.program_stack_preparations.clear();self.edit_phase_open=False
+
+    def prepare_zero_program_stack(self,native,generation,source_sha256,program,value):
+        self.require_edit_owner(native,generation,source_sha256)
+        if not self.edit_phase_open:raise LeaseError(0x0C,'edit_preparation_phase_required')
+        if type(program) is not int or program not in self.program_reservations:
+            raise LeaseError(0x0C,'program_reservation_required')
+        if type(value) is not int or value!=0:raise LeaseError(0x0C,'nonzero_udi_stack_unimplemented')
+        self.program_stack_preparations[program]=0
 
     def scan_inhibited(self,generation,source_sha256):
-        return self.live(generation,source_sha256) and bool(self.run_inhibit or self.program_reservations)
+        return self.live(generation,source_sha256) and bool(self.run_inhibit or self.program_reservations or self.edit_phase_open)
 
     def inhibit(self, generation, source_sha256):
         return self.run_inhibit if self.live(generation,source_sha256) else 0
@@ -132,10 +151,13 @@ class ProgrammingLease:
         owned=self.live(generation,source_sha256)
         return {'owned':owned,'exclusive':True,'controller_instance':1,'semaphore_instance':1,
                 'request_selector':self.selector if owned else None,
-                'edit_preparation':{'status':'reserved' if owned and self.selector==1 else 'idle',
+                'edit_preparation':{'status':'open' if owned and self.edit_phase_open else 'reserved' if owned and self.selector==1 else 'idle',
                     'reserved':owned and self.selector==1,'source_bound':owned and self.selector==1,
                     'changes_staged':0,'active_changes':False,'accepted':False,'testing':False,
-                    'assembled':False,'commit':False,'program_reservations':len(self.program_reservations) if owned else 0},
+                    'assembled':False,'commit':False,'program_reservations':len(self.program_reservations) if owned else 0,
+                    'phase_open':owned and self.edit_phase_open,
+                    'program_stack_preparations':len(self.program_stack_preparations) if owned else 0,
+                    'stack_bytes_allocated':0,'active_stack_changed':False},
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':self.scan_inhibited(generation,source_sha256),
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,

@@ -86,6 +86,12 @@ class NativeSdkProbeTests(unittest.TestCase):
         for value in (1,-1,True,False,None,'0'):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation']['program_reservations']=value
             with self.assertRaises(ValueError):validate_idle(other)
+        for field in ('phase_open','active_stack_changed','program_stack_preparations','stack_bytes_allocated'):
+            for value in ((True,0,None) if field in ('phase_open','active_stack_changed') else (1,True,False,None)):
+                other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation'][field]=value
+                with self.subTest(field=field,value=value),self.assertRaises(ValueError):validate_idle(other)
+            legacy=copy.deepcopy(state);del legacy['connectivity']['native_programming_lease']['edit_preparation'][field]
+            validate_idle(legacy)
 
     def test_download_image_requires_empty_unbound_idle_storage_with_all_authority_disabled(self):
         from logixlab.resilient_transport import ResilientTransport

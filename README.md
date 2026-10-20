@@ -45,6 +45,10 @@ controller acceptance and active edits remain unavailable.
 Version `.84` adds [Program preparation reservations](docs/program-reservations.md)
 and explicit typed SDK tag-read diagnostics. Accepted controller edits remain
 unfinished.
+Version `.85` models the observed Controller open/close preparation sequence
+with Run inhibition and a source-checked zero UDI-stack proposal for complete
+projects without AOIs. The independent inventory reader also reads this
+modeled zero stack. Active edit storage and controller acceptance remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

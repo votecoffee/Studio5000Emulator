@@ -142,7 +142,7 @@ REVISION_SCHEMA={1:2,2:2,3:4,4:4,10:4}
 CONTROLLER_SCHEMA={3:2,7:2,8:2,9:1,13:4,15:1,16:2,17:1,23:1,25:4,26:4}
 SYMBOL_SCHEMA={1:'ascii16',2:2,3:4,5:4,6:4,7:2,8:12,9:1,10:1,11:1,12:4,14:4}
 TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
-PROGRAM_SCHEMA={19:1,28:'ascii32'}
+PROGRAM_SCHEMA={19:1,27:4,28:'ascii32'}
 TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
 # Only the legacy Description attribute has an established source decoder.
 # Successful values for the unknown fields are rejected rather than skipped
