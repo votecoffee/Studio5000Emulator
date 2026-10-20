@@ -42,12 +42,14 @@ function render() {
   $('scan').textContent = state.scan.toLocaleString(); $('time').textContent = state.ms.toLocaleString();
   $('routine-count').textContent = state.routines.length;
   const blocked = state.blockers.length > 0;
-  $('status').textContent = blocked ? 'EXECUTION BLOCKED' : running ? 'RUNNING' : state.fault ? 'FAULT · ROLLED BACK' : 'READY TO SCAN';
-  $('status').className = 'badge ' + (blocked || state.fault ? 'blocked' : 'ready');
-  $('step').disabled = blocked; $('run').disabled = blocked;
+  const inhibited=!!state.connectivity?.native_programming_lease?.scan_inhibited;
+  if(inhibited&&running)stop();
+  $('status').textContent = blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'RUNNING' : state.fault ? 'FAULT · ROLLED BACK' : 'READY TO SCAN';
+  $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
+  $('step').disabled = blocked||inhibited; $('run').disabled = blocked||inhibited;
   $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : 'One modeled task · scheduled programs in order.';
-  $('alert').hidden = !(blocked || state.fault);
-  $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : '');
+  $('alert').hidden = !(blocked || inhibited || state.fault);
+  $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
   const provenance = state.provenance;
   $('provenance').textContent = `${provenance.method || 'L5X'}\nSHA-256: ${(provenance.original_acd_sha256 || report?.source_l5x_sha256 || '').slice(0,20)}…`;
   $('converter').value = state.converter;
@@ -255,7 +257,7 @@ function renderConnectivity() {
   if(active){$('eip-profile').value=c.profile;$('eip-bind').value=c.bind_address;$('eip-port').value=c.address.split(':').at(-1);$('eip-writes').checked=c.allow_writes;$('eip-native').checked=!!c.native_session?.enabled;}
   $('eip-refresh').disabled=!state?.loaded;
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
-  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
+  $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'read only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+(c.native_programming_lease.scan_inhibited?' · scans inhibited':'')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   const discovery=c.discovery||{};
   $('eip-discovery').textContent=!active?'Start the endpoint to check broadcast discovery.':discovery.broadcast_enabled?
     `Broadcast discovery: ${discovery.broadcast_addresses.join(', ')} · ${discovery.interface}`:
@@ -265,7 +267,7 @@ function renderConnectivity() {
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
   const rejected=c.native_rejections||[];
-  const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable',programming_lease_conflict:'Another native client holds the transfer lock',programming_lease_owner_required:'Only the owning native client can release the transfer lock'};
+  const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable',programming_lease_conflict:'Another native client holds the transfer lock',programming_lease_owner_required:'This operation requires the client that owns the transfer lock'};
   $('eip-native-rejections').innerHTML=rejected.slice(0,8).map(x=>{
     const target=x.class_id==null?(x.symbolic?'Symbolic path':'Unparsed path'):`Class 0x${x.class_id.toString(16).toUpperCase()}, instance ${x.instance}`;
     const service=`0x${x.service.toString(16).toUpperCase()}`, status=`0x${x.status.toString(16).toUpperCase()}`;

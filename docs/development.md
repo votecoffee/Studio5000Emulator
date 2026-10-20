@@ -113,6 +113,13 @@ The lease does not authorize a project write. See
 [programming coordination](programming-coordination.md) before extending
 download preparation or transfer dispatch.
 
+The owning lease's `run_inhibit` mask overlays Controller attribute `7`; it is
+separate from immutable source configuration. `Application.command('step')`
+checks it before applying device inputs or advancing logic. Keep cleanup paths
+and source-generation checks shared with lease ownership. See
+[Run Mode Inhibit](run-mode-inhibit.md) for the signed setter contract and the
+unimplemented Controller `0x60` programming boundary.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

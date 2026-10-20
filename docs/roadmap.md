@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.60` adds a session-owned coordination lease and a
+Current milestone: `.61` supports owner-scoped Run Mode Inhibit with scan and
+input-queue guards, readback and cleanup. The SDK accepts the write and reaches
+Controller service `0x60`. Its response/status contract remains unresolved;
+private begin/status trials did not progress beyond polling. See
+[Run Mode Inhibit](run-mode-inhibit.md). Next: resolve that service before
+validated transfer staging and atomic commit or rollback. Full native transfer
+and monitoring remain unfinished.
+
+Version `.60` adds a session-owned coordination lease and a
 source-backed Local link-address read. Native download preparation advances
 to a Run Mode Inhibit write; the current read-only policy still denies it.
 See [programming coordination](programming-coordination.md). Next: implement

@@ -70,8 +70,8 @@ class ControllerConfiguration:
         return {13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
 
     def compatibility_attributes(self):
-        # The software controller has no hardware run-inhibit input and does
-        # not implement downloads. These masks describe the model only.
+        # No hardware run-inhibit input or project transfer is implemented.
+        # The router overlays an owning native lease's temporary inhibit bit.
         values={**self.attributes(),7:b'\0\0',26:bytes(4)}
         if self.time_slice is not None:values[3]=struct.pack('<H',self.time_slice)
         if self.share_unused_time_slice is not None:values[16]=struct.pack('<H',self.share_unused_time_slice)

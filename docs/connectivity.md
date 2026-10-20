@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.61` adds an owner-scoped [Run Mode Inhibit](run-mode-inhibit.md).
+The accepted UINT mask is reflected in single/list reads and prevents scans
+until cleared or the owning lease ends. The native download probe now reaches
+Controller service `0x60`, which remains unsupported. Project transfer and
+native tag-address discovery remain unfinished.
+
 Version `.60` adds [native programming coordination](programming-coordination.md).
 The SDK can acquire and release a session-owned Semaphore lease and read the
 supported Local controller's source-backed link address. The normal-source

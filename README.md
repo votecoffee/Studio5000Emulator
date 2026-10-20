@@ -85,17 +85,17 @@ The Linux appliance also exposes a documented subset of
 driver, with unavailable diagnostic fields identified in the API.
 Read-only [native inventory discovery](docs/native-inventory.md) now covers
 source-checked empty I/O, alarm and Add-On Instruction catalogs.
-Version `.58` also adds [Data Logging discovery and native policy diagnostics](docs/native-session-policy.md),
-including acknowledgements that retain an existing source Timeline UID.
-Version `.59` adds the [nested I/O Connection class-revision read](docs/io-connection-discovery.md)
-used by native discovery, with its parent scope preserved in diagnostics.
-Version `.60` adds [native programming coordination](docs/programming-coordination.md):
-an exclusive session lease with cleanup and a source-backed Local link-address
-read. The download probe advances to a Run Mode Inhibit write, which remains
-denied by the read-only policy.
+[Data Logging and native policy diagnostics](docs/native-session-policy.md)
+include acknowledgements that retain an existing source Timeline UID.
+[Nested I/O Connection discovery](docs/io-connection-discovery.md) preserves
+parent scope, and [native coordination](docs/programming-coordination.md)
+provides an exclusive session lease and a source-backed Local link-address read.
+Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
+session's temporary scan guard and cleanup. Download preparation now reaches
+the unsupported Controller service `0x60`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 838-test suite passes on Windows and Linux with expected platform skips;
-the running `.60` endpoint passes 259 wire checks. Current SDK upload, tag-read
+The 845-test suite passes on Windows and Linux with expected platform skips;
+the running `.60` endpoint previously passed 259 wire checks. Current SDK upload, tag-read
 and download probes still fail their native acceptance steps.
 
 ## Usage

@@ -1,5 +1,9 @@
 # Native programming coordination
 
+Version `.61` adds [Run Mode Inhibit](run-mode-inhibit.md), a temporary scan
+guard owned by this lease. The notes below record the `.60` coordination
+milestone and its then-current limits.
+
 Version `0.6.0-connectivity.60` adds a software coordination lease for the
 Semaphore requests sent by the v35 native SDK during download preparation.
 It also exposes the supported Local controller's source-backed link address.

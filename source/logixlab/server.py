@@ -188,6 +188,10 @@ class Application:
                 self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()
             elif action == "step":
+                if self.endpoint and self.endpoint.native_read_only:
+                    with self.endpoint.lock:
+                        if self.endpoint.programming_lease.inhibit(self.generation,e.project.sha256):
+                            raise ModelError('Native programming preparation inhibits scans; release or disconnect the owning client')
                 count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
                 self.engine.validate_interval(dt)

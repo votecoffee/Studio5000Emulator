@@ -210,6 +210,17 @@ class Router:
                     operation(native,self.app.generation,self.app.engine.project.sha256)
                     self.endpoint.counts['native_semaphore_acquire' if inner[0]==0x4B else 'native_semaphore_release']+=1
                 return reply(inner[0])
+            if (inner[0]==4 and path.class_id==0x8E and path.instance==1 and path.attribute is None
+                    and not path.symbols and payload[:4]==b'\1\0\7\0'):
+                exact(payload,6)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    self.endpoint.programming_lease.set_run_inhibit(native,self.app.generation,
+                        self.app.engine.project.sha256,struct.unpack_from('<H',payload,4)[0])
+                    self.endpoint.counts['native_run_inhibit_updates']+=1
+                return reply(4,0,b'\1\0\7\0\0\0')
             if (inner[0]==4 and path.class_id==0xAC and path.instance==1 and path.attribute is None
                     and not path.symbols and path.program_instance is None and payload[:4]==b'\1\0\x0A\0'):
                 exact(payload,8)
@@ -912,6 +923,10 @@ class Router:
             elif path.instance==1:
                 configuration=self.app.engine.project.controller_configuration
                 attributes=configuration.compatibility_attributes() if self.endpoint.native_read_only else configuration.attributes()
+                if self.endpoint.native_read_only:
+                    with self.endpoint.lock:
+                        attributes[7]=struct.pack('<H',self.endpoint.programming_lease.inhibit(
+                            self.app.generation,self.app.engine.project.sha256))
             else:raise CIPError(5,'Unknown Controller configuration instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:
