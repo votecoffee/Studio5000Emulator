@@ -556,6 +556,14 @@ All cases confirm native Offline and endpoint cleanup without a reported fatal
 SDK fault. The main demo and original ACD remain unchanged. The iteration passes
 49 focused software tests; the full suite was not run.
 
+The rebuilt `.92` main runtime passes 27 live protocol checks. All 75 application
+modules, served webpage and Windows package match source and version. Its fresh
+SDK connection/Offline case succeeds across 79 verified signed requests, with
+unchanged model state, confirmed cleanup and no reported fatal SDK fault. The
+main demo remains stopped in Program at logic revision 0 with supported edit
+access enabled; isolated edited instances are stopped. Upload/download and
+Run/Program cycling were not repeated in this focused iteration.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

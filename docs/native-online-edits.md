@@ -3,6 +3,9 @@
 Version `.89` adds [supported Program-mode routine replacement](supported-routine-edits.md)
 through an explicit `--apply-supported-edits` option. The default diagnostic
 below continues to require disabled edit access and unchanged model state.
+Version `.92` also offers a separate
+[native ACD save/reopen diagnostic](edited-logic-l5x.md#optional-native-acd-save-diagnostic)
+for explicitly enabled supported edits.
 
 The optional public SDK probe has an `edits` operation that inserts one generated
 `NOP();` rung into a loaded RLL routine on a private ACD copy. It exercises the

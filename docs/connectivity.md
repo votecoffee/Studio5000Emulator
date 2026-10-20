@@ -307,7 +307,8 @@ These are separate native acceptance stages:
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
 | Native download | `.73` models all records in the tested batch and validates references/scoped coordination; execution and library-data writes remain denied | Compiled definitions, device-operation contract and further transport requests/stages, atomic model replacement |
-| Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
+| Native online edits | Explicit supported Program-mode imports replace model logic; consecutive insertions/replacements and reconnects execute in the emulator | Studio GUI acceptance, broader operands, Test/Untest/Assemble, rollback and full native edit semantics |
+| Edited project persistence | `.92` SDK imports an edited L5X, saves/reopens a new ACD and reconnects it against the new source pair | General project coverage, Studio GUI acceptance and firmware transfer round trips |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template
 (`0x6C`) and the model's empty Metadata Definition (`0x349`) catalog. Replies
