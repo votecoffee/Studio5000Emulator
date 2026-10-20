@@ -71,3 +71,9 @@ all 904 temporary preparation results. It checks the real Controller preparation
 phase, a zero UDI-stack proposal and readback for the source without AOIs,
 Run inhibition through Program release, and cleanup at phase close. This is
 software-model and protocol evidence; native results remain separate.
+
+The `.86` owned-payload case passes 39 signed checks, 60 inventory reads and
+all 904 temporary download-record checks. The additional checks send synthetic
+partial compiled Routine fragments under a source-bound edit reservation,
+verify actual retained bytes, and verify Program release discards them. They
+do not install native code or request accepted edits.

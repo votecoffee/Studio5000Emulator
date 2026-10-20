@@ -156,3 +156,13 @@ These short rejection responses contain no MAC and are explicitly labeled
 unauthenticated. Offline reanalysis of the retained trace does not rerun the SDK
 or change the original result. The first denied fragment is the next transfer
 implementation point; the compiled bytes have not been installed or executed.
+
+Version `.86` adds a separate [compiled Routine receiver](edit-transfer.md).
+The native attempt now delivers all 11 fragments of its 4,304-byte container;
+the endpoint rejects installation after retaining the complete binary. Offline
+reassembly matches its recorded SHA-256. The case verifies 111 signed requests,
+preserves source/model state and clears endpoint storage. Native Go Offline
+still returns `RxE_COMM_NOTOPEN`; project close succeeds and no fatal SDK
+exception is reported. Native cleanup remains unconfirmed for the edit case.
+Controller acceptance, active routine replacement, Test/Untest and Assemble
+remain unfinished.

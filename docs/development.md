@@ -335,6 +335,35 @@ isolated application is stopped and the guest's temporary SSH forwarding
 extension restored. Compiled edit transfer and active controller edits remain
 unfinished.
 
+Version `.86` separates compiled edit fragments from the download receiver.
+Its source-bound RLL target must remain under the owner's Program reservation
+and open preparation phase. The bounded receiver retains bytes and completion
+hashes, rejects installation, and clears storage with reservation/context
+cleanup. The iteration passes 159 focused tests, 39 independent signed checks,
+60 inventory reads and all 904 temporary download-record checks; the full
+behavioral suite was not rerun.
+
+An isolated native import using public `.86` sources delivers all 11 fragments
+of a 4,304-byte container, then fails at the explicit installation boundary
+across 111 verified requests. Independent offline reassembly matches the
+receiver's hash; its ELF candidate is a 4,284-byte ARM ELF32 relocatable object
+with 14 sections and 42 symbols. No native instructions are executed or linked.
+An additional private final-receipt hypothesis exposes a different 688-byte
+Routine transfer setup; that experiment fails too and its changed reply is
+absent from the public app. Both edit cases preserve source/model state,
+confirm endpoint cleanup and project close, report no fatal SDK fault, and
+leave native Offline cleanup unconfirmed. The isolated applications are stopped.
+
+The rebuilt `.86` main appliance passes 27 focused wire checks; all 72 running
+application modules, served browser assets and executable version match source.
+Fresh native connection/Offline succeeds across 79 verified requests, and
+SDK/webpage Run/Program control succeeds across 113 with real scan/prescan
+checks. Download still fails device transfer across 180 after preparing all
+904 records. These three cases confirm native Offline and endpoint cleanup
+and report no fatal SDK fault. The resulting mode-test execution history is
+retained and Program is restored. Native upload was not repeated; its `.85`
+controller-collection failure remains separate from `.86` acceptance.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

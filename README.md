@@ -55,6 +55,8 @@ Version `.86` adds [compiled Routine fragment staging](docs/edit-transfer.md)
 under the edit reservation, with source-bound targets and bounded temporary
 storage. Complete binaries remain separate from active routines; installation
 and accepted controller edits are unfinished.
+The native edit diagnostic now delivers all 11 compiled fragments before that
+installation rejection; endpoint storage clears and active logic is unchanged.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

@@ -41,3 +41,35 @@ offsets, timeout and cleanup. An independent client also stages synthetic
 partial ELF candidates against the original imported source bindings and
 checks that Program release removes them. Native SDK results are recorded
 separately; buffering code does not establish accepted online edits.
+
+## Native result
+
+The isolated `.86` SDK `AcceptEdits` case uses unchanged public application
+sources. Studio sends 11 contiguous fragments; the receiver retains all 4,304
+container bytes and rejects installation at the final fragment. Independent
+offline reassembly of the captured fragments matches the receiver's complete
+SHA-256. The contained 4,284-byte file is a little-endian ARM ELF32 relocatable
+object with 14 sections and 42 symbols. These observations do not resolve its
+runtime imports, data references or instruction behavior.
+
+The case verifies 111 signed requests and reports `RxCsE_ASA_NO_PERMISSION`.
+Go Offline returns `RxE_COMM_NOTOPEN`, so native Offline cleanup is unconfirmed
+for this case. Project close succeeds; endpoint state and compiled bytes clear
+without explicit socket cleanup. The source ACD and active model are unchanged,
+and no fatal SDK exception is reported. A subsequent connection/Offline check
+against the prior `.85` main runtime succeeds; this is a separate recovery
+check, not `.86` runtime acceptance or confirmation of the failed edit cleanup.
+
+Installing a compiled routine requires implementing its native storage and
+runtime contracts or a verified translation to the emulator's execution model.
+A fragment acknowledgement and valid ELF layout alone cannot supply that step.
+
+A separate private receipt-only experiment acknowledges the completed ELF
+container without installing it. Studio then starts another fragment transfer
+to the same Routine: a declared 688 bytes with a different initial setup
+(`1`, `3`, followed by other fields). The public receiver rejects that setup;
+the experiment also fails import and leaves native Offline cleanup unconfirmed,
+with project close and endpoint cleanup complete and no reported fatal SDK
+fault. Its modified final reply is absent from the public app. This conditional
+trace identifies a further container contract to investigate; it establishes
+neither accepted edits nor a working installation path.
