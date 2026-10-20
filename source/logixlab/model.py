@@ -14,6 +14,7 @@ from .alarm_catalog import AlarmCatalog
 from .hmi_button_catalog import HmiButtonCatalog
 from .energy_catalog import EnergyCatalog
 from .message_catalog import MessageCatalog
+from .pccc_mapping import PcccMapping
 
 
 class ModelError(Exception):
@@ -294,6 +295,7 @@ class Project:
         self.hmi_button_catalog = HmiButtonCatalog.from_source(root, c)
         self.energy_catalog = EnergyCatalog.from_source(root, c)
         self.message_catalog = MessageCatalog.from_source(root, c)
+        self.pccc_mapping = PcccMapping.from_source(root, c)
         self.controller_configuration = ControllerConfiguration.from_controller(c, root)
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))

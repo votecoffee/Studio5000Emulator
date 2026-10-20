@@ -607,6 +607,43 @@ zero scan count were preserved with writes disabled. Deployed modules, served
 web files, app version and Windows artifact matched source. Native GUI monitoring,
 full upload/download and online edits remain unfinished.
 
+### Empty PLC message mapping metadata
+
+Version `.46` adds read-only PCCC object `0x67` discovery and instance 1
+attributes `1` (PLC-2 file, UINT) and `2` (mapping descriptor, UDINT). Their empty
+values are zero. This subset is available only when a complete Controller export
+establishes that no PLC message mappings are configured.
+
+The reader examines `ProduceInfo` attributes `PLC2Mapping` and `PLCMappingFile`
+before runtime tag filtering. Absent mapping attributes and explicit disabled
+PLC-2 flags (`0`/`false`) can establish empty. A configured file, file zero,
+malformed or ambiguous reference, misplaced attribute, context, namespace variant,
+UID-only reference or duplicate declaration leaves the descriptor unavailable.
+Unknown source is never returned as an empty mapping. Class metadata advertises
+one model instance, and the Message Router inventory includes the object.
+
+Rockwell's [Import/Export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+locates these attributes on `ProduceInfo`. A native offline L5K-to-ACD-to-L5X
+round-trip preserved a configured file mapping there. Configured mappings,
+compiled references, Execute PCCC and setters remain unsupported, including with
+tag writes enabled. Connectivity state exposes `pccc_mapping` and its limits.
+
+An isolated SDK diagnostic accepted the source-checked zero descriptors and next
+requested Time Sync `0x43`. The diagnostic supplied temporary substitutes for
+earlier missing metadata; those substitutes are excluded from the app. Partial
+Time Sync settings did not resolve controller collection. This is not a completed
+native upload or proof of PCCC execution.
+
+The suite runs 713 tests: Windows passes 711 with two Linux-only skips; Linux
+passes 712 with the Windows console check skipped. New checks cover source
+completeness, mapping flags/references, namespaces and scope, exact empty wire
+values, mixed-list errors, object inventory, project replacement and denied
+commands. The normal-source candidate preserves all 12 scalar reads and Symbol
+descriptors and nine empty catalogs across 198 verified signed requests. It
+returns the existing Controller settings and Ethernet status, but still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`; the normal exchange does not
+reach PCCC mapping. Client request ordering can vary.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

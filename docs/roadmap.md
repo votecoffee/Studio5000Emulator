@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.45` adds TCP/IP configuration status and verified Linux
+Current milestone: `.46` adds source-checked empty PCCC mapping descriptors.
+An isolated SDK diagnostic accepts them and reaches Time Sync (`0x43`), whose
+metadata remains incomplete. Earlier missing Ethernet/controller fields still
+prevent normal upload. Complete native upload and SDK tag monitoring are unfinished.
+
+Version `.45` adds TCP/IP configuration status and verified Linux
 DHCP/DNS flags. An isolated SDK diagnostic accepts that list and then requests
 the unimplemented PCCC mapping object (`0x67`); earlier missing fields still prevent
 normal upload. Complete native upload and SDK tag monitoring are unfinished.

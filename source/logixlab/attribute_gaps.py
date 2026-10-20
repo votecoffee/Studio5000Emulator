@@ -8,9 +8,10 @@ import time
 
 
 MAX_GAPS = 64
-CLASSES = {1: 'Identity', 0x6A: 'Data Table', 0x6B: 'Symbol',
+CLASSES = {1: 'Identity', 0x67: 'PCCC Mapping', 0x6A: 'Data Table', 0x6B: 'Symbol',
            0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
+    0x67: {1: 'PLC-2 file', 2: 'PCCC mapping descriptor'},
     0x8E: {1: 'Power-loss handler reference', 3: 'Communication time slice',
            6: 'Fault handler reference', 8: 'Connection ID', 16: 'Share unused time slice'},
     0xF6: {1: 'Interface speed', 2: 'Interface flags', 3: 'MAC address',
