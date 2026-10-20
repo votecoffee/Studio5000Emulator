@@ -63,6 +63,20 @@ software model; they do not prove the complete firmware contract for these
 services, native stack allocation, compiled edit storage, accepted edits,
 testing or assembly.
 
+The isolated `.85` native `AcceptEdits` probe uses unchanged public application
+sources. Studio accepts phase open, Program reservation and the zero-stack
+proposal, releases and reacquires the Program, then sends a `0x39` first
+fragment containing Program-scoped Executable `0x6D` service `0x5C` and opaque
+ELF bytes. It declares 4,304 total bytes and carries 456 bytes in that fragment.
+The receiver only supports fragments under download preparation and rejects
+this edit transfer. The attempt verifies 103 signed requests and fails with
+`RxCsE_ASA_NO_PERMISSION`. Its Go Offline call also fails with `RxE_COMM_NOTOPEN`,
+so native Offline cleanup remains unconfirmed for this case. Project close
+succeeds, endpoint temporary state clears without explicit socket cleanup,
+source/model state is unchanged and no fatal SDK exception is reported.
+Fresh connection/Offline and mode cases subsequently succeed independently;
+they do not retroactively confirm this edit case's native cleanup.
+
 Focused tests cover real signed TCP reservations, parent IDs of different
 widths, source and ownership mismatch, capacity, malformed payloads, unchanged
 execution state, Run inhibition and cleanup. The independent research client

@@ -277,6 +277,24 @@ class NativeSdkProbeTests(unittest.TestCase):
         self.assertEqual(rejection_delta(after, after), [])
         self.assertNotIn('probe_count', new)
 
+    def test_edit_trace_retains_outer_fragment_rejections_separately_without_claiming_mac_authentication(self):
+        import struct
+        raw=bytes.fromhex('390220022401')+struct.pack('<II',0x101,123)+b'fragment'+struct.pack('<I',101)+b'x'*20
+        marker={'kind':'marker','time':0}
+        event=dict(kind='cip',time=1,request_hex=raw.hex(),response_hex='b9000f00')
+        report={'steps':[dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits',status='failed',
+                            startedAt='start',finishedAt='end')]}
+        events=[marker,event,dict(event,time=2,response_hex='b9000c013412'),
+                dict(event,time=3,response_hex='b9000f0100'),
+                dict(event,time=4,response_hex='b6000f00'),dict(event,time=5,response_hex='b9000000')]
+        result=edit_trace_evidence({},report,before_edit={'events':[marker]},after_edit={'events':events})
+        self.assertEqual(result['requests_observed'],2);self.assertEqual(result['unparsed_events'],3)
+        self.assertIsNone(result['first_failed_request'])
+        self.assertEqual(result['first_wrapper_rejection'],dict(time=1,service=0x39,status=15,sequence=101,
+            response_authenticated=False,additional_status='',container_format=0x101,position=123,fragment_bytes=8))
+        self.assertEqual(result['wrapper_rejections'][1]['additional_status'],'3412')
+        self.assertEqual(result['mac_verification'],'not performed by report parser')
+
     def test_edit_trace_pairs_signed_inner_failures_only_during_the_sdk_import_interval(self):
         import struct
         # Opaque synthetic MACs deliberately prove framing does not imply authentication.

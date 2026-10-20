@@ -129,5 +129,30 @@ Program Semaphore acquire and release. After implementing those backed
 reservations, the isolated repeat advances to a denied Program attribute-27
 UDI Stack Size write. It verifies 103 signed requests, confirms native Offline
 and endpoint cleanup, and preserves source/model state with no reported fatal
-SDK fault. The hypothetical Controller reply is absent from the public app;
+SDK fault. The hypothetical Controller reply is absent from the `.84` public app;
 this is conditional diagnostic evidence, not accepted-edit support.
+
+Version `.85` adds a software [preparation phase](program-reservations.md#controller-preparation-and-zero-stack)
+for the observed Controller open/close sequence. It retains ownership and Run
+inhibition until closing, with no active edit state. A zero Program UDI-stack
+proposal additionally requires a reserved Program and a complete source without
+AOIs. Nonzero or unproven stack requirements remain unsupported. This advances
+the preparation model; compiled routine storage, accepted controller edits,
+Test/Untest and Assemble remain separate unfinished work.
+
+The `.85` native attempt accepts this preparation and reaches an edit transfer:
+a signed first fragment starts Program-scoped Executable `0x6D` service `0x5C`
+with opaque ELF bytes. The current fragment receiver requires download
+preparation and rejects the edit reservation. Controller acceptance still
+fails. The case verifies 103 signed requests and reports
+`RxCsE_ASA_NO_PERMISSION`; Go Offline returns `RxE_COMM_NOTOPEN`, leaving native
+cleanup unconfirmed. Project close succeeds, endpoint cleanup completes and
+source/model are unchanged, with no reported fatal SDK fault. Fresh main
+connection/Offline and Run/Program cases subsequently pass.
+
+The probe now reports plain outer CIP wrapper rejections separately from signed
+inner operation failures, including fragment format, position and byte count.
+These short rejection responses contain no MAC and are explicitly labeled
+unauthenticated. Offline reanalysis of the retained trace does not rerun the SDK
+or change the original result. The first denied fragment is the next transfer
+implementation point; the compiled bytes have not been installed or executed.

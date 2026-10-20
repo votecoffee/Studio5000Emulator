@@ -305,6 +305,36 @@ fault. Source ACD bytes remain unchanged. Native upload and local pending-edit
 import were not repeated in this focused iteration; their `.83` results remain
 separate from `.84` acceptance.
 
+Version `.85` adds an owned Controller edit-preparation phase and a zero
+Program UDI-stack proposal for complete, unprotected projects without AOIs.
+Program holds, phase lifetime and Run inhibition share the same lease;
+cleanup removes all temporary proposals. Active stacks and routines are
+unchanged. The iteration passes 133 focused tests and 37 independent signed
+checks, 60 inventory reads and all 904 temporary download-record results.
+The full suite was not rerun. The SDK trace parser also retains outer wrapper
+errors separately from signed inner failures, with no MAC-authentication claim.
+After that parser change, 44 affected edit/probe tests pass, including its new
+outer-fragment rejection test: 134 distinct focused cases pass in this iteration.
+
+The rebuilt `.85` appliance and packaged executable share the current version
+and browser assets; all 71 running application modules match source. Its 27
+focused wire checks pass. Fresh native connection/Offline succeeds across 79
+verified requests, and SDK/webpage mode control succeeds across 113 with actual
+scan and prescan checks. Native upload still fails controller collection across
+197; download still fails device transfer across 180 after all 904 temporary
+records are prepared. These four cases confirm native Offline and endpoint
+cleanup with no reported fatal SDK fault. Mode testing retains its execution
+history and restores Program; the original ACD remains unchanged.
+
+An isolated `.85` native import accepts edit preparation and the zero Program
+stack proposal, then fails at the first compiled Routine fragment across 103
+verified requests. Source/model are unchanged and endpoint cleanup completes;
+native Go Offline returns `RxE_COMM_NOTOPEN` and remains unconfirmed for that
+case. Project close succeeds and no fatal SDK exception is reported. The
+isolated application is stopped and the guest's temporary SSH forwarding
+extension restored. Compiled edit transfer and active controller edits remain
+unfinished.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

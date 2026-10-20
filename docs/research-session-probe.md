@@ -65,3 +65,9 @@ Program reservation and release, checks that scans are inhibited only while
 reserved, and preserves all 904 temporary preparation readbacks. The separate
 inventory still completes 60 reads. It does not supply hypothetical Controller
 replies or enable accepted edits.
+
+The `.85` owned-payload case passes 37 signed checks, 60 inventory reads and
+all 904 temporary preparation results. It checks the real Controller preparation
+phase, a zero UDI-stack proposal and readback for the source without AOIs,
+Run inhibition through Program release, and cleanup at phase close. This is
+software-model and protocol evidence; native results remain separate.

@@ -49,6 +49,8 @@ Version `.85` models the observed Controller open/close preparation sequence
 with Run inhibition and a source-checked zero UDI-stack proposal for complete
 projects without AOIs. The independent inventory reader also reads this
 modeled zero stack. Active edit storage and controller acceptance remain unfinished.
+The `.85` native edit probe passes this preparation and reaches a compiled
+Routine fragment, which is still rejected by the transfer receiver.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

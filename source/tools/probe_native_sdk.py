@@ -186,7 +186,7 @@ def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
             return {'status':'checkpoint_events_not_retained', 'failed_requests':[], 'first_failed_request':None,
                     'sdk_method':step['method'], 'sdk_status':step['status']}
         events = events[positions[-1]+1:]
-    failures = []; matched = skipped = 0
+    failures = []; wrappers = []; matched = skipped = 0
     for event in events:
         if event.get('kind') != 'cip':continue
         if event.get('truncated'):skipped += 1;continue
@@ -198,6 +198,17 @@ def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
             sequence = None
             if raw[0] in (0x36, 0x37, 0x38, 0x39):
                 request = signed_messages.parse_request(raw)
+                # A policy rejection can be an ordinary outer CIP error, with
+                # no signed response envelope. Keep it separate from inner
+                # operation results and never label it MAC-authenticated.
+                if (response[0]==(raw[0]|0x80) and response[1]==0 and response[2]!=0
+                        and len(response)==4+2*response[3]):
+                    row=dict(time=event['time'],service=raw[0],status=response[2],sequence=request.sequence,
+                             response_authenticated=False,additional_status=response[4:].hex())
+                    if isinstance(request,signed_messages.FragmentEnvelope):
+                        row.update(container_format=request.container_format,position=request.position,
+                                   fragment_bytes=len(request.fragment))
+                    wrappers.append(row);matched+=1;continue
                 reply = signed_messages.parse_response(response, request)
                 sequence = request.sequence
                 if isinstance(request, signed_messages.FragmentEnvelope):continue
@@ -218,6 +229,8 @@ def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
                 finished_at=step['finishedAt'], requests_observed=matched, unparsed_events=skipped,
                 correlation='emulator_trace_checkpoints',
                 failed_requests=failures[:64], failures_truncated=len(failures)>64,
+                wrapper_rejections=wrappers[:64], wrapper_rejections_truncated=len(wrappers)>64,
+                first_wrapper_rejection=wrappers[0] if wrappers else None,
                 first_failed_request=failures[0] if failures else None, mac_verification='not performed by report parser')
 
 

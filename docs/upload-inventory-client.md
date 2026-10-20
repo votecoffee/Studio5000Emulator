@@ -36,6 +36,8 @@ The reader:
   repeats, truncation, trailing bytes and excessive counts fail decoding.
 - Resolves each scheduled Program reference against the separately discovered
   source-bound Program catalog, preserving schedule order and sparse IDs.
+- Reads Program attribute 27 as a UDINT. A source-supported zero UDI-stack
+  requirement remains distinct from an unavailable stack attribute.
 - Keeps controller and Program namespaces distinct and checks Symbol/Data Table
   links, types, dimensions, value addresses and scalar element sizes.
 - Reads supported scalar bytes through Data Table service `0x4F` with selector
