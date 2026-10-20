@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from xml.etree import ElementTree as ET
 
-from logixlab.model import Project
+from logixlab.model import Project,ModelError
 from logixlab.native_symbols import NativeSymbols,Symbol
 from logixlab.native_routines import NativeRoutines
 from logixlab.native_types import NativeTypes,Type,Member
@@ -228,6 +228,50 @@ class SourceIoiTests(unittest.TestCase):
                 engine=Engine(candidate,defer_prescan=True);engine.step()
                 with self.subTest(dtype=dtype):self.assertEqual(engine.memory.read('Bits_'+dtype),3-(1<<(width-1)))
                 with self.subTest(dtype=dtype),self.assertRaises(SourceError):self.translate('OTL('+operand+str(width)+');')
+
+    def test_bound_indirect_indices_re_evaluate_reads_writes_and_expressions_each_scan(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=ET.parse(self.project.path).getroot();tags=root.find('./Controller/Tags')
+            tag=ET.SubElement(tags,'Tag',Name='Samples',TagType='Base',DataType='DINT',Dimensions='4')
+            array=ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='DINT',Dimensions='4')
+            for i,value in enumerate((10,20,30,40)):ET.SubElement(array,'Element',Index='['+str(i)+']',Value=str(value))
+            path=Path(folder)/'indirect.L5X';ET.ElementTree(root).write(path)
+            self.project=Project(path);sha=self.project.sha256
+            self.symbols=NativeSymbols('a'*64,sha,[Symbol('',0,'SpeedCommand',13),Symbol('',0,'SpeedSetpoint',14),
+                Symbol('',0,'Samples',17),Symbol('',0,'RunLatch',5),Symbol('',0,'StartDelay',12)],
+                programs=[{'name':'MainProgram','instance':300}])
+            self.routines=NativeRoutines('a'*64,sha,[dict(program='MainProgram',name=n,program_instance=300,instance=700+i)
+                for i,n in enumerate(('MainRoutine','Reporting'))])
+            self.types=NativeTypes('a'*64,sha,list(self.types.types.values()),{'timer':3971})
+            from logixlab.routine_source import candidate_project
+            from logixlab.runtime import Engine
+            index='@107 13 0 0 0 0@';samples='@107 17 0 0 0 0@';target='@107 14 0 0 0 0@'
+            text='MOV('+samples+'['+index+'],'+target+');';neutral=self.translate(text)
+            self.assertEqual(neutral,('MOV(Samples[SpeedCommand],SpeedSetpoint);',))
+            validate_plan(self.source(text),neutral,self.project,'MainProgram')
+            candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+            engine=Engine(candidate,defer_prescan=True)
+            for i,expected in ((0,10),(2,30),(1,20)):
+                engine.memory.write('SpeedCommand',i);engine.step()
+                self.assertEqual(engine.memory.read('SpeedSetpoint'),expected)
+            engine.memory.write('SpeedCommand',4);before=copy.deepcopy(engine.memory.values);scan=engine.scan_count
+            with self.assertRaises(ModelError):engine.step()
+            self.assertEqual(engine.memory.values,before);self.assertEqual(engine.scan_count,scan)
+            for instruction,expected in (
+                ('MOV(77,'+samples+'['+index+']);','MOV(77,Samples[SpeedCommand]);'),
+                ('CPT('+target+','+samples+'['+index+']+1);','CPT(SpeedSetpoint,Samples[SpeedCommand]+1);'),
+                ('CMP('+samples+'['+index+']>0)OTL('+samples+'['+index+'].31);',
+                 'CMP(Samples[SpeedCommand]>0)OTL(Samples[SpeedCommand].31);')):
+                result=self.translate(instruction);self.assertEqual(result,(expected,))
+                validate_plan(self.source(instruction),result,self.project,'MainProgram')
+            for subscript in ('@107 99 0 0 0 0@','@107 5 0 0 0 0@',index+'.0',index+'+1',
+                    samples+'['+index+']','SpeedCommand'):
+                instruction='MOV('+samples+'['+subscript+'],'+target+');'
+                with self.subTest(subscript=subscript),self.assertRaises(SourceError):self.translate(instruction)
+            # Member index references retain their native member/type binding.
+            member='@107 12 0 0 0 0@.@108 3971 34046 2 0 0@'
+            self.assertEqual(self.translate('MOV('+samples+'['+member+'],'+target+');'),
+                ('MOV(Samples[StartDelay.PRE],SpeedSetpoint);',))
 
 
 if __name__=='__main__':unittest.main()

@@ -123,7 +123,7 @@ def resolve(source,project,symbols,routines,types,program):
     This returns neutral text for inspection. It does not validate execution,
     compare the ELF with source, change a project or commit controller edits.
     """
-    from .model import parse_rung,Branch,ModelError,INT_BITS
+    from .model import parse_rung,Branch,ModelError,INT_BITS,Memory,split_indices
     catalogs=(symbols,routines,types)
     if any(c is None or c.source_l5x_sha256!=project.sha256 for c in catalogs):
         raise SourceError('ioi_source_bindings_unavailable')
@@ -132,18 +132,37 @@ def resolve(source,project,symbols,routines,types,program):
     if program_id is None:raise SourceError('ioi_program_unavailable')
     by_id={(s.program_instance,s.instance):s for s in symbols.by_key.values()}
     token=re.compile(r'@[0-9]{1,10}(?: [0-9]{1,10}){5}@')
-    segment=token.pattern+r'(?:\[[0-9]{1,10}(?:,[0-9]{1,10}){0,2}\])?'
+    static_segment=token.pattern+r'(?:\[[0-9]{1,10}(?:,[0-9]{1,10}){0,2}\])?'
+    index_reference=static_segment+r'(?:\.'+static_segment+r')*(?:\.[0-9]{1,10})?'
+    index_term=r'(?:[0-9]{1,10}|'+index_reference+r')'
+    segment=token.pattern+r'(?:\['+index_term+r'(?:,'+index_term+r'){0,2}\])?'
     reference=segment+r'(?:\.'+segment+r')*(?:\.[0-9]{1,10})?'
+    index_memory=None
 
     def indexed(name,value,suffix):
+        nonlocal index_memory
         if not suffix:return name,value
-        indices=tuple(map(int,suffix[1:-1].split(',')))
-        for index in indices:
+        indices=[]
+        for text in split_indices(suffix[1:-1]):
+            if re.fullmatch(r'[0-9]{1,10}',text):index=int(text);indices.append(str(index))
+            else:
+                # The observed native profile uses a bound IOI as an index.
+                # Resolve its scope/type, but never freeze its initial value.
+                # Nested indirect indices and index arithmetic remain outside
+                # this profile; static member/element index references work.
+                if not re.fullmatch(index_reference,text):raise SourceError('ioi_array_index_profile_unsupported')
+                resolved=argument(text)
+                if index_memory is None:
+                    index_memory=Memory(project);index_memory.structural=True
+                try:dtype=index_memory.resolve(resolved,program)[2]
+                except ModelError as error:raise SourceError('ioi_array_index_source_unavailable') from error
+                if dtype not in ('SINT','INT','DINT'):raise SourceError('ioi_array_index_type_unsupported')
+                indices.append(resolved);index=0  # Shape/type validation only.
             if not isinstance(value,list) or not 0<=index<len(value):
                 raise SourceError('ioi_array_subscript_unavailable')
             value=value[index]
         if isinstance(value,list):raise SourceError('ioi_array_rank_unsupported')
-        return name+'['+','.join(map(str,indices))+']',value
+        return name+'['+','.join(indices)+']',value
 
     def argument(value,routine=False,expression=None):
         if expression and '@' in value:

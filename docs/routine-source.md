@@ -106,6 +106,35 @@ queued external array writes exercise both true and false CMP outcomes, and
 an edited L5X reload reproduces them. Broader native array/type coverage remains
 unverified. See [comparison and array validation](supported-routine-edits.md#comparisons-and-array-operands).
 
+## Indirect array indices
+
+Version `.97` accepts a native tag/member reference as an array subscript.
+Both the array and index resolve through the source-bound Symbol/DataType
+catalogs. The translated index remains a reference and is evaluated during
+execution. SINT, INT and DINT index types are supported by the existing planner;
+BOOL, REAL, whole-array indices and unresolved references cannot form an
+executable candidate. Existing scope, shadowing, hidden-member and type-ID
+checks apply to index references too.
+
+The translator checks array shape without substituting the index tag's initial
+value. The detached ladder planner checks actual initial bounds, and execution
+checks bounds again for each access. An out-of-range access faults and rolls
+back that scan. Direct operands, CPT/CMP expressions and final integer-bit
+selection share this profile. Index references may contain static element or
+member paths; nested indirect indices, arithmetic inside native indices and
+unencoded tag names remain unsupported.
+
+The observed native source represents this as an array IOI followed by brackets
+containing a second IOI. Two native imports append an indexed MOV read and an
+indexed CPT destination, with Offline/Online after each import. Both pass
+across 315 verified requests. The initial index is zero; execution changes it
+to two and operates on the third element. Queued external array inputs produce
+the expected indexed reads and writes. An edited L5X reload retains original
+initial values and reproduces those scans. Source ACD/L5X files stay unchanged;
+native Offline and endpoint cleanup are confirmed without a reported fatal SDK
+fault. Native evidence covers a one-dimensional DINT array with a scalar DINT
+index; other supported index paths have software validation only.
+
 ## Integer-bit operands
 
 Version `.95` accepts a final decimal `.bit` suffix on a resolved integer tag,

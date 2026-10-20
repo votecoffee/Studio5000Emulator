@@ -106,7 +106,10 @@ separate object errors, fragment acknowledgements and temporary preparation
 state; they preserve the distinction between protocol observations and SDK success.
 Version `.97` retains complete native transfer packets within a bounded trace
 ring, allowing the offline reader to check large download fragments. Capture
-limits and evictions are exposed in diagnostic state.
+limits and evictions are exposed in diagnostic state. It also adds
+[source-bound indirect array indices](docs/routine-source.md#indirect-array-indices)
+to supported native imports. Indexed reads and CPT destinations pass reconnect,
+execution, queued external input and saved L5X reload checks.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio
