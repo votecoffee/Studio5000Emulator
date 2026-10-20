@@ -157,6 +157,18 @@ class NativeSdkProbeTests(unittest.TestCase):
             proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['template_staging']=value
             with self.assertRaises(ValueError):validate_idle(proposed)
 
+    def test_diagnostic_models_must_be_empty_without_installation_authority(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();state['connectivity']['native_programming_lease']['resilient_transport']=ResilientTransport().description()
+        validate_idle(state)
+        for field,value in (('status','modeled'),('messages',1),('text_bytes',1),('records_modeled',1),
+                ('messages',False),('definitions_exposed',True),('active_catalog_replaced',True),('commit',True)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['diagnostic_staging'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(proposed)
+        for value in (None,{},'unknown'):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['diagnostic_staging']=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+
     def test_staging_admission_requires_empty_counts_and_only_definition_value_capability(self):
         from logixlab.library_staging import LibraryStaging
         from logixlab.metadata_staging import MetadataStaging

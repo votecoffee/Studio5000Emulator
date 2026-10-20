@@ -5,11 +5,10 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
-Version `.71` adds [temporary native Template models](template-staging.md).
-The SDK batch's 242 Templates pass descriptor and contiguous-write validation,
-covering 727 of 904 records and 346,596 opaque definition bytes. The remaining
-177 records are unsupported. Service `0x06` still returns execution denial;
-no batch operation is applied to the active project.
+Version `.72` adds [temporary Diagnostics Message models](diagnostic-staging.md).
+The tested SDK batch's 242 Templates and 136 Diagnostics Messages cover 863 of
+904 records. The remaining 41 records are unsupported. Service `0x06` still
+returns execution denial; no batch operation is applied to the active project.
 
 The rebuilt `.71` endpoint passes 291 wire checks and the nine-step SDK
 connection/Offline probe. Download verifies 181 signed requests and decodes all
@@ -292,7 +291,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.71` models temporary Templates in decoded batches; batch execution and library-data writes remain denied | Other object models and reference validation, further transfer stages and atomic model replacement |
+| Native download | `.72` models temporary Templates and Diagnostics Messages; batch execution and library-data writes remain denied | Remaining object models, references and compiled definitions, further transfer stages and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template

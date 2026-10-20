@@ -113,6 +113,13 @@ def validate_staging(lease):
                 raise ValueError('Probe requires empty temporary templates and disabled installation')
             for field in ('templates','definition_bytes','write_fragments','records_modeled','unsupported_records'):
                 if type(templates.get(field)) is not int or templates[field]!=0:raise ValueError('Probe requires empty temporary templates')
+        if 'diagnostic_staging' in stage:
+            diagnostics=stage['diagnostic_staging']
+            if (not isinstance(diagnostics,dict) or diagnostics.get('status')!='idle'
+                    or any(diagnostics.get(field) is not False for field in ('definitions_exposed','active_catalog_replaced','commit'))):
+                raise ValueError('Probe requires empty temporary diagnostics and disabled installation')
+            for field in ('messages','text_bytes','records_modeled'):
+                if type(diagnostics.get(field)) is not int or diagnostics[field]!=0:raise ValueError('Probe requires empty temporary diagnostics')
         if 'inspection' in stage:
             inspection=stage['inspection']
             if (not isinstance(inspection,dict) or inspection.get('status')!='idle' or inspection.get('operations')!=[]

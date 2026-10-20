@@ -75,6 +75,9 @@ by the runtime's denied `0x06` operation and an offline summary tool.
 Version `.71` adds [temporary Template models](template-staging.md) in the
 runtime. Descriptor and contiguous-write checks do not interpret compiled types
 or enable batch execution.
+Version `.72` adds [temporary Diagnostics Message models](diagnostic-staging.md).
+They publish atomically with the temporary Templates and remain separate from
+active controller diagnostics.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
@@ -98,6 +101,8 @@ Any advertised payload-inspection state must also be idle and empty, with no
 execution or signature-verification authority.
 Any advertised Template stage must be empty, with installation and definition
 exposure disabled.
+Advertised diagnostic stages must also be idle and empty, with installation and
+definition exposure disabled.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
@@ -109,6 +114,13 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+
+The `.72` suite runs 960 tests, with two Windows skips and one Linux skip.
+The normal-source SDK download attempt models 136 Diagnostics Messages and
+242 Templates, covering 863 of 904 records. The 41 other records remain
+unsupported. The batch is denied; cleanup returns Offline with unchanged
+source/model and empty temporary stages. See
+[Diagnostics Message validation](diagnostic-staging.md#validation-and-remaining-work).
 
 The `.71` suite runs 949 tests, with two Windows skips and one Linux skip.
 The normal-source SDK download attempt models 242 temporary Templates and

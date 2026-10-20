@@ -1,5 +1,9 @@
 # Temporary native Template models
 
+This describes the `.71` milestone. Version `.72` adds
+[temporary Diagnostics Message models](diagnostic-staging.md) and publishes both
+model sets atomically; failure in either leaves both empty. Full execution stays denied.
+
 Version `0.6.0-connectivity.71` builds temporary Template (`0x6C`) objects from
 the [decoded device batch](device-payload-inspection.md). This validates the
 observed Create, Set Attribute List and contiguous definition-write profile.

@@ -114,13 +114,16 @@ batch execution and project commit remain unsupported.
 Version `.71` adds [temporary native Template models](docs/template-staging.md).
 The SDK batch's 242 Templates pass descriptor and contiguous-write validation;
 definitions remain opaque and the remaining batch operations are unsupported.
+Version `.72` adds [temporary Diagnostics Message models](docs/diagnostic-staging.md).
+Together with Templates, these model 863 of 904 records in the tested download
+batch. The remaining 41 records and complete batch execution are unsupported.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 949-test suite passes on Windows and Linux with expected platform skips;
+The 960-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.71` endpoint passes 291 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.
