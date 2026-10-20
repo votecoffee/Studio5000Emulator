@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.45` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
+| Native upload | `.46` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -643,6 +643,19 @@ descriptors and nine empty catalogs across 198 verified signed requests. It
 returns the existing Controller settings and Ethernet status, but still fails
 `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`; the normal exchange does not
 reach PCCC mapping. Client request ordering can vary.
+
+The rebuilt `.46` appliance passed 102 live protocol checks, including the new
+PCCC class revision, single/list empty descriptors and denied Execute PCCC.
+Its eight SDK connection steps passed across 85 verified signed requests and
+ended Offline. Deployed upload verified 196 requests and retained the same
+12 scalar reads/descriptors and nine empty catalogs, but failed controller
+collection after the Ethernet Link list. This exchange did not request the
+Controller handler list. A separate hold/read check completed 93 verified
+requests without correlation loss and ended Offline; SDK BOOL/DINT reads still
+fail `RxDA_E_NO_ONLINE_ADDRESS`. Source ACD bytes, model values and zero scan
+count were preserved with writes disabled. Deployed modules, browser assets,
+version and Windows artifact matched source. Full upload/download, native
+monitoring and online edits remain unfinished.
 
 ### Change Log correlation
 
