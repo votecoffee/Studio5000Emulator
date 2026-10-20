@@ -691,6 +691,8 @@ class Router:
         name=program['name'].encode('ascii')
         attributes={28:struct.pack('<I',len(name))+name} if len(name)<=40 else {}
         attributes.update(self.app.engine.project.program_forces.attributes(program['name']))
+        attributes.update(self.app.engine.project.program_configuration.attributes(
+            program['name'],source_sha256=self.app.engine.project.sha256))
         return self.attribute_read(service,path,data,attributes)
 
     @staticmethod
@@ -1245,6 +1247,7 @@ class Endpoint:
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
+                    'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
