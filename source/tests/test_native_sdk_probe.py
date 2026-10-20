@@ -1,11 +1,26 @@
 """The optional native probe cannot silently select another target or source."""
 import copy
+from pathlib import Path
+import tempfile
 import unittest
 
-from tools.probe_native_sdk import validate_target, validate_url
+from tools.probe_native_sdk import runtime_hashes, validate_target, validate_url
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_runtime_evidence_changes_when_managed_code_changes_under_the_same_apphost(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);(root/'probe.exe').write_bytes(b'same-apphost')
+            (root/'probe.dll').write_bytes(b'first managed implementation')
+            (root/'probe.runtimeconfig.json').write_text('{}')
+            (root/'private.pdb').write_bytes(b'debug paths')
+            before=runtime_hashes(root)
+            (root/'probe.dll').write_bytes(b'changed managed implementation')
+            after=runtime_hashes(root)
+            self.assertEqual(before['probe.exe'],after['probe.exe'])
+            self.assertNotEqual(before['probe.dll'],after['probe.dll'])
+            self.assertEqual(set(after),{'probe.exe','probe.dll','probe.runtimeconfig.json'})
+
     def state(self):
         return {'instance_id': 'one-session', 'device_io': {'writes_enabled': False},
                 'connectivity': {'enabled': True, 'profile': 'logix-v35-l85e',

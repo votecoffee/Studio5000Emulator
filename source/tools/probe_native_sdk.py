@@ -29,6 +29,14 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def runtime_hashes(folder):
+    # A .NET apphost EXE can stay identical while its managed DLL changes.
+    # Record the executable code and runtime configuration, not just the host.
+    return {path.relative_to(folder).as_posix(): digest(path)
+            for path in sorted(Path(folder).rglob('*'))
+            if path.is_file() and path.suffix.lower() in ('.exe', '.dll', '.json')}
+
+
 def validate_url(url):
     value = urlsplit(url)
     if (value.scheme != 'http' or value.hostname != '127.0.0.1' or
@@ -107,6 +115,9 @@ def run(args):
     executable = output / 'bin/NativeSdkProbe.exe'
     summary = dict(operation=args.operation, version=state['app_version'], instance_id=instance,
                    source_sha256=source_hash, harness_sha256=digest(executable),
+                   harness_runtime_sha256=runtime_hashes(output / 'bin'),
+                   harness_source_sha256={name: digest(SOURCE / 'tools/native_sdk_probe' / name)
+                                          for name in ('Program.cs', 'NativeSdkProbe.csproj')},
                    status='incomplete', native_controller_equivalence='NOT ASSESSED')
     try:
         with (output / 'sdk.log').open('wb') as log:

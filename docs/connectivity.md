@@ -15,6 +15,17 @@ still fails controller collection. Private Time Sync layout/revision and context
 handle experiments did not resolve these failures and are not included in the
 application.
 
+The `.55` suite passes 790 tests on both platforms, with two Windows skips and
+one Linux skip. The rebuilt executable's embedded version and web assets match
+source, and the running appliance passed 185 wire checks. The public probe
+completed its connection/Offline cleanup sequence with 82 verified signed
+requests; source ACD bytes and modeled values were preserved. The Windows
+helpers run without console windows, and no Windows service is reconfigured.
+Separate deployed probes verified 83 signed requests for the failing generic
+BOOL read and 193 for the failing upload. Both confirmed Offline cleanup. The
+tag failure still sends no tag-read packet; upload retains 12 scalar reads and
+12 Symbol descriptors before controller collection fails.
+
 ## Native SDK online connection
 
 Version `0.6.0-connectivity.30` completed the native SDK sequence: open the
@@ -90,7 +101,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.54` deployed test preserves scalar discovery and supported controller metadata; I/O/SFC status polls succeed; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.55` deployed probe preserves scalar discovery and supported controller metadata; I/O/SFC status polls succeed; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 

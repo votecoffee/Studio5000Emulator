@@ -68,6 +68,8 @@ are retained as failures even when connection succeeds. A timeout is incomplete;
 inspect the retained diagnostics before starting another attempt. Concurrent
 client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
+Reports hash the helper sources and runtime files, including its managed DLL;
+the .NET apphost EXE alone does not identify the executed implementation.
 
 Windows appliance subprocesses use `tools.vmware_appliance.background_options()`
 to request `CREATE_NO_WINDOW`; apply the same policy to private SSH validation

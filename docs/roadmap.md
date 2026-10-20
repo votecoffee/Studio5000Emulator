@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.52` preserves source-bound Program IDs even for programs
+Current milestone: `.55` provides a repeatable, read-only native SDK acceptance
+probe with private ACD copies, per-step results, runtime/source hashes and protocol
+traces. Its rebuilt endpoint passes the SDK connection sequence; tag address
+discovery and complete native upload/download remain unfinished. `.54` supplies
+source-checked empty I/O and SFC force status for supported projects.
+
+Version `.52` preserves source-bound Program IDs even for programs
 without local tags. Read-only Program discovery supplies instance lists, class
 counts and names; numeric program paths address their empty child catalogs.
 Compiled address discovery and full native upload remain unfinished.
