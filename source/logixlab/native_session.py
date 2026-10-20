@@ -116,6 +116,7 @@ def description(enabled):
     return {'enabled': enabled, 'anonymous': True, 'read_only': True,
             'confirmation_proof_verified': False, 'peer_identity_verified': False,
             'operator_authorization': False, 'signed_batches': enabled,
+            'signed_transfer_container':enabled,
             'timeline_acknowledgement':'Existing nonzero source UID retained',
             'timeline_initialization':False, 'timeline_replacement':False,
             'controller_mode': 'Program' if enabled else None,

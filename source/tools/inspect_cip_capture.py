@@ -106,6 +106,8 @@ def envelope_description(envelope, include_payloads):
     else:
         result.update(container_format=envelope.container_format,
                       inner=describe(envelope.inner, include_payloads, unwrap=False))
+        if isinstance(envelope,signed_messages.TransferEnvelope):
+            result['container_control']=envelope.container_control
     return result
 
 
@@ -140,7 +142,7 @@ def describe(raw, include_payloads=False, *, unwrap=True):
     if include_payloads:
         message['message_hex'] = raw.hex()
     if (unwrap and not message['response'] and message['class_id'] == 2 and message['instance'] == 1 and
-            message['attribute'] is None and not message['symbolic_path'] and service in (0x36, 0x37, 0x38)):
+            message['attribute'] is None and not message['symbolic_path'] and service in (0x36, 0x37, 0x38, 0x39)):
         try:
             message['signed_envelope'] = envelope_description(signed_messages.parse_request(raw), include_payloads)
         except (signed_messages.EnvelopeError, ValueError) as error:

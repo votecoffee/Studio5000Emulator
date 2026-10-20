@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.64` adds [owner-scoped preparation](programming-preparation.md)
+Current milestone: `.65` adds [temporary library descriptors and the observed
+signed transfer envelope](library-staging.md). The SDK now reaches Metadata
+Definition creation. Library-data writes and metadata creation remain denied.
+Next: validated metadata staging and a verified library-data contract, then
+source-aware validation, atomic commit and rollback. Full native transfer,
+tag monitoring and online edits remain unfinished.
+
+Version `.64` adds [owner-scoped preparation](programming-preparation.md)
 and acknowledgement of unchanged disabled redundancy. The SDK now reaches
 library Create on class `0x37D`, which remains denied. Next: define bounded
 library staging, validation and atomic commit or rollback before accepting

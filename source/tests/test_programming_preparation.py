@@ -17,7 +17,7 @@ END=bytes.fromhex('6202208e2401')
 SINGLE=bytes.fromhex('0e03208e2401301a')
 LIST=bytes.fromhex('0302208e240101001a00')
 RETAIN=bytes.fromhex('0402208e24010100090000')
-CREATE=bytes.fromhex('080321007d0324010200030000000000020007004578616d706c65')
+LIBRARY_WRITE=bytes.fromhex('4d0321007d03240102000000020000000100000000')
 
 
 class PreparationModelTests(unittest.TestCase):
@@ -126,7 +126,7 @@ class PreparationSignedTests(unittest.TestCase):
                 self.assertEqual(self.send(RETAIN),bytes.fromhex('84000000010009000000') if configured is False else bytes.fromhex('84000c00'))
                 self.assertIs(self.app.engine.project.controller_configuration,current)
         self.assertEqual(self.send(RETAIN[:-1]+b'\1')[2],15)
-        self.assertEqual(self.send(CREATE)[2],15)
+        self.assertEqual(self.send(LIBRARY_WRITE)[2],15)
         self.assertEqual(self.send(bytes.fromhex('6102208e2401'))[2],15)
         self.assertEqual(self.send(END)[2],0)
         self.assertEqual(self.send(RETAIN)[2],12)
@@ -146,9 +146,9 @@ class PreparationSignedTests(unittest.TestCase):
             self.assertEqual(self.signed(8,SINGLE),bytes.fromhex('8e00000000000000'))
         finally:self.client=first;second.close()
 
-    def test_signed_batch_keeps_create_denied_and_end_does_not_clear_inhibit(self):
+    def test_signed_batch_keeps_library_data_denied_and_end_does_not_clear_inhibit(self):
         self.acquire();self.app.engine.project.controller_configuration=replace(self.app.engine.project.controller_configuration,redundancy_configured=False)
-        children=(inhibits.SET,BEGIN,LIST,RETAIN,CREATE,END,LIST,inhibits.SINGLE,inhibits.CLEAR)
+        children=(inhibits.SET,BEGIN,LIST,RETAIN,LIBRARY_WRITE,END,LIST,inhibits.SINGLE,inhibits.CLEAR)
         raw=batch(children,sequence=self.sequence);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
         parsed=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
         self.assertEqual([v[2] for v in parsed.children],[0,0,0,0,15,0,0,0,0])

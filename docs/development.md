@@ -66,7 +66,8 @@ project-transfer authority remains disabled. Its temporary coordination lease
 and Run Mode Inhibit can be exercised. Version `.64` adds owner-scoped
 [preparation](programming-preparation.md) and retention of source-established
 disabled redundancy. Full native download is unfinished; the current
-implementation rejects library Create on class `0x37D`. This expected
+implementation rejects library-data writes and Metadata Definition Create on
+class `0x349`, after `.65` descriptor staging. This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
 
@@ -167,6 +168,14 @@ to be prepared and retain a source-established disabled redundancy setting.
 Keep this coordination state independent of immutable configuration and future
 transfer staging. See [download preparation](programming-preparation.md) for
 the current library Create boundary and lifecycle tests.
+
+Version `.65` puts only bounded library descriptors in `library_staging.py`.
+The owning lease clears them on preparation exit, inhibit clearing and all lease
+cleanup paths. Keep these descriptors independent of the loaded project and
+filesystem. `signed_messages.TransferEnvelope` covers only the observed
+`0x39` format/control; unsupported controls fail before dispatch. Its live policy
+requires an already bound context and preserves library-data write denials.
+See [library staging](library-staging.md) for limits, vectors and native evidence.
 
 ## Device I/O
 

@@ -1,5 +1,9 @@
 # Native download preparation
 
+Version `.65` extends this preparation with
+[temporary library descriptors](library-staging.md). The notes below record
+the `.64` milestone and its then-current library Create boundary.
+
 Version `0.6.0-connectivity.64` adds an owner-scoped preparation state to the
 native coordination lease. The tested v35 SDK advances past Controller setup
 and reaches a library-object Create request. Project transfer, commit and

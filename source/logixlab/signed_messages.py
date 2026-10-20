@@ -1,9 +1,9 @@
-"""Offline codec for the observed v35 Message Router 0x36-0x38 envelopes.
+"""Offline codec for observed v35 Message Router 0x36-0x39 envelopes.
 
 Parsing establishes structure only. Verification requires the caller's 20-byte
 test/session key and covers the complete CIP message before its MAC.
 This module retains no keys, opens no connections and dispatches no operations.
-Single and batch MACs cover the complete wrapper before its final 20 bytes.
+Single, batch and transfer MACs cover the wrapper before its final 20 bytes.
 Confirmation and peer authentication remain unimplemented. This codec never
 dispatches requests; the optional native endpoint applies a read-only policy.
 """
@@ -17,6 +17,7 @@ TRAILER_BYTES = 24  # Little-endian UDINT counter followed by a SHA-1 MAC.
 ROUTER_PATH = b'\x20\x02\x24\x01'
 CONTAINER_FORMAT = 0x301
 MAX_BATCH_CHILDREN = 256  # Implementation limit, not an asserted protocol limit.
+TRANSFER_CONTROL = 1  # Only the observed single-inner 0x39 container is supported.
 
 
 class EnvelopeError(ValueError):
@@ -29,6 +30,11 @@ class Envelope:
     sequence: int
     inner: bytes
     container_format: int | None = None
+
+
+@dataclass(frozen=True)
+class TransferEnvelope(Envelope):
+    container_control: int = TRANSFER_CONTROL
 
 
 @dataclass(frozen=True)
@@ -54,7 +60,9 @@ def _inner(data, service):
     format_word, size = struct.unpack_from('<II', data)
     if format_word != CONTAINER_FORMAT:
         raise EnvelopeError('Unsupported single-packet container format')
-    if size != len(data) - 8:
+    if service == 0x39 and size != TRANSFER_CONTROL:
+        raise EnvelopeError('Unsupported transfer container control')
+    if service == 0x37 and size != len(data) - 8:
         raise EnvelopeError('Single-packet container length mismatch')
     return data[8:], format_word
 
@@ -115,11 +123,14 @@ def _batch_request_context(request):
 
 def _request_context(request):
     if (not isinstance(request, Envelope) or type(request.service) is not int or
-            request.service not in (0x36, 0x37) or
+            request.service not in (0x36, 0x37, 0x39) or
             type(request.sequence) is not int or not 0 <= request.sequence <= 0xFFFFFFFF or
             not isinstance(request.inner, bytes) or not 2 <= len(request.inner) <= MAX_MESSAGE or
             request.inner[0] & 0x80 or 2 + 2 * request.inner[1] > len(request.inner) or
-            request.container_format != (CONTAINER_FORMAT if request.service == 0x37 else None)):
+            request.container_format != (None if request.service == 0x36 else CONTAINER_FORMAT) or
+            (request.service == 0x39 and (not isinstance(request,TransferEnvelope) or
+             type(request.container_control) is not int or request.container_control != TRANSFER_CONTROL)) or
+            (request.service != 0x39 and isinstance(request,TransferEnvelope))):
         raise EnvelopeError('A supported parsed request is required')
 
 
@@ -127,7 +138,7 @@ def parse_request(raw):
     """Decode one observed envelope without asserting MAC validity."""
     _bounded(raw)
     service = raw[0]
-    if service not in (0x36, 0x37, 0x38):
+    if service not in (0x36, 0x37, 0x38, 0x39):
         raise EnvelopeError('Unsupported signed request service')
     if raw[1] != 2 or raw[2:6] != ROUTER_PATH:
         raise EnvelopeError('Expected the observed Message Router instance 1 path')
@@ -136,7 +147,8 @@ def parse_request(raw):
         return BatchEnvelope(service, sequence, _batch_children(raw[6:-TRAILER_BYTES]))
     inner, format_word = _inner(raw[6:-TRAILER_BYTES], service)
     _check_inner_request(inner)
-    return Envelope(service, sequence, inner, format_word)
+    kind = TransferEnvelope if service == 0x39 else Envelope
+    return kind(service, sequence, inner, format_word)
 
 
 def verify_request(raw, key, *, expected_sequence):
@@ -180,7 +192,8 @@ def parse_response(raw, request):
     sequence = struct.unpack_from('<I', raw, len(raw)-TRAILER_BYTES)[0]
     if sequence != request.sequence:
         raise EnvelopeError('Response counter does not match its request')
-    return Envelope(request.service, sequence, inner, format_word)
+    kind = TransferEnvelope if request.service == 0x39 else Envelope
+    return kind(request.service, sequence, inner, format_word)
 
 
 def verify_response(raw, key, *, request):
@@ -203,8 +216,9 @@ def encode_response(request, inner, key):
     if not isinstance(inner, bytes) or len(inner) > MAX_MESSAGE:
         raise EnvelopeError('Embedded reply must be bounded immutable bytes')
     body = inner
-    if request.service == 0x37:
-        body = struct.pack('<II', CONTAINER_FORMAT, len(inner)) + inner
+    if request.service in (0x37,0x39):
+        control = TRANSFER_CONTROL if request.service == 0x39 else len(inner)
+        body = struct.pack('<II', CONTAINER_FORMAT, control) + inner
     raw = bytes((request.service | 0x80, 0, 0, 0)) + body + struct.pack('<I', request.sequence)
     # Validate the same strict framing/counter/inner-header contract before
     # signing. The placeholder has the final MAC's length and is never returned.

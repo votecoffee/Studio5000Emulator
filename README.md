@@ -95,15 +95,17 @@ its TCP clients, lease and scan inhibit clear after cleanup. The actual native
 programming service remains unfinished.
 Version `.64` adds [owner-scoped download preparation](docs/programming-preparation.md)
 and an acknowledgement that retains disabled redundancy from source. The SDK
-now advances to library-object creation, which remains denied pending transfer
-staging and rollback.
+reached library-object creation in that revision.
+Version `.65` adds [temporary library descriptors and signed transfer envelopes](docs/library-staging.md).
+The SDK now reaches Metadata Definition creation; library-data writes and
+project commit remain denied.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Its then-current download boundary
 was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 861-test suite passes on Windows and Linux with expected platform skips;
+The 877-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.64` endpoint passes 273 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.
@@ -189,7 +191,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
-| Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
+| Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches and observed single-inner `0x39` transfers with reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |

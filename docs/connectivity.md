@@ -5,6 +5,13 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.65` adds [library descriptor staging and the observed `0x39` envelope](library-staging.md).
+Create/Delete affect only a prepared owner's bounded temporary descriptors.
+Signed transfer messages share the native session counter and read policy;
+library-data writes remain denied. A final-source SDK attempt reaches Metadata
+Definition Create on class `0x349`, which is still rejected. No native library
+binaries or project changes are installed.
+
 Version `.64` adds [owner-scoped download preparation](programming-preparation.md).
 The lease owner can begin/end preparation and acknowledge source-established
 disabled redundancy without changing configuration. Single/list reads expose
@@ -219,7 +226,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.64` accepts owner-scoped preparation and unchanged redundancy; library Create remains denied | Library staging, transfer, validation and atomic model replacement |
+| Native download | `.65` stages library descriptors and verifies transfer envelopes; data writes and Metadata Definition Create remain denied | Validated metadata and library-data staging, transfer and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template
@@ -1534,6 +1541,11 @@ keys, captured replies, private projects and diagnostic harnesses are not bundle
 The `.20` behavioral suite passed 482 tests on each of Windows and Linux.
 
 ## Offline signed-envelope codec
+
+Version `.65` extends the codec with the observed single-inner `0x39` container:
+format `0x301`, control `1` and the shared counter/MAC trailer. Its structural
+decode and live write-denial contract are described in
+[library staging](library-staging.md#observed-0x39-contract).
 
 Version `0.6.0-connectivity.21` adds an offline codec and capture-report fields
 for the observed Message Router class `0x02`, instance 1 envelopes. It does not

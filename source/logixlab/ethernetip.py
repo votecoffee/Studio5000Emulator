@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_rejections, native_session, programming_lease, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, native_rejections, native_session, programming_lease, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -210,6 +210,23 @@ class Router:
                     operation(native,self.app.generation,self.app.engine.project.sha256)
                     self.endpoint.counts['native_semaphore_acquire' if inner[0]==0x4B else 'native_semaphore_release']+=1
                 return reply(inner[0])
+            if inner[0] in (8,9) and path.class_id==0x37D:
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance is None or not 1<=path.instance<=65535:return reject(5,'invalid_request')
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if inner[0]==8:
+                        value=lease.libraries.create(path.instance,payload)
+                    else:
+                        exact(payload,0);lease.libraries.delete(path.instance);value=b''
+                    self.endpoint.counts['native_library_create' if inner[0]==8 else 'native_library_delete']+=1
+                return reply(inner[0],0,value)
             if inner[0] in (0x60,0x62) and path.class_id==0x8E:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
@@ -272,6 +289,7 @@ class Router:
         except CIPError as error:return reject(error.status,'invalid_request')
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
         except programming_lease.LeaseError as error:return reject(error.status,error.reason)
+        except library_staging.LibraryError as error:return reject(error.status,error.reason)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
@@ -754,11 +772,13 @@ class Router:
                     if not getattr(session,'native',None):raise CIPError(0x0F,'Native challenge required')
                     return 0,session.native.acknowledge(data)
                 except (native_session.NativeError,key_exchange.OfferError) as error:raise CIPError(error.status,str(error)) from error
-            if path.class_id==2 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x36,0x37,0x38):
+            if path.class_id==2 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x36,0x37,0x38,0x39):
                 native=getattr(session,'native',None)
                 if native is None:raise CIPError(0x0F,'Native compatibility session required')
                 try:envelope=native.consume(raw)
-                except native_session.NativeError as error:raise CIPError(error.status,str(error)) from error
+                except native_session.NativeError as error:
+                    with self.endpoint.lock:self.endpoint.programming_lease.discard(native)
+                    raise CIPError(error.status,str(error)) from error
                 self.endpoint.record('native_verified',sequence=envelope.sequence,stage=native.stage)
                 if isinstance(envelope,signed_messages.BatchEnvelope):
                     count=len(envelope.children);available=limit-30-2*count
@@ -771,8 +791,9 @@ class Router:
                         children.append(result);available-=len(result)
                     encoded=signed_messages.encode_batch_response(envelope,tuple(children),native.key)
                 else:
-                    inner_limit=max(4,limit-(36 if envelope.service==0x37 else 28))
-                    result=self.native_read(envelope.inner,session,native,depth,inner_limit,budget)
+                    inner_limit=max(4,limit-(36 if envelope.service in (0x37,0x39) else 28))
+                    result=self.native_read(envelope.inner,session,native,depth,inner_limit,budget,
+                                            registration=envelope.service!=0x39)
                     if len(result)>inner_limit:result=reply(envelope.inner[0],0x1B)
                     encoded=signed_messages.encode_response(envelope,result,native.key)
                 return encoded[2],encoded[4:]
