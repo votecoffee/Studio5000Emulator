@@ -273,13 +273,19 @@ class Router:
                     lease=self.endpoint.programming_lease
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
                     if inner[0]==6:
-                        exact(payload,0);inspection=lease.transport.inspect_payload()
+                        exact(payload,0)
+                        native_types=getattr(self.app,'native_types',None)
+                        if native_types and (native_types.source_acd_sha256!=identity.source_acd_sha256
+                                or native_types.source_l5x_sha256!=self.app.engine.project.sha256):
+                            return reject(0x0C,'native_type_source_mismatch')
+                        inspection=lease.transport.inspect_payload(native_types)
                         self.endpoint.record('native_transport_inspection',expanded_bytes=inspection['expanded_bytes'],
                             record_count=inspection['record_count'],scoped_records=inspection['scoped_records'],records_executed=0)
                         staged=lease.transport.templates.description()
                         self.endpoint.record('native_template_staging',templates=staged['templates'],definition_bytes=staged['definition_bytes'],
                             records_modeled=staged['records_modeled'],write_fragments=staged['write_fragments'],unsupported_records=staged['unsupported_records'])
                         self.endpoint.record('native_template_layout_inspection',**staged['layout_inspection'])
+                        self.endpoint.record('native_source_type_verification',**lease.transport.source_type_verification)
                         diagnostics=lease.transport.diagnostics.description()
                         modeled=staged['records_modeled']+diagnostics['records_modeled']
                         self.endpoint.record('native_diagnostic_staging',messages=diagnostics['messages'],text_bytes=diagnostics['text_bytes'],
@@ -1259,6 +1265,7 @@ class Endpoint:
                         'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
+                    'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,

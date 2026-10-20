@@ -123,6 +123,14 @@ def validate_staging(lease):
                         any(layout.get(f) is not False for f in
                             ('storage_mapping_supported','signature_verified','definitions_exposed','execution_supported'))):
                     raise ValueError('Probe requires empty temporary Template layout inspection')
+        if 'source_type_verification' in stage:
+            check=stage['source_type_verification']
+            if (not isinstance(check,dict) or check.get('status')!='idle' or check.get('errors')!=[] or
+                    any(type(check.get(f)) is not int or check[f]!=0 for f in
+                        ('types_matched','members_matched','types_unavailable')) or
+                    any(check.get(f) is not False for f in ('member_locations_verified','storage_mapping_supported',
+                        'signature_verified','definitions_exposed','execution_supported'))):
+                raise ValueError('Probe requires empty source type verification')
         if 'diagnostic_staging' in stage:
             diagnostics=stage['diagnostic_staging']
             if (not isinstance(diagnostics,dict) or diagnostics.get('status')!='idle'

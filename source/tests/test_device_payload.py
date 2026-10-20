@@ -115,6 +115,45 @@ class PayloadCodecTests(unittest.TestCase):
 
 
 class InspectionModelTests(unittest.TestCase):
+    def test_source_member_verification_is_atomic_cached_and_clears_on_expiry(self):
+        from test_native_types import catalog,staged
+        rows=[]
+        for t in staged():
+            raw=t.definition+b'\0'*(-len(t.definition)%4)
+            records=list(templates.batch(t.instance,raw));records[1]=templates.request(4,templates.attrs(members=t.attributes.members,size=t.attributes.structure_bytes),t.instance)
+            rows.extend(records)
+        expanded=b''.join(record(r.request) for r in rows)
+        native=catalog();fill(self.stage,container(zlib.compress(expanded)),expanded)
+        with patch.object(native,'verify',wraps=native.verify) as verify:
+            self.stage.inspect_payload(native);self.stage.inspect_payload(native);self.assertEqual(verify.call_count,1)
+        value=self.stage.description()['source_type_verification'];self.assertEqual(value['status'],'matched')
+        self.assertEqual(value['members_matched'],6);self.assertEqual(self.stage.inspection['records_executed'],0)
+        with self.assertRaises(TransportError):self.stage.inspect_payload(catalog())
+        self.now+=ASSEMBLY_SECONDS
+        self.assertEqual(self.stage.description()['source_type_verification']['status'],'idle')
+        self.assertIsNone(self.stage._type_catalog)
+
+    def test_source_mismatch_publishes_no_completed_stages_and_caches_redacted_failure(self):
+        from test_native_types import catalog,source_types
+        from dataclasses import replace
+        t=source_types()[0];bad=replace(t,members=(replace(t.members[0],name='Different'),))
+        native=catalog(types=(bad,))
+        from test_template_layout import definition
+        raw=definition(header=b'Inner;n');raw+=b'\0'*(-len(raw)%4)
+        expanded=b''.join(record(r.request) for r in templates.batch(0x101,raw))
+        fill(self.stage,container(zlib.compress(expanded)),expanded)
+        with patch.object(native,'verify',wraps=native.verify) as verify:
+            for _ in range(2):
+                with self.assertRaises(TransportError) as error:self.stage.inspect_payload(native)
+                self.assertEqual(error.exception.reason,'source_type_verification_failed')
+            self.assertEqual(verify.call_count,1)
+        report=self.stage.description();self.assertEqual(report['source_type_verification']['status'],'mismatch')
+        self.assertEqual(report['template_staging']['templates'],0)
+        self.assertEqual(report['object_staging']['records_modeled'],0);self.assertEqual(report['diagnostic_staging']['messages'],0)
+        report['source_type_verification']['errors'][0]['reason']='mutated'
+        self.assertNotEqual(self.stage.description()['source_type_verification']['errors'][0]['reason'],'mutated')
+        self.stage.clear_fragments();self.assertIsNone(self.stage.type_error)
+
     def setUp(self):self.now=100.;self.stage=ResilientTransport(lambda:self.now)
 
     def test_completed_payload_inspection_is_cached_and_summary_is_defensive(self):
@@ -187,6 +226,24 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
+    def test_signed_source_comparison_checks_binding_then_preserves_execution_denial(self):
+        from test_native_types import catalog,source_types
+        from test_template_layout import definition
+        raw=definition(header=b'Inner;n');raw+=b'\0'*(-len(raw)%4)
+        self.stage(b''.join(record(r.request) for r in templates.batch(0x101,raw)))
+        identity=self.app.native_project_identity
+        self.app.native_types=catalog(acd='f'*64,l5x=self.app.engine.project.sha256,types=source_types()[:1])
+        self.assertEqual(self.send(INSPECT)[2],12)
+        self.app.native_types=catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256,types=source_types()[:1])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000f00'))
+        result=self.description()['source_type_verification'];self.assertTrue(result['member_locations_verified'])
+        self.assertEqual(result['members_matched'],1)
+        events=[e for e in self.endpoint.state(True)['events'] if e['kind']=='native_source_type_verification']
+        self.assertEqual(len(events),1);self.assertNotIn('Inner',json.dumps(events))
+        for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
+        self.send(transport.DELETE);self.assertEqual(self.description()['source_type_verification']['status'],'idle')
+
     def test_decoded_members_emit_private_summary_and_still_deny_execution(self):
         from test_template_layout import definition
         raw=definition(((31,0xC1,0xF0000000),),trailer=b'PrivateTrailer')
@@ -301,11 +358,49 @@ class InspectionSignedTests(unittest.TestCase):
             self.assertEqual(self.endpoint.programming_lease.transport.description()['template_staging']['layout_inspection']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['diagnostic_staging']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['object_staging']['status'],'idle')
+            self.assertEqual(self.endpoint.programming_lease.transport.description()['source_type_verification']['status'],'idle')
             if action in ('reset','reload','disconnect'):
                 self.client.close();self.client=leases.Client(self.endpoint.port);self.client.register()
 
 
 class InspectionToolTests(unittest.TestCase):
+    def source_fixture(self,folder):
+        from test_native_types import XML
+        from test_native_symbols import container as acd_container
+        from test_template_layout import definition
+        raw=definition(((1,0xC1,0xA0000002),(3,0x20C3,0xF0000004)),(b'Flag',b'Values'))
+        raw+=b'\0'*(-len(raw)%4)
+        rows=list(templates.batch(data=raw));rows[1]=templates.request(4,templates.attrs(members=2,size=12))
+        expanded=b''.join(record(r.request) for r in rows)
+        source=folder/'payload.bin';source.write_bytes(container(zlib.compress(expanded)))
+        acd=folder/'source.ACD';acd.write_bytes(acd_container(XML.encode()))
+        l5x=folder/'source.L5X';l5x.write_text('synthetic binding bytes')
+        return source,acd,l5x,expanded
+
+    def test_offline_source_comparison_records_hashes_without_exposing_types(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=Path(folder);source,acd,l5x,expanded=self.source_fixture(p);out=p/'report.json'
+            result=run(source,out,len(expanded),inspect_templates=True,source_acd=acd,source_l5x=l5x)
+            self.assertEqual(result['source_type_verification']['status'],'matched')
+            self.assertEqual(result['source_type_verification']['members_matched'],2)
+            self.assertTrue(result['sources_unchanged'])
+            for text in ('Example','Flag','Values','synthetic binding bytes'):self.assertNotIn(text,out.read_text())
+            for target in (source,acd,l5x):
+                with self.assertRaises(ValueError):run(source,target,len(expanded),inspect_templates=True,source_acd=acd,source_l5x=l5x)
+            for kw in ({'source_acd':acd},{'source_acd':acd,'source_l5x':l5x}):
+                with self.assertRaises(ValueError):run(source,p/'unused.json',len(expanded),**kw)
+
+    def test_offline_changed_source_is_detected_before_report_creation(self):
+        from logixlab.native_types import NativeTypes
+        with tempfile.TemporaryDirectory() as folder:
+            p=Path(folder);source,acd,l5x,expanded=self.source_fixture(p);out=p/'report.json'
+            original=NativeTypes.verify
+            def mutate(value,templates):
+                l5x.write_text('changed');return original(value,templates)
+            with patch.object(NativeTypes,'verify',mutate),self.assertRaises(ValueError):
+                run(source,out,len(expanded),inspect_templates=True,source_acd=acd,source_l5x=l5x)
+            self.assertFalse(out.exists())
+
     def test_optional_template_inspection_reports_counts_without_names_or_payloads(self):
         from test_template_layout import definition
         raw=definition(trailer=b'private-trailer');raw+=b'\0'*(-len(raw)%4)

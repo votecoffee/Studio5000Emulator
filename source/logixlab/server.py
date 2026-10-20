@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 from .importers import convert_acd, default_converter
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
+from .native_types import NativeTypes
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -44,6 +45,7 @@ class Application:
         self.provenance = {}
         self.native_project_identity = None
         self.native_symbols = None
+        self.native_types = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -247,6 +249,17 @@ class Application:
                     if native_identity and native_symbols.source_acd_sha256 != native_identity.source_acd_sha256:
                         raise ModelError('Native symbol and correlation manifests refer to different ACD files')
                     provenance['native_symbols'] = native_symbols.manifest()
+                type_manifest = provenance.get('native_types')
+                if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_types' in data:
+                    type_manifest = data['native_types']
+                native_types = NativeTypes.from_manifest(type_manifest, project.sha256) if type_manifest is not None else None
+                if native_types:
+                    if any(binding and binding.source_acd_sha256 != native_types.source_acd_sha256
+                           for binding in (native_identity, native_symbols)):
+                        raise ModelError('Native type and project manifests refer to different ACD files')
+                    # Keep the full catalog in its own bound object. Polling and
+                    # snapshot provenance must not repeat megabytes of members.
+                    provenance['native_types'] = native_types.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -258,6 +271,7 @@ class Application:
                     self.scan_interval_ms = self.default_scan_interval()
                     self.native_project_identity = native_identity
                     self.native_symbols = native_symbols
+                    self.native_types = native_types
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

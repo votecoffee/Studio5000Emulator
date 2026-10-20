@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.76` adds [native Template member inspection](template-layout-inspection.md).
+Current milestone: `.77` adds [source-bound member verification](source-type-verification.md).
+Staged type sizes, member locations, types and references must agree with the
+original ACD metadata; mismatches reject temporary processing atomically. The
+demo matches all 242 types and 13,312 members. Storage mapping, trailers and the
+complete device-operation/commit contract remain unfinished.
+
+Version `.76` adds [native Template member inspection](template-layout-inspection.md).
 The demo download's 242 temporary Templates decode into 13,312 members; native
 offset encodings and trailers remain opaque, and no storage mapping or execution
 is enabled. Next: verify those encodings, member extents and nested types, then

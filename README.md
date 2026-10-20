@@ -13,6 +13,8 @@ ties native mode requests and webpage controls to the same scan worker.
 Version `.75` adds transactional Run-entry prescan and first-scan initialization.
 Version `.76` adds [member inspection of temporary native type definitions](docs/template-layout-inspection.md)
 as groundwork for validating storage layouts; encoded offsets and trailers remain opaque.
+Version `.77` [checks staged members against the original ACD type metadata](docs/source-type-verification.md)
+and rejects source/layout mismatches. Native storage mapping remains unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

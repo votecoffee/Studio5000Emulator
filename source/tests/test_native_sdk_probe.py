@@ -13,6 +13,22 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_source_type_verification_must_be_idle_and_not_retain_prior_matches(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();lease=state['connectivity']['native_programming_lease']
+        lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
+        for field,value in (('status','matched'),('types_matched',1),('members_matched',1),('types_unavailable',1),
+                ('types_matched',False),('errors',[{'reason':'source_member_type_mismatch','types':1}]),
+                ('member_locations_verified',True),('storage_mapping_supported',True),
+                ('signature_verified',True),('definitions_exposed',True),('execution_supported',True)):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['source_type_verification'][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,{},[]):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['source_type_verification']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_layout_inspection_must_be_idle_empty_and_without_execution_authority(self):
         from logixlab.resilient_transport import ResilientTransport
         state=self.state();lease=state['connectivity']['native_programming_lease']

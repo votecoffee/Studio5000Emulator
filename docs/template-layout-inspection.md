@@ -1,5 +1,9 @@
 # Native Template member inspection
 
+Version `.77` adds [source-bound member verification](source-type-verification.md)
+for the observed offset profile. Opaque trailers and native storage mapping
+remain unfinished.
+
 Version `0.6.0-connectivity.76` decodes the member entries and names in temporary
 [Template definitions](template-staging.md). This is structural inspection;
 native storage mapping, device execution, tag monitoring and full download

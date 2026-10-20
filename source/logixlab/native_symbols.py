@@ -19,6 +19,26 @@ MAX_SYMBOLS = 100_000
 NAME = re.compile(r'[A-Za-z_][A-Za-z_0-9:]{0,254}\Z')
 
 
+def read_tag_info(path, limit=MAX_XML):
+    """Read the bounded, versioned TagInfo XML without extracting ACD paths."""
+    digest, raw = acd_stream(path, 'TagInfo.XML')
+    try:
+        reader = gzip.GzipFile(fileobj=io.BytesIO(raw)) if raw[:2] == b'\x1f\x8b' else io.BytesIO(raw)
+        with reader: data = reader.read(limit+1)
+        if len(data) > limit: raise ModelError('Native tag XML exceeds the expanded size limit')
+        text = data.decode('utf-16' if data[:2] in (b'\xff\xfe', b'\xfe\xff') else 'utf-8-sig')
+        if '\0' in text or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
+            raise ModelError('Native tag XML cannot contain DTDs or entities')
+        root = ET.fromstring(text)
+    except (OSError, EOFError, UnicodeError, ET.ParseError, zlib.error) as error:
+        raise ModelError('Invalid native tag XML') from error
+    if root.tag != 'LogixTagInfo' or len(root.findall('SchemaVersion')) != 1:
+        raise ModelError('Unsupported native tag XML schema')
+    if root.find('SchemaVersion').attrib != {'Major': '1', 'Minor': '0'}:
+        raise ModelError('Unsupported native tag XML schema revision')
+    return digest, root
+
+
 @dataclass(frozen=True)
 class Symbol:
     scope: str
@@ -101,21 +121,7 @@ class NativeSymbols:
 
     @classmethod
     def from_acd(cls, path, source_l5x_sha256):
-        digest, raw = acd_stream(path, 'TagInfo.XML')
-        try:
-            reader = gzip.GzipFile(fileobj=io.BytesIO(raw)) if raw[:2] == b'\x1f\x8b' else io.BytesIO(raw)
-            with reader: data = reader.read(MAX_XML+1)
-            if len(data) > MAX_XML: raise ModelError('Native tag XML exceeds the expanded size limit')
-            text = data.decode('utf-16' if data[:2] in (b'\xff\xfe', b'\xfe\xff') else 'utf-8-sig')
-            if '\0' in text or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
-                raise ModelError('Native tag XML cannot contain DTDs or entities')
-            root = ET.fromstring(text)
-        except (OSError, EOFError, UnicodeError, ET.ParseError, zlib.error) as error:
-            raise ModelError('Invalid native tag XML') from error
-        if root.tag != 'LogixTagInfo' or len(root.findall('SchemaVersion')) != 1:
-            raise ModelError('Unsupported native tag XML schema')
-        if root.find('SchemaVersion').attrib != {'Major': '1', 'Minor': '0'}:
-            raise ModelError('Unsupported native tag XML schema revision')
+        digest, root = read_tag_info(path, MAX_XML)
         symbols = []
         groups = [('', root.findall('./Tags/Tag'))]
         for program in root.findall('./Programs/Program'):

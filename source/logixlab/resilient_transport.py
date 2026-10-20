@@ -9,6 +9,7 @@ from . import device_payload
 from .template_staging import TemplateStaging,TemplateError
 from .diagnostic_staging import DiagnosticStaging,DiagnosticError
 from .object_staging import ObjectStaging,ObjectError
+from .native_types import verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
 
 MAX_BUFFER_BYTES = 262144
@@ -36,17 +37,21 @@ class ResilientTransport:
         self.templates=TemplateStaging();self.template_error=None
         self.diagnostics=DiagnosticStaging();self.diagnostic_error=None
         self.objects=ObjectStaging();self.object_error=None
+        self.source_type_verification=verification();self.type_error=None;self._type_catalog=None
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
 
-    def inspect_payload(self):
+    def inspect_payload(self, native_types=None):
         self.expire()
         if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
         if self.inspection['status']=='invalid':raise TransportError(3,self.inspection['reason'])
         if self.template_error:raise TransportError(3,self.template_error)
         if self.diagnostic_error:raise TransportError(3,self.diagnostic_error)
         if self.object_error:raise TransportError(3,self.object_error)
+        if self.type_error:raise TransportError(3,self.type_error)
+        if self.inspection['status']=='decoded' and self._type_catalog is not native_types:
+            raise TransportError(0x0C,'native_type_binding_changed')
         if self.inspection['status']=='decoded':return self.inspection
         expected=struct.unpack_from('<I',self.setup,12)[0]
         try:
@@ -68,6 +73,12 @@ class ResilientTransport:
         except ObjectError as error:
             self.object_error=error.reason
             raise TransportError(3,error.reason) from error
+        self._type_catalog=native_types
+        self.source_type_verification=(native_types.verify(templates.templates) if native_types is not None else
+                                       verification('unavailable' if templates.templates else 'idle'))
+        if self.source_type_verification['status']=='mismatch':
+            self.type_error='source_type_verification_failed'
+            raise TransportError(3,self.type_error)
         self.templates=templates;self.diagnostics=diagnostics;self.objects=objects
         return self.inspection
 
@@ -124,6 +135,8 @@ class ResilientTransport:
                 'complete':self.complete,'max_fragments':MAX_FRAGMENTS,'assembly_timeout_seconds':ASSEMBLY_SECONDS,
                 'payload_transfer':False,'commit':False,
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
+                'source_type_verification':{**self.source_type_verification,
+                    'errors':[dict(e) for e in self.source_type_verification['errors']]},
                 'template_staging':{**self.templates.description(),**({'status':'invalid','reason':self.template_error} if self.template_error else {})},
                 'diagnostic_staging':{**self.diagnostics.description(),**({'status':'invalid','reason':self.diagnostic_error} if self.diagnostic_error else {})},
                 'object_staging':{**self.objects.description(),**({'status':'invalid','reason':self.object_error} if self.object_error else {})},

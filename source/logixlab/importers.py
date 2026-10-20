@@ -9,6 +9,7 @@ from pathlib import Path
 from .model import ModelError
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
+from .native_types import NativeTypes
 
 def default_converter():
     """Resolve optional native tooling without depending on a checkout location."""
@@ -57,6 +58,10 @@ def convert_acd(source, destination, converter=None):
         manifest['native_symbols'] = NativeSymbols.from_acd(source, manifest['l5x_sha256']).manifest()
     except (ModelError, UnicodeError, OSError) as error:
         manifest['native_symbols_error'] = str(error)
+    try:
+        manifest['native_types'] = NativeTypes.from_acd(source, manifest['l5x_sha256']).manifest()
+    except (ModelError, UnicodeError, OSError) as error:
+        manifest['native_types_error'] = str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest
