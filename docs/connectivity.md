@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.53` deployed test preserves scalar discovery and Ethernet status and returns source pass-through configuration; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.54` deployed test preserves scalar discovery and supported controller metadata; I/O/SFC status polls succeed; controller collection still fails | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -566,11 +566,25 @@ The class reports implementation revision 1. Module instances, connections,
 forces and programming services remain unsupported. `io_map` diagnostics identify
 this source check; it is not a live physical I/O health measurement.
 
-Local SDK diagnostics also tested Time Sync absence, a complete one-port clock
+Local SDK diagnostics also tested Time Sync absence, a one-port clock response
 layout, and additional platform/memory class discovery with substituted upstream
 fields. None resolved controller collection. Those hypotheses and synthetic
 counters are excluded from the app; a final network request alone does not
 identify the cause of the SDK failure.
+
+The `.54` suite runs 785 tests: Windows passes 783 with two Linux-only skips;
+Linux passes 784 with one Windows-only skip. The rebuilt appliance passes 185
+live checks and all eight SDK connection steps across 82 verified signed
+requests, ending Offline. A separate Online/Program hold/read check completes
+90 verified requests. All 10 signed status batches succeed, with nine successful
+reads each of I/O force, I/O LED and SFC force status. Typed BOOL and generic
+BOOL/DINT reads still fail `RxDA_E_NO_ONLINE_ADDRESS` before a tag-read packet is
+sent. Upload retains the supported scalar reads and Symbol descriptors across
+193 verified requests and still fails `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`.
+Source ACD bytes, modeled initial values and zero scan count are preserved;
+network writes remain disabled. Deployed modules, browser assets/version and
+the Windows executable match `.54`. Full upload/download, online edits and
+Studio GUI tag/rung monitoring remain unfinished or unverified.
 
 ### Source pass-through configuration
 
