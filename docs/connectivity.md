@@ -5,6 +5,13 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.63` extends the [native SDK acceptance probe](development.md#native-sdk-acceptance-probe)
+with a repeatable download-preparation attempt. The endpoint must have no TCP
+clients, a free uninhibited lease and disabled programming authority before the
+SDK starts. Cleanup now confirms those conditions again, with a bounded wait for
+asynchronous socket closure. Failed operations remain failures. This revision
+does not add native transfer dispatch or compiled tag-address discovery.
+
 Version `.62` adds read-only [software clock descriptions](clock-descriptions.md)
 to Time Sync inventory: the product name, current app version and unassigned
 user description. These identify the software clock without assigning hardware

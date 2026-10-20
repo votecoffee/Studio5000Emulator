@@ -1,8 +1,9 @@
-"""Read-only native SDK acceptance against an already running LogixLab endpoint.
+"""Native SDK acceptance against an already running LogixLab research endpoint.
 
-The optional installed SDK runs on a private ACD copy. This tool never downloads,
-edits, changes controller mode or manages Windows services. Reports contain
-private project metadata and default to ignored .local storage.
+The optional installed SDK runs on a private ACD copy. Download attempts require
+disabled project transfer; temporary programming coordination is permitted.
+Reports contain private project metadata and default to ignored .local storage.
+This tool never edits, changes controller mode or manages Windows services.
 """
 from __future__ import annotations
 
@@ -69,6 +70,44 @@ def validate_target(state, path, source_hash, *, instance=None, l5x_hash=None):
     return state['instance_id']
 
 
+def validate_operation(operation, tags):
+    if operation not in ('connection', 'upload', 'download'):
+        raise ValueError('Expected connection, upload or download')
+    if operation != 'connection' and tags:
+        raise ValueError('Tag reads belong to a connection probe')
+    if len(tags) > 32 or any(not tag or len(tag) > 1024 for tag in tags):
+        raise ValueError('At most 32 nonempty tag XPaths of at most 1024 characters')
+
+
+def validate_idle(state):
+    """Do not share a programming test with an existing native connection."""
+    cip = state.get('connectivity', {})
+    lease = cip.get('native_programming_lease') or {}
+    clients = cip.get('active_tcp_clients')
+    mask = lease.get('run_mode_inhibit')
+    if (type(clients) is not int or clients != 0 or lease.get('available') is not True or
+            lease.get('owned') is not False or type(mask) is not int or mask != 0 or
+            lease.get('scan_inhibited') is not False or lease.get('project_transfer') is not False or
+            lease.get('controller_mode_changes') is not False or lease.get('online_edits') is not False or
+            lease.get('tag_write_authority') is not False):
+        raise ValueError('Probe requires an idle endpoint, free uninhibited lease and disabled programming authority')
+
+
+def wait_for_cleanup(url, path, source_hash, *, instance, l5x_hash, timeout=8):
+    """SDK Dispose may return before the TCP handler releases its lease."""
+    deadline = time.monotonic() + timeout
+    while True:
+        state = api(url, 'state')
+        validate_target(state, path, source_hash, instance=instance, l5x_hash=l5x_hash)
+        try:
+            validate_idle(state)
+            return state
+        except ValueError as error:
+            if time.monotonic() >= deadline:
+                raise ValueError('SDK cleanup did not close clients and clear the lease/inhibit') from error
+            time.sleep(.2)
+
+
 def run(args):
     if sys.platform != 'win32':
         raise ValueError('The optional native SDK probe requires Windows')
@@ -76,13 +115,11 @@ def run(args):
     source = Path(args.project).resolve(strict=True)
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
-    if args.operation == 'upload' and args.tag:
-        raise ValueError('Tag reads belong to a connection probe')
-    if len(args.tag) > 32 or any(not tag or len(tag) > 1024 for tag in args.tag):
-        raise ValueError('At most 32 nonempty tag XPaths of at most 1024 characters')
+    validate_operation(args.operation, args.tag)
     source_hash = digest(source)
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
+    validate_idle(initial)
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
         time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8])
@@ -108,9 +145,11 @@ def run(args):
     # Build can take time: recheck identity, policies and both source hashes now.
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
+    validate_idle(state)
     if digest(source) != source_hash or digest(copied) != source_hash:
         raise ValueError('Source changed before the native call')
     before = api(url, 'connectivity-trace', {})
+    (output / 'before-state.json').write_text(json.dumps(state, indent=2), encoding='utf-8')
     (output / 'before-trace.json').write_text(json.dumps(before, indent=2), encoding='utf-8')
     executable = output / 'bin/NativeSdkProbe.exe'
     summary = dict(operation=args.operation, version=state['app_version'], instance_id=instance,
@@ -118,7 +157,8 @@ def run(args):
                    harness_runtime_sha256=runtime_hashes(output / 'bin'),
                    harness_source_sha256={name: digest(SOURCE / 'tools/native_sdk_probe' / name)
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
-                   status='incomplete', native_controller_equivalence='NOT ASSESSED')
+                   status='incomplete', cleanup_confirmed=False,
+                   native_controller_equivalence='NOT ASSESSED')
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
@@ -130,12 +170,17 @@ def run(args):
         try:
             final = api(url, 'state')
             validate_target(final, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
+            (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
             trace = api(url, 'connectivity-trace', {})
             (output / 'trace.json').write_text(json.dumps(trace, indent=2), encoding='utf-8')
-            summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms'))
+            summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
             summary['native_verified_requests'] = (trace.get('counts', {}).get('native_verified', 0) -
                                                    before.get('counts', {}).get('native_verified', 0))
             summary['target_rechecked'] = True
+            final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
+            summary['cleanup_confirmed'] = True
+            (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
+            summary['model_unchanged'] = all(state[key] == final[key] for key in ('tags', 'scan', 'ms', 'changes', 'mode'))
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
         if not summary['source_unchanged'] or summary.get('model_unchanged') is False:
@@ -150,7 +195,7 @@ def main():
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
-    parser.add_argument('--operation', choices=('connection', 'upload'), default='connection')
+    parser.add_argument('--operation', choices=('connection', 'upload', 'download'), default='connection')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--output', help='New private output directory; default .local/native-probes/<unique run>')
     parser.add_argument('--sdk-feed', help='Optional installed SDK NuGet feed directory')

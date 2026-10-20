@@ -78,7 +78,7 @@ connection research. Its format-4 reports preserve nested object paths and
 requested attribute IDs while keeping symbols, values and raw bytes private by
 default. These analysis features do not establish native Studio Go Online.
 An optional [native SDK acceptance probe](docs/development.md#native-sdk-acceptance-probe)
-records connection, tag-read and upload attempts against the running emulator
+records connection, tag-read, upload and download-preparation attempts against the running emulator
 using private ACD copies and reports.
 The Linux appliance also exposes a documented subset of
 [Ethernet diagnostic counters](docs/ethernet-counters.md) from its virtual NIC
@@ -90,13 +90,16 @@ include acknowledgements that retain an existing source Timeline UID.
 [Nested I/O Connection discovery](docs/io-connection-discovery.md) preserves
 parent scope, and [native coordination](docs/programming-coordination.md)
 provides an exclusive session lease and a source-backed Local link-address read.
+Version `.63` adds a public SDK download-preparation probe and checks that
+its TCP clients, lease and scan inhibit clear after cleanup. The actual native
+programming service remains unfinished.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
 session's temporary scan guard and cleanup. Download preparation now reaches
 the unsupported Controller service `0x60`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 848-test suite passes on Windows and Linux with expected platform skips;
+The 853-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.62` endpoint passes 268 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.

@@ -49,7 +49,9 @@ py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.AC
 
 The address above is a documentation example; substitute the emulator IP. The
 probe checks the endpoint address, port, profile, source ACD/L5X hashes, instance
-and read-only policies before calling the SDK and again afterward. It builds its
+and read-only policies before calling the SDK and again afterward. Version `.63`
+also requires zero TCP clients, an available free lease, zero inhibit mask and
+disabled project-transfer, edit, tag-write and mode-change authority. It builds its
 helper and opens an ACD copy in a new ignored `.local/native-probes/` directory.
 Windows helper processes run without console windows. No service is stopped or
 reconfigured.
@@ -57,14 +59,32 @@ reconfigured.
 The default connection test records Go Online, connected state, controller mode,
 Go Offline and cleanup state. Add `--tag "Controller/Tags/Tag[@Name='Example']"`
 to test a generic online byte-array read; repeated `--tag` options are supported.
-Use `--operation upload` for a separate upload attempt. Download, online editing,
-tag setters and mode changes are intentionally absent from this diagnostic.
+Use `--operation upload` for a separate upload attempt. Version `.63` adds
+`--operation download` to call the public SDK's `DownloadAsync` against that same
+source-bound endpoint. This tests programming preparation while the endpoint's
+project-transfer authority remains disabled. Its temporary coordination lease
+and Run Mode Inhibit can be exercised; full native download is unfinished and
+the current implementation rejects Controller service `0x60`. This expected
+SDK failure still produces exit code one. Upload/download probes reject `--tag`;
+online edits, tag setters and mode changes remain outside this tool.
 
-`summary.json`, `sdk-result.json`, before/after protocol traces and build/SDK logs
-remain private. SDK results include each step, error types/messages, timings and
+For example, run the same probe with the explicit operation:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation download
+```
+
+`summary.json`, `sdk-result.json`, before/after app state and protocol traces,
+and build/SDK logs remain private. These files contain project paths and tag
+values. SDK results include each step, error types/messages, timings and
 timestamped events. Exit zero requires the requested steps to succeed, cleanup
-to confirm Offline, and source/model checks to pass. Failed tag reads or upload
-are retained as failures even when connection succeeds. A timeout is incomplete;
+to confirm Offline, endpoint cleanup and source/model checks to pass. Endpoint
+cleanup passively waits up to eight seconds for asynchronous socket closure,
+lease release and a zero inhibit mask. `cleanup_confirmed` records that check;
+it does not turn an unsupported operation into a success. The source-copy hashes,
+tags, scans, model time, change history and mode must remain unchanged.
+Failed tag reads, upload or download are retained as failures even when
+connection succeeds. A timeout is incomplete;
 inspect the retained diagnostics before starting another attempt. Concurrent
 client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.

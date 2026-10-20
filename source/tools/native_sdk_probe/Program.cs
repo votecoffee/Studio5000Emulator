@@ -8,7 +8,8 @@ using RockwellAutomation.LogixDesigner.Logging;
 // Only the public SDK is used. Inputs and reports belong in private storage.
 if (args.Length != 2) return 2;
 var options = JsonSerializer.Deserialize<Options>(File.ReadAllText(args[0]))!;
-if (options.Operation is not ("connection" or "upload") || options.Tags.Length > 32)
+if (options.Operation is not ("connection" or "upload" or "download") || options.Tags.Length > 32 ||
+    options.Operation != "connection" && options.Tags.Length != 0)
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
@@ -45,6 +46,8 @@ try
     await Step("ReadConnectedStateAsync:initial", async () => (await project!.ReadConnectedStateAsync()).ToString());
     if (options.Operation == "upload")
         await Step("UploadAsync", async () => { await project!.UploadAsync(); return true; });
+    else if (options.Operation == "download")
+        await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
     else
     {
         await Step("GoOnlineAsync", async () => { await project!.GoOnlineAsync(); return true; });

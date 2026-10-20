@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.62` supplies native [software clock descriptions](clock-descriptions.md)
+Current milestone: `.63` makes download-preparation checks repeatable through the
+[public SDK probe](development.md#native-sdk-acceptance-probe), with admission and
+cleanup checks for clients, lease, inhibit and programming authority. Full native
+transfer, compiled tag-address discovery and online edits remain unfinished.
+
+Version `.62` supplies native [software clock descriptions](clock-descriptions.md)
 for upload inventory, including the actual app version. Fifteen Time Sync fields
 remain unavailable, and full upload is unfinished.
 
