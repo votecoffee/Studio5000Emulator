@@ -111,3 +111,44 @@ The next steps are trailer/definition validation, model-owned native storage
 mapping and a complete device-operation/commit contract. Full upload/download,
 native tag/rung monitoring and online edits remain unfinished; Studio GUI
 monitoring remains unverified.
+
+## Deployed validation
+
+The rebuilt `.77` appliance imports the 242-type/13,312-member source catalog
+and reports a complete match during a fresh signed SDK download attempt. No
+source type is unavailable or mismatched. All 904 batch records retain temporary
+models; storage mapping, signature verification and execution remain disabled.
+The SDK still reports `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`, then returns Offline
+with source/model preservation and cleared temporary state.
+
+The 1,032-test suite passes on Windows (1,030 passed, two platform skips) and
+Linux (1,031 passed, one platform skip). All 291 live protocol checks pass.
+All 62 deployed application modules match source. Served browser assets match
+source, and the Windows executable's embedded version/assets were checked.
+
+| Native SDK probe | Verified signed requests | Result |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Online-address failure before any tag-value request |
+| Upload | 199 | Controller-collection upload still fails |
+| Download | 181 | All staged type/member comparisons match; execution denied |
+| Mode repeat | 115 | All 17 steps succeed with SDK and webpage control/readback |
+
+An initial mode attempt failed after its first successful Run cycle because a
+web response ended prematurely. It restored Program and completed native
+Offline/TCP/lease cleanup. The guest app log showed no traceback; the cause is
+unresolved. That failed report is retained. After explicitly resetting only
+the bound emulator to imported values, a fresh test using unchanged app/probe
+code passed all 17 steps. This repeat does not erase the initial HTTP failure
+or establish that its cause has been fixed.
+
+In the repeat, the two SDK Run cycles advance 34 and 32 scans with prescan
+counts one and two. Webpage Run advances the count to three; repeated Run does
+not repeat initialization. Program stops scans and reads back through the SDK.
+Mode testing intentionally changes simulation values; those results are retained.
+
+The application finishes in Remote Program with no clients, a free uninhibited
+lease and idle, empty transfer/member-verification state. The original ACD
+remains byte-identical. The communications and SDK services remain running,
+and only one appliance manager remains. These checks do not establish complete
+native transfer, tag/rung monitoring, online editing or instruction equivalence.
