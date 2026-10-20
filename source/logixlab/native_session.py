@@ -97,9 +97,26 @@ def clear(session):
         del session.native
 
 
+def acknowledge_existing_timeline(data, current_uid):
+    """Acknowledge the observed initializer while retaining a bound source UID.
+
+    Successful v35 reference exchanges retain the controller's existing nonzero
+    Timeline UID after different proposals. This implements that already-set
+    case only; it never initializes an unset UID or replaces source metadata.
+    """
+    if (not isinstance(data,bytes) or len(data)!=8 or data[:4]!=b'\1\0\x0A\0'
+            or data[4:]==bytes(4)):
+        raise NativeError(3,'Expected one nonzero Timeline UID proposal')
+    if type(current_uid) is not int or not 1<=current_uid<=0xFFFFFFFF:
+        raise NativeError(0x0C,'An existing source Timeline UID is required')
+    return b'\1\0\x0A\0\0\0'
+
+
 def description(enabled):
     return {'enabled': enabled, 'anonymous': True, 'read_only': True,
             'confirmation_proof_verified': False, 'peer_identity_verified': False,
             'operator_authorization': False, 'signed_batches': enabled,
+            'timeline_acknowledgement':'Existing nonzero source UID retained',
+            'timeline_initialization':False, 'timeline_replacement':False,
             'controller_mode': 'Program' if enabled else None,
             'idle_timeout_seconds': 300 if enabled else 0}

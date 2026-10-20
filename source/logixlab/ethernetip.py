@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_rejections, native_session, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -172,28 +172,42 @@ class Router:
 
     def native_read(self,inner,session,native,depth,limit,budget,*,registration=True):
         """Apply the same read-only policy to single packets and batch children."""
+        path=None
+        def reject(status,reason):
+            self.endpoint.record_native_rejection(inner[0],path,status,reason)
+            return reply(inner[0],status)
         try:
             end=2+2*inner[1];path=decode_path(inner[2:end]);payload=inner[end:]
             if registration:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
-            elif native.stage!='bound':return reply(inner[0],0x0F)
+            elif native.stage!='bound':return reject(0x0F,'unbound_context')
             if any(inner==bytes((0x3B,2,0x20,cls,0x24,0)) for cls in energy_catalog.CLASSES):
                 # This newer probe is unimplemented. Return an error without
                 # dispatching it; callers may try the supported legacy list.
-                return reply(inner[0],8)
+                return reject(8,'unsupported_probe')
+            if (inner[0]==4 and path.class_id==0xAC and path.instance==1 and path.attribute is None
+                    and not path.symbols and path.program_instance is None and payload[:4]==b'\1\0\x0A\0'):
+                exact(payload,8)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                value=native_session.acknowledge_existing_timeline(payload,identity.timeline_uid)
+                with self.endpoint.lock:self.endpoint.counts['native_timeline_retained']+=1
+                return reply(4,0,value)
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E) or
+                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E) or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
                 path.attribute is None and not path.symbols and
                 controller_configuration.empty_metadata_query(payload)):
                 return reply(inner[0],0,struct.pack('<II',0x301,0))
-            return reply(inner[0],0x0F)
-        except (CIPError,native_session.NativeError) as error:return reply(inner[0],error.status)
+            return reject(0x0F,'read_only_policy')
+        except CIPError as error:return reject(error.status,'invalid_request')
+        except native_session.NativeError as error:return reject(error.status,'compatibility_context')
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
@@ -615,6 +629,8 @@ class Router:
                 raise CIPError(0x0C,'AOI definition catalog is nonempty or unavailable from this source')
             if path.class_id==0x69 and not self.app.engine.project.io_map.empty:
                 raise CIPError(0x0C,'I/O Map catalog is nonempty or unavailable from this source')
+            if path.class_id==0x71 and not self.app.engine.project.data_log_catalog.empty:
+                raise CIPError(0x0C,'Data Logging catalog is nonempty or unavailable from this source')
             if path.class_id==0x36E and not self.app.engine.project.hmi_button_catalog.empty:
                 raise CIPError(0x0C,'HMI Button Control catalog is nonempty or unavailable from this source')
             if path.class_id in energy_catalog.CLASSES and not self.app.engine.project.energy_catalog.empty:
@@ -720,7 +736,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x71,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -808,6 +824,12 @@ class Router:
         if path.class_id==0x338:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty AOI definition discovery is supported')
+        if path.class_id==0x71:
+            if path.symbols or path.program_instance is not None:
+                raise CIPError(4,'Data Logging discovery must be controller scoped')
+            if service==0x4B:return self.instance_list(path,data,limit)
+            if path.instance!=0:raise CIPError(5,'Data Logging instances are not implemented')
+            return self.attribute_read(service,path,data,self.app.engine.project.data_log_catalog.class_attributes())
         if path.class_id==0x36E:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
@@ -977,6 +999,7 @@ class Endpoint:
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
         self.attribute_gaps=attribute_gaps.AttributeGaps()
+        self.native_rejections=native_rejections.NativeRejections()
         self.ethernet_counters=ethernet_counters.CounterCache()
         self.native_sessions={}
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
@@ -1026,6 +1049,7 @@ class Endpoint:
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,
                     'aoi_catalog':self.app.engine.project.aoi_catalog.description() if self.enabled else None,
+                    'data_log_catalog':self.app.engine.project.data_log_catalog.description() if self.enabled else None,
                     'hmi_button_control':self.app.engine.project.hmi_button_catalog.description() if self.enabled else None,
                     'energy_catalog':self.app.engine.project.energy_catalog.description() if self.enabled else None,
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
@@ -1045,6 +1069,7 @@ class Endpoint:
                     'active_tcp_clients':len(self.connections),'counts':dict(self.counts),
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'attribute_gaps':self.attribute_gaps.snapshot(self.app.generation),
+                    'native_rejections':self.native_rejections.snapshot(self.app.generation),
                     'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
             if trace:result['events']=list(self.events)
             return result
@@ -1056,6 +1081,11 @@ class Endpoint:
         with self.lock:
             self.attribute_gaps.record(path.class_id,path.instance,path.program_instance,
                                        scope,missing,self.app.generation,service)
+
+    def record_native_rejection(self,service,path,status,reason):
+        with self.lock:
+            self.counts['native_rejected']+=1
+            self.native_rejections.record(self.app.generation,service,path,status,reason)
 
     def discovery(self,command):
         if command==0x63:

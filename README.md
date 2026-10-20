@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.57`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.58`. Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -85,9 +85,9 @@ The Linux appliance also exposes a documented subset of
 driver, with unavailable diagnostic fields identified in the API.
 Read-only [native inventory discovery](docs/native-inventory.md) now covers
 source-checked empty I/O, alarm and Add-On Instruction catalogs.
-Version `.57` passes 804 behavioral tests on Windows and Linux, with expected
-platform skips, and 220 checks against the running protocol endpoint. Full
-native upload and online tag monitoring still fail their SDK probes.
+Version `.58` also adds [Data Logging discovery and native policy diagnostics](docs/native-session-policy.md),
+including acknowledgements that retain an existing source Timeline UID.
+Full native upload and online tag monitoring remain unfinished.
 
 ## Usage
 

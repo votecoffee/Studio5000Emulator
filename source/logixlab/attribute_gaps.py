@@ -8,7 +8,7 @@ import time
 
 
 MAX_GAPS = 64
-CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol',
+CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol', 0x71:'Data Logging',
            0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
     0x43: {1: 'PTP enable', 2: 'Synchronization status', 3: 'Time in microseconds',

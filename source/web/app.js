@@ -264,6 +264,15 @@ function renderConnectivity() {
   $('eip-identity').textContent=identity ? `${identity.product_name} · revision ${identity.revision.major}.${identity.revision.minor} · virtual hardware ${identity.hardware_revision?.major ?? '?'}.${identity.hardware_revision?.minor ?? '?'} · virtual firmware build ${identity.firmware_build ?? '?'} · experimental profile · research serial ${identity.serial}. Studio Go Online remains unverified.` : 'The research identity is the default. The experimental L85E profile requires a matching v35 source project. Studio Go Online remains unverified.';
   $('eip-counts').innerHTML=Object.entries(c.counts||{}).map(([k,v])=>`<span class="chip">${escapeHtml(k)} × ${v}</span>`).join('')||'<span class="limits">No requests recorded.</span>';
   $('eip-unsupported').innerHTML=(c.unsupported||[]).map(x=>`<div class="issue">${escapeHtml(x.request)} × ${x.count}</div>`).join('')||'No unsupported requests recorded.';
+  const rejected=c.native_rejections||[];
+  const rejectionReasons={unbound_context:'Compatibility context is not bound',unsupported_probe:'Probe is not implemented',read_only_policy:'Service is outside the native read-only policy',source_correlation_unavailable:'Source correlation is unavailable',invalid_request:'Unsupported or malformed path or request',compatibility_context:'Compatibility context or source metadata is unavailable'};
+  $('eip-native-rejections').innerHTML=rejected.slice(0,8).map(x=>{
+    const target=x.class_id==null?(x.symbolic?'Symbolic path':'Unparsed path'):`Class 0x${x.class_id.toString(16).toUpperCase()}, instance ${x.instance}`;
+    const service=`0x${x.service.toString(16).toUpperCase()}`, status=`0x${x.status.toString(16).toUpperCase()}`;
+    const scope=x.program_instance==null?'':` · Program instance ${x.program_instance}`;
+    return `<div class="issue">${escapeHtml(target+scope)} · service ${escapeHtml(service)} · status ${escapeHtml(status)}<br>${escapeHtml(rejectionReasons[x.reason]||x.reason)} × ${x.count}</div>`;
+  }).join('')||'No native policy rejections recorded.';
+  if(rejected.length>8)$('eip-native-rejections').innerHTML+=`<p>${rejected.length-8} more groups in the protocol trace.</p>`;
   const gaps=c.attribute_gaps||[];
   $('eip-attribute-gaps').innerHTML=gaps.slice(0,8).map(x=>{
     const target=`${x.class_name} (0x${x.class_id.toString(16).toUpperCase()}), instance ${x.instance}`;

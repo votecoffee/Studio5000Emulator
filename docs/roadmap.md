@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.57` adds source-checked empty I/O Map, tag-alarm and
+Current milestone: `.58` adds source-checked empty Data Logging discovery,
+acknowledgements that retain an existing source Timeline UID, and visible native
+policy rejections. See [native session policy](native-session-policy.md).
+Complete native upload, tag-address discovery and programming remain unfinished.
+
+Version `.57` adds source-checked empty I/O Map, tag-alarm and
 Add-On Instruction definition discovery to the native read policy, plus
 embedded-server status. The SDK accepts those reads; upload still fails
 controller collection. See [native inventory discovery](native-inventory.md).

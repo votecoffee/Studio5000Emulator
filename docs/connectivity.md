@@ -5,6 +5,11 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.58` adds [native session policy and diagnostics](native-session-policy.md):
+empty Data Logging discovery, existing Timeline UID acknowledgements without
+metadata replacement, and visible pre-dispatch native rejections. These bounded
+operations do not complete native upload or tag-address discovery.
+
 Version `.57` adds [native inventory discovery](native-inventory.md) for
 source-checked empty I/O Map, tag-alarm and Add-On Instruction catalogs, plus
 read-only embedded-server status. A normal-source native SDK run accepts these

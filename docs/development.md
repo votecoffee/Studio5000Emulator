@@ -93,6 +93,12 @@ checks independent of runtime type filtering. Their native read-policy entries
 authorize discovery only. See [native inventory discovery](native-inventory.md)
 for schemas, source boundaries and deployed validation.
 
+`data_log_catalog.py` checks both `Trends` and the native v35 `DataLogs` section.
+`native_rejections.py` collects only structural IDs for pre-dispatch failures,
+separately from ordinary CIP errors. Native Timeline UID acknowledgements retain
+every source header field and never initialize or replace UIDs. See
+[native session policy](native-session-policy.md) before extending these paths.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.

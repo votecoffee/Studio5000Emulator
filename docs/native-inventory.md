@@ -13,6 +13,7 @@ They do not upload definitions or emulate external I/O or alarm execution.
 | `0x3A7` | Alarm Set | Same conservative alarm-source check |
 | `0x3A8` | Alarm Condition Definition | Same conservative alarm-source check |
 | `0x338` | UDI Definition (Add-On Instructions) | Exactly one explicit, empty `AddOnInstructionDefinitions` section; complete source without protected or ambiguous definitions |
+| `0x71` | Data Logging (`.58`) | Complete source without configured trends, data logs, protected data or ambiguous declarations |
 
 `Get Instance List` (`0x4B`) takes its starting instance in the path and no
 payload. A proven empty catalog returns `CB 00 00 00`, including for nonzero
@@ -33,6 +34,10 @@ reports the instance count and availability. An unavailable catalog is not
 represented as a successful empty one. Loading a new project recomputes these
 claims from its source XML, before runtime filtering can discard unsupported
 objects.
+
+Version `.58` adds [Data Logging and native session policy details](native-session-policy.md),
+including class counts/capacities, retained Timeline UID acknowledgements and
+bounded diagnostics for requests rejected before object dispatch.
 
 TCP/IP Interface class attributes `101` and `102` return single-byte zero
 values: the software PLC exposes no embedded HTTP service on its PLC interface.

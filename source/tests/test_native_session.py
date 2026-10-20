@@ -13,6 +13,7 @@ from logixlab.controller_configuration import ControllerConfiguration
 from logixlab.ethernetip import Endpoint
 from logixlab.model import ModelError
 from logixlab.native_symbols import NativeSymbols, Symbol
+from logixlab.native_project import NativeProjectIdentity
 from logixlab.server import Application
 from test_ethernetip import Client
 from test_key_exchange import offer
@@ -60,6 +61,66 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(context[:4], b'\xCB\0\0\0')
         self.assertEqual(len(context), 8)
         self.assertEqual(self.signed(3, b'\x63\2\x20\x8E\x24\1'+context[4:]), b'\xE3\0\0\0')
+
+    def test_source_timeline_proposals_are_acknowledged_without_replacing_any_header_field(self):
+        identity=NativeProjectIdentity('1'*64,self.app.engine.project.sha256,2,3,4,5,6,0xFFFFFFFF)
+        self.app.native_project_identity=identity
+        before=copy.deepcopy(self.app.engine.memory.values);header=identity.attributes()
+        self.bind();sequence=4
+        for value in (1,123,0xFFFFFFFF):
+            raw=bytes.fromhex('040220ac240101000a00')+struct.pack('<I',value)
+            self.assertEqual(self.signed(sequence,raw),bytes.fromhex('8400000001000a000000'));sequence+=1
+            self.assertEqual(self.signed(sequence,bytes.fromhex('030220ac240101000a00')),
+                             bytes.fromhex('8300000001000a000000ffffffff'));sequence+=1
+            self.assertEqual(self.signed(sequence,bytes.fromhex('010220ac2401')),
+                             bytes.fromhex('81000000')+b''.join(header[n] for n in range(1,11)));sequence+=1
+        self.assertIs(self.app.native_project_identity,identity)
+        self.assertEqual(self.endpoint.counts['native_timeline_retained'],3)
+        self.assertFalse(self.endpoint.state()['native_session']['timeline_replacement'])
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
+
+    def test_timeline_ack_requires_bound_nonzero_source_and_exact_proposal(self):
+        raw=bytes.fromhex('040220ac240101000a0001000000')
+        self.bind();sequence=4
+        for identity in (None,NativeProjectIdentity('1'*64,self.app.engine.project.sha256,1,1,1,1,1,0),
+                         NativeProjectIdentity('1'*64,'2'*64,1,1,1,1,1,99)):
+            self.app.native_project_identity=identity
+            self.assertEqual(self.signed(sequence,raw)[2],0x0C);sequence+=1
+        self.app.native_project_identity=NativeProjectIdentity('1'*64,self.app.engine.project.sha256,1,1,1,1,1,99)
+        for invalid,status in ((raw[:-1],0x13),(raw+b'x',0x15),(raw[:-4]+bytes(4),3),
+                (bytes.fromhex('040220ac240102000a0001000000'),15),
+                (bytes.fromhex('040220ac24010100030001000000'),15),
+                (bytes.fromhex('100320ac2401300a01000000'),15)):
+            self.assertEqual(self.signed(sequence,invalid)[2],status);sequence+=1
+        self.assertEqual(self.cip(raw)[2],8)  # The unsigned setter is still unsupported.
+        self.assertEqual(self.app.native_project_identity.timeline_uid,99)
+        self.begin()
+        self.assertEqual(self.signed(1,raw)[2],15)
+        self.assertEqual(self.endpoint.counts['native_timeline_retained'],0)
+
+    def test_timeline_ack_in_signed_batch_preserves_source_and_other_write_denials(self):
+        identity=NativeProjectIdentity('1'*64,self.app.engine.project.sha256,1,1,1,1,1,99)
+        self.app.native_project_identity=identity;self.bind()
+        proposal=bytes.fromhex('040220ac240101000a0001000000')
+        setter=bytes.fromhex('100320ac2401300a01000000')
+        read=bytes.fromhex('0e0320ac2401300a')
+        raw=batch((proposal,setter,read),sequence=4);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
+        self.assertEqual(result.children,(bytes.fromhex('8400000001000a000000'),bytes.fromhex('90000f00'),
+                                          bytes.fromhex('8e00000063000000')))
+        self.assertEqual(identity.timeline_uid,99)
+
+    def test_signed_data_logging_discovery_and_capacity_require_empty_source(self):
+        from logixlab.data_log_catalog import DataLogCatalog
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('4b0220712465')),bytes.fromhex('cb000000'))
+        self.assertEqual(self.signed(5,bytes.fromhex('030220712400020003000a00')),
+                         bytes.fromhex('83000000020003000000000000000a00000000000000'))
+        self.app.engine.project.data_log_catalog=DataLogCatalog(False)
+        self.assertEqual(self.signed(6,bytes.fromhex('4b0220712465'))[2],0x0C)
+        self.assertEqual(self.signed(7,bytes.fromhex('100320712400300a01000000'))[2],15)
+        self.assertEqual(self.app.engine.memory.values,before)
 
     def test_real_tcp_context_setup_and_signed_metadata_read(self):
         self.bind()
