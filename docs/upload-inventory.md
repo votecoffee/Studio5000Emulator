@@ -31,6 +31,37 @@ Controller requests, with no further native request after that list. These
 private hypotheses establish neither the correct `POINTER` representation
 nor a unique cause for the collection failure; they are excluded from the app.
 
+An audit of every nonzero inner reply in that baseline found 48 class-revision
+discovery failures, two motion-catalog class-count failures, four unsupported
+energy probes followed by supported empty fallbacks, one expected absent
+Safety Controller object on the standard controller, and the three partial or
+unsupported Time Sync/Controller reads described above. The SDK continued
+after the early discovery failures. No Program read failed in those traces;
+complete native Task, Executable, Memory, Fault Log, CST and Wall Clock upload
+contracts remain separate work.
+
+## Source Controller flags
+
+Controller instance 1 exposes three additional read-only configuration fields:
+
+| Attribute | Controller L5X source | Wire value |
+| --- | --- | --- |
+| 15, Serial Number Match | `MatchProjectToController` | One byte, 0 or 1 |
+| 17, Automatic Firmware Update Inhibit | `InhibitAutomaticFirmwareUpdate` | One byte, 0 through 255 |
+| 23, Can Use Producer Provided RPI | `CanUseRPIFromProducer` | One byte, 0 or 1 |
+
+The v35 Controller ADF defines all three fields as `BITS8`. Complete source
+exports supply their values; missing, malformed, ambiguous or context-only
+declarations remain unavailable. Individual reads and ordered attribute lists
+use the same values, preserve duplicate requests and do not pad the byte fields.
+The firmware value is retained as a source byte without interpreting its bits.
+
+These reads do not enforce project serial matching, perform firmware updates
+or negotiate producer I/O rates. Setters remain unsupported. The Controller's
+Common ASA Class 1 declaration supplies only its revision; it does not justify
+adding generic maximum-instance/count fields or guessing an aggregate
+Controller response while handler-reference encoding remains unresolved.
+
 ## Software system time and offset
 
 Time Sync instance 1, attribute 28 exposes the relationship between the
