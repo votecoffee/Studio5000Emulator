@@ -126,7 +126,7 @@ class InventoryFramingTests(unittest.TestCase):
         self.assertEqual(client.requests[-1],bytes.fromhex('4b03206b25000001'))
 
     def test_limits_reject_booleans_and_request_budget_stops_before_next_exchange(self):
-        for name in ('instances','programs','tasks','pages','requests'):
+        for name in ('instances','programs','tasks','routines','pages','requests'):
             for value in (0,True,-1,1.5,100000):
                 with self.subTest(name=name,value=value),self.assertRaises(InventoryError):Limits(**{name:value})
         class Fake:

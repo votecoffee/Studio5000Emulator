@@ -17,12 +17,13 @@ import time
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import __version__
-from logixlab.ethernetip import Endpoint,logical,symbol_path
+from logixlab.ethernetip import Endpoint,logical,symbol_path,CIPError
 from logixlab.server import Application
 from logixlab.native_project import NativeProjectIdentity
 from logixlab.native_symbols import NativeSymbols
 from logixlab.native_types import NativeTypes
 from logixlab.native_tasks import NativeTasks
+from logixlab.native_routines import NativeRoutines
 from logixlab.model import Project,ModelError
 from logixlab.resilient_transport import DEVICE_HEADER,MAX_BUFFER_BYTES
 from tools.anonymous_client import AnonymousClient
@@ -87,6 +88,25 @@ def exercise(app,client,payload=None,expanded=None):
                           bytes.fromhex('8e000000')+attrs[number])
             check('task_execution_slot_unavailable',bytes((0x0E,len(path)//2+1))+path+b'\x30\x10',
                   bytes.fromhex('8e001400'))
+    if app.native_routines is not None:
+        check('executable_legacy_class_revision',bytes.fromhex('0e03206d24003001'),bytes.fromhex('8e0000000100'))
+        for program in app.endpoint.router.programs():
+            prefix=b'\x20\x68'+logical(0x24,program['id'])+b'\x20\x6d'
+            path=prefix+b'\x24\0'
+            try:rows=app.endpoint.router.routines(program['id'])
+            except CIPError as error:
+                if error.status!=0x0C:raise
+                check('executable_catalog_unavailable',bytes((0x4B,len(path)//2))+path,bytes.fromhex('cb000c00'))
+                continue
+            check('program_scoped_executable_list',bytes((0x4B,len(path)//2))+path,
+                  b'\xcb\0\0\0'+b''.join(struct.pack('<I',row['id']) for row in rows))
+            for row in rows:
+                path=prefix+logical(0x24,row['id'])
+                attrs=app.engine.project.executable_configuration.attributes(
+                    program['name'],row['name'],source_sha256=app.engine.project.sha256)
+                check('executable_legacy_description',bytes((0x0E,len(path)//2+1))+path+b'\x30\7',
+                      b'\x8e\0\0\0'+attrs[7] if 7 in attrs else bytes.fromhex('8e001400'))
+                check('executable_type_unavailable',bytes((0x0E,len(path)//2+1))+path+b'\x30\1',bytes.fromhex('8e001400'))
     check('edit_release',bytes.fromhex('4c04208e240120742401'),bytes.fromhex('cc000000'))
     image_receipt=None
     if payload is not None:
@@ -136,12 +156,21 @@ def main():
     if args.output.resolve() in {args.acd.resolve(),args.l5x.resolve(),*([] if args.device_payload is None else [args.device_payload.resolve()])}:
         p.error('The report cannot overwrite an input')
     acd_hash=digest(args.acd);l5x_hash=digest(args.l5x)
-    configuration=Project(args.l5x).task_configuration
+    project=Project(args.l5x);configuration=project.task_configuration
+    symbols=NativeSymbols.from_acd(args.acd,l5x_hash)
     tasks=None;task_error=None
     try:
         if not configuration.source_complete:raise ModelError('Complete v35 Task source is unavailable')
         tasks=NativeTasks.from_acd(args.acd,l5x_hash,configuration.names)
     except (ModelError,UnicodeError,OSError) as error:task_error=str(error)
+    routines=None;routine_error=None
+    try:
+        config=project.executable_configuration
+        if not config.source_complete:raise ModelError('Complete v35 Executable source is unavailable')
+        expected=[{'program':program,'name':name} for program in config.program_names
+                  for name in config.routine_names(program,source_sha256=l5x_hash)]
+        routines=NativeRoutines.from_acd(args.acd,l5x_hash,expected,symbols)
+    except (ModelError,UnicodeError,OSError) as error:routine_error=str(error)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     if args.output.exists():p.error('Use a new private report path')
     with tempfile.TemporaryDirectory(prefix='logixlab-research-') as folder:
@@ -149,9 +178,10 @@ def main():
         try:
             app.command('load',{'name':'research.L5X','content':base64.b64encode(args.l5x.read_bytes()).decode(),
                 'native_project_identity':NativeProjectIdentity.from_acd(args.acd,l5x_hash).manifest(),
-                'native_symbols':NativeSymbols.from_acd(args.acd,l5x_hash).manifest(),
+                'native_symbols':symbols.manifest(),
                 'native_types':NativeTypes.from_acd(args.acd,l5x_hash).manifest(),
-                **({'native_tasks':tasks.manifest()} if tasks is not None else {})})
+                **({'native_tasks':tasks.manifest()} if tasks is not None else {}),
+                **({'native_routines':routines.manifest()} if routines is not None else {})})
             before=app.state()
             app.endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True).start()
             with AnonymousClient(app.endpoint) as client:
@@ -170,6 +200,8 @@ def main():
                 'source_acd_sha256':acd_hash,'source_l5x_sha256':l5x_hash,'checks':checks,
                 'native_task_binding':app.native_tasks.description() if app.native_tasks is not None else None,
                 'native_task_binding_error':task_error,
+                'native_routine_binding':app.native_routines.description() if app.native_routines is not None else None,
+                'native_routine_binding_error':routine_error,
                 'upload_inventory':inventory,
                 'prepared_image':image,'cleanup_confirmed':True,'source_and_model_preserved':True,
                 'native_sdk_acceptance':'NOT ASSESSED','studio_gui_acceptance':'NOT ASSESSED'}

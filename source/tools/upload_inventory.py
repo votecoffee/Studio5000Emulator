@@ -24,9 +24,10 @@ class Limits:
     pages: int = 128
     requests: int = 16384
     tasks: int = 32
+    routines: int = 4096
 
     def __post_init__(self):
-        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('pages',256),('requests',32768)):
+        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('routines',4096),('pages',256),('requests',32768)):
             value=getattr(self,name)
             if type(value) is not int or not 1<=value<=maximum:
                 raise InventoryError('Invalid inventory '+name+' limit')
@@ -54,6 +55,7 @@ def decode_reply(raw, service):
 
 
 MAX_TASK_PROGRAMS=1028
+MAX_EXECUTABLE_DESCRIPTION_BYTES=128
 
 
 def decode_task_program_list(data):
@@ -97,11 +99,12 @@ def decode_attribute_list(raw, requested, schema):
                 count=struct.unpack_from('<H',data,offset)[0]
                 end=offset+2+4*count
                 row['value']=decode_task_program_list(data[offset:end]);offset=end
-            elif encoding in ('ascii16','ascii32'):
-                width=2 if encoding=='ascii16' else 4
+            elif encoding in ('ascii16','ascii32','description16'):
+                width=4 if encoding=='ascii32' else 2
                 if offset+width>len(data):raise InventoryError('Truncated inventory string length')
                 size=int.from_bytes(data[offset:offset+width],'little');offset+=width
-                if size>254 or offset+size>len(data):raise InventoryError('Inventory string exceeds its bound')
+                maximum=MAX_EXECUTABLE_DESCRIPTION_BYTES if encoding=='description16' else 254
+                if size>maximum or offset+size>len(data):raise InventoryError('Inventory string exceeds its bound')
                 text=data[offset:offset+size];offset+=size
                 try:row['value']=text.decode('ascii')
                 except UnicodeDecodeError as error:raise InventoryError('Inventory name is not ASCII') from error
@@ -141,6 +144,10 @@ SYMBOL_SCHEMA={1:'ascii16',2:2,3:4,5:4,6:4,7:2,8:12,9:1,10:1,11:1,12:4,14:4}
 TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
 PROGRAM_SCHEMA={19:1,28:'ascii32'}
 TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
+# Only the legacy Description attribute has an established source decoder.
+# Successful values for the unknown fields are rejected rather than skipped
+# using an invented Type, UID or compiled-address representation.
+EXECUTABLE_SCHEMA={1:None,2:None,4:None,6:None,7:'description16'}
 ATOMS={0xC1:('BOOL','B'),0xC2:('SINT','b'),0xC3:('INT','h'),0xC4:('DINT','i'),
        0xC5:('LINT','q'),0xC6:('USINT','B'),0xC7:('UINT','H'),0xC8:('UDINT','I'),
        0xC9:('ULINT','Q'),0xCA:('REAL','f'),0xCB:('LREAL','d')}
@@ -207,7 +214,8 @@ class _Reader:
         # Fixed read services only. In particular 0x4B is a list service only
         # for these catalog classes, never a Create/setup opcode elsewhere.
         if (service not in (1,3,0x0E,0x4B,0x4F) or
-                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x70) or
+                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6D,0x70) or
+                class_id==0x6D and (type(program) is not int or not 1<=program<=0xFFFFFFFF) or
                 service==0x4F and class_id!=0x6A or service==0x0E and attribute is None):
             raise InventoryError('Unsupported inventory read service')
         if len(self.requests)>=self.limits.requests:raise InventoryError('Inventory request budget exceeded')
@@ -321,10 +329,21 @@ class _Reader:
         programs=self.catalog(0x68)
         if programs['instances'] is not None and len(programs['instances'])>self.limits.programs:
             raise InventoryError('Inventory Program budget exceeded')
-        program_rows=[];scopes=[self.scope()]
+        program_rows=[];scopes=[self.scope()];routine_count=0;unavailable_routine_programs=[]
         for instance in programs['instances'] or []:
             metadata=self.attributes(0x68,instance,PROGRAM_SCHEMA)
-            program_rows.append({'instance':instance,'metadata':metadata})
+            executables=self.catalog(0x6D,instance,max_instances=self.limits.routines)
+            executable_rows=None
+            if executables['instances'] is not None:
+                routine_count+=len(executables['instances'])
+                if routine_count>self.limits.routines:raise InventoryError('Inventory scoped Routine budget exceeded')
+                executable_rows=[{'program_instance':instance,'instance':routine,
+                                  'metadata':self.attributes(0x6D,routine,EXECUTABLE_SCHEMA,instance)}
+                                 for routine in executables['instances']]
+            else:unavailable_routine_programs.append(instance)
+            program_rows.append({'instance':instance,'metadata':metadata,
+                                 'executable_catalog':{'program_instance':instance,**executables},
+                                 'executables':executable_rows})
             scopes.append(self.scope(instance,values(metadata).get(28)))
         task_catalog=self.catalog(0x70,max_instances=self.limits.tasks)
         task_rows=None
@@ -341,6 +360,13 @@ class _Reader:
                 'controller_configuration':controller,'controller_get_all':controller_all,
                 'controller_handlers':handlers,
                 'program_catalog':programs,'programs':program_rows,'scopes':scopes,
+                'executable_inventory':{'state':'unavailable' if programs['instances'] is None or
+                                       unavailable_routine_programs and len(unavailable_routine_programs)==len(program_rows) else
+                                       'partial' if unavailable_routine_programs else 'available',
+                                       'discovered_count':routine_count,
+                                       'unavailable_program_instances':unavailable_routine_programs,
+                                       'scoped_by_program':True,'names_inferred':False,
+                                       'compiled_definition_upload':False},
                 'task_catalog':task_catalog,'tasks':task_rows,'scheduling_consistency':scheduling,
                 'requests':self.requests,'request_count':len(self.requests),
                 'scalar_values_requested':self.read_values,'values_are_one_snapshot':False,
