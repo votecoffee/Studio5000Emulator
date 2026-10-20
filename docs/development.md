@@ -94,6 +94,12 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+The `.66` suite runs 887 tests, with two Windows skips and one Linux skip.
+The rebuilt endpoint passes 281 wire checks and the nine-step connection/Offline
+probe. Download accepts 23 staged definitions and fails at the unsupported
+metadata-value write. All four public probes confirm cleanup and unchanged
+source/model state. See [current metadata validation](metadata-staging.md#validation-and-remaining-work).
+
 The `.65` suite runs 877 tests, with two Windows skips and one Linux skip.
 The rebuilt endpoint passes 277 wire checks and the nine-step connection/Offline
 probe. Download reaches Metadata Definition creation after descriptor staging;

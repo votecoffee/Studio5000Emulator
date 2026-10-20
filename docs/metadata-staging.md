@@ -66,6 +66,19 @@ staging areas are empty, with source hashes, modeled values, scan count and mode
 time preserved. These results establish the bounded staging behavior; complete
 native download remains unfinished.
 
+The rebuilt and deployed `.66` runtime reproduces the 116-request download
+sequence and passes 281 wire checks. Deployed modules and packaged/served browser
+assets match source. The public SDK probe completes all nine connection/Offline
+steps with 81 verified requests. Tag reads still fail online-address discovery
+across 83 requests; upload still fails controller collection across 199 requests,
+after accepting twelve scalar reads and their Symbol descriptors. These are
+observed counts for the recorded runs.
+
+All four public probes confirm SDK Offline and endpoint cleanup, unchanged
+source hashes and modeled state. Final state has no TCP clients, empty library
+and metadata stages, idle preparation, a free lease, zero scan inhibit and scan
+count zero. FactoryTalk Linx and the Logix Designer SDK service remained running.
+
 Next work must establish and validate the `0x4F` metadata-value format before
 staging values, then address library data, project validation, atomic commit and
 rollback. Native upload, compiled tag-address discovery, Studio GUI monitoring

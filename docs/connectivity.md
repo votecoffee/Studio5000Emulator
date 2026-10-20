@@ -11,6 +11,12 @@ final-source SDK attempt accepts 23 definitions and reaches a rejected
 metadata-value write (`0x4F`), retaining its metadata-definition download error.
 The active project catalog, values and transfer/commit authority remain unchanged.
 
+The rebuilt `.66` endpoint passes 281 wire checks and the nine-step public SDK
+connection/Offline probe. Download verifies 116 signed requests, stages 23
+metadata definitions and retains its failure at the unsupported value write.
+All four probe cases confirm Offline and endpoint cleanup with source/model
+state preserved. See [deployed metadata validation](metadata-staging.md#validation-and-remaining-work).
+
 Version `.65` adds [library descriptor staging and the observed `0x39` envelope](library-staging.md).
 Create/Delete affect only a prepared owner's bounded temporary descriptors.
 Signed transfer messages share the native session counter and read policy;
