@@ -12,6 +12,14 @@ the same temporary Download In Progress status. The final-source SDK attempt
 advances to Create (`0x08`) on class `0x37D`, which remains denied. No native
 project/library transfer or commit is implemented.
 
+The rebuilt `.64` endpoint passes 273 wire checks. The public SDK probe
+completes its nine-step connection/Offline sequence with 81 verified requests.
+Tag-read and upload failures remain across 83 and 201 requests; the download
+probe verifies 107 requests and now reports
+`RxCsE_DOWNLOAD_OF_LIBRARYOBJS_FAILED` at library Create. All four probes
+confirm Offline and endpoint cleanup with source and modeled state preserved.
+See [preparation validation](programming-preparation.md#validation-and-next-gap).
+
 Version `.63` extends the [native SDK acceptance probe](development.md#native-sdk-acceptance-probe)
 with a repeatable download-preparation attempt. The endpoint must have no TCP
 clients, a free uninhibited lease and disabled programming authority before the

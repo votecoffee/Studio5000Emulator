@@ -93,6 +93,13 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+The `.64` suite passes all 861 tests, with two Windows skips and one Linux skip.
+The rebuilt endpoint passes 273 wire checks and repeats the nine-step SDK
+connection/Offline sequence. Download now accepts preparation and unchanged
+redundancy before failing `RxCsE_DOWNLOAD_OF_LIBRARYOBJS_FAILED` at library
+Create. All four public probe cases confirm endpoint cleanup and unchanged
+source/model state. See [current acceptance details](programming-preparation.md#validation-and-next-gap).
+
 The `.63` suite runs 853 tests on Windows and Linux, with two and one expected
 platform skips. New tests cover operation selection, busy or programmable
 targets, asynchronous closure, persistent leases, target replacement and trace

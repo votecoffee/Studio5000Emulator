@@ -57,10 +57,24 @@ two Windows skips and one Linux skip.
 
 An isolated final-source SDK download attempt verifies 107 signed requests.
 It accepts service `0x60`, observes status `2`, retains the source redundancy
-setting, then fails `RxCsE_ASA_NO_PERMISSION` at Create (`0x08`) on class
+setting, then fails `RxCsE_DOWNLOAD_OF_LIBRARYOBJS_FAILED` at Create (`0x08`) on class
 `0x37D`. Cleanup accepts service `0x62`, reads status `0`, releases the lease
 and returns Offline. Original/copy hashes, modeled values and scan count are
 preserved. Private ACDs, native library payloads and traces are not distributed.
+
+The rebuilt and deployed `.64` runtime reproduces that 107-request download
+sequence and passes 273 wire checks. Packaged/served browser assets and deployed
+modules match source. The public SDK probe completes all nine connection/Offline
+steps with 81 verified requests. Tag reads still fail online-address discovery
+across 83 requests; upload still fails controller collection across 201 requests
+after accepting twelve scalar reads and their Symbol descriptors. These are
+observed request counts for the recorded runs.
+
+All four public probes confirm SDK Offline and endpoint cleanup, unchanged
+source hashes and modeled state. The final endpoint has zero clients, a free
+lease, idle preparation, zero scan inhibit and scan count zero. FactoryTalk Linx
+and the Logix Designer SDK service remained running. Complete native transfer,
+Studio GUI monitoring and online edits remain unsupported or unverified.
 
 The next step is to define and validate bounded library-object staging,
 validation, commit and rollback before accepting that Create request. Native
