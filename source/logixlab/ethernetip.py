@@ -74,6 +74,7 @@ class Path:
     attribute:int|None=None
     symbols:list=field(default_factory=list)
     program_instance:int|None=None
+    io_map_instance:int|None=None
 
     def reference(self,base=''):
         result=base;indices=[]
@@ -108,16 +109,20 @@ def decode_path(raw):
             if kind==0x28:p.symbols.append(value)
             else:
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
-                # Program-scoped data tables and symbols have two object pairs.
-                if (attr=='class_id' and value in (0x6A,0x6B) and p.class_id==0x68 and
-                    p.instance and p.attribute is None and not p.symbols and p.program_instance is None):
-                    p.program_instance=p.instance;p.class_id=value;p.instance=None
+                # These child classes have two logical object pairs. Keep the
+                # parent scope; never flatten a child into a global object.
+                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B)
+                         else 'io_map_instance' if p.class_id==0x69 and value==0x7E else None)
+                if (attr=='class_id' and scope and p.instance and p.attribute is None and not p.symbols
+                        and p.program_instance is None and p.io_map_instance is None):
+                    setattr(p,scope,p.instance);p.class_id=value;p.instance=None
                     continue
                 if getattr(p,attr) is not None:raise CIPError(4,'Duplicate logical segment')
                 setattr(p,attr,value)
         else:raise CIPError(4,f'Unsupported path segment 0x{code:02X}')
     if p.attribute is not None and p.class_id is None:raise CIPError(4,'Attribute without class')
     if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program object requires a child instance')
+    if p.io_map_instance is not None and p.instance is None:raise CIPError(4,'I/O Map object requires a child instance')
     return p
 
 
@@ -805,6 +810,14 @@ class Router:
             if service==0x4B:return self.instance_list(path,data,limit)
             if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
             return self.attribute_read(service,path,data,self.app.engine.project.io_map.class_attributes())
+        if path.class_id==0x7E:
+            if path.symbols or path.program_instance is not None or path.instance is None:
+                raise CIPError(4,'I/O Connection metadata requires a nested class path')
+            if path.io_map_instance!=1 or path.instance!=0:
+                raise CIPError(5,'Only the root I/O Connection class namespace is modeled')
+            attributes=self.app.engine.project.io_map.connection_class_attributes()
+            if attributes is None:raise CIPError(0x0C,'I/O Connection source inventory is unavailable')
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id in energy_catalog.CLASSES:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only bounded empty energy inventory discovery is supported')
@@ -1080,7 +1093,7 @@ class Endpoint:
         scope=path.symbols[0] if path.symbols else ''
         with self.lock:
             self.attribute_gaps.record(path.class_id,path.instance,path.program_instance,
-                                       scope,missing,self.app.generation,service)
+                                       scope,missing,self.app.generation,service,io_map_instance=path.io_map_instance)
 
     def record_native_rejection(self,service,path,status,reason):
         with self.lock:

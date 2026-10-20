@@ -48,7 +48,7 @@ class NativeRejectionEndpointTests(unittest.TestCase):
         denied=bytes.fromhex('4b03210077072400')
         self.assertEqual(self.signed(4,denied)[2],15)
         self.assertEqual(self.signed(5,denied)[2],15)
-        invalid=bytes.fromhex('030420692401207e240001000100')
+        invalid=bytes.fromhex('030420692401207f240001000100')
         self.assertEqual(self.signed(6,invalid)[2],4)
         rows=self.endpoint.state()['native_rejections']
         self.assertEqual(rows[0]['reason'],'invalid_request')

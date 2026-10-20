@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.59` adds [nested I/O Connection class discovery](io-connection-discovery.md).
+The live parser preserves its I/O Map parent scope and accepts the source-checked
+software class revision read. Module instances and I/O Connection instances
+remain unsupported. The native SDK accepts this read; full upload still fails
+controller collection.
+
 Version `.58` adds [native session policy and diagnostics](native-session-policy.md):
 empty Data Logging discovery, existing Timeline UID acknowledgements without
 metadata replacement, and visible pre-dispatch native rejections. These bounded

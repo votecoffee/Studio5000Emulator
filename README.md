@@ -87,9 +87,11 @@ Read-only [native inventory discovery](docs/native-inventory.md) now covers
 source-checked empty I/O, alarm and Add-On Instruction catalogs.
 Version `.58` also adds [Data Logging discovery and native policy diagnostics](docs/native-session-policy.md),
 including acknowledgements that retain an existing source Timeline UID.
+Version `.59` adds the [nested I/O Connection class-revision read](docs/io-connection-discovery.md)
+used by native discovery, with its parent scope preserved in diagnostics.
 Full native upload and online tag monitoring remain unfinished.
-The 817-test suite passes on Windows and Linux with expected platform skips;
-the running `.58` endpoint passes 236 wire checks. Current SDK upload, tag-read
+The 825-test suite passes on Windows and Linux with expected platform skips;
+the running `.58` endpoint previously passed 236 wire checks. Current SDK upload, tag-read
 and download probes still fail their native acceptance steps.
 
 ## Usage

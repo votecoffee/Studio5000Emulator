@@ -269,14 +269,14 @@ function renderConnectivity() {
   $('eip-native-rejections').innerHTML=rejected.slice(0,8).map(x=>{
     const target=x.class_id==null?(x.symbolic?'Symbolic path':'Unparsed path'):`Class 0x${x.class_id.toString(16).toUpperCase()}, instance ${x.instance}`;
     const service=`0x${x.service.toString(16).toUpperCase()}`, status=`0x${x.status.toString(16).toUpperCase()}`;
-    const scope=x.program_instance==null?'':` · Program instance ${x.program_instance}`;
+    const scope=x.io_map_instance!=null?` · I/O Map instance ${x.io_map_instance}`:x.program_instance==null?'':` · Program instance ${x.program_instance}`;
     return `<div class="issue">${escapeHtml(target+scope)} · service ${escapeHtml(service)} · status ${escapeHtml(status)}<br>${escapeHtml(rejectionReasons[x.reason]||x.reason)} × ${x.count}</div>`;
   }).join('')||'No native policy rejections recorded.';
   if(rejected.length>8)$('eip-native-rejections').innerHTML+=`<p>${rejected.length-8} more groups in the protocol trace.</p>`;
   const gaps=c.attribute_gaps||[];
   $('eip-attribute-gaps').innerHTML=gaps.slice(0,8).map(x=>{
     const target=`${x.class_name} (0x${x.class_id.toString(16).toUpperCase()}), instance ${x.instance}`;
-    const scope=x.scope||(x.program_instance!=null?`Program instance ${x.program_instance}`:'Controller scope');
+    const scope=x.scope||(x.io_map_instance!=null?`I/O Map instance ${x.io_map_instance}`:x.program_instance!=null?`Program instance ${x.program_instance}`:'Controller scope');
     const fields=x.attributes.map(a=>`${a.name} (${a.id}, status 0x14)`).join(', ');
     return `<div class="issue">${escapeHtml(target)} · ${escapeHtml(scope)}<br>${escapeHtml(fields)} × ${x.count}</div>`;
   }).join('')||'No unsupported attribute reads recorded.';

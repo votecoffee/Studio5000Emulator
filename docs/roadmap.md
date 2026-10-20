@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.58` adds source-checked empty Data Logging discovery,
+Current milestone: `.59` recognizes nested I/O Connection class paths and
+supports a source-checked class-revision read. The SDK accepts that discovery
+request; upload still fails controller collection. See
+[I/O Connection discovery](io-connection-discovery.md).
+Native tag-address discovery and programming remain unfinished.
+
+Version `.58` adds source-checked empty Data Logging discovery,
 acknowledgements that retain an existing source Timeline UID, and visible native
 policy rejections. See [native session policy](native-session-policy.md).
 Complete native upload, tag-address discovery and programming remain unfinished.

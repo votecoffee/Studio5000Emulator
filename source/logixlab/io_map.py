@@ -1,4 +1,4 @@
-"""Read-only I/O force/LED status when the complete source has no I/O modules."""
+"""Read-only empty I/O status and bounded root connection-class metadata."""
 from dataclasses import dataclass
 from .tag_catalog import complete_tag_source
 
@@ -54,8 +54,17 @@ class IOMap:
         # is not an external I/O Map connection instance.
         return {1:b'\1\0', **({2:bytes(4), 3:bytes(4), **self.attributes()} if self.empty else {})}
 
+    def connection_class_attributes(self):
+        # Native v35 clients query the I/O Connection class below I/O Map 1,
+        # including for a controller-only project. This is our software class
+        # revision, not the controller firmware revision. No instance or
+        # connection fields are synthesized from this namespace.
+        return {1:b'\1\0'} if self.empty else None
+
     def description(self):
         return {'empty_status_available':self.empty, 'force_status':0 if self.empty else None,
                 'led_status':0 if self.empty else None, 'source':'Complete L5X with no external I/O modules',
                 'instance_count':0 if self.empty else None, 'instance_list':self.empty,
+                'connection_class_revision':1 if self.empty else None,
+                'connection_class_parent':1 if self.empty else None,
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

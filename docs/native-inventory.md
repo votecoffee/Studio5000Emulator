@@ -26,7 +26,9 @@ I/O Map class attributes `2` and `3` expose zero maximum instance and zero
 instance count as separate four-byte UDINTs. Existing force and LED status
 remain two-byte UINTs. A matching `Local` controller module in a native export
 does not create an external I/O Map connection instance. Module instances and
-their I/O Connection children remain unsupported.
+their I/O Connection instances remain unsupported. Version `.59` supports the
+[nested I/O Connection class revision](io-connection-discovery.md) below the root
+I/O Map namespace without creating module or connection instances.
 
 The new `aoi_catalog` connectivity field identifies the source check and its
 limits. The existing `alarm_catalog` reports the covered class IDs; `io_map`

@@ -99,6 +99,12 @@ separately from ordinary CIP errors. Native Timeline UID acknowledgements retain
 every source header field and never initialize or replace UIDs. See
 [native session policy](native-session-policy.md) before extending these paths.
 
+Nested I/O Connection paths retain a separate `io_map_instance` in the live
+parser, attribute-gap summaries and native rejection summaries. Keep that scope
+when dispatching or diagnosing the child; do not flatten it into a global class.
+Only a source-checked class-revision read is supported. See
+[I/O Connection discovery](io-connection-discovery.md) for the namespace and limits.
+
 ## Device I/O
 
 `device_io.py` holds immutable scalar snapshots and a bounded input queue.
