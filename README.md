@@ -162,6 +162,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Offline protocol analysis | `0x36`/`0x37` MAC analysis and structural `0x38` batches with child reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status; native project transfer remains unfinished |
+| Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |
 | PLC message mapping | Source-checked empty PCCC mapping descriptors; configured mappings and PCCC commands remain unsupported |
 | Time Sync | Source-backed PTP enable/priorities, read-only local UTC time and explicit unsynchronized/empty-port state; PTP networking remains unsupported |
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |

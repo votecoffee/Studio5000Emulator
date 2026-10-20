@@ -84,6 +84,16 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(6,bytes((0x10,len(path)//2))+path+b'\0\0\0\0')[2],0x0F)
         self.assertEqual(self.app.engine.project.programs['MainProgram']['main'],'MainRoutine')
 
+    def test_signed_sfc_force_status_is_empty_for_non_sfc_source(self):
+        self.bind()
+        self.assertEqual(self.signed(4,bytes.fromhex('03022068240003000f0018001900')),
+                         bytes.fromhex('8300000003000f000000000018000000000000001900000000000000'))
+        self.assertEqual(self.signed(5,bytes.fromhex('100320682400300f0100'))[2],0x0F)
+        self.assertFalse(self.endpoint.state()['program_forces']['force_writes'])
+        self.assertEqual(self.signed(6,bytes.fromhex('030220692400020009000b00')),
+                         bytes.fromhex('8300000002000900000000000b0000000000'))
+        self.assertEqual(self.signed(7,bytes.fromhex('10032069240030090100'))[2],0x0F)
+
     def test_signed_source_instance_read_reaches_model_and_write_remains_denied(self):
         self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,
                                               [Symbol('',0,'SpeedSetpoint',70000)])

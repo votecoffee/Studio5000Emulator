@@ -511,11 +511,13 @@ class Router:
             try:attributes=self.catalog_class_attributes([p['id'] for p in self.programs()])
             except CIPError as error:
                 if error.status!=0x0C:raise
+            attributes.update(self.app.engine.project.program_forces.attributes())
             return self.attribute_read(service,path,data,attributes)
         program=next((p for p in self.programs() if p['id']==path.instance),None)
         if program is None:raise CIPError(5,'Unknown or unexposed Program instance')
         name=program['name'].encode('ascii')
         attributes={28:struct.pack('<I',len(name))+name} if len(name)<=40 else {}
+        attributes.update(self.app.engine.project.program_forces.attributes(program['name']))
         return self.attribute_read(service,path,data,attributes)
 
     @staticmethod
@@ -714,7 +716,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -768,6 +770,11 @@ class Router:
                         raise CIPError(0x0C,'TCP/IP configuration attribute is unavailable on this interface')
             else:raise CIPError(5,'Unknown TCP/IP Interface object instance')
             return self.attribute_read(service,path,data,attributes)
+        if path.class_id==0x69:
+            if path.symbols or path.program_instance is not None or path.instance is None:
+                raise CIPError(4,'I/O Map status requires a controller-scoped instance path')
+            if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
+            return self.attribute_read(service,path,data,{1:b'\1\0',**self.app.engine.project.io_map.attributes()})
         if path.class_id in energy_catalog.CLASSES:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only bounded empty energy inventory discovery is supported')
@@ -1005,6 +1012,8 @@ class Endpoint:
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
                     'pccc_mapping':self.app.engine.project.pccc_mapping.description() if self.enabled else None,
                     'time_sync':self.app.engine.project.time_sync.description() if self.enabled else None,
+                    'program_forces':self.app.engine.project.program_forces.description() if self.enabled else None,
+                    'io_map':self.app.engine.project.io_map.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,

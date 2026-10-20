@@ -536,6 +536,42 @@ were preserved, with network writes disabled. Deployed modules, browser assets,
 displayed version and the Windows artifact matched the source. These checks do
 not establish native tag/rung monitoring, complete upload/download or online edits.
 
+### Source-checked empty force and I/O status
+
+Version `.54` implements read-only Program `0x68` attributes `15` (UINT SFC
+force enable), `24` and `25` (DWORD transition/leg list addresses). A complete
+L5X controller with visible non-SFC routine declarations reports forcing disabled
+and null lists. The field widths and packed list response agree with an existing
+passive v35 exchange; no physical controller was contacted for this change.
+
+The source check runs before unsupported routine content is filtered by the
+execution model. SFC, unknown routine types, encoded/protected content, explicit
+force declarations, partial context and ambiguous/namespaced declarations retain
+unavailable status. Class-level aggregate status requires absence across the
+whole controller. Source-bound program instances can independently report empty
+status when another program contains a chart. Reloading source recomputes these
+checks. Connectivity exposes the provenance and availability as `program_forces`.
+These are software-model absence checks, not imported physical force state.
+SFC execution, enabling forces, editing force lists and controller force services
+remain unsupported; signed and ordinary setters are denied.
+
+I/O Map `0x69` class attributes `9` and `11` provide UINT force and LED status
+when complete source establishes that there are no external I/O modules. An
+empty `Modules` section or the matching self-parented Local L85E controller is
+accepted. External modules, module-backed tags, missing/context/namespaced or
+opaque module declarations remain unavailable. The model reports no installed
+or enabled I/O forces and LED status `0`, whose no-module meaning is documented
+in Rockwell's [Controller Information and Status manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf).
+The class reports implementation revision 1. Module instances, connections,
+forces and programming services remain unsupported. `io_map` diagnostics identify
+this source check; it is not a live physical I/O health measurement.
+
+Local SDK diagnostics also tested Time Sync absence, a complete one-port clock
+layout, and additional platform/memory class discovery with substituted upstream
+fields. None resolved controller collection. Those hypotheses and synthetic
+counters are excluded from the app; a final network request alone does not
+identify the cause of the SDK failure.
+
 ### Source pass-through configuration
 
 Version `.53` returns Controller `0x8E` instance 1 attribute `25`, a read-only
