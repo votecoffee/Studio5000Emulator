@@ -134,6 +134,18 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(10,bytes.fromhex('4b0321002b032400')),b'\xCB\0\0\0')
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_signed_extended_device_defaults_do_not_authorize_an_operator_or_writes(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        query=bytes.fromhex('03022064240104000300060007000800')
+        expected=(bytes.fromhex('830000000400030000000000060000000500')+b'en-US'+
+                  bytes.fromhex('0700000000000800000000000000'))
+        self.assertEqual(self.signed(4,query),expected)
+        self.assertEqual(self.signed(5,bytes.fromhex('1003206424013008')+b'\xff'*4)[2],0x0F)
+        self.assertEqual(self.signed(6,bytes.fromhex('0e03206424013008')),bytes.fromhex('8e00000000000000'))
+        self.assertFalse(self.endpoint.state()['native_session']['operator_authorization'])
+        self.assertFalse(self.endpoint.state()['device_metadata']['trusted_slot_enforcement'])
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_signed_alarm_lists_require_alarm_free_source_and_keep_writes_denied(self):
         from logixlab.alarm_catalog import AlarmCatalog
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)

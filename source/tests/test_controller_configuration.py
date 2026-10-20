@@ -134,7 +134,7 @@ class ControllerConfigurationTests(unittest.TestCase):
             self.client = self.connect()
             self.assertEqual(self.cip(b'\x0E\3\x20\x64\x24\1\x30\2'), b'\x8E\0\x14\0')
             self.assertEqual(self.cip(b'\x03\2\x20\x64\x24\1'+struct.pack('<3H', 2, 1, 2))[2], 0x0A)
-        self.assertEqual(self.cip(b'\x0E\3\x20\x64\x24\1\x30\3')[2], 0x14)
+        self.assertEqual(self.cip(b'\x0E\3\x20\x64\x24\1\x30\x63')[2], 0x14)
 
     def test_ambiguous_descriptions_and_long_names_are_not_inferred(self):
         for description in ('<Description><LocalizedDescription Lang="en">Text</LocalizedDescription></Description>',

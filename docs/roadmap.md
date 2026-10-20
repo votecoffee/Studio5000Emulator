@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.47` adds read-only Time Sync configuration from complete
+Current milestone: `.48` adds Extended Device software-model metadata: unassigned
+location, English locale, no trusted slots and no authorized system operator.
+Source project name/description remain independent. Native upload still needs
+Ethernet counters, handler references and remaining controller/clock metadata.
+
+Version `.47` adds read-only Time Sync configuration from complete
 L5X source. The PTP enable flag and priorities are available when explicitly
 exported; missing settings, synchronization, clock measurements and port metadata
 remain unavailable. Full native upload and SDK tag monitoring are unfinished.

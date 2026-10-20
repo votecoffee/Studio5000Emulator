@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import attribute_gaps, controller_configuration, data_table, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
+from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, file_manager, key_exchange, native_session, signed_messages, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -608,6 +608,8 @@ class Router:
         if depth>4:raise CIPError(8,'Nested message depth limit')
         need(raw,2);service=raw[0];end=2+raw[1]*2;need(raw,end)
         path=decode_path(raw[2:end]);data=raw[end:]
+        if path.class_id==0x64 and (path.symbols or path.program_instance is not None):
+            raise CIPError(4,'Extended Device paths must be controller scoped')
         if self.endpoint.native_read_only:
             if path.class_id==0x64 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x4B,0x4C):
                 if not session.handle:raise CIPError(0x0F,'Native compatibility requires a registered TCP session')
@@ -804,7 +806,8 @@ class Router:
         if path.class_id==0x64 and path.instance==0 and not path.symbols:
             return self.attribute_read(service,path,data,{1:b'\1\0'})
         if path.class_id==0x64 and path.instance==1 and not path.symbols and service in (3,0x0E):
-            return self.attribute_read(service,path,data,self.app.engine.project.controller_configuration.extended_device_attributes())
+            attributes={**device_metadata.attributes(),**self.app.engine.project.controller_configuration.extended_device_attributes()}
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x64 and path.instance==1 and service==0x4B:
             if path.symbols or path.attribute is not None:raise CIPError(4,'Key challenge requires an object instance path')
             try:return 0,key_exchange.challenge(data)
@@ -933,6 +936,7 @@ class Endpoint:
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
+                    'device_metadata':device_metadata.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,

@@ -504,6 +504,13 @@ Interface/media counters `4` and `5` remain unsupported. A mixed attribute list
 preserves supported values and per-field errors; no counter is replaced with an
 invented zero. Network setters remain rejected even when tag writes are enabled.
 
+Linux's [interface statistics documentation](https://docs.kernel.org/networking/statistics.html)
+defines `rx_nohandler` as drops on inactive devices, so it cannot stand in for
+the CIP unknown-protocol counter. The pinned
+[OpENer POSIX counter sample](https://github.com/EIPStackGroup/OpENer/blob/d8820ef41ce30dda06d213438ba81c81de33ffe2/source/src/ports/POSIX/sample_application/ethlinkcbs.c)
+explicitly uses synthetic counters to test wire placement. It is useful layout
+evidence, but supplies no real Linux counter mapping for this app.
+
 The `.43` normal-source candidate preserved all 12 scalar reads and Symbol lists
 across 199 verified signed requests. It returned the three Controller settings
 and six Ethernet status fields, while the lists retained errors for handler
@@ -701,6 +708,44 @@ typed/generic BOOL and DINT reads still fail `RxDA_E_NO_ONLINE_ADDRESS`. Origina
 ACD bytes, tag values and zero scan count were preserved with writes disabled.
 Deployed modules, served web assets, version and Windows artifact matched source.
 Native GUI monitoring, complete upload/download and online edits remain unfinished.
+
+### Extended Device software-model metadata
+
+Version `.48` adds Extended Device `0x64` instance 1 attributes `3`, `6`, `7` and
+`8`. These report the software controller's own fixed properties: an unassigned
+device location (empty string), English locale (`en-US`), an empty trusted-slot
+list and system operator identity zero. They do not recover physical-device
+settings from an ACD or L5X export. `device_metadata` in the Connectivity state
+reports that provenance and the lack of implemented authority/enforcement services.
+
+The location and locale use UINT-length ASCII strings without extra string
+padding. The trusted-slot list starts with a zero UINT count; system operator
+identity is a zero DWORD. Attribute list replies preserve ordering, duplicate
+requests and errors for unknown fields. Name/description (`1`/`2`) still come
+from source, and the established name-only Get Attributes All reply is retained.
+Controller-scoped paths are required for Extended Device reads and challenge
+setup; program and symbolic paths are rejected before context creation.
+
+All four new fields are read-only, including when tag writes are enabled.
+Anonymous native compatibility contexts do not establish an authorized system
+operator or trusted slots. Setters and authority services remain denied or
+unsupported. These properties do not enable upload/download, tag monitoring
+or online edits by themselves.
+
+The suite runs 732 tests: Windows passes 730 with two Linux-only skips; Linux
+passes 731 with the Windows console check skipped. New checks cover exact
+string/count widths, the native six-field list, duplicate ordering, mixed errors,
+project replacement, scope, malformed payloads and signed setter denial.
+The unmodified source candidate preserves 12 scalar reads and Symbol descriptors
+and nine empty catalogs across 195 verified signed requests, but still fails
+controller collection after the Ethernet Link list, before the new metadata.
+
+A separate native diagnostic substitutes only earlier unresolved counter and
+handler fields. It receives the actual new Extended Device implementation's
+six-field reply, then PCCC mapping and the partial Time Sync list across 199
+verified signed requests. Those substitutions are excluded from the app; this
+confirms the new reply's native parsing, not complete upload. Original ACD bytes,
+tag values and zero scan count were preserved with writes disabled.
 
 ### Change Log correlation
 
