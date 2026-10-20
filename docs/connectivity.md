@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.51` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.52` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -969,6 +969,20 @@ programming services remain unsupported. Unknown fields report their per-field
 status. Twelve additional synthetic tests cover database limits, inactive
 records, ambiguity, manifests, source drift, empty programs, access filtering,
 scoped child paths and signed read/write-denial behavior.
+
+The `.52` suite passes 769 tests on Windows and Linux, with two and one platform
+skips respectively. The rebuilt appliance passed 171 live checks, including a
+source-bound program with no local tags, its name, counts, cursors and empty
+child catalogs. All eight native SDK connection steps passed across 83 verified
+signed requests and ended Offline. Deployed upload preserved 12 scalar reads,
+12 Symbol descriptors and nine empty catalogs across 194 verified signed
+requests, then failed controller collection after the Ethernet Link list.
+A separate 91-request session remained Online/Program without correlation loss
+and ended Offline; three native tag reads still returned
+`RxDA_E_NO_ONLINE_ADDRESS`. Source ACD bytes, tag values and zero scan count
+were preserved with writes disabled. Deployed modules, served web assets and
+the Windows artifact matched source. Studio GUI monitoring, compiled address
+discovery, complete upload/download and online edits remain unfinished.
 
 ### Change Log correlation
 
