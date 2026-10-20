@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.46` adds source-checked empty PCCC mapping descriptors.
+Current milestone: `.47` adds read-only Time Sync configuration from complete
+L5X source. The PTP enable flag and priorities are available when explicitly
+exported; missing settings, synchronization, clock measurements and port metadata
+remain unavailable. Full native upload and SDK tag monitoring are unfinished.
+
+Version `.46` adds source-checked empty PCCC mapping descriptors.
 An isolated SDK diagnostic accepts them and reaches Time Sync (`0x43`), whose
 metadata remains incomplete. Earlier missing Ethernet/controller fields still
 prevent normal upload. Complete native upload and SDK tag monitoring are unfinished.

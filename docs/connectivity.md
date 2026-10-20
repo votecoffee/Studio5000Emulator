@@ -657,6 +657,38 @@ count were preserved with writes disabled. Deployed modules, browser assets,
 version and Windows artifact matched source. Full upload/download, native
 monitoring and online edits remain unfinished.
 
+### Time Sync configuration
+
+Version `.47` adds read-only Time Sync object `0x43` configuration. Instance 1
+returns attribute `1` (PTP enable), `16` (priority 1) and `17` (priority 2), each
+encoded as one byte. These values come from explicit `PTPEnable`, `Priority1`
+and `Priority2` attributes on the Controller's `TimeSynchronize` element in a
+complete L5X export. Missing fields have no assumed defaults. Invalid fields
+remain unavailable; ambiguous, duplicate, nested, context, namespace or UID-only
+declarations do not establish settings. Priorities accept decimal values 0–255.
+
+This reports project configuration, including a requested PTP enable value;
+it does not run a PTP engine. Synchronization status, dynamic clock readings,
+offsets, clock descriptions, ports and vendor-specific fields are unsupported.
+Single reads return `0x14` for those fields. Attribute lists retain the supported
+settings and report per-field errors for the remainder. The native 32-field
+upload query therefore remains a partial reply, rather than invented clock data.
+Connectivity diagnostics label the missing Time Sync fields; state exposes
+`time_sync` with available attributes and explicit implementation limits.
+
+Class metadata describes one model instance at revision 1, and Message Router
+inventory includes the object. Setters, Get Attributes All and clock/network
+operations remain unsupported even when tag writes are enabled. Configuration
+reads never alter host clocks or start PTP traffic.
+
+The suite runs 724 tests: Windows passes 722 with two Linux-only skips; Linux
+passes 723 with the Windows console check skipped. The normal-source native
+candidate preserves 12 scalar reads and Symbol descriptors and nine empty
+catalogs across 195 verified signed requests, but still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` after the Ethernet Link list.
+It does not request Time Sync. Source bytes, tag values and zero scan count
+were preserved with writes disabled; complete upload remains unsupported.
+
 ### Change Log correlation
 
 The Change Log class advertises revision 5 in this mode. Its `0x4F` search accepts

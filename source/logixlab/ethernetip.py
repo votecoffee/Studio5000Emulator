@@ -667,7 +667,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,*energy_catalog.CLASSES,0x64,0x67,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -740,6 +740,14 @@ class Router:
         if path.class_id==0x36E:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
+        if path.class_id==0x43:
+            if path.symbols or path.program_instance is not None:
+                raise CIPError(4,'Time Sync paths must be controller scoped')
+            if path.instance==0:attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+            elif path.instance==1:attributes=self.app.engine.project.time_sync.attributes()
+            elif path.instance is None:raise CIPError(4,'Time Sync requires an instance')
+            else:raise CIPError(5,'Unknown Time Sync instance')
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x67:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'PLC message mapping paths must be controller scoped')
@@ -934,6 +942,7 @@ class Endpoint:
                     'energy_catalog':self.app.engine.project.energy_catalog.description() if self.enabled else None,
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
                     'pccc_mapping':self.app.engine.project.pccc_mapping.description() if self.enabled else None,
+                    'time_sync':self.app.engine.project.time_sync.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,
                     'native_session':native_session.description(self.enabled and self.native_read_only),
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
