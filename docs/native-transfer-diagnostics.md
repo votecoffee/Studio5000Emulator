@@ -54,3 +54,31 @@ decode the diagnostic does not prevent the Python probe from checking cleanup.
 The [download result codec](download-image.md#native-boundary), Controller
 handler-reference encoding, full upload/download, native tag-address discovery
 and the full native edit lifecycle remain unfinished.
+
+## Native validation
+
+The `.96` demo upload verifies 195 signed requests and still reports
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Its checkpoint report decodes
+198 inner requests without malformed/truncated events. The last request reads
+Time Sync attributes 1 through 28 and 102 through 105, returning aggregate CIP
+attribute-list status `0x0A`. This case does not reach the Controller handler
+reads present in earlier traces. The last observed request does not independently
+establish the cause of the SDK failure or a missing field's correct encoding.
+
+Download verifies 180 signed requests and still reports
+`RxCsE_DOWNLOAD_OF_DEVICES_FAILED`. The report retains preparation and result-query
+events for all 904 records, including 242 Templates and 16 temporary tables.
+The unsupported result query remains an inner error. Twenty-one large request
+events exceed the endpoint's 1 KiB trace-byte limit, so framing analysis is
+explicitly incomplete; their omitted bytes are not reconstructed or counted as
+verified fragment acknowledgements.
+
+Both cases preserve source/model state and confirm native Offline and endpoint
+cleanup without a reported fatal SDK fault. The standalone reader reproduces
+both saved summaries. A fresh connection/Offline case passes across 79 verified
+requests. Fifty-three focused software tests pass; the full suite is not rerun.
+
+The SDK harness also compiles successfully after a conventional local build and
+with isolated intermediate/output folders. Its explicit `Program.cs` input
+prevents a prior build's generated C# files from entering a later isolated
+compilation.
