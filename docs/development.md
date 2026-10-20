@@ -103,8 +103,15 @@ the .NET apphost EXE alone does not identify the executed implementation.
 
 The `.69` suite runs 924 tests, with two Windows skips and one Linux skip.
 The normal-source SDK attempt completes temporary fragment staging and reaches
-a denied device-processing/reset request. See the
+a denied device-operation request (`0x06`). See the
 [fragment contract and validation](transport-fragments.md#validation-and-next-boundary).
+The rebuilt runtime passes 291 wire checks and the nine-step SDK connection
+probe. Download verifies 181 signed requests and confirms empty fragment staging
+after its expected device-operation failure. The final connection, tag-read,
+upload and download verification cases confirm Offline cleanup and preserved
+source/model state. An earlier upload attempt exceeded the eight-second TCP
+cleanup window; its incomplete report was retained and the repeated upload
+confirmed cleanup within that window.
 
 The `.68` suite runs 910 tests, with two Windows skips and one Linux skip.
 The final-source candidate passes Resilient Transport setup and fails at an

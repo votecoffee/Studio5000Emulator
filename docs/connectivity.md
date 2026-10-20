@@ -7,8 +7,15 @@ and native debugger services remain unimplemented or unverified.
 
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The normal-source SDK attempt stages 82,534 bytes in 21 fragments and reaches a
-processing/reset request on class `0x412`, which remains rejected. No device data
-or active project is installed.
+device-operation request (`0x06`) on class `0x412`, which remains rejected. No
+device data or active project is installed.
+
+The rebuilt `.69` endpoint passes 291 wire checks and the nine-step SDK
+connection/Offline probe. Download verifies 181 signed requests, completes
+temporary fragment staging and fails at service `0x06`. The final verification
+set confirms Offline and empty temporary state with source/model state preserved;
+upload required a repeat after an initial cleanup-window timeout. See
+[deployed fragment validation](transport-fragments.md#validation-and-next-boundary).
 
 Version `.68` adds [temporary Resilient Transport setup and cleanup](resilient-transport.md).
 That revision's SDK attempt passed setup and reached a segmented device-data

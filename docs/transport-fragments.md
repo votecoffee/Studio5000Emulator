@@ -2,7 +2,7 @@
 
 Version `0.6.0-connectivity.69` adds bounded fragment staging to the
 [Resilient Transport setup](resilient-transport.md) milestone. The tested native
-SDK sends an entire device payload, then reaches a processing/reset request
+SDK sends an entire device payload, then reaches a device-operation request
 that remains denied. No device data is installed and no active project changes.
 
 ## Supported framing
@@ -35,8 +35,9 @@ separate and retains its existing policy.
 One assembly belongs to the preparation lease. Its declared payload must fit
 both the setup byte ceiling and the implementation's 262,144-byte maximum.
 There are at most 128 fragments and an absolute 30-second assembly lifetime,
-which later packets do not extend. Individual wrappers retain the existing
-65,519-byte message limit. Memory grows only as validated bytes arrive.
+which later packets do not extend. Individual wrappers retain the codec's
+65,519-byte limit; endpoint frame limits and negotiated connection sizes further
+restrict wire requests. Memory grows only as validated bytes arrive.
 
 Offsets must match the received byte count exactly. Holes, duplicates, overflow,
 premature final fragments, missing final markers, conflicting starts and excess
@@ -62,16 +63,46 @@ acknowledgements without asserting MAC validity; payloads stay private by defaul
 
 The normal-source SDK attempt stages 82,534 payload bytes in 21 contiguous
 fragments. It then requests service `0x06` on class `0x412`, instance `0`.
-That processing/reset operation remains denied with `0x0F`; the SDK reports
-`RxCsE_DOWNLOAD_OF_DEVICES_FAILED`. Delete, preparation end and lease release
-succeed afterwards. Its final connected-state check is Offline, with the source
+That operation's device-specific behavior is unverified. It remains denied with
+`0x0F`; the SDK reports `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`. Delete, preparation end
+and lease release succeed afterwards. Its final connected-state check is Offline, with the source
 ACD, model values, scans and model time preserved and all temporary state empty.
 
 The 924-test source suite covers independent OpenSSL vectors, per-byte MAC
 changes, shared counters, replay, owner/source/preparation checks, offset and
 capacity failures, fragment-count and time limits, opaque capture reporting and
-lifecycle cleanup. Rebuilt-runtime acceptance is recorded separately after
-deployment.
+lifecycle cleanup. It passes on Windows with two expected skips and Linux with
+one expected skip.
+
+The rebuilt `.69` runtime's application modules and served webpage match source.
+The Windows executable's embedded version and webpage were checked separately.
+The running endpoint passes 291 wire checks. The public SDK verification set is:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Online address discovery still fails before value reads |
+| Upload repeat | 199 | Controller-collection upload still fails; cleanup confirmed |
+| Download | 181 | 21 fragments staged; device operation `0x06` denied; cleanup confirmed |
+
+Each case confirms an Offline final state, preserved source/model and empty
+temporary stages. An earlier upload attempt returned Offline with unchanged
+source/model and empty stages, but its TCP connection outlasted the probe's
+eight-second cleanup window. That report remains incomplete. The connection
+subsequently closed, and the repeated upload confirmed cleanup within the
+original window. The verification does not erase that earlier result.
+
+Final state has zero TCP clients, a free uninhibited lease, idle preparation,
+closed transport, zero staged byte/fragment totals and no allocated buffer or
+completion marker. Scans and model time remain zero. The communications and SDK
+services remain running.
+
+Offline inspection of the captured payload finds a compressed container that
+expands to 371,787 bytes containing 904 length-delimited request-shaped records.
+Four record paths remain unsupported by the current path decoder. This is a
+structural observation of the tested payload; it does not validate those records
+or their effects. The runtime fragment handler neither decompresses the payload
+nor executes records, so its byte ceiling applies to the staged opaque bytes.
 
 Next work must establish the complete device-payload and processing contract
 before accepting that operation, then source validation and atomic model
