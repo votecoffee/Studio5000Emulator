@@ -6,7 +6,7 @@ anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
 Version `.56` adds [driver-backed Ethernet counters](ethernet-counters.md) for
-the tested Linux `e1000e` interface. A normal-source native SDK upload accepts
+the tested Linux `e1000e` interface. A deployed native SDK upload accepts
 the complete Ethernet Link list, continues through Extended Device, TCP/IP and
 PCCC mapping reads, and reaches the incomplete Time Sync list. Upload still
 fails controller collection; tag address discovery and programming remain
@@ -109,7 +109,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.56` normal-source test accepts Ethernet counters and reaches Time Sync; controller collection still fails | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
+| Native upload | `.56` deployed probe accepts Ethernet counters and reaches Time Sync; controller collection still fails | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 

@@ -62,3 +62,17 @@ Get-and-Clear (`0x4C`) for these attributes returns permission denied. The endpo
 does not authorize clearing host diagnostics, including when ordinary tag writes
 are enabled. Native anonymous sessions also deny counter clears and setters.
 This model neither starts packet capture nor changes host counter baselines.
+
+## Validation
+
+The `.56` suite passes 797 tests on Windows and Linux with their expected
+platform skips. The rebuilt appliance passes 190 wire checks, including live
+counter refresh and denied clears. Its native SDK connection/Offline cleanup
+sequence succeeds with 82 verified signed requests.
+
+A deployed upload verifies 197 signed requests, retains 12 scalar reads and
+12 Symbol descriptors, accepts the full Ethernet counter/status list, then
+reaches the Time Sync list with 18 unsupported fields. Upload still fails with
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Generic BOOL/DINT tag reads
+remain `RxDA_E_NO_ONLINE_ADDRESS`, without sending a tag-read packet. Original
+ACD bytes, modeled values and zero scan count were preserved by these checks.
