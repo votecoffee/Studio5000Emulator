@@ -130,6 +130,11 @@ class AnonymousClient:
     def fragment(self,format_word,position,data):
         return self._send_signed(b'\x39\2'+signed.ROUTER_PATH+struct.pack('<II',format_word,position)+data)
 
+    def transfer(self,inner,*,control=1):
+        if type(control) is not int or control not in signed.TRANSFER_CONTROLS or not isinstance(inner,bytes):
+            raise ProbeError('Expected one immutable request with an observed transfer control')
+        return self._send_signed(b'\x39\2'+signed.ROUTER_PATH+struct.pack('<II',0x301,control)+inner).inner
+
     def close(self):
         self._key=None;self.sequence=None
         if self.socket:self.socket.close();self.socket=None

@@ -97,8 +97,20 @@ def exercise(app,client,payload=None,expanded=None):
                     transfer=app.endpoint.state()['native_programming_lease']['edit_transfer']
                     assert transfer['received_bytes']==48 and transfer['code_bytes']==len(body) and transfer['component_kind']=='source'
                     assert not transfer['routine_installed'] and not transfer['complete']
+                    client.fragment(0x201,48,block[48:])
+                    checks.append({'check':'routine_source_validated_receipt','status':0,'reply_bytes':36})
+                    transfer=app.endpoint.state()['native_programming_lease']['edit_transfer']
+                    assert transfer['source_description']['execution_plan_validated']
+                    record=bytes((0x5C,len(target)//2))+target+struct.pack('<5I',2,5,0,1,123)
+                    response=client.transfer(record,control=8)
+                    assert response==bytes.fromhex('dc000000')
+                    checks.append({'check':'post_source_record_receipt','status':0,'reply_bytes':len(response)})
+                    assert app.endpoint.state()['native_programming_lease']['edit_transfer']['post_source_record']['staged']
+                    check('unimplemented_edit_completion_denied',bytes.fromhex('5902208e2401')+bytes(4),bytes.fromhex('d9000f00'))
+                    assert not app.endpoint.state()['native_programming_lease']['edit_transfer']['accepted_edits']
         check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
         assert app.endpoint.state()['native_programming_lease']['edit_transfer']['status']=='idle'
+        assert not app.endpoint.state()['native_programming_lease']['edit_transfer']['post_source_record']['staged']
         assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
         attrs=app.engine.project.program_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
         if 19 in attrs:

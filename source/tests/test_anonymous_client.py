@@ -42,6 +42,16 @@ class AnonymousClientTests(unittest.TestCase):
                 self.assertEqual(self.endpoint.counts['native_verified'],before)
             self.endpoint.allow_writes=False
 
+    def test_observed_transfer_controls_share_counter_and_unknown_controls_send_nothing(self):
+        with AnonymousClient(self.endpoint) as client:
+            client.bind();read=bytes.fromhex('0e03200124013001')
+            for control in (1,8):self.assertEqual(client.transfer(read,control=control),bytes.fromhex('8e0000000100'))
+            before=self.endpoint.counts['native_verified']
+            for control in (None,True,0,2,9,'8'):
+                with self.assertRaises(ProbeError):client.transfer(read,control=control)
+            self.assertEqual(self.endpoint.counts['native_verified'],before)
+            self.assertEqual(client.request(read),bytes.fromhex('8e0000000100'))
+
     def test_targets_require_owned_loopback_and_client_replies_verify_mac(self):
         with self.assertRaises(ProbeError):AnonymousClient(object())
         with AnonymousClient(self.endpoint) as client:

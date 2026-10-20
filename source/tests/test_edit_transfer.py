@@ -31,6 +31,32 @@ def source_prefix(routine=700):return prefix(routine=routine)[:-16]+struct.pack(
 
 
 class EditTransferModelTests(unittest.TestCase):
+    def validated_source(self):
+        self.complete_code();source=source_container()
+        self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),target=(300,700),prefix=source_prefix(),kind='source')
+        self.stage.accept(part(0x201,48,source[48:]),target=(300,700),kind='source')
+        self.stage.translated_rungs=('NOP();',);self.stage.plan_validated=True
+
+    def test_post_source_record_requires_validated_target_is_immutable_bounded_and_expires_with_source(self):
+        data=struct.pack('<5I',2,5,0,1,123)
+        with self.assertRaises(EditTransferError):self.stage.attach(data,target=(300,700))
+        self.validated_source();self.stage.attach(data,target=(300,700));self.stage.attach(data,target=(300,700))
+        state=self.stage.description();record=state['post_source_record']
+        self.assertTrue(record['staged']);self.assertEqual(record['bytes'],20)
+        self.assertEqual(record['sha256'],hashlib.sha256(data).hexdigest())
+        self.assertEqual(state['retained_bytes'],len(self.body)+len(self.stage._data)+20)
+        self.assertFalse(record['interpreted'] or record['payload_exposed'] or state['accepted_edits'])
+        for bad,target in ((data,(300,701)),(data[:-1],(300,700)),(data+b'X',(300,700)),
+                (bytearray(data),(300,700)),(struct.pack('<5I',2,5,0,1,0),(300,700)),
+                (struct.pack('<5I',2,5,0,1,124),(300,700))):
+            with self.assertRaises(EditTransferError):self.stage.attach(bad,target=target)
+            self.assertEqual(self.stage.description(),state)
+        self.stage._code=bytes(MAX_BYTES-len(self.stage._data))
+        with self.assertRaises(EditTransferError):self.stage.attach(data,target=(300,700))
+        self.now+=ASSEMBLY_SECONDS
+        self.assertFalse(self.stage.description()['post_source_record']['staged'])
+        self.assertEqual(self.stage.description()['retained_bytes'],0)
+
     def complete_code(self):
         self.start();self.stage.accept(part(0x201,32,self.body[32:]),target=(300,700))
 
@@ -182,12 +208,27 @@ class EditTransferSignedTests(unittest.TestCase):
         before=copy.deepcopy(self.app.state())
         self.first();self.fragment(0x201,32,container()[32:])
         source=source_container(ET.tostring(xml_source(text='XIC(@107 5 0 0 0 0@)OTE(@107 5 0 0 0 0@);')))
-        self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48]);self.fragment(0x201,48,source[48:],15)
+        self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48]);self.fragment(0x201,48,source[48:])
         description=self.endpoint.state()['native_programming_lease']['edit_transfer']['source_description']
         self.assertTrue(description['operand_bindings_verified'] and description['execution_plan_validated'])
         self.assertFalse(description['source_applied'])
         self.assertEqual(self.endpoint.programming_lease.edit_transfer.translated_rungs,('XIC(RunLatch)OTE(RunLatch);',))
         for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
+
+        from test_signed_transfer import controlled_request
+        path=prefix(routine=self.routine)[:14]
+        record=path+struct.pack('<5I',2,5,0,1,123)
+        # The identical inner write in another wrapper cannot stage data.
+        self.assertEqual(self.send(record)[2],15)
+        raw=controlled_request(record,self.sequence);self.sequence+=1
+        response=sm.verify_response(self.cip(raw),KEY,request=sm.parse_request(raw))
+        self.assertEqual(response.inner,b'\xDC\0\0\0');self.assertEqual(response.container_control,8)
+        state=self.endpoint.state()['native_programming_lease']['edit_transfer']
+        self.assertTrue(state['post_source_record']['staged'])
+        self.assertFalse(state['routine_installed'] or state['accepted_edits'])
+        for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
+        self.send(reservations.message(0x4C,payload=b''))
+        self.assertFalse(self.endpoint.programming_lease.edit_transfer.description()['post_source_record']['staged'])
 
     def test_owner_phase_program_hold_and_matching_routine_binding_are_required(self):
         self.ready();self.send(reservations.message(0x4C,payload=b''))

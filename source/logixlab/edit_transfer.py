@@ -2,7 +2,7 @@
 
 This receives paired ELF and compressed-source containers. It never installs a routine,
 resolves relocations, executes native instructions or accepts controller edits.
-The endpoint rejects installation after the final source fragment is retained.
+Validated source storage may be acknowledged; active installation is separate.
 """
 import hashlib
 import struct
@@ -28,6 +28,7 @@ class EditTransfer:
         self.kind=None;self._code=None;self.source=None
         self.translated_rungs=None;self.reference_error=None
         self.plan_validated=False;self.plan_error=None
+        self._attachment=None
 
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear()
@@ -87,6 +88,27 @@ class EditTransfer:
         except EditTransferError:
             self.clear();raise
 
+    def attach(self,data,*,target):
+        """Retain the observed post-source record; its final word is opaque.
+
+        Receipt establishes temporary storage only. It does not assign native
+        identifiers, interpret metadata or accept/activate controller edits.
+        """
+        self.expire()
+        if (not self.complete or self.kind!='source' or self.source is None
+                or self.translated_rungs is None or not self.plan_validated):
+            raise EditTransferError(0x0C,'validated_edit_source_required')
+        if (not isinstance(target,tuple) or len(target)!=2 or any(type(value) is not int for value in target)
+                or target!=self.target):raise EditTransferError(0x0C,'edit_target_changed')
+        if (not isinstance(data,bytes) or len(data)!=20 or data[:16]!=struct.pack('<4I',2,5,0,1)
+                or data[16:]==bytes(4)):
+            raise EditTransferError(3,'unsupported_edit_post_source_record')
+        if len(self._data)+len(self._code or b'')+len(data)>MAX_BYTES:
+            raise EditTransferError(2,'edit_storage_limit')
+        if self._attachment is not None and self._attachment!=data:
+            raise EditTransferError(0x0C,'edit_post_source_record_conflict')
+        self._attachment=data
+
     def description(self):
         self.expire()
         return {'status':'complete' if self.complete else 'receiving' if self.fragments else 'idle',
@@ -96,7 +118,10 @@ class EditTransfer:
                 'assembly_timeout_seconds':ASSEMBLY_SECONDS,
                 'container_sha256':hashlib.sha256(self._data).hexdigest() if self.complete else None,
                 'container_length_verified':bool(self.fragments),'elf_structural_validation':False,
-                'component_kind':self.kind,'retained_bytes':len(self._data)+len(self._code or b''),
+                'component_kind':self.kind,'retained_bytes':len(self._data)+len(self._code or b'')+len(self._attachment or b''),
+                'post_source_record':{'staged':self._attachment is not None,'bytes':len(self._attachment or b''),
+                    'sha256':hashlib.sha256(self._attachment).hexdigest() if self._attachment is not None else None,
+                    'interpreted':False,'payload_exposed':False},
                 'code_bytes':len(self._code or (self._data if self.kind=='code' and self.complete else b'')),
                 'code_sha256':hashlib.sha256(self._code or self._data).hexdigest() if self._code or self.kind=='code' and self.complete else None,
                 'source_description':({**self.source.description(),

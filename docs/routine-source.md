@@ -2,9 +2,11 @@
 
 Version `.87` extends [compiled edit staging](edit-transfer.md) with the source
 container sent after the compiled ELF. Both belong to the same reserved,
-source-bound RLL routine. Receipt of a complete ELF now acknowledges temporary
-storage and permits the source transfer. The final source fragment still
-returns an installation error; the active project is unchanged.
+source-bound RLL routine. Receipt of a complete ELF acknowledges temporary
+storage and permits the source transfer. In `.87`, the final source fragment
+returns an installation error. Version `.88` instead acknowledges validated
+source storage and supports the following [post-source record](edit-post-source.md).
+The active project remains unchanged.
 
 The observed source setup consists of DWORDs `1`, `3`, followed by a container
 whose first DWORD describes its remaining length. Relative source/auxiliary

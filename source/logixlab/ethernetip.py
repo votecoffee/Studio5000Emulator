@@ -179,7 +179,7 @@ class Router:
         attributes=self.identity_attributes()
         return b''.join(attributes[n] for n in range(1,8))
 
-    def native_read(self,inner,session,native,depth,limit,budget,*,registration=True):
+    def native_read(self,inner,session,native,depth,limit,budget,*,registration=True,transfer_control=None):
         """Apply the same native policy to single packets and batch children."""
         path=None
         def reject(status,reason):
@@ -191,6 +191,34 @@ class Router:
                 result=native.registration(inner[0],path,payload)
                 if result is not None:return reply(inner[0],0,result)
             elif native.stage!='bound':return reject(0x0F,'unbound_context')
+            if inner[0]==0x5C and path.class_id==0x6D:
+                if transfer_control!=8:return reject(0x0F,'edit_transfer_control_required')
+                if (path.program_instance is None or not path.instance or path.attribute is not None or path.symbols
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_edit_owner(native,self.app.generation,self.app.engine.project.sha256)
+                    if not lease.edit_phase_open or path.program_instance not in lease.program_reservations:
+                        return reject(0x0C,'edit_program_reservation_required')
+                    # Recheck original catalogs, as for the fragments. The
+                    # record is opaque and cannot update executable identity.
+                    program=self.source_bound_program(path.program_instance)
+                    if not self.zero_program_stack_supported(program):return reject(0x0C,'source_correlation_unavailable')
+                    routine=next((row for row in self.routines(path.program_instance) if row['id']==path.instance),None)
+                    if routine is None:return reject(5,'unknown_source_routine')
+                    stage=lease.edit_transfer
+                    if stage.source is not None:
+                        from .routine_source import resolve,SourceError
+                        try:neutral=resolve(stage.source,self.app.engine.project,self.app.native_symbols,
+                            self.app.native_routines,self.app.native_types,routine['program'])
+                        except SourceError:return reject(0x0C,'source_correlation_unavailable')
+                        if neutral!=stage.translated_rungs:return reject(0x0C,'source_correlation_changed')
+                    lease.edit_transfer.attach(payload,target=(path.program_instance,path.instance))
+                    self.endpoint.record('native_edit_post_source_record',
+                        **lease.edit_transfer.description()['post_source_record'])
+                return reply(inner[0])
             if inner[0] in (0x55,0x57) and path.class_id==0x8E:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
@@ -410,7 +438,7 @@ class Router:
         except CIPError as error:return reject(error.status,'invalid_request')
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
         except programming_lease.LeaseError as error:return reject(error.status,error.reason)
-        except (library_staging.LibraryError,metadata_staging.MetadataError,resilient_transport.TransportError) as error:return reject(error.status,error.reason)
+        except (library_staging.LibraryError,metadata_staging.MetadataError,resilient_transport.TransportError,edit_transfer.EditTransferError) as error:return reject(error.status,error.reason)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
@@ -1071,9 +1099,11 @@ class Router:
                                 except CIPError:
                                     lease.edit_transfer.clear();raise
                                 if edit_state['complete'] and edit_state['component_kind']=='source':
-                                    # Buffer completion is not Executable write
-                                    # acceptance; preserve it for inspection.
-                                    raise CIPError(0x0F,'Compiled edit installation unimplemented')
+                                    # Acknowledge validated temporary storage.
+                                    # Later edit operations still need their own
+                                    # contracts before any active replacement.
+                                    if not lease.edit_transfer.plan_validated:
+                                        raise CIPError(0x0F,'Compiled edit candidate unsupported')
                             else:
                                 lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
                                 lease.transport.accept(envelope)
@@ -1097,7 +1127,8 @@ class Router:
                 else:
                     inner_limit=max(4,limit-(36 if envelope.service in (0x37,0x39) else 28))
                     result=self.native_read(envelope.inner,session,native,depth,inner_limit,budget,
-                                            registration=envelope.service!=0x39)
+                                            registration=envelope.service!=0x39,
+                                            transfer_control=envelope.container_control if isinstance(envelope,signed_messages.TransferEnvelope) else None)
                     if len(result)>inner_limit:result=reply(envelope.inner[0],0x1B)
                     encoded=signed_messages.encode_response(envelope,result,native.key)
                 return encoded[2],encoded[4:]

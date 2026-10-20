@@ -80,3 +80,8 @@ then decodes and translates supported object references, with a detached plan
 check. Installation is rejected after the source component. Both components
 remain under the same owner, target, combined byte/fragment limits and absolute
 deadline; neither changes active execution.
+
+Version `.88` acknowledges validated source storage and retains the observed
+[post-source record](edit-post-source.md), under the same ownership, target,
+combined capacity and deadline. The next Controller completion operation is
+still denied. Source activation and accepted controller edits remain unfinished.

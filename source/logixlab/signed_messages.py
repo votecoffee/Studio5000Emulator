@@ -18,6 +18,7 @@ ROUTER_PATH = b'\x20\x02\x24\x01'
 CONTAINER_FORMAT = 0x301
 MAX_BATCH_CHILDREN = 256  # Implementation limit, not an asserted protocol limit.
 TRANSFER_CONTROL = 1  # Legacy single-inner 0x39 dialect; fragments use separate framing.
+TRANSFER_CONTROLS = (1, 8)  # Observed single-inner forms; control bits remain opaque.
 FRAGMENT_FORMATS = (0x101, 1, 0x201)  # First, continuation and final fragment.
 
 
@@ -68,7 +69,7 @@ def _bounded(raw):
         raise EnvelopeError('Envelope length is outside the supported bounds')
 
 
-def _inner(data, service):
+def _inner(data, service, *, transfer_control=TRANSFER_CONTROL):
     if service == 0x36:
         return data, None
     if len(data) < 8:
@@ -76,7 +77,7 @@ def _inner(data, service):
     format_word, size = struct.unpack_from('<II', data)
     if format_word != CONTAINER_FORMAT:
         raise EnvelopeError('Unsupported single-packet container format')
-    if service == 0x39 and size != TRANSFER_CONTROL:
+    if service == 0x39 and size != transfer_control:
         raise EnvelopeError('Unsupported transfer container control')
     if service == 0x37 and size != len(data) - 8:
         raise EnvelopeError('Single-packet container length mismatch')
@@ -145,7 +146,7 @@ def _request_context(request):
             request.inner[0] & 0x80 or 2 + 2 * request.inner[1] > len(request.inner) or
             request.container_format != (None if request.service == 0x36 else CONTAINER_FORMAT) or
             (request.service == 0x39 and (not isinstance(request,TransferEnvelope) or
-             type(request.container_control) is not int or request.container_control != TRANSFER_CONTROL)) or
+             type(request.container_control) is not int or request.container_control not in TRANSFER_CONTROLS)) or
             (request.service != 0x39 and isinstance(request,TransferEnvelope))):
         raise EnvelopeError('A supported parsed request is required')
 
@@ -176,10 +177,14 @@ def parse_request(raw):
             result=FragmentEnvelope(service,sequence,raw[14:-TRAILER_BYTES],format_word,position)
             _fragment_context(result)
             return result
-    inner, format_word = _inner(raw[6:-TRAILER_BYTES], service)
+    control=TRANSFER_CONTROL
+    if service==0x39 and len(raw)>=14+TRAILER_BYTES:
+        control=struct.unpack_from('<I',raw,10)[0]
+        if control not in TRANSFER_CONTROLS:raise EnvelopeError('Unsupported transfer container control')
+    inner, format_word = _inner(raw[6:-TRAILER_BYTES], service,transfer_control=control)
     _check_inner_request(inner)
     kind = TransferEnvelope if service == 0x39 else Envelope
-    return kind(service, sequence, inner, format_word)
+    return kind(service, sequence, inner, format_word,control) if service==0x39 else kind(service, sequence, inner, format_word)
 
 
 def verify_request(raw, key, *, expected_sequence):
@@ -225,13 +230,14 @@ def parse_response(raw, request):
     _request_context(request)
     if raw[:4] != bytes((request.service | 0x80, 0, 0, 0)):
         raise EnvelopeError('Expected a successful corresponding wrapper response')
-    inner, format_word = _inner(raw[4:-TRAILER_BYTES], request.service)
+    control=request.container_control if request.service==0x39 else TRANSFER_CONTROL
+    inner, format_word = _inner(raw[4:-TRAILER_BYTES], request.service,transfer_control=control)
     _check_inner_response(inner, request.inner[0])
     sequence = struct.unpack_from('<I', raw, len(raw)-TRAILER_BYTES)[0]
     if sequence != request.sequence:
         raise EnvelopeError('Response counter does not match its request')
     kind = TransferEnvelope if request.service == 0x39 else Envelope
-    return kind(request.service, sequence, inner, format_word)
+    return kind(request.service, sequence, inner, format_word,control) if request.service==0x39 else kind(request.service, sequence, inner, format_word)
 
 
 def verify_response(raw, key, *, request):
@@ -255,7 +261,7 @@ def encode_response(request, inner, key):
         raise EnvelopeError('Embedded reply must be bounded immutable bytes')
     body = inner
     if request.service in (0x37,0x39):
-        control = TRANSFER_CONTROL if request.service == 0x39 else len(inner)
+        control = request.container_control if request.service == 0x39 else len(inner)
         body = struct.pack('<II', CONTAINER_FORMAT, control) + inner
     raw = bytes((request.service | 0x80, 0, 0, 0)) + body + struct.pack('<I', request.sequence)
     # Validate the same strict framing/counter/inner-header contract before

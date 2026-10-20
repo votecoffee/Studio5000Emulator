@@ -33,6 +33,13 @@ class NativeSdkProbeTests(unittest.TestCase):
         for value in (None,[],{}):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer']=value
             with self.assertRaises(ValueError):validate_idle(other)
+        for field,value in (('staged',True),('bytes',20),('bytes',False),('sha256','a'*64),
+                            ('interpreted',True),('payload_exposed',True)):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['edit_transfer']['post_source_record'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        legacy=copy.deepcopy(state);del legacy['connectivity']['native_programming_lease']['edit_transfer']['post_source_record']
+        validate_idle(legacy)
 
     def test_typed_tag_getters_are_explicit_and_require_a_tag_connection_case(self):
         for kind in ('BYTE_ARRAY','BOOL','DINT','REAL'):

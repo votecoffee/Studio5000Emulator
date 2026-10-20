@@ -267,6 +267,12 @@ def validate_staging(lease):
         for field in ('retained_bytes','code_bytes'):
             if field in transfer and (type(transfer[field]) is not int or transfer[field]!=0):
                 raise ValueError('Probe requires empty paired Routine containers')
+        if 'post_source_record' in transfer:
+            record=transfer['post_source_record']
+            if (not isinstance(record,dict) or any(record.get(field) is not False
+                    for field in ('staged','interpreted','payload_exposed'))
+                    or type(record.get('bytes')) is not int or record['bytes']!=0 or record.get('sha256') is not None):
+                raise ValueError('Probe requires empty post-source edit storage')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]

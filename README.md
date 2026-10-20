@@ -61,6 +61,10 @@ Version `.87` receives the following [compressed Routine source](docs/routine-so
 resolves supported native object references using original ACD identities, and
 checks translated ladder logic in a detached execution plan. It retains both
 containers temporarily; applying source and accepted edits remain unfinished.
+Version `.88` acknowledges validated source storage and retains the following
+[post-source record](docs/edit-post-source.md). Its signed transfer parser keeps
+the native session alive through the next unsupported operation, allowing
+the edit diagnostic to complete Go Offline. Active edit completion remains unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
