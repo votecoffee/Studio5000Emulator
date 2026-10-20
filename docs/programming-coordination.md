@@ -84,6 +84,21 @@ and original ACD bytes are preserved. This advances past the earlier
 `RxCsE_ASA_INVALID_IOI_SEGMENT_TYPE` and intermediate unknown-destination errors;
 it does not complete a download.
 
+The rebuilt and restarted `.60` appliance passes 259 wire checks. The packaged
+version and web assets, deployed source hashes and served webpage match source.
+The deployed SDK connection probe passes all nine steps with 81 verified signed
+requests. Two tag reads still fail before sending tag-read packets, with
+`RxDA_E_NO_ONLINE_ADDRESS` across 83 verified requests. Upload still fails
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` across 197 verified requests;
+it retains 12 scalar reads and 12 Symbol descriptors.
+
+The fresh deployed download probe repeats the 103-request preparation sequence,
+including successful acquisition, link-address read and release around the
+denied Run Mode Inhibit write. Its final state is Offline, client connections
+close, and the lease is free. All four probes preserve source bytes, modeled
+values, scan count and scan time. Both application write gates remain disabled;
+Windows services are not reconfigured.
+
 The installed plain v35 Controller, I/O Map and Semaphore definitions identify
 the attribute names and widths. Vendor definitions, SDK binaries, ACDs and
 private traces are not distributed. The next programming phase needs modeled

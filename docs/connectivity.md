@@ -11,6 +11,15 @@ supported Local controller's source-backed link address. The normal-source
 download probe advances past its earlier IOI errors and reaches a Run Mode
 Inhibit write, which remains denied. Project transfer is unfinished.
 
+The deployed `.60` endpoint passes 259 wire checks and the SDK's nine-step
+connection/Offline cleanup sequence with 81 verified signed requests. Tag reads
+and upload retain their previous failures across 83 and 197 requests. Download
+now verifies 103 requests, acquires/releases its lease, and fails
+`RxCsE_ASA_NO_PERMISSION` at the unsupported Run Mode Inhibit write. It no longer
+fails at the earlier nested-path IOI error. Source and modeled state remain
+unchanged, and all probes confirm Offline cleanup. See
+[programming coordination validation](programming-coordination.md#diagnostics-and-validation).
+
 Version `.59` adds [nested I/O Connection class discovery](io-connection-discovery.md).
 The live parser preserves its I/O Map parent scope and accepts the source-checked
 software class revision read. Module instances and I/O Connection instances

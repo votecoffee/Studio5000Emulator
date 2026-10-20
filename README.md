@@ -93,9 +93,9 @@ Version `.60` adds [native programming coordination](docs/programming-coordinati
 an exclusive session lease with cleanup and a source-backed Local link-address
 read. The download probe advances to a Run Mode Inhibit write, which remains
 denied by the read-only policy.
-Full native upload and online tag monitoring remain unfinished.
+Full native upload/download and online tag monitoring remain unfinished.
 The 838-test suite passes on Windows and Linux with expected platform skips;
-the running `.59` endpoint previously passed 248 wire checks. Current SDK upload, tag-read
+the running `.60` endpoint passes 259 wire checks. Current SDK upload, tag-read
 and download probes still fail their native acceptance steps.
 
 ## Usage
