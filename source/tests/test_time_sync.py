@@ -48,7 +48,7 @@ class TimeSyncTests(unittest.TestCase):
             desc = settings.description()
             self.assertEqual(desc['ptp_enabled'], enabled)
             self.assertEqual(desc['source_attributes'], [1, 16, 17])
-            self.assertEqual(desc['available_attributes'], [1, 2, 11, 12, 13, 14, 15, 16, 17, 24, 25, 26])
+            self.assertEqual(desc['available_attributes'], [1, 2, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26])
             self.assertEqual(desc['dynamic_attributes'], [3, 4])
             for key in ('settings_writable', 'ptp_engine'):
                 self.assertFalse(desc[key])
@@ -122,6 +122,11 @@ class TimeSyncTests(unittest.TestCase):
         values = {**self.settings().attributes(), 2: b'\0',
                   3: struct.pack('<q', timestamp//1000), 4: struct.pack('<q', timestamp),
                   **{attr: bytes(2) for attr in (11, 12, 13, 14, 15, 24, 25, 26)}}
+        product=b'Studio5000Emulator;LogixLab;'
+        from logixlab import __version__
+        revision=(';;'+__version__).encode('utf-8')
+        values.update({21:struct.pack('<I',len(product))+product,
+                       22:struct.pack('<I',len(revision))+revision,23:bytes(4)})
         expected = struct.pack('<H', len(order))
         for attr in order:
             expected += struct.pack('<HH', attr, 0 if attr in values else 0x14) + values.get(attr, b'')

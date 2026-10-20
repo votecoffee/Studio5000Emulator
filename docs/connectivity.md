@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.62` adds read-only [software clock descriptions](clock-descriptions.md)
+to Time Sync inventory: the product name, current app version and unassigned
+user description. These identify the software clock without assigning hardware
+identity or synchronization measurements. Fifteen requested Time Sync fields
+remain unavailable; complete native upload is unfinished.
+
 Version `.61` adds an owner-scoped [Run Mode Inhibit](run-mode-inhibit.md).
 The accepted UINT mask is reflected in single/list reads and prevents scans
 until cleared or the owning lease ends. The native download probe now reaches

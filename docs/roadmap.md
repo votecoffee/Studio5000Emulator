@@ -6,7 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.61` supports owner-scoped Run Mode Inhibit with scan and
+Current milestone: `.62` supplies native [software clock descriptions](clock-descriptions.md)
+for upload inventory, including the actual app version. Fifteen Time Sync fields
+remain unavailable, and full upload is unfinished.
+
+Version `.61` supports owner-scoped Run Mode Inhibit with scan and
 input-queue guards, readback and cleanup. The SDK accepts the write and reaches
 Controller service `0x60`. Its response/status contract remains unresolved;
 private begin/status trials did not progress beyond polling. See
@@ -16,7 +20,7 @@ and monitoring remain unfinished.
 
 Version `.60` adds a session-owned coordination lease and a
 source-backed Local link-address read. Native download preparation advances
-to a Run Mode Inhibit write; the current read-only policy still denies it.
+to a Run Mode Inhibit write, which was denied in that revision.
 See [programming coordination](programming-coordination.md). Next: implement
 the inhibit/state lifecycle, validated transfer staging and atomic commit or
 rollback before admitting project changes. Full native transfer and monitoring

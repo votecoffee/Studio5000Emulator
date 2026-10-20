@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from logixlab import software_clock
+from logixlab import __version__
 from logixlab.ethernetip import Endpoint, Session
 from logixlab.server import Application
 
@@ -95,6 +96,48 @@ class SoftwareClockTests(unittest.TestCase):
         with patch('logixlab.software_clock.time.time_ns', side_effect=OSError('unavailable')):
             self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<5H', 4, 2, 3, 11, 4)),
                              bytes.fromhex('83000a0004000200000000030014000b000000000004001400'))
+
+    def test_descriptions_identify_software_with_exact_lengths_and_current_version(self):
+        expected={21:b'Studio5000Emulator;LogixLab;',22:(';;'+__version__).encode('utf-8'),23:b''}
+        before=copy.deepcopy(self.app.engine.memory.values)
+        with patch('logixlab.software_clock.time.time_ns',side_effect=AssertionError('Static descriptions')):
+            for attr,text in expected.items():
+                response=self.send(path=bytes.fromhex('2043240130')+bytes((attr,)))
+                self.assertEqual(response,bytes.fromhex('8e000000')+struct.pack('<I',len(text))+text)
+            # No assigned manufacturer OUI or clock hardware identity is known.
+            for attr in (10,19,20,102,103,104,105):
+                self.assertEqual(self.send(path=bytes.fromhex('2043240130')+bytes((attr,))),bytes.fromhex('8e001400'))
+        info=self.app.engine.project.time_sync.description()['software_clock']
+        self.assertEqual(info['software_version'],__version__)
+        self.assertEqual(info['description_attributes'],[21,22,23])
+        for key in ('manufacturer_oui','hardware_revision','firmware_revision','serial_number'):
+            self.assertIsNone(info[key])
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
+
+    def test_description_lists_preserve_duplicates_and_report_only_actual_gaps(self):
+        revision=(';;'+__version__).encode('utf-8')
+        order=(23,22,5,21,22,20)
+        expected=(struct.pack('<HHI',23,0,0)+struct.pack('<HHI',22,0,len(revision))+revision+
+                  struct.pack('<HH',5,0x14)+struct.pack('<HHI',21,0,28)+b'Studio5000Emulator;LogixLab;'+
+                  struct.pack('<HHI',22,0,len(revision))+revision+struct.pack('<HH',20,0x14))
+        with patch('logixlab.software_clock.time.time_ns',side_effect=AssertionError('Static descriptions')):
+            response=self.send(3,bytes.fromhex('20432401'),struct.pack('<7H',6,*order))
+        self.assertEqual(response,bytes.fromhex('83000a000600')+expected)
+        gap=self.endpoint.state()['attribute_gaps'][0]
+        self.assertEqual([a['id'] for a in gap['attributes']],[5,20])
+        for service,path,data in ((0x10,bytes.fromhex('204324013015'),bytes(4)),
+                (4,bytes.fromhex('20432401'),bytes.fromhex('01001500')+bytes(4))):
+            self.assertEqual(self.send(service,path,data)[2],8)
+
+    def test_invalid_revision_is_unavailable_and_unicode_lengths_count_bytes(self):
+        for revision in ('x'*31,'bad\0version','bad\ud800version'):
+            with patch('logixlab.software_clock.__version__',revision):
+                self.assertEqual(self.send(path=bytes.fromhex('204324013016')),bytes.fromhex('8e001400'))
+                self.assertEqual(self.send(path=bytes.fromhex('204324013017')),bytes.fromhex('8e00000000000000'))
+        with patch('logixlab.software_clock.__version__','é'*30):
+            data=(';;'+'é'*30).encode('utf-8')
+            self.assertEqual(self.send(path=bytes.fromhex('204324013016')),bytes.fromhex('8e000000')+struct.pack('<I',62)+data)
 
     def test_clock_is_independent_of_source_presence_scan_time_and_host_adjustments(self):
         before = copy.deepcopy(self.app.engine.memory.values)

@@ -6,17 +6,37 @@ list so its microsecond and nanosecond values refer to the same instant.
 """
 import struct
 import time
+from . import __version__
 
 
 PORT_ATTRIBUTES = (11, 12, 13, 14, 15, 24, 25, 26)
-STATIC_ATTRIBUTES = (2, *PORT_ATTRIBUTES)
+DESCRIPTION_ATTRIBUTES = (21, 22, 23)
+STATIC_ATTRIBUTES = (2, *PORT_ATTRIBUTES, *DESCRIPTION_ATTRIBUTES)
 TIME_ATTRIBUTES = (3, 4)
+
+
+def description_attributes():
+    # CIP strings carry a UDINT UTF-8 byte count, with no padding or terminator.
+    # Empty hardware, firmware and serial subfields are intentional: these
+    # describe the software clock, independently of the compatibility profile.
+    values = {}
+    for number, text, maximum in ((21, 'Studio5000Emulator;LogixLab;', 64),
+                                  (22, ';;'+__version__, 32), (23, '', 128)):
+        if len(text)>maximum or '\0' in text:
+            continue
+        try:
+            data = text.encode('utf-8')
+        except UnicodeEncodeError:
+            continue
+        values[number] = struct.pack('<I', len(data))+data
+    return values
 
 
 def attributes(*, read_time=False):
     # No PTP engine means no synchronized master and no emulated PTP ports.
     # Port arrays contain their UINT count, without invented entries.
-    values = {2: b'\0', **{number: bytes(2) for number in PORT_ATTRIBUTES}}
+    values = {2: b'\0', **{number: bytes(2) for number in PORT_ATTRIBUTES},
+              **description_attributes()}
     if read_time:
         try:
             nanoseconds = time.time_ns()
@@ -37,4 +57,9 @@ def description():
             'snapshot_scope': 'one CIP read request', 'scan_time_independent': True,
             'host_adjustments_visible': True, 'synchronized': False, 'ptp_port_count': 0,
             'ptp_engine': False, 'accuracy_claimed': False, 'set_time': False,
-            'master_offset_measurements': False, 'hardware_clock': False}
+            'master_offset_measurements': False, 'hardware_clock': False,
+            'description_attributes': list(description_attributes()),
+            'product_description': 'Studio5000Emulator;LogixLab;',
+            'software_version': __version__, 'user_description': '',
+            'manufacturer_oui': None, 'hardware_revision': None,
+            'firmware_revision': None, 'serial_number': None}
