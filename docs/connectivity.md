@@ -80,7 +80,7 @@ These are separate native acceptance stages:
 | --- | --- | --- |
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
-| Native upload | `.49` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
+| Native upload | `.50` deployed test preserves supported scalar discovery and Ethernet status; controller collection still fails, with unsupported fields reported | Handler-reference encoding, Ethernet counters, remaining controller metadata, Time Sync, tag kinds and project reconstruction |
 | Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
@@ -874,6 +874,19 @@ nine empty catalogs across 195 verified signed requests, but still fails
 controller collection after the Ethernet Link list. Source ACD bytes, tag values
 and zero scan count were preserved with writes disabled. This transport fix does
 not resolve the earlier missing controller/device fields.
+
+The rebuilt `.50` appliance passed 136 live protocol checks, including the
+614-byte metadata reply over a 4,000-byte connection and the smaller connected
+and unconnected limits. Its eight native SDK connection steps passed across 84
+verified signed requests and ended Offline. Deployed upload preserved 12 scalar
+reads and Symbol descriptors and nine empty catalogs across 196 verified signed
+requests, then failed controller collection after the Ethernet Link list; it did
+not reach Time Sync. A separate 92-request SDK session remained stable but all
+three tested native tag reads still returned `RxDA_E_NO_ONLINE_ADDRESS`. Source
+ACD bytes, tag values and zero scan count were preserved with writes disabled.
+Deployed modules, served web assets, app version and Windows artifact matched
+source. Complete upload/download, Studio GUI monitoring and online edits remain
+unfinished.
 
 ### Change Log correlation
 
