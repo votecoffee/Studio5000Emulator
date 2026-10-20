@@ -99,7 +99,14 @@ def describe_path(raw):
 def envelope_description(envelope, include_payloads):
     result = {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
               'sequence': envelope.sequence}
-    if isinstance(envelope, signed_messages.BatchEnvelope):
+    if isinstance(envelope,signed_messages.FragmentEnvelope):
+        result.update(container_format=envelope.container_format,position=envelope.position,
+                      fragment_bytes=len(envelope.fragment),fragment_sha256=hashlib.sha256(envelope.fragment).hexdigest())
+        if envelope.container_format==0x101:result['first_request']=describe(envelope.fragment,include_payloads,unwrap=False)
+        elif include_payloads:result['fragment_hex']=envelope.fragment.hex()
+    elif isinstance(envelope,signed_messages.FragmentAck):
+        result.update(container_format=0x301,container_control=0,acknowledgement=True)
+    elif isinstance(envelope, signed_messages.BatchEnvelope):
         result.update(child_count=len(envelope.children),
                       children=[describe(child, include_payloads, unwrap=False)
                                 for child in envelope.children])
@@ -223,7 +230,8 @@ def decode_capture(capture, tshark):
     command = [tshark, '-n', '-2', '-r', str(capture), '-c', str(PACKET_LIMIT),
                '-Y', 'cip', '-T', 'json', '-x', '--no-duplicate-keys']
     with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
-        process = subprocess.Popen(command, stdout=output, stderr=errors)
+        process = subprocess.Popen(command, stdout=output, stderr=errors,
+                                   **({'creationflags':subprocess.CREATE_NO_WINDOW} if os.name=='nt' else {}))
         try:
             deadline = time.monotonic() + 60
             while process.poll() is None:

@@ -3,7 +3,7 @@
 Parsing establishes structure only. Verification requires the caller's 20-byte
 test/session key and covers the complete CIP message before its MAC.
 This module retains no keys, opens no connections and dispatches no operations.
-Single, batch and transfer MACs cover the wrapper before its final 20 bytes.
+Single, batch, transfer and fragment MACs cover the wrapper before its final 20 bytes.
 Confirmation and peer authentication remain unimplemented. This codec never
 dispatches requests; the optional native endpoint applies a read-only policy.
 """
@@ -17,7 +17,8 @@ TRAILER_BYTES = 24  # Little-endian UDINT counter followed by a SHA-1 MAC.
 ROUTER_PATH = b'\x20\x02\x24\x01'
 CONTAINER_FORMAT = 0x301
 MAX_BATCH_CHILDREN = 256  # Implementation limit, not an asserted protocol limit.
-TRANSFER_CONTROL = 1  # Only the observed single-inner 0x39 container is supported.
+TRANSFER_CONTROL = 1  # Legacy single-inner 0x39 dialect; fragments use separate framing.
+FRAGMENT_FORMATS = (0x101, 1, 0x201)  # First, continuation and final fragment.
 
 
 class EnvelopeError(ValueError):
@@ -43,6 +44,21 @@ class BatchEnvelope:
     sequence: int
     children: tuple[bytes, ...]
     status: int | None = None
+
+
+@dataclass(frozen=True)
+class FragmentEnvelope:
+    service: int
+    sequence: int
+    fragment: bytes
+    container_format: int
+    position: int  # First: payload size. Later: payload byte offset.
+
+
+@dataclass(frozen=True)
+class FragmentAck:
+    service: int
+    sequence: int
 
 
 def _bounded(raw):
@@ -134,6 +150,15 @@ def _request_context(request):
         raise EnvelopeError('A supported parsed request is required')
 
 
+def _fragment_context(request):
+    if (not isinstance(request,FragmentEnvelope) or type(request.service) is not int or request.service!=0x39
+            or type(request.sequence) is not int or not 0<=request.sequence<=0xFFFFFFFF
+            or type(request.container_format) is not int or request.container_format not in FRAGMENT_FORMATS
+            or type(request.position) is not int or not 0<=request.position<=0xFFFFFFFF
+            or not isinstance(request.fragment,bytes) or not 1<=len(request.fragment)<=MAX_MESSAGE-38):
+        raise EnvelopeError('A supported parsed fragment request is required')
+
+
 def parse_request(raw):
     """Decode one observed envelope without asserting MAC validity."""
     _bounded(raw)
@@ -145,6 +170,12 @@ def parse_request(raw):
     sequence = struct.unpack_from('<I', raw, len(raw)-TRAILER_BYTES)[0]
     if service == 0x38:
         return BatchEnvelope(service, sequence, _batch_children(raw[6:-TRAILER_BYTES]))
+    if service==0x39 and len(raw)>=14+TRAILER_BYTES:
+        format_word,position=struct.unpack_from('<II',raw,6)
+        if format_word in FRAGMENT_FORMATS:
+            result=FragmentEnvelope(service,sequence,raw[14:-TRAILER_BYTES],format_word,position)
+            _fragment_context(result)
+            return result
     inner, format_word = _inner(raw[6:-TRAILER_BYTES], service)
     _check_inner_request(inner)
     kind = TransferEnvelope if service == 0x39 else Envelope
@@ -175,6 +206,13 @@ def parse_response(raw, request):
     Use verify_response for a known-key MAC check.
     """
     _bounded(raw)
+    if isinstance(request,FragmentEnvelope):
+        _fragment_context(request)
+        if len(raw)!=36 or raw[:12]!=bytes.fromhex('b90000000103000000000000'):
+            raise EnvelopeError('Expected the observed empty fragment acknowledgement')
+        sequence=struct.unpack_from('<I',raw,12)[0]
+        if sequence!=request.sequence:raise EnvelopeError('Response counter does not match its request')
+        return FragmentAck(0x39,sequence)
     if isinstance(request, BatchEnvelope):
         _batch_request_context(request)
         if (raw[0] != 0xB8 or raw[1] != 0 or raw[2] not in (0, 0x1E) or raw[3] != 0):
@@ -224,6 +262,13 @@ def encode_response(request, inner, key):
     # signing. The placeholder has the final MAC's length and is never returned.
     parse_response(raw + b'\0'*20, request)
     return raw + hmac.digest(key, raw, 'sha1')
+
+
+def encode_fragment_ack(request,key):
+    """Acknowledge one verified fragment; this does not accept its operation."""
+    _check_key(key);_fragment_context(request)
+    raw=bytes.fromhex('b90000000103000000000000')+struct.pack('<I',request.sequence)
+    return raw+hmac.digest(key,raw,'sha1')
 
 
 def encode_batch_response(request, children, key):

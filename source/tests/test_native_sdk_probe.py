@@ -110,7 +110,8 @@ class NativeSdkProbeTests(unittest.TestCase):
         state=self.state();lease=state['connectivity']['native_programming_lease']
         lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
         for field,value in (('open',True),('buffer_bytes',1),('buffer_bytes',False),
-                ('buffer_allocated',True),('payload_transfer',True),('commit',True)):
+                ('buffer_allocated',True),('payload_transfer',True),('commit',True),
+                ('received_bytes',1),('total_bytes',1),('fragments',1),('complete',True),('fragments',False)):
             proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport'][field]=value
             with self.subTest(field=field,value=value),self.assertRaises(ValueError):validate_idle(proposed)
         for value in (None,{},'unknown'):

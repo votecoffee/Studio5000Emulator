@@ -6,12 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.68` adds [temporary Resilient Transport setup](resilient-transport.md).
-The SDK advances to a segmented device-data request, which remains denied. Next:
-establish bounded fragment framing, reassembly and acknowledgements, then verified
-device-data preparation, further transfer stages, source-aware project validation,
-atomic commit and rollback.
+Current milestone: `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
+The SDK stages a complete device payload and advances to processing/reset,
+which remains denied. Next: establish the full payload and processing contract,
+then verified device preparation, further transfer stages, source-aware project
+validation, atomic commit and rollback.
 Library data, full native transfer, tag monitoring and online edits remain unfinished.
+
+Version `.68` adds [temporary Resilient Transport setup](resilient-transport.md).
+The SDK reached a segmented device-data request, which was denied in that revision.
 
 Version `.67` adds [typed values for staged definitions](metadata-values.md).
 The SDK reached Resilient Transport setup, which was denied in that revision.

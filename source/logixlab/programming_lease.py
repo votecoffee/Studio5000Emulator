@@ -21,7 +21,7 @@ class ProgrammingLease:
         self.clock=clock
         self.libraries=LibraryStaging()
         self.metadata=MetadataStaging()
-        self.transport=ResilientTransport()
+        self.transport=ResilientTransport(clock)
         self.clear()
 
     def clear(self):

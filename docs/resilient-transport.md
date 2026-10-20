@@ -1,5 +1,8 @@
 # Resilient Transport setup
 
+This records the `.68` milestone. See [temporary device-transfer fragments](transport-fragments.md)
+for the current contract and native-download boundary.
+
 Version `0.6.0-connectivity.68` implements temporary setup and deletion for the
 observed Resilient Transport Object, class `0x412`, instance `0`. The native SDK
 advances from setup to a segmented device-data request. Segmented transfer,

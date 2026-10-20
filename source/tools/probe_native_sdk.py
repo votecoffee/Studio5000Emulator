@@ -102,6 +102,10 @@ def validate_staging(lease):
                 or stage.get('buffer_allocated') is not False or stage.get('payload_transfer') is not False
                 or stage.get('commit') is not False):
             raise ValueError('Probe requires closed Resilient Transport and disabled payload transfer')
+        for field in ('received_bytes','total_bytes','fragments'):
+            value=stage.get(field,0)
+            if type(value) is not int or value!=0:raise ValueError('Probe requires empty transport fragment staging')
+        if stage.get('complete',False) is not False:raise ValueError('Probe requires empty transport fragment staging')
     if ('preparation_state' in lease and lease['preparation_state']!='idle' or
             'preparation_status' in lease and (type(lease['preparation_status']) is not int or lease['preparation_status']!=0)):
         raise ValueError('Probe requires idle programming preparation')

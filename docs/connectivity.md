@@ -5,9 +5,14 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
+The normal-source SDK attempt stages 82,534 bytes in 21 fragments and reaches a
+processing/reset request on class `0x412`, which remains rejected. No device data
+or active project is installed.
+
 Version `.68` adds [temporary Resilient Transport setup and cleanup](resilient-transport.md).
-The final-source SDK attempt passes setup and reaches a segmented device-data
-container, which remains rejected. No device data or active project is installed.
+That revision's SDK attempt passed setup and reached a segmented device-data
+container, which was rejected.
 
 The rebuilt `.68` endpoint passes 287 wire checks and the nine-step public SDK
 connection/Offline probe. Download verifies 155 requests, accepts setup and fails
@@ -268,7 +273,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.68` accepts temporary Resilient Transport setup; segmented device data and library-data writes remain denied | Bounded fragment handling, verified device preparation, further transfer stages and atomic model replacement |
+| Native download | `.69` stages contiguous device fragments; device processing and library-data writes remain denied | Verified payload and processing contract, further transfer stages and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template

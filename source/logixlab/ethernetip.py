@@ -812,7 +812,25 @@ class Router:
                     with self.endpoint.lock:self.endpoint.programming_lease.discard(native)
                     raise CIPError(error.status,str(error)) from error
                 self.endpoint.record('native_verified',sequence=envelope.sequence,stage=native.stage)
-                if isinstance(envelope,signed_messages.BatchEnvelope):
+                if isinstance(envelope,signed_messages.FragmentEnvelope):
+                    if limit<36:raise CIPError(0x1B,'Fragment acknowledgement exceeds negotiated size')
+                    if native.stage!='bound':raise CIPError(0x0F,'Bound native context required')
+                    identity=self.app.native_project_identity
+                    if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                        raise CIPError(0x0C,'Source correlation unavailable')
+                    with self.endpoint.lock:
+                        lease=self.endpoint.programming_lease
+                        try:
+                            lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                            lease.transport.accept(envelope)
+                        except (programming_lease.LeaseError,resilient_transport.TransportError) as error:
+                            raise CIPError(error.status,error.reason) from error
+                        stage=lease.transport.description()
+                        self.endpoint.record('native_transport_fragment',container_format=envelope.container_format,
+                            position=envelope.position,received_bytes=stage['received_bytes'],total_bytes=stage['total_bytes'],
+                            fragments=stage['fragments'],complete=stage['complete'])
+                    encoded=signed_messages.encode_fragment_ack(envelope,native.key)
+                elif isinstance(envelope,signed_messages.BatchEnvelope):
                     count=len(envelope.children);available=limit-30-2*count
                     if available<4*count:raise CIPError(0x1B,'Batch reply headers exceed negotiated size')
                     children=[]
