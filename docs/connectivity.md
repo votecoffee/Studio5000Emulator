@@ -2,13 +2,20 @@
 
 The endpoint is an experimental explicit-message target backed by the loaded
 project's modeled memory. The native v35 SDK can connect to the tested demo in
-anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
+anonymous compatibility mode with bounded Run/Program control. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
+
+Version `.74` adds [shared Remote Run/Program control](controller-mode.md).
+The deployed native SDK test passes both directions: native requests start/stop
+actual scans, and webpage controls read back through the SDK's status polling.
+The 14-step mode test verifies 101 signed requests and finishes in Program and
+Offline. The 987-test suite and 291 live protocol checks pass; native tag reads
+and project transfer retain the failures listed below.
 
 Version `.73` adds [temporary object graphs and reference checks](object-staging.md).
 All 904 records in the tested batch now have bounded temporary models, including
 scoped Symbols/Routines and reciprocal Table/Template references. Compiled
-definitions and active execution remain unfinished. Service `0x06` still returns
+definitions and active execution remain unfinished. Device class `0x412` service `0x06` still returns
 execution denial; no batch operation is applied to the active project.
 
 The rebuilt `.73` endpoint passes 291 wire checks and the nine-step SDK

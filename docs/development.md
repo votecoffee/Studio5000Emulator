@@ -92,6 +92,8 @@ stopped in Remote Program, with a 1..100 ms interval and external writes disable
 It restores Program and Offline, preserves the source ACD, and retains the
 resulting emulated tag values and scan history. Other operations do not request
 mode changes and require unchanged modeled values/time.
+The SDK caches externally changed modes until its next background status poll;
+the mode probe allows up to eight seconds for each expected readback.
 
 For example, run the same probe with the explicit operation:
 

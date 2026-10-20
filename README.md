@@ -219,7 +219,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Connected reply sizes | Standard/Large Forward Open replies use their negotiated size up to 4,000 bytes, including sequence and signed-message overhead |
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
-| Native compatibility | Experimental anonymous read-only session; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
+| Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches and observed single-inner `0x39` transfers with reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed scalar reads and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
@@ -233,7 +233,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, Run/Program requests and mode readback, and Go Offline for the demo; native project transfer and tag/rung monitoring remain unfinished |
+| Studio online | Native SDK Go Online, bidirectional Run/Program control and Go Offline verified for the demo; native project transfer and tag/rung monitoring remain unfinished |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain

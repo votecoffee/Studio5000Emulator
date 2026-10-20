@@ -74,3 +74,33 @@ These checks establish the tested SDK/model exchange. Studio GUI monitoring
 and the complete controller mode-transition/prescan contract remain unverified.
 This is a software execution control, not a safety function or physical I/O
 mode implementation.
+
+The rebuilt `.74` runtime passes all 291 live protocol checks. The 987-test
+behavioral suite passes on Windows (985 passed, two platform skips) and Linux
+(986 passed, one platform skip). The deployed native acceptance results are:
+
+| Probe | Result | Verified signed requests |
+| --- | --- | --- |
+| Connection | Nine connection/Offline steps pass | 81 |
+| Remote modes | Fourteen steps pass, including both control directions | 101 |
+| Online tag reads | Still fail `RxDA_E_NO_ONLINE_ADDRESS` | 83 |
+| Upload | Still fails `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` | 199 |
+| Download | Still fails `RxCsE_DOWNLOAD_OF_DEVICES_FAILED` | 181 |
+
+The mode probe observed 30 additional scans after SDK Run and a stable scan
+count after SDK Program. Webpage API Run and Program became visible through
+the SDK in approximately 0.7 and 0.5 seconds. The SDK caches this status between
+its background polls; the probe waits up to eight seconds for readback rather
+than assuming an immediate synchronous update. A first immediate-read attempt
+exposed that delay and was retained as failed evidence before the bounded-poll
+test passed. No runtime workaround or acknowledgement without execution was
+added for that test.
+
+The webpage also displayed **REMOTE RUN**, **Program** and disabled Step while
+the shared worker ran. Closing that temporary test tab left scans advancing;
+the final Program request stopped them. Every probe confirms Offline/TCP/lease
+cleanup, and the ACD remains byte-identical. Transfer probes preserve modeled
+state; the explicit mode test retains its executed scans and values. The live
+application modules, served browser assets and rebuilt executable's embedded
+browser assets were checked against source. FactoryTalk Linx and the SDK service
+remain running. Final controller state is Remote Program.

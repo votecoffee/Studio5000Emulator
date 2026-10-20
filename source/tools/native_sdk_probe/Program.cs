@@ -44,8 +44,15 @@ async Task<JsonElement> Backend(string? mode = null)
     return mode is null ? current : await Call("controller-mode", new { mode });
 }
 async Task CheckMode(string expected) {
-    var mode = (await project!.ReadControllerModeAsync()).ToString();
-    if (mode != expected) throw new InvalidOperationException($"Expected SDK {expected}, got {mode}");
+    // The SDK exposes its cached mode; external changes arrive on its status poll.
+    string mode = "Unknown";
+    var deadline = Stopwatch.StartNew();
+    do {
+        mode = (await project!.ReadControllerModeAsync()).ToString();
+        if (mode == expected) return;
+        await Task.Delay(100);
+    } while (deadline.Elapsed < TimeSpan.FromSeconds(8));
+    throw new InvalidOperationException($"Expected SDK {expected}, got {mode} after status polling");
 }
 async Task Step(string name, Func<Task<object?>> action)
 {
