@@ -45,6 +45,24 @@ class RoutineEditWireTests(unittest.TestCase):
 
     def release_program(self):self.send(reservations.message(0x4C,payload=b''))
 
+    def test_replacement_metadata_requires_supported_live_edit_context_and_does_not_write_active_metadata(self):
+        from logixlab.ethernetip import logical
+        self.stage();before=self.app.engine
+        path=logical(0x20,0x349)+logical(0x24,1)
+        payload=struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,300,0x6D,self.routine,2,0,0x7F,0,0,0,4)
+        message=bytes((0x4F,len(path)//2))+path+payload
+        self.assertEqual(self.send(message)[2],15)
+        self.app.allow_routine_edits=True
+        self.assertEqual(self.send(message),b'\xCF\0\0\0');self.assertEqual(self.send(message)[2],0)
+        lease=self.endpoint.programming_lease
+        self.assertEqual(lease.edit_transfer.description()['routine_metadata']['records'],1)
+        self.assertEqual(lease.metadata.rows,{});self.assertEqual(lease.metadata.values,{})
+        self.assertIs(self.app.engine,before)
+        self.release_program();self.assertEqual(self.send(message)[2],12)
+        self.assertEqual(self.send(COMMIT)[2],0)
+        self.assertEqual(lease.edit_transfer.description()['routine_metadata']['records'],0)
+        self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
+
     def test_atomic_apply_preserves_values_scan_history_source_and_changes_next_execution(self):
         self.app.allow_routine_edits=True
         old=self.app.engine;old.memory.write('SpeedSetpoint',7);old.scan_count=12;old.time_ms=120
@@ -62,10 +80,13 @@ class RoutineEditWireTests(unittest.TestCase):
         self.assertEqual(self.app.engine.last_timer,old.last_timer)
         self.assertEqual(self.app.engine.memory.first_scan,old.memory.first_scan)
         self.assertEqual(after['routine_edits']['revision'],1);self.assertTrue(after['routine_edits']['modified'])
+        self.assertEqual(after['routine_edits']['edited_routines'],['mainprogram/mainroutine'])
+        with self.assertRaisesRegex(ModelError,'transaction'):self.app.command('export-edited-l5x',{})
         self.assertEqual(self.app.engine.project.instruction_counts['MOV'],1)
         current=self.app.engine;self.assertEqual(self.send(COMMIT)[2],0)
         self.assertIs(self.app.engine,current);self.assertEqual(self.app.state()['routine_edits']['revision'],1)
         self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
+        self.assertEqual(self.app.command('export-edited-l5x',{})['logic_revision'],1)
         self.app.command('step',{'count':1})
         self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'),123)
         self.assertEqual(self.app.engine.scan_count,13)

@@ -23,7 +23,8 @@ if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.Re
     (options.SecondEdit is not null || options.ReconnectEdits) && !options.ApplySupportedEdits) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
-    if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") || edit.InsertPosition != 0 || edit.ReplaceCount != 0 ||
+    if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") ||
+        !options.ApplySupportedEdits && (edit.InsertPosition != 0 || edit.ReplaceCount != 0) ||
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(edit.File))).ToLowerInvariant() != edit.Sha256 ||
         options.ApplySupportedEdits && (edit.ImportOption != "AcceptEdits" || edit.BaseRevision is null or < 0 ||
             edit.BeforeRungs?.ValueKind != JsonValueKind.Array || edit.ExpectedRungs?.ValueKind != JsonValueKind.Array)) return 2;

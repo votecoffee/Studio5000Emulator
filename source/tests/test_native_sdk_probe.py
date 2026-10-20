@@ -15,6 +15,16 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_temporary_routine_metadata_must_be_empty_and_without_active_write_authority(self):
+        from logixlab.edit_transfer import EditTransfer
+        state=self.state();transfer=EditTransfer().description()
+        state['connectivity']['native_programming_lease']['edit_transfer']=transfer
+        validate_idle(state)
+        for field,value in (('records',1),('bytes',38),('sha256','a'*64),('active_metadata_written',True),
+                ('region_semantics_verified',True),('payload_exposed',True)):
+            changed=copy.deepcopy(state);changed['connectivity']['native_programming_lease']['edit_transfer']['routine_metadata'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(changed)
+
     def test_compiled_edit_storage_must_be_idle_empty_and_without_installation_authority(self):
         from logixlab.edit_transfer import EditTransfer
         state=self.state();lease=state['connectivity']['native_programming_lease'];lease['edit_transfer']=EditTransfer().description()
@@ -354,6 +364,39 @@ class NativeSdkProbeTests(unittest.TestCase):
         for value in (True, None, 0):
             other = copy.deepcopy(state);other['connectivity']['native_programming_lease']['online_edits'] = value
             with self.assertRaises(ValueError):edit_request(other, 'MainProgram', 'MainRoutine', 'AcceptEdits')
+
+    def test_edit_ranges_and_second_routine_use_independent_predicted_bases(self):
+        from logixlab.server import Application
+        from tools.probe_native_sdk import edit_sequence,supported_edit_effect
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder)
+            try:
+                app.command('demo',{'sample':'ConveyorDemo'});app.allow_routine_edits=True
+                state=app.state();state['connectivity']=self.state()['connectivity']
+                state['connectivity']['native_programming_lease'].update(online_edits=True,online_edit_scope='standard_rll_program_mode')
+                codes=['MOV(123,SpeedSetpoint);','MOV(456,Parts.PRE);']
+                edits=edit_sequence(state,'MainProgram','MainRoutine','AcceptEdits',codes,apply=True,
+                    second_target=('MainProgram','Reporting'),ranges=[(1,1),(0,1)])
+                main=next(r for r in state['routines'] if r['key']=='MainProgram/MainRoutine')
+                self.assertEqual(len(edits[0][1]['ExpectedRungs']),len(main['rungs']))
+                self.assertEqual(edits[0][1]['BeforeRungs'][0],edits[0][1]['ExpectedRungs'][0])
+                self.assertEqual(len(edits[1][1]['BeforeRungs']),1);self.assertEqual(len(edits[1][1]['ExpectedRungs']),1)
+                changed=copy.deepcopy(state)
+                next(r for r in changed['routines'] if r['key']==main['key'])['rungs']=[{'nodes':n} for n in edits[0][1]['ExpectedRungs']]
+                changed['routine_edits'].update(revision=1,logic_sha256='a'*64)
+                self.assertTrue(supported_edit_effect(state,changed,edits[0][1],codes[0]))
+                changed['routines'][0]['rungs'].pop()
+                self.assertFalse(supported_edit_effect(state,changed,edits[0][1],codes[0]))
+                for position,replace in ((-1,0),(99,0),(0,-1),(0,99),(True,0),(0,True)):
+                    with self.subTest(position=position,replace=replace),self.assertRaises(ValueError):
+                        edit_request(state,'MainProgram','MainRoutine','AcceptEdits',apply=True,position=position,replace=replace)
+                # A second insert may append after the first expanded the routine.
+                count=len(main['rungs'])
+                same=edit_sequence(state,'MainProgram','MainRoutine','AcceptEdits',codes,apply=True,ranges=[(count,0),(count+1,0)])
+                self.assertEqual(same[1][1]['BeforeRungs'],same[0][1]['ExpectedRungs'])
+                with self.assertRaises(ValueError):edit_sequence(state,'MainProgram','MainRoutine','AcceptEdits',codes,apply=True,
+                    second_target=('MainProgram','missing'))
+            finally:app.close()
 
     def test_edit_diagnostic_rejects_finalize_bad_names_and_wrong_project_version(self):
         state = self.edit_state()

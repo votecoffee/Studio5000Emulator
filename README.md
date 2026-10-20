@@ -75,6 +75,11 @@ while remaining online and with Offline/Online between imports. Both edits
 remain active and execute on the next scan; the logic revision advances twice.
 The [native diagnostic](docs/development.md#native-sdk-acceptance-probe) checks
 each intermediate routine and reconnection against the expected logic.
+Version `.91` adds scoped metadata retention needed by native rung replacement
+and verifies replacements in two routines with reconnects. **Save edited L5X**
+now saves a separate [working copy of edited logic](docs/edited-logic-l5x.md)
+with original imported tag initial values. That copy reloads and executes in
+the emulator; native Studio import of the exported L5X remains unverified.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio
@@ -310,7 +315,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
 | Studio online | Native SDK Go Online, bidirectional Run/Program control and Go Offline verified for the demo; native project transfer and tag/rung monitoring remain unfinished |
-| Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK rung imports and reconnection using the same updated project verified; changes remain in memory |
+| Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain

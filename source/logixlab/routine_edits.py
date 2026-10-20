@@ -35,6 +35,7 @@ def prepare(engine,source,neutral,program,base_revision):
     candidate._apply_prescan(preview=True)
     project.instruction_counts=Counter(op.name for r in project.routines.values() for rung in r.rungs for op in operations(rung['nodes']))
     project.runtime_revision=base_revision+1
+    project.runtime_edited_routines=tuple(sorted(set(getattr(engine.project,'runtime_edited_routines',()))|{key}))
     content=[(key,r.kind,[x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
     project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
     return candidate,{'applied':True,'revision':project.runtime_revision,'logic_sha256':project.runtime_logic_sha256,
@@ -46,4 +47,6 @@ def description(app):
     revision=getattr(project,'runtime_revision',0)
     return {'enabled':app.allow_routine_edits,'profile':'standard_rll_program_mode',
             'revision':revision,'modified':revision>0,'logic_sha256':getattr(project,'runtime_logic_sha256',None),
+            'edited_routines':list(getattr(project,'runtime_edited_routines',())),
+            'l5x_export_available':revision>0,
             'persistence':'memory_only','test_untest_assemble':False,'native_code_execution':False}

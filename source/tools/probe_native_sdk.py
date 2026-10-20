@@ -125,7 +125,7 @@ def validate_tag_read_type(operation,tags,read_type):
     return read_type
 
 
-def edit_request(state, program, routine, option, *, code='NOP();',apply=False):
+def edit_request(state, program, routine, option, *, code='NOP();',apply=False,position=0,replace=0):
     """Create one checked rung insert for an ordinary RLL routine, never arbitrary XML."""
     if option not in ('LeaveEdits', 'AcceptEdits'):
         raise ValueError('Edit diagnostics allow LeaveEdits or AcceptEdits; never FinalizeEdits')
@@ -147,6 +147,10 @@ def edit_request(state, program, routine, option, *, code='NOP();',apply=False):
     if apply and (option!='AcceptEdits' or lease.get('online_edit_scope')!='standard_rll_program_mode'
             or state.get('routine_edits',{}).get('enabled') is not True):
         raise ValueError('Active edit requires enabled supported Program-mode RLL replacement')
+    count=len(candidates[0]['rungs'])
+    if (type(position) is not int or type(replace) is not int or not 0<=position<=count
+            or not 0<=replace<=count-position or not apply and (position or replace)):
+        raise ValueError('Edit range must fit the loaded routine; custom ranges require supported-edit application')
     if not isinstance(code,str) or not 1<=len(code)<=4096 or '@' in code or not apply and code!='NOP();':
         raise ValueError('Custom rung text requires explicit supported-edit application')
     from logixlab.model import parse_rung,operations,ARITIES,operand_problem,ModelError
@@ -168,7 +172,7 @@ def edit_request(state, program, routine, option, *, code='NOP();',apply=False):
     ET.SubElement(rung, 'Text').text = code
     payload = ET.tostring(root, encoding='utf-8', xml_declaration=True)
     return payload, dict(XPath=f"Controller/Programs/Program[@Name='{program}']/Routines/Routine[@Name='{routine}']",
-                         InsertPosition=0, ReplaceCount=0, ImportOption=option)
+                         InsertPosition=position, ReplaceCount=replace, ImportOption=option)
 
 
 def rejection_delta(before, after):
@@ -194,7 +198,9 @@ def supported_edit_effect(before,after,config,code):
         old={r['key']:r for r in before['routines']};new={r['key']:r for r in after['routines']}
         if set(old)!=set(new) or key not in old:return False
         if any(old[k]!=new[k] for k in old if k!=key):return False
-        expected=[serialize_nodes(parse_rung(code))]+[r['nodes'] for r in old[key]['rungs']]
+        position=config['InsertPosition'];replace=config['ReplaceCount']
+        nodes=[r['nodes'] for r in old[key]['rungs']]
+        expected=nodes[:position]+[serialize_nodes(parse_rung(code))]+nodes[position+replace:]
         if [r['nodes'] for r in new[key]['rungs']]!=expected:return False
         if after['routine_edits']['revision']!=before['routine_edits']['revision']+1:return False
         if not re.fullmatch(r'[a-f0-9]{64}',after['routine_edits']['logic_sha256']):return False
@@ -202,7 +208,7 @@ def supported_edit_effect(before,after,config,code):
     except (KeyError,TypeError,IndexError,ModelError):return False
 
 
-def edit_sequence(state, program, routine, option, codes, *, apply=False):
+def edit_sequence(state, program, routine, option, codes, *, apply=False,second_target=None,ranges=None):
     """Bounded generated inserts with exact before/after expectations for native checks."""
     if not 1 <= len(codes) <= 2 or len(codes)>1 and not apply:
         raise ValueError('One diagnostic insert or at most two explicitly applied inserts')
@@ -210,19 +216,30 @@ def edit_sequence(state, program, routine, option, codes, *, apply=False):
         raise ValueError('A fresh ACD-copy probe requires unmodified runtime logic; keep sequential edits in the same SDK project')
     from logixlab.model import parse_rung
     from logixlab.server import serialize_nodes
-    result=[]
-    nodes=None
+    if ranges is None:ranges=[(0,0)]*len(codes)
+    if len(ranges)!=len(codes) or second_target is not None and (len(codes)!=2 or not apply):
+        raise ValueError('Second target and ranges must match the explicit edit sequence')
+    result=[];by_target={}
     for index,code in enumerate(codes):
-        payload,config=edit_request(state,program,routine,option,code=code,apply=apply)
+        target_program,target_routine=(second_target if index==1 and second_target is not None else (program,routine))
+        key=target_program+'/'+target_routine
+        # Ranges are checked against the predicted preceding edit, which can
+        # alter the same routine's length. No active model object is mutated.
+        import copy
+        preview=copy.deepcopy(state)
+        if key in by_target:
+            next(r for r in preview['routines'] if r['key']==key)['rungs']=[{'nodes':n} for n in by_target[key]]
+        position,replace=ranges[index]
+        payload,config=edit_request(preview,target_program,target_routine,option,code=code,apply=apply,position=position,replace=replace)
         if apply:
-            if nodes is None:
-                target=next(r for r in state['routines'] if r['key']==program+'/'+routine)
-                nodes=[r['nodes'] for r in target['rungs']]
+            target=next(r for r in preview['routines'] if r['key']==key)
+            nodes=[r['nodes'] for r in target['rungs']]
             revision=state['routine_edits']['revision']
             if type(revision) is not int or revision<0:raise ValueError('Invalid base logic revision')
             config.update(BaseRevision=revision+index,BeforeRungs=nodes)
-            nodes=[serialize_nodes(parse_rung(code))]+nodes
+            nodes=nodes[:position]+[serialize_nodes(parse_rung(code))]+nodes[position+replace:]
             config['ExpectedRungs']=nodes
+            by_target[key]=nodes
         result.append((payload,config))
     return result
 
@@ -353,6 +370,12 @@ def validate_staging(lease):
                     for field in ('staged','interpreted','payload_exposed'))
                     or type(record.get('bytes')) is not int or record['bytes']!=0 or record.get('sha256') is not None):
                 raise ValueError('Probe requires empty post-source edit storage')
+        if 'routine_metadata' in transfer:
+            record=transfer['routine_metadata']
+            if (not isinstance(record,dict) or record.get('sha256') is not None
+                    or any(record.get(k) is not False for k in ('active_metadata_written','region_semantics_verified','payload_exposed'))
+                    or any(type(record.get(k)) is not int or record[k]!=0 for k in ('records','bytes'))):
+                raise ValueError('Probe requires empty temporary routine metadata')
     if lease.get('applied_routine_edit') is not None:raise ValueError('Probe requires no active edit transaction receipt')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
@@ -515,11 +538,19 @@ def run(args):
     if edit_code is None:edit_code='NOP();'
     second_code=getattr(args,'second_edit_code',None)
     reconnect=getattr(args,'reconnect_edits',False)
+    second_program=getattr(args,'second_edit_program',None);second_routine=getattr(args,'second_edit_routine',None)
+    ranges=[(getattr(args,'edit_insert_position',0),getattr(args,'edit_replace_count',0)),
+            (getattr(args,'second_edit_insert_position',0),getattr(args,'second_edit_replace_count',0))]
+    if (second_program is not None or second_routine is not None or any(ranges[1])) and second_code is None:
+        raise ValueError('Second edit target/range requires --second-edit-code')
+    if any(ranges[0]) and (args.operation!='edits' or not apply_edits):raise ValueError('Custom ranges require supported-edit application')
     if (second_code is not None or reconnect) and (args.operation!='edits' or not apply_edits):
         raise ValueError('Sequential edits and reconnect require explicit supported-edit application')
     edit_codes=[edit_code]+([second_code] if second_code is not None else [])
     if (apply_edits or edit_code!='NOP();') and args.operation!='edits':raise ValueError('Supported edits belong to an edits case')
     edit_options = tuple(getattr(args, name, None) for name in ('edit_program', 'edit_routine', 'edit_import_option'))
+    second_target=(second_program or edit_options[0] or 'MainProgram',second_routine or edit_options[1] or 'MainRoutine') if second_code is not None else None
+    ranges=ranges[:len(edit_codes)]
     if args.operation != 'edits' and any(value is not None for value in edit_options):
         raise ValueError('Edit options belong to an edits diagnostic')
     source_hash = digest(source)
@@ -530,7 +561,7 @@ def run(args):
     edits=[]
     if args.operation == 'edits':
         edits=edit_sequence(initial,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
-                            edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits)
+                            edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits,second_target=second_target,ranges=ranges)
     require_sdk_service()
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
@@ -569,7 +600,7 @@ def run(args):
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
-                                   edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits)
+                                   edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits,second_target=second_target,ranges=ranges)
         if (current_edits!=edits or any(digest(file)!=config[key]['Sha256'] for file,key in zip(edit_files,('Edit','SecondEdit'))) or
                 any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines','routine_edits'))):
             raise ValueError('Edit target or generated rung changed before the native call')
@@ -588,9 +619,10 @@ def run(args):
                    native_controller_equivalence='NOT ASSESSED')
     if args.operation == 'edits':
         summary['edit_diagnostic'] = dict(import_option=config['Edit']['ImportOption'],
-            xpath=config['Edit']['XPath'], insert_position=0, replace_count=0,
+            xpath=config['Edit']['XPath'], insert_position=config['Edit']['InsertPosition'], replace_count=config['Edit']['ReplaceCount'],
             rung_sha256=config['Edit']['Sha256'], code=edit_code, active_edits_authorized=apply_edits,
-            second_code=second_code,reconnect_after_each=reconnect,finalize_edits=False, assembly=False)
+            second_code=second_code,second_xpath=config.get('SecondEdit',{}).get('XPath'),
+            second_range=ranges[1] if len(ranges)>1 else None,reconnect_after_each=reconnect,finalize_edits=False, assembly=False)
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
     if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
     report = None;final=None
@@ -663,6 +695,12 @@ def main():
     parser.add_argument('--apply-supported-edits',action='store_true',help='Require enabled Program-mode RLL replacement and verify the applied routine')
     parser.add_argument('--edit-code',help='One neutral-text rung for an explicit supported-edit case; default NOP();')
     parser.add_argument('--second-edit-code',help='Explicit supported edits only: insert a second rung using the same SDK project')
+    parser.add_argument('--edit-insert-position',type=int,default=0,help='Zero-based insert position; explicit supported edits only')
+    parser.add_argument('--edit-replace-count',type=int,default=0,help='Existing rungs replaced by the generated rung; explicit supported edits only')
+    parser.add_argument('--second-edit-program',help='Second edit program; defaults to the first edit target')
+    parser.add_argument('--second-edit-routine',help='Second edit routine; defaults to the first edit target')
+    parser.add_argument('--second-edit-insert-position',type=int,default=0)
+    parser.add_argument('--second-edit-replace-count',type=int,default=0)
     parser.add_argument('--reconnect-edits',action='store_true',help='Explicit supported edits only: go Offline/Online after each checked insert')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',

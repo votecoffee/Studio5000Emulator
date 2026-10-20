@@ -364,6 +364,18 @@ class Router:
                     return reject(0x0C,'source_correlation_unavailable')
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
+                    if lease.selector==1:
+                        if not self.app.allow_routine_edits:return reject(0x0F,'supported_routine_edits_disabled')
+                        lease.require_edit_owner(native,self.app.generation,self.app.engine.project.sha256)
+                        if path.instance!=1:return reject(5,'unsupported_edit_metadata_field')
+                        stage=lease.edit_transfer
+                        if (self.app.controller_state()['mode']!='Program' or not lease.edit_phase_open
+                                or stage.target is None or stage.target[0] not in lease.program_reservations):
+                            return reject(0x0C,'edit_program_reservation_required')
+                        self.source_bound_program(stage.target[0])
+                        stage.retain_metadata(payload)
+                        self.endpoint.record('native_edit_metadata_retained',**stage.description()['routine_metadata'])
+                        return reply(inner[0])
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
                     lease.metadata.stage_values(payload,path.instance)
                     self.endpoint.counts['native_metadata_value_packets']+=1

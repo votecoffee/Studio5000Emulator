@@ -31,6 +31,25 @@ def source_prefix(routine=700):return prefix(routine=routine)[:-16]+struct.pack(
 
 
 class EditTransferModelTests(unittest.TestCase):
+    def test_removed_rung_metadata_is_bounded_idempotent_scoped_and_cleared_with_candidate(self):
+        def record(region=2,program=300):return struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,program,0x6D,700,region,0,0x7F,0,0,0,4)
+        with self.assertRaises(EditTransferError):self.stage.retain_metadata(record())
+        self.validated_source();self.stage.attach(struct.pack('<5I',2,5,0,1,123),target=(300,700));self.stage.base_revision=0
+        before=self.stage.description()['retained_bytes'];self.stage.retain_metadata(record());self.stage.retain_metadata(record())
+        state=self.stage.description();self.assertEqual(state['retained_bytes'],before+38)
+        self.assertEqual(state['routine_metadata']['records'],1);self.assertEqual(state['routine_metadata']['bytes'],38)
+        self.assertFalse(state['routine_metadata']['active_metadata_written']);self.assertFalse(state['routine_metadata']['region_semantics_verified'])
+        for bad in (record()[:-1],record()+b'X',bytearray(record()),record(0),record(1),record(program=301),record()[:-2]+b'\1\0'):
+            with self.assertRaises(EditTransferError):self.stage.retain_metadata(bad)
+            self.assertEqual(self.stage.description(),state)
+        from unittest.mock import patch
+        with patch('logixlab.edit_transfer.MAX_METADATA_RECORDS',1),self.assertRaises(EditTransferError):self.stage.retain_metadata(record(3))
+        self.stage._code=bytes(MAX_BYTES-len(self.stage._data))
+        with self.assertRaises(EditTransferError):self.stage.retain_metadata(record(3))
+        self.now+=ASSEMBLY_SECONDS
+        self.assertEqual(self.stage.description()['routine_metadata']['records'],0)
+        self.assertEqual(self.stage.description()['retained_bytes'],0)
+
     def validated_source(self):
         self.complete_code();source=source_container()
         self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),target=(300,700),prefix=source_prefix(),kind='source')

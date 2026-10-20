@@ -6,10 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.90` verifies consecutive [supported Program-mode RLL edits](supported-routine-edits.md)
-in a single open SDK project, with and without Offline/Online between imports.
-Each insert retains the preceding change and original rungs; the resulting two
-instructions execute in the custom model. Next: broader operand/routine coverage,
+Current milestone: `.91` verifies [rung replacement across routines](supported-routine-edits.md#rung-replacement-across-routines)
+and adds [edited-logic L5X working copies](edited-logic-l5x.md). The native SDK
+reconnects after each replacement, and both edits execute before and after
+export/reload in the emulator. Version `.90` also checks consecutive inserts
+while continuously online. Next: broader operand/routine coverage,
 Studio GUI acceptance and the native Test/Untest/Assemble lifecycle. Source-aware
 upload/download completion and native tag-address discovery remain separate gaps.
 

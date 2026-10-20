@@ -29,6 +29,7 @@ function render() {
   $('footer-text').textContent=appliance?'VMware host-only execution · ACD import uses the Windows tray':'ACD import uses your installed Rockwell SDK · engine runs independently';
   const loaded = !!state?.loaded;
   ['reset','step','run','apply','snapshot','report','mode'].forEach(id => $(id).disabled = !loaded);
+  $('save-logic').disabled=!loaded||running||!state?.routine_edits?.l5x_export_available||!!state?.connectivity?.native_programming_lease?.owned;
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
   renderConnectivity();
   const device=state?.device_io||{};
@@ -186,6 +187,7 @@ async function scan() {
   try{await accept(await api('step',{dt:Number($('dt').value),count:1}));}catch(e){error(e);try{const res=await fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}});await accept(await res.json());}catch(_){} }finally{stepping=false;}
 }
 function download(data,name) {const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function downloadL5X(result) {const blob=new Blob([result.content],{type:'application/xml;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=result.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('open').onclick=()=>{$('file').value='';$('file').click();};
 $('file').onchange=async()=>{
   const file=$('file').files[0];if(!file)return;if(file.size>100000000)return error(new Error('100 MB file limit'));
@@ -225,6 +227,7 @@ $('quit').onclick=async()=>{clearInterval(connectivityPoll);clearLocator();try{
   document.querySelectorAll('button').forEach(b=>b.disabled=true);
 }catch(e){error(e);}};
 $('snapshot').onclick=async()=>{try{download(await api('snapshot'),'LogixLab-snapshot.json');}catch(e){error(e);}};
+$('save-logic').onclick=async()=>{try{downloadL5X(await api('export-edited-l5x'));}catch(e){error(e);}};
 window.addEventListener('beforeunload',()=>{clearInterval(connectivityPoll);clearLocator();});
 fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}}).then(r=>r.json()).then(async value=>{if(value.loaded){$('mode').value=value.mode;await accept(value,true);}else{state=value;render();}}).catch(error);
 
@@ -262,7 +265,7 @@ function renderConnectivity() {
   $('eip-refresh').disabled=!state?.loaded;
   $('studio-edits').checked=!!state?.routine_edits?.enabled;
   $('studio-edits').disabled=!state?.loaded||!!state?.controller?.running||!!c.active_tcp_clients;
-  $('studio-edit-state').textContent=(state?.routine_edits?.modified?`Edited logic revision ${state.routine_edits.revision}. `:'')+'Enable before connecting Studio. Program mode, standard ladder routines; changes stay in memory.';
+  $('studio-edit-state').textContent=(state?.routine_edits?.modified?`Edited logic revision ${state.routine_edits.revision}. Use Save edited L5X to keep a working copy. `:'')+'Enable before connecting Studio. Program mode, standard ladder routines; changes stay in memory until saved as L5X.';
   $('eip-address').textContent=(c.address||'127.0.0.1:44818')+' · TCP + UDP · slot 0';
   $('eip-summary').textContent=(active?'Accepting clients':'Endpoint stopped')+' · '+(c.allow_writes?'tag writes enabled':'tag reads only')+(c.native_session?.enabled?' · native mode '+c.native_session.controller_mode+' · anonymous compatibility; authentication unverified':'')+(c.native_symbols?.bound?' · '+c.native_symbols.symbols+' ACD symbol IDs · '+c.native_symbols.programs+' program IDs':'')+(c.native_programming_lease?' · native transfer lock '+(!c.native_programming_lease.available?'unavailable':c.native_programming_lease.owned?'held':'free')+(c.native_programming_lease.scan_inhibited?' · scans inhibited':'')+'; project transfer unsupported':'')+' · '+(c.active_tcp_clients||0)+' TCP clients · '+(c.trace_events||0)+' trace events';
   if(c.native_programming_lease?.preparation_state==='ready') $('eip-summary').textContent+=' · native preparation ready';

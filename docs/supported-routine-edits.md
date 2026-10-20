@@ -18,6 +18,12 @@ Reset restores imported tag values while retaining the edited logic; reload the
 original ACD or L5X to restore its routines. No original or input-copy file is
 overwritten, and no edited ACD is generated.
 
+Version `.91` adds **Save edited L5X** for a separate
+[working copy](edited-logic-l5x.md). Stop the emulator and finish the native edit
+transaction before saving. The copy contains edited routines and original
+imported tag initial values. Reloading it starts a new L5X artifact without
+inheriting the original ACD's native correlation manifests.
+
 ## Transaction and activation
 
 The existing [paired transfer](routine-source.md) validates bounded code/source
@@ -97,3 +103,24 @@ Reopening an original ACD with stale logic, saving an edited ACD, upload/downloa
 and Studio GUI editing are separate unverified paths. The native diagnostic
 requires revision 0 before opening its fresh ACD copy, preventing a new test
 from unintentionally replacing prior in-memory edits with stale project logic.
+
+### Rung replacement across routines
+
+Version `.91` checks explicit zero-based insertion positions and replacement
+counts against each routine's predicted preceding source. A second SDK import
+can select a different loaded program/routine. This remains two separate,
+sequential transactions; it is not an atomic multi-routine transaction.
+
+The native case replaces rung 1 in `MainRoutine` with
+`MOV(123,SpeedSetpoint);` and the sole rung in `Reporting` with
+`MOV(456,Parts.PRE);`. Both imports and Offline/Online cycles succeed across 307
+verified signed requests. Rung counts remain nine and one, unaffected rungs are
+preserved, and logic revision advances to 2 without executing scans or changing
+values at activation. A subsequent scan executes both changes. An exported L5X
+working copy reloads into a separate emulator instance with original initial
+values and executes both instructions again. Original ACD data and the separate
+main demo remain unchanged. Native Studio import of that L5X remains unverified.
+
+Replacement additionally sends the [removed-rung metadata profile](edit-post-source.md#replacement-metadata).
+Unknown metadata forms remain rejected; retained records never write active
+metadata or relax execution validation.

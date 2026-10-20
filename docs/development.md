@@ -490,6 +490,30 @@ demo remains stopped in Program at logic revision 0, with supported edit access
 enabled. Isolated edited instances are stopped. Upload/download and Run/Program
 mode cycling were not repeated in this iteration.
 
+Version `.91` adds checked `--edit-insert-position`/`--edit-replace-count` ranges,
+`--second-edit-program`/`--second-edit-routine`, and corresponding
+`--second-edit-insert-position`/`--second-edit-replace-count` options. Positions
+are zero-based; counts must fit the loaded routine after preceding predicted
+edits. The default NOP diagnostic still allows only a zero-position insert.
+These options require explicitly enabled supported edits and validate every
+target/range before invoking native operations. For the demo, append:
+
+```powershell
+--operation edits --apply-supported-edits --edit-code 'MOV(123,SpeedSetpoint);' --edit-insert-position 1 --edit-replace-count 1 --second-edit-code 'MOV(456,Parts.PRE);' --second-edit-routine Reporting --second-edit-replace-count 1 --reconnect-edits
+```
+
+The first replacement case stopped at the additional Metadata Definition
+request with unchanged active logic and clean Offline. The supported
+[temporary metadata profile](edit-post-source.md#replacement-metadata) now lets
+the native case complete both replacements and reconnects across 307 verified
+signed requests. It retains one opaque metadata record per edit without active
+metadata writes. Both imported instructions execute, and a saved
+[L5X working copy](edited-logic-l5x.md) reloads into a separate emulator and
+executes them again from original initial values. The main demo and original
+ACD are preserved. Native Studio L5X import, GUI editing and the full native
+edit lifecycle remain unverified. The iteration passes 142 focused software
+checks and browser JavaScript syntax validation; the full suite was not run.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

@@ -60,3 +60,27 @@ Version `.89` adds an explicitly enabled [Program-mode replacement](supported-ro
 for this observed completion profile. Completed candidates survive Program
 release until completion or cleanup; incomplete candidates are still discarded.
 This software transaction does not implement the native Test/Untest/Assemble lifecycle.
+
+## Replacement metadata
+
+Version `.91` retains the observed signed `0x4F` request on Metadata Definition
+class `0x349`, instance 1, sent after the paired code/source and post-source
+record when a documented rung is replaced. Its 38-byte profile consists of
+version `0x301`, body size 30, UINT Program/Executable class-and-instance pairs,
+a nonzero region identifier, a zero selector, marker `0x7F`, three zero DWORDs
+and trailing marker 4. The region identifier and marker semantics remain
+opaque; this receiver does not apply active metadata writes.
+
+It requires explicitly enabled supported edits, stopped Program mode, the
+live edit owner, open preparation, a reserved Program and a complete validated
+candidate for the same Program/Routine. The region must be absent from the new
+source. Unknown fields, scopes, lengths and profiles are rejected. Repeated
+identical records are idempotent. At most 1,024 records fit within the shared
+256 KiB candidate limit and its original absolute deadline. Commit, cancellation,
+disconnect and expiry clear retained records with the rest of the transaction.
+Descriptions expose counts and hashes rather than identifiers or payloads.
+
+The isolated two-routine native replacement case retains one record per edit
+and succeeds, including both reconnects and final Offline, without a reported
+fatal SDK fault. This establishes the tested transfer path and translated
+logic replacement; complete native documentation semantics remain unverified.

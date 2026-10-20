@@ -384,6 +384,13 @@ class Application:
                 return {"report": e.report(), "import_provenance": self.provenance,
                         "scan": e.scan_count, "ms": e.time_ms, "tags": e.memory.leaves(), "changes": e.changes,
                         'controller':self.controller_state()}
+            elif action=='export-edited-l5x':
+                if self.running:raise ModelError('Switch to Program before saving edited logic')
+                if self.endpoint and self.endpoint.enabled:
+                    with self.endpoint.lock:
+                        if self.endpoint.programming_lease.live(self.generation,e.project.sha256):raise ModelError('Wait for the native edit transaction to finish before saving logic')
+                from .logic_export import export
+                return export(e)
             else: raise ModelError(f"Unknown action {action}")
             return self.state()
 
