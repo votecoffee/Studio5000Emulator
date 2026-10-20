@@ -14,6 +14,7 @@ import test_edit_preparation as edits
 import test_program_reservations as reservations
 from test_transport_fragments import message,part
 from test_ethernetip import Client
+from test_routine_source import container as source_container,xml_source
 
 
 def container(size=52):
@@ -26,7 +27,34 @@ def prefix(program=300,routine=700):
     return bytes((0x5C,len(path)//2))+path+struct.pack('<4I',3,1,123,0)
 
 
+def source_prefix(routine=700):return prefix(routine=routine)[:-16]+struct.pack('<II',1,3)
+
+
 class EditTransferModelTests(unittest.TestCase):
+    def complete_code(self):
+        self.start();self.stage.accept(part(0x201,32,self.body[32:]),target=(300,700))
+
+    def test_source_requires_matching_complete_code_and_both_buffers_share_deadline_and_capacity(self):
+        source=source_container()
+        with self.assertRaises(EditTransferError):self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),
+            target=(300,700),prefix=source_prefix(),kind='source')
+        self.complete_code();self.now+=ASSEMBLY_SECONDS-1
+        self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),target=(300,700),prefix=source_prefix(),kind='source')
+        self.stage.accept(part(0x201,48,source[48:]),target=(300,700),kind='source')
+        state=self.stage.description()
+        self.assertEqual(state['component_kind'],'source');self.assertEqual(state['code_bytes'],72)
+        self.assertEqual(state['retained_bytes'],72+len(source));self.assertTrue(state['source_description']['decoded'])
+        self.assertEqual(self.stage._code,self.body);self.assertEqual(self.stage.source.name,'MainRoutine')
+        self.now+=1;self.assertEqual(self.stage.description()['retained_bytes'],0)
+        self.complete_code()
+        with self.assertRaises(EditTransferError):self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),
+            target=(300,701),prefix=source_prefix(),kind='source')
+        self.assertEqual(self.stage.description()['code_bytes'],0)
+        self.complete_code();self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),
+            target=(300,700),prefix=source_prefix(),kind='source')
+        with self.assertRaises(EditTransferError):self.stage.accept(part(0x201,48,source[48:-1]+b'X'),target=(300,700),kind='source')
+        self.assertEqual(self.stage.description()['retained_bytes'],0)
+
     def setUp(self):self.now=100.;self.stage=EditTransfer(lambda:self.now);self.body=container()
 
     def start(self,body=None,count=32):
@@ -71,6 +99,10 @@ class EditTransferModelTests(unittest.TestCase):
             data=body[offset:offset+60000];last=offset+len(data)==len(body)
             self.stage.accept(part(0x201 if last else 1,offset,data),target=(300,700))
         self.assertEqual(self.stage.description()['received_bytes'],MAX_BYTES)
+        source=source_container()
+        with self.assertRaises(EditTransferError):self.stage.accept(part(0x101,len(source),source_prefix()+source[:48]),
+            target=(300,700),prefix=source_prefix(),kind='source')
+        self.assertEqual(self.stage.description()['retained_bytes'],0)
         self.stage.clear();body=container(200);self.start(body,24)
         for offset in range(24,24+MAX_FRAGMENTS-1):self.stage.accept(part(1,offset,b'X'),target=(300,700))
         with self.assertRaises(EditTransferError) as error:self.stage.accept(part(1,151,b'X'),target=(300,700))
@@ -110,12 +142,18 @@ class EditTransferSignedTests(unittest.TestCase):
 
     def first(self):return self.fragment(0x101,72,prefix(routine=self.routine)+container()[:32])
 
-    def test_signed_complete_transfer_is_retained_but_final_installation_is_denied(self):
+    def test_signed_complete_code_and_source_are_retained_but_source_installation_is_denied(self):
         self.ready();before=copy.deepcopy(self.app.state());self.first()
-        self.assertEqual(self.fragment(0x201,32,container()[32:],15),bytes.fromhex('b9000f00'))
+        self.fragment(0x201,32,container()[32:])
         stage=self.endpoint.state()['native_programming_lease']['edit_transfer']
         self.assertEqual((stage['status'],stage['received_bytes']),('complete',72))
         self.assertEqual(stage['container_sha256'],hashlib.sha256(container()).hexdigest())
+        source=source_container();self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48])
+        self.assertEqual(self.fragment(0x201,48,source[48:],15),bytes.fromhex('b9000f00'))
+        stage=self.endpoint.state()['native_programming_lease']['edit_transfer']
+        self.assertEqual(stage['source_description']['rungs'],1)
+        self.assertFalse(stage['source_description']['source_applied'])
+        self.assertEqual(stage['retained_bytes'],len(source)+72)
         self.assertFalse(stage['routine_installed'] or stage['accepted_edits'])
         self.assertFalse(self.endpoint.programming_lease.transport.description()['open'])
         for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
@@ -124,6 +162,32 @@ class EditTransferSignedTests(unittest.TestCase):
         self.assertEqual(self.send(bytes.fromhex('0e03200124013001'))[2],0)
         self.send(reservations.message(0x4C,payload=b''));self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
         self.assertEqual(self.endpoint.state()['native_programming_lease']['edit_transfer']['status'],'idle')
+
+    def test_source_name_must_match_reserved_routine_and_bad_source_discards_both_components(self):
+        from xml.etree import ElementTree as ET
+        self.ready();self.first();self.fragment(0x201,32,container()[32:])
+        source=source_container(ET.tostring(xml_source(name='OtherRoutine')))
+        self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48])
+        self.fragment(0x201,48,source[48:],12)
+        self.assertEqual(self.endpoint.programming_lease.edit_transfer.description()['retained_bytes'],0)
+
+    def test_signed_source_translation_and_detached_plan_do_not_change_active_logic(self):
+        from xml.etree import ElementTree as ET
+        from logixlab.native_symbols import NativeSymbols,Symbol
+        from logixlab.native_types import NativeTypes
+        self.ready();sha=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,sha,[Symbol('',0,'RunLatch',5)],
+            programs=[{'name':'MainProgram','instance':300}])
+        self.app.native_types=NativeTypes('a'*64,sha,[])
+        before=copy.deepcopy(self.app.state())
+        self.first();self.fragment(0x201,32,container()[32:])
+        source=source_container(ET.tostring(xml_source(text='XIC(@107 5 0 0 0 0@)OTE(@107 5 0 0 0 0@);')))
+        self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48]);self.fragment(0x201,48,source[48:],15)
+        description=self.endpoint.state()['native_programming_lease']['edit_transfer']['source_description']
+        self.assertTrue(description['operand_bindings_verified'] and description['execution_plan_validated'])
+        self.assertFalse(description['source_applied'])
+        self.assertEqual(self.endpoint.programming_lease.edit_transfer.translated_rungs,('XIC(RunLatch)OTE(RunLatch);',))
+        for key in ('tags','routines','tasks','controller','scan','ms'):self.assertEqual(self.app.state()[key],before[key])
 
     def test_owner_phase_program_hold_and_matching_routine_binding_are_required(self):
         self.ready();self.send(reservations.message(0x4C,payload=b''))
@@ -153,6 +217,8 @@ class EditTransferSignedTests(unittest.TestCase):
     def test_release_phase_source_and_endpoint_cleanup_clear_all_compiled_bytes(self):
         for action in ('program','controller','source','stop'):
             self.ready();self.first()
+            self.fragment(0x201,32,container()[32:]);source=source_container()
+            self.fragment(0x101,len(source),source_prefix(self.routine)+source[:48])
             if action=='program':
                 self.send(reservations.message(0x4C,payload=b''));self.send(edits.CLOSE);self.send(reservations.CONTROLLER_RELEASE)
             elif action=='controller':self.send(reservations.CONTROLLER_RELEASE)

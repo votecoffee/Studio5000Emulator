@@ -30,7 +30,7 @@ completion and the complete container's SHA-256. It exposes no payload bytes
 or target identities. Installation, accepted edits, native execution and commit
 remain false. SDK preflight and cleanup require idle empty storage.
 
-Partial fragments receive the observed signed acknowledgement after their
+In `.86`, partial fragments receive the observed signed acknowledgement after their
 bytes have actually been retained. When the final fragment completes storage,
 the endpoint records the complete container and **rejects installation**. An
 assembled binary is insufficient to implement its embedded Executable write.
@@ -73,3 +73,10 @@ with project close and endpoint cleanup complete and no reported fatal SDK
 fault. Its modified final reply is absent from the public app. This conditional
 trace identifies a further container contract to investigate; it establishes
 neither accepted edits nor a working installation path.
+
+Version `.87` extends this receiver to paired code and [Routine source](routine-source.md)
+containers. The code receipt acknowledges retained bytes; the source component
+then decodes and translates supported object references, with a detached plan
+check. Installation is rejected after the source component. Both components
+remain under the same owner, target, combined byte/fragment limits and absolute
+deadline; neither changes active execution.

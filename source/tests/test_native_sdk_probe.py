@@ -26,6 +26,10 @@ class NativeSdkProbeTests(unittest.TestCase):
                 ('total_bytes',1),('fragments',1),('instructions_executed',1),('received_bytes',False)):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer'][field]=value
             with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        for field,value in (('component_kind','source'),('code_sha256','a'*64),('source_description',{}),
+                            ('retained_bytes',1),('code_bytes',72),('code_bytes',False)):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
         for value in (None,[],{}):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer']=value
             with self.assertRaises(ValueError):validate_idle(other)

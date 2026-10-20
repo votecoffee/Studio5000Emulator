@@ -14,6 +14,8 @@ import struct
 import sys
 import tempfile
 import time
+import zlib
+from xml.etree import ElementTree as ET
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import __version__
@@ -74,11 +76,27 @@ def exercise(app,client,payload=None,expanded=None):
                     body=struct.pack('<5I',9,0,0,0,len(elf))+elf
                     for name,word,position,data in (
                             ('compiled_edit_first_fragment',0x101,len(body),prefix+body[:32]),
-                            ('compiled_edit_continuation',1,32,body[32:40])):
+                            ('compiled_edit_continuation',1,32,body[32:40]),
+                            ('compiled_edit_code_receipt',0x201,40,body[40:])):
                         client.fragment(word,position,data)
                         checks.append({'check':name,'status':0,'reply_bytes':36})
+                    xml=ET.Element('RSLogix5000Content',SchemaRevision='1.0',SoftwareRevision='35.03',
+                        TargetName=routine['name'],TargetType='RLLContent',TargetSubType='RLL',ContainsContext='false')
+                    content=ET.SubElement(xml,'RLLContent',Use='Create',OnlineEditType='Original')
+                    ET.SubElement(ET.SubElement(content,'Rung',Type='N',RegionId='1'),'TextIOI').text='NOP();'
+                    plain=ET.tostring(xml);packed=zlib.compress(plain)
+                    source=struct.pack('<II',0x40000000|len(packed),len(plain))+packed
+                    source+=bytes((-len(source))%4)
+                    auxiliary=struct.pack('<II',1,8)+zlib.compress(b'research')
+                    total=28+len(source)+((len(auxiliary)+3)//4)*4
+                    block=struct.pack('<8I',total,28,len(source),28+len(source),len(auxiliary),0,total,0)+source+auxiliary
+                    block+=bytes((-len(block))%4)
+                    source_prefix=bytes((0x5C,len(target)//2))+target+struct.pack('<II',1,3)
+                    client.fragment(0x101,len(block),source_prefix+block[:48])
+                    checks.append({'check':'routine_source_first_fragment','status':0,'reply_bytes':36})
                     transfer=app.endpoint.state()['native_programming_lease']['edit_transfer']
-                    assert transfer['received_bytes']==40 and not transfer['routine_installed'] and not transfer['complete']
+                    assert transfer['received_bytes']==48 and transfer['code_bytes']==len(body) and transfer['component_kind']=='source'
+                    assert not transfer['routine_installed'] and not transfer['complete']
         check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
         assert app.endpoint.state()['native_programming_lease']['edit_transfer']['status']=='idle'
         assert app.endpoint.state()['native_programming_lease']['scan_inhibited']

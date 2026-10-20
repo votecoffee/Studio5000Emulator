@@ -57,6 +57,10 @@ storage. Complete binaries remain separate from active routines; installation
 and accepted controller edits are unfinished.
 The native edit diagnostic now delivers all 11 compiled fragments before that
 installation rejection; endpoint storage clears and active logic is unchanged.
+Version `.87` receives the following [compressed Routine source](docs/routine-source.md),
+resolves supported native object references using original ACD identities, and
+checks translated ladder logic in a detached execution plan. It retains both
+containers temporarily; applying source and accepted edits remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

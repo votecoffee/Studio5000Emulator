@@ -760,19 +760,23 @@ class Router:
         lease.require_edit_owner(native,self.app.generation,source)
         if not lease.edit_phase_open:raise CIPError(0x0C,'Edit preparation phase required')
         if self.app.controller_state()['mode']!='Program':raise CIPError(0x0C,'Program mode required')
-        prefix=None;target=lease.edit_transfer.target
+        prefix=None;target=lease.edit_transfer.target;kind=lease.edit_transfer.kind or 'code'
         if envelope.container_format==0x101:
             raw=envelope.fragment
             if len(raw)<2:raise CIPError(0x13,'Truncated edit operation')
-            end=2+2*raw[1];need(raw,end+16)
+            end=2+2*raw[1];need(raw,end+8)
             path=decode_path(raw[2:end]);payload=raw[end:]
             if (raw[0]!=0x5C or path.class_id!=0x6D or path.program_instance is None or not path.instance
                     or path.attribute is not None or path.symbols or path.io_map_instance is not None
                     or path.controller_instance is not None):
                 raise CIPError(0x0F,'Unsupported compiled edit target')
-            if payload[:8]!=struct.pack('<II',3,1) or payload[12:16]!=bytes(4):
-                raise CIPError(3,'Unsupported compiled edit setup')
-            target=(path.program_instance,path.instance);prefix=raw[:end+16]
+            if payload[:8]==struct.pack('<II',3,1):
+                need(payload,16)
+                if payload[12:16]!=bytes(4):raise CIPError(3,'Unsupported compiled edit setup')
+                kind='code';prefix=raw[:end+16]
+            elif payload[:8]==struct.pack('<II',1,3):kind='source';prefix=raw[:end+8]
+            else:raise CIPError(3,'Unsupported compiled edit setup')
+            target=(path.program_instance,path.instance)
         if target is None:raise CIPError(0x0C,'Compiled edit first fragment required')
         program=self.source_bound_program(target[0])
         if not self.zero_program_stack_supported(program):raise CIPError(0x0C,'Compiled edit source unavailable')
@@ -781,11 +785,23 @@ class Router:
         if routine is None:raise CIPError(5,'Unknown source-bound edit Routine')
         active=self.app.engine.project.routines.get((routine['program']+'/'+routine['name']).lower())
         if active is None or active.kind!='RLL':raise CIPError(0x0F,'Compiled edit Routine type unsupported')
-        lease.edit_transfer.accept(envelope,target=target,prefix=prefix)
+        lease.edit_transfer.accept(envelope,target=target,prefix=prefix,kind=kind)
+        decoded=lease.edit_transfer.source
+        if decoded and decoded.name.casefold()!=routine['name'].casefold():raise CIPError(0x0C,'Routine source target mismatch')
+        if decoded:
+            from .routine_source import resolve,validate_plan,SourceError
+            try:lease.edit_transfer.translated_rungs=resolve(decoded,self.app.engine.project,self.app.native_symbols,
+                    self.app.native_routines,self.app.native_types,routine['program'])
+            except SourceError as error:lease.edit_transfer.reference_error=str(error)
+            if lease.edit_transfer.translated_rungs is not None:
+                try:validate_plan(decoded,lease.edit_transfer.translated_rungs,self.app.engine.project,routine['program'])
+                except SourceError as error:lease.edit_transfer.plan_error=str(error)
+                else:lease.edit_transfer.plan_validated=True
         state=lease.edit_transfer.description()
         self.endpoint.record('native_edit_fragment',container_format=envelope.container_format,
             position=envelope.position,received_bytes=state['received_bytes'],total_bytes=state['total_bytes'],
-            fragments=state['fragments'],complete=state['complete'],container_sha256=state['container_sha256'])
+            fragments=state['fragments'],complete=state['complete'],container_sha256=state['container_sha256'],
+            component_kind=kind,retained_bytes=state['retained_bytes'],source_description=state['source_description'])
         return state
 
     def tasks(self):
@@ -1054,7 +1070,7 @@ class Router:
                                 try:edit_state=self.receive_edit_fragment(envelope,native,lease)
                                 except CIPError:
                                     lease.edit_transfer.clear();raise
-                                if edit_state['complete']:
+                                if edit_state['complete'] and edit_state['component_kind']=='source':
                                     # Buffer completion is not Executable write
                                     # acceptance; preserve it for inspection.
                                     raise CIPError(0x0F,'Compiled edit installation unimplemented')

@@ -5,11 +5,15 @@ This does not validate opaque trailers, native signatures or executable types.
 """
 from collections import Counter
 from dataclasses import asdict, dataclass
+import gzip
+import io
 import math
 import re
+import struct
+import zlib
 
 from .model import ModelError
-from .native_project import _hash
+from .native_project import _hash,acd_stream
 from .native_symbols import read_tag_info
 from .template_layout import decode, LayoutError
 
@@ -24,6 +28,42 @@ ATOMS = {'BOOL': (0xC1,1), 'SINT': (0xC2,1), 'INT': (0xC3,2),
          'UINT': (0xC7,2), 'UDINT': (0xC8,4), 'ULINT': (0xC9,8),
          'REAL': (0xCA,4), 'LREAL': (0xCB,8)}
 ACCESS = {0: 'Read/Write', 3: 'Read/Write', 10: 'Read Only', 15: 'None'}
+
+
+def type_paths(data,names):
+    """Read active format-177 DataType identities, never source-order IDs."""
+    if not isinstance(data,bytes) or not 24<=len(data)<=128000000:raise ModelError('Invalid native type database bounds')
+    size,position=struct.unpack_from('<II',data,8);end=size+1
+    if struct.unpack_from('<I',data)[0]+1!=len(data) or not 24<=position<=min(end,4096) or end>len(data):
+        raise ModelError('Unsupported native type database bounds')
+    result={};instances=set();count=0
+    while position<end:
+        count+=1
+        if count>200000 or end-position<6:raise ModelError('Invalid native type record header')
+        kind,length=struct.unpack_from('<HI',data,position)
+        if kind not in (0xFAFA,0xFDFD,0xFEFE,0xFBBF) or not 6<=length<=end-position:
+            raise ModelError('Invalid native type record bounds')
+        record=data[position+6:position+length];position+=length
+        if kind!=0xFAFA:continue
+        if len(record)<148:raise ModelError('Truncated native type component')
+        used=struct.unpack_from('<I',record)[0]
+        if not 148<=used<=len(record) or struct.unpack_from('<I',record,12)[0]!=0:
+            raise ModelError('Unsupported native type component header')
+        if struct.unpack_from('<H',record,10)[0]!=256:continue
+        raw=record[24:148];stop=next((i for i in range(0,124,2) if raw[i:i+2]==b'\0\0'),None)
+        if stop is None:raise ModelError('Unterminated native type name')
+        try:key=raw[:stop].decode('utf-16le').casefold()
+        except UnicodeError as error:raise ModelError('Invalid native type component name') from error
+        if key not in names:continue
+        body=record[148:used]
+        if len(body)<22:raise ModelError('Truncated native type component body')
+        if struct.unpack_from('<H',body,8)[0]!=177:continue
+        path=struct.unpack_from('<6H',body,10)
+        if path[0]!=0x6C:continue
+        if not path[1] or any(path[2:]) or key in result or path[1] in instances:
+            raise ModelError('Ambiguous native DataType identity')
+        result[key]=path[1];instances.add(path[1])
+    return result
 
 
 def name(value):
@@ -68,7 +108,7 @@ def verification(status='idle', *, matched=0, members=0, failed=0, errors=()):
 
 
 class NativeTypes:
-    def __init__(self, source_acd_sha256, source_l5x_sha256, types):
+    def __init__(self, source_acd_sha256, source_l5x_sha256, types, type_ids=None):
         self.source_acd_sha256=_hash(source_acd_sha256);self.source_l5x_sha256=_hash(source_l5x_sha256)
         if not isinstance(types,(list,tuple)) or len(types)>MAX_TYPES: raise ModelError('Native type count limit')
         self.types={};total=0
@@ -115,6 +155,14 @@ class NativeTypes:
             depths[key]=depth
             return depth
         for key in self.types:visit(key)
+        self.type_ids={}
+        if type_ids is not None:
+            if not isinstance(type_ids,dict) or len(type_ids)>MAX_TYPES:raise ModelError('Invalid native type identity map')
+            seen=set()
+            for key,value in type_ids.items():
+                if not isinstance(key,str) or key not in self.types or type(value) is not int or not 1<=value<=0xFFFF or value in seen:
+                    raise ModelError('Invalid or duplicate native DataType identity')
+                self.type_ids[key]=value;seen.add(value)
 
     def width(self, dtype):
         if dtype.upper() in ATOMS:return ATOMS[dtype.upper()][1]
@@ -124,7 +172,8 @@ class NativeTypes:
 
     @classmethod
     def from_manifest(cls, manifest, source_l5x_sha256):
-        if not isinstance(manifest,dict) or set(manifest)!={'source_acd_sha256','source_l5x_sha256','types'}:
+        required={'source_acd_sha256','source_l5x_sha256','types'}
+        if not isinstance(manifest,dict) or not required<=manifest.keys() or manifest.keys()-required-{'type_ids'}:
             raise ModelError('Invalid native type manifest')
         if manifest['source_l5x_sha256']!=source_l5x_sha256: raise ModelError('Native types do not match loaded L5X bytes')
         rows=manifest['types']
@@ -143,7 +192,7 @@ class NativeTypes:
                     raise ModelError('Invalid native member fields')
                 members.append(Member(**{**m,'dimensions':tuple(m['dimensions'])}))
             types.append(Type(row['name'],row['size'],tuple(members)))
-        return cls(manifest['source_acd_sha256'],manifest['source_l5x_sha256'],types)
+        return cls(manifest['source_acd_sha256'],manifest['source_l5x_sha256'],types,manifest.get('type_ids'))
 
     @classmethod
     def from_acd(cls, path, source_l5x_sha256):
@@ -180,16 +229,28 @@ class NativeTypes:
                 if len(members)>MAX_MEMBERS or total>MAX_TOTAL_MEMBERS:raise ModelError('Native member count limit')
             types.append(Type(t.get('Name'),number(t.get('Size'),MAX_SIZE),tuple(members)))
             if len(types)>MAX_TYPES:raise ModelError('Native type count limit')
-        return cls(digest,source_l5x_sha256,types)
+        result=cls(digest,source_l5x_sha256,types)
+        try:component_digest,raw=acd_stream(path,'Comps.Dat',16000000)
+        except ModelError as error:
+            if str(error)!='ACD has no supported metadata stream: Comps.Dat':raise
+            return result
+        if component_digest!=digest:raise ModelError('ACD changed while reading native DataType identities')
+        try:
+            reader=gzip.GzipFile(fileobj=io.BytesIO(raw)) if raw[:2]==b'\x1f\x8b' else io.BytesIO(raw)
+            with reader:data=reader.read(128000001)
+        except (OSError,EOFError,zlib.error) as error:raise ModelError('Invalid native type database compression') from error
+        return cls(digest,source_l5x_sha256,types,type_paths(data,result.types))
 
     def manifest(self):
         return {'source_acd_sha256':self.source_acd_sha256,'source_l5x_sha256':self.source_l5x_sha256,
+                'type_ids':dict(self.type_ids),
                 'types':[{'name':t.name,'size':t.size,'members':[{**asdict(m),'dimensions':list(m.dimensions)} for m in t.members]}
                          for t in self.types.values()]}
 
     def description(self):
         return {'bound':True,'source':'ACD TagInfo.XML type/member metadata','types':len(self.types),
                 'members':self.member_count,'source_acd_sha256':self.source_acd_sha256,
+                'native_type_ids':len(self.type_ids),
                 'source_l5x_sha256':self.source_l5x_sha256,'compiled_addresses':False,'runtime_equivalence':False}
 
     def verify(self, templates):
