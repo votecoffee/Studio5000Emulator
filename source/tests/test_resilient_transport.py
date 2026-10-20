@@ -26,7 +26,8 @@ class TransportModelTests(unittest.TestCase):
         self.assertEqual(stage.setup,raw);self.assertEqual(stage.buffer_bytes,MAX_BUFFER_BYTES)
         state=stage.description();self.assertTrue(state['open']);self.assertFalse(state['setup_only'])
         for flag in ('buffer_allocated','payload_transfer','commit','configuration_exposed'):self.assertFalse(state[flag])
-        self.assertNotIn('opaque',json.dumps(state));self.assertNotIn(raw.hex(),json.dumps(state))
+        self.assertNotIn('opaque',state);self.assertFalse(state['configuration_exposed'])
+        self.assertNotIn(raw.hex(),json.dumps(state))
         for other in (payload(1),payload(opaque=18)):
             with self.assertRaises(TransportError) as error:stage.open(other)
             self.assertEqual(error.exception.status,12);self.assertEqual(stage.setup,raw)

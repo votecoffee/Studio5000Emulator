@@ -6,7 +6,17 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.73` adds [temporary object graphs and reference checks](object-staging.md).
+Current milestone: `.76` adds [native Template member inspection](template-layout-inspection.md).
+The demo download's 242 temporary Templates decode into 13,312 members; native
+offset encodings and trailers remain opaque, and no storage mapping or execution
+is enabled. Next: verify those encodings, member extents and nested types, then
+source binding, the complete device-operation contract and atomic commit.
+
+Version `.75` adds transactional [Run-entry initialization](run-entry.md).
+Version `.74` ties signed Remote Run/Program requests and webpage controls to
+the same server-owned scan worker, with native mode readback.
+
+Version `.73` adds [temporary object graphs and reference checks](object-staging.md).
 The remaining Symbol, Table, Program, Routine and coordination models cover
 all 904 records in the tested batch, with no active execution. Next: compiled
 definitions, the full device-operation contract, the further empty transport request

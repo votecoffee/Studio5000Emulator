@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab.device_payload import MAX_ENCODED_BYTES,decode,summary
+from logixlab.template_staging import TemplateStaging
 
 
 def read_bounded(path):
@@ -15,11 +16,13 @@ def read_bounded(path):
     return raw
 
 
-def run(payload,out,expected_bytes):
+def run(payload,out,expected_bytes,*,inspect_templates=False):
     payload=Path(payload).resolve(strict=True);out=Path(out).resolve()
     if out==payload or out.exists() and out.samefile(payload):raise ValueError('Output must not overwrite the payload')
     raw=read_bounded(payload);digest=hashlib.sha256(raw).hexdigest()
     batch=decode(raw,expected_bytes);result=summary(batch,expected_bytes)
+    if inspect_templates:
+        result['template_layout_inspection']=TemplateStaging.from_batch(batch).layout_inspection.description()
     if hashlib.sha256(read_bounded(payload)).hexdigest()!=digest:raise ValueError('Payload changed during inspection')
     result.update(encoded_bytes=len(raw),payload_sha256=digest,input_unchanged=True)
     out.parent.mkdir(parents=True,exist_ok=True)
@@ -32,8 +35,9 @@ def main():
     parser.add_argument('--payload',required=True,type=Path)
     parser.add_argument('--expanded-bytes',required=True,type=int)
     parser.add_argument('--out',required=True,type=Path,help='New summary file; use private local storage')
+    parser.add_argument('--templates',action='store_true',help='Also inspect staged Template member definitions')
     args=parser.parse_args()
-    try:result=run(args.payload,args.out,args.expanded_bytes)
+    try:result=run(args.payload,args.out,args.expanded_bytes,inspect_templates=args.templates)
     except (ValueError,OSError) as error:parser.exit(1,str(error)+'\n')
     print(json.dumps({k:result[k] for k in ('status','expanded_bytes','record_count','records_executed')}))
 

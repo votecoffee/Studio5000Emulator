@@ -11,6 +11,8 @@ anonymous compatibility mode, read its connected state, request Remote Run or
 Program and read the emulator's actual mode, then Go Offline.** Version `.74`
 ties native mode requests and webpage controls to the same scan worker.
 Version `.75` adds transactional Run-entry prescan and first-scan initialization.
+Version `.76` adds [member inspection of temporary native type definitions](docs/template-layout-inspection.md)
+as groundwork for validating storage layouts; encoded offsets and trailers remain opaque.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

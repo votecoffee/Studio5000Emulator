@@ -13,6 +13,23 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_layout_inspection_must_be_idle_empty_and_without_execution_authority(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();lease=state['connectivity']['native_programming_lease']
+        lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
+        for field,value in (('status','decoded'),('templates_decoded',1),('templates_unavailable',1),
+                ('members_decoded',1),('opaque_trailer_bytes',1),('encoded_offset_members',1),
+                ('templates_decoded',False),('errors',[{'reason':'invalid_member_name','templates':1}]),
+                ('storage_mapping_supported',True),('signature_verified',True),
+                ('definitions_exposed',True),('execution_supported',True)):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['template_staging']['layout_inspection'][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,[],{}):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['template_staging']['layout_inspection']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_runtime_evidence_changes_when_managed_code_changes_under_the_same_apphost(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);(root/'probe.exe').write_bytes(b'same-apphost')

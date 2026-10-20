@@ -1,5 +1,8 @@
 # Temporary native Template models
 
+Version `.76` adds [member definition inspection](template-layout-inspection.md)
+without enabling native storage mapping or device execution.
+
 This describes the `.71` milestone. Version `.72` adds
 [temporary Diagnostics Message models](diagnostic-staging.md) and publishes both
 model sets atomically; failure in either leaves both empty. Full execution stays denied.

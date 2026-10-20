@@ -1,10 +1,11 @@
 """Temporary Template objects from the observed native device-batch dialect.
 
-Definitions remain opaque bytes. This model does not install types, interpret
-compiled members, dispatch requests or authorize batch execution.
+Definitions remain temporary bytes. Member structure is inspected separately;
+this model does not install types, map storage or authorize batch execution.
 """
 from dataclasses import dataclass
 import struct
+from .template_layout import Inspection
 
 MAX_TEMPLATES = 1024
 MAX_DEFINITION_BYTES = 65536
@@ -61,6 +62,7 @@ def attributes(payload):
 class TemplateStaging:
     def __init__(self,templates=(),records=0,writes=0,unsupported=0):
         self.templates=tuple(templates);self.records=records;self.writes=writes;self.unsupported=unsupported
+        self.layout_inspection=Inspection(self.templates)
 
     @classmethod
     def from_batch(cls,batch):
@@ -105,4 +107,5 @@ class TemplateStaging:
                 'templates':len(self.templates),'definition_bytes':sum(len(t.definition) for t in self.templates),
                 'write_fragments':self.writes,'records_modeled':self.records,'unsupported_records':self.unsupported,
                 'max_templates':MAX_TEMPLATES,'max_definition_bytes':MAX_DEFINITION_BYTES,'max_total_bytes':MAX_TOTAL_BYTES,
+                'layout_inspection':self.layout_inspection.description(),
                 'definitions_exposed':False,'active_catalog_replaced':False,'commit':False}

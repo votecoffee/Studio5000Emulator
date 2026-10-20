@@ -187,6 +187,24 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
+    def test_decoded_members_emit_private_summary_and_still_deny_execution(self):
+        from test_template_layout import definition
+        raw=definition(((31,0xC1,0xF0000000),),trailer=b'PrivateTrailer')
+        raw+=b'\0'*(-len(raw)%4)
+        self.stage(b''.join(record(r.request) for r in templates.batch(data=raw)))
+        before=copy.deepcopy(self.app.state());identity=self.app.native_project_identity.manifest()
+        for _ in range(2):self.assertEqual(self.send(INSPECT),bytes.fromhex('86000f00'))
+        state=self.description()['template_staging']['layout_inspection']
+        self.assertEqual(state['status'],'decoded');self.assertEqual(state['members_decoded'],1)
+        self.assertEqual(state['encoded_offset_members'],1);self.assertFalse(state['storage_mapping_supported'])
+        events=[e for e in self.endpoint.state(True)['events'] if e['kind']=='native_template_layout_inspection']
+        self.assertEqual(len(events),2)
+        for text in ('Example','Value','PrivateTrailer',raw.hex()):self.assertNotIn(text,json.dumps(events))
+        for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
+        self.assertEqual(self.app.native_project_identity.manifest(),identity)
+        self.send(transport.DELETE)
+        self.assertEqual(self.description()['template_staging']['layout_inspection']['status'],'idle')
+
     setUp=fragments.FragmentSignedTests.setUp
     tearDown=fragments.FragmentSignedTests.tearDown
     cip=fragments.FragmentSignedTests.cip
@@ -215,6 +233,8 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.endpoint.counts['native_template_staging'],1)
         staged=self.description()['template_staging'];self.assertEqual(staged['templates'],1);self.assertEqual(staged['records_modeled'],3)
         self.assertEqual(staged['definition_bytes'],12);self.assertEqual(staged['unsupported_records'],9)
+        self.assertEqual(staged['layout_inspection']['status'],'invalid')
+        self.assertEqual(self.endpoint.counts['native_template_layout_inspection'],1)
         self.assertEqual(self.endpoint.counts['native_diagnostic_staging'],1)
         staged=self.description()['diagnostic_staging'];self.assertEqual(staged['messages'],1);self.assertEqual(staged['records_modeled'],1)
         staged=self.description()['object_staging'];self.assertEqual(staged['records_modeled'],7);self.assertTrue(staged['references_validated'])
@@ -278,6 +298,7 @@ class InspectionSignedTests(unittest.TestCase):
             state=self.endpoint.programming_lease.transport.description()['inspection']
             self.assertEqual(state['status'],'idle');self.assertEqual(state['record_count'],0);self.assertEqual(state['operations'],[])
             self.assertEqual(self.endpoint.programming_lease.transport.description()['template_staging']['status'],'idle')
+            self.assertEqual(self.endpoint.programming_lease.transport.description()['template_staging']['layout_inspection']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['diagnostic_staging']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['object_staging']['status'],'idle')
             if action in ('reset','reload','disconnect'):
@@ -285,6 +306,18 @@ class InspectionSignedTests(unittest.TestCase):
 
 
 class InspectionToolTests(unittest.TestCase):
+    def test_optional_template_inspection_reports_counts_without_names_or_payloads(self):
+        from test_template_layout import definition
+        raw=definition(trailer=b'private-trailer');raw+=b'\0'*(-len(raw)%4)
+        expanded=b''.join(record(r.request) for r in templates.batch(data=raw))
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'payload.bin';out=Path(folder)/'report.json'
+            source.write_bytes(container(zlib.compress(expanded)))
+            result=run(source,out,len(expanded),inspect_templates=True)
+            self.assertEqual(result['template_layout_inspection']['status'],'decoded')
+            self.assertEqual(result['template_layout_inspection']['members_decoded'],1)
+            for text in ('Example','Value','private-trailer',raw.hex()):self.assertNotIn(text,out.read_text())
+
     def test_summary_does_not_overwrite_input_or_existing_reports(self):
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder)/'payload.bin';out=Path(folder)/'report.json';source.write_bytes(ENCODED)
