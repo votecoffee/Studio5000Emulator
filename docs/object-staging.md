@@ -96,6 +96,25 @@ malformed/reordered attributes, missing and mismatched references, scope collisi
 balanced coordination, types/ranks, exact capacity and excess, atomic rejection,
 signed requests, owner/source guards, caching, privacy and lifecycle cleanup.
 
+The rebuilt `.73` runtime's application modules and served webpage match source.
+The Windows executable's embedded version, webpage and object-model module were
+checked separately. The running endpoint passes 291 wire checks. Its public SDK
+probes report:
+
+| Probe | Verified signed requests | Native outcome |
+| --- | --- | --- |
+| Connection | 81 | Nine steps succeed, including Go Online and Go Offline |
+| Tag reads | 83 | Address discovery fails before value reads |
+| Upload | 199 | Controller-collection upload still fails |
+| Download | 181 | All 904 records modeled; execution denied |
+
+All four cases confirm Offline cleanup, unchanged source/model and empty
+temporary stages. Final state has zero TCP clients, an uninhibited free lease,
+idle preparation, closed transport, no fragment buffer and idle inspection.
+Template, diagnostic and object models are empty, reference-validation state
+is reset, and no temporary coordination remains open. Scans and model time
+remain zero. The communications and SDK services remain running.
+
 An isolated experiment with a substituted batch acknowledgement encountered a
 further class `0x412` request (`0x4D`) with an empty payload. The substitution is absent from the app;
 final preparation was denied in that experiment and its SDK attempt failed.

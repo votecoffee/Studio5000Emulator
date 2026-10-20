@@ -124,6 +124,13 @@ The normal-source SDK attempt models all 904 batch records, validates reciprocal
 links and preserves scoped Symbols/Routines, then denies execution. Cleanup
 returns Offline with unchanged source/model and empty temporary stages. See
 [object-graph validation](object-staging.md#validation-and-remaining-work).
+The rebuilt `.73` runtime passes 291 wire checks and the nine-step SDK
+connection/Offline sequence. Download verifies 181 signed requests and models
+all 904 records before the execution denial. All four public SDK cases confirm
+Offline cleanup, empty temporary stages and preserved source/model. Application
+modules and served webpage match source; the Windows artifact contains the new
+module and matching version. Isolated substituted acknowledgements used for
+next-request research are absent from this build.
 
 The `.72` suite runs 960 tests, with two Windows skips and one Linux skip.
 The normal-source SDK download attempt models 136 Diagnostics Messages and
