@@ -104,6 +104,9 @@ Version `.96` adds [checkpointed native transfer reports](docs/native-transfer-d
 for upload/download investigations, plus an offline report reader. Reports
 separate object errors, fragment acknowledgements and temporary preparation
 state; they preserve the distinction between protocol observations and SDK success.
+Version `.97` retains complete native transfer packets within a bounded trace
+ring, allowing the offline reader to check large download fragments. Capture
+limits and evictions are exposed in diagnostic state.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

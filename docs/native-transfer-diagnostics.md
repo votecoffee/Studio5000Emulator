@@ -23,6 +23,20 @@ children retain their order and Program/object scope. Malformed replies,
 sequence mismatches and truncated events make analysis incomplete. A missing
 or ambiguous checkpoint does not select a guessed interval.
 
+Version `.97` retains complete CIP packets up to 65,519 bytes per request or
+reply. The trace ring has two independent bounds: 1,000 events and 2 MiB of
+retained binary payload (at most 4 MiB after hexadecimal encoding). Reaching
+either bound evicts whole oldest events. `trace_capture` reports the limits,
+retained bytes and dropped-event count; each event includes original request
+and response lengths and an explicit truncation flag. Protocol counters keep
+counting after trace eviction. An initially empty checkpoint also checks the
+dropped-event counter before reporting a complete interval.
+
+This removes the earlier 1 KiB prefix limit for native download fragments.
+Capture retention and framing validation remain distinct from MAC verification,
+image acceptance and execution. Busy endpoints can still evict a checkpoint;
+the reader then reports an incomplete interval.
+
 ## Offline reader
 
 The same report can be generated later from saved files, without starting the

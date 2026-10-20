@@ -31,7 +31,14 @@ def event_interval(before,after):
             or len(previous)>MAX_EVENTS or len(events)>MAX_EVENTS
             or any(not isinstance(row,dict) for row in previous+events)):
         raise ValueError('Invalid or oversized trace event list')
-    if not previous:return events,None
+    if not previous:
+        # An empty starting checkpoint has no marker. Capture loss during the
+        # call must still prevent a retained suffix from looking complete.
+        old=before.get('trace_capture',{}).get('dropped_events',0)
+        new=after.get('trace_capture',{}).get('dropped_events',0)
+        if type(old) is not int or type(new) is not int or old<0 or new<old:
+            raise ValueError('Invalid trace retention counters')
+        return ([], 'checkpoint_not_retained') if new>old else (events,None)
     positions=[i for i,row in enumerate(events) if row==previous[-1]]
     if len(positions)!=1:return [],'checkpoint_not_retained' if not positions else 'checkpoint_ambiguous'
     return events[positions[0]+1:],None

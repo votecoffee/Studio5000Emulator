@@ -31,6 +31,9 @@ TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
          'DINT':(0xC4,'i'), 'LINT':(0xC5,'q'), 'USINT':(0xC6,'B'),
          'UINT':(0xC7,'H'), 'UDINT':(0xC8,'I'), 'ULINT':(0xC9,'Q'), 'REAL':(0xCA,'f')}
 REPLY_LIMIT = 480
+TRACE_EVENT_LIMIT = 1000
+TRACE_PACKET_LIMIT = signed_messages.MAX_MESSAGE
+TRACE_BYTE_LIMIT = 2*1024*1024  # Retained binary bytes; hex encoding uses twice this.
 
 
 class CIPError(Exception):
@@ -1500,7 +1503,8 @@ class Endpoint:
         if app.engine is None:raise ModelError('Load a project before selecting an identity')
         self.profile=profile;self.identity=Identity.from_project(profile,app.engine.project)
         self.source_sha256=app.engine.project.sha256
-        self.lock=threading.RLock();self.events=deque(maxlen=1000);self.counts=Counter();self.unsupported=Counter()
+        self.lock=threading.RLock();self.events=deque(maxlen=TRACE_EVENT_LIMIT);self.counts=Counter();self.unsupported=Counter()
+        self.trace_payload_bytes=0;self.trace_dropped_events=0
         self.attribute_gaps=attribute_gaps.AttributeGaps()
         self.native_rejections=native_rejections.NativeRejections()
         self.ethernet_counters=ethernet_counters.CounterCache()
@@ -1536,8 +1540,18 @@ class Endpoint:
             if kind=='cip' and fields.get('status') in (8,0x0A,0x14):
                 key=fields.get('service','')+' '+fields.get('path','')
                 self.unsupported[key if key in self.unsupported or len(self.unsupported)<128 else 'Other unsupported requests']+=1
-            self.events.append({'time':time.time(),'kind':kind,**fields,'request_hex':request[:1024].hex(),
-                                'response_hex':response[:1024].hex(),'truncated':len(request)>1024 or len(response)>1024})
+            captured_request=request[:TRACE_PACKET_LIMIT];captured_response=response[:TRACE_PACKET_LIMIT]
+            size=len(captured_request)+len(captured_response)
+            # Retain complete protocol-sized packets, including native download
+            # fragments. Bound the whole ring as well as each individual packet.
+            while self.events and (len(self.events)>=TRACE_EVENT_LIMIT or self.trace_payload_bytes+size>TRACE_BYTE_LIMIT):
+                old=self.events.popleft()
+                self.trace_payload_bytes-=(len(old['request_hex'])+len(old['response_hex']))//2
+                self.trace_dropped_events+=1
+            self.events.append({'time':time.time(),'kind':kind,**fields,'request_hex':captured_request.hex(),
+                                'response_hex':captured_response.hex(),'request_bytes':len(request),'response_bytes':len(response),
+                                'truncated':len(request)>TRACE_PACKET_LIMIT or len(response)>TRACE_PACKET_LIMIT})
+            self.trace_payload_bytes+=size
 
     def state(self,trace=False):
         with self.lock:
@@ -1587,7 +1601,10 @@ class Endpoint:
                     'unsupported':[{'request':k,'count':v} for k,v in self.unsupported.most_common(20)],
                     'attribute_gaps':self.attribute_gaps.snapshot(self.app.generation),
                     'native_rejections':self.native_rejections.snapshot(self.app.generation),
-                    'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events)}
+                    'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events),
+                    'trace_capture':{'event_limit':TRACE_EVENT_LIMIT,'packet_byte_limit':TRACE_PACKET_LIMIT,
+                        'retained_byte_limit':TRACE_BYTE_LIMIT,'retained_bytes':self.trace_payload_bytes,
+                        'dropped_events':self.trace_dropped_events}}
             if trace:result['events']=list(self.events)
             return result
 
