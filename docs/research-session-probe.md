@@ -59,3 +59,9 @@ Controller overflow-reporting flag and Program-scoped Routine catalogs. The
 independent inventory session completes 60 reads. All 904 temporary preparation
 results remain verifiable, and source/model state is preserved. These checks
 use the custom protocol client; native SDK results are recorded separately.
+
+The `.84` owned-payload case passes 33 signed checks. It adds a source-bound
+Program reservation and release, checks that scans are inhibited only while
+reserved, and preserves all 904 temporary preparation readbacks. The separate
+inventory still completes 60 reads. It does not supply hypothetical Controller
+replies or enable accepted edits.

@@ -122,3 +122,12 @@ endpoint cleanup. This is a local pending NOP import on the probe's private
 ACD copy while online; it does not establish accepted controller edits. The
 source ACD and emulated routines, task configuration, values and scan state
 remain unchanged. The SDK project is closed without saving over the input.
+
+Version `.84` adds [Program preparation reservations](program-reservations.md).
+A private empty-success hypothesis for Controller `0x55` exposed the subsequent
+Program Semaphore acquire and release. After implementing those backed
+reservations, the isolated repeat advances to a denied Program attribute-27
+UDI Stack Size write. It verifies 103 signed requests, confirms native Offline
+and endpoint cleanup, and preserves source/model state with no reported fatal
+SDK fault. The hypothetical Controller reply is absent from the public app;
+this is conditional diagnostic evidence, not accepted-edit support.

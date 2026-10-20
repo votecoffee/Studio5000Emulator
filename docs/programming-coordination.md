@@ -43,9 +43,14 @@ deadline. A stale context cannot reserve the lease against another client.
 
 This is an emulator coordination policy checked against the SDK's request and
 cleanup behavior. No successful physical download reference establishes all
-firmware Semaphore semantics. The lease grants no tag-write, controller-mode,
-project-transfer or online-edit permission. The existing read-only policy still
-rejects those operations, including while a lease is held.
+firmware Semaphore semantics. The lease grants no tag-write, project-transfer
+or online-edit permission. Supported Remote Run/Program requests use the
+separate [controller-mode checks](controller-mode.md).
+
+Version `.84` adds subordinate [Program preparation reservations](program-reservations.md)
+under the Controller's edit-purpose lease. They preserve the Program parent,
+require the bound owner and original source pair, and block Run until released.
+They retain zero active edits and are discarded with their owning lease.
 
 ## Local controller link address
 

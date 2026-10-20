@@ -274,6 +274,37 @@ native Offline and endpoint cleanup, unchanged source/model state, and no
 reported fatal/server-faulted SDK exception. Complete native tag monitoring,
 upload/download and active edits remain unfinished.
 
+Version `.84` adds source-bound [Program preparation
+reservations](program-reservations.md), subordinate to the Controller edit
+reservation. They block Run while held, retain zero active changes and clear
+with their owning context. The iteration passes 107 focused reservation,
+Controller mode, routing and SDK-probe tests. The full suite was not rerun.
+The independent signed session passes 33 checks and 60 inventory reads,
+including all 904 temporary preparation results. The rebuilt appliance passes
+24 focused wire checks; all 71 application modules and served/packaged
+version/assets match source.
+
+Two isolated native experiments supplied a hypothetical Controller `0x55`
+reply, absent from the public app. The first exposed the Program Semaphore
+path; the second used its implemented reservations and advanced to a denied
+Program attribute-27 UDI Stack Size write. The second verifies 103 signed
+requests and confirms native Offline and endpoint cleanup with unchanged
+source/model. Separate BOOL and DINT getters, using the updated probe against
+the prior `.83` runtime, each verify 80 requests and still report
+`RxDA_E_NO_ONLINE_ADDRESS`, with confirmed cleanup and no fatal SDK fault.
+These results do not establish accepted edits or native tag monitoring.
+
+Fresh `.84` native connection/Offline succeeds across 79 verified requests.
+The SDK/webpage Run/Program case also succeeds across 113, checking actual scan
+advancement, prescan counts and Program stops in both directions. It retains
+the resulting modeled execution history and restores Program and Offline.
+Download still fails device transfer across 180 after preparing all 904 records;
+cleanup clears the image, lease, inhibit and Program reservations. All three
+cases confirm native Offline and endpoint cleanup with no reported fatal SDK
+fault. Source ACD bytes remain unchanged. Native upload and local pending-edit
+import were not repeated in this focused iteration; their `.83` results remain
+separate from `.84` acceptance.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.
