@@ -117,6 +117,10 @@ class ResilientTransport:
         binding=(source,image.record_sha256,image.records,id(self._type_catalog))
         if self.image_preparation_started and self._image_start_binding!=binding:
             raise TransportError(0x0C,'device_image_preparation_binding_changed')
+        if (image._results.record_sha256!=image.record_sha256 or len(image._results.results)!=image.records
+                or image._results.source_acd_sha256!=source.acd_sha256
+                or image._results.source_l5x_sha256!=source.l5x_sha256):
+            raise TransportError(0x0C,'device_image_result_binding_mismatch')
         self._image_start_binding=binding;self.image_preparation_started=True
         return {**image.description(),'preparation_started':True}
 

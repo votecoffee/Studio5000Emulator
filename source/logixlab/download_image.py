@@ -11,6 +11,7 @@ import struct
 from types import MappingProxyType
 
 from .object_staging import NULL_REFERENCE, MAX_STORAGE_BYTES
+from .download_results import ResultLedger,ResultError
 
 MAX_READ_BYTES = 16384
 SUPPORTED_OPERATIONS = frozenset(((8,0x6C),(4,0x6C),(0x4D,0x6C),(8,0x3B2),
@@ -54,6 +55,8 @@ class DownloadImage:
         self.source=source;self.templates=tuple(templates);self.diagnostics=tuple(diagnostics)
         self.programs=tuple(objects.programs) if objects is not None else ()
         self.routines=tuple(objects.routines) if objects is not None else ()
+        self._coordination_records=objects.coordination if objects is not None else 0
+        self._results=ResultLedger()
         self.records=records;self.record_sha256=record_sha256;self.reason=reason
         self._tables=MappingProxyType({t.instance:t for t in objects.tables} if objects is not None else {})
         self._regions=MappingProxyType({t.instance:Region(t.instance,t.type_code,t.dimensions,t.elements,
@@ -85,7 +88,10 @@ class DownloadImage:
             raise ImageError('download_image_storage_limit')
         digest=hashlib.sha256()
         for row in batch:digest.update(struct.pack('<I',len(row.request)));digest.update(row.request)
-        return cls(source,templates.templates,diagnostics.messages,objects,count,digest.hexdigest())
+        image=cls(source,templates.templates,diagnostics.messages,objects,count,digest.hexdigest())
+        try:image._results=ResultLedger.from_image(batch,image)
+        except ResultError as error:raise ImageError(error.reason) from error
+        return image
 
     def require_source(self,source):
         if self.source is None:raise ImageError('download_image_unavailable')
@@ -109,6 +115,33 @@ class DownloadImage:
         table=self._symbols[program,instance]
         if table==NULL_REFERENCE:raise ImageError('download_symbol_storage_unresolved')
         return self.read_table(table,offset,count,source)
+
+    def read_template(self,instance,offset,count,source):
+        self.require_source(source)
+        row=next((t for t in self.templates if t.instance==instance),None) if type(instance) is int else None
+        if row is None:raise ImageError('download_template_unavailable')
+        if (type(offset) is not int or type(count) is not int or offset<0 or not 1<=count<=MAX_READ_BYTES
+                or offset+count>len(row.definition)):raise ImageError('download_template_read_range')
+        return row.definition[offset:offset+count]
+
+    def _require_results(self,source):
+        self.require_source(source)
+        if (self._results.record_sha256!=self.record_sha256 or len(self._results.results)!=self.records
+                or self._results.source_acd_sha256!=source.acd_sha256
+                or self._results.source_l5x_sha256!=source.l5x_sha256):
+            raise ImageError('download_result_binding_changed')
+
+    def preparation_results(self,offset,count,source):
+        """Private, bounded ordered model results; never vendor response bytes."""
+        self._require_results(source)
+        try:return self._results.page(offset,count)
+        except ResultError as error:raise ImageError(error.reason) from error
+
+    def read_preparation_effect(self,ordinal,source):
+        """Compare a retained result with its actual temporary resource."""
+        self._require_results(source)
+        try:return self._results.readback(self,ordinal)
+        except ResultError as error:raise ImageError(error.reason) from error
 
     def attribute(self,class_id,instance,attribute,source,program=0):
         """Typed attribute bytes backed by the temporary objects only.
@@ -141,6 +174,7 @@ class DownloadImage:
         return {'status':'prepared' if self.source is not None else 'blocked' if self.reason else 'idle',
                 **({'reason':self.reason} if self.reason else {}),
                 'source_bound':self.source is not None,'records_prepared':self.records,
+                'preparation_results':self._results.description(),
                 'record_sha256':self.record_sha256,'tables_allocated':len(self._regions),
                 'templates_retained':len(self.templates),'diagnostics_retained':len(self.diagnostics),
                 'programs_retained':len(self.programs),'routines_retained':len(self.routines),

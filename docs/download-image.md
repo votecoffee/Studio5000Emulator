@@ -56,6 +56,44 @@ clears `preparation_started`.
 Status exposes counts, limits, a record digest and readiness. It omits source
 hashes, identifiers, definition bytes, names and cell contents.
 
+## Per-operation preparation results
+
+Each prepared image now retains an immutable result for every record, in the
+original order. A result includes its ordinal, service, object scope, exact
+request length and SHA-256 digest, together with a typed simulator outcome:
+
+- Template creation capacity, retained attributes and each written definition
+  slice's offset, byte count and digest.
+- Diagnostic revision, string lengths and digests.
+- Symbol table reference, table type/dimensions/allocation, Program identity
+  retention and Routine creation word.
+- The before/after hold state for each balanced Program coordination operation.
+
+`preparation_results` reads at most 64 records per page and requires the original
+source-hash pair and matching record-stream digest. The result tuples, outcomes
+and operation counts are immutable. These detailed reads are private Python
+interfaces; HTTP and native protocol responses expose aggregate counts only.
+
+`read_preparation_effect` reads the current temporary resource and compares it
+with its retained outcome. A changed Template slice, descriptor or allocation
+therefore produces a failed comparison. Coordination outcomes describe retained
+historical transitions, explicitly marked as such; they do not claim the Program
+remains held after the balanced release. `read_template` provides bounded byte
+readback for independently checking definition-write digests.
+
+The result ledger is built atomically before publication. It checks retained
+resources against the original operation payloads, so a descriptor model that
+disagrees with a Create, attribute or Write request cannot produce a prepared
+image. Start requires a complete matching ledger. Repeated Start reuses it;
+fragment reset, deletion, expiry and lease cleanup discard it with the image.
+
+The owned 904-record replay produces 242 Template creation results, 242 attribute
+results, 243 definition-write results and 177 other object/coordination results.
+All request fingerprints and resource comparisons pass, including 243 separately
+verified definition slices and the two retained coordination transitions. This
+is offline preparation evidence. It supplies real outcomes for a future result
+encoder without assigning a vendor status or guessing a wire layout.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
