@@ -51,6 +51,11 @@ The state reports `phase_open`, aggregate `program_stack_preparations`,
 and cleanup require all preparation to be idle. The independent inventory
 reader distinguishes an available zero from an unavailable attribute.
 
+Version `.86` adds a separate [compiled Routine fragment receiver](edit-transfer.md)
+inside this preparation phase. It shares ownership, source and Program holds;
+release also clears its temporary binary. Download preparation keeps its own
+receiver, and a completed edit binary cannot be installed or accepted yet.
+
 ## Native evidence and limits
 
 The `.84` private experiment supplied a hypothetical empty success reply for

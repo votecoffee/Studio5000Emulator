@@ -15,6 +15,21 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_compiled_edit_storage_must_be_idle_empty_and_without_installation_authority(self):
+        from logixlab.edit_transfer import EditTransfer
+        state=self.state();lease=state['connectivity']['native_programming_lease'];lease['edit_transfer']=EditTransfer().description()
+        validate_idle(state)
+        for field,value in (('status','receiving'),('container_sha256','a'*64),('source_bound',True),
+                ('buffer_allocated',True),('complete',True),('container_length_verified',True),
+                ('elf_structural_validation',True),('relocations_resolved',True),('payloads_exposed',True),
+                ('routine_installed',True),('accepted_edits',True),('commit',True),('received_bytes',1),
+                ('total_bytes',1),('fragments',1),('instructions_executed',1),('received_bytes',False)):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,[],{}):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_transfer']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_typed_tag_getters_are_explicit_and_require_a_tag_connection_case(self):
         for kind in ('BYTE_ARRAY','BOOL','DINT','REAL'):
             self.assertEqual(validate_tag_read_type('connection',['tag'],kind),kind)

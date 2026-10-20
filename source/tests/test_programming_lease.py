@@ -122,6 +122,10 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
             self.lease.reserve_program(first,1,'a'*64,300)
             self.lease.open_edit_preparation(first,1,'a'*64)
             self.lease.prepare_zero_program_stack(first,1,'a'*64,300,0)
+            prefix=b'X'*18
+            self.lease.edit_transfer.accept(signed_messages.FragmentEnvelope(0x39,1,
+                prefix+bytes.fromhex('09000000000000000000000000000000340000007f454c46')+bytes(8),0x101,72),
+                target=(300,700),prefix=prefix)
             generation=1;source='a'*64
             if kind=='release':self.lease.release(first,1,source)
             elif kind=='discard':self.lease.discard(first)
@@ -140,6 +144,7 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
                 self.assertEqual(self.lease.program_reservations,set())
                 self.assertEqual(self.lease.program_stack_preparations,{})
                 self.assertFalse(self.lease.edit_phase_open)
+                self.assertEqual(self.lease.edit_transfer._data,bytearray())
                 self.assertFalse(self.lease.scan_inhibited(generation,source))
 
     def test_unknown_or_boolean_selector_never_acquires_or_changes_an_existing_reservation(self):

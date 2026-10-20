@@ -8,6 +8,7 @@ import time
 from .library_staging import LibraryStaging
 from .metadata_staging import MetadataStaging
 from .resilient_transport import ResilientTransport
+from .edit_transfer import EditTransfer
 
 MAX_PROGRAM_RESERVATIONS=128
 
@@ -23,6 +24,7 @@ class ProgrammingLease:
         self.libraries=LibraryStaging()
         self.metadata=MetadataStaging()
         self.transport=ResilientTransport(clock)
+        self.edit_transfer=EditTransfer(clock)
         self.clear()
 
     def clear(self):
@@ -35,6 +37,7 @@ class ProgrammingLease:
         self.libraries.clear();self.metadata.clear();self.transport.clear()
         self.program_reservations=set()
         self.edit_phase_open=False;self.program_stack_preparations={}
+        self.edit_transfer.clear()
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -102,6 +105,7 @@ class ProgrammingLease:
             raise LeaseError(3,'invalid_program_reservation')
         self.program_reservations.discard(program)
         self.program_stack_preparations.pop(program,None)
+        if self.edit_transfer.target and self.edit_transfer.target[0]==program:self.edit_transfer.clear()
 
     def open_edit_preparation(self,native,generation,source_sha256):
         self.require_edit_owner(native,generation,source_sha256)
@@ -110,7 +114,7 @@ class ProgrammingLease:
     def close_edit_preparation(self,native,generation,source_sha256):
         self.require_edit_owner(native,generation,source_sha256)
         if self.program_reservations:raise LeaseError(0x0C,'release_program_reservations_first')
-        self.program_stack_preparations.clear();self.edit_phase_open=False
+        self.program_stack_preparations.clear();self.edit_transfer.clear();self.edit_phase_open=False
 
     def prepare_zero_program_stack(self,native,generation,source_sha256,program,value):
         self.require_edit_owner(native,generation,source_sha256)
@@ -158,6 +162,7 @@ class ProgrammingLease:
                     'phase_open':owned and self.edit_phase_open,
                     'program_stack_preparations':len(self.program_stack_preparations) if owned else 0,
                     'stack_bytes_allocated':0,'active_stack_changed':False},
+                'edit_transfer':self.edit_transfer.description(),
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':self.scan_inhibited(generation,source_sha256),
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,

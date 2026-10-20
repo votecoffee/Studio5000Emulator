@@ -252,6 +252,16 @@ def validate_staging(lease):
         for field in ('program_stack_preparations','stack_bytes_allocated'):
             if field in edit and (type(edit[field]) is not int or edit[field]!=0):
                 raise ValueError('Probe requires empty Program stack preparation')
+    if 'edit_transfer' in lease:
+        transfer=lease['edit_transfer']
+        if not isinstance(transfer,dict) or transfer.get('status')!='idle' or transfer.get('container_sha256') is not None:
+            raise ValueError('Probe requires idle empty compiled edit storage')
+        for field in ('source_bound','buffer_allocated','complete','container_length_verified','elf_structural_validation',
+                      'relocations_resolved','payloads_exposed','routine_installed','accepted_edits','commit'):
+            if transfer.get(field) is not False:raise ValueError('Probe requires disabled compiled edit installation')
+        for field in ('received_bytes','total_bytes','fragments','instructions_executed'):
+            if type(transfer.get(field)) is not int or transfer[field]!=0:
+                raise ValueError('Probe requires empty compiled edit storage')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]

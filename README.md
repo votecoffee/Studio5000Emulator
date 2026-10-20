@@ -51,6 +51,10 @@ projects without AOIs. The independent inventory reader also reads this
 modeled zero stack. Active edit storage and controller acceptance remain unfinished.
 The `.85` native edit probe passes this preparation and reaches a compiled
 Routine fragment, which is still rejected by the transfer receiver.
+Version `.86` adds [compiled Routine fragment staging](docs/edit-transfer.md)
+under the edit reservation, with source-bound targets and bounded temporary
+storage. Complete binaries remain separate from active routines; installation
+and accepted controller edits are unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

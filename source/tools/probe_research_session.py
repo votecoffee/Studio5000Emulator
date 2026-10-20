@@ -64,7 +64,23 @@ def exercise(app,client,payload=None,expanded=None):
                   bytes.fromhex('8400000001001b000000'))
             check('program_zero_stack_readback',bytes((0x0E,len(path)//2+1))+path+b'\x30\x1b',
                   bytes.fromhex('8e00000000000000'))
+            if app.native_routines is not None:
+                routine=next((routine for routine in app.endpoint.router.routines(row['id'])
+                    if app.engine.project.routines[(routine['program']+'/'+routine['name']).lower()].kind=='RLL'),None)
+                if routine is not None:
+                    target=path+b'\x20\x6d'+logical(0x24,routine['id'])
+                    prefix=bytes((0x5C,len(target)//2))+target+struct.pack('<4I',3,1,0,0)
+                    elf=b'\x7fELF\x01\x01\x01'+bytes(45)
+                    body=struct.pack('<5I',9,0,0,0,len(elf))+elf
+                    for name,word,position,data in (
+                            ('compiled_edit_first_fragment',0x101,len(body),prefix+body[:32]),
+                            ('compiled_edit_continuation',1,32,body[32:40])):
+                        client.fragment(word,position,data)
+                        checks.append({'check':name,'status':0,'reply_bytes':36})
+                    transfer=app.endpoint.state()['native_programming_lease']['edit_transfer']
+                    assert transfer['received_bytes']==40 and not transfer['routine_installed'] and not transfer['complete']
         check('program_reservation_release',bytes((0x4C,len(semaphore)//2))+semaphore,bytes.fromhex('cc000000'))
+        assert app.endpoint.state()['native_programming_lease']['edit_transfer']['status']=='idle'
         assert app.endpoint.state()['native_programming_lease']['scan_inhibited']
         attrs=app.engine.project.program_configuration.attributes(row['name'],source_sha256=app.engine.project.sha256)
         if 19 in attrs:

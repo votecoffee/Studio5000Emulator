@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -755,6 +755,39 @@ class Router:
         return (project.aoi_catalog.empty and not project.aois and not self.app.engine.blockers
                 and project.executable_configuration.routine_names(program['name'],source_sha256=project.sha256) is not None)
 
+    def receive_edit_fragment(self,envelope,native,lease):
+        source=self.app.engine.project.sha256
+        lease.require_edit_owner(native,self.app.generation,source)
+        if not lease.edit_phase_open:raise CIPError(0x0C,'Edit preparation phase required')
+        if self.app.controller_state()['mode']!='Program':raise CIPError(0x0C,'Program mode required')
+        prefix=None;target=lease.edit_transfer.target
+        if envelope.container_format==0x101:
+            raw=envelope.fragment
+            if len(raw)<2:raise CIPError(0x13,'Truncated edit operation')
+            end=2+2*raw[1];need(raw,end+16)
+            path=decode_path(raw[2:end]);payload=raw[end:]
+            if (raw[0]!=0x5C or path.class_id!=0x6D or path.program_instance is None or not path.instance
+                    or path.attribute is not None or path.symbols or path.io_map_instance is not None
+                    or path.controller_instance is not None):
+                raise CIPError(0x0F,'Unsupported compiled edit target')
+            if payload[:8]!=struct.pack('<II',3,1) or payload[12:16]!=bytes(4):
+                raise CIPError(3,'Unsupported compiled edit setup')
+            target=(path.program_instance,path.instance);prefix=raw[:end+16]
+        if target is None:raise CIPError(0x0C,'Compiled edit first fragment required')
+        program=self.source_bound_program(target[0])
+        if not self.zero_program_stack_supported(program):raise CIPError(0x0C,'Compiled edit source unavailable')
+        if target[0] not in lease.program_reservations:raise CIPError(0x0F,'Program reservation required')
+        routine=next((row for row in self.routines(target[0]) if row['id']==target[1]),None)
+        if routine is None:raise CIPError(5,'Unknown source-bound edit Routine')
+        active=self.app.engine.project.routines.get((routine['program']+'/'+routine['name']).lower())
+        if active is None or active.kind!='RLL':raise CIPError(0x0F,'Compiled edit Routine type unsupported')
+        lease.edit_transfer.accept(envelope,target=target,prefix=prefix)
+        state=lease.edit_transfer.description()
+        self.endpoint.record('native_edit_fragment',container_format=envelope.container_format,
+            position=envelope.position,received_bytes=state['received_bytes'],total_bytes=state['total_bytes'],
+            fragments=state['fragments'],complete=state['complete'],container_sha256=state['container_sha256'])
+        return state
+
     def tasks(self):
         project=self.app.engine.project
         native=getattr(self.app,'native_tasks',None)
@@ -1014,14 +1047,26 @@ class Router:
                     with self.endpoint.lock:
                         lease=self.endpoint.programming_lease
                         try:
-                            lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
-                            lease.transport.accept(envelope)
-                        except (programming_lease.LeaseError,resilient_transport.TransportError) as error:
+                            if lease.selector==1:
+                                # Check ownership before any error can discard
+                                # this owner's assembly for a different client.
+                                lease.require_edit_owner(native,self.app.generation,self.app.engine.project.sha256)
+                                try:edit_state=self.receive_edit_fragment(envelope,native,lease)
+                                except CIPError:
+                                    lease.edit_transfer.clear();raise
+                                if edit_state['complete']:
+                                    # Buffer completion is not Executable write
+                                    # acceptance; preserve it for inspection.
+                                    raise CIPError(0x0F,'Compiled edit installation unimplemented')
+                            else:
+                                lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                                lease.transport.accept(envelope)
+                                stage=lease.transport.description()
+                                self.endpoint.record('native_transport_fragment',container_format=envelope.container_format,
+                                    position=envelope.position,received_bytes=stage['received_bytes'],total_bytes=stage['total_bytes'],
+                                    fragments=stage['fragments'],complete=stage['complete'])
+                        except (programming_lease.LeaseError,resilient_transport.TransportError,edit_transfer.EditTransferError) as error:
                             raise CIPError(error.status,error.reason) from error
-                        stage=lease.transport.description()
-                        self.endpoint.record('native_transport_fragment',container_format=envelope.container_format,
-                            position=envelope.position,received_bytes=stage['received_bytes'],total_bytes=stage['total_bytes'],
-                            fragments=stage['fragments'],complete=stage['complete'])
                     encoded=signed_messages.encode_fragment_ack(envelope,native.key)
                 elif isinstance(envelope,signed_messages.BatchEnvelope):
                     count=len(envelope.children);available=limit-30-2*count
