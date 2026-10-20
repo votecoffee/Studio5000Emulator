@@ -169,6 +169,18 @@ class NativeSdkProbeTests(unittest.TestCase):
             proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['diagnostic_staging']=value
             with self.assertRaises(ValueError):validate_idle(proposed)
 
+    def test_object_graph_models_must_be_empty_and_reference_checks_are_not_transfer_authority(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();state['connectivity']['native_programming_lease']['resilient_transport']=ResilientTransport().description()
+        validate_idle(state)
+        for field,value in tuple((f,1) for f in ('symbols','tables','programs','routines','coordination_records','records_modeled','storage_bytes','open_coordination'))+(
+                ('symbols',False),('status','modeled'),('references_validated',True),('commit',True),('definitions_exposed',True),('active_catalog_replaced',True)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['object_staging'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(proposed)
+        for value in (None,{},'unknown'):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']['object_staging']=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+
     def test_staging_admission_requires_empty_counts_and_only_definition_value_capability(self):
         from logixlab.library_staging import LibraryStaging
         from logixlab.metadata_staging import MetadataStaging

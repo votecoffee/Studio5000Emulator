@@ -1,5 +1,9 @@
 # Temporary native Diagnostics Message models
 
+This describes the `.72` milestone. Version `.73` adds
+[temporary object graphs](object-staging.md) and publishes all model sets
+atomically. Full batch execution remains denied.
+
 Version `0.6.0-connectivity.72` models Diagnostics Message (`0x3B2`) Create
 records inside a [decoded device batch](device-payload-inspection.md). These
 definitions remain temporary descriptors. They do not install controller

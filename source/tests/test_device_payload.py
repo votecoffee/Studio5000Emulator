@@ -22,6 +22,7 @@ import test_programming_preparation as prep
 import test_run_inhibit as inhibits
 import test_template_staging as templates
 import test_diagnostic_staging as diagnostics
+import test_object_staging as objects
 from test_signed_messages import request
 
 
@@ -37,11 +38,11 @@ def container(compressed,*,version=b'\0',algorithm=dp.ZLIB_OID,content=dp.CONTEN
 
 
 def record(raw):return struct.pack('<I',len(raw))+raw
-GLOBAL=bytes.fromhex('0802206b2401')+b'PrivateDefinition'
-SCOPED=bytes.fromhex('080420682401206d2402')+b'PrivateRoutine'
+GLOBAL=bytes.fromhex('0802207e2401')+b'PrivateDefinition'
+SCOPED=bytes.fromhex('080420682401207f2402')+b'PrivateRoutine'
 EXPANDED=record(GLOBAL)+record(SCOPED)
 ENCODED=container(zlib.compress(EXPANDED))
-TEMPLATE_EXPANDED=b''.join(record(r.request) for r in templates.batch())+record(diagnostics.request().request)+record(SCOPED)
+TEMPLATE_EXPANDED=b''.join(record(r.request) for r in templates.batch()+objects.batch())+record(diagnostics.request().request)+record(SCOPED)
 TEMPLATE_ENCODED=container(zlib.compress(TEMPLATE_EXPANDED))
 INSPECT=bytes.fromhex('0603210012042400')
 
@@ -57,7 +58,7 @@ class PayloadCodecTests(unittest.TestCase):
         for null in (b'',tlv(5,b'')):
             batch=dp.decode(container(zlib.compress(EXPANDED),null=null),len(EXPANDED))
             self.assertEqual([r.request for r in batch],[GLOBAL,SCOPED])
-            self.assertEqual([(s.class_id,s.instance) for s in batch[1].scopes],[(0x68,1),(0x6D,2)])
+            self.assertEqual([(s.class_id,s.instance) for s in batch[1].scopes],[(0x68,1),(0x7F,2)])
             report=dp.summary(batch,len(EXPANDED));self.assertEqual((report['record_count'],report['scoped_records']),(2,1))
             self.assertFalse(report['execution_supported'] or report['signature_verified']);self.assertEqual(report['records_executed'],0)
             for secret in ('PrivateDefinition','PrivateRoutine',GLOBAL.hex()):self.assertNotIn(secret,json.dumps(report))
@@ -130,8 +131,10 @@ class InspectionModelTests(unittest.TestCase):
     def test_expiry_clears_both_completed_object_models(self):
         fill(self.stage,TEMPLATE_ENCODED,TEMPLATE_EXPANDED);self.stage.inspect_payload()
         self.assertEqual(self.stage.templates.description()['templates'],1);self.assertEqual(self.stage.diagnostics.description()['messages'],1)
+        self.assertEqual(self.stage.objects.description()['records_modeled'],7)
         self.now+=ASSEMBLY_SECONDS
         self.assertEqual(self.stage.description()['diagnostic_staging']['status'],'idle');self.assertEqual(self.stage.templates.templates,())
+        self.assertEqual(self.stage.objects.records,0)
 
     def test_invalid_inspection_caches_a_redacted_reason_until_the_assembly_clears(self):
         fill(self.stage,b'broken-container',b'unknown')
@@ -170,6 +173,18 @@ class InspectionModelTests(unittest.TestCase):
         self.assertNotIn('PrivateMessage',json.dumps(self.stage.description()))
         self.stage.clear_fragments();self.assertEqual(self.stage.description()['diagnostic_staging']['status'],'idle')
 
+    def test_late_object_reference_failure_discards_all_models_and_caches_reason(self):
+        expanded=TEMPLATE_EXPANDED+record(objects.symbol(3,4).request)
+        fill(self.stage,container(zlib.compress(expanded)),expanded)
+        with patch('logixlab.resilient_transport.ObjectStaging.from_batch',wraps=objects.os.ObjectStaging.from_batch) as builder:
+            for _ in range(2):
+                with self.assertRaises(TransportError) as error:self.stage.inspect_payload()
+                self.assertEqual(error.exception.reason,'symbol_table_reference_mismatch')
+            self.assertEqual(builder.call_count,1)
+        self.assertEqual(self.stage.templates.templates,());self.assertEqual(self.stage.diagnostics.messages,());self.assertEqual(self.stage.objects.records,0)
+        self.assertEqual(self.stage.description()['object_staging']['status'],'invalid')
+        self.stage.clear_fragments();self.assertEqual(self.stage.description()['object_staging']['status'],'idle')
+
 
 class InspectionSignedTests(unittest.TestCase):
     setUp=fragments.FragmentSignedTests.setUp
@@ -194,14 +209,16 @@ class InspectionSignedTests(unittest.TestCase):
     def test_native_inspection_records_structure_but_returns_execution_denial_and_preserves_model(self):
         self.stage();before=copy.deepcopy(self.app.state());identity=self.app.native_project_identity.manifest()
         self.assertEqual(self.send(INSPECT),bytes.fromhex('86000f00'))
-        state=self.description()['inspection'];self.assertEqual(state['status'],'decoded');self.assertEqual(state['record_count'],5)
+        state=self.description()['inspection'];self.assertEqual(state['status'],'decoded');self.assertEqual(state['record_count'],12)
         self.assertFalse(state['execution_supported']);self.assertEqual(state['records_executed'],0)
         self.assertEqual(self.endpoint.counts['native_transport_inspection'],1)
         self.assertEqual(self.endpoint.counts['native_template_staging'],1)
         staged=self.description()['template_staging'];self.assertEqual(staged['templates'],1);self.assertEqual(staged['records_modeled'],3)
-        self.assertEqual(staged['definition_bytes'],12);self.assertEqual(staged['unsupported_records'],2)
+        self.assertEqual(staged['definition_bytes'],12);self.assertEqual(staged['unsupported_records'],9)
         self.assertEqual(self.endpoint.counts['native_diagnostic_staging'],1)
         staged=self.description()['diagnostic_staging'];self.assertEqual(staged['messages'],1);self.assertEqual(staged['records_modeled'],1)
+        staged=self.description()['object_staging'];self.assertEqual(staged['records_modeled'],7);self.assertTrue(staged['references_validated'])
+        self.assertEqual(self.endpoint.counts['native_object_staging'],1)
         self.assertEqual(self.endpoint.state()['native_rejections'][0]['reason'],'device_batch_execution_unimplemented')
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)
@@ -216,6 +233,17 @@ class InspectionSignedTests(unittest.TestCase):
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)
         self.send(transport.DELETE);self.assertEqual(self.description()['diagnostic_staging']['status'],'idle')
+
+    def test_signed_broken_reference_rejects_and_clears_every_completed_model(self):
+        self.stage(TEMPLATE_EXPANDED+record(objects.symbol(3,4).request))
+        before=copy.deepcopy(self.app.state());identity=self.app.native_project_identity.manifest()
+        for _ in range(2):self.assertEqual(self.send(INSPECT),bytes.fromhex('86000300'))
+        self.assertEqual(self.description()['object_staging']['status'],'invalid')
+        self.assertFalse(self.description()['object_staging']['references_validated'])
+        self.assertEqual(self.description()['template_staging']['templates'],0);self.assertEqual(self.description()['diagnostic_staging']['messages'],0)
+        for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
+        self.assertEqual(self.app.native_project_identity.manifest(),identity)
+        self.send(transport.DELETE);self.assertEqual(self.description()['object_staging']['status'],'idle')
 
     def test_inspection_requires_own_prepared_complete_source_bound_exact_object_path(self):
         self.prepare();self.sequence=4;self.assertEqual(self.send(INSPECT)[2],15)
@@ -251,6 +279,7 @@ class InspectionSignedTests(unittest.TestCase):
             self.assertEqual(state['status'],'idle');self.assertEqual(state['record_count'],0);self.assertEqual(state['operations'],[])
             self.assertEqual(self.endpoint.programming_lease.transport.description()['template_staging']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['diagnostic_staging']['status'],'idle')
+            self.assertEqual(self.endpoint.programming_lease.transport.description()['object_staging']['status'],'idle')
             if action in ('reset','reload','disconnect'):
                 self.client.close();self.client=leases.Client(self.endpoint.port);self.client.register()
 

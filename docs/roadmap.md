@@ -6,12 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.72` adds [temporary Diagnostics Message models](diagnostic-staging.md).
-Together with the 242 Templates, 136 Diagnostics Messages bring temporary
-modeling to 863 of 904 batch records. Execution remains denied. Next: the
-remaining 41 Symbol, Data Table, Program, Routine and coordination records,
-reference validation, compiled definitions, further transfer stages and atomic
-model commit.
+Current milestone: `.73` adds [temporary object graphs and reference checks](object-staging.md).
+The remaining Symbol, Table, Program, Routine and coordination models cover
+all 904 records in the tested batch, with no active execution. Next: compiled
+definitions, the full device-operation contract, the further empty transport request
+(`0x4D` on `0x412`), remaining transfer stages and atomic active-model commit.
 
 Version `.69` adds [bounded temporary device-transfer fragments](transport-fragments.md).
 The SDK stages a complete device payload and advances to service `0x06`,

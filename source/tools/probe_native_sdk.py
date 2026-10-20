@@ -120,6 +120,13 @@ def validate_staging(lease):
                 raise ValueError('Probe requires empty temporary diagnostics and disabled installation')
             for field in ('messages','text_bytes','records_modeled'):
                 if type(diagnostics.get(field)) is not int or diagnostics[field]!=0:raise ValueError('Probe requires empty temporary diagnostics')
+        if 'object_staging' in stage:
+            objects=stage['object_staging']
+            if (not isinstance(objects,dict) or objects.get('status')!='idle'
+                    or any(objects.get(field) is not False for field in ('definitions_exposed','active_catalog_replaced','commit','references_validated'))):
+                raise ValueError('Probe requires empty temporary objects and disabled installation')
+            for field in ('symbols','tables','programs','routines','coordination_records','records_modeled','storage_bytes','open_coordination'):
+                if type(objects.get(field)) is not int or objects[field]!=0:raise ValueError('Probe requires empty temporary objects')
         if 'inspection' in stage:
             inspection=stage['inspection']
             if (not isinstance(inspection,dict) or inspection.get('status')!='idle' or inspection.get('operations')!=[]

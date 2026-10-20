@@ -266,6 +266,10 @@ class Router:
                         modeled=staged['records_modeled']+diagnostics['records_modeled']
                         self.endpoint.record('native_diagnostic_staging',messages=diagnostics['messages'],text_bytes=diagnostics['text_bytes'],
                             records_modeled=diagnostics['records_modeled'],total_records_modeled=modeled,unsupported_records=inspection['record_count']-modeled)
+                        objects=lease.transport.objects.description();modeled+=objects['records_modeled']
+                        self.endpoint.record('native_object_staging',symbols=objects['symbols'],tables=objects['tables'],programs=objects['programs'],
+                            routines=objects['routines'],coordination_records=objects['coordination_records'],records_modeled=objects['records_modeled'],
+                            total_records_modeled=modeled,unsupported_records=inspection['record_count']-modeled,references_validated=objects['references_validated'])
                         return reject(0x0F,'device_batch_execution_unimplemented')
                     if inner[0]==0x4B:lease.transport.open(payload)
                     else:exact(payload,0);lease.transport.clear()

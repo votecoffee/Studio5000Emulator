@@ -78,6 +78,8 @@ or enable batch execution.
 Version `.72` adds [temporary Diagnostics Message models](diagnostic-staging.md).
 They publish atomically with the temporary Templates and remain separate from
 active controller diagnostics.
+Version `.73` adds [object graphs](object-staging.md), reciprocal references and
+scoped coordination checks, published atomically with the other models.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
@@ -103,6 +105,8 @@ Any advertised Template stage must be empty, with installation and definition
 exposure disabled.
 Advertised diagnostic stages must also be idle and empty, with installation and
 definition exposure disabled.
+An advertised object stage must also be idle and empty, with reference-validation
+state reset, closed temporary coordination and installation disabled.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
@@ -114,6 +118,12 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+
+The `.73` suite runs 976 tests, with two Windows skips and one Linux skip.
+The normal-source SDK attempt models all 904 batch records, validates reciprocal
+links and preserves scoped Symbols/Routines, then denies execution. Cleanup
+returns Offline with unchanged source/model and empty temporary stages. See
+[object-graph validation](object-staging.md#validation-and-remaining-work).
 
 The `.72` suite runs 960 tests, with two Windows skips and one Linux skip.
 The normal-source SDK download attempt models 136 Diagnostics Messages and
