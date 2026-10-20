@@ -24,12 +24,28 @@ var logger = new Capture();
 LogixProject? project = null;
 bool passed = true;
 using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(5) };
+http.DefaultRequestHeaders.ConnectionClose = true;
+var backendReadRecoveries = new List<object>();
+async Task<T> BackendRead<T>(string operation, Func<Task<T>> read)
+{
+    for (int attempt = 1; ; attempt++)
+    {
+        try { return await read(); }
+        catch (HttpRequestException error) when (attempt < 3)
+        {
+            // Only pure backend reads use this helper. Never repeat a mode or SDK command.
+            backendReadRecoveries.Add(new { operation, attempt, time = DateTimeOffset.UtcNow,
+                error = error.Message, innerError = error.GetBaseException().Message });
+            await Task.Delay(100);
+        }
+    }
+}
 async Task<JsonElement> Backend(string? mode = null)
 {
     if (!Uri.TryCreate(options.BackendUrl, UriKind.Absolute, out var url) || url.Scheme != "http" ||
         !url.IsLoopback || !string.IsNullOrEmpty(url.UserInfo) || string.IsNullOrEmpty(options.InstanceId))
         throw new InvalidOperationException("Native diagnostic requires a pinned local emulator URL");
-    var script = await http.GetStringAsync(new Uri(url, "/session.js"));
+    var script = await BackendRead("session token", () => http.GetStringAsync(new Uri(url, "/session.js")));
     var token = JsonSerializer.Deserialize<string>(Regex.Match(script, "LOGIX_TOKEN = (\".*?\")").Groups[1].Value)!;
     async Task<JsonElement> Call(string action, object body) {
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, "/api/" + action));
@@ -43,7 +59,7 @@ async Task<JsonElement> Backend(string? mode = null)
             throw new InvalidOperationException("Emulator instance/source changed");
         return state;
     }
-    var current = await Call("observe", new {});
+    var current = await BackendRead("observe", () => Call("observe", new {}));
     return mode is null ? current : await Call("controller-mode", new { mode });
 }
 async Task CaptureEditTrace(string fileName)
@@ -233,6 +249,7 @@ passed &= unchanged;
 await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, steps, events = logger.Events.ToArray(),
+    backendReadRecoveries,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;
