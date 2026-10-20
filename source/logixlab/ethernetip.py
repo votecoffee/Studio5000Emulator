@@ -380,7 +380,7 @@ class Router:
                     lease.metadata.stage_values(payload,path.instance)
                     self.endpoint.counts['native_metadata_value_packets']+=1
                 return reply(inner[0])
-            if inner[0] in (0x4B,9,6) and path.class_id==0x412:
+            if inner[0] in (0x4B,9,6,0x4D) and path.class_id==0x412:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
                     return reject(4,'invalid_request')
@@ -391,6 +391,15 @@ class Router:
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if inner[0]==0x4D:
+                        exact(payload,0)
+                        native_types=getattr(self.app,'native_types',None)
+                        if native_types and (native_types.source_acd_sha256!=identity.source_acd_sha256
+                                or native_types.source_l5x_sha256!=self.app.engine.project.sha256):
+                            return reject(0x0C,'native_type_source_mismatch')
+                        image=lease.transport.prepared_result_state(native_types)
+                        self.endpoint.record('native_download_result_query',**image)
+                        return reject(0x0F,'device_image_result_encoding_unavailable')
                     if inner[0]==6:
                         exact(payload,0)
                         native_types=getattr(self.app,'native_types',None)

@@ -123,7 +123,7 @@ def resolve(source,project,symbols,routines,types,program):
     This returns neutral text for inspection. It does not validate execution,
     compare the ELF with source, change a project or commit controller edits.
     """
-    from .model import parse_rung,Branch,ModelError
+    from .model import parse_rung,Branch,ModelError,INT_BITS
     catalogs=(symbols,routines,types)
     if any(c is None or c.source_l5x_sha256!=project.sha256 for c in catalogs):
         raise SourceError('ioi_source_bindings_unavailable')
@@ -133,7 +133,7 @@ def resolve(source,project,symbols,routines,types,program):
     by_id={(s.program_instance,s.instance):s for s in symbols.by_key.values()}
     token=re.compile(r'@[0-9]{1,10}(?: [0-9]{1,10}){5}@')
     segment=token.pattern+r'(?:\[[0-9]{1,10}(?:,[0-9]{1,10}){0,2}\])?'
-    reference=segment+r'(?:\.'+segment+r')*'
+    reference=segment+r'(?:\.'+segment+r')*(?:\.[0-9]{1,10})?'
 
     def indexed(name,value,suffix):
         if not suffix:return name,value
@@ -169,9 +169,9 @@ def resolve(source,project,symbols,routines,types,program):
         suffixes=[part.group()[len(match.group()):] for part,match in zip(parts,found)]
         words=[tuple(map(int,t.group()[1:-1].split())) for t in found]
         if any(n>0xFFFFFFFF for word in words for n in word):raise SourceError('ioi_integer_limit')
-        first=words[0]
+        first=words[0];bit=re.search(r'\.([0-9]{1,10})\Z',value)
         if routine:
-            if len(words)!=1 or suffixes[0] or first[:3]!=(0x68,program_id,0x6D) or first[4:]!=(0,0):
+            if len(words)!=1 or suffixes[0] or bit or first[:3]!=(0x68,program_id,0x6D) or first[4:]!=(0,0):
                 raise SourceError('ioi_routine_scope_unsupported')
             row=routines.by_instance.get((program_id,first[3]))
             if row is None or (row.program+'/'+row.name).casefold() not in project.routines:
@@ -186,6 +186,11 @@ def resolve(source,project,symbols,routines,types,program):
         if tag.problem or tag.tag_class!='Standard':raise SourceError('ioi_symbol_source_unsupported')
         name=(symbol.name if not symbol.scope or symbol.scope.casefold()==program.casefold()
               else 'Program:'+symbol.scope+'.'+symbol.name)
+        # Neutral ladder names resolve Program locals before controller tags.
+        # A controller IOI must not silently become a same-named local during
+        # translation; this text profile has no explicit controller qualifier.
+        if not symbol.scope and ('Program:'+program+'.'+symbol.name).casefold() in project.tags:
+            raise SourceError('ioi_controller_symbol_shadowed')
         name,current=indexed(name,tag.value,suffixes[0]);dtype=tag.dtype
         for word,suffix in zip(words[1:],suffixes[1:]):
             if isinstance(current,list) or word[0]!=0x6C or word[2]!=0x84FE or word[4:]!=(0,0):
@@ -201,6 +206,10 @@ def resolve(source,project,symbols,routines,types,program):
             keys=[key for key in current if key.casefold()==member.name.casefold()] if isinstance(current,dict) else []
             if len(keys)!=1:raise SourceError('ioi_member_source_unavailable')
             name,current=indexed(name+'.'+member.name,current[keys[0]],suffix);dtype=member.dtype
+        if bit:
+            if dtype.upper() not in INT_BITS or type(current) is not int or int(bit[1])>=INT_BITS[dtype.upper()]:
+                raise SourceError('ioi_integer_bit_unavailable')
+            name+='.'+str(int(bit[1]))
         return name
 
     def emit(nodes):

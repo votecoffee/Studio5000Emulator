@@ -175,6 +175,27 @@ class TransportDownloadImageTests(unittest.TestCase):
         image.record_sha256=original_digest
         self.assertTrue(self.stage.start_prepared_image()['preparation_started'])
 
+    def test_result_query_requires_started_current_bound_image_and_does_not_prepare_or_commit(self):
+        self.stage_image();before=self.stage.description()
+        with self.assertRaises(TransportError) as error:self.stage.prepared_result_state(self.native)
+        self.assertEqual(error.exception.reason,'device_image_preparation_required')
+        self.assertEqual(self.stage.description(),before)
+        self.stage.start_prepared_image();before=self.stage.description()
+        for native in (None,catalog(types=source_types()[:1])):
+            with self.assertRaises(TransportError) as error:self.stage.prepared_result_state(native)
+            self.assertEqual(error.exception.reason,'device_image_result_catalog_changed')
+        report=self.stage.prepared_result_state(self.native)
+        self.assertEqual(report['records_prepared'],11);self.assertFalse(report['commit'])
+        self.assertEqual(self.stage.description(),before)
+        digest=self.stage.download_image.record_sha256
+        self.stage.download_image.record_sha256='f'*64
+        with self.assertRaises(TransportError):self.stage.prepared_result_state(self.native)
+        self.stage.download_image.record_sha256=digest
+        self.now+=ASSEMBLY_SECONDS
+        with self.assertRaises(TransportError) as error:self.stage.prepared_result_state(self.native)
+        self.assertEqual(error.exception.reason,'device_image_preparation_required')
+        self.assertFalse(self.stage.description()['download_image']['preparation_started'])
+
     def test_started_image_is_discarded_by_fragment_reset_transport_delete_or_expiry(self):
         for action in ('clear','delete','expiry'):
             self.stage_image();self.stage.start_prepared_image()

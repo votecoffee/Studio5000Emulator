@@ -95,6 +95,11 @@ Version `.94` adds source-bound CMP expressions and static array operands.
 Native imports reconnect and execute comparisons, indexed reads and indexed
 destinations; saved L5X copies reproduce the results. Unsupported decoded logic
 is rejected by a signed edit operation while preserving native Offline cleanup.
+Version `.95` adds checked integer-bit operands to native imports, including
+array elements. Reconnects, scan-boundary external writes and saved L5X reloads
+pass. Controller references that would bind to a shadowing Program tag are
+rejected. Download diagnostics now distinguish a prepared image's unsupported
+result encoding from a general write-policy rejection.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

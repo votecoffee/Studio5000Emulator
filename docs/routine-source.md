@@ -40,6 +40,12 @@ forms, unsupported array paths and stale/mismatched source catalogs fail
 translation. Old type manifests without IDs remain readable and cannot resolve
 these member paths.
 
+Version `.95` rejects a controller Symbol IOI when a same-named tag in the
+current Program would shadow it in neutral ladder text. This profile has no
+explicit controller-scope qualifier. Program-local references still resolve
+to their declared local tags; comparisons are case-insensitive. Translation
+must preserve the selected object before execution-plan validation.
+
 Translation produces neutral ladder text for inspection. A detached project
 copy passes through the existing parser, execution planner and preview prescan.
 It validates supported instructions and operands without running scans,
@@ -99,6 +105,23 @@ destination; reconnects pass across 315 verified signed requests. Scans and
 queued external array writes exercise both true and false CMP outcomes, and
 an edited L5X reload reproduces them. Broader native array/type coverage remains
 unverified. See [comparison and array validation](supported-routine-edits.md#comparisons-and-array-operands).
+
+## Integer-bit operands
+
+Version `.95` accepts a final decimal `.bit` suffix on a resolved integer tag,
+array element or supported integer member. The declared integer type determines
+the bit limit. The selected source value must be a scalar integer; BOOLs,
+structures, whole arrays, negative/out-of-range bits, indirect selections,
+repeated bit suffixes and bit-suffixed Routine targets are rejected. These
+references also work in typed CMP conditions. CPT still requires numeric
+operands under the existing planner.
+
+The native test uses `XIC(Samples[2].0)MOV(123,SpeedCommand);` followed by
+`OTL(Samples[1].31);`. Both imports and reconnects pass; scans verify low-bit
+selection and sign-bit writes while preserving other bits. Queued external
+inputs and an edited L5X reload reproduce the results. Native evidence covers
+DINT array elements; other integer widths and members have software tests only.
+See [bit operand validation](supported-routine-edits.md#integer-bit-operands).
 
 ## Scope
 

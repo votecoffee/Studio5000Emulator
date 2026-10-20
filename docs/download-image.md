@@ -113,6 +113,16 @@ temporary objects. A separate private experiment returned an empty successful
 `0x4D` response and still failed at the same stage, without advancing to another
 transfer operation. That hypothetical result response is absent from the app.
 
+Version `.95` recognizes the exact empty result query as a separate diagnostic
+boundary. It requires the prepared programming lease, original source binding,
+an already started image, the same current type catalog and an intact result
+ledger. Expired, unstarted or rebound images fail those checks. A valid query
+records aggregate preparation state, then returns an explicit
+`device_image_result_encoding_unavailable` rejection. It does not prepare a new
+image, return guessed native results or commit the temporary image. This makes
+the remaining download blocker identifiable in native rejection reports while
+preserving the existing negative wire response.
+
 The unit tests cover independent temporary allocation, typed attributes,
 source checks, unknown operations, allocation/read bounds, unresolved symbols,
 atomic failure, cached inspection and cleanup. Owned native traces can be

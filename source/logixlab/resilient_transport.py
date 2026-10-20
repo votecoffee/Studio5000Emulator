@@ -124,6 +124,20 @@ class ResilientTransport:
         self._image_start_binding=binding;self.image_preparation_started=True
         return {**image.description(),'preparation_started':True}
 
+    def prepared_result_state(self,native_types):
+        """Recheck an already started image for result-query diagnostics only.
+
+        This does not encode native results or start an unstarted image. The
+        current catalog, result ledger and source/digest binding must still
+        match the preparation that the owning client started.
+        """
+        self.expire()
+        if not self.image_preparation_started:
+            raise TransportError(0x0C,'device_image_preparation_required')
+        if native_types is None or native_types is not self._type_catalog:
+            raise TransportError(0x0C,'device_image_result_catalog_changed')
+        return self.start_prepared_image()
+
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear_fragments()
 

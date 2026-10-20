@@ -185,3 +185,26 @@ rejected without altering active logic or values. The
 endpoint cleanup. All private candidates are separate from the original main
 demo. These checks do not establish native tag-address discovery, firmware
 execution equivalence, Studio GUI acceptance or Test/Untest/Assemble support.
+
+### Integer-bit operands
+
+Version `.95` extends the translator with checked
+[integer-bit references](routine-source.md#integer-bit-operands). A native case
+appends `XIC(Samples[2].0)MOV(123,SpeedCommand);`, then
+`OTL(Samples[1].31);`, to the separate four-element DINT demo. Both imports and
+Offline/Online reconnects succeed across 315 verified requests. Activation
+advances the logic revision to 2 without scanning or changing tag values.
+
+The first scan leaves the command at 0 because element 2 is 30, and latches
+element 1's sign bit, changing 20 to -2147483628. Queued external inputs of
+7/31 for elements 1/2 produce -2147483641 and command 123. Inputs of
+2147483647/32 produce -1 and command 0. Each input batch remains invisible
+until its acknowledged scan boundary. A separate edited L5X retains original
+initial values and reloads to reproduce all three cases.
+
+Before adding bit translation, the same first import is rejected with the
+active model unchanged; native Offline and endpoint cleanup succeed. The
+successful case also confirms Offline/cleanup without a fatal SDK fault.
+Original source files and the main demo are preserved. Software tests
+additionally reject controller IOIs that would become shadowing Program-local
+names. Native tag monitoring and the full edit lifecycle remain unfinished.

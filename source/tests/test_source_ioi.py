@@ -47,6 +47,42 @@ class SourceIoiTests(unittest.TestCase):
                               programs=[{'name':'MainProgram','instance':300}])
         with self.assertRaises(SourceError):self.translate('XIC(@104 300 107 5 0 0@);',symbols=symbols)
 
+    def test_controller_ioi_cannot_rebind_to_shadowing_program_tag(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=ET.parse(self.project.path).getroot()
+            program=root.find('./Controller/Programs/Program')
+            tags=program.find('Tags')
+            if tags is None:tags=ET.SubElement(program,'Tags')
+            for name in ('SpeedSetpoint','StartDelay'):
+                tag=copy.deepcopy(root.find('./Controller/Tags/Tag[@Name="'+name+'"]'))
+                tag.set('Name',name.swapcase());tags.append(tag)
+            path=Path(folder)/'shadow.L5X';ET.ElementTree(root).write(path)
+            self.project=Project(path);sha=self.project.sha256
+            self.symbols=NativeSymbols('a'*64,sha,[Symbol('',0,'SpeedSetpoint',14),
+                Symbol('',0,'StartDelay',12),Symbol('MainProgram',300,'sPEEDsETPOINT',14)],
+                programs=[{'name':'MainProgram','instance':300}])
+            self.routines=NativeRoutines('a'*64,sha,[dict(program='MainProgram',name=n,program_instance=300,instance=700+i)
+                for i,n in enumerate(('MainRoutine','Reporting'))])
+            self.types=NativeTypes('a'*64,sha,list(self.types.types.values()),{'timer':3971})
+            before=copy.deepcopy((self.project.initial,self.project.routines))
+            for text in ('MOV(1,@107 14 0 0 0 0@);',
+                    'CPT(@104 300 107 14 0 0@,@107 14 0 0 0 0@+1);',
+                    'CMP(@107 14 0 0 0 0@>0);',
+                    'MOV(@107 12 0 0 0 0@.@108 3971 34046 2 0 0@,@104 300 107 14 0 0@);'):
+                with self.subTest(text=text),self.assertRaisesRegex(SourceError,'ioi_controller_symbol_shadowed'):
+                    self.translate(text)
+            text='CPT(@104 300 107 14 0 0@,@104 300 107 14 0 0@+7);'
+            neutral=self.translate(text)
+            self.assertEqual(neutral,('CPT(sPEEDsETPOINT,sPEEDsETPOINT+7);',))
+            validate_plan(self.source(text),neutral,self.project,'MainProgram')
+            from logixlab.routine_source import candidate_project
+            from logixlab.runtime import Engine
+            candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+            engine=Engine(candidate,defer_prescan=True);engine.step()
+            self.assertEqual(engine.memory.read('SpeedSetpoint'),50)
+            self.assertEqual(engine.memory.read('Program:MainProgram.SpeedSetpoint'),57)
+            self.assertEqual((self.project.initial,self.project.routines),before)
+
     def test_stale_or_unbound_catalogs_and_type_handles_cannot_translate_members(self):
         for symbols in (None,NativeSymbols('b'*64,self.project.sha256,())):
             with self.assertRaises(SourceError):self.translate('NOP();',symbols=symbols)
@@ -106,6 +142,30 @@ class SourceIoiTests(unittest.TestCase):
                 'CPT(@107 14 0 0 0 0@,@107 14 0 0 0 0@>55);'):
             with self.subTest(instruction=instruction),self.assertRaises(SourceError):self.translate(instruction)
 
+    def test_integer_bits_resolve_with_source_type_width_and_boolean_execution(self):
+        text='XIC(@107 14 0 0 0 0@.1)OTE(@107 5 0 0 0 0@)OTL(@107 14 0 0 0 0@.31);'
+        neutral=self.translate(text)
+        self.assertEqual(neutral,('XIC(SpeedSetpoint.1)OTE(RunLatch)OTL(SpeedSetpoint.31);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        from logixlab.routine_source import candidate_project
+        from logixlab.runtime import Engine
+        candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+        engine=Engine(candidate,defer_prescan=True);engine.step()
+        self.assertTrue(engine.memory.read('RunLatch'))
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),-2147483598)
+        text='CMP(@107 14 0 0 0 0@.1&&@107 12 0 0 0 0@.@108 3971 34046 2 0 0@.3)OTE(@107 5 0 0 0 0@);'
+        neutral=self.translate(text)
+        self.assertEqual(neutral,('CMP(SpeedSetpoint.1&&StartDelay.PRE.3)OTE(RunLatch);',))
+        validate_plan(self.source(text),neutral,self.project,'MainProgram')
+        for operand in ('@107 14 0 0 0 0@.32','@107 14 0 0 0 0@.-1',
+                '@107 14 0 0 0 0@.0.1','@107 14 0 0 0 0@.[0]',
+                '@107 5 0 0 0 0@.0','@107 12 0 0 0 0@.0',
+                '@107 12 0 0 0 0@.@108 3971 34046 6 0 0@.0'):
+            with self.subTest(operand=operand),self.assertRaises(SourceError):self.translate('XIC('+operand+');')
+            with self.subTest(expression=operand),self.assertRaises(SourceError):self.translate('CMP('+operand+');')
+        target=self.routines.lookup('MainProgram','Reporting').instance
+        with self.assertRaises(SourceError):self.translate('JSR(@104 300 109 '+str(target)+' 0 0@.0,0);')
+
     def test_static_array_indices_use_source_bounds_in_direct_and_expression_operands(self):
         with tempfile.TemporaryDirectory() as folder:
             root=ET.parse(self.project.path).getroot();tags=root.find('./Controller/Tags')
@@ -130,6 +190,13 @@ class SourceIoiTests(unittest.TestCase):
             candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
             engine=Engine(candidate,defer_prescan=True);engine.step()
             self.assertEqual(engine.memory.read('SpeedSetpoint'),30);self.assertEqual(engine.memory.read('Samples[1]'),14)
+            text='XIC(@107 17 0 0 0 0@[2].1)OTL(@107 17 0 0 0 0@[1].31);'
+            neutral=self.translate(text)
+            self.assertEqual(neutral,('XIC(Samples[2].1)OTL(Samples[1].31);',))
+            validate_plan(self.source(text),neutral,self.project,'MainProgram')
+            candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+            engine=Engine(candidate,defer_prescan=True);engine.step()
+            self.assertEqual(engine.memory.read('Samples[1]'),-2147483628)
             for operand in ('@107 17 0 0 0 0@[4]','@107 17 0 0 0 0@[-1]','@107 17 0 0 0 0@[SpeedSetpoint]',
                     '@107 17 0 0 0 0@[1+1]','@107 17 0 0 0 0@[1][0]','@107 17 0 0 0 0@[1,0]',
                     '@107 18 0 0 0 0@[1]','@107 18 0 0 0 0@[2,0]','@107 14 0 0 0 0@[0]'):
@@ -137,6 +204,30 @@ class SourceIoiTests(unittest.TestCase):
                     self.translate('MOV('+operand+',@107 14 0 0 0 0@);')
                 with self.subTest(expression=operand),self.assertRaises(SourceError):
                     self.translate('CPT(@107 14 0 0 0 0@,'+operand+'+1);')
+
+    def test_integer_bit_limits_follow_each_declared_width(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=ET.parse(self.project.path).getroot();tags=root.find('./Controller/Tags')
+            widths=(('SINT',8),('INT',16),('DINT',32),('LINT',64))
+            for dtype,_ in widths:
+                tag=ET.SubElement(tags,'Tag',Name='Bits_'+dtype,TagType='Base',DataType=dtype)
+                ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value='3')
+            path=Path(folder)/'bits.L5X';ET.ElementTree(root).write(path)
+            self.project=Project(path);sha=self.project.sha256
+            self.symbols=NativeSymbols('a'*64,sha,[Symbol('',0,'Bits_'+dtype,20+i) for i,(dtype,_) in enumerate(widths)],
+                programs=[{'name':'MainProgram','instance':300}])
+            self.routines=NativeRoutines('a'*64,sha,[dict(program='MainProgram',name=n,program_instance=300,instance=700+i)
+                for i,n in enumerate(('MainRoutine','Reporting'))]);self.types=NativeTypes('a'*64,sha,[])
+            from logixlab.routine_source import candidate_project
+            from logixlab.runtime import Engine
+            for i,(dtype,width) in enumerate(widths):
+                operand='@107 '+str(20+i)+' 0 0 0 0@.'
+                text='OTL('+operand+str(width-1)+');';neutral=self.translate(text)
+                validate_plan(self.source(text),neutral,self.project,'MainProgram')
+                candidate,_=candidate_project(self.source(text),neutral,self.project,'MainProgram')
+                engine=Engine(candidate,defer_prescan=True);engine.step()
+                with self.subTest(dtype=dtype):self.assertEqual(engine.memory.read('Bits_'+dtype),3-(1<<(width-1)))
+                with self.subTest(dtype=dtype),self.assertRaises(SourceError):self.translate('OTL('+operand+str(width)+');')
 
 
 if __name__=='__main__':unittest.main()

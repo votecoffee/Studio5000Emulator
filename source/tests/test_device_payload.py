@@ -301,7 +301,7 @@ class InspectionSignedTests(unittest.TestCase):
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)
 
-    def test_prepared_download_allocates_real_readback_and_rejects_unknown_result_service(self):
+    def test_prepared_download_allocates_real_readback_and_identifies_missing_result_encoding(self):
         from test_download_image import batch
         from test_native_types import catalog,source_types
         self.stage(b''.join(record(row.request) for row in batch()))
@@ -315,11 +315,18 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
         self.assertIs(image,self.endpoint.programming_lease.transport.download_image)
         self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.endpoint.counts['native_download_result_query'],1)
+        self.assertTrue(any(r['reason']=='device_image_result_encoding_unavailable'
+                            for r in self.endpoint.state()['native_rejections']))
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400')+b'\0')[2],0x15)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042401'))[2],5)
         state=self.description()['download_image']
         self.assertTrue(state['preparation_started']);self.assertEqual(state['records_prepared'],11)
         self.assertFalse(state['commit'] or state['native_execution_supported'])
         self.send(transport.DELETE)
         self.assertFalse(self.description()['download_image']['preparation_started'])
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
+        self.assertEqual(self.endpoint.counts['native_download_result_query'],1)
         self.assertEqual(self.description()['download_image']['tables_allocated'],0)
         for field in ('tags','routines','tasks','scan','ms','controller'):
             self.assertEqual(self.app.state()[field],before[field])
