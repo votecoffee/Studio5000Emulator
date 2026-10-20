@@ -46,6 +46,13 @@ transport deletion and lease cleanup discard it together with the decoded
 objects. Successful inspection is cached for the same native source catalog;
 changing the catalog cannot reuse an existing prepared image.
 
+`ResilientTransport.start_prepared_image()` records the simulator's temporary
+preparation transition only after complete inspection, source-bound allocation
+and full record coverage. It pins both source hashes, the source catalog and
+the ordered record digest. Repeating Start on that exact image is idempotent;
+changing its source or record digest cannot reuse the transition. Cleanup also
+clears `preparation_started`.
+
 Status exposes counts, limits, a record digest and readiness. It omits source
 hashes, identifiers, definition bytes, names and cell contents.
 
@@ -54,9 +61,19 @@ hashes, identifiers, definition bytes, names and cell contents.
 Preparing and reading this image establishes simulator state only. It does not
 establish native Resilient Transport service semantics, compiled execution,
 transfer of initial values, successful Studio download or an active-project
-commit. A simulator-specific preparation response must be backed by this image
-and describe that boundary explicitly. The later empty `0x4D` request on class
-`0x412` still requires its own verified contract.
+commit. The anonymous research endpoint now acknowledges service `0x06` on class
+`0x412` only after this temporary preparation transition succeeds. Incomplete
+coverage or a missing source binding remains an error. The later empty `0x4D`
+request still requires its own verified result contract and is rejected.
+
+In the `.78` native SDK test, preparation retained all 904 records, 242 Templates,
+136 diagnostics, one Program and two Routine identifiers. Sixteen temporary
+tables allocated 172 bytes, with 15 linked Symbols and five unresolved storage
+references. Start succeeded and the SDK advanced to `0x4D`; the complete download
+still failed. Source and active model were preserved, and cleanup cleared the
+temporary objects. A separate private experiment returned an empty successful
+`0x4D` response and still failed at the same stage, without advancing to another
+transfer operation. That hypothetical result response is absent from the app.
 
 The unit tests cover independent temporary allocation, typed attributes,
 source checks, unknown operations, allocation/read bounds, unresolved symbols,

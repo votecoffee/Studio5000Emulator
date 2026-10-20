@@ -6,6 +6,17 @@ native import path while LogixLab continues to advertise disabled online-edit
 authority. Active controller edits, finalizing and assembling edits remain
 unsupported.
 
+The observed controller-scoped semaphore acquire (`0x4B`, controller `0x8E/1`,
+semaphore `0x74/1`) has a one-byte request selector. Selector `0` reserves the
+existing programming coordination lease. Selector `1`, observed during the
+native online import, reserves a separate edit purpose on that same exclusive
+lease. The reservation retains its bound native owner and source generation.
+It stages zero changes and grants no accepted, tested, assembled or committed
+edit state. Changing purpose requires release; a second native context cannot
+share either reservation. Download preparation and Run Mode Inhibit require
+selector `0`. Release, disconnect, expiry and source replacement clear the edit
+reservation.
+
 Run against an idle, source-bound emulator in Program mode, with protocol and
 Device I/O writes disabled. Use the endpoint's actual local webpage URL and
 Linx path. The documentation address below is an example:
@@ -37,9 +48,32 @@ services.
 
 Private reports include the generated rung hash, SDK step start/end timestamps,
 newly rejected structural requests and import-interval protocol evidence. The
+helper captures emulator traces immediately before and after the import, with
+source and instance checks on both sides of each checkpoint. The report uses
+the exact last retained event to identify newly appended frames. It preserves
+trace order independently of the host and guest wall clocks. Missing checkpoints
+or a lost marker are reported explicitly.
+
+The
 `first_failed_request` field identifies the first complete nonzero CIP response
 observed during the import, when available. It is diagnostic evidence rather
 than a claim that every returned CIP error causes the SDK failure. An empty
 interval is reported explicitly. Parsing these saved frames checks their
 structure and correlation; it does not authenticate their MACs or establish
 native runtime equivalence.
+
+Version `.78` native testing advanced past the selector-1 reservation: acquire
+and later release both succeeded, with the source and active model preserved.
+The next failed read requested attribute 19 of the source-correlated Program
+object (`0x68`); that attribute was unavailable. Later Controller reads also
+returned unsupported fields. The SDK then reported `LgxSrv_E_FATAL_ERROR`,
+despite an import log containing zero warnings and zero errors. These reads do
+not establish the fatal error's cause. No active edit-write or commit was
+observed, and the remaining native edit boundary is unresolved. Testing stopped
+after this fatal result. The SDK service subsequently stopped, and the probe's
+bounded cleanup did not complete: its report remains `incomplete`, with native
+cleanup unconfirmed. Explicitly stopping the isolated emulator endpoint cleared
+the lingering connection before its original address and the normal endpoint
+were restored. Both application instances and source/model state were retained.
+No automatic SDK-service restart or repeated edit attempt followed. Further SDK
+testing requires a healthy SDK service.

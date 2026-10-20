@@ -15,11 +15,28 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_edit_reservation_must_be_idle_empty_unbound_and_without_active_edit_authority(self):
+        from logixlab.programming_lease import ProgrammingLease
+        state=self.state();lease=ProgrammingLease().description(1,'a'*64);lease['available']=True
+        state['connectivity']['native_programming_lease']=lease
+        validate_idle(state)
+        for field,value in (('status','reserved'),('reserved',True),('source_bound',True),('changes_staged',1),
+                ('changes_staged',False),('active_changes',True),('accepted',True),('testing',True),('assembled',True),('commit',True)):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        for selector in (0,1,False):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['request_selector']=selector
+            with self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,{},[]):
+            other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['edit_preparation']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_download_image_requires_empty_unbound_idle_storage_with_all_authority_disabled(self):
         from logixlab.resilient_transport import ResilientTransport
         state=self.state();state['connectivity']['native_programming_lease']['resilient_transport']=ResilientTransport().description()
         validate_idle(state)
         for field,value in (('status','prepared'),('source_bound',True),('temporary_readback',True),
+                ('preparation_started',True),
                 ('record_sha256','a'*64),('reason','blocked'),('initial_values_applied',True),
                 ('compiled_routines_installed',True),('active_catalog_replaced',True),('native_execution_supported',True),
                 ('commit',True),('values_exposed',True),('records_prepared',False),('tables_allocated',1),
@@ -207,8 +224,10 @@ class NativeSdkProbeTests(unittest.TestCase):
         event = dict(time=1.5, kind='cip', request_hex=raw.hex(), response_hex=reply.hex(), truncated=False)
         report = {'steps':[dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits', status='failed',
             startedAt='1970-01-01T00:00:01+00:00', finishedAt='1970-01-01T00:00:02+00:00')]}
-        trace = {'events':[dict(event,time=.5),event,dict(event,time=2.5),dict(event,time=1.7,truncated=True)]}
-        result = edit_trace_evidence(trace, report)
+        marker = dict(event,time=.5)
+        trace = {'events':[marker,event,dict(event,time=2.5),dict(event,time=1.7,truncated=True)]}
+        result = edit_trace_evidence(trace, report, before_edit={'events':[marker]},
+            after_edit={'events':[marker,event,dict(event,time=1.7,truncated=True)]})
         self.assertEqual(result['requests_observed'],1)
         self.assertEqual(result['unparsed_events'],1)
         self.assertEqual(result['first_failed_request'],dict(time=1.5,service=6,class_id=0x412,instance=0,
@@ -216,15 +235,31 @@ class NativeSdkProbeTests(unittest.TestCase):
             status=15,sequence=7,payload_bytes=0))
         self.assertEqual(result['mac_verification'],'not performed by report parser')
         self.assertEqual(edit_trace_evidence(trace, {'steps':[]})['status'],'import_not_reached')
+        self.assertEqual(result['correlation'],'emulator_trace_checkpoints')
 
     def test_edit_trace_keeps_absent_or_incomplete_network_evidence_distinct_from_sdk_success(self):
         report = {'steps':[dict(method='PartialImportRungsFromXmlFileAsync:LeaveEdits', status='succeeded',
             startedAt='1970-01-01T00:00:01+00:00', finishedAt='1970-01-01T00:00:02+00:00')]}
         for events in ([], [dict(kind='cip',time=1.5,request_hex='bad hex',response_hex='00')]):
-            result = edit_trace_evidence({'events':events}, report)
+            result = edit_trace_evidence({'events':events}, report,
+                before_edit={'events':[]},after_edit={'events':events})
             self.assertEqual(result['status'],'no_complete_cip_during_import')
             self.assertIsNone(result['first_failed_request'])
             self.assertEqual(result['sdk_status'],'succeeded')
+        self.assertEqual(edit_trace_evidence({}, report)['status'],'checkpoints_unavailable')
+        self.assertEqual(edit_trace_evidence({}, report,before_edit={'events':[{'time':1,'kind':'marker'}]},
+            after_edit={'events':[]})['status'],'checkpoint_events_not_retained')
+
+    def test_edit_trace_uses_checkpoint_order_with_guest_clock_offset_and_backward_adjustment(self):
+        first = dict(kind='cip',time=1_000,request_hex='4b04208e24012074240101',response_hex='cb000300')
+        second = dict(first,time=100,response_hex='cb000f00')
+        report = {'steps':[dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits',status='failed',
+            startedAt='2026-10-20T15:56:12+00:00',finishedAt='2026-10-20T15:56:13+00:00')]}
+        marker = {'kind':'native_verified','sequence':80,'time':123}
+        result = edit_trace_evidence({},report,before_edit={'events':[marker]},after_edit={'events':[marker,first,second]})
+        self.assertEqual(result['requests_observed'],2)
+        self.assertEqual(result['first_failed_request']['status'],3)
+        self.assertEqual(result['first_failed_request']['time'],1_000)
 
     def test_edit_probe_preserves_routine_model_and_reports_local_pending_success_without_native_acceptance(self):
         from tools.probe_native_sdk import digest

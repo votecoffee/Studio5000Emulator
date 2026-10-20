@@ -142,6 +142,50 @@ class TransportDownloadImageTests(unittest.TestCase):
         self.assertEqual(self.stage.inspection['records_executed'],0)
         self.assertFalse(self.stage.inspection['execution_supported'])
 
+    def test_start_requires_complete_inspected_source_bound_image(self):
+        with self.assertRaises(TransportError):self.stage.start_prepared_image()
+        expanded=b''.join(record(r.request) for r in batch())
+        fill(self.stage,container(zlib.compress(expanded)),expanded)
+        with self.assertRaises(TransportError):self.stage.start_prepared_image()
+        self.stage.inspect_payload()
+        with self.assertRaises(TransportError):self.stage.start_prepared_image()
+        self.assertFalse(self.stage.image_preparation_started)
+
+    def test_start_is_idempotent_for_the_exact_prepared_namespace_and_never_authorizes_commit(self):
+        self.stage_image();image=self.stage.download_image;before=self.stage.description()
+        with patch('logixlab.resilient_transport.DownloadImage.prepare',side_effect=AssertionError('Must not allocate again')):
+            first=self.stage.start_prepared_image();again=self.stage.start_prepared_image()
+        self.assertIs(image,self.stage.download_image);self.assertEqual(first,again)
+        self.assertTrue(first['preparation_started']);self.assertEqual(first['records_prepared'],11)
+        self.assertEqual(self.stage.description()['download_image']['preparation_started'],True)
+        self.assertEqual(self.stage.description()['inspection'],before['inspection'])
+        self.assertEqual(self.stage.inspection['records_executed'],0)
+        for flag in ('native_execution_supported','initial_values_applied','compiled_routines_installed','commit'):
+            self.assertFalse(first[flag])
+
+    def test_started_image_cannot_rebind_to_changed_source_or_record_digest(self):
+        self.stage_image();self.stage.start_prepared_image();image=self.stage.download_image
+        original_source=self.native.source_acd_sha256;original_digest=image.record_sha256
+        self.native.source_acd_sha256='c'*64
+        with self.assertRaises(TransportError) as error:self.stage.start_prepared_image()
+        self.assertEqual(error.exception.reason,'download_image_source_mismatch')
+        self.native.source_acd_sha256=original_source;image.record_sha256='f'*64
+        with self.assertRaises(TransportError) as error:self.stage.start_prepared_image()
+        self.assertEqual(error.exception.reason,'device_image_preparation_binding_changed')
+        image.record_sha256=original_digest
+        self.assertTrue(self.stage.start_prepared_image()['preparation_started'])
+
+    def test_started_image_is_discarded_by_fragment_reset_transport_delete_or_expiry(self):
+        for action in ('clear','delete','expiry'):
+            self.stage_image();self.stage.start_prepared_image()
+            if action=='clear':self.stage.clear_fragments()
+            elif action=='delete':self.stage.clear()
+            else:self.now+=ASSEMBLY_SECONDS
+            report=self.stage.description()['download_image']
+            self.assertEqual(report['status'],'idle');self.assertFalse(report['preparation_started'])
+            self.assertFalse(self.stage.image_preparation_started);self.assertIsNone(self.stage._image_start_binding)
+            with self.assertRaises(TransportError):self.stage.start_prepared_image()
+
     def test_delete_fragment_clear_and_expiry_discard_the_entire_image(self):
         for action in ('delete','clear','expiry'):
             self.stage_image()

@@ -226,7 +226,7 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
-    def test_signed_source_comparison_checks_binding_then_preserves_execution_denial(self):
+    def test_signed_source_comparison_checks_binding_then_starts_temporary_image(self):
         from test_native_types import catalog,source_types
         from test_template_layout import definition
         raw=definition(header=b'Inner;n');raw+=b'\0'*(-len(raw)%4)
@@ -236,7 +236,8 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.send(INSPECT)[2],12)
         self.app.native_types=catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256,types=source_types()[:1])
         before=copy.deepcopy(self.app.state())
-        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000f00'))
+        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
+        self.assertTrue(self.description()['download_image']['preparation_started'])
         result=self.description()['source_type_verification'];self.assertTrue(result['member_locations_verified'])
         self.assertEqual(result['members_matched'],1)
         events=[e for e in self.endpoint.state(True)['events'] if e['kind']=='native_source_type_verification']
@@ -296,9 +297,32 @@ class InspectionSignedTests(unittest.TestCase):
         staged=self.description()['diagnostic_staging'];self.assertEqual(staged['messages'],1);self.assertEqual(staged['records_modeled'],1)
         staged=self.description()['object_staging'];self.assertEqual(staged['records_modeled'],7);self.assertTrue(staged['references_validated'])
         self.assertEqual(self.endpoint.counts['native_object_staging'],1)
-        self.assertEqual(self.endpoint.state()['native_rejections'][0]['reason'],'device_batch_execution_unimplemented')
+        self.assertEqual(self.endpoint.state()['native_rejections'][0]['reason'],'source_bound_device_image_required')
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)
+
+    def test_prepared_download_allocates_real_readback_and_rejects_unknown_result_service(self):
+        from test_download_image import batch
+        from test_native_types import catalog,source_types
+        self.stage(b''.join(record(row.request) for row in batch()))
+        self.app.native_types=catalog(acd=self.app.native_project_identity.source_acd_sha256,
+            l5x=self.app.engine.project.sha256,types=source_types()[:1])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
+        image=self.endpoint.programming_lease.transport.download_image
+        self.assertEqual(image.read_table(1,0,4,image.source),bytes(4))
+        self.assertEqual(image.read_symbol(0,1,0,4,image.source),bytes(4))
+        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
+        self.assertIs(image,self.endpoint.programming_lease.transport.download_image)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        state=self.description()['download_image']
+        self.assertTrue(state['preparation_started']);self.assertEqual(state['records_prepared'],11)
+        self.assertFalse(state['commit'] or state['native_execution_supported'])
+        self.send(transport.DELETE)
+        self.assertFalse(self.description()['download_image']['preparation_started'])
+        self.assertEqual(self.description()['download_image']['tables_allocated'],0)
+        for field in ('tags','routines','tasks','scan','ms','controller'):
+            self.assertEqual(self.app.state()[field],before[field])
 
     def test_invalid_signed_diagnostic_record_rejects_the_batch_without_retaining_completed_objects(self):
         self.stage(TEMPLATE_EXPANDED+record(diagnostics.request(diagnostics.payload()[:-1],2).request))

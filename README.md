@@ -18,7 +18,9 @@ and rejects source/layout mismatches. Native storage mapping remains unfinished.
 Version `.78` adds a [source-bound temporary download image](docs/download-image.md),
 coherent [software system time](docs/upload-inventory.md), and an
 [online-edit diagnostic](docs/native-online-edits.md) that requests acceptance
-of a generated NOP rung on a private project copy.
+of a generated NOP rung on a private project copy. Download now starts a real
+temporary image, and online edits can acquire a separate exclusive reservation.
+Subsequent transfer and edit operations remain incomplete.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio

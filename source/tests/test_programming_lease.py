@@ -65,6 +65,65 @@ class ProgrammingLeaseModelTests(unittest.TestCase):
         self.assertNotIn('private-key',json.dumps(state));self.assertNotIn('a'*64,json.dumps(state))
         self.lease.discard(self.first);self.assertFalse(self.lease.description(1,'a'*64)['owned'])
 
+    def test_edit_selector_reserves_exclusively_without_active_edit_or_download_authority(self):
+        self.lease.acquire(self.first,1,'a'*64,selector=1)
+        self.lease.acquire(self.first,1,'a'*64,selector=1)
+        self.lease.require_edit_owner(self.first,1,'a'*64)
+        state=self.lease.description(1,'a'*64)
+        self.assertEqual(state['request_selector'],1)
+        self.assertEqual(state['edit_preparation']['status'],'reserved')
+        self.assertTrue(state['edit_preparation']['reserved'] and state['edit_preparation']['source_bound'])
+        self.assertEqual(state['edit_preparation']['changes_staged'],0)
+        for key in ('active_changes','accepted','testing','assembled','commit'):
+            self.assertFalse(state['edit_preparation'][key])
+        for key in ('project_transfer','online_edits','controller_mode_changes','tag_write_authority','scan_inhibited'):
+            self.assertFalse(state[key])
+        for action in (lambda:self.lease.acquire(self.second,1,'a'*64,selector=1),
+                       lambda:self.lease.acquire(self.second,1,'a'*64),
+                       lambda:self.lease.acquire(self.first,1,'a'*64),
+                       lambda:self.lease.require_edit_owner(self.second,1,'a'*64),
+                       lambda:self.lease.begin_preparation(self.first,1,'a'*64),
+                       lambda:self.lease.end_preparation(self.first,1,'a'*64),
+                       lambda:self.lease.require_prepared(self.first,1,'a'*64),
+                       lambda:self.lease.set_run_inhibit(self.first,1,'a'*64,1)):
+            with self.assertRaises(LeaseError):action()
+        self.assertEqual(self.lease.description(1,'a'*64),state)
+        self.lease.release(self.first,1,'a'*64)
+        self.lease.acquire(self.first,1,'a'*64)
+        with self.assertRaises(LeaseError):self.lease.require_edit_owner(self.first,1,'a'*64)
+        with self.assertRaises(LeaseError):self.lease.acquire(self.first,1,'a'*64,selector=1)
+        self.lease.set_run_inhibit(self.first,1,'a'*64,1)
+        self.lease.begin_preparation(self.first,1,'a'*64)
+
+    def test_edit_reservation_clears_with_owner_release_disconnect_source_generation_and_expiry(self):
+        for kind in ('release','discard','source','generation','expiry','closed','key','stage'):
+            self.now=100;first=self.context();self.lease.acquire(first,1,'a'*64,selector=1)
+            generation=1;source='a'*64
+            if kind=='release':self.lease.release(first,1,source)
+            elif kind=='discard':self.lease.discard(first)
+            elif kind=='source':source='b'*64
+            elif kind=='generation':generation=2
+            elif kind=='expiry':self.now=400
+            elif kind=='closed':first.close()
+            elif kind=='key':first.key=None
+            else:first.stage='operator'
+            with self.subTest(kind=kind):
+                state=self.lease.description(generation,source)
+                self.assertIsNone(state['request_selector'])
+                self.assertEqual(state['edit_preparation']['status'],'idle')
+                self.assertFalse(state['edit_preparation']['reserved'] or state['edit_preparation']['source_bound'])
+                self.assertIsNone(self.lease.owner)
+
+    def test_unknown_or_boolean_selector_never_acquires_or_changes_an_existing_reservation(self):
+        for owned in (False,True):
+            if owned:self.lease.acquire(self.first,1,'a'*64,selector=1)
+            before=self.lease.description(1,'a'*64)
+            for selector in (-1,2,255,None,True,b'\1','edit'):
+                with self.subTest(owned=owned,selector=selector),self.assertRaises(LeaseError) as error:
+                    self.lease.acquire(self.first,1,'a'*64,selector=selector)
+                self.assertEqual(error.exception.status,3)
+                self.assertEqual(self.lease.description(1,'a'*64),before)
+
 
 class SemaphorePathTests(unittest.TestCase):
     def test_controller_scope_and_widths_are_kept(self):
@@ -145,7 +204,7 @@ class SemaphoreSignedTests(unittest.TestCase):
         self.app.native_project_identity=NativeProjectIdentity('a'*64,'b'*64,1,1,1,1,1,1)
         self.assertEqual(self.signed(5,ACQUIRE)[2],12)
         self.app.native_project_identity=NativeProjectIdentity('a'*64,self.app.engine.project.sha256,1,1,1,1,1,1)
-        cases=((ACQUIRE[:-1],0x13),(ACQUIRE+b'x',0x15),(ACQUIRE[:-1]+b'\1',3),
+        cases=((ACQUIRE[:-1],0x13),(ACQUIRE+b'x',0x15),(ACQUIRE[:-1]+b'\2',3),
                (RELEASE+b'\0',0x15),(bytes.fromhex('4b04208e24022074240100'),5),
                (bytes.fromhex('4b04208e24012074240200'),5),(bytes.fromhex('4b05208e240120742401300100'),4))
         for sequence,(raw,status) in enumerate(cases,6):

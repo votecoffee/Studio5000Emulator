@@ -13,7 +13,6 @@ Windows services are never managed.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import hashlib
 import ipaddress
 import json
@@ -137,17 +136,26 @@ def rejection_delta(before, after):
     return sorted(rows, key=lambda row: row.get('last_seen', 0))
 
 
-def edit_trace_evidence(trace, report):
-    """Correlate the import interval with paired structural CIP failures, never MAC claims."""
+def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
+    """Use emulator trace checkpoints around import; SDK and guest clocks may differ."""
     steps = [item for item in report.get('steps', [])
              if item.get('method', '').startswith('PartialImportRungsFromXmlFileAsync:')]
     if len(steps) != 1:return {'status':'import_not_reached', 'failed_requests':[], 'first_failed_request':None}
     step = steps[0]
-    start = datetime.fromisoformat(step['startedAt']).timestamp()
-    finish = datetime.fromisoformat(step['finishedAt']).timestamp()
+    if before_edit is None or after_edit is None:
+        return {'status':'checkpoints_unavailable', 'failed_requests':[], 'first_failed_request':None,
+                'sdk_method':step['method'], 'sdk_status':step['status']}
+    previous = before_edit.get('events', [])
+    events = after_edit.get('events', [])
+    if previous:
+        positions = [index for index,event in enumerate(events) if event == previous[-1]]
+        if not positions:
+            return {'status':'checkpoint_events_not_retained', 'failed_requests':[], 'first_failed_request':None,
+                    'sdk_method':step['method'], 'sdk_status':step['status']}
+        events = events[positions[-1]+1:]
     failures = []; matched = skipped = 0
-    for event in trace.get('events', []):
-        if event.get('kind') != 'cip' or not start <= event.get('time', 0) <= finish:continue
+    for event in events:
+        if event.get('kind') != 'cip':continue
         if event.get('truncated'):skipped += 1;continue
         try:
             raw = bytes.fromhex(event.get('request_hex', ''))
@@ -172,16 +180,25 @@ def edit_trace_evidence(trace, report):
                     symbolic=bool(path.symbols), status=result[2], sequence=sequence,
                     payload_bytes=len(child) - 2 - child[1]*2))
         except (ValueError, IndexError, CIPError):skipped += 1
-    failures.sort(key=lambda item:item['time'])
     return dict(status='observed' if matched else 'no_complete_cip_during_import',
                 sdk_method=step['method'], sdk_status=step['status'], started_at=step['startedAt'],
                 finished_at=step['finishedAt'], requests_observed=matched, unparsed_events=skipped,
+                correlation='emulator_trace_checkpoints',
                 failed_requests=failures[:64], failures_truncated=len(failures)>64,
                 first_failed_request=failures[0] if failures else None, mac_verification='not performed by report parser')
 
 
 def validate_staging(lease):
     """Older endpoints may omit stages; advertised stages must be empty."""
+    if 'request_selector' in lease and lease['request_selector'] is not None:
+        raise ValueError('Probe requires no outstanding programming or edit reservation')
+    if 'edit_preparation' in lease:
+        edit = lease['edit_preparation']
+        if (not isinstance(edit, dict) or edit.get('status') != 'idle' or
+                type(edit.get('changes_staged')) is not int or edit['changes_staged'] != 0 or
+                any(edit.get(field) is not False for field in ('reserved', 'source_bound', 'active_changes',
+                    'accepted', 'testing', 'assembled', 'commit'))):
+            raise ValueError('Probe requires an empty idle edit reservation without active edits')
     for name in ('library_staging','metadata_staging'):
         if name not in lease:continue
         stage=lease[name]
@@ -235,7 +252,7 @@ def validate_staging(lease):
             if (not isinstance(image, dict) or image.get('status') != 'idle' or
                     image.get('record_sha256') is not None or image.get('reason') is not None or
                     any(image.get(field) is not False for field in ('source_bound', 'temporary_readback',
-                        'initial_values_applied', 'compiled_routines_installed', 'active_catalog_replaced',
+                        'preparation_started', 'initial_values_applied', 'compiled_routines_installed', 'active_catalog_replaced',
                         'native_execution_supported', 'commit', 'values_exposed'))):
                 raise ValueError('Probe requires an idle empty download image without readback or installation authority')
             for field in ('records_prepared', 'tables_allocated', 'templates_retained', 'diagnostics_retained',
@@ -421,7 +438,10 @@ def run(args):
                                                    before.get('counts', {}).get('native_verified', 0))
             summary['native_rejections'] = rejection_delta(before, trace)
             if args.operation == 'edits' and report is not None:
-                summary['edit_trace'] = edit_trace_evidence(trace, report)
+                edit_traces = {name:json.loads((output / (name + '-edit-trace.json')).read_text(encoding='utf-8'))
+                               for name in ('before', 'after') if (output / (name + '-edit-trace.json')).is_file()}
+                summary['edit_trace'] = edit_trace_evidence(trace, report,
+                    before_edit=edit_traces.get('before'), after_edit=edit_traces.get('after'))
             summary['target_rechecked'] = True
             final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
             summary['cleanup_confirmed'] = True

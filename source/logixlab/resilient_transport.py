@@ -9,7 +9,7 @@ from . import device_payload
 from .template_staging import TemplateStaging,TemplateError
 from .diagnostic_staging import DiagnosticStaging,DiagnosticError
 from .object_staging import ObjectStaging,ObjectError
-from .download_image import DownloadImage,ImageError
+from .download_image import DownloadImage,ImageError,Source
 from .native_types import verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
 
@@ -40,6 +40,7 @@ class ResilientTransport:
         self.objects=ObjectStaging();self.object_error=None
         self.source_type_verification=verification();self.type_error=None;self._type_catalog=None
         self.download_image=DownloadImage();self.image_error=None
+        self.image_preparation_started=False;self._image_start_binding=None
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
@@ -91,6 +92,33 @@ class ResilientTransport:
         self.templates=templates;self.diagnostics=diagnostics;self.objects=objects
         self.download_image=image
         return self.inspection
+
+    def start_prepared_image(self):
+        """Start this simulator's isolated image preparation exactly once.
+
+        This records a completed temporary namespace transition, not firmware
+        execution or active-project commit. The caller checks the current lease
+        and calls inspect_payload(current_native_types) before invoking it.
+        """
+        self.expire()
+        if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
+        if self.inspection['status']!='decoded':raise TransportError(0x0C,'device_image_inspection_required')
+        if self.image_error:raise TransportError(3,self.image_error)
+        image=self.download_image
+        if image.description()['status']!='prepared' or self._type_catalog is None:
+            raise TransportError(0x0F,'source_bound_device_image_required')
+        if not image.records or image.records!=self.inspection['record_count'] or not image.record_sha256:
+            raise TransportError(0x0C,'device_image_record_coverage_mismatch')
+        try:
+            source=Source(self._type_catalog.source_acd_sha256,self._type_catalog.source_l5x_sha256)
+            image.require_source(source)
+        except ImageError as error:
+            raise TransportError(0x0C,error.reason) from error
+        binding=(source,image.record_sha256,image.records,id(self._type_catalog))
+        if self.image_preparation_started and self._image_start_binding!=binding:
+            raise TransportError(0x0C,'device_image_preparation_binding_changed')
+        self._image_start_binding=binding;self.image_preparation_started=True
+        return {**image.description(),'preparation_started':True}
 
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear_fragments()
@@ -147,7 +175,8 @@ class ResilientTransport:
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},
-                'download_image':{**self.download_image.description(),**({'status':'invalid','reason':self.image_error} if self.image_error else {})},
+                'download_image':{**self.download_image.description(),'preparation_started':self.image_preparation_started,
+                    **({'status':'invalid','reason':self.image_error} if self.image_error else {})},
                 'template_staging':{**self.templates.description(),**({'status':'invalid','reason':self.template_error} if self.template_error else {})},
                 'diagnostic_staging':{**self.diagnostics.description(),**({'status':'invalid','reason':self.diagnostic_error} if self.diagnostic_error else {})},
                 'object_staging':{**self.objects.description(),**({'status':'invalid','reason':self.object_error} if self.object_error else {})},

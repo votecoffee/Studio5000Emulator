@@ -150,7 +150,14 @@ Loopback subnet matching remains available. A valid network-object response
 does not establish that Linx has registered that address as a usable native
 communications path; test that separately before a transfer or edit probe.
 
-The `.78` suite runs 1,068 tests, with two Windows skips and one Linux skip.
+The temporary download image now backs the service `0x06` preparation response;
+the next result request remains unsupported. Online import can acquire a
+separate selector-1 reservation, without active edits or download authority.
+See the [download](download-image.md#native-boundary) and
+[edit](native-online-edits.md) results for the current native failure boundaries,
+including the fatal SDK import result and its incomplete cleanup.
+
+The `.78` suite runs 1,081 tests, with two Windows skips and one Linux skip.
 Independent temporary download storage, source checks and readback, coherent
 clock fields, online-edit probe admission/cleanup and Linux address enumeration
 are covered. Native transfer/edit outcomes require the separate SDK tests.

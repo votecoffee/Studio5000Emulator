@@ -46,6 +46,27 @@ async Task<JsonElement> Backend(string? mode = null)
     var current = await Call("observe", new {});
     return mode is null ? current : await Call("controller-mode", new { mode });
 }
+async Task CaptureEditTrace(string fileName)
+{
+    await Step("Capture edit protocol checkpoint:" + fileName, async () => {
+        await Backend(); // Pin instance and source on both sides of this trace read.
+        var url = new Uri(options.BackendUrl!);
+        var script = await http.GetStringAsync(new Uri(url, "/session.js"));
+        var token = JsonSerializer.Deserialize<string>(Regex.Match(script, "LOGIX_TOKEN = (\".*?\")").Groups[1].Value)!;
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, "/api/connectivity-trace"));
+        request.Headers.Add("X-Logix-Token", token);
+        request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        using var response = await http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var text = await response.Content.ReadAsStringAsync();
+        var trace = JsonDocument.Parse(text).RootElement;
+        if (trace.GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
+            throw new InvalidOperationException("Edit trace source changed");
+        await Backend();
+        await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), text);
+        return true;
+    });
+}
 async Task CheckMode(string expected) {
     // The SDK exposes its cached mode; external changes arrive on its status poll.
     string mode = "Unknown";
@@ -112,11 +133,16 @@ try
                 return true;
             });
             var edit = options.Edit!;
-            await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption, async () => {
-                var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
-                await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
-                return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
-            });
+            await CaptureEditTrace("before-edit-trace.json");
+            try
+            {
+                await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption, async () => {
+                    var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
+                    await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
+                    return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
+                });
+            }
+            finally { await CaptureEditTrace("after-edit-trace.json"); }
         }
         if (options.Operation == "modes")
         {

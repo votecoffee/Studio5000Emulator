@@ -26,6 +26,7 @@ class ProgrammingLease:
 
     def clear(self):
         self.owner=None;self.generation=None;self.source_sha256=None
+        self.selector=None
         self.run_inhibit=0;self.prepared=False
         self.clear_staging()
 
@@ -42,12 +43,19 @@ class ProgrammingLease:
             self.clear()
         return self.owner is not None
 
-    def acquire(self, native, generation, source_sha256):
+    def acquire(self, native, generation, source_sha256, *, selector=0):
+        # Observed selector 0 coordinates programming; selector 1 reserves an
+        # online import. Neither reservation installs or accepts controller edits.
+        if type(selector) is not int or selector not in (0,1):
+            raise LeaseError(3,'invalid_semaphore_selector')
         if native.stage!='bound' or native.key is None or self.clock()>=native.deadline:
             raise LeaseError(0x0F,'unbound_context')
         if self.live(generation,source_sha256) and self.owner is not native:
             raise LeaseError(0x0C,'programming_lease_conflict')
+        if self.owner is native and self.selector!=selector:
+            raise LeaseError(0x0C,'programming_lease_purpose_conflict')
         self.owner=native;self.generation=generation;self.source_sha256=source_sha256
+        self.selector=selector
 
     def release(self, native, generation, source_sha256):
         if native.stage!='bound' or native.key is None or self.clock()>=native.deadline:
@@ -59,7 +67,7 @@ class ProgrammingLease:
     def set_run_inhibit(self, native, generation, source_sha256, value):
         if type(value) is not int or value not in (0,1):
             raise LeaseError(3,'invalid_request')
-        self.require_owner(native,generation,source_sha256)
+        self.require_programming_owner(native,generation,source_sha256)
         self.run_inhibit=value
         if not value:self.prepared=False;self.clear_staging()
 
@@ -67,22 +75,32 @@ class ProgrammingLease:
         if not self.live(generation,source_sha256) or self.owner is not native:
             raise LeaseError(0x0F,'programming_lease_owner_required')
 
+    def require_programming_owner(self, native, generation, source_sha256):
+        self.require_owner(native,generation,source_sha256)
+        if self.selector!=0:
+            raise LeaseError(0x0F,'programming_lease_purpose_required')
+
+    def require_edit_owner(self, native, generation, source_sha256):
+        self.require_owner(native,generation,source_sha256)
+        if self.selector!=1:
+            raise LeaseError(0x0F,'edit_reservation_required')
+
     def inhibit(self, generation, source_sha256):
         return self.run_inhibit if self.live(generation,source_sha256) else 0
 
     def begin_preparation(self, native, generation, source_sha256):
-        self.require_owner(native,generation,source_sha256)
+        self.require_programming_owner(native,generation,source_sha256)
         if self.run_inhibit!=1:
             raise LeaseError(0x0C,'run_mode_inhibit_required')
         self.prepared=True
 
     def end_preparation(self, native, generation, source_sha256):
-        self.require_owner(native,generation,source_sha256)
+        self.require_programming_owner(native,generation,source_sha256)
         self.prepared=False
         self.clear_staging()
 
     def require_prepared(self, native, generation, source_sha256):
-        self.require_owner(native,generation,source_sha256)
+        self.require_programming_owner(native,generation,source_sha256)
         if not self.prepared:
             raise LeaseError(0x0C,'programming_preparation_required')
 
@@ -94,6 +112,11 @@ class ProgrammingLease:
     def description(self, generation, source_sha256):
         owned=self.live(generation,source_sha256)
         return {'owned':owned,'exclusive':True,'controller_instance':1,'semaphore_instance':1,
+                'request_selector':self.selector if owned else None,
+                'edit_preparation':{'status':'reserved' if owned and self.selector==1 else 'idle',
+                    'reserved':owned and self.selector==1,'source_bound':owned and self.selector==1,
+                    'changes_staged':0,'active_changes':False,'accepted':False,'testing':False,
+                    'assembled':False,'commit':False},
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':owned and bool(self.run_inhibit),
                 'preparation_state':'ready' if owned and self.prepared else 'idle',
                 'preparation_status':2 if owned and self.prepared else 0,

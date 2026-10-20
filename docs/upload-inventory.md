@@ -23,6 +23,14 @@ Those hypotheses are excluded from application behavior. New upload changes
 should be tested separately against the same source before combining them
 with download or online-edit changes.
 
+A current-source handler matrix varied only the two absent Controller handler
+references. Two-byte and twelve-byte null-reference hypotheses changed the
+final attribute list from partial failure to success at the CIP response
+level. All three cases still failed the SDK upload after the same two terminal
+Controller requests, with no further native request after that list. These
+private hypotheses establish neither the correct `POINTER` representation
+nor a unique cause for the collection failure; they are excluded from the app.
+
 ## Software system time and offset
 
 Time Sync instance 1, attribute 28 exposes the relationship between the

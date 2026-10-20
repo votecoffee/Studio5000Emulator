@@ -218,13 +218,15 @@ class Router:
                     return reject(5,'invalid_request')
                 exact(payload,1 if inner[0]==0x4B else 0)
                 if inner[0]==0x4B:
-                    if payload!=b'\0':return reject(3,'invalid_request')
+                    if payload not in (b'\0',b'\1'):return reject(3,'invalid_request')
                     identity=self.app.native_project_identity
                     if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
                         return reject(0x0C,'source_correlation_unavailable')
                 with self.endpoint.lock:
-                    operation=self.endpoint.programming_lease.acquire if inner[0]==0x4B else self.endpoint.programming_lease.release
-                    operation(native,self.app.generation,self.app.engine.project.sha256)
+                    lease=self.endpoint.programming_lease
+                    if inner[0]==0x4B:
+                        lease.acquire(native,self.app.generation,self.app.engine.project.sha256,selector=payload[0])
+                    else:lease.release(native,self.app.generation,self.app.engine.project.sha256)
                     self.endpoint.counts['native_semaphore_acquire' if inner[0]==0x4B else 'native_semaphore_release']+=1
                 return reply(inner[0])
             if inner[0] in (8,9) and path.class_id in (0x37D,0x349):
@@ -294,8 +296,9 @@ class Router:
                         self.endpoint.record('native_object_staging',symbols=objects['symbols'],tables=objects['tables'],programs=objects['programs'],
                             routines=objects['routines'],coordination_records=objects['coordination_records'],records_modeled=objects['records_modeled'],
                             total_records_modeled=modeled,unsupported_records=inspection['record_count']-modeled,references_validated=objects['references_validated'])
-                        self.endpoint.record('native_download_image_preparation',**lease.transport.download_image.description())
-                        return reject(0x0F,'device_batch_execution_unimplemented')
+                        image=lease.transport.start_prepared_image()
+                        self.endpoint.record('native_download_image_preparation',**image)
+                        return reply(inner[0])
                     if inner[0]==0x4B:lease.transport.open(payload)
                     else:exact(payload,0);lease.transport.clear()
                     self.endpoint.counts['native_transport_'+('setup' if inner[0]==0x4B else 'delete')]+=1
