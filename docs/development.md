@@ -454,6 +454,34 @@ and Program is restored. The isolated edited routine is separate from the
 original main demo. Upload/download were not repeated in this milestone; their
 earlier incomplete native results remain separate.
 
+Version `.90` extends the supported-edit diagnostic with `--second-edit-code`
+and `--reconnect-edits`. Both require `--operation edits --apply-supported-edits`
+and enabled supported edit access. The second insert uses the same open SDK
+project and routine; `--reconnect-edits` performs Offline/Online after each
+insert, including the final one. For example, append:
+
+```powershell
+--operation edits --apply-supported-edits --edit-code 'MOV(123,SpeedSetpoint);' --second-edit-code 'MOV(456,Parts.PRE);' --reconnect-edits
+```
+
+Use matching existing tags/routines in an isolated demo. A fresh ACD-copy case
+requires unmodified runtime logic (revision 0); sequential inserts remain in
+the same native project. Per-insert snapshots verify the exact new rung AST,
+all preceding rungs, revision increments and preserved values/history/config.
+Reconnection must preserve the full edited model. A success call without these
+checks is insufficient. Separate trace intervals retain each import's result.
+Transient transport failures can retry pure local trace reads; SDK imports and
+mode requests are never automatically repeated.
+
+The two-import case succeeds both with reconnect (315 verified signed requests)
+and while continuously online (159). The latter then executes both inserted
+instructions in one emulator scan. Original ACD hashes and the separate main
+demo are preserved, with clean native Offline/readback and no reported fatal
+SDK fault. These results cover the same open SDK project and the custom
+execution model; persistent edited-project round trips, Studio GUI editing and
+the full edit lifecycle remain unverified. The iteration passes 133 focused
+software tests; the full milestone suite was not repeated.
+
 Version `.78` also uses the Linux kernel's read-only address dump to discover
 secondary IPv4 addresses and their actual prefixes. The network objects no
 longer depend on an ioctl that returns only an adapter's primary address.

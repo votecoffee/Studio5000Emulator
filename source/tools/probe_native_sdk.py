@@ -9,6 +9,8 @@ operations never request mode changes. The edits diagnostic imports a generated
 NOP rung on a private copy with LeaveEdits or AcceptEdits. The default requires
 disabled online edits. --apply-supported-edits instead requires explicitly
 enabled Program-mode RLL replacement and verifies the exact resulting insert.
+An optional second insert and Offline/Online cycle use the same open SDK project;
+each step must preserve the preceding edit and all non-logic model state.
 It never requests native Test, Untest, FinalizeEdits or Assemble.
 Windows services are never managed.
 """
@@ -200,12 +202,57 @@ def supported_edit_effect(before,after,config,code):
     except (KeyError,TypeError,IndexError,ModelError):return False
 
 
-def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None):
+def edit_sequence(state, program, routine, option, codes, *, apply=False):
+    """Bounded generated inserts with exact before/after expectations for native checks."""
+    if not 1 <= len(codes) <= 2 or len(codes)>1 and not apply:
+        raise ValueError('One diagnostic insert or at most two explicitly applied inserts')
+    if apply and (type(state.get('routine_edits',{}).get('revision')) is not int or state['routine_edits']['revision']!=0):
+        raise ValueError('A fresh ACD-copy probe requires unmodified runtime logic; keep sequential edits in the same SDK project')
+    from logixlab.model import parse_rung
+    from logixlab.server import serialize_nodes
+    result=[]
+    nodes=None
+    for index,code in enumerate(codes):
+        payload,config=edit_request(state,program,routine,option,code=code,apply=apply)
+        if apply:
+            if nodes is None:
+                target=next(r for r in state['routines'] if r['key']==program+'/'+routine)
+                nodes=[r['nodes'] for r in target['rungs']]
+            revision=state['routine_edits']['revision']
+            if type(revision) is not int or revision<0:raise ValueError('Invalid base logic revision')
+            config.update(BaseRevision=revision+index,BeforeRungs=nodes)
+            nodes=[serialize_nodes(parse_rung(code))]+nodes
+            config['ExpectedRungs']=nodes
+        result.append((payload,config))
+    return result
+
+
+def supported_sequence_effect(before,after,edits,codes,output,*,reconnect=False):
+    """Require every individual insert and reconnect, not merely the final routine."""
+    stable=('instance_id','tags','scan','ms','changes','mode','tasks','entry_routines','controller','routines','routine_edits')
+    if not 1<=len(edits)==len(codes)<=2:return False
+    previous=before
+    try:
+        for index,((_,config),code) in enumerate(zip(edits,codes,strict=True)):
+            suffix='edit' if index==0 else 'edit2'
+            start=json.loads((output/f'before-{suffix}-state.json').read_text(encoding='utf-8'))
+            end=json.loads((output/f'after-{suffix}-state.json').read_text(encoding='utf-8'))
+            if any(previous[k]!=start[k] for k in stable) or not supported_edit_effect(start,end,config,code):return False
+            if reconnect:
+                connected=json.loads((output/f'after-reconnect-{index+1}-state.json').read_text(encoding='utf-8'))
+                if any(end[k]!=connected[k] for k in stable):return False
+                end=connected
+            previous=end
+        return all(previous[k]==after[k] for k in stable)
+    except (OSError,ValueError,TypeError,KeyError):return False
+
+
+def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None, import_index=0):
     """Use emulator trace checkpoints around import; SDK and guest clocks may differ."""
     steps = [item for item in report.get('steps', [])
              if item.get('method', '').startswith('PartialImportRungsFromXmlFileAsync:')]
-    if len(steps) != 1:return {'status':'import_not_reached', 'failed_requests':[], 'first_failed_request':None}
-    step = steps[0]
+    if not 0<=import_index<len(steps):return {'status':'import_not_reached', 'failed_requests':[], 'first_failed_request':None}
+    step = steps[import_index]
     if before_edit is None or after_edit is None:
         return {'status':'checkpoints_unavailable', 'failed_requests':[], 'first_failed_request':None,
                 'sdk_method':step['method'], 'sdk_status':step['status']}
@@ -466,6 +513,11 @@ def run(args):
     apply_edits=getattr(args,'apply_supported_edits',False)
     edit_code=getattr(args,'edit_code',None)
     if edit_code is None:edit_code='NOP();'
+    second_code=getattr(args,'second_edit_code',None)
+    reconnect=getattr(args,'reconnect_edits',False)
+    if (second_code is not None or reconnect) and (args.operation!='edits' or not apply_edits):
+        raise ValueError('Sequential edits and reconnect require explicit supported-edit application')
+    edit_codes=[edit_code]+([second_code] if second_code is not None else [])
     if (apply_edits or edit_code!='NOP();') and args.operation!='edits':raise ValueError('Supported edits belong to an edits case')
     edit_options = tuple(getattr(args, name, None) for name in ('edit_program', 'edit_routine', 'edit_import_option'))
     if args.operation != 'edits' and any(value is not None for value in edit_options):
@@ -475,10 +527,10 @@ def run(args):
     instance = validate_target(initial, args.path, source_hash)
     validate_idle(initial,allow_supported_edits=apply_edits)
     if args.operation=='modes':validate_mode_probe(initial)
-    edit_payload = edit_config = None
+    edits=[]
     if args.operation == 'edits':
-        edit_payload, edit_config = edit_request(initial, edit_options[0] or 'MainProgram',
-                                                edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits',code=edit_code,apply=apply_edits)
+        edits=edit_sequence(initial,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
+                            edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits)
     require_sdk_service()
     l5x_hash = initial['connectivity']['source_l5x_sha256']
     output = Path(args.output).resolve() if args.output else SOURCE.parent / '.local/native-probes' / (
@@ -492,10 +544,12 @@ def run(args):
                   Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
     if args.operation in ('modes', 'edits'):config.update(BackendUrl=url,InstanceId=instance)
     config['ApplySupportedEdits']=apply_edits
-    if edit_payload is not None:
-        edit_file = output / 'nop-rung.L5X'
-        edit_file.write_bytes(edit_payload)
-        config['Edit'] = dict(edit_config, File=str(edit_file), Sha256=digest(edit_file))
+    config['ReconnectEdits']=reconnect
+    edit_files=[]
+    for index,(payload,details) in enumerate(edits):
+        edit_file=output/('nop-rung.L5X' if index==0 else 'second-rung.L5X')
+        edit_file.write_bytes(payload);edit_files.append(edit_file)
+        config['Edit' if index==0 else 'SecondEdit']=dict(details,File=str(edit_file),Sha256=digest(edit_file))
     (output / 'request.json').write_text(json.dumps(config, indent=2), encoding='utf-8')
     command = ['dotnet', 'build', str(SOURCE / 'tools/native_sdk_probe/NativeSdkProbe.csproj'),
                '-c', 'Release', '--nologo', '--output', str(output / 'bin'),
@@ -514,10 +568,10 @@ def run(args):
     validate_idle(state,allow_supported_edits=apply_edits)
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
-        payload, details = edit_request(state, edit_options[0] or 'MainProgram',
-                                        edit_options[1] or 'MainRoutine', edit_options[2] or 'AcceptEdits',code=edit_code,apply=apply_edits)
-        if (payload != edit_payload or details != edit_config or digest(edit_file) != config['Edit']['Sha256'] or
-                any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines'))):
+        current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
+                                   edit_options[2] or 'AcceptEdits',edit_codes,apply=apply_edits)
+        if (current_edits!=edits or any(digest(file)!=config[key]['Sha256'] for file,key in zip(edit_files,('Edit','SecondEdit'))) or
+                any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines','routine_edits'))):
             raise ValueError('Edit target or generated rung changed before the native call')
     if digest(source) != source_hash or digest(copied) != source_hash:
         raise ValueError('Source changed before the native call')
@@ -536,7 +590,7 @@ def run(args):
         summary['edit_diagnostic'] = dict(import_option=config['Edit']['ImportOption'],
             xpath=config['Edit']['XPath'], insert_position=0, replace_count=0,
             rung_sha256=config['Edit']['Sha256'], code=edit_code, active_edits_authorized=apply_edits,
-            finalize_edits=False, assembly=False)
+            second_code=second_code,reconnect_after_each=reconnect,finalize_edits=False, assembly=False)
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
     if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
     report = None;final=None
@@ -573,15 +627,20 @@ def run(args):
                                for name in ('before', 'after') if (output / (name + '-edit-trace.json')).is_file()}
                 summary['edit_trace'] = edit_trace_evidence(trace, report,
                     before_edit=edit_traces.get('before'), after_edit=edit_traces.get('after'))
+                if second_code is not None:
+                    second_traces={name:json.loads((output/(name+'-edit2-trace.json')).read_text(encoding='utf-8'))
+                                   for name in ('before','after') if (output/(name+'-edit2-trace.json')).is_file()}
+                    summary['second_edit_trace']=edit_trace_evidence(trace,report,before_edit=second_traces.get('before'),
+                        after_edit=second_traces.get('after'),import_index=1)
             summary['target_rechecked'] = True
             final = wait_for_cleanup(url, args.path, source_hash, instance=instance, l5x_hash=l5x_hash,allow_supported_edits=apply_edits)
             summary['cleanup_confirmed'] = True
             (output / 'after-state.json').write_text(json.dumps(final, indent=2), encoding='utf-8')
             summary['model_unchanged'] = all(state[key] == final[key] for key in model_fields)
-            if args.operation == 'edits':summary['edit_payload_unchanged'] = digest(edit_file) == config['Edit']['Sha256']
+            if args.operation == 'edits':summary['edit_payload_unchanged'] = all(digest(file)==config[key]['Sha256'] for file,key in zip(edit_files,('Edit','SecondEdit')))
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
-        if apply_edits:summary['supported_edit_applied']=supported_edit_effect(state,final,edit_config,edit_code)
+        if apply_edits:summary['supported_edit_applied']=supported_sequence_effect(state,final,edits,edit_codes,output,reconnect=reconnect)
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
         if not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False:
             summary['status'] = 'failed'
@@ -603,6 +662,8 @@ def main():
                         help='edits only: defaults to AcceptEdits to test the controller request; LeaveEdits is a local pending-edit comparison')
     parser.add_argument('--apply-supported-edits',action='store_true',help='Require enabled Program-mode RLL replacement and verify the applied routine')
     parser.add_argument('--edit-code',help='One neutral-text rung for an explicit supported-edit case; default NOP();')
+    parser.add_argument('--second-edit-code',help='Explicit supported edits only: insert a second rung using the same SDK project')
+    parser.add_argument('--reconnect-edits',action='store_true',help='Explicit supported edits only: go Offline/Online after each checked insert')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')

@@ -299,6 +299,48 @@ class NativeSdkProbeTests(unittest.TestCase):
             self.assertFalse(supported_edit_effect(before,after,config,'MOV(123,SpeedSetpoint);'))
             app.close()
 
+    def test_sequential_edit_checks_retain_prior_logic_and_reject_missing_or_changed_reconnect_evidence(self):
+        from logixlab.server import Application
+        from tools.probe_native_sdk import edit_sequence,supported_sequence_effect
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);app=Application(root/'app')
+            try:
+                app.command('demo',{'sample':'ConveyorDemo'});app.allow_routine_edits=True
+                initial=app.state();initial['connectivity']=self.state()['connectivity']
+                initial['connectivity']['native_programming_lease'].update(online_edits=True,online_edit_scope='standard_rll_program_mode')
+                codes=['MOV(123,SpeedSetpoint);','MOV(456,SpeedSetpoint);']
+                edits=edit_sequence(initial,'MainProgram','MainRoutine','AcceptEdits',codes,apply=True)
+                state=copy.deepcopy(initial);saved={}
+                for index,(_,config) in enumerate(edits):
+                    suffix='edit' if index==0 else 'edit2'
+                    saved[f'before-{suffix}-state.json']=copy.deepcopy(state)
+                    routine=next(r for r in state['routines'] if r['key']=='MainProgram/MainRoutine')
+                    self.assertEqual([r['nodes'] for r in routine['rungs']],config['BeforeRungs'])
+                    routine['rungs']=[{'nodes':n} for n in config['ExpectedRungs']]
+                    state['routine_edits'].update(revision=index+1,logic_sha256=str(index+1)*64)
+                    saved[f'after-{suffix}-state.json']=copy.deepcopy(state)
+                    saved[f'after-reconnect-{index+1}-state.json']=copy.deepcopy(state)
+                for name,value in saved.items():(root/name).write_text(json.dumps(value))
+                self.assertTrue(supported_sequence_effect(initial,state,edits,codes,root,reconnect=True))
+                # A final second insert is insufficient if the prior rung was lost.
+                bad=copy.deepcopy(state)
+                next(r for r in bad['routines'] if r['key']=='MainProgram/MainRoutine')['rungs'].pop(1)
+                self.assertFalse(supported_sequence_effect(initial,bad,edits,codes,root,reconnect=True))
+                for name,field,value in [('after-edit-state.json','scan',1),('before-edit2-state.json','tags',[]),
+                        ('after-reconnect-1-state.json','routine_edits',{'revision':0})]:
+                    changed=copy.deepcopy(saved[name]);changed[field]=value;(root/name).write_text(json.dumps(changed))
+                    self.assertFalse(supported_sequence_effect(initial,state,edits,codes,root,reconnect=True))
+                    (root/name).write_text(json.dumps(saved[name]))
+                (root/'after-reconnect-2-state.json').unlink()
+                self.assertFalse(supported_sequence_effect(initial,state,edits,codes,root,reconnect=True))
+                for codes,apply in [([],True),(['NOP();']*3,True),(['NOP();']*2,False)]:
+                    with self.assertRaises(ValueError):edit_sequence(initial,'MainProgram','MainRoutine','AcceptEdits',codes,apply=apply)
+                for revision in (1,True,None,-1):
+                    changed=copy.deepcopy(initial);changed['routine_edits']['revision']=revision
+                    with self.assertRaises(ValueError):edit_sequence(changed,'MainProgram','MainRoutine','AcceptEdits',['NOP();'],apply=True)
+                self.assertFalse(supported_sequence_effect(initial,initial,[],[],root))
+            finally:app.close()
+
     def test_edit_diagnostic_rejects_unloaded_nonladder_aoi_ambiguous_or_writable_target(self):
         state = self.edit_state()
         for replacement in ([], [{'key':'MainProgram/MainRoutine','kind':'ST','harness':True,'rungs':[]}],
@@ -387,6 +429,15 @@ class NativeSdkProbeTests(unittest.TestCase):
         self.assertEqual(edit_trace_evidence({}, report)['status'],'checkpoints_unavailable')
         self.assertEqual(edit_trace_evidence({}, report,before_edit={'events':[{'time':1,'kind':'marker'}]},
             after_edit={'events':[]})['status'],'checkpoint_events_not_retained')
+
+    def test_two_import_trace_intervals_select_the_corresponding_sdk_result(self):
+        report={'steps':[dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits',status='succeeded',startedAt='start1',finishedAt='end1'),
+                         dict(method='PartialImportRungsFromXmlFileAsync:AcceptEdits:2',status='failed',startedAt='start2',finishedAt='end2')]}
+        events=[dict(kind='cip',time=1,request_hex='0e03200124013001',response_hex='8e0000000100')]
+        for index,status in ((0,'succeeded'),(1,'failed')):
+            result=edit_trace_evidence({},report,before_edit={'events':[]},after_edit={'events':events},import_index=index)
+            self.assertEqual(result['sdk_status'],status);self.assertEqual(result['requests_observed'],1)
+        self.assertEqual(edit_trace_evidence({},report,import_index=2)['status'],'import_not_reached')
 
     def test_edit_trace_uses_checkpoint_order_with_guest_clock_offset_and_backward_adjustment(self):
         first = dict(kind='cip',time=1_000,request_hex='4b04208e24012074240101',response_hex='cb000300')

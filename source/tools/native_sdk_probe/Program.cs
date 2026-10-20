@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Net.Http;
@@ -18,9 +19,14 @@ if (options.Operation is not ("connection" or "upload" or "download" or "modes" 
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
-if (options.Operation == "edits" && (options.Edit is null ||
-    options.Edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") || options.Edit.InsertPosition != 0 || options.Edit.ReplaceCount != 0 ||
-    Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Edit.File))).ToLowerInvariant() != options.Edit.Sha256)) return 2;
+if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.ReconnectEdits) && options.Operation != "edits" ||
+    (options.SecondEdit is not null || options.ReconnectEdits) && !options.ApplySupportedEdits) return 2;
+if (options.Operation == "edits" && options.Edit is null) return 2;
+foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
+    if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") || edit.InsertPosition != 0 || edit.ReplaceCount != 0 ||
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(edit.File))).ToLowerInvariant() != edit.Sha256 ||
+        options.ApplySupportedEdits && (edit.ImportOption != "AcceptEdits" || edit.BaseRevision is null or < 0 ||
+            edit.BeforeRungs?.ValueKind != JsonValueKind.Array || edit.ExpectedRungs?.ValueKind != JsonValueKind.Array)) return 2;
 var steps = new List<object>();
 var logger = new Capture();
 LogixProject? project = null;
@@ -78,14 +84,18 @@ async Task CaptureEditTrace(string fileName)
     await Step("Capture edit protocol checkpoint:" + fileName, async () => {
         await Backend(); // Pin instance and source on both sides of this trace read.
         var url = new Uri(options.BackendUrl!);
-        var script = await http.GetStringAsync(new Uri(url, "/session.js"));
+        var script = await BackendRead("edit trace token", () => http.GetStringAsync(new Uri(url, "/session.js")));
         var token = JsonSerializer.Deserialize<string>(Regex.Match(script, "LOGIX_TOKEN = (\".*?\")").Groups[1].Value)!;
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, "/api/connectivity-trace"));
-        request.Headers.Add("X-Logix-Token", token);
-        request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
-        using var response = await http.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-        var text = await response.Content.ReadAsStringAsync();
+        var text = await BackendRead("edit trace:" + fileName, async () => {
+            // Trace retrieval is a pure read. Recreate its HTTP request on each
+            // transport retry; the SDK import itself is never repeated here.
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, "/api/connectivity-trace"));
+            request.Headers.Add("X-Logix-Token", token);
+            request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+            using var response = await http.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        });
         var trace = JsonDocument.Parse(text).RootElement;
         if (trace.GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
             throw new InvalidOperationException("Edit trace source changed");
@@ -93,6 +103,35 @@ async Task CaptureEditTrace(string fileName)
         await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), text);
         return true;
     });
+}
+bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
+async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
+    Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), state.GetRawText());
+void CheckEditState(JsonElement state, EditOptions edit, bool applied)
+{
+    var names = Regex.Matches(edit.XPath, "@Name='([^']+)'").Select(match => match.Groups[1].Value).ToArray();
+    if (names.Length != 2) throw new InvalidOperationException("Expected one ordinary program/routine path");
+    var key = string.Join("/", names);
+    var routine = state.GetProperty("routines").EnumerateArray().Single(item => item.GetProperty("key").GetString() == key);
+    var nodes = JsonSerializer.SerializeToElement(routine.GetProperty("rungs").EnumerateArray().Select(rung => rung.GetProperty("nodes")));
+    if (!Same(nodes, (applied ? edit.ExpectedRungs : edit.BeforeRungs)!.Value) ||
+        state.GetProperty("routine_edits").GetProperty("revision").GetInt64() != edit.BaseRevision + (applied ? 1 : 0) ||
+        state.GetProperty("controller").GetProperty("mode").GetString() != "Program" || state.GetProperty("controller").GetProperty("running").GetBoolean())
+        throw new InvalidOperationException("Active routine/revision does not match the exact generated insert");
+}
+void CheckPreserved(JsonElement before, JsonElement after, bool includeLogic, string? editedPath = null)
+{
+    var fields = new[] { "instance_id", "tags", "scan", "ms", "changes", "mode", "tasks", "entry_routines", "controller" };
+    foreach (var field in includeLogic ? fields.Concat(new[] { "routines", "routine_edits" }) : fields)
+        if (!Same(before.GetProperty(field), after.GetProperty(field)))
+            throw new InvalidOperationException("Unexpected model change: " + field);
+    if (!includeLogic)
+    {
+        var key = string.Join("/", Regex.Matches(editedPath!, "@Name='([^']+)'").Select(match => match.Groups[1].Value));
+        JsonElement Others(JsonElement state) => JsonSerializer.SerializeToElement(state.GetProperty("routines").EnumerateArray()
+            .Where(routine => routine.GetProperty("key").GetString() != key));
+        if (!Same(Others(before), Others(after))) throw new InvalidOperationException("An unrelated routine changed");
+    }
 }
 async Task CheckMode(string expected) {
     // The SDK exposes its cached mode; external changes arrive on its status poll.
@@ -160,17 +199,54 @@ try
                 await CheckMode("Program");
                 return true;
             });
-            var edit = options.Edit!;
-            await CaptureEditTrace("before-edit-trace.json");
-            try
+            int editIndex = 0;
+            foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
             {
-                await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption, async () => {
-                    var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
-                    await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
-                    return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
-                });
+                editIndex++;
+                string suffix = editIndex == 1 ? "edit" : "edit2";
+                var beforeEdit = await Backend();
+                if (options.ApplySupportedEdits)
+                    await Step("Verify edit base:" + editIndex, () => {
+                        CheckEditState(beforeEdit, edit, false); return Task.FromResult<object?>(true);
+                    });
+                await SaveState("before-" + suffix + "-state.json", beforeEdit);
+                await CaptureEditTrace("before-" + suffix + "-trace.json");
+                try
+                {
+                    await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption + (editIndex == 1 ? "" : ":2"), async () => {
+                        var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
+                        await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
+                        return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
+                    });
+                }
+                finally { await CaptureEditTrace("after-" + suffix + "-trace.json"); }
+                var afterEdit = await Backend();
+                await SaveState("after-" + suffix + "-state.json", afterEdit);
+                if (options.ApplySupportedEdits)
+                    await Step("Verify applied routine:" + editIndex, () => {
+                        CheckEditState(afterEdit, edit, true); CheckPreserved(beforeEdit, afterEdit, false, edit.XPath);
+                        return Task.FromResult<object?>(true);
+                    });
+                if (options.ReconnectEdits)
+                {
+                    await Step("GoOfflineAsync:edit" + editIndex, async () => { await project!.GoOfflineAsync(); return true; });
+                    await Step("ReadConnectedStateAsync:edit" + editIndex, async () => {
+                        var state = await project!.ReadConnectedStateAsync();
+                        if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("SDK did not report Offline between edits");
+                        return state.ToString();
+                    });
+                    await Step("GoOnlineAsync:edit" + editIndex, async () => { await project!.GoOnlineAsync(); return true; });
+                    await Step("Verify reconnected edited project:" + editIndex, async () => {
+                        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Online)
+                            throw new InvalidOperationException("SDK did not report Online after edit");
+                        await CheckMode("Program");
+                        var connected = await Backend();
+                        await SaveState("after-reconnect-" + editIndex + "-state.json", connected);
+                        CheckEditState(connected, edit, true); CheckPreserved(afterEdit, connected, true);
+                        return true;
+                    });
+                }
             }
-            finally { await CaptureEditTrace("after-edit-trace.json"); }
         }
         if (options.Operation == "modes")
         {
@@ -284,8 +360,10 @@ return passed ? 0 : 1;
 
 sealed record Options(string Project, string SourceSha256, string CommunicationsPath, string Operation, string[] Tags,
                       string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null,
-                      string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false);
-sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption);
+                      string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
+                      EditOptions? SecondEdit = null, bool ReconnectEdits = false);
+sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption,
+                          long? BaseRevision = null, JsonElement? BeforeRungs = null, JsonElement? ExpectedRungs = null);
 sealed class Capture : IOperationEvent
 {
     public ConcurrentQueue<object> Events { get; } = new();

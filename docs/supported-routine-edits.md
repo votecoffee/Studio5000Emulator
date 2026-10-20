@@ -76,3 +76,24 @@ unchanged. The running main instance is separate from this isolated test.
 An earlier private empty-success `0x59` hypothesis completed the SDK import
 without changing model logic. That diagnostic is not activation evidence; the
 result above verifies the actual routine replacement and its execution.
+
+### Consecutive edits and reconnect
+
+Version `.90` tests two inserts using the same open SDK project. One isolated
+case goes Offline/Online after each import and succeeds across 315 verified
+signed requests. A separate case remains online between imports and succeeds
+across 159. Both reach revision 2, retaining the two new rungs and the original
+nine, with unchanged values and scan/time history at each application. Each
+case confirms final Offline and endpoint cleanup without a fatal SDK fault.
+
+The continuously connected case inserts `MOV(123,SpeedSetpoint);` and then
+`MOV(456,Parts.PRE);`. One subsequent emulator scan changes the setpoint from
+50 to 123 and the counter preset from 5 to 456. This also exercises a supported
+native member reference. Both cases produce the same runtime logic digest.
+The original ACD and the separate main demo remain unchanged.
+
+Reconnect here means the same open, updated SDK project going Offline/Online.
+Reopening an original ACD with stale logic, saving an edited ACD, upload/download
+and Studio GUI editing are separate unverified paths. The native diagnostic
+requires revision 0 before opening its fresh ACD copy, preventing a new test
+from unintentionally replacing prior in-memory edits with stale project logic.

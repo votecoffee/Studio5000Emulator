@@ -70,6 +70,11 @@ A native SDK rung import now replaces the translated routine in the execution
 model; the inserted instruction executes on the next scan. The webpage exposes
 edit access and an in-memory logic revision. Original ACD/L5X files are preserved.
 The `.89` Windows milestone runs 1,263 tests successfully with two platform skips.
+Version `.90` verifies two accepted rung imports in the same SDK project, both
+while remaining online and with Offline/Online between imports. Both edits
+remain active and execute on the next scan; the logic revision advances twice.
+The [native diagnostic](docs/development.md#native-sdk-acceptance-probe) checks
+each intermediate routine and reconnection against the expected logic.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio
