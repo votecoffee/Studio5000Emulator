@@ -57,6 +57,19 @@ class NetworkObjectTests(unittest.TestCase):
         self.assertEqual(self.send(0xF4, 2, 4)[4:], b'\x0bEtherNet/IP')
         self.assertEqual(self.send(0xF5, 0, service=1)[4:], b'\1\0\1\0\1\0')
 
+    def test_embedded_http_status_is_disabled_without_network_queries_or_setters(self):
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.endpoint.allow_writes=True
+        with patch('logixlab.ethernetip.interface_snapshot',side_effect=AssertionError('Unneeded interface query')):
+            for attr in (101,102):
+                self.assertEqual(self.send(0xF5,0,attr),bytes.fromhex('8e00000000'))
+                self.assertEqual(self.send(0xF5,0,attr,service=0x10,data=b'\1')[2],8)
+                self.assertEqual(self.send(0xF5,0,attr,data=b'\0')[2],0x15)
+            data=struct.pack('<4H',3,102,101,102)
+            self.assertEqual(self.send(0xF5,0,service=3,data=data),bytes.fromhex('830000000300660000000065000000006600000000'))
+            self.assertEqual(self.send(0xF5,0,service=1)[4:],b'\1\0\1\0\1\0')
+        self.assertEqual(self.app.engine.memory.values,before)
+
     def test_port_node_addresses_use_the_selected_endpoint_and_slot_zero(self):
         self.assertEqual(self.send(0xF4, 1, 7)[4:], b'\1\0')
         self.endpoint.bind_address = '192.0.2.128'

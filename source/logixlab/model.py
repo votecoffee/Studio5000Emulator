@@ -11,6 +11,7 @@ from pathlib import Path
 from .controller_configuration import ControllerConfiguration
 from .motion_catalog import MotionCatalog
 from .alarm_catalog import AlarmCatalog
+from .aoi_catalog import AOICatalog
 from .hmi_button_catalog import HmiButtonCatalog
 from .energy_catalog import EnergyCatalog
 from .message_catalog import MessageCatalog
@@ -295,6 +296,7 @@ class Project:
         if c is None: raise ModelError("Controller element is missing")
         self.motion_catalog = MotionCatalog.from_source(root, c)
         self.alarm_catalog = AlarmCatalog.from_source(root, c)
+        self.aoi_catalog = AOICatalog.from_source(root, c)
         self.hmi_button_catalog = HmiButtonCatalog.from_source(root, c)
         self.energy_catalog = EnergyCatalog.from_source(root, c)
         self.message_catalog = MessageCatalog.from_source(root, c)

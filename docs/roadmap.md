@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.56` adds driver-backed Ethernet Link counter structures for
+Current milestone: `.57` adds source-checked empty I/O Map, tag-alarm and
+Add-On Instruction definition discovery to the native read policy, plus
+embedded-server status. The SDK accepts those reads; upload still fails
+controller collection. See [native inventory discovery](native-inventory.md).
+
+Version `.56` adds driver-backed Ethernet Link counter structures for
 the tested Linux `e1000e` interface. Normal-source SDK upload now accepts that
 list and reaches the incomplete Time Sync object. Full upload/download and
 native tag/rung monitoring remain unfinished.

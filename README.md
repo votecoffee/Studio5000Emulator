@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.56`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.57`. Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -83,6 +83,8 @@ using private ACD copies and reports.
 The Linux appliance also exposes a documented subset of
 [Ethernet diagnostic counters](docs/ethernet-counters.md) from its virtual NIC
 driver, with unavailable diagnostic fields identified in the API.
+Read-only [native inventory discovery](docs/native-inventory.md) now covers
+source-checked empty I/O, alarm and Add-On Instruction catalogs.
 
 ## Usage
 

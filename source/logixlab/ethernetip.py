@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, native_session, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -185,7 +185,7 @@ class Router:
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (*energy_catalog.CLASSES,0x68,0x6A,0x6B,0x6C,0x8D,0xB0,0xB1,0x32B,0x331,0x332,0x349,0x36E) or
+                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E) or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -609,8 +609,12 @@ class Router:
                 raise CIPError(4,'This instance list requires a global class path')
             if path.class_id in (0xB0,0xB1,0x32B) and not self.app.engine.project.motion_catalog.empty:
                 raise CIPError(0x0C,'Motion catalog is nonempty or unavailable from this source')
-            if path.class_id in (0x331,0x332) and not self.app.engine.project.alarm_catalog.empty:
+            if path.class_id in alarm_catalog.CLASSES and not self.app.engine.project.alarm_catalog.empty:
                 raise CIPError(0x0C,'Alarm catalog is nonempty or unavailable from this source')
+            if path.class_id==0x338 and not self.app.engine.project.aoi_catalog.empty:
+                raise CIPError(0x0C,'AOI definition catalog is nonempty or unavailable from this source')
+            if path.class_id==0x69 and not self.app.engine.project.io_map.empty:
+                raise CIPError(0x0C,'I/O Map catalog is nonempty or unavailable from this source')
             if path.class_id==0x36E and not self.app.engine.project.hmi_button_catalog.empty:
                 raise CIPError(0x0C,'HMI Button Control catalog is nonempty or unavailable from this source')
             if path.class_id in energy_catalog.CLASSES and not self.app.engine.project.energy_catalog.empty:
@@ -716,7 +720,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,0x331,0x332,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -731,8 +735,12 @@ class Router:
                     exact(data,0);return 0,b''.join(attributes.values())
             elif instance==0:
                 attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+                if path.class_id==0xF5:
+                    # No embedded HTTP service on the PLC interface. The
+                    # separate local management UI is not this service.
+                    attributes.update({101:b'\0',102:b'\0'})
                 if service==1 and path.attribute is None:
-                    exact(data,0);return 0,b''.join(attributes.values())
+                    exact(data,0);return 0,b''.join(attributes[n] for n in (1,2,3))
             elif instance==1 and path.class_id==0xF6:
                 attributes={}
                 if service==0x4C and path.attribute in (4,5):
@@ -778,8 +786,9 @@ class Router:
         if path.class_id==0x69:
             if path.symbols or path.program_instance is not None or path.instance is None:
                 raise CIPError(4,'I/O Map status requires a controller-scoped instance path')
+            if service==0x4B:return self.instance_list(path,data,limit)
             if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
-            return self.attribute_read(service,path,data,{1:b'\1\0',**self.app.engine.project.io_map.attributes()})
+            return self.attribute_read(service,path,data,self.app.engine.project.io_map.class_attributes())
         if path.class_id in energy_catalog.CLASSES:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only bounded empty energy inventory discovery is supported')
@@ -793,9 +802,12 @@ class Router:
         if path.class_id in (0xB0,0xB1,0x32B):
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty motion discovery is supported')
-        if path.class_id in (0x331,0x332):
+        if path.class_id in alarm_catalog.CLASSES:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty alarm discovery is supported')
+        if path.class_id==0x338:
+            if service==0x4B:return self.instance_list(path,data,limit)
+            raise CIPError(8,'Only source-checked empty AOI definition discovery is supported')
         if path.class_id==0x36E:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
@@ -1013,6 +1025,7 @@ class Endpoint:
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,
+                    'aoi_catalog':self.app.engine.project.aoi_catalog.description() if self.enabled else None,
                     'hmi_button_control':self.app.engine.project.hmi_button_catalog.description() if self.enabled else None,
                     'energy_catalog':self.app.engine.project.energy_catalog.description() if self.enabled else None,
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,

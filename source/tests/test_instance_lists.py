@@ -65,7 +65,7 @@ class InstanceListTests(unittest.TestCase):
     def test_bad_payload_paths_and_other_classes_cannot_mutate_state(self):
         before=copy.deepcopy(self.app.engine.memory.values)
         for path,data,status in ((bytes.fromhex('206b24003001'),b'',4),(bytes.fromhex('206b'),b'',4),
-                (bytes.fromhex('206c2400'),b'x',0x15),(bytes.fromhex('20692400'),b'',8),
+                (bytes.fromhex('206c2400'),b'x',0x15),(bytes.fromhex('20702400'),b'',8),
                 (bytes.fromhex('206c2400')+symbol_path('Anything'),b'',4)):
             self.assertEqual(self.call(path,data)[2],status)
         self.assertEqual(self.app.engine.memory.values,before)

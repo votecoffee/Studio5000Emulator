@@ -5,6 +5,12 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.57` adds [native inventory discovery](native-inventory.md) for
+source-checked empty I/O Map, tag-alarm and Add-On Instruction catalogs, plus
+read-only embedded-server status. A normal-source native SDK run accepts these
+reads and completes its connection/Offline sequence. Full upload still fails
+controller collection; native tag monitoring and programming remain unfinished.
+
 Version `.56` adds [driver-backed Ethernet counters](ethernet-counters.md) for
 the tested Linux `e1000e` interface. A deployed native SDK upload accepts
 the complete Ethernet Link list, continues through Extended Device, TCP/IP and

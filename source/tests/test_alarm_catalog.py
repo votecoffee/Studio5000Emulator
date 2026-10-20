@@ -1,11 +1,12 @@
 """Alarm discovery cannot conceal unsupported or incomplete source objects."""
 import copy
+import struct
 from pathlib import Path
 import tempfile
 import unittest
 from xml.etree import ElementTree as E
 
-from logixlab.alarm_catalog import AlarmCatalog
+from logixlab.alarm_catalog import AlarmCatalog, CLASSES
 from logixlab.ethernetip import Endpoint, Session, symbol_path
 from logixlab.model import Project
 from logixlab.server import Application
@@ -30,7 +31,7 @@ class AlarmCatalogTests(unittest.TestCase):
 
     def test_alarm_free_source_has_empty_global_catalogs_with_any_cursor(self):
         self.assertTrue(self.catalog(self.root).empty)
-        for class_id in (0x331,0x332):
+        for class_id in CLASSES:
             for cursor in (0,1,0xFFFFFFFF):
                 path=b'\x21\0'+class_id.to_bytes(2,'little')+b'\x26\0'+cursor.to_bytes(4,'little')
                 self.assertEqual(self.call(path),b'\xCB\0\0\0')
@@ -50,10 +51,15 @@ class AlarmCatalogTests(unittest.TestCase):
                     self.assertFalse(self.catalog(root).empty)
 
     def test_alarm_data_and_parameters_are_detected_before_runtime_filtering(self):
-        for mode in ('format','digital','analog','config','namespaced'):
+        for mode in ('format','digital','analog','config','namespaced', 'definition', 'set', 'condition',
+                     'tag-based', 'protected', 'encoded-format', 'encoded-attribute'):
             root=copy.deepcopy(self.root);tag=root.find('./Controller/Tags/Tag')
             if mode=='format':E.SubElement(tag,'Data',Format='Alarm')
-            else:E.SubElement(tag,{'digital':'AlarmDigitalParameters','analog':'AlarmAnalogParameters','config':'AlarmConfig','namespaced':'{urn:extra}AlarmConfig'}[mode])
+            elif mode=='encoded-format':E.SubElement(tag,'Data',Format='Encoded')
+            elif mode=='encoded-attribute':tag.set('ProtectedData','hidden')
+            else:E.SubElement(tag,{'digital':'AlarmDigitalParameters','analog':'AlarmAnalogParameters','config':'AlarmConfig','namespaced':'{urn:extra}AlarmConfig',
+                                  'definition':'AlarmDefinitions','set':'AlarmSet','condition':'AlarmConditionDefinition','tag-based':'TagBasedAlarm',
+                                  'protected':'ProtectedContent'}[mode])
             self.assertFalse(self.catalog(root).empty)
 
     def test_incomplete_or_ambiguous_source_does_not_prove_empty(self):
@@ -82,16 +88,16 @@ class AlarmCatalogTests(unittest.TestCase):
         tag=self.root.find('./Controller/Tags/Tag');tag.set('DataType','ALARM_DIGITAL')
         path=Path(self.tmp.name)/'alarm.L5X';E.ElementTree(self.root).write(path)
         self.app.engine.project=Project(path)
-        for target in ('210031032400','210032032400'):
-            self.assertEqual(self.call(bytes.fromhex(target))[2],0x0C)
+        for class_id in CLASSES:
+            self.assertEqual(self.call(bytes.fromhex('2100')+struct.pack('<H',class_id)+bytes.fromhex('2400'))[2],0x0C)
         self.assertIsNone(self.app.engine.project.alarm_catalog.description()['instance_count'])
         self.app.command('demo',{'sample':'ConveyorDemo'})
         self.assertEqual(self.call(bytes.fromhex('210031032400')),b'\xCB\0\0\0')
 
     def test_scoped_paths_payloads_and_mutations_are_rejected_without_state_changes(self):
         before=copy.deepcopy(self.app.engine.memory.values)
-        for class_id in ('3103','3203'):
-            path=bytes.fromhex('2100'+class_id+'2400')
+        for class_id in CLASSES:
+            path=bytes.fromhex('2100')+struct.pack('<H',class_id)+bytes.fromhex('2400')
             for target,data,service,status in ((path[:-2],b'',0x4B,4),(path+b'\x30\1',b'',0x4B,4),
                     (path,b'\0',0x4B,0x15),(symbol_path('Program:MainProgram')+path,b'',0x4B,4),
                     (path,b'',0x0E,8),(path,b'\0',0x10,8)):

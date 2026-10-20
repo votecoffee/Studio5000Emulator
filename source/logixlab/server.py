@@ -57,7 +57,7 @@ class Application:
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,
+            'controller_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}

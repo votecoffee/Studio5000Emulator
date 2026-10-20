@@ -1,4 +1,4 @@
-"""Empty Digital/Analog Alarm discovery backed by complete L5X source.
+"""Empty instruction and tag-based alarm discovery from complete L5X source.
 
 ALARM_DIGITAL and ALARM_ANALOG tags use Data@Format="Alarm" and
 AlarmDigitalParameters / AlarmAnalogParameters (1756-RM014, chapter 6).
@@ -6,6 +6,9 @@ Nonempty catalogs, alarm configuration and alarm execution are not modeled.
 """
 from dataclasses import dataclass
 from .tag_catalog import complete_tag_source
+
+
+CLASSES = (0x331, 0x332, 0x3A6, 0x3A7, 0x3A8)
 
 
 @dataclass(frozen=True)
@@ -20,9 +23,12 @@ class AlarmCatalog:
         # alarm types must not vanish when runtime tags are filtered out.
         for node in controller.iter():
             name = node.tag.rsplit('}', 1)[-1].lower()
-            if (node.get('DataType', '').upper() in ('ALARM_DIGITAL', 'ALARM_ANALOG')
-                    or node.get('Format', '').lower() == 'alarm'
-                    or name in ('alarmdigitalparameters', 'alarmanalogparameters', 'alarmconfig')):
+            if (node.get('DataType', '').upper().startswith('ALARM_')
+                    or any(word in node.get('Format', '').lower()
+                           for word in ('alarm', 'encoded', 'encrypted', 'protected'))
+                    or any(word in name for word in ('alarm', 'encoded', 'encrypted', 'protected'))
+                    or any(any(word in key.lower() for word in ('encoded', 'encrypted', 'protected'))
+                           for key in node.attrib)):
                 return cls(False)
         return cls(True)
 
@@ -30,5 +36,6 @@ class AlarmCatalog:
         return {'empty_catalog_available': self.empty,
                 'instance_count': 0 if self.empty else None,
                 'source': 'complete Controller L5X alarm tags and configuration',
+                'class_ids': list(CLASSES),
                 'instance_list': self.empty, 'alarm_configuration': False,
                 'alarm_execution': False}

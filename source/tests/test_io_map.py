@@ -1,5 +1,6 @@
 """Empty I/O status must not conceal configured or ambiguous module source."""
 import base64
+import copy
 from pathlib import Path
 import tempfile
 import unittest
@@ -57,4 +58,32 @@ class IOMapTests(unittest.TestCase):
                 app.command('load',{'name':'io.L5X','content':base64.b64encode(E.tostring(root)).decode()})
                 self.assertEqual(endpoint.router.handle(query,Session()),bytes.fromhex('83000a000200090014000b001400'))
                 self.assertEqual(endpoint.router.handle(bytes.fromhex('0e03206924013009'),Session())[2],5)
+            finally:app.close()
+
+    def test_empty_instance_lists_counts_and_cursors_require_source_proof(self):
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'})
+            endpoint=Endpoint(app,0,True)
+            try:
+                before=copy.deepcopy(app.engine.memory.values)
+                for path in ('20692400','20692401','20692600ffffffff'):
+                    raw=bytes.fromhex(path)
+                    self.assertEqual(endpoint.router.handle(bytes((0x4B,len(raw)//2))+raw,Session()),bytes.fromhex('cb000000'))
+                query=bytes.fromhex('030220692400020002000300')
+                self.assertEqual(endpoint.router.handle(query,Session()),bytes.fromhex('83000000020002000000000000000300000000000000'))
+                app.engine.project.io_map=IOMap(False)
+                self.assertEqual(endpoint.router.handle(bytes.fromhex('4b0220692400'),Session())[2],0x0C)
+                self.assertEqual(endpoint.router.handle(query,Session()),bytes.fromhex('83000a0002000200140003001400'))
+                self.assertEqual(app.engine.memory.values,before)
+            finally:app.close()
+
+    def test_discovery_rejects_scopes_payloads_and_mutations(self):
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'})
+            endpoint=Endpoint(app,0,True)
+            try:
+                for raw,status in (('4b012069',4),('4b03206924003001',4),('4b022069240000',0x15),
+                                   ('4b042068240120692400',4),('100320692400300301000000',8)):
+                    self.assertEqual(endpoint.router.handle(bytes.fromhex(raw),Session())[2],status)
+                self.assertEqual(app.engine.scan_count,0)
             finally:app.close()

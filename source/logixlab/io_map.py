@@ -49,7 +49,13 @@ class IOMap:
         # No installed/enabled I/O forces; LED 0 means no Module objects.
         return {9:bytes(2), 11:bytes(2)} if self.empty else {}
 
+    def class_attributes(self):
+        # I/O Map maximum ID and count are UDINTs. The Local controller module
+        # is not an external I/O Map connection instance.
+        return {1:b'\1\0', **({2:bytes(4), 3:bytes(4), **self.attributes()} if self.empty else {})}
+
     def description(self):
         return {'empty_status_available':self.empty, 'force_status':0 if self.empty else None,
                 'led_status':0 if self.empty else None, 'source':'Complete L5X with no external I/O modules',
+                'instance_count':0 if self.empty else None, 'instance_list':self.empty,
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

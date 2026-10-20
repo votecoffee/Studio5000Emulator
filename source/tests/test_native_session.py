@@ -132,7 +132,7 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(6,bytes.fromhex('4b02206b2400'))[2],0)
         self.assertEqual(self.signed(7,bytes.fromhex('4c03210049032400'))[2],0x0F)
         self.assertEqual(self.signed(8,bytes.fromhex('4b02206a2400'))[2],0)
-        self.assertEqual(self.signed(9,bytes.fromhex('4b0220692400'))[2],0x0F)
+        self.assertEqual(self.signed(9,bytes.fromhex('4b0220692400')),bytes.fromhex('cb000000'))
         self.assertEqual(self.app.engine.memory.values,before)
 
     def test_signed_scalar_symbol_descriptor_list_and_setter_boundary(self):
@@ -182,6 +182,28 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(5,bytes.fromhex('1003204324013003')+bytes(8))[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
         self.assertEqual((self.app.engine.time_ms,self.app.engine.scan_count),(0,0))
+
+    def test_signed_upload_inventory_reads_are_source_checked_and_keep_writes_denied(self):
+        from logixlab.alarm_catalog import AlarmCatalog
+        from logixlab.aoi_catalog import AOICatalog
+        from logixlab.io_map import IOMap
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        requests=('4b0220692400','4b032100a6032400','4b032100a7032400',
+                  '4b032100a8032400','4b03210038032400')
+        sequence=4
+        for raw in requests:
+            self.assertEqual(self.signed(sequence,bytes.fromhex(raw)),bytes.fromhex('cb000000'));sequence+=1
+        self.assertEqual(self.signed(sequence,bytes.fromhex('030220f52400020065006600')),
+                         bytes.fromhex('83000000020065000000006600000000'));sequence+=1
+        self.app.engine.project.alarm_catalog=AlarmCatalog(False)
+        self.app.engine.project.aoi_catalog=AOICatalog(False)
+        self.app.engine.project.io_map=IOMap(False)
+        for raw in requests:
+            self.assertEqual(self.signed(sequence,bytes.fromhex(raw))[2],0x0C);sequence+=1
+        for raw in ('100320f52400306501','100320692400300300000000','4c03210038032400'):
+            self.assertEqual(self.signed(sequence,bytes.fromhex(raw))[2],0x0F);sequence+=1
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
 
     def test_signed_extended_device_defaults_do_not_authorize_an_operator_or_writes(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
