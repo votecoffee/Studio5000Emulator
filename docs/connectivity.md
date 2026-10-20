@@ -11,6 +11,15 @@ until cleared or the owning lease ends. The native download probe now reaches
 Controller service `0x60`, which remains unsupported. Project transfer and
 native tag-address discovery remain unfinished.
 
+The rebuilt `.61` endpoint passes 263 wire checks and the SDK's nine-step
+connection/Offline cleanup sequence with 81 verified signed requests. Tag reads
+and upload still fail address discovery and controller collection, respectively,
+across 83 and 197 requests. Download verifies 104 requests, accepts the inhibit
+write, then fails `RxCsE_ASA_NO_PERMISSION` at service `0x60`. Each probe confirms
+Offline cleanup, with source bytes and modeled state preserved. The final lease
+is free and its inhibit mask is zero. See
+[Run Mode Inhibit validation](run-mode-inhibit.md#validation-and-next-gap).
+
 Version `.60` adds [native programming coordination](programming-coordination.md).
 The SDK can acquire and release a session-owned Semaphore lease and read the
 supported Local controller's source-backed link address. The normal-source

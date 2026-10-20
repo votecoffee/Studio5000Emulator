@@ -58,6 +58,19 @@ accepts the Run Mode Inhibit write, fails `RxCsE_ASA_NO_PERMISSION` at Controlle
 service `0x60`, then releases the lease and confirms Offline cleanup. Source
 bytes, modeled values and scan count are preserved.
 
+The packaged and deployed `.61` runtime and served browser assets match the
+committed source. Its 263 wire checks pass. The public SDK completes all nine
+connection/Offline steps with 81 verified signed requests. Tag and upload probes
+verify 83 and 197 requests, respectively: tag reads still fail online-address
+discovery before sending tag-read packets, and upload still fails controller
+collection after accepting twelve scalar reads and their Symbol descriptors.
+A rebuilt-runtime download probe reproduces the 104-request inhibit-write
+acceptance and service `0x60` failure. All probes confirm Offline cleanup; the
+final endpoint has no TCP clients, a free lease, zero inhibit mask and scan count
+zero. Original ACD bytes, tag values and model time are preserved. FactoryTalk
+Linx and the Logix Designer SDK service remained running. Studio GUI monitoring,
+complete native upload/download and online edits remain unverified or unsupported.
+
 Private substitutions for `0x60` and Download In Progress (attribute `26`) left
 the SDK polling until bounded timeouts. Those substitutions and an unverified
 begin/abort prototype are not shipped. The service response and status contract

@@ -8,7 +8,7 @@ and executable use the name **LogixLab**.
 
 **Status: experimental. The native v35 SDK can Go Online to the tested demo in
 anonymous read-only mode, read its connected state and Program mode, then Go
-Offline.** This sequence was reverified on `.58`. Native SDK tag reads still fail
+Offline.** This sequence was reverified on `.61`. Native SDK tag reads still fail
 online address discovery. Native upload/download and online edits are unsupported;
 tested attempts fail. Studio
 5000 GUI monitoring remains unverified.
@@ -95,8 +95,9 @@ session's temporary scan guard and cleanup. Download preparation now reaches
 the unsupported Controller service `0x60`.
 Full native upload/download and online tag monitoring remain unfinished.
 The 845-test suite passes on Windows and Linux with expected platform skips;
-the running `.60` endpoint previously passed 259 wire checks. Current SDK upload, tag-read
-and download probes still fail their native acceptance steps.
+the rebuilt `.61` endpoint passes 263 wire checks and the SDK connection/Offline
+sequence. Current SDK upload, tag-read and download probes still fail their
+native acceptance steps.
 
 ## Usage
 
