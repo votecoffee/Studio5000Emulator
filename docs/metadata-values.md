@@ -69,6 +69,20 @@ Resilient Transport class `0x412`, instance `0`, which remains denied, and repor
 `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`. Cleanup returns Offline with empty staging,
 source hashes and modeled state preserved, and scan count/model time zero.
 
+The rebuilt and deployed `.67` runtime reproduces that 158-request download
+sequence and passes 284 wire checks. Deployed modules and packaged/served browser
+assets match source. The public SDK probe completes all nine connection/Offline
+steps with 81 verified requests. Tag reads still fail online-address discovery
+across 83 requests; upload still fails controller collection across 197 requests,
+after accepting twelve scalar reads and their Symbol descriptors. These are
+observed counts for the recorded runs.
+
+All four public probes confirm SDK Offline and endpoint cleanup through the
+stronger staging checks. Final state has no TCP clients, no staged names or
+values, idle preparation, a free lease, zero scan inhibit and scan count zero.
+Original/copy hashes and modeled state are preserved. FactoryTalk Linx and the
+Logix Designer SDK service remained running.
+
 Next work must establish the Resilient Transport contract and bounded device
 preparation before further transfer stages. Full upload/download, compiled tag
 addresses, Studio GUI monitoring and online edits remain unfinished. Private

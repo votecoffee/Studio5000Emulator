@@ -97,6 +97,12 @@ results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
 
+The `.67` suite runs 901 tests, with two Windows skips and one Linux skip.
+The rebuilt endpoint passes 284 wire checks and the nine-step connection/Offline
+probe. Download stages 432 definition values before failing at unsupported
+Resilient Transport setup. All four probes confirm empty staging, cleanup and
+unchanged source/model state. See [current value validation](metadata-values.md#validation-and-next-boundary).
+
 The `.66` suite runs 887 tests, with two Windows skips and one Linux skip.
 The rebuilt endpoint passes 281 wire checks and the nine-step connection/Offline
 probe. Download accepts 23 staged definitions and fails at the unsupported

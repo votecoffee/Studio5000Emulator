@@ -11,6 +11,13 @@ resource bounds and complete cleanup. Active project values remain unchanged.
 The final-source SDK attempt reaches Resilient Transport class `0x412` setup,
 which remains denied; full native download is unfinished.
 
+The rebuilt `.67` endpoint passes 284 wire checks and the nine-step public SDK
+connection/Offline probe. Download verifies 158 requests, accepts 41 metadata
+value packets into temporary staging and fails `RxCsE_DOWNLOAD_OF_DEVICES_FAILED`
+at Resilient Transport setup. All four probe cases confirm Offline and empty
+staging with source/model state preserved. See
+[deployed value validation](metadata-values.md#validation-and-next-boundary).
+
 Version `.66` adds [metadata-definition staging](metadata-staging.md).
 Prepared owners can create/delete bounded temporary definition names. The
 final-source SDK attempt accepts 23 definitions and reaches a rejected
