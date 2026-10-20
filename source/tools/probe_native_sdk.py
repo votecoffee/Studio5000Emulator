@@ -95,6 +95,13 @@ def validate_staging(lease):
                 name!='metadata_staging' or stage.get('values_transfer') is not True or
                 stage.get('values_scope')!='staged_definitions' or stage.get('active_values_transfer') is not False):
             raise ValueError('Metadata values must remain scoped to temporary definitions')
+    if 'resilient_transport' in lease:
+        stage=lease['resilient_transport']
+        if (not isinstance(stage,dict) or stage.get('open') is not False
+                or type(stage.get('buffer_bytes')) is not int or stage['buffer_bytes']!=0
+                or stage.get('buffer_allocated') is not False or stage.get('payload_transfer') is not False
+                or stage.get('commit') is not False):
+            raise ValueError('Probe requires closed Resilient Transport and disabled payload transfer')
     if ('preparation_state' in lease and lease['preparation_state']!='idle' or
             'preparation_status' in lease and (type(lease['preparation_status']) is not int or lease['preparation_status']!=0)):
         raise ValueError('Probe requires idle programming preparation')

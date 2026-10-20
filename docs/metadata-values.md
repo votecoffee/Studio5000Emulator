@@ -1,5 +1,8 @@
 # Staged metadata-definition values
 
+This records the `.67` milestone. See [Resilient Transport setup](resilient-transport.md)
+for the current native-download boundary.
+
 Version `0.6.0-connectivity.67` accepts a bounded subset of `0x4F` value proposals
 for temporary Metadata Definition objects. The tested SDK advances to Resilient
 Transport setup. Active project properties, library binaries and project commit

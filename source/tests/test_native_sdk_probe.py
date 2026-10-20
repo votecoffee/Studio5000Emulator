@@ -105,6 +105,18 @@ class NativeSdkProbeTests(unittest.TestCase):
             state=self.state();del state['connectivity']['native_programming_lease'][field]
             with self.subTest(missing=field),self.assertRaises(ValueError):validate_idle(state)
 
+    def test_transport_admission_and_cleanup_require_closed_empty_disabled_state(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();lease=state['connectivity']['native_programming_lease']
+        lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
+        for field,value in (('open',True),('buffer_bytes',1),('buffer_bytes',False),
+                ('buffer_allocated',True),('payload_transfer',True),('commit',True)):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport'][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(ValueError):validate_idle(proposed)
+        for value in (None,{},'unknown'):
+            proposed=copy.deepcopy(state);proposed['connectivity']['native_programming_lease']['resilient_transport']=value
+            with self.assertRaises(ValueError):validate_idle(proposed)
+
     def test_async_tcp_close_and_lease_release_finish_before_cleanup_is_confirmed(self):
         connected=self.state();connected['connectivity']['active_tcp_clients']=1
         owned=self.state();owned['connectivity']['native_programming_lease'].update(owned=True,run_mode_inhibit=1,scan_inhibited=True)

@@ -66,8 +66,9 @@ project-transfer authority remains disabled. Its temporary coordination lease
 and Run Mode Inhibit can be exercised. Version `.64` adds owner-scoped
 [preparation](programming-preparation.md) and retention of source-established
 disabled redundancy. Full native download is unfinished; the current
-implementation stages supported definition values and rejects Resilient Transport
-setup on class `0x412`. Library-data and active metadata writes remain unsupported.
+implementation stages supported definition values and accepts temporary
+[Resilient Transport setup](resilient-transport.md) on class `0x412`. Segmented
+device data, library-data and active metadata writes remain unsupported.
 This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
@@ -84,7 +85,8 @@ values. SDK results include each step, error types/messages, timings and
 timestamped events. Exit zero requires the requested steps to succeed, cleanup
 to confirm Offline, endpoint cleanup and source/model checks to pass. Endpoint
 cleanup passively waits up to eight seconds for asynchronous socket closure,
-lease release, a zero inhibit mask and empty advertised descriptor/value stages.
+lease release, a zero inhibit mask, closed Resilient Transport setup and empty
+advertised descriptor/value stages.
 Admission also checks those stages and rejects active transfer/commit authority.
 `cleanup_confirmed` records that check;
 it does not turn an unsupported operation into a success. The source-copy hashes,
@@ -96,6 +98,11 @@ client traffic can contribute to the endpoint's request-count delta. These
 results do not establish Studio GUI monitoring or native controller equivalence.
 Reports hash the helper sources and runtime files, including its managed DLL;
 the .NET apphost EXE alone does not identify the executed implementation.
+
+The `.68` suite runs 910 tests, with two Windows skips and one Linux skip.
+The final-source candidate passes Resilient Transport setup and fails at an
+unsupported segmented device-data container. See the
+[transport contract and validation](resilient-transport.md#validation-and-next-boundary).
 
 The `.67` suite runs 901 tests, with two Windows skips and one Linux skip.
 The rebuilt endpoint passes 284 wire checks and the nine-step connection/Offline

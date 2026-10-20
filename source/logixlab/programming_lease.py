@@ -7,6 +7,7 @@ import math
 import time
 from .library_staging import LibraryStaging
 from .metadata_staging import MetadataStaging
+from .resilient_transport import ResilientTransport
 
 
 class LeaseError(ValueError):
@@ -20,6 +21,7 @@ class ProgrammingLease:
         self.clock=clock
         self.libraries=LibraryStaging()
         self.metadata=MetadataStaging()
+        self.transport=ResilientTransport()
         self.clear()
 
     def clear(self):
@@ -28,7 +30,7 @@ class ProgrammingLease:
         self.clear_staging()
 
     def clear_staging(self):
-        self.libraries.clear();self.metadata.clear()
+        self.libraries.clear();self.metadata.clear();self.transport.clear()
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -97,6 +99,7 @@ class ProgrammingLease:
                 'preparation_status':2 if owned and self.prepared else 0,
                 'library_staging':self.libraries.description(),
                 'metadata_staging':self.metadata.description(),
+                'resilient_transport':self.transport.description(),
                 'remaining_ms':max(0,math.ceil((self.owner.deadline-self.clock())*1000)) if owned else 0,
                 'owner_identity_exposed':False,'project_transfer':False,'online_edits':False,
                 'controller_mode_changes':False,'tag_write_authority':False}

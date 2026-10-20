@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -244,6 +244,21 @@ class Router:
                     lease.metadata.stage_values(payload,path.instance)
                     self.endpoint.counts['native_metadata_value_packets']+=1
                 return reply(inner[0])
+            if inner[0] in (0x4B,9) and path.class_id==0x412:
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance!=0:return reject(5,'invalid_request')
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if inner[0]==0x4B:lease.transport.open(payload)
+                    else:exact(payload,0);lease.transport.clear()
+                    self.endpoint.counts['native_transport_'+('setup' if inner[0]==0x4B else 'delete')]+=1
+                return reply(inner[0])
             if inner[0] in (0x60,0x62) and path.class_id==0x8E:
                 if (path.attribute is not None or path.symbols or path.program_instance is not None
                         or path.io_map_instance is not None or path.controller_instance is not None):
@@ -306,7 +321,7 @@ class Router:
         except CIPError as error:return reject(error.status,'invalid_request')
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
         except programming_lease.LeaseError as error:return reject(error.status,error.reason)
-        except (library_staging.LibraryError,metadata_staging.MetadataError) as error:return reject(error.status,error.reason)
+        except (library_staging.LibraryError,metadata_staging.MetadataError,resilient_transport.TransportError) as error:return reject(error.status,error.reason)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:
