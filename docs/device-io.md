@@ -144,6 +144,14 @@ cache valid. Native Studio/SDK monitoring remains separate work.
 
 ## Validation
 
+The `.93` [native edit test](supported-routine-edits.md#cpt-and-conditional-arithmetic)
+also exercises the direct HTTP interface against an edited execution model.
+Queued setpoint/button updates remain absent from snapshots until a scan.
+The next scans produce the expected CPT/conditional-arithmetic outputs and
+applied receipts identifying each boundary. External writes are disabled after
+the isolated test. This validates that integration case; native SDK tag-address
+discovery and MQTT transport acceptance remain separate checks.
+
 The standard suite tests reader independence from the runtime lock, consistent
 snapshots, queue bounds, expiry, atomic rollback, access checks, idempotency,
 source changes and scoped HTTP tokens. The optional real-broker check starts an
