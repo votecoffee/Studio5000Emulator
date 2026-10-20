@@ -63,8 +63,10 @@ Use `--operation upload` for a separate upload attempt. Version `.63` adds
 `--operation download` to call the public SDK's `DownloadAsync` against that same
 source-bound endpoint. This tests programming preparation while the endpoint's
 project-transfer authority remains disabled. Its temporary coordination lease
-and Run Mode Inhibit can be exercised; full native download is unfinished and
-the current implementation rejects Controller service `0x60`. This expected
+and Run Mode Inhibit can be exercised. Version `.64` adds owner-scoped
+[preparation](programming-preparation.md) and retention of source-established
+disabled redundancy. Full native download is unfinished; the current
+implementation rejects library Create on class `0x37D`. This expected
 SDK failure still produces exit code one. Upload/download probes reject `--tag`;
 online edits, tag setters and mode changes remain outside this tool.
 
@@ -151,7 +153,13 @@ separate from immutable source configuration. `Application.command('step')`
 checks it before applying device inputs or advancing logic. Keep cleanup paths
 and source-generation checks shared with lease ownership. See
 [Run Mode Inhibit](run-mode-inhibit.md) for the signed setter contract and the
-unimplemented Controller `0x60` programming boundary.
+scan/input-queue guards. The same lease owns `.64` preparation, which overlays
+Controller attribute `26`. Begin requires the inhibit; end clears preparation
+without clearing the inhibit. Attribute `9` acknowledgements require the owner
+to be prepared and retain a source-established disabled redundancy setting.
+Keep this coordination state independent of immutable configuration and future
+transfer staging. See [download preparation](programming-preparation.md) for
+the current library Create boundary and lifecycle tests.
 
 ## Device I/O
 

@@ -5,6 +5,13 @@ project's modeled memory. The native v35 SDK can connect to the tested demo in
 anonymous read-only mode. Studio GUI monitoring, upload/download, online edits
 and native debugger services remain unimplemented or unverified.
 
+Version `.64` adds [owner-scoped download preparation](programming-preparation.md).
+The lease owner can begin/end preparation and acknowledge source-established
+disabled redundancy without changing configuration. Single/list reads expose
+the same temporary Download In Progress status. The final-source SDK attempt
+advances to Create (`0x08`) on class `0x37D`, which remains denied. No native
+project/library transfer or commit is implemented.
+
 Version `.63` extends the [native SDK acceptance probe](development.md#native-sdk-acceptance-probe)
 with a repeatable download-preparation attempt. The endpoint must have no TCP
 clients, a free uninhibited lease and disabled programming authority before the
@@ -42,7 +49,7 @@ confirms Offline cleanup with its lease and inhibit cleared.
 Version `.61` adds an owner-scoped [Run Mode Inhibit](run-mode-inhibit.md).
 The accepted UINT mask is reflected in single/list reads and prevents scans
 until cleared or the owning lease ends. The native download probe now reaches
-Controller service `0x60`, which remains unsupported. Project transfer and
+Controller service `0x60`, which was unsupported in that revision. Project transfer and
 native tag-address discovery remain unfinished.
 
 The rebuilt `.61` endpoint passes 263 wire checks and the SDK's nine-step
@@ -204,7 +211,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | Attempt fails during scoped controller service setup | Programming session, transfer, validation and atomic model replacement |
+| Native download | `.64` accepts owner-scoped preparation and unchanged redundancy; library Create remains denied | Library staging, transfer, validation and atomic model replacement |
 | Native online edits | Connection succeeds; rung import fails in native Logix Services | Validated import preparation, edit sessions, test/assemble/rollback and change history |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template

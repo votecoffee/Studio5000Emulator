@@ -1,5 +1,9 @@
 # Native Run Mode Inhibit
 
+Version `.64` extends this guard with
+[owner-scoped download preparation](programming-preparation.md). The notes
+below record the `.61` milestone and its then-current service `0x60` boundary.
+
 Version `0.6.0-connectivity.61` implements a temporary software scan inhibit for
 the owner of a [native coordination lease](programming-coordination.md). The v35
 SDK writes Controller attribute `7` during download preparation. This revision
@@ -71,11 +75,10 @@ zero. Original ACD bytes, tag values and model time are preserved. FactoryTalk
 Linx and the Logix Designer SDK service remained running. Studio GUI monitoring,
 complete native upload/download and online edits remain unverified or unsupported.
 
-Private substitutions for `0x60` and Download In Progress (attribute `26`) left
-the SDK polling until bounded timeouts. Those substitutions and an unverified
-begin/abort prototype are not shipped. The service response and status contract
-remain unresolved; neither zero nor a nonzero trial establishes completion.
-Resolve that contract before adding validated transfer staging, atomic commit
-and rollback. The installed plain v35 Controller definition identifies attribute
+Initial private substitutions for `0x60` and Download In Progress (attribute `26`)
+left the SDK polling until bounded timeouts. Version `.64` adds a tested
+preparation state that advances to library Create; complete transfer staging,
+atomic commit and rollback remain unfinished. The installed plain v35
+Controller definition identifies attribute
 `7` as a UINT Run Mode Inhibit; vendor definitions and private traces are not
 distributed.

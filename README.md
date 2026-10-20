@@ -93,13 +93,17 @@ provides an exclusive session lease and a source-backed Local link-address read.
 Version `.63` adds a public SDK download-preparation probe and checks that
 its TCP clients, lease and scan inhibit clear after cleanup. The actual native
 programming service remains unfinished.
+Version `.64` adds [owner-scoped download preparation](docs/programming-preparation.md)
+and an acknowledgement that retains disabled redundancy from source. The SDK
+now advances to library-object creation, which remains denied pending transfer
+staging and rollback.
 Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
 including the actual app version in native Time Sync inventory reads.
 Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
-session's temporary scan guard and cleanup. Download preparation now reaches
-the unsupported Controller service `0x60`.
+session's temporary scan guard and cleanup. Its then-current download boundary
+was Controller service `0x60`, extended by `.64`.
 Full native upload/download and online tag monitoring remain unfinished.
-The 853-test suite passes on Windows and Linux with expected platform skips;
+The 861-test suite passes on Windows and Linux with expected platform skips;
 the rebuilt `.63` endpoint passes 268 wire checks and the SDK connection/Offline
 sequence. Current SDK upload, tag-read and download probes still fail their
 native acceptance steps.

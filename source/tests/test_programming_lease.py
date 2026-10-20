@@ -114,7 +114,7 @@ class SemaphoreSignedTests(unittest.TestCase):
         self.assertEqual(self.signed(4,ACQUIRE),bytes.fromhex('cb000000'))
         self.assertTrue(self.endpoint.state()['native_programming_lease']['owned'])
         self.assertEqual(self.signed(5,ACQUIRE),bytes.fromhex('cb000000'))
-        children=(bytes.fromhex('6202208e2401'),bytes.fromhex('100320ac2401300301000000'),RELEASE)
+        children=(bytes.fromhex('6102208e2401'),bytes.fromhex('100320ac2401300301000000'),RELEASE)
         raw=batch(children,sequence=6);raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
         response=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
         self.assertEqual([value[2] for value in response.children],[15,15,0])

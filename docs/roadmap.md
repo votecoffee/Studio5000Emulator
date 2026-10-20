@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.63` makes download-preparation checks repeatable through the
+Current milestone: `.64` adds [owner-scoped preparation](programming-preparation.md)
+and acknowledgement of unchanged disabled redundancy. The SDK now reaches
+library Create on class `0x37D`, which remains denied. Next: define bounded
+library staging, validation and atomic commit or rollback before accepting
+project changes. Full native transfer, tag monitoring and online edits remain
+unfinished.
+
+Version `.63` makes download-preparation checks repeatable through the
 [public SDK probe](development.md#native-sdk-acceptance-probe), with admission and
 cleanup checks for clients, lease, inhibit and programming authority. Full native
 transfer, compiled tag-address discovery and online edits remain unfinished.
@@ -17,11 +24,9 @@ remain unavailable, and full upload is unfinished.
 
 Version `.61` supports owner-scoped Run Mode Inhibit with scan and
 input-queue guards, readback and cleanup. The SDK accepts the write and reaches
-Controller service `0x60`. Its response/status contract remains unresolved;
-private begin/status trials did not progress beyond polling. See
-[Run Mode Inhibit](run-mode-inhibit.md). Next: resolve that service before
-validated transfer staging and atomic commit or rollback. Full native transfer
-and monitoring remain unfinished.
+Controller service `0x60`. Its initial response/status trials did not progress
+beyond polling. See [Run Mode Inhibit](run-mode-inhibit.md). Version `.64`
+extends that preparation state; transfer and monitoring remain unfinished.
 
 Version `.60` adds a session-owned coordination lease and a
 source-backed Local link-address read. Native download preparation advances

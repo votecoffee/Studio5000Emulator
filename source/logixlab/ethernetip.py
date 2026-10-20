@@ -179,7 +179,7 @@ class Router:
         return b''.join(attributes[n] for n in range(1,8))
 
     def native_read(self,inner,session,native,depth,limit,budget,*,registration=True):
-        """Apply the same read-only policy to single packets and batch children."""
+        """Apply the same native policy to single packets and batch children."""
         path=None
         def reject(status,reason):
             self.endpoint.record_native_rejection(inner[0],path,status,reason)
@@ -210,6 +210,34 @@ class Router:
                     operation(native,self.app.generation,self.app.engine.project.sha256)
                     self.endpoint.counts['native_semaphore_acquire' if inner[0]==0x4B else 'native_semaphore_release']+=1
                 return reply(inner[0])
+            if inner[0] in (0x60,0x62) and path.class_id==0x8E:
+                if (path.attribute is not None or path.symbols or path.program_instance is not None
+                        or path.io_map_instance is not None or path.controller_instance is not None):
+                    return reject(4,'invalid_request')
+                if path.instance!=1:return reject(5,'invalid_request')
+                exact(payload,0)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    operation=(self.endpoint.programming_lease.begin_preparation if inner[0]==0x60
+                               else self.endpoint.programming_lease.end_preparation)
+                    operation(native,self.app.generation,self.app.engine.project.sha256)
+                    self.endpoint.counts['native_preparation_begin' if inner[0]==0x60 else 'native_preparation_end']+=1
+                return reply(inner[0])
+            if (inner[0]==4 and path.class_id==0x8E and path.instance==1 and path.attribute is None
+                    and not path.symbols and payload[:4]==b'\1\0\x09\0'):
+                exact(payload,5)
+                identity=self.app.native_project_identity
+                if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                    return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    self.endpoint.programming_lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if payload[4]!=0:return reject(0x0F,'configuration_change_not_permitted')
+                    if self.app.engine.project.controller_configuration.redundancy_configured is not False:
+                        return reject(0x0C,'source_configuration_unavailable')
+                    self.endpoint.counts['native_configuration_retained']+=1
+                return reply(4,0,b'\1\0\x09\0\0\0')
             if (inner[0]==4 and path.class_id==0x8E and path.instance==1 and path.attribute is None
                     and not path.symbols and payload[:4]==b'\1\0\7\0'):
                 exact(payload,6)
@@ -926,6 +954,8 @@ class Router:
                 if self.endpoint.native_read_only:
                     with self.endpoint.lock:
                         attributes[7]=struct.pack('<H',self.endpoint.programming_lease.inhibit(
+                            self.app.generation,self.app.engine.project.sha256))
+                        attributes[26]=struct.pack('<I',self.endpoint.programming_lease.preparation_status(
                             self.app.generation,self.app.engine.project.sha256))
             else:raise CIPError(5,'Unknown Controller configuration instance')
             return self.attribute_read(service,path,data,attributes)

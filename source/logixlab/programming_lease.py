@@ -20,7 +20,7 @@ class ProgrammingLease:
 
     def clear(self):
         self.owner=None;self.generation=None;self.source_sha256=None
-        self.run_inhibit=0
+        self.run_inhibit=0;self.prepared=False
 
     def discard(self, native):
         if self.owner is native:self.clear()
@@ -51,6 +51,7 @@ class ProgrammingLease:
             raise LeaseError(3,'invalid_request')
         self.require_owner(native,generation,source_sha256)
         self.run_inhibit=value
+        if not value:self.prepared=False
 
     def require_owner(self, native, generation, source_sha256):
         if not self.live(generation,source_sha256) or self.owner is not native:
@@ -59,10 +60,32 @@ class ProgrammingLease:
     def inhibit(self, generation, source_sha256):
         return self.run_inhibit if self.live(generation,source_sha256) else 0
 
+    def begin_preparation(self, native, generation, source_sha256):
+        self.require_owner(native,generation,source_sha256)
+        if self.run_inhibit!=1:
+            raise LeaseError(0x0C,'run_mode_inhibit_required')
+        self.prepared=True
+
+    def end_preparation(self, native, generation, source_sha256):
+        self.require_owner(native,generation,source_sha256)
+        self.prepared=False
+
+    def require_prepared(self, native, generation, source_sha256):
+        self.require_owner(native,generation,source_sha256)
+        if not self.prepared:
+            raise LeaseError(0x0C,'programming_preparation_required')
+
+    def preparation_status(self, generation, source_sha256):
+        # The tested v35 SDK advances from preparation when attribute 26 is 2.
+        # This software state grants no library/object creation or commit.
+        return 2 if self.live(generation,source_sha256) and self.prepared else 0
+
     def description(self, generation, source_sha256):
         owned=self.live(generation,source_sha256)
         return {'owned':owned,'exclusive':True,'controller_instance':1,'semaphore_instance':1,
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':owned and bool(self.run_inhibit),
+                'preparation_state':'ready' if owned and self.prepared else 'idle',
+                'preparation_status':2 if owned and self.prepared else 0,
                 'remaining_ms':max(0,math.ceil((self.owner.deadline-self.clock())*1000)) if owned else 0,
                 'owner_identity_exposed':False,'project_transfer':False,'online_edits':False,
                 'controller_mode_changes':False,'tag_write_authority':False}

@@ -1,5 +1,8 @@
 # Native programming coordination
 
+Version `.64` adds [owner-scoped preparation](programming-preparation.md) to
+this lease. Transfer, commit and online edits remain unsupported.
+
 Version `.61` adds [Run Mode Inhibit](run-mode-inhibit.md), a temporary scan
 guard owned by this lease. The notes below record the `.60` coordination
 milestone and its then-current limits.

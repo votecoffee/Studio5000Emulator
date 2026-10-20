@@ -71,7 +71,7 @@ class ControllerConfiguration:
 
     def compatibility_attributes(self):
         # No hardware run-inhibit input or project transfer is implemented.
-        # The router overlays an owning native lease's temporary inhibit bit.
+        # The router overlays the native lease's inhibit and preparation state.
         values={**self.attributes(),7:b'\0\0',26:bytes(4)}
         if self.time_slice is not None:values[3]=struct.pack('<H',self.time_slice)
         if self.share_unused_time_slice is not None:values[16]=struct.pack('<H',self.share_unused_time_slice)
