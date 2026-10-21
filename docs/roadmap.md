@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.121` adds [Standard memory reads and bounded normal Program status](program-memory-status.md),
+Current milestone: `.122` adds [runtime Program and main-Routine references](runtime-object-references.md)
+backed by actual interpreter objects, without importing physical addresses.
+The isolated native upload accepts both fields, reducing unavailable Program
+fields from three to one. The omitted synchronization setting, clock behavior
+and complete transfers remain unresolved.
+
+Version `.121` adds [Standard memory reads and bounded normal Program status](program-memory-status.md),
 with shared Task collection diagnostics. Source kind, original native owner and
 actual model fault/edit state govern availability. Full transfers remain unfinished.
 The isolated comparison accepts the new Program fields and reduces missing

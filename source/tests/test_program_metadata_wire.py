@@ -8,6 +8,7 @@ from xml.etree import ElementTree as E
 
 from logixlab.native_symbols import NativeSymbols
 from logixlab.native_tasks import NativeTasks
+from logixlab.native_routines import NativeRoutines
 from test_ethernetip import Client
 import test_programming_lease as leases
 
@@ -22,6 +23,48 @@ class ProgramMetadataWireTests(unittest.TestCase):
     signed=leases.SemaphoreSignedTests.signed
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
+
+    def test_emulator_program_and_main_addresses_require_bound_ordinary_idle_rll_objects(self):
+        root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')
+        self.app.command('load',{'name':'references.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        project=self.app.engine.project;digest=project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        names=project.executable_configuration.routine_names('MainProgram',source_sha256=digest)
+        self.app.native_routines=NativeRoutines('a'*64,digest,[dict(program='MainProgram',name=name,program_instance=26038,instance=i+70) for i,name in enumerate(names)])
+        before=copy.deepcopy(self.app.state())
+        reply=self.signed(4,bytes.fromhex('030320682500b665020005001000'))
+        self.assertEqual(reply[:10],bytes.fromhex('83000000020005000000'))
+        self.assertEqual(reply[14:18],bytes.fromhex('10000000'))
+        values={5:reply[10:14],16:reply[18:22]};space=self.app.engine.runtime_references
+        self.assertNotEqual(values[5],values[16])
+        for seq,number,kind in ((5,5,'routine'),(6,16,'program')):
+            response=self.signed(seq,bytes.fromhex('0e0420682500b66530')+bytes((number,)))
+            self.assertEqual(response,b'\x8e\0\0\0'+values[number])
+            self.assertIsNotNone(space.resolve(project,int.from_bytes(values[number],'little'),kind))
+        self.assertEqual(self.signed(7,bytes.fromhex('100420682500b665301000000000'))[2],15)
+        self.app.native_routines=None
+        self.assertEqual(self.signed(8,bytes.fromhex('0e0420682500b6653005'))[2],20)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
+    def test_program_addresses_withhold_foreign_acd_and_unfinished_native_edits(self):
+        import test_program_reservations as reservations
+        root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')
+        self.app.command('load',{'name':'references.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        project=self.app.engine.project;digest=project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        names=project.executable_configuration.routine_names('MainProgram',source_sha256=digest)
+        rows=[dict(program='MainProgram',name=name,program_instance=26038,instance=i+70) for i,name in enumerate(names)]
+        self.app.native_routines=NativeRoutines('b'*64,digest,rows)
+        self.assertEqual(self.signed(4,bytes.fromhex('0e0420682500b6653010'))[2],20)
+        self.app.native_routines=NativeRoutines('a'*64,digest,rows)
+        self.assertEqual(self.signed(5,reservations.CONTROLLER_ACQUIRE)[2],0)
+        self.assertEqual(self.signed(6,reservations.message(program=26038))[2],0)
+        self.assertEqual(self.signed(7,bytes.fromhex('0e0420682500b6653010'))[2],20)
+        self.assertEqual(self.signed(8,reservations.message(0x4C,program=26038,payload=b''))[2],0)
+        self.assertEqual(self.signed(9,reservations.CONTROLLER_RELEASE)[2],0)
+        self.assertEqual(self.signed(10,bytes.fromhex('0e0420682500b6653010'))[2],0)
 
     def test_normal_status_and_standard_memory_require_source_kind_owner_and_clean_idle_state(self):
         root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')

@@ -76,3 +76,8 @@ reported fatal SDK fault. All 236 affected software tests and 31 live readback
 checks pass; the full suite was not rerun. The app, served webpage and Windows
 executable versions agree. Studio GUI acceptance and full native transfers
 remain unfinished.
+
+The subsequent [runtime reference model](runtime-object-references.md) in `.122`
+supplies the two address fields from the emulator's own objects. Its isolated
+native upload leaves only the omitted Synchronize Data setting unavailable in
+this Program list. The earlier three-field result above describes `.121`.

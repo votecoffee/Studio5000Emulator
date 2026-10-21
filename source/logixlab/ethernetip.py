@@ -868,8 +868,24 @@ class Router:
         owner=attributes.get(13)
         attributes.update(self.app.engine.program_status_attributes(program['name'],source_sha256=source,
             task_owner=int.from_bytes(owner,'little') if isinstance(owner,bytes) and len(owner)==4 else None,idle=idle))
+        attributes.update(self.program_reference_attributes(program,idle=idle))
         if self.zero_program_stack_supported(program):attributes[27]=bytes(4)
         return self.attribute_read(service,path,data,attributes)
+
+    def program_reference_attributes(self,program,*,idle):
+        engine=self.app.engine;project=engine.project;source=project.sha256
+        if (engine.mode!='project' or engine.blockers or project.aois or not idle or
+                not project.program_configuration.type_attributes(program['name'],source_sha256=source) or
+                not project.program_diagnostics.edit_attributes(program['name'],source_sha256=source,idle=idle)):
+            return {}
+        try:
+            self.source_bound_program(program['id'])
+            routines=self.routines(program['id'])
+        except CIPError:return {}
+        if (not routines or any(project.routines.get((program['name']+'/'+row['name']).casefold()) is None or
+                project.routines[(program['name']+'/'+row['name']).casefold()].kind!='RLL' for row in routines)):
+            return {}
+        return engine.runtime_references.program_attributes(project,program['name'])
 
     def source_bound_program(self,instance):
         identity=self.app.native_project_identity;symbols=self.app.native_symbols
@@ -1703,6 +1719,7 @@ class Endpoint:
                     'controller_schemas':controller_schemas.description() if self.enabled and self.native_read_only else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
+                    'runtime_references':self.app.engine.runtime_references.description() if self.enabled else None,
                     'program_hierarchy':self.app.engine.project.program_hierarchy.description() if self.enabled else None,
                     'program_timing':self.app.engine.program_timing_description() if self.enabled else None,
                     'program_faults':self.app.engine.program_fault_description() if self.enabled else None,

@@ -5,6 +5,7 @@ import operator
 from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
+from .runtime_references import RuntimeReferences
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -25,6 +26,7 @@ class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
     def __init__(self, project, mode="project", routine="", *, defer_prescan=False):
         self.project = project
+        self.runtime_references = RuntimeReferences(project)
         self.mode = mode
         self.selected = routine.lower()
         self.memory = Memory(project)

@@ -4,6 +4,13 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.122` adds [runtime Program and main-Routine references](runtime-object-references.md).
+Opaque aligned addresses resolve to live interpreter objects, remain separate
+from logical IDs and are revoked on object replacement. The isolated native
+upload accepts both fields; one synchronization setting remains unavailable in
+its Program list. Complete upload still fails. The released clock profile is
+unchanged; native GUI monitoring and full transfers remain unfinished.
+
 Version `.74`
 ties native mode requests and webpage controls to the same scan worker.
 Version `.75` adds transactional Run-entry prescan and first-scan initialization.

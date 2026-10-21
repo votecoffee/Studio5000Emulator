@@ -12,14 +12,14 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.121` adds [Standard Program/Task memory reads and bounded normal Program status](docs/program-memory-status.md),
-plus Task collection diagnostics. Status requires supported scheduled execution,
-matching native ownership, idle edits and known-clean fault history. It retains
+Version `.122` adds [runtime Program and main-Routine references](docs/runtime-object-references.md)
+backed by the interpreter's own objects, with source, native-identity and edit
+guards. It retains [Standard memory and normal Program status](docs/program-memory-status.md),
 [Program diagnostics](docs/program-diagnostics.md) and
-[measured scan times](docs/program-timing-and-flags.md). Full native transfer
-remains unfinished.
-The isolated upload comparison reduces missing Program fields from 5 to 3;
-the compiled addresses and omitted synchronization setting remain unavailable.
+[measured scan times](docs/program-timing-and-flags.md).
+The isolated upload diagnostic accepts both references, reducing unavailable
+Program fields from three to one. The omitted synchronization setting and full
+native transfer remain unresolved.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
