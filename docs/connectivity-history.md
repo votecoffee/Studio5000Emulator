@@ -9,6 +9,15 @@ for Digital/Analog Alarms, HMI Button Controls and Messages. Each catalog uses
 its own complete-source absence check and matching native Program identity.
 The offline transfer analyzer retains valid scoped requests unsupported by the
 live decoder, preserving rejected responses and numeric parent paths.
+The final isolated SDK upload accepts all four added scoped lists and reaches
+device diagnostic message discovery, failing class `0x3B2` instead of Program
+collection. Its 215 verified signed requests preserve Offline/cleanup and the
+source/model, with no reported fatal SDK fault. Full transfer and reconstructed
+Routine logic remain unverified.
+The restarted release passes SDK Go Online/Go Offline with 75 verified signed
+requests and confirmed Offline/cleanup, unchanged source/model and no fatal SDK
+fault. All 245 focused checks and 63 live readbacks pass without a full-suite
+rerun. Source, webpage and executable versions match `.125`.
 
 Version `.124` adds original [Program and Task reference symbols](reference-symbols.md).
 Source-bound data names and native IDs select supported Standard objects;

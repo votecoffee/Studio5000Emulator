@@ -14,7 +14,8 @@ custom execution model while preserving the original source files.
 
 Version `.125` adds [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md)
 for alarms, HMI Button Controls and Messages, and keeps unsupported scoped
-requests visible in transfer diagnostics. Full native transfers remain unfinished.
+requests visible in transfer diagnostics. The isolated SDK upload now reaches
+device diagnostic messages after Program collection; full transfer still fails.
 It retains original [Program and Task reference symbols](docs/reference-symbols.md),
 the [nonredundant synchronization default](docs/program-synchronization-default.md),
 [runtime Program and main-Routine references](docs/runtime-object-references.md),

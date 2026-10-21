@@ -10,7 +10,9 @@ Current milestone: `.125` adds [Program-scoped empty catalog discovery](program-
 for Digital/Analog Alarms, HMI Button Controls and Messages. Original native
 Program identity and complete source absence checks govern these read-only
 lists. Transfer diagnostics retain well-framed unsupported scopes, including
-their rejected responses. Full native transfers remain unfinished.
+their rejected responses. The isolated SDK upload advances beyond Program
+collection and currently fails device diagnostic message discovery (`0x3B2`).
+Full native transfers and reconstructed Routine logic remain unverified.
 
 Version `.124` adds original [Program and Task reference symbols](reference-symbols.md).
 The isolated SDK upload reads both references and reaches Program-scoped Data

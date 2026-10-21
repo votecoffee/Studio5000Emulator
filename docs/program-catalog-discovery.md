@@ -67,8 +67,26 @@ first isolated `.125` attempt accepts both lists and advances to a rejected
 HMI Button Control list. It confirms Offline/cleanup, unchanged source/model
 and no reported fatal SDK fault, while still failing full Program upload.
 
+The final `.125` attempt accepts all four added scoped lists and advances
+through Program collection, alarm-set/condition discovery and into module
+collection. It then reports `RxCsE_UPLOAD_DIAGNOSTICS_MESSAGES_FAILED`. The next
+rejected operation is the controller-scoped device diagnostic message list,
+class `0x3B2`, status `0x0F`. All 215 native verified signed requests retain
+Offline/cleanup, unchanged source/model and no reported fatal SDK fault.
+The corrected trace analyzer accounts for 218 expanded leaf requests with no
+unparsed events. These counts measure different layers.
+
+Progress beyond the Program collection stage does not verify reconstructed
+Routine logic or produce a completed uploaded project.
+
 The isolated diagnostic uses an owned project, its source-bound Template
 snapshot and unshipped clock/revision hypotheses. Release clock behavior is
 unchanged. Successful inventory reads do not establish native project
 reconstruction, complete uploads/downloads, GUI monitoring or the full
 Test/Untest/Assemble lifecycle.
+
+The restarted released `.125` demo passes SDK Go Online/Go Offline across 75
+verified signed requests, confirming Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. All 245 focused software checks and 63 live
+readback checks pass; the full suite was not rerun. The deployed 88 app modules,
+served webpage, packaged assets and Windows executable version match `.125`.
