@@ -61,3 +61,8 @@ upload/download, Routine reconstruction, Studio GUI monitoring and the complete
 Test/Untest/Assemble lifecycle remain unfinished or unverified.
 
 All 230 affected software checks pass; the full suite was not rerun.
+The restarted normal demo also passes 213 live readbacks and native SDK Go
+Online/Go Offline across 75 verified signed requests, with actual Offline,
+cleanup and unchanged source/model confirmed and no reported fatal SDK fault.
+All 90 deployed app modules, served webpage, packaged assets and Windows
+executable version match `.127`.

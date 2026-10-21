@@ -13,6 +13,10 @@ status `0x0F`. Its complete trace retains 355 expanded leaf requests; 352 signed
 requests are verified. Offline/cleanup and source/model preservation are
 confirmed, with no reported fatal SDK fault. Full transfers remain unfinished.
 All 230 affected checks pass; the full suite was not rerun.
+The restarted release passes 213 live readbacks and SDK Go Online/Go Offline
+across 75 verified signed requests, with confirmed Offline/cleanup, unchanged
+source/model and no reported fatal SDK fault. All 90 deployed app modules,
+webpage, packaged assets and executable version match `.127`.
 
 Version `.126` adds [source-bound device diagnostic message definitions](device-diagnostic-messages.md).
 The importer retains original ACD IDs, message strings and revisions; the
