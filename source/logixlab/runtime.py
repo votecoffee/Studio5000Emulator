@@ -37,6 +37,7 @@ class Engine:
         self.last_timer = {}
         self.trace = []
         self.changes = []
+        self._native_fault_history_uncertain = False
         self.fault = ""
         self.prescan_count = 0
         self._initial_prescan_pending = defer_prescan
@@ -58,6 +59,29 @@ class Engine:
                 name=self.project.routines[entry].program
                 if self.project.program_configuration.type_attributes(name,source_sha256=project.sha256):
                     self._program_timings[name.casefold()]=ProgramTiming()
+
+    @property
+    def fault(self):return self._fault
+
+    @fault.setter
+    def fault(self,value):
+        self._fault=value
+        # No native type/code/info mapping exists for simulator failures.
+        # A later successful scan cannot turn that unknown history into clean.
+        if value:self._native_fault_history_uncertain=True
+
+    def program_fault_attributes(self,program,*,source_sha256):
+        if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers or self.fault or
+                self._native_fault_history_uncertain or not isinstance(program,str) or
+                program.casefold() not in self._program_timings):return {}
+        return {20:bytes(44),21:bytes(44)}
+
+    def program_fault_description(self):
+        available=(self.mode=='project' and not self.blockers and not self.fault and not self._native_fault_history_uncertain)
+        return {'attributes':[20,21],'known_clean_programs':len(self._program_timings) if available else 0,
+                'unclassified_fault_seen_since_reset':self._native_fault_history_uncertain,
+                'record_bytes':44,'native_fault_classification':False,'physical_fault_history_imported':False,
+                'unknown_records_withheld_until_reset':True}
 
     def program_timing_attributes(self, program, *, source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
@@ -298,7 +322,7 @@ class Engine:
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace = previous
-            self.fault = str(e)
+            self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
         changes = []
         def compare(path, old, new):

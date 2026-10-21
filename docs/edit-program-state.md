@@ -90,6 +90,10 @@ Version `.119` adds [committed Program scan timings and explicit source flags](p
 Supported routine replacements preserve the recorded timing history. This does
 not add native timing/flag setters or the complete Test/Untest/Assemble lifecycle.
 
+Version `.120` adds the bounded [untested edit-mode read and Program diagnostics](program-diagnostics.md).
+It requires explicit ordinary RLL source and idle native edit staging. Unknown
+or pending state remains unavailable; Test/Untest/Assemble is still unfinished.
+
 ## Earlier native checks
 
 Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)

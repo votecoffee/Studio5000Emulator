@@ -22,6 +22,22 @@ RELEASE=bytes.fromhex('4c04208e240120742401')
 
 
 class ProgrammingLeaseModelTests(unittest.TestCase):
+    def test_program_edit_idle_tracks_reservation_phase_transfer_and_expiry(self):
+        self.assertTrue(self.lease.program_edits_idle(1,'a'*64,7))
+        self.lease.acquire(self.first,1,'a'*64,selector=1)
+        self.lease.reserve_program(self.first,1,'a'*64,7)
+        self.assertFalse(self.lease.program_edits_idle(1,'a'*64,7))
+        self.assertTrue(self.lease.program_edits_idle(1,'a'*64,8))
+        self.lease.release_program(self.first,1,'a'*64,7)
+        self.lease.open_edit_preparation(self.first,1,'a'*64)
+        self.assertFalse(self.lease.program_edits_idle(1,'a'*64,8))
+        self.lease.close_edit_preparation(self.first,1,'a'*64)
+        self.lease.edit_transfer.target=(7,1)
+        self.assertFalse(self.lease.program_edits_idle(1,'a'*64,8))
+        self.now=401
+        self.assertTrue(self.lease.program_edits_idle(1,'a'*64,7))
+        self.assertIsNone(self.lease.edit_transfer.target)
+
     def test_program_reservations_are_owned_bounded_idempotent_and_inhibit_scans(self):
         self.lease.acquire(self.first,1,'a'*64,selector=1)
         for program in range(1,MAX_PROGRAM_RESERVATIONS+1):

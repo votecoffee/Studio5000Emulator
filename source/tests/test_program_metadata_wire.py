@@ -23,6 +23,29 @@ class ProgramMetadataWireTests(unittest.TestCase):
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
 
+    def test_idle_edit_mode_null_output_and_clean_faults_withhold_during_changes_and_faults(self):
+        import test_program_reservations as reservations
+        root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')
+        self.app.command('load',{'name':'diagnostics.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        digest=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        before=copy.deepcopy(self.app.state())
+        expected=bytes.fromhex('83000000040007000000')+bytes(4)+bytes.fromhex('0b000000')+bytes(2)+bytes.fromhex('14000000')+bytes(44)+bytes.fromhex('15000000')+bytes(44)
+        self.assertEqual(self.signed(4,bytes.fromhex('030320682500b665040007000b0014001500')),expected)
+        self.assertEqual(self.signed(5,reservations.CONTROLLER_ACQUIRE)[2],0)
+        self.assertEqual(self.signed(6,reservations.message(program=26038))[2],0)
+        self.assertEqual(self.signed(7,bytes.fromhex('0e0420682500b665300b'))[2],20)
+        self.assertEqual(self.signed(8,reservations.message(0x4C,program=26038,payload=b''))[2],0)
+        self.assertEqual(self.signed(9,bytes.fromhex('0e0420682500b665300b')),bytes.fromhex('8e0000000000'))
+        self.assertEqual(self.signed(10,reservations.CONTROLLER_RELEASE)[2],0)
+        self.assertEqual(self.signed(11,bytes.fromhex('100420682500b66530140000'))[2],15)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+        self.app.engine.fault='unclassified';self.app.engine.fault=''
+        self.assertEqual(self.signed(12,bytes.fromhex('0e0420682500b6653014'))[2],20)
+        self.assertEqual(self.signed(13,bytes.fromhex('0e0420682500b6653015'))[2],20)
+        self.assertEqual(self.signed(14,bytes.fromhex('0e0420682500b6653007')),bytes.fromhex('8e00000000000000'))
+
     def test_measured_timing_and_source_flags_list_single_and_denied_writes(self):
         root=E.parse(self.app.engine.project.path).getroot();program=root.find('./Controller/Programs/Program')
         program.set('UseAsFolder','false');program.set('SynchronizeRedundancyDataAfterExecution','true')

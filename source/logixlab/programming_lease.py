@@ -131,6 +131,11 @@ class ProgrammingLease:
     def scan_inhibited(self,generation,source_sha256):
         return self.live(generation,source_sha256) and bool(self.run_inhibit or self.program_reservations or self.edit_phase_open)
 
+    def program_edits_idle(self,generation,source_sha256,program):
+        if not self.live(generation,source_sha256):return True
+        return (not self.edit_phase_open and program not in self.program_reservations and
+                self.edit_transfer.target is None)
+
     def inhibit(self, generation, source_sha256):
         return self.run_inhibit if self.live(generation,source_sha256) else 0
 

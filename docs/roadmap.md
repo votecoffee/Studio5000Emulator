@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.119` adds [measured Program durations and source flags](program-timing-and-flags.md).
+Current milestone: `.120` adds [Program output/edit diagnostics and model fault records](program-diagnostics.md).
+Source-known null lists and untested RLL state are separate from native edit
+acceptance. Fault records withhold unknown history after simulator failures.
+Full native transfers remain unfinished.
+
+Version `.119` adds [measured Program durations and source flags](program-timing-and-flags.md).
 Last/maximum timings describe actual committed emulator scans. Explicit source
 flags describe synchronization and scheduling eligibility; folders cannot execute.
 Complete native transfer remains unfinished.
