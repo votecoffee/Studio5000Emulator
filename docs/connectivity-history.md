@@ -22,6 +22,11 @@ The candidate retains its matching Template snapshot and private clock
 hypotheses; these remain separate from the normal demo. Full transfer,
 reconstructed Routine logic and the complete native edit lifecycle remain
 unfinished. All 210 affected checks pass; the full suite was not rerun.
+The restarted release passes 265 live checks and native SDK Go Online/Go Offline
+across 75 verified signed requests, with actual Offline/cleanup, unchanged
+source/model and no reported fatal SDK fault. Inputs and logic match across the
+restart. The webpage, packaged assets, executable version and all 92 deployed
+app modules match `.130`.
 
 Version `.129` adds [source-bound Routine Type words](routine-types.md) for the
 unprotected format-54/body-371 ACD profile. Older manifests and other layouts

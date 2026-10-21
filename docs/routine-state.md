@@ -60,6 +60,17 @@ fault history, modified logic, native edit coordination, malformed framing and
 denied writes. Source-reader checks also exercise the original demo and a
 separate owned diagnostic project without changing either file.
 
+The isolated native SDK upload receives 18 of the 22 Routine metadata fields,
+compared with one in `.129`. It still reports `RxCsE_UPLOAD_OF_PROGRAMS_FAILED`;
+the requirements for the four unavailable fields remain unverified. Actual
+Offline and cleanup are confirmed, with unchanged source/model and no reported
+fatal SDK fault. All 210 affected checks pass; the full suite was not rerun.
+The restarted release passes 265 live checks. The served webpage, packaged
+assets, executable version and all 92 deployed app modules match `.130`.
+Native SDK Go Online/Go Offline also passes across 75 verified signed requests,
+with actual Offline/cleanup, unchanged source/model and no reported fatal SDK
+fault. Demo inputs and logic match across the restart.
+
 Full native upload/download, Routine logic reconstruction, Studio GUI monitoring
 and the complete native Test/Untest/Assemble lifecycle remain unfinished or
 unverified. Native probe results are recorded in the
