@@ -1451,6 +1451,10 @@ class Router:
                             self.app.generation,self.app.engine.project.sha256))
                         attributes[26]=struct.pack('<I',self.endpoint.programming_lease.preparation_status(
                             self.app.generation,self.app.engine.project.sha256))
+                        if service==1 and path.attribute is None:
+                            exact(data,0);aggregate=configuration.compatibility_get_all(attributes)
+                            if aggregate is None:raise CIPError(0x14,'Controller aggregate source is unavailable')
+                            return 0,aggregate
             else:raise CIPError(5,'Unknown Controller configuration instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0xAC:

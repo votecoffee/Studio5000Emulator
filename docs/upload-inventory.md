@@ -16,7 +16,7 @@ evidence to assign the failure to that object.
 | Template | Shared explicit UDT layouts, aligned reads, basic metadata and explicit NoFamily values | Multiply Code, Recon Data and complete native type upload |
 | Network inventory | Actual selected interface information and supported host counters | Device-specific fields without a host or source counterpart |
 | Time Sync | Imported PTP configuration, unsynchronized status, empty PTP port set, software descriptions and current host UTC | PTP master, parent, identity and synchronization measurements |
-| Controller | Supported source settings, run mode and programming lease state | Native handler-reference encoding and complete upload collection |
+| Controller | Supported source settings, run mode, programming lease state and proven null handler references | Configured handler references and complete upload collection |
 | Task | Bound native IDs, ordered Program references and explicit source settings/times | Execution slot, measured timing and complete native Task upload |
 | Executable | Bound Program-scoped Routine IDs and limited legacy descriptions | Native type/UID mapping, compiled addresses/bodies and complete native Routine upload |
 
@@ -31,7 +31,13 @@ TCP readback and queued external writes. The native UDT project upload fails
 earlier at Template attributes 6, 7 and 8 and does not exercise these new reads.
 Version `.101` adds the [source-known Family Type read and aligned model
 definition extent](template-metadata.md). Independent signed TCP checks pass;
-native SDK retesting is held after a private metadata hypothesis faulted the SDK.
+the failed private metadata hypothesis remains excluded. After service recovery,
+bounded connection and supported-edit SDK cases pass without a reported fault.
+
+Version `.111` adds [four-byte null handler reads and a bounded Controller
+aggregate profile](controller-handlers.md), supported by successful reference
+responses. Current SDK cases receive these object replies successfully but
+still fail Controller collection. Configured references remain opaque.
 
 Isolated prior diagnostic profiles supplied hypothetical PTP descriptions or
 made the clock object unavailable; both still failed controller collection.

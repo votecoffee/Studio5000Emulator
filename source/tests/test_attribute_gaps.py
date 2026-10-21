@@ -1,5 +1,6 @@
 """Field-level diagnostics are bounded, value-free and tied to a project load."""
 import copy
+from dataclasses import replace
 import struct
 import tempfile
 import unittest
@@ -65,6 +66,8 @@ class AttributeGapEndpointTests(unittest.TestCase):
     def cip(self,raw):return self.router.handle(bytes.fromhex(raw),Session())
 
     def test_partial_controller_response_records_exact_missing_ids_without_values(self):
+        self.app.engine.project.controller_configuration=replace(self.app.engine.project.controller_configuration,
+            empty_power_loss_handler=False,empty_fault_handler=False)
         before=copy.deepcopy(self.app.engine.memory.values)
         raw='0302208e24010600030006000100070008001000'
         response=self.cip(raw);self.assertEqual(response[:4],b'\x83\0\x0A\0')
@@ -81,7 +84,7 @@ class AttributeGapEndpointTests(unittest.TestCase):
     def test_single_unknown_attribute_is_recorded_and_success_or_malformed_requests_are_not(self):
         self.assertEqual(self.cip('0e03208e24013003')[2],0)
         self.assertEqual(self.endpoint.state()['attribute_gaps'],[])
-        self.assertEqual(self.cip('0e03208e24013001')[2],0x14)
+        self.assertEqual(self.cip('0e03208e24013063')[2],0x14)
         self.assertEqual(self.endpoint.state()['attribute_gaps'][0]['service'],0x0E)
         for raw in ('0302208e24010000','0302208e240102000100','0e03208e2401300100','1003208e240130010000'):
             self.assertNotEqual(self.cip(raw)[2],0)
@@ -99,13 +102,13 @@ class AttributeGapEndpointTests(unittest.TestCase):
         self.assertEqual(self.endpoint.state()['attribute_gaps'][0]['scope'],'Program:MainProgram')
         self.app.command('demo',{'sample':'ConveyorDemo'})
         self.assertEqual(self.endpoint.state()['attribute_gaps'],[])
-        self.assertEqual(self.cip('0e03208e24013001')[2],0x14)
+        self.assertEqual(self.cip('0e03208e24013063')[2],0x14)
         self.assertEqual(self.endpoint.state()['attribute_gaps'][0]['count'],1)
 
     def test_new_or_stopped_endpoints_have_predictable_diagnostic_state(self):
         self.assertEqual(self.app.connectivity()['attribute_gaps'],[])
         self.assertEqual(self.endpoint.state()['attribute_gaps'],[])
-        self.cip('0e03208e24013001')
+        self.cip('0e03208e24013063')
         self.endpoint.stop()
         self.assertEqual(len(self.endpoint.state()['attribute_gaps']),1)
         replacement=Endpoint(self.app,0,False)

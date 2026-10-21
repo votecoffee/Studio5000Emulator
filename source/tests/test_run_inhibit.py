@@ -34,6 +34,16 @@ class InhibitModelTests(unittest.TestCase):
 
 
 class RunInhibitSignedTests(unittest.TestCase):
+    def test_controller_aggregate_reads_current_lease_inhibit_and_clears_with_it(self):
+        self.acquire();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(5,SET)[2],0)
+        aggregate=self.signed(6,bytes.fromhex('0102208e2401'))
+        self.assertEqual(aggregate[:4],bytes.fromhex('81000000'));self.assertEqual(len(aggregate),20)
+        self.assertEqual(aggregate[14:16],b'\1\0')
+        self.assertEqual(self.signed(7,CLEAR)[2],0)
+        self.assertEqual(self.signed(8,bytes.fromhex('0102208e2401'))[14:16],bytes(2))
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+
     setUp=lease_tests.SemaphoreSignedTests.setUp
     tearDown=lease_tests.SemaphoreSignedTests.tearDown
     cip=lease_tests.SemaphoreSignedTests.cip

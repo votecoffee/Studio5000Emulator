@@ -108,8 +108,11 @@ class ControllerConfiguration:
         # other controllers. v35 offline round trips establish the 0/1/3 mask.
         if self.pass_through_configuration in PASS_THROUGH:
             values[25]=struct.pack('<I',PASS_THROUGH[self.pass_through_configuration])
-        # Source absence is known, but the native handler-reference wire
-        # encoding is unresolved. Do not acknowledge guessed null pointers.
+        # A successful v35 reference upload establishes four-byte POINTER
+        # values and the all-zero null. Configured handler references remain
+        # unavailable; never copy a physical controller's nonzero reference.
+        if self.empty_power_loss_handler:values[1]=bytes(4)
+        if self.empty_fault_handler:values[6]=bytes(4)
         if self.redundancy_configured is not None:values[9]=bytes((self.redundancy_configured,))
         return values
 
@@ -125,6 +128,18 @@ class ControllerConfiguration:
             if len(data) <= maximum:
                 values[number] = struct.pack('<H', len(data)) + data
         return values
+
+    def compatibility_get_all(self,attributes):
+        """Observed 16-byte legacy profile, restricted to proven null handlers.
+
+        The final two zero bytes are an observed opaque trailer. They confer
+        no extra controller state or handler/address interpretation.
+        """
+        if not self.empty_power_loss_handler or not self.empty_fault_handler:return None
+        if attributes.get(1)!=bytes(4) or attributes.get(6)!=bytes(4):return None
+        fields=((3,2),(6,4),(1,4),(7,2),(8,2))
+        if any(not isinstance(attributes.get(n),bytes) or len(attributes[n])!=size for n,size in fields):return None
+        return b''.join(attributes[n] for n,_ in fields)+bytes(2)
 
     def description(self):
         return {'object_revision': 1, 'security_code_available': self.security_code is not None,
@@ -151,7 +166,9 @@ class ControllerConfiguration:
                 'producer_rpi_negotiation':False,'source_settings_writable':False,
                 'native_minor_overflow_fault_reporting':False,
                 'empty_power_loss_handler':self.empty_power_loss_handler,'empty_fault_handler':self.empty_fault_handler,
-                'handler_reference_encoding':False,
+                'handler_reference_encoding':'null_uint32_only','handler_reference_bytes':4,
+                'configured_handler_references':False,
+                'null_handler_get_all_profile':self.empty_power_loss_handler and self.empty_fault_handler and self.time_slice is not None,
                 'handler_execution':False,'multi_workstation_edit_slot':False,
                 'operator_registration': False, 'authority_services': False}
 

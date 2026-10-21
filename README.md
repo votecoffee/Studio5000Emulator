@@ -157,6 +157,9 @@ A fresh native download matches all 242 Template IDs, 20 Symbol IDs and 16 Table
 IDs in the original demo before reaching the unfinished result-response step.
 The limited Program-mode accepted-rung SDK import also passes on an isolated
 controller, with native Offline and source preservation confirmed.
+Version `.111` adds [null Controller handler and aggregate reads](docs/controller-handlers.md)
+from a successful v35 reference upload. Configured handler references remain
+unavailable; successful object replies still do not complete native upload.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

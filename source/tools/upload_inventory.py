@@ -433,8 +433,8 @@ class _Reader:
         before=self.attributes(0xAC,1,REVISION_SCHEMA)
         if before['status']:raise InventoryError('Catalog revision is unavailable')
         controller=self.attributes(0x8E,1,CONTROLLER_SCHEMA)
-        # Preserve opaque GetAll/handler failures separately; there is no
-        # invented aggregate or POINTER decoder to skip over unknown lengths.
+        # GetAll remains opaque. Decode only the observed four-byte null;
+        # configured or differently shaped handler references stay unresolved.
         aggregate=self.exchange(1,0x8E,1)
         controller_all={'status':decode_reply(aggregate,1)[0],'response_hex':aggregate.hex()}
         handlers=[]
@@ -442,7 +442,8 @@ class _Reader:
             raw=self.exchange(0x0E,0x8E,1,attribute=attribute)
             status,data,extra=decode_reply(raw,0x0E)
             handlers.append({'attribute':attribute,'status':status,'additional_status':extra,
-                             'data_hex':data.hex(),'pointer_encoding':'UNRESOLVED'})
+                             'data_hex':data.hex(),'pointer_encoding':
+                                 'NULL_UINT32' if status==0 and data==bytes(4) else 'UNRESOLVED'})
         programs=self.catalog(0x68)
         if programs['instances'] is not None and len(programs['instances'])>self.limits.programs:
             raise InventoryError('Inventory Program budget exceeded')

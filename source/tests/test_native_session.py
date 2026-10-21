@@ -1,5 +1,6 @@
 """Anonymous compatibility with synthetic keys; no vendor identity fixtures."""
 import copy
+from dataclasses import replace
 import hmac
 import struct
 import tempfile
@@ -209,14 +210,35 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(5,bytes((0x10,len(path)//2))+path+b'\0')[2],0x0F)
         self.assertEqual(self.app.engine.memory.values,before)
 
-    def test_signed_controller_collection_exposes_settings_but_not_unknown_handler_references(self):
+    def test_signed_controller_collection_exposes_null_handlers_and_settings_without_mutation(self):
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         query=bytes.fromhex('0302208e24010600030006000100070008001000')
-        expected=(b'\x83\0\x0A\0'+struct.pack('<HHHHHHHHHHHHH',6,3,0,20,6,0x14,1,0x14,7,0,0,8,0)+
-                  struct.pack('<HHHH',0,16,0,1))
+        expected=(b'\x83\0\0\0'+struct.pack('<HHHH',6,3,0,20)+struct.pack('<HHI',6,0,0)+
+                  struct.pack('<HHI',1,0,0)+struct.pack('<9H',7,0,0,8,0,0,16,0,1))
         self.assertEqual(self.signed(4,query),expected)
         self.assertEqual(self.signed(5,bytes.fromhex('1003208e24013003')+b'\x0A\0')[2],0x0F)
         self.assertEqual(self.signed(6,bytes.fromhex('0e03208e24013003'))[4:],b'\x14\0')
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_signed_null_handlers_keep_duplicate_list_widths_and_configured_handlers_stay_unavailable(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        query=bytes.fromhex('0302208e24010300060001000600')
+        expected=b'\x83\0\0\0'+struct.pack('<H',3)+b''.join(struct.pack('<HHI',n,0,0) for n in (6,1,6))
+        self.assertEqual(self.signed(4,query),expected)
+        self.assertEqual(self.signed(5,bytes.fromhex('0e03208e24013001')),bytes.fromhex('8e00000000000000'))
+        self.app.engine.project.controller_configuration=replace(self.app.engine.project.controller_configuration,
+            empty_power_loss_handler=False,empty_fault_handler=False)
+        self.assertEqual(self.signed(6,bytes.fromhex('0e03208e24013001'))[2],0x14)
+        self.assertEqual(self.signed(7,bytes.fromhex('0e03208e24013006'))[2],0x14)
+        self.assertEqual(self.app.engine.memory.values,before)
+
+    def test_signed_controller_aggregate_requires_instance_scope_and_empty_payload_and_denies_configured_handlers(self):
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,bytes.fromhex('0102208e2401')),b'\x81\0\0\0'+struct.pack('<HIIHHH',20,0,0,0,0,0))
+        self.assertNotEqual(self.signed(5,bytes.fromhex('0102208e240100'))[2],0)
+        self.assertNotEqual(self.signed(6,bytes.fromhex('0103208e24013001'))[2],0)
+        self.app.engine.project.controller_configuration=replace(self.app.engine.project.controller_configuration,empty_fault_handler=False)
+        self.assertEqual(self.signed(7,bytes.fromhex('0102208e2401'))[2],0x14)
         self.assertEqual(self.app.engine.memory.values,before)
 
     def test_signed_axis_group_discovery_is_empty_only_for_motion_free_source(self):

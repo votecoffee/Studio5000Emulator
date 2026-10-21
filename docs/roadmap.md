@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.110` exposes [source verification results in transfer reports](native-transfer-diagnostics.md#source-verification-results).
+Current milestone: `.111` adds [reference-backed null Controller handlers](controller-handlers.md)
+and the observed aggregate profile. Fresh SDK upload cases receive successful
+object replies but still fail Controller collection. Native connection/Offline,
+source/model preservation and cleanup pass without a reported fatal fault.
+Configured handler references and complete native transfer remain unfinished.
+
+Version `.110` exposes [source verification results in transfer reports](native-transfer-diagnostics.md#source-verification-results).
 After SDK service recovery, the bounded native Go Online/Go Offline test passes.
 A fresh demo download matches all source identities and prepares all 904 records,
 then fails at the unfinished result response. Native tag reads still lack an

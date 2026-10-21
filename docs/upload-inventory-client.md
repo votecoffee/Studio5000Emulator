@@ -23,8 +23,9 @@ The reader:
 
 - Compares source/catalog revision before and after the inventory and checks
   the same application instance, source bytes and generation for every request.
-- Reads Controller configuration and retains unsupported aggregate and handler
-  responses as evidence. It does not invent a `POINTER` decoder.
+- Reads Controller configuration, preserves aggregate replies and recognizes
+  only the observed four-byte null handler value. Configured references remain
+  opaque; unsupported responses retain their errors.
 - Enumerates AOI Definition, Template, Program, Task, scoped Executable, Symbol and Data Table catalogs with bounded sparse-ID
   pagination, independent class counts and exact attribute-list framing.
 - Reads Task priority, output-update/inhibit flags and explicitly available
