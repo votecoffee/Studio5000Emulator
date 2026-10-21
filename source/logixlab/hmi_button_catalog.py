@@ -27,5 +27,7 @@ class HmiButtonCatalog:
         return {'empty_catalog_available': self.empty,
                 'instance_count': 0 if self.empty else None,
                 'source': 'complete Controller L5X HMIBC tags and configuration',
+                'program_class_ids': [0x36E],
+                'program_scope_requires': 'Matching original native identity and ordinary Standard Program; complete HMIBC-free project source',
                 'instance_list': self.empty, 'button_configuration': False,
                 'button_execution': False}

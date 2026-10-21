@@ -23,5 +23,7 @@ class MessageCatalog:
         return {'empty_catalog_available': self.empty,
                 'instance_count': 0 if self.empty else None,
                 'source': 'complete Controller L5X MESSAGE tags and configuration',
+                'program_class_ids': [0x8D],
+                'program_scope_requires': 'Matching original native identity and ordinary Standard Program; complete MESSAGE-free project source',
                 'instance_list': self.empty, 'message_configuration': False,
                 'msg_execution': False}

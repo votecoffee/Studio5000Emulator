@@ -69,6 +69,12 @@ requests. The empty scoped table reply succeeds; that does not identify the
 remaining reconstruction failure. Offline, cleanup and unchanged source/model
 are confirmed, with no reported fatal SDK fault.
 
+Subsequent `.125` reanalysis retains an omitted unsupported scoped request:
+the next Digital Alarm list under that Program was rejected with status `4`.
+See [Program catalog discovery](program-catalog-discovery.md) for the added
+scopes and the trace-analysis correction. The successful empty Data Table
+reply itself was not the rejected operation.
+
 The isolated diagnostic uses an owned project, its source-bound Template
 snapshot and unshipped clock/revision hypotheses. The release retains its prior
 clock behavior. This experiment does not establish full native upload/download,

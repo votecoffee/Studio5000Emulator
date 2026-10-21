@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.124` adds original [Program and Task reference symbols](reference-symbols.md).
+Current milestone: `.125` adds [Program-scoped empty catalog discovery](program-catalog-discovery.md)
+for Digital/Analog Alarms, HMI Button Controls and Messages. Original native
+Program identity and complete source absence checks govern these read-only
+lists. Transfer diagnostics retain well-framed unsupported scopes, including
+their rejected responses. Full native transfers remain unfinished.
+
+Version `.124` adds original [Program and Task reference symbols](reference-symbols.md).
 The isolated SDK upload reads both references and reaches Program-scoped Data
 Table discovery after all 22 Program fields succeed. Full Program upload still
 fails. Reference symbols have actual interpreter object backing and remain

@@ -1,15 +1,22 @@
 """Alarm discovery cannot conceal unsupported or incomplete source objects."""
 import copy
+import base64
+from dataclasses import replace
+import hashlib
 import struct
 from pathlib import Path
 import tempfile
 import unittest
 from xml.etree import ElementTree as E
 
-from logixlab.alarm_catalog import AlarmCatalog, CLASSES
+from logixlab.alarm_catalog import AlarmCatalog, CLASSES, PROGRAM_CLASSES
 from logixlab.ethernetip import Endpoint, Session, symbol_path
 from logixlab.model import Project
+from logixlab.native_project import NativeProjectIdentity
+from logixlab.native_symbols import NativeSymbols
 from logixlab.server import Application
+from tools.anonymous_client import AnonymousClient
+from tools.upload_inventory import logical_path
 
 
 class AlarmCatalogTests(unittest.TestCase):
@@ -28,6 +35,75 @@ class AlarmCatalogTests(unittest.TestCase):
 
     def call(self, path, data=b'', service=0x4B):
         return self.endpoint.router.handle(bytes((service,len(path)//2))+path+data, Session())
+
+    def bind_program(self,root=None,instance=472):
+        root=copy.deepcopy(self.root if root is None else root)
+        root.find('./Controller/Programs/Program').attrib.setdefault('UseAsFolder','false')
+        content=E.tostring(root);source=hashlib.sha256(content).hexdigest()
+        self.app.command('load',dict(name='alarms.L5X',content=base64.b64encode(content).decode(),
+            native_project_identity=NativeProjectIdentity('a'*64,source,1,1,1,1,1,1).manifest(),
+            native_symbols=NativeSymbols('a'*64,source,[],[dict(name='MainProgram',instance=instance)]).manifest()))
+
+    def test_program_digital_and_analog_empty_lists_keep_original_parent_and_cursor_widths(self):
+        for parent in (7,472,70000):
+            self.bind_program(instance=parent);before=copy.deepcopy(self.app.state())
+            for class_id in PROGRAM_CLASSES:
+                for cursor in (0,1,0xffffffff):
+                    self.assertEqual(self.call(logical_path(class_id,cursor,program=parent)),b'\xcb\0\0\0')
+            for key in ('tags','controller','scan','ms','routines','tasks'):self.assertEqual(self.app.state()[key],before[key])
+        self.assertEqual(self.app.engine.project.alarm_catalog.description()['program_class_ids'],[0x331,0x332])
+
+    def test_program_alarm_discovery_requires_current_original_identity_and_program_bindings(self):
+        self.bind_program();path=logical_path(0x331,0,program=472)
+        identity=self.app.native_project_identity;symbols=self.app.native_symbols
+        for stale in (None,replace(identity,source_l5x_sha256='b'*64),replace(identity,source_acd_sha256='b'*64)):
+            self.app.native_project_identity=stale;self.assertEqual(self.call(path)[2],0x0c)
+        self.app.native_project_identity=identity
+        for stale in (None,NativeSymbols('a'*64,'b'*64,[],[dict(name='MainProgram',instance=472)])):
+            self.app.native_symbols=stale;self.assertEqual(self.call(path)[2],0x0c)
+        self.app.native_symbols=symbols
+        self.assertEqual(self.call(logical_path(0x331,0,program=473))[2],5)
+        self.app.command('demo',{'sample':'ConveyorDemo'});self.assertEqual(self.call(path)[2],0x0c)
+
+    def test_nonempty_or_incomplete_source_never_becomes_an_empty_program_alarm_catalog(self):
+        for kind in ('alarm_tag','alarm_config','context','missing_tags','folder','opaque','safety'):
+            root=copy.deepcopy(self.root);program=root.find('./Controller/Programs/Program')
+            if kind=='alarm_tag':E.SubElement(program.find('Tags'),'Tag',Name='Alarm',DataType='ALARM_ANALOG',TagType='Base')
+            elif kind=='alarm_config':E.SubElement(root.find('Controller'),'AlarmConfiguration')
+            elif kind=='context':root.set('ContainsContext','true')
+            elif kind=='missing_tags':program.remove(program.find('Tags'))
+            elif kind=='folder':program.set('UseAsFolder','true')
+            elif kind=='opaque':E.SubElement(program,'OpaqueProgramData')
+            else:program.set('Class','Safety')
+            self.bind_program(root)
+            for class_id in PROGRAM_CLASSES:
+                self.assertEqual(self.call(logical_path(class_id,0,program=472))[2],5 if kind=='safety' else 0x0c,kind)
+
+    def test_program_alarm_paths_reject_other_scopes_payloads_attributes_and_mutations(self):
+        self.bind_program();before=copy.deepcopy(self.app.state())
+        for class_id in PROGRAM_CLASSES:
+            path=logical_path(class_id,0,program=472)
+            for target,data,service,status in ((path[:-2],b'',0x4b,4),(path+b'\x30\1',b'',0x4b,4),
+                    (path,b'\0',0x4b,0x15),(symbol_path('Program:MainProgram')+path,b'',0x4b,4),
+                    (path,b'',0x0e,8),(path,b'\0',0x10,8)):
+                self.assertEqual(self.call(target,data,service)[2],status)
+        for class_id in set(CLASSES)-set(PROGRAM_CLASSES):
+            self.assertEqual(self.call(logical_path(class_id,0,program=472))[2],4)
+        for parent in (0x338,0x8e):
+            self.assertEqual(self.call(logical_path(parent,1)+logical_path(0x331,0))[2],4)
+        for key in ('tags','controller','scan','ms','routines','tasks'):self.assertEqual(self.app.state()[key],before[key])
+
+    def test_program_alarm_reads_use_real_anonymous_signed_tcp_and_cleanup(self):
+        self.bind_program();before=copy.deepcopy(self.app.state())
+        self.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True);self.app.endpoint=self.endpoint
+        self.endpoint.start()
+        with AnonymousClient(self.endpoint) as client:
+            client.bind()
+            for class_id in PROGRAM_CLASSES:
+                path=logical_path(class_id,0,program=472)
+                self.assertEqual(client.request(bytes((0x4b,len(path)//2))+path),b'\xcb\0\0\0')
+                self.assertNotEqual(client.request(bytes((0x10,len(path)//2))+path+b'\0')[2],0)
+        for key in ('tags','controller','scan','ms','routines','tasks'):self.assertEqual(self.app.state()[key],before[key])
 
     def test_alarm_free_source_has_empty_global_catalogs_with_any_cursor(self):
         self.assertTrue(self.catalog(self.root).empty)

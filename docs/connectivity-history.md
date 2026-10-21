@@ -4,6 +4,12 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.125` adds [Program-scoped empty catalog discovery](program-catalog-discovery.md)
+for Digital/Analog Alarms, HMI Button Controls and Messages. Each catalog uses
+its own complete-source absence check and matching native Program identity.
+The offline transfer analyzer retains valid scoped requests unsupported by the
+live decoder, preserving rejected responses and numeric parent paths.
+
 Version `.124` adds original [Program and Task reference symbols](reference-symbols.md).
 Source-bound data names and native IDs select supported Standard objects;
 runtime references resolve to the current interpreter targets and immutable

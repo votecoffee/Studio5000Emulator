@@ -116,7 +116,7 @@ def decode_path(raw):
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
-                scope = ('program_instance' if p.class_id==0x68 and value in (*energy_catalog.CLASSES,0x6A,0x6B,0x6D,0x74)
+                scope = ('program_instance' if p.class_id==0x68 and value in (*energy_catalog.CLASSES,*alarm_catalog.PROGRAM_CLASSES,0x6A,0x6B,0x6D,0x74,0x8D,0x36E)
                          else 'aoi_instance' if p.class_id==0x338 and value==0x6D
                          else 'io_map_instance' if p.class_id==0x69 and value==0x7E
                          else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
@@ -1218,6 +1218,17 @@ class Router:
         elif path.class_id==0x338:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'AOI discovery must be controller scoped')
             ids=[row['id'] for row in self.aoi_definitions()]
+        elif path.class_id in (*alarm_catalog.PROGRAM_CLASSES,0x8D,0x36E) and path.program_instance is not None:
+            if path.symbols:raise CIPError(4,'Inventory discovery requires a numeric Program parent')
+            program=self.source_bound_program(path.program_instance)
+            project=self.app.engine.project;configuration=project.program_configuration
+            catalog=(project.alarm_catalog if path.class_id in alarm_catalog.PROGRAM_CLASSES else
+                     project.message_catalog if path.class_id==0x8D else project.hmi_button_catalog)
+            if (not catalog.empty or
+                    not configuration.type_attributes(program['name'],source_sha256=project.sha256) or
+                    configuration.flag_attributes(program['name'],source_sha256=project.sha256).get(31)!=b'\1'):
+                raise CIPError(0x0C,'Program inventory is nonempty or unavailable from this source')
+            ids=[]
         else:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'This instance list requires a global class path')

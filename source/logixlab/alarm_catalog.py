@@ -9,6 +9,8 @@ from .tag_catalog import complete_tag_source
 
 
 CLASSES = (0x331, 0x332, 0x3A6, 0x3A7, 0x3A8)
+# Successful empty lists observed under original Program parents in v35.
+PROGRAM_CLASSES = (0x331, 0x332)
 
 
 @dataclass(frozen=True)
@@ -37,5 +39,7 @@ class AlarmCatalog:
                 'instance_count': 0 if self.empty else None,
                 'source': 'complete Controller L5X alarm tags and configuration',
                 'class_ids': list(CLASSES),
+                'program_class_ids': list(PROGRAM_CLASSES),
+                'program_scope_requires': 'Matching original native identity and ordinary Standard Program; complete alarm-free project source',
                 'instance_list': self.empty, 'alarm_configuration': False,
                 'alarm_execution': False}

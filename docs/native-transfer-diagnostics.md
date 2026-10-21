@@ -39,6 +39,14 @@ the reader then reports an incomplete interval.
 
 ## Offline reader
 
+Version `.125` retains well-framed object paths even when the live path decoder
+does not support that parent/child combination. Numeric parent scopes and
+rejected replies remain visible, with `object_path` and
+`dispatch_path_supported: false` identifying the offline fallback. Distinct
+unsupported parents stay separate in aggregate counts. Malformed paths remain
+unparsed; this does not authorize new live routes or infer an SDK failure cause.
+See [Program catalog discovery](program-catalog-discovery.md).
+
 ### Collection attribute lists
 
 Version `.115` decodes established instance-one attribute-list layouts for

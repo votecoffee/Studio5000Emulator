@@ -15,6 +15,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import signed_messages as sm
 from logixlab.ethernetip import CIPError,decode_path
 from tools.collection_inventory import instance_supported as collection_instance, CollectionError, decode_attribute_list
+from tools.inspect_cip_capture import describe_path
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -77,23 +78,36 @@ def event_interval(before,after):
 
 
 def request_row(child,result,sequence,ordinal):
-    end=2+2*child[1];path=decode_path(child[2:end]);start=4+2*result[3]
-    row=dict(ordinal=ordinal,sequence=sequence,service=child[0],class_id=path.class_id,
-        instance=path.instance,attribute=path.attribute,program_instance=path.program_instance,
-        io_map_instance=path.io_map_instance,controller_instance=path.controller_instance,aoi_instance=path.aoi_instance,
-        symbolic=bool(path.symbols),status=result[2],request_payload_bytes=len(child)-end,
+    end=2+2*child[1];start=4+2*result[3]
+    try:
+        path=decode_path(child[2:end])
+        fields={key:getattr(path,key) for key in ('class_id','instance','attribute','program_instance',
+            'io_map_instance','controller_instance','aoi_instance')}
+        fields['symbolic']=bool(path.symbols)
+    except CIPError:
+        # Offline inspection must retain well-framed scoped requests that the
+        # live dispatcher does not support. This does not authorize routing.
+        observed=describe_path(child[2:end]);scopes=observed.get('object_path')
+        if not scopes:raise
+        leaf=scopes[-1]
+        fields={key:None for key in ('program_instance','io_map_instance','controller_instance','aoi_instance')}
+        fields.update({key:leaf[key] for key in ('class_id','instance','attribute')},
+            symbolic=observed['symbolic_path'],object_path=scopes,dispatch_path_supported=False)
+        if len(scopes)==2 and scopes[0]['class_id']==0x68:fields['program_instance']=scopes[0]['instance']
+    row=dict(ordinal=ordinal,sequence=sequence,service=child[0],**fields,
+        status=result[2],request_payload_bytes=len(child)-end,
         response_payload_bytes=len(result)-start,
         additional_status=list(struct.unpack('<'+'H'*result[3],result[4:start])))
-    if child[0]==3 and path.attribute is None:
+    if child[0]==3 and row['attribute'] is None:
         data=child[end:]
         if len(data)>=2:
             count=struct.unpack_from('<H',data)[0];row['attribute_list_count']=count
             if 1<=count<=32 and len(data)==2+2*count:
                 row['requested_attributes']=list(struct.unpack_from('<'+'H'*count,data,2))
-                if (collection_instance(path.class_id,path.instance) and not path.symbols and
-                        all(getattr(path,name) is None for name in ('program_instance','io_map_instance','controller_instance','aoi_instance')) and
+                if (collection_instance(row['class_id'],row['instance']) and not row['symbolic'] and 'object_path' not in row and
+                        all(row[name] is None for name in ('program_instance','io_map_instance','controller_instance','aoi_instance')) and
                         result[2] in (0,6,0x0A)):
-                    try:row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],path.class_id)
+                    try:row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],row['class_id'])
                     except CollectionError as error:
                         row['collection_attribute_list']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     return row
@@ -179,14 +193,16 @@ def analyze(before,after,operation,report=None):
                     collection_count+=1
                     if row['collection_attribute_list'].get('structure')=='UNSUPPORTED OR MALFORMED':collection_errors+=1
                     if len(collections)<MAX_REPORT_ROWS:collections.append(row)
-                key=tuple(row[k] for k in ('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'))
+                scopes=tuple((p['class_id'],p['instance'],p['attribute'],p['symbolic_path']) for p in row.get('object_path',()))
+                key=tuple(row[k] for k in ('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'))+(scopes,)
                 objects[key]+=1
                 if row['status']:
                     failed+=1
                     if len(failures)<MAX_REPORT_ROWS:failures.append(row)
         except (ValueError,IndexError,KeyError,TypeError,CIPError,struct.error):unparsed+=1
     gaps,gaps_truncated=gap_delta(before,after)
-    object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),key),requests=count)
+    object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),key[:-1]),requests=count,
+                     **({'object_path':[dict(zip(('class_id','instance','attribute','symbolic_path'),scope)) for scope in key[-1]]} if key[-1] else {}))
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
         'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors),'signed_envelopes':envelopes,'requests_observed':matched,

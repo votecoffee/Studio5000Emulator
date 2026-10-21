@@ -19,6 +19,36 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_unknown_live_scopes_remain_visible_as_offline_rejected_requests(self):
+        from logixlab.ethernetip import CIPError,decode_path
+        child=bytes.fromhex('4b0620682500d801210039032400')
+        with self.assertRaises(CIPError):decode_path(child[2:])
+        report=tool.analyze({'events':[]},{'events':[event(child,bytes.fromhex('cb000400'))]},'upload')
+        self.assertTrue(report['analysis_complete']);self.assertEqual(report['unparsed_events'],0)
+        row,=report['failed_requests']
+        self.assertEqual((row['class_id'],row['instance'],row['program_instance'],row['status']),(0x339,0,472,4))
+        self.assertFalse(row['dispatch_path_supported']);self.assertEqual(len(row['object_path']),2)
+        self.assertEqual(report['failure_cause'],'NOT INFERRED')
+        self.assertNotIn('request_hex',row);self.assertNotIn('response_hex',row)
+        from tools.upload_inventory import logical_path
+        entries=[]
+        for parent in (1,2):
+            path=logical_path(0x444,parent)+logical_path(0x339,0)
+            entries.append(event(bytes((0x4b,len(path)//2))+path,bytes.fromhex('cb000400'),sequence=parent))
+        report=tool.analyze({'events':[]},{'events':entries},'upload')
+        self.assertTrue(report['analysis_complete']);self.assertEqual(len(report['objects']),2)
+        self.assertEqual([row['object_path'][0]['instance'] for row in report['objects']],[1,2])
+
+    def test_malformed_scope_fallback_does_not_hide_bad_padding_or_symbol_names(self):
+        for query in ('4b0620682501d801210039032400','4b042068240121003903',
+                      '4b0720682500d80121003903240030'):
+            report=tool.analyze({'events':[]},{'events':[event(bytes.fromhex(query),bytes.fromhex('cb000400'))]},'upload')
+            self.assertFalse(report['analysis_complete']);self.assertEqual(report['unparsed_events'],1)
+        private=b'\x91\x06Secret'
+        child=bytes((0x4b,8))+bytes.fromhex('20682401')+private+bytes.fromhex('210039032400')
+        report=tool.analyze({'events':[]},{'events':[event(child,bytes.fromhex('cb000400'))]},'upload')
+        self.assertNotIn('Secret',json.dumps(report))
+
     def test_task_collection_keeps_scope_program_ids_and_memory_fields_structural(self):
         query=bytes.fromhex('0303207025002c01020001001400')
         answer=bytes.fromhex('830000000200010000000100')+struct.pack('<I',90000)+bytes.fromhex('140000000000')

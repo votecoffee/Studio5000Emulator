@@ -18,9 +18,15 @@ They do not upload definitions or emulate external I/O or alarm execution.
 `Get Instance List` (`0x4B`) takes its starting instance in the path and no
 payload. A proven empty catalog returns `CB 00 00 00`, including for nonzero
 cursors. Configured or unavailable source returns status `0x0C`. Missing cursor,
-attribute, program and symbolic scopes, extra payload and unsupported services
+attribute and symbolic scopes, extra payload and unsupported services
 retain errors. The native signed-message policy admits these specific reads;
 definition changes and tag writes remain denied.
+
+Version `.125` also supports numeric Program scopes for Digital/Analog Alarm,
+HMI Button Control and Message lists under a matching native Program identity.
+Their individual absence checks remain conservative across the complete source.
+Other Program-scoped catalogs remain unsupported unless separately documented.
+See [Program catalog discovery](program-catalog-discovery.md).
 
 I/O Map class attributes `2` and `3` expose zero maximum instance and zero
 instance count as separate four-byte UDINTs. Existing force and LED status
