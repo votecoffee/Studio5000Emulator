@@ -4,6 +4,14 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.124` adds original [Program and Task reference symbols](reference-symbols.md).
+Source-bound data names and native IDs select supported Standard objects;
+runtime references resolve to the current interpreter targets and immutable
+Symbol descriptors. References have no tag-value or Data Table storage.
+The isolated SDK upload reads both added references and all 22 Program fields,
+then requests Program-scoped Data Table discovery. It still reports a Program
+upload failure. Full native transfer and Studio GUI monitoring remain unfinished.
+
 Version `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
 Explicit settings keep precedence; unknown, enabled-redundancy and unsupported
 profiles stay unavailable. The isolated SDK upload reads all 22 requested

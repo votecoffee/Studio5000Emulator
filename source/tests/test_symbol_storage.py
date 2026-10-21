@@ -67,9 +67,9 @@ class SymbolStorageTests(unittest.TestCase):
             self.assertEqual(self.router.scalar_storage().read(cell.value_address, cell.size, self.app.engine.memory.read),
                              struct.pack('<' + fmt, value))
 
-    def test_constants_aliases_and_arrays_keep_storage_unavailable(self):
+    def test_constants_and_aliases_keep_storage_unavailable(self):
         self.add('Const', constant=True); self.add('Alias', None, alias='Step')
-        for name in ('Const', 'Alias', 'Values'):
+        for name in ('Const', 'Alias'):
             self.bind(Symbol('', 0, name, 3))
             for attr in (3, 5, 6, 7, 12, 14):
                 self.assertEqual(self.cip(0x0E, bytes.fromhex('206b240330') + bytes((attr,)))[2], 0x14, (name, attr))
@@ -95,8 +95,17 @@ class SymbolStorageTests(unittest.TestCase):
         expected = struct.pack('<I', 3) + b''.join(values[a] for a in attrs)
         self.assertEqual(self.cip(0x55, data=payload), b'\xD5\0\0\0' + expected)
         self.assertEqual(self.cip(0x55, data=payload, limit=len(expected) + 3)[2], 0x1B)
-        self.bind(Symbol('', 0, 'Values', 3))
+        self.add('Const',constant=True);self.bind(Symbol('', 0, 'Const', 3))
         self.assertEqual(self.cip(0x55, data=payload)[2], 0x14)
+
+    def test_fixed_atomic_arrays_have_backed_metadata_and_follow_actual_element_writes(self):
+        self.bind(Symbol('',0,'Values',3));space=self.router.scalar_storage();cell=space.by_ref['values']
+        self.assertEqual(self.cip(14,bytes.fromhex('206b24033003'))[4:],struct.pack('<I',cell.value_address))
+        values=self.app.engine.memory.read('Values')
+        self.assertEqual(space.read(cell.value_address,cell.size,self.app.engine.memory.read),struct.pack('<'+'i'*len(values),*values))
+        self.app.engine.memory.write('Values[2]',314)
+        self.assertEqual(struct.unpack('<'+'i'*len(values),space.read(cell.value_address,cell.size,self.app.engine.memory.read))[2],314)
+        self.assertEqual(self.router.scalar_storage().by_ref['values'].value_address,cell.value_address)
 
     def test_read_only_properties_do_not_change_when_endpoint_writes_are_disabled(self):
         self.app.engine.project.tags['step'].external_access = 'Read Only'

@@ -28,6 +28,7 @@ class RuntimeReferences:
         self._project = project
         self._addresses = {}
         self._objects = {}
+        self._reference_catalog = None
 
     def _current(self, project, kind, key):
         if project is not self._project:
@@ -36,6 +37,10 @@ class RuntimeReferences:
             return next((value for name,value in project.programs.items() if name.casefold()==key),None)
         if kind == 'routine':
             return project.routines.get(key)
+        if kind == 'task':
+            return next((row for row in project.tasks if row['name'].casefold()==key),None)
+        if kind == 'symbol' and self._reference_catalog is not None and key.isdecimal():
+            return self._reference_catalog.by_instance.get(int(key))
         return None
 
     def reference(self, project, kind, key):
@@ -80,9 +85,21 @@ class RuntimeReferences:
         if routine_address is None or program_address is None:return {}
         return {5:struct.pack('<I',routine_address),16:struct.pack('<I',program_address)}
 
+    def bind_reference_catalog(self,catalog):
+        self._reference_catalog=catalog
+
+    def symbol_addresses(self,project,catalog,row):
+        if (project is not self._project or catalog.source_l5x_sha256!=project.sha256 or
+                catalog.by_instance.get(row.instance) is not row or
+                self._current(project,row.kind,row.target.casefold()) is None):return None
+        self.bind_reference_catalog(catalog)
+        value=self.reference(project,row.kind,row.target)
+        header=self.reference(project,'symbol',str(row.instance))
+        return (value,header) if value is not None and header is not None else None
+
     def description(self):
         return {'attributes':[5,16],'address_bits':32,'alignment':4,
-                'backing':'Live interpreter Program and main RLL Routine objects',
+                'backing':'Live interpreter Program, Routine, Task and validated reference Symbol objects',
                 'scope':'Current Engine in this emulator process',
                 'allocated_objects':len(self._objects),'addresses_reused':False,
                 'logical_ids_used_as_addresses':False,'physical_addresses_imported':False,

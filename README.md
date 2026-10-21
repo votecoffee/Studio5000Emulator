@@ -12,10 +12,12 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.123` adds an identified [nonredundant Program synchronization model default](docs/program-synchronization-default.md).
-The isolated SDK upload now reads all 22 requested Program fields successfully;
-full Program reconstruction and native transfer still fail.
-It retains [runtime Program and main-Routine references](docs/runtime-object-references.md),
+Version `.124` adds original [Program and Task reference symbols](docs/reference-symbols.md)
+backed by the current emulator objects. The isolated SDK upload discovers both
+references, reads all 22 requested Program fields and reaches Program-scoped
+Data Table discovery. Full Program reconstruction and native transfer still fail.
+It retains the [nonredundant synchronization default](docs/program-synchronization-default.md),
+[runtime Program and main-Routine references](docs/runtime-object-references.md),
 [Standard memory and normal Program status](docs/program-memory-status.md),
 [Program diagnostics](docs/program-diagnostics.md) and
 [measured scan times](docs/program-timing-and-flags.md).

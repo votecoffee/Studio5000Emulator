@@ -24,6 +24,7 @@ from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
 from .native_aoi_routines import NativeAOIRoutines
 from .native_auxiliary_symbols import NativeAuxiliarySymbols
+from .reference_symbols import ReferenceSymbols
 from .native_tables import NativeTables
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
@@ -59,6 +60,7 @@ class Application:
         self.native_aois = None
         self.native_aoi_routines = None
         self.native_auxiliary_symbols = None
+        self.native_reference_symbols = None
         self.native_tables = None
         self.lock = threading.RLock()
         self.busy = False
@@ -161,6 +163,7 @@ class Application:
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
+            'native_reference_symbols':None,
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
             'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
@@ -356,6 +359,8 @@ class Application:
                            for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols)):
                         raise ModelError('Data Table and project manifests refer to different ACD files')
                     provenance['native_tables']=native_tables.description()
+                native_reference_symbols=ReferenceSymbols.from_source(project,native_identity,native_symbols,native_tasks,native_auxiliary_symbols)
+                if native_reference_symbols:provenance['native_reference_symbols']=native_reference_symbols.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -374,6 +379,7 @@ class Application:
                     self.native_aois = native_aois
                     self.native_aoi_routines = native_aoi_routines
                     self.native_auxiliary_symbols = native_auxiliary_symbols
+                    self.native_reference_symbols = native_reference_symbols
                     self.native_tables = native_tables
                     self.generation += 1
                     self.device_io.bind(self.generation)

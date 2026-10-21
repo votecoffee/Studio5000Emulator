@@ -568,7 +568,23 @@ class Router:
                                'dimensions':(dims+[0,0,0])[:3],'external_access':access})
             except ModelError:continue
             except CIPError:continue
+        if not scope:
+            for row in self.reference_symbols():
+                result.append({'id':row.instance,'name':row.name,'type':row.type_code,'dimensions':(0,0,0),
+                               'external_access':0,'object_reference':row})
         return sorted(result,key=lambda item:item['id'])
+
+    def reference_symbols(self):
+        catalog=getattr(self.app,'native_reference_symbols',None);engine=self.app.engine
+        if catalog is None:
+            engine.runtime_references.bind_reference_catalog(None)
+            return ()
+        if not catalog.current(engine.project,self.app.native_project_identity,self.app.native_symbols,
+                self.app.native_tasks,self.app.native_auxiliary_symbols):
+            engine.runtime_references.bind_reference_catalog(None)
+            raise CIPError(0x0C,'Reference Symbol source binding changed')
+        engine.runtime_references.bind_reference_catalog(catalog)
+        return catalog.rows
 
     def access(self,ref,write=False,seen=()):
         """Honor root, alias target, member and AOI external-access restrictions."""
@@ -612,6 +628,7 @@ class Router:
                 parts=parts[1:]
             symbol=next((s for s in self.symbols(scope) if s['id']==path.instance),None)
             if symbol is None:raise CIPError(5,'Unknown symbol instance')
+            if symbol.get('object_reference') is not None:raise CIPError(0x0F,'Object reference is not a readable or writable tag value')
             return Path(symbols=parts).reference(symbol['ref'])
         if path.class_id is not None or path.instance is not None:raise CIPError(4,'Unsupported logical tag path')
         return path.reference()
@@ -807,6 +824,13 @@ class Router:
         return scope
 
     def symbol_attributes(self,symbol):
+        row=symbol.get('object_reference')
+        if row is not None:
+            catalog=getattr(self.app,'native_reference_symbols',None)
+            if row not in self.reference_symbols():raise CIPError(0x0C,'Reference Symbol is no longer current')
+            addresses=self.app.engine.runtime_references.symbol_addresses(self.app.engine.project,catalog,row)
+            if addresses is None:raise CIPError(0x0C,'Reference Symbol backing is unavailable')
+            return row.attributes(*addresses)
         tag=self.app.engine.project.tags[symbol['ref'].lower()]
         storage=self.scalar_storage().by_ref.get(symbol['ref'].lower())
         return symbol_metadata.attributes(symbol,tag.constant,storage)
@@ -1109,7 +1133,7 @@ class Router:
         # Alias symbols refer to another tag's storage and do not create a new
         # Data Table instance. Reuse discovery's type/access/source checks.
         tags=self.app.engine.project.tags
-        return [symbol for symbol in self.symbols(scope) if not tags[symbol['ref'].lower()].alias]
+        return [symbol for symbol in self.symbols(scope) if symbol.get('object_reference') is None and not tags[symbol['ref'].lower()].alias]
 
     def data_table_service(self,service,path,data,limit):
         scope=self.symbol_scope(path)
@@ -1759,6 +1783,7 @@ class Endpoint:
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
                     'native_tables':self.app.native_tables.description() if self.enabled and getattr(self.app,'native_tables',None) else None,
                     'native_auxiliary_symbols':self.app.native_auxiliary_symbols.description() if self.enabled and getattr(self.app,'native_auxiliary_symbols',None) else None,
+                    'native_reference_symbols':self.app.native_reference_symbols.description() if self.enabled and getattr(self.app,'native_reference_symbols',None) else None,
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
                     'native_aoi_routines':self.app.native_aoi_routines.description() if self.enabled and getattr(self.app,'native_aoi_routines',None) else None,
                     'locator':self.locator_state(),

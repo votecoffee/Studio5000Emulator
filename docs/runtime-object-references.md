@@ -15,6 +15,12 @@ new engines, including reset and routine replacement, have separate registries.
 Resolution checks the exact Project object, target object and reference kind.
 Exhaustion withholds values without wrapping.
 
+Version `.124` uses the same address space for original
+[Program and Task reference symbols](reference-symbols.md). Symbol attribute `3`
+resolves to the current Program or Task object; `5` resolves to a separate,
+immutable Symbol descriptor. A Program reference's `3` equals that Program's
+`16`. Reset replaces the registry, revoking both target and descriptor addresses.
+
 Reads require complete ordinary v35 source, an executable whole-project model,
 matching original ACD/Program/Routine identities, visible RLL routines, an actual
 main routine, explicit untested edits and idle native edit preparation. Missing,

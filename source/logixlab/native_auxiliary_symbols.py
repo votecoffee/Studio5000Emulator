@@ -1,11 +1,13 @@
 """Original Comps.Dat Symbol identities omitted by TagInfo, for download checks.
 
-These records never add runtime tags, public Symbol instances, addresses,
-aliases or values. The supported source profile is format 63/body size 700.
+These records alone add no runtime tags, addresses, aliases or values. A separate
+validated reference catalog may use the explicit Program/Task data names.
+The supported source profile is format 63/body size 700.
 """
 from dataclasses import dataclass
 import gzip
 import io
+import re
 import struct
 from types import MappingProxyType
 import zlib
@@ -18,6 +20,7 @@ MAX_STREAM_BYTES=16_000_000
 MAX_RECORDS=200_000
 MAX_AUXILIARY=1024
 COMPONENT_TYPES=frozenset((256,264,1288))
+REFERENCE_NAME=re.compile(r'(?:Program|Task):[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
 
 
 @dataclass(frozen=True)
@@ -26,6 +29,7 @@ class AuxiliarySymbol:
     instance: int
     name: str
     component_type: int
+    reference_name: str | None = None
 
     def __post_init__(self):
         if (type(self.program_instance) is not int or not 0<=self.program_instance<65535
@@ -34,9 +38,15 @@ class AuxiliarySymbol:
                 or not isinstance(self.name,str) or not 1<=len(self.name)<=61
                 or any(not 33<=ord(char)<=126 for char in self.name)):
             raise ModelError('Unsupported auxiliary Symbol identity')
+        if self.reference_name is not None and (self.program_instance!=0 or self.component_type!=256 or
+                not re.fullmatch(r'\$[0-9a-fA-F]{8}\$',self.name) or
+                not isinstance(self.reference_name,str) or not REFERENCE_NAME.fullmatch(self.reference_name)):
+            raise ModelError('Unsupported native object reference Symbol')
 
     def manifest(self):
-        return dict(program_instance=self.program_instance,instance=self.instance,name=self.name,component_type=self.component_type)
+        value=dict(program_instance=self.program_instance,instance=self.instance,name=self.name,component_type=self.component_type)
+        if self.reference_name is not None:value['reference_name']=self.reference_name
+        return value
 
 
 def symbol_paths(data,native_symbols):
@@ -80,7 +90,14 @@ def symbol_paths(data,native_symbols):
         if stop is None:raise ModelError('Unterminated auxiliary Symbol name')
         try:name=raw[:stop].decode('utf-16le')
         except UnicodeError as error:raise ModelError('Invalid auxiliary Symbol name') from error
-        row=AuxiliarySymbol(parent,instance,name,component);key=(parent,instance);named=(parent,name.casefold())
+        key=(parent,instance);reference_name=None
+        if (key not in known and parent==0 and component==256 and re.fullmatch(r'\$[0-9a-fA-F]{8}\$',name)
+                and (bytes(body[92:100])==b'Program:' or bytes(body[92:97])==b'Task:')):
+            size=struct.unpack_from('<H',body,90)[0]
+            if not 6<=size<=48 or body[92+size]!=0:raise ModelError('Invalid native reference Symbol data name bounds')
+            try:reference_name=bytes(body[92:92+size]).decode('ascii')
+            except UnicodeError as error:raise ModelError('Invalid native reference Symbol data name') from error
+        row=AuxiliarySymbol(parent,instance,name,component,reference_name);named=(parent,name.casefold())
         if key in found or named in names:raise ModelError('Ambiguous historical auxiliary Symbol identity')
         found[key]=name;names.add(named)
         if key in known:
@@ -104,7 +121,8 @@ class NativeAuxiliarySymbols:
         if not isinstance(symbols,(list,tuple)) or len(symbols)>MAX_AUXILIARY:raise ModelError('Invalid auxiliary Symbol inventory')
         found={};names=set()
         for value in symbols:
-            if not isinstance(value,dict) or set(value)!={'program_instance','instance','name','component_type'}:
+            if (not isinstance(value,dict) or not {'program_instance','instance','name','component_type'}<=value.keys()
+                    or value.keys()-{'program_instance','instance','name','component_type','reference_name'}):
                 raise ModelError('Invalid auxiliary Symbol manifest fields')
             row=AuxiliarySymbol(**value);key=(row.program_instance,row.instance);named=(row.program_instance,row.name.casefold())
             if key in found or named in names:raise ModelError('Duplicate auxiliary Symbol identity')
@@ -152,6 +170,7 @@ class NativeAuxiliarySymbols:
                     symbols=[r.manifest() for r in self.rows])
 
     def description(self):
-        return dict(bound=True,symbols=len(self.rows),source='ACD Comps.Dat Symbol format 63; identity comparison only',
+        return dict(bound=True,symbols=len(self.rows),source='ACD Comps.Dat Symbol format 63 identities and explicit reference data names',
+            reference_data_names=sum(row.reference_name is not None for row in self.rows),
             source_acd_sha256=self.source_acd_sha256,source_l5x_sha256=self.source_l5x_sha256,
             runtime_tags_exposed=False,compiled_addresses=False,alias_semantics=False,values_exposed=False,install_authority=False)

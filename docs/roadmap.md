@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
+Current milestone: `.124` adds original [Program and Task reference symbols](reference-symbols.md).
+The isolated SDK upload reads both references and reaches Program-scoped Data
+Table discovery after all 22 Program fields succeed. Full Program upload still
+fails. Reference symbols have actual interpreter object backing and remain
+separate from tag values, storage tables and physical controller addresses.
+
+Version `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
 The isolated SDK diagnostic reads all 22 requested Program fields successfully.
 Upload still fails after that read without a subsequent rejected request;
 complete field reads do not prove Program reconstruction. Public clock behavior
