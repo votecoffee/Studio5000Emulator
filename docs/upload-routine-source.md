@@ -73,7 +73,19 @@ containers have an unsupported compression flag variant and remain errors;
 their meaning is unverified. All data stays offline and outside the active demo.
 The saved capture's MAC integrity remains unverified.
 
-The most recent isolated SDK upload still fails Program upload after all 22
+The most recent isolated SDK upload, on `.132`, fails Program upload after all 22
 Routine metadata fields return status zero. It never requests these source
 streams. This source-decoding work does not resolve that earlier failure or
 establish native upload, download or complete online-edit acceptance.
+
+All 145 affected tests pass, covering source profiles, edit/import separation,
+container limits, completed read streams and the existing edit path. The full
+behavioral suite was not rerun for this passive decoder change.
+
+The restarted release passes 12 focused deployment checks, including execution
+of the packaged decoder against synthetic Standard, Safety and TestEdits sources.
+All 94 deployed app modules match the build. The webpage, packaged assets and
+Windows executable report `.133`. Native SDK Go Online/Go Offline passes across
+75 verified signed requests, with actual Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. Inputs, logic and edit settings match across
+restart. Full native upload was not rerun for this inspection-only change.

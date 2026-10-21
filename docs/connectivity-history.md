@@ -15,6 +15,15 @@ The online-edit/import XML profile remains strict, and its resolver/planner
 reject the distinct upload result type. No live `0x3A` handler, source installation
 or native transfer authority is added. The latest SDK upload remains blocked
 before requesting source streams; full native transfer remains unfinished.
+All 145 affected tests and 12 focused deployment checks pass; the full suite was
+not rerun. The packaged decoder handles synthetic Standard, Safety and TestEdits
+sources and preserves the separate edit guards. All 94 deployed app modules,
+webpage, assets and executable version match `.133`. Native SDK Go Online/Go
+Offline passes across 75 verified signed requests, with actual Offline/cleanup,
+unchanged source/model and no reported fatal SDK fault. Inputs, logic and edit
+settings match across restart. The previous `.132` upload failure is retained as
+the transfer boundary; no new full upload trial or physical-controller contact
+was initiated for this passive decoder change.
 
 Version `.132` adds [signed read-stream decoding and bounded detached assembly](read-transport.md)
 for Message Router `0x3A`. All 4,333 saved exchanges frame into 2,394 complete
