@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
 from logixlab import signed_messages,read_transport
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list as decode_collection_list
+from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_OUTPUT = 128 * 1024 * 1024
@@ -227,6 +228,8 @@ def time_sync_layout(request, response, raw, include_payloads):
         try:
             response[key] = decode_collection_list(raw, request['requested_attributes'], target['class_id'],
                                                     include_payloads=include_payloads)
+            if target['class_id']==0x6d and tuple(request['requested_attributes'])==BULK_ATTRIBUTES:
+                response['routine_bulk_profile']=describe_routine_bulk(raw,request['requested_attributes'],target['instance'])
         except CollectionError as error:
             response[key] = {'structure': 'UNSUPPORTED OR MALFORMED', 'reason': str(error)}
 

@@ -1,5 +1,10 @@
 # Guarded Routine bulk metadata
 
+Version `.134` adds [offline comparison diagnostics](routine-metadata-comparison.md)
+for this reply shape. Matching nonidentity fields does not establish native
+interpretation or source association; the isolated address-range trial does not
+resolve the current upload failure.
+
 Version `.131` extends the [ordinary RLL state model](routine-state.md) to the
 four fields withheld in `.130`. Single and ordered bulk reads share the same
 source, identity, fault-history, unchanged-logic and native-edit guards. This

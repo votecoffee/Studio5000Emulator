@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
+Current milestone: `.134` adds [Routine metadata comparison diagnostics](routine-metadata-comparison.md).
+Both isolated `.133` trials return the complete 22-field Routine shape and match
+an observed nonidentity reference profile. Changing the virtual reference address
+range does not advance upload. The saved successful replies also use null Code
+Addresses, so no nonzero Code Address is introduced. Next, investigate source and
+identity association and native client interpretation before the first source read.
+
+Version `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
 Of 809 saved Routine source streams, 806 decode with their Standard/Safety class
 and Original/TestEdits state preserved. Test-edit pairs retain both records and
 their shared RegionId; no active source is selected. Three unsupported containers

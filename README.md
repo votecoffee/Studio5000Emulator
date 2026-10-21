@@ -12,6 +12,11 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
+Version `.134` adds [Routine bulk metadata comparisons](docs/routine-metadata-comparison.md)
+to the capture and transfer diagnostics. The isolated address-range trial still
+fails before source reads; the normal endpoint keeps its existing references.
+The nonidentity fields match an observed reference profile, narrowing the remaining
+investigation to client interpretation and source/identity association.
 Version `.133` adds [read-only Routine upload-source decoding](docs/upload-routine-source.md).
 It decodes 806 saved source streams while retaining separate Standard, Safety
 and TestEdits profiles, including paired edit regions. Three unsupported

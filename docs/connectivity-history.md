@@ -4,6 +4,17 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.134` adds [shared Routine metadata comparison diagnostics](routine-metadata-comparison.md)
+to capture and checkpoint reports. Missing and failed values stay unknown;
+complete profiles compare all fields except header references, original instance
+IDs and opaque source-key metadata. All 809 saved replies form two comparable
+groups and have null Code Addresses. Both isolated `.133` SDK trials match a
+reference nonidentity profile but still fail Program upload before any `0x3A`
+source request. The address-range change is exercised but not shipped. The
+trials retain 357/358 verified signed requests and 360/361 expanded leaf requests,
+with actual Offline/cleanup, unchanged source/model and no reported fatal SDK
+fault. No physical-controller contact or live read/write authority is added.
+
 Version `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
 All 806 supported containers in the saved upload retain their Standard/Safety
 class and Original/TestEdits state. The 14,414 rung records include 15 adjacent

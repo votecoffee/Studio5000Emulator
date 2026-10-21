@@ -18,6 +18,7 @@ from logixlab import read_transport as rt
 from logixlab.ethernetip import CIPError,decode_path
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list
 from tools.inspect_cip_capture import describe_path,describe
+from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -109,7 +110,10 @@ def request_row(child,result,sequence,ordinal):
                 if (collection_instance(row['class_id'],row['instance']) and not row['symbolic'] and 'object_path' not in row and
                         collection_scope(row['class_id'],**{name:row[name] for name in ('program_instance','io_map_instance','controller_instance','aoi_instance')}) and
                         result[2] in (0,6,0x0A)):
-                    try:row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],row['class_id'])
+                    try:
+                        row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],row['class_id'])
+                        if row['class_id']==0x6d and tuple(row['requested_attributes'])==BULK_ATTRIBUTES:
+                            row['routine_bulk_profile']=describe_routine_bulk(result,row['requested_attributes'],row['instance'])
                     except CollectionError as error:
                         row['collection_attribute_list']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     return row

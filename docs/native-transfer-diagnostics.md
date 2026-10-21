@@ -1,5 +1,9 @@
 # Native transfer diagnostics
 
+Version `.134` adds [Routine bulk metadata comparison profiles](routine-metadata-comparison.md)
+to correlated capture and checkpoint reports. Profiles retain byte-level checks
+and a fingerprint of the comparable fields, with missing values kept unknown.
+
 Version `.96` adds transfer-specific trace checkpoints to the optional
 [native SDK probe](development.md#native-sdk-acceptance-probe). It captures
 `before-transfer-trace.json` immediately before Upload or Download, and
