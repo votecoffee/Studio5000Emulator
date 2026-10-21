@@ -195,7 +195,7 @@ class NativeSdkProbeTests(unittest.TestCase):
         state=self.state();lease=state['connectivity']['native_programming_lease']
         lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
         for field,value in (('status','matched'),('programs_matched',1),('routines_matched',1),
-                ('symbols_matched',1),('auxiliary_symbols_matched',1),('auxiliary_symbols_matched',True),('symbols_unresolved',1),('symbols_matched',False),
+                ('symbols_matched',1),('tables_matched',1),('tables_unresolved',1),('tables_matched',True),('auxiliary_symbols_matched',1),('auxiliary_symbols_matched',True),('symbols_unresolved',1),('symbols_matched',False),
                 ('errors',['native_object_source_mismatch']),('identity_checks_only',False),
                 ('table_identities_verified',True),('compiled_code_verified',True),('addresses_verified',True),
                 ('install_authority',True),('active_catalog_replaced',True),('commit',True)):

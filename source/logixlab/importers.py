@@ -17,6 +17,7 @@ from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
 from .native_aoi_routines import NativeAOIRoutines
 from .native_auxiliary_symbols import NativeAuxiliarySymbols
+from .native_tables import NativeTables
 from .aoi_catalog import AOICatalog
 from .executable_configuration import ExecutableConfiguration
 
@@ -105,6 +106,10 @@ def convert_acd(source, destination, converter=None):
         manifest['native_auxiliary_symbols']=NativeAuxiliarySymbols.from_acd(source,manifest['l5x_sha256'],symbols).manifest()
     except (ModelError,UnicodeError,OSError) as error:
         manifest['native_auxiliary_symbols_error']=str(error)
+    try:
+        manifest['native_tables']=NativeTables.from_acd(source,manifest['l5x_sha256']).manifest()
+    except (ModelError,UnicodeError,OSError) as error:
+        manifest['native_tables_error']=str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

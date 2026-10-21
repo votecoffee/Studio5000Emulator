@@ -145,6 +145,9 @@ temporary objects are published; additional internal Symbols remain unresolved.
 Version `.107` adds [source-bound auxiliary Symbol identities](docs/source-object-identities.md#auxiliary-symbol-identities).
 Original component records resolve Symbols omitted by TagInfo during download
 checks, while their runtime tags, values and alias behavior remain unavailable.
+Version `.108` adds [original Data Table identity checks](docs/source-object-identities.md#data-table-identities).
+Staged Table IDs must match the source inventory before temporary download
+objects are published; native addresses and storage/value decoding remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

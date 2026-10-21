@@ -406,7 +406,7 @@ class Router:
                             return reject(0x0C,'native_type_source_mismatch')
                         image=lease.transport.prepared_result_state(native_types,
                             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
-                            native_auxiliary_symbols=self.app.native_auxiliary_symbols)
+                            native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
                         self.endpoint.record('native_download_result_query',**image)
                         return reject(0x0F,'device_image_result_encoding_unavailable')
                     if inner[0]==6:
@@ -417,7 +417,7 @@ class Router:
                             return reject(0x0C,'native_type_source_mismatch')
                         inspection=lease.transport.inspect_payload(native_types,
                             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
-                            native_auxiliary_symbols=self.app.native_auxiliary_symbols)
+                            native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
                         self.endpoint.record('native_transport_inspection',expanded_bytes=inspection['expanded_bytes'],
                             record_count=inspection['record_count'],scoped_records=inspection['scoped_records'],records_executed=0)
                         staged=lease.transport.templates.description()
@@ -1668,6 +1668,7 @@ class Endpoint:
                     'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
                     'native_tasks':self.app.native_tasks.description() if self.enabled and getattr(self.app,'native_tasks',None) else None,
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
+                    'native_tables':self.app.native_tables.description() if self.enabled and getattr(self.app,'native_tables',None) else None,
                     'native_auxiliary_symbols':self.app.native_auxiliary_symbols.description() if self.enabled and getattr(self.app,'native_auxiliary_symbols',None) else None,
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
                     'native_aoi_routines':self.app.native_aoi_routines.description() if self.enabled and getattr(self.app,'native_aoi_routines',None) else None,

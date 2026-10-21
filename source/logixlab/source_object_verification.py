@@ -9,20 +9,22 @@ import json
 from .native_symbols import NativeSymbols
 from .native_routines import NativeRoutines
 from .native_auxiliary_symbols import NativeAuxiliarySymbols
+from .native_tables import NativeTables
 from .model import ModelError
 
 
-def summary(status='idle',*,programs=0,routines=0,symbols=0,auxiliary=0,unresolved=0,errors=()):
+def summary(status='idle',*,programs=0,routines=0,symbols=0,auxiliary=0,unresolved=0,tables=0,table_unresolved=0,table_verified=False,errors=()):
     return dict(status=status,programs_matched=programs,routines_matched=routines,symbols_matched=symbols,
                 auxiliary_symbols_matched=auxiliary,symbols_unresolved=unresolved,errors=list(errors),identity_checks_only=True,
-                table_identities_verified=False,compiled_code_verified=False,addresses_verified=False,
+                tables_matched=tables,tables_unresolved=table_unresolved,table_identities_verified=table_verified,
+                compiled_code_verified=False,addresses_verified=False,
                 install_authority=False,active_catalog_replaced=False,commit=False)
 
 
-def binding_stamp(symbols,routines,auxiliary=None):
+def binding_stamp(symbols,routines,auxiliary=None,tables=None):
     """Detect replacement or in-place mutation of a cached source manifest."""
     result=[]
-    for value,kind in ((symbols,NativeSymbols),(routines,NativeRoutines),(auxiliary,NativeAuxiliarySymbols)):
+    for value,kind in ((symbols,NativeSymbols),(routines,NativeRoutines),(auxiliary,NativeAuxiliarySymbols),(tables,NativeTables)):
         if value is None:result.append(None)
         elif not isinstance(value,kind):raise ValueError('invalid_native_object_binding')
         else:
@@ -34,7 +36,7 @@ def binding_stamp(symbols,routines,auxiliary=None):
     return tuple(result)
 
 
-def verify(objects,source,symbols=None,routines=None,auxiliary=None):
+def verify(objects,source,symbols=None,routines=None,auxiliary=None,tables=None):
     """Verify the complete observed Program/Routine and known Symbol ID sets.
 
     The caller binds source to its current original ACD and L5X pair. A missing
@@ -42,15 +44,19 @@ def verify(objects,source,symbols=None,routines=None,auxiliary=None):
     extra/missing Program/Routine IDs are mismatches, not partial successes.
     """
     if source is None:
-        return summary('unavailable',unresolved=len(objects.symbols))
+        return summary('unavailable',unresolved=len(objects.symbols),table_unresolved=len(objects.tables))
     if any(value is not None and (not isinstance(value,kind)
             or (value.source_acd_sha256,value.source_l5x_sha256)!=(source.acd_sha256,source.l5x_sha256))
-           for value,kind in ((symbols,NativeSymbols),(routines,NativeRoutines),(auxiliary,NativeAuxiliarySymbols))):
+           for value,kind in ((symbols,NativeSymbols),(routines,NativeRoutines),(auxiliary,NativeAuxiliarySymbols),(tables,NativeTables))):
         return summary('mismatch',errors=('native_object_source_mismatch',))
+    staged_tables={r.instance for r in objects.tables}
+    table_ids=set(tables.by_instance) if tables is not None else set()
+    table_errors=['native_table_identity_mismatch'] if tables is not None and staged_tables!=table_ids else []
+    table_counts=dict(tables=len(staged_tables&table_ids),table_unresolved=len(staged_tables-table_ids))
     if symbols is None or routines is None:
-        return summary('unavailable',unresolved=len(objects.symbols))
+        return summary('mismatch' if table_errors else 'unavailable',unresolved=len(objects.symbols),errors=table_errors,**table_counts)
     if symbols.program_inventory_error is not None:
-        return summary('unavailable',unresolved=len(objects.symbols))
+        return summary('mismatch' if table_errors else 'unavailable',unresolved=len(objects.symbols),errors=table_errors,**table_counts)
     expected_programs=set(symbols.program_ids)
     if (set(symbols.programs.values())!=expected_programs
             or any(symbols.program_ids.get(instance)!=name for name,instance in symbols.programs.items())
@@ -70,7 +76,7 @@ def verify(objects,source,symbols=None,routines=None,auxiliary=None):
     staged_programs=set(objects.programs)
     staged_routines={(r.program,r.instance) for r in objects.routines}
     staged_symbols={(s.program,s.instance) for s in objects.symbols}
-    errors=[]
+    errors=list(table_errors)
     if staged_programs!=expected_programs:errors.append('native_program_identity_mismatch')
     if staged_routines!=expected_routines:errors.append('native_routine_identity_mismatch')
     if expected_symbols-staged_symbols:errors.append('native_symbol_identity_missing')
@@ -79,4 +85,4 @@ def verify(objects,source,symbols=None,routines=None,auxiliary=None):
     return summary('mismatch' if errors else 'partial' if unresolved else 'matched',
         programs=len(staged_programs&expected_programs),routines=len(staged_routines&expected_routines),
         symbols=len(staged_symbols&(expected_symbols|auxiliary_ids)),auxiliary=len(staged_symbols&auxiliary_ids),
-        unresolved=unresolved,errors=errors)
+        unresolved=unresolved,table_verified=tables is not None and not errors,errors=errors,**table_counts)

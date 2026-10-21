@@ -9,6 +9,7 @@ from logixlab.download_image import Source
 from logixlab.native_symbols import NativeSymbols,Symbol
 from logixlab.native_routines import NativeRoutines
 from logixlab.native_auxiliary_symbols import NativeAuxiliarySymbols
+from logixlab.native_tables import NativeTables
 from logixlab.object_staging import ObjectStaging,NULL_REFERENCE
 from logixlab.resilient_transport import ResilientTransport,TransportError
 import test_object_staging as objects
@@ -25,6 +26,26 @@ def bindings(acd='a'*64,l5x='b'*64):
 
 
 class SourceObjectTests(unittest.TestCase):
+    def test_table_id_sets_require_original_source_and_do_not_verify_addresses_or_storage(self):
+        symbols,routines=bindings();stage=ObjectStaging.from_batch(objects.batch());source=Source('a'*64,'b'*64)
+        tables=NativeTables('a'*64,'b'*64,[dict(instance=1,name='$Original$',body_bytes=420)])
+        result=check.verify(stage,source,symbols,routines,tables=tables)
+        self.assertEqual((result['status'],result['tables_matched'],result['tables_unresolved']),('matched',1,0))
+        self.assertTrue(result['table_identities_verified']);self.assertFalse(result['addresses_verified'])
+        self.assertFalse(result['compiled_code_verified']);self.assertFalse(result['install_authority'])
+        for binding in (NativeTables('a'*64,'b'*64,[]),NativeTables('a'*64,'b'*64,[dict(instance=2,name='$Other$',body_bytes=420)])):
+            result=check.verify(stage,source,symbols,routines,tables=binding)
+            self.assertEqual(result['status'],'mismatch');self.assertIn('native_table_identity_mismatch',result['errors'])
+            self.assertFalse(result['table_identities_verified'])
+        for binding in (NativeTables('c'*64,'b'*64,[]),NativeTables('a'*64,'c'*64,[])):
+            self.assertEqual(check.verify(stage,source,symbols,routines,tables=binding)['status'],'mismatch')
+        self.assertFalse(check.verify(stage,source,symbols,routines)['table_identities_verified'])
+        self.assertEqual(check.verify(stage,source,symbols,routines)['tables_unresolved'],1)
+        wrong=NativeTables('a'*64,'b'*64,[])
+        self.assertEqual(check.verify(stage,source,None,None,tables=wrong)['status'],'mismatch')
+        symbols.program_inventory_error='Unavailable Program inventory'
+        self.assertEqual(check.verify(stage,source,symbols,routines,tables=wrong)['status'],'mismatch')
+
     def test_auxiliary_identities_complete_both_scopes_but_unknown_and_missing_ids_stay_explicit(self):
         symbols,routines=bindings();source=Source('a'*64,'b'*64)
         rows=objects.batch()[:-1]+(objects.symbol(instance=9,table=NULL_REFERENCE,program=2),)+objects.batch()[-1:]
@@ -82,10 +103,22 @@ class SourceObjectTests(unittest.TestCase):
         symbols,routines=bindings();stamp=check.binding_stamp(symbols,routines)
         self.assertEqual(stamp,check.binding_stamp(*bindings()))
         symbols.program_ids[3]='Other';self.assertNotEqual(stamp,check.binding_stamp(symbols,routines))
-        self.assertEqual(check.binding_stamp(None,None),(None,None,None))
+        self.assertEqual(check.binding_stamp(None,None),(None,None,None,None))
 
 
 class SourceObjectTransportTests(unittest.TestCase):
+    def test_table_bindings_are_pinned_and_cleared_with_the_prepared_image(self):
+        tables=NativeTables('a'*64,'b'*64,[dict(instance=1,name='$Original$',body_bytes=420)])
+        self.stage.inspect_payload(self.native,native_symbols=self.symbols,native_routines=self.routines,native_tables=tables)
+        self.stage.start_prepared_image()
+        self.assertTrue(self.stage.description()['source_object_verification']['table_identities_verified'])
+        for value in (None,NativeTables('a'*64,'b'*64,[])):
+            with self.assertRaises(TransportError):self.stage.prepared_result_state(self.native,
+                native_symbols=self.symbols,native_routines=self.routines,native_tables=value)
+        self.stage.prepared_result_state(self.native,native_symbols=self.symbols,native_routines=self.routines,native_tables=tables)
+        self.stage.clear();result=self.stage.description()['source_object_verification']
+        self.assertFalse(result['table_identities_verified']);self.assertEqual(result['tables_matched'],0)
+
     def test_auxiliary_source_is_pinned_through_processing_and_result_queries(self):
         self.stage.clear()
         rows=images.batch()+(objects.symbol(instance=9,table=NULL_REFERENCE),)

@@ -49,6 +49,8 @@ Download identity tests in `test_source_object_verification.py` and
 coverage and atomic temporary-object rejection. These checks use no native SDK.
 `test_native_auxiliary_symbols.py` additionally checks bounded original component
 bindings, import forwarding and the separation from public/runtime tag discovery.
+`test_native_tables.py` checks the original format-38 Table inventory, explicit
+collections, source validation and unchanged public/model Table catalogs.
 
 ## Native SDK acceptance probe
 

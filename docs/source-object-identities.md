@@ -17,7 +17,7 @@ scope. IDs reused across scopes remain separate objects.
 | --- | --- |
 | `idle` | No retained comparison |
 | `unavailable` | Optional source inventories are missing or incomplete |
-| `matched` | Program, Routine and Symbol ID sets match the supplied bindings |
+| `matched` | Program, Routine, Symbol and supplied Data Table ID sets agree |
 | `partial` | Program/Routine IDs and all known Symbols match, with additional unresolved Symbols |
 | `mismatch` | Source pairs conflict, parent bindings disagree, or required ID sets differ |
 
@@ -25,8 +25,8 @@ TagInfo can omit internal Symbols present in a download. Additional staged
 Symbols remain unresolved unless the separate original component binding below
 establishes their identities. A partial result permits the existing isolated temporary image only.
 Neither partial nor matched identity results grant installation authority.
-Data Table IDs, native addresses, compiled routines and downloaded initial values
-remain outside this comparison. Reciprocal Symbol/Table links are checked by the
+Native addresses, compiled routines and downloaded initial values remain
+outside this comparison. Reciprocal Symbol/Table links are checked by the
 separate [temporary object graph](object-staging.md).
 
 ## Auxiliary Symbol identities
@@ -57,13 +57,47 @@ pin the auxiliary manifest during processing and result queries. This binding
 does not expose public Symbol instances, runtime tags, native addresses, alias
 semantics or values, and grants no installation authority.
 
+## Data Table identities
+
+Version `.108` adds an optional `native_tables` manifest for original controller
+Data Table IDs. The bounded ACD reader requires active `Comps.Dat` components
+with type 256, header version 0, body format 38 and a controller-scoped `0x6A`
+logical path. Variable-length bodies are retained only as byte-count metadata;
+their contents and generated names remain opaque.
+
+The supported body range is 417 bytes through 416 plus 1 MiB. The reader
+requires one explicit controller collection, excludes explicit empty Program
+collections, and rejects positive Program-scoped Tables in this limited profile.
+Free and trailing records cannot supply IDs. Duplicate paths/names/history,
+unknown formats, unsupported paths, malformed bounds and excessive inventories
+withhold the binding. The limit is 1,024 Tables with the existing bounded raw/
+compressed stream and record limits. An empty inventory needs an explicit
+collection; absent records do not become a successful empty inventory.
+
+Conversion, appliance forwarding and application load carry the optional binding.
+Both original source hashes must match any supplied project manifests before
+load replaces the active model. Reload clears it. Polled descriptions expose
+counts and capability flags; original names and metadata remain private.
+
+The complete staged Table ID set must equal the supplied source set. Missing
+or extra IDs produce `native_table_identity_mismatch` and atomic rejection.
+`tables_matched` and `tables_unresolved` retain counts. With a supplied matching
+binding and no identity mismatch, `table_identities_verified` is true. Without
+that binding it stays false, even if other supplied identity sets match.
+Fingerprint checks also pin the Table manifest during processing/result queries.
+
+This flag establishes logical IDs only. It grants no native address, storage
+mapping, source-value decoding, compiled-code or installation authority. Body
+tails are not interpreted as initial tag values. Public/model Table catalogs
+and their value reads gain no entries from this source binding.
+
 ## Atomicity and lifetime
 
 A mismatch returns CIP `0x03` with `source_object_verification_failed`. Templates,
 diagnostics, object descriptors and image storage remain unpublished. The fixed
 failure is cached until transport cleanup.
 
-Successful inspection retains a fingerprint of both source manifests, including
+Successful inspection retains fingerprints of the supplied source manifests, including
 the Symbol catalog's derived Program maps. Replacing or mutating a binding after
 inspection rejects repeated processing and result queries with CIP `0x0C` and
 `native_object_binding_changed`. An equivalent replacement with identical
@@ -87,7 +121,8 @@ rejection and result-query guards while preserving active values and scans.
 A separate independently keyed loopback session uses an unchanged source pair
 and a previously saved 911-record download. Its one Program, two Routines and
 16 TagInfo Symbols match. In `.107`, the original component records also bind
-the six additional Symbols: all 22 identities match, with zero unresolved. All 911
+the six additional Symbols: all 22 identities match, with zero unresolved.
+Version `.108` also matches all 18 original Table IDs. All 911
 temporary preparation effects retain their readback checks. Inventory, supported
 routine replacement, reconnection, execution and edited L5X reload run in
 separate disposable models. No SDK or physical controller is used.
@@ -96,6 +131,10 @@ Auxiliary fixtures additionally check compressed/raw sources, exact name/path
 coverage, parent reuse, bounds, history conflicts, immutable manifests, atomic
 import/reload, conversion forwarding and cached binding replacement. Independently
 keyed TCP checks confirm that auxiliary IDs never enter public tag discovery.
+Table fixtures cover explicit collections, variable record sizes, source hashes,
+history/bounds, immutable manifests, import forwarding, unchanged public catalogs,
+signed mismatch rejection and stale result-query guards. These checks preserve
+active values and scan counts.
 
 The RTO result encoding, complete native upload/download, native address discovery
 and the full Test/Untest/Assemble lifecycle remain unfinished.

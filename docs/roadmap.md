@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.107` adds [auxiliary download Symbol identities](source-object-identities.md#auxiliary-symbol-identities).
+Current milestone: `.108` adds [download Data Table identity checks](source-object-identities.md#data-table-identities).
+All 18 Table IDs in the saved transfer match the original source records.
+Missing/extra IDs and changed cached bindings reject temporary processing or
+result queries. Native addresses, storage decoding, vendor result encoding and
+full commit remain unfinished.
+
+Version `.107` adds [auxiliary download Symbol identities](source-object-identities.md#auxiliary-symbol-identities).
 Original component records resolve the six previously unmatched Symbols in the
 saved transfer. All 22 Symbol identities now match without adding public tags,
 addresses, values or alias behavior. Vendor result encoding and full commit

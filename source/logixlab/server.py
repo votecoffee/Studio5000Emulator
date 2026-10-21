@@ -23,6 +23,7 @@ from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
 from .native_aoi_routines import NativeAOIRoutines
 from .native_auxiliary_symbols import NativeAuxiliarySymbols
+from .native_tables import NativeTables
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -56,6 +57,7 @@ class Application:
         self.native_aois = None
         self.native_aoi_routines = None
         self.native_auxiliary_symbols = None
+        self.native_tables = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -158,7 +160,7 @@ class Application:
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'executable_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
+            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -338,6 +340,15 @@ class Application:
                            for binding in (native_identity,native_types,native_tasks,native_routines,native_aois,native_aoi_routines)):
                         raise ModelError('Auxiliary Symbol and project manifests refer to different ACD files')
                     provenance['native_auxiliary_symbols']=native_auxiliary_symbols.description()
+                table_manifest=provenance.get('native_tables')
+                if action=='load' and Path(name).suffix.lower()=='.l5x' and 'native_tables' in data:
+                    table_manifest=data['native_tables']
+                native_tables=NativeTables.from_manifest(table_manifest,project.sha256) if table_manifest is not None else None
+                if native_tables:
+                    if any(binding and binding.source_acd_sha256!=native_tables.source_acd_sha256
+                           for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols)):
+                        raise ModelError('Data Table and project manifests refer to different ACD files')
+                    provenance['native_tables']=native_tables.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -355,6 +366,7 @@ class Application:
                     self.native_aois = native_aois
                     self.native_aoi_routines = native_aoi_routines
                     self.native_auxiliary_symbols = native_auxiliary_symbols
+                    self.native_tables = native_tables
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

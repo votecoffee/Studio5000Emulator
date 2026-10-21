@@ -226,6 +226,33 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
+    def test_signed_table_identity_match_does_not_enable_result_encoding_or_source_values(self):
+        from logixlab.native_tables import NativeTables
+        self.object_source_fixture();primary=self.app.native_symbols
+        self.app.native_tables=NativeTables(primary.source_acd_sha256,primary.source_l5x_sha256,
+            [dict(instance=1,name='$Original$',body_bytes=420)])
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(INSPECT)[2],0)
+        result=self.description()['source_object_verification']
+        self.assertEqual((result['tables_matched'],result['tables_unresolved']),(1,0))
+        self.assertTrue(result['table_identities_verified']);self.assertFalse(result['addresses_verified'])
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.app.native_tables=None
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.send(transport.DELETE);self.assertEqual(self.description()['source_object_verification']['tables_matched'],0)
+
+    def test_signed_mismatched_table_ids_reject_all_temporary_models_atomically(self):
+        from logixlab.native_tables import NativeTables
+        self.object_source_fixture();primary=self.app.native_symbols
+        self.app.native_tables=NativeTables(primary.source_acd_sha256,primary.source_l5x_sha256,
+            [dict(instance=2,name='$Other$',body_bytes=420)])
+        for _ in range(2):self.assertEqual(self.send(INSPECT)[2],3)
+        result=self.description();self.assertEqual(result['source_object_verification']['status'],'mismatch')
+        self.assertEqual(result['object_staging']['records_modeled'],0);self.assertEqual(result['template_staging']['templates'],0)
+        self.assertEqual(result['download_image']['storage_bytes'],0)
+        self.assertFalse(result['source_object_verification']['table_identities_verified'])
+
     def object_source_fixture(self,*,extra_symbol=False):
         from test_source_object_verification import bindings
         from test_download_image import batch

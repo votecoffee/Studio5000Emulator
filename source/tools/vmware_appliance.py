@@ -383,6 +383,8 @@ def import_project(directory, project, converter=None):
                                             if 'native_tasks' in provenance else {}),
                                          **({'native_routines':provenance['native_routines']}
                                             if 'native_routines' in provenance else {}),
+                                         **({'native_tables':provenance['native_tables']}
+                                            if 'native_tables' in provenance else {}),
                                          **({'native_auxiliary_symbols':provenance['native_auxiliary_symbols']}
                                             if 'native_auxiliary_symbols' in provenance else {}),
                                          **({'native_aoi_routines':provenance['native_aoi_routines']}
