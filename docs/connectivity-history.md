@@ -10,6 +10,15 @@ read-only endpoint exposes bounded instance lists and attributes. Missing or
 stale bindings withhold the catalog. Shared offline framing covers the counted
 strings without exposing values by default. The trace event limit increases to
 2,000 while its existing byte budget remains unchanged.
+The final isolated SDK upload reads all 408 fields across 136 definitions and
+advances to diagnostic-profile discovery (`0x3B1`), which remains unsupported.
+Its complete trace records 355 expanded leaf requests; the endpoint verifies
+352 signed requests. Offline/cleanup and source/model preservation are confirmed,
+with no reported fatal SDK fault. Full native transfers remain unfinished.
+The restarted release passes SDK Go Online/Go Offline across 75 verified signed
+requests, preserving Offline/cleanup and source/model with no fatal SDK fault.
+All 221 focused tests and 204 live readbacks pass; the full suite was not rerun.
+The deployed 89 app modules, webpage and executable match `.126`.
 
 Version `.125` adds [Program-scoped empty catalog discovery](program-catalog-discovery.md)
 for Digital/Analog Alarms, HMI Button Controls and Messages. Each catalog uses

@@ -76,7 +76,23 @@ trace event limit, so its incomplete checkpoint report is retained as incomplete
 The expanded trace remains bounded and does not convert lost evidence into a
 successful analysis.
 
+The final `.126` attempt retains a complete trace and successfully reads all
+three fields on all 136 definitions. Each returned field hash agrees with the
+definition read from the matching ACD. It reports
+`RxCsE_UPLOAD_DEVICE_DIAGNOSTIC_PROFILE_FAILED` after the next class `0x3B1`
+list is rejected with status `0x0F`. Across 352 native verified signed requests,
+Offline/cleanup and unchanged source/model are confirmed, with no reported fatal
+SDK fault. The complete analyzer report contains 355 expanded leaf requests;
+that count measures a different layer.
+
 The isolated diagnostic uses an owned project, a matching Template snapshot and
 unshipped clock/revision hypotheses. The released clock behavior stays unchanged.
 This does not establish a completed native upload/download, reconstructed
 Routine logic, Studio GUI monitoring or the full Test/Untest/Assemble lifecycle.
+
+The restarted released `.126` demo passes SDK Go Online/Go Offline across 75
+verified signed requests, with Offline/cleanup, unchanged source/model and no
+reported fatal SDK fault. All 221 focused software checks and 204 live readback
+checks pass, including all deployed diagnostic definitions. The full suite was
+not rerun. The deployed 89 app modules, webpage, packaged assets and Windows
+executable version match the source.
