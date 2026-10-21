@@ -27,6 +27,41 @@ def scheduled(config, task='MainTask', **updates):
 
 
 class TaskConfigurationTests(unittest.TestCase):
+    def test_inverse_owner_uses_actual_task_id_and_same_source_pairs(self):
+        root,controller=source();config=TaskConfiguration.from_source(root,controller,HASH)
+        args=dict(source_sha256=HASH,source_acd_sha256=ACD_HASH,task_ids={'MainTask':77},
+            task_source_l5x_sha256=HASH,task_source_acd_sha256=ACD_HASH)
+        self.assertEqual(config.owner_attributes('MAINPROGRAM',**args),{13:struct.pack('<I',77)})
+        for update in ({'task_ids':{}},{'task_ids':{'MainTask':True}},{'task_ids':{'MainTask':65536}},
+                       {'task_ids':{'MainTask':1,'Other':1}},{'task_ids':{'MainTask':1,'MAINTASK':2}},
+                       {'source_sha256':'d'*64},{'source_acd_sha256':'x'},
+                       {'task_source_l5x_sha256':'d'*64},{'task_source_acd_sha256':'d'*64}):
+            self.assertEqual(config.owner_attributes('MainProgram',**{**args,**update}),{})
+        self.assertEqual(config.owner_attributes('Missing',**args),{})
+        self.assertEqual(config.owner_attributes(None,**args),{})
+
+    def test_missing_foreign_or_ambiguous_task_schedule_does_not_invent_an_owner(self):
+        for mode in ('missing','duplicate-owner','foreign-task','unknown-program','unscheduled','phase','kind-alias'):
+            root,controller=source();task=controller.find('./Tasks/Task')
+            if mode=='missing':task.remove(task.find('ScheduledPrograms'))
+            elif mode=='duplicate-owner':
+                other=copy.deepcopy(task);other.set('Name','Other');controller.find('Tasks').append(other)
+            elif mode=='foreign-task':
+                other=copy.deepcopy(task);other.set('Class','Safety');other.set('Name','Other');controller.find('Tasks').append(other)
+            elif mode=='unknown-program':task.find('./ScheduledPrograms/ScheduledProgram').set('Name','Unknown')
+            elif mode=='phase':controller.find('./Programs/Program').set('Type','EquipmentPhase')
+            elif mode=='kind-alias':controller.find('./Programs/Program').set('type','Normal')
+            else:task.find('ScheduledPrograms').clear()
+            config=TaskConfiguration.from_source(root,controller,HASH)
+            self.assertEqual(config.owner_attributes('MainProgram',source_sha256=HASH,source_acd_sha256=ACD_HASH,
+                task_ids={'MainTask':1},task_source_l5x_sha256=HASH,task_source_acd_sha256=ACD_HASH),
+                {13:bytes(4)} if mode=='unscheduled' else {})
+
+    def test_constructor_does_not_accept_ambiguous_owner_claims(self):
+        rows={'one':TaskSettings('One',scheduled_programs=('Program',)),
+              'two':TaskSettings('Two',scheduled_programs=('Program',))}
+        with self.assertRaises(ValueError):TaskConfiguration(HASH,True,rows,_program_owners={'program':'one'})
+
     def test_program_list_preserves_source_order_using_real_bound_ids_instead_of_source_order_ids(self):
         root,controller=source();programs=controller.find('Programs')
         for name in ('Second','Third'):

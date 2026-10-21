@@ -1,8 +1,13 @@
 """Captured edit Program Disable request against the source-bound wire path."""
 import copy
+import base64
+import struct
 import unittest
+from xml.etree import ElementTree as E
 
 from logixlab.native_symbols import NativeSymbols
+from logixlab.native_tasks import NativeTasks
+from test_ethernetip import Client
 import test_programming_lease as leases
 
 READ=bytes.fromhex('030320682500b66501001300')
@@ -16,6 +21,39 @@ class ProgramMetadataWireTests(unittest.TestCase):
     signed=leases.SemaphoreSignedTests.signed
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
+
+    def test_nonempty_child_list_uses_source_order_and_original_bound_ids(self):
+        root=E.parse(self.app.engine.project.path).getroot();programs=root.find('./Controller/Programs')
+        for name in ('Second','Third'):
+            node=copy.deepcopy(programs[0]);node.set('Name',name);programs.append(node)
+        group=E.SubElement(programs[0],'ChildPrograms')
+        for name in ('Third','Second'):E.SubElement(group,'ChildProgram',Name=name)
+        self.app.command('load',{'name':'children.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register()
+        self.prepare();digest=self.app.engine.project.sha256
+        bindings=[{'name':'MainProgram','instance':26038},{'name':'Second','instance':40},{'name':'Third','instance':12}]
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],bindings)
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('0e0420682500b6653020')),bytes.fromhex('8e000000')+struct.pack('<HII',2,12,40))
+        self.app.native_symbols=NativeSymbols('b'*64,digest,[],bindings)
+        self.assertEqual(self.signed(5,bytes.fromhex('0e0420682500b6653020'))[2],20)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
+    def test_owner_children_and_null_fault_reads_are_bound_and_preserve_the_active_program(self):
+        self.prepare();digest=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':77}])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('030320682500b665030009000d002000')),
+            bytes.fromhex('83000000030009000000000000000d0000004d000000200000000000'))
+        for sequence,number,value in ((5,9,bytes(4)),(6,13,b'\x4d\0\0\0'),(7,32,bytes(2))):
+            self.assertEqual(self.signed(sequence,bytes.fromhex('0e0420682500b66530')+bytes((number,))),b'\x8e\0\0\0'+value)
+        self.assertEqual(self.signed(8,bytes.fromhex('100420682500b66530200000'))[2],15)
+        self.app.native_tasks=NativeTasks('b'*64,digest,[{'name':'MainTask','instance':77}])
+        self.assertEqual(self.signed(9,bytes.fromhex('0e0420682500b665300d'))[2],20)
+        self.app.native_project_identity=None
+        self.assertEqual(self.signed(10,bytes.fromhex('0e0420682500b6653020'))[2],20)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
 
     def test_captured_edit_read_and_single_read_return_the_source_disable_byte(self):
         self.prepare()

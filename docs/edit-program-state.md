@@ -82,6 +82,10 @@ The restarted `.117` runtime separately passes SDK Go Online/Go Offline with
 The 192 focused software tests and 18 live reads pass; the full suite is not
 rerun for this iteration.
 
+Version `.118` adds the separately source-checked [Task owner, child list and null fault reference](program-hierarchy.md)
+reads observed in the full Program collection. These remain metadata reads;
+the full native online-edit lifecycle is unfinished.
+
 ## Earlier native checks
 
 Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)

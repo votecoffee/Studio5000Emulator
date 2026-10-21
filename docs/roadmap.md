@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.117` adds [Program kind and original instance reads](edit-program-state.md#program-kind-and-original-instance)
+Current milestone: `.118` adds [Program Task owners, logical children and null fault references](program-hierarchy.md).
+The disposable complete-clock upload accepts all three new fields, reducing
+unavailable fields in its Program list from 15 to 12. Full Program upload still
+fails; the unpatched public profile remains blocked at Controller collection.
+
+Version `.117` adds [Program kind and original instance reads](edit-program-state.md#program-kind-and-original-instance)
 with shared Program collection decoding. A disposable complete-clock comparison
 advances to Program collection, accepts the new kind read and reaches the full
 Program attribute list. Generated clock profiles remain unshipped; the released

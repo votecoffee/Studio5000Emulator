@@ -183,6 +183,8 @@ complete upload still fails during device collection.
 Version `.117` adds [source-checked Program kind and original instance reads](docs/edit-program-state.md#program-kind-and-original-instance)
 and Program collection diagnostics. A disposable complete-clock experiment
 reaches Program collection; its generated clock settings remain unshipped.
+Version `.118` adds [Program Task owners, logical children and null fault references](docs/program-hierarchy.md).
+The isolated upload accepts these three fields, while full transfer remains unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

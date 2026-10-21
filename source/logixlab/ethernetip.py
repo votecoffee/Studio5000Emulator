@@ -846,6 +846,18 @@ class Router:
             program['name'],source_sha256=self.app.engine.project.sha256))
         attributes.update(self.app.engine.project.program_configuration.type_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
+        project=self.app.engine.project;source=project.sha256
+        attributes.update(project.program_hierarchy.attributes(program['name'],source_sha256=source))
+        identity=getattr(self.app,'native_project_identity',None);symbols=self.app.native_symbols
+        if identity is not None and identity.source_l5x_sha256==source:
+            attributes.update(project.program_hierarchy.child_attributes(program['name'],source_sha256=source,
+                source_acd_sha256=identity.source_acd_sha256,program_ids=symbols.programs,
+                program_source_l5x_sha256=symbols.source_l5x_sha256,program_source_acd_sha256=symbols.source_acd_sha256))
+            tasks=getattr(self.app,'native_tasks',None)
+            if tasks is not None and symbols.source_acd_sha256==identity.source_acd_sha256:
+                attributes.update(project.task_configuration.owner_attributes(program['name'],source_sha256=source,
+                    source_acd_sha256=identity.source_acd_sha256,task_ids=tasks.tasks,
+                    task_source_l5x_sha256=tasks.source_l5x_sha256,task_source_acd_sha256=tasks.source_acd_sha256))
         if self.zero_program_stack_supported(program):attributes[27]=bytes(4)
         return self.attribute_read(service,path,data,attributes)
 
@@ -1679,6 +1691,7 @@ class Endpoint:
                     'controller_schemas':controller_schemas.description() if self.enabled and self.native_read_only else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
+                    'program_hierarchy':self.app.engine.project.program_hierarchy.description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,

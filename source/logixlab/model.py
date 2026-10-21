@@ -21,6 +21,7 @@ from .time_sync import TimeSync
 from .wall_clock import WallClock
 from .program_forces import ProgramForces
 from .program_configuration import ProgramConfiguration
+from .program_hierarchy import ProgramHierarchy
 from .task_configuration import TaskConfiguration
 from .task_timing import TaskTiming
 from .executable_configuration import ExecutableConfiguration
@@ -312,6 +313,7 @@ class Project:
         self.wall_clock = WallClock.from_source(root, c)
         self.program_forces = ProgramForces.from_source(root, c)
         self.program_configuration = ProgramConfiguration.from_source(root, c, self.sha256)
+        self.program_hierarchy = ProgramHierarchy.from_source(root,c,self.sha256,self.program_configuration)
         self.task_configuration = TaskConfiguration.from_source(root, c, self.sha256)
         self.task_timing = TaskTiming.from_source(root, c, self.sha256, self.task_configuration)
         self.executable_configuration = ExecutableConfiguration.from_source(root, c, self.sha256)

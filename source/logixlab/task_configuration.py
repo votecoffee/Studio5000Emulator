@@ -6,6 +6,7 @@ from types import MappingProxyType
 from typing import Mapping
 
 from .tag_catalog import complete_tag_source
+from .program_configuration import ORDINARY_ATTRIBUTES
 
 MAX_TASKS = 32
 MAX_PROGRAMS = 4096
@@ -54,7 +55,8 @@ def _program_names(controller):
                 any(key not in ('Name','Class','Use') and key.rsplit('}',1)[-1].casefold() in ('name','class','use')
                     for key in program.attrib)):
             return None
-        result[name.casefold()]=(name,program.get('Class') in (None,'Standard'))
+        result[name.casefold()]=(name,program.get('Class') in (None,'Standard') and
+            program.get('Type') in (None,'Normal') and not program.attrib.keys()-ORDINARY_ATTRIBUTES)
     return result
 
 
@@ -90,6 +92,8 @@ class TaskConfiguration:
     source_complete: bool = False
     _tasks: Mapping[str, TaskSettings] = field(default_factory=dict, repr=False)
     unavailable_tasks: int = 0
+    _program_owners: Mapping[str,str] = field(default_factory=dict,repr=False)
+    _unscheduled_programs: frozenset[str] = field(default_factory=frozenset,repr=False)
 
     def __post_init__(self):
         if not isinstance(self.source_sha256, str) or not SHA256.fullmatch(self.source_sha256):
@@ -103,6 +107,22 @@ class TaskConfiguration:
         if type(self.unavailable_tasks) is not int or not 0 <= self.unavailable_tasks <= MAX_TASKS:
             raise ValueError('Invalid unavailable Task count')
         object.__setattr__(self, '_tasks', MappingProxyType(rows))
+        owners=dict(self._program_owners)
+        claims={}
+        for name,row in rows.items():
+            for program in row.scheduled_programs or ():
+                claims.setdefault(program.casefold(),[]).append(name)
+        if (len(owners)>MAX_PROGRAMS or any(not isinstance(p,str) or not NAME.fullmatch(p) or p!=p.casefold()
+                or not isinstance(t,str) or claims.get(p)!=[t] for p,t in owners.items())):
+            raise ValueError('Invalid Program Task owners')
+        unscheduled=self._unscheduled_programs
+        if (not isinstance(unscheduled,(set,frozenset)) or len(unscheduled)>MAX_PROGRAMS or
+                any(not isinstance(p,str) or not NAME.fullmatch(p) or p!=p.casefold() or p in claims for p in unscheduled)):
+            raise ValueError('Invalid unscheduled Program inventory')
+        if (owners or unscheduled) and (not self.source_complete or not all(row.scheduled_programs is not None for row in rows.values())):
+            raise ValueError('Program owners require complete Task schedules')
+        object.__setattr__(self,'_program_owners',MappingProxyType(owners))
+        object.__setattr__(self,'_unscheduled_programs',frozenset(unscheduled))
 
     @classmethod
     def from_source(cls, root, controller, source_sha256):
@@ -150,7 +170,11 @@ class TaskConfiguration:
                         for field in ('DisableUpdateOutputs', 'InhibitTask')]
             values[name.casefold()] = TaskSettings(name, priority, *booleans,schedules.get(name.casefold()))
         missing = len(tasks) - sum(bool(row.attributes()) for row in values.values())
-        return cls(source_sha256, True, values, missing)
+        proven_owners={};unscheduled=frozenset()
+        if len(values)==len(tasks) and all(row.scheduled_programs is not None for row in values.values()):
+            proven_owners={program.casefold():name for name,row in values.items() for program in row.scheduled_programs}
+            unscheduled=frozenset(n for n,(_,ordinary) in (programs or {}).items() if ordinary and n not in proven_owners)
+        return cls(source_sha256, True, values, missing,proven_owners,unscheduled)
 
     @property
     def names(self):
@@ -194,4 +218,23 @@ class TaskConfiguration:
                 'source_schedules_available':sum(row.scheduled_programs is not None for row in self._tasks.values()),
                 'scheduled_program_targets':sum(len(row.scheduled_programs or ()) for row in self._tasks.values()),
                 'program_list_binding_required':True,'task_instance_readback':False,
+                'program_owner_attribute':13,'program_owners_available':len(self._program_owners),
+                'source_unscheduled_programs':len(self._unscheduled_programs),
                 'native_id_inferred':False, 'native_writes':False, 'execution_state_changed':False}
+
+    def owner_attributes(self,program,*,source_sha256,source_acd_sha256,task_ids,
+                         task_source_l5x_sha256,task_source_acd_sha256):
+        if (source_sha256!=self.source_sha256 or task_source_l5x_sha256!=self.source_sha256 or
+                not isinstance(source_acd_sha256,str) or not SHA256.fullmatch(source_acd_sha256) or
+                task_source_acd_sha256!=source_acd_sha256 or not self.source_complete or
+                not isinstance(program,str) or (program.casefold() not in self._program_owners and
+                    program.casefold() not in self._unscheduled_programs) or
+                not isinstance(task_ids,Mapping) or len(task_ids)>MAX_TASKS):return {}
+        bindings={};ids=set()
+        for name,instance in dict(task_ids).items():
+            if (not isinstance(name,str) or not NAME.fullmatch(name) or name.casefold() in bindings or
+                    type(instance) is not int or not 1<=instance<=0xFFFF or instance in ids):return {}
+            bindings[name.casefold()]=instance;ids.add(instance)
+        if bindings.keys()!=self._tasks.keys():return {}
+        owner=self._program_owners.get(program.casefold())
+        return {13:struct.pack('<I',bindings[owner] if owner is not None else 0)}
