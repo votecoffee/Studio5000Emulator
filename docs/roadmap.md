@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.108` adds [download Data Table identity checks](source-object-identities.md#data-table-identities).
+Current milestone: `.109` adds [original Template identity checks](source-type-verification.md#original-template-identities).
+All 243 staged Template IDs in the saved transfer match the source. Consistent
+renumbering cannot substitute known IDs; changed source layouts/IDs reject
+cached processing and result queries. Vendor result encoding, native addresses
+and full commit remain unfinished.
+
+Version `.108` adds [download Data Table identity checks](source-object-identities.md#data-table-identities).
 All 18 Table IDs in the saved transfer match the original source records.
 Missing/extra IDs and changed cached bindings reject temporary processing or
 result queries. Native addresses, storage decoding, vendor result encoding and

@@ -454,6 +454,8 @@ def validate_staging(lease):
         if 'source_type_verification' in stage:
             check=stage['source_type_verification']
             if (not isinstance(check,dict) or check.get('status')!='idle' or check.get('errors')!=[] or
+                    any(f in check and (type(check[f]) is not int or check[f]!=0) for f in ('template_ids_matched','template_ids_unresolved')) or
+                    ('template_identities_verified' in check and check['template_identities_verified'] is not False) or
                     any(type(check.get(f)) is not int or check[f]!=0 for f in
                         ('types_matched','members_matched','types_unavailable')) or
                     any(check.get(f) is not False for f in ('member_locations_verified','storage_mapping_supported',

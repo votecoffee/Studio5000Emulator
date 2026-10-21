@@ -211,7 +211,13 @@ class NativeSdkProbeTests(unittest.TestCase):
         from logixlab.resilient_transport import ResilientTransport
         state=self.state();lease=state['connectivity']['native_programming_lease']
         lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
+        older=copy.deepcopy(state)
+        for field in ('template_ids_matched','template_ids_unresolved','template_identities_verified'):
+            del older['connectivity']['native_programming_lease']['resilient_transport']['source_type_verification'][field]
+        validate_idle(older)
         for field,value in (('status','matched'),('types_matched',1),('members_matched',1),('types_unavailable',1),
+                ('template_ids_matched',1),('template_ids_unresolved',1),('template_ids_matched',False),
+                ('template_ids_unresolved',True),('template_identities_verified',True),('template_identities_verified',0),
                 ('types_matched',False),('errors',[{'reason':'source_member_type_mismatch','types':1}]),
                 ('member_locations_verified',True),('storage_mapping_supported',True),
                 ('signature_verified',True),('definitions_exposed',True),('execution_supported',True)):

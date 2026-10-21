@@ -40,6 +40,7 @@ class ResilientTransport:
         self.diagnostics=DiagnosticStaging();self.diagnostic_error=None
         self.objects=ObjectStaging();self.object_error=None
         self.source_type_verification=verification();self.type_error=None;self._type_catalog=None
+        self._type_binding_stamp=None
         self.source_object_verification=object_verification.summary();self.source_object_error=None
         self._object_catalogs=(None,None,None,None);self._object_binding_stamp=None
         self.download_image=DownloadImage();self.image_error=None
@@ -58,8 +59,7 @@ class ResilientTransport:
         if self.type_error:raise TransportError(3,self.type_error)
         if self.source_object_error:raise TransportError(3,self.source_object_error)
         if self.image_error:raise TransportError(3,self.image_error)
-        if self.inspection['status']=='decoded' and self._type_catalog is not native_types:
-            raise TransportError(0x0C,'native_type_binding_changed')
+        if self.inspection['status']=='decoded':self.require_type_binding(native_types)
         if self.inspection['status']=='decoded':self.require_object_bindings(native_symbols,native_routines,native_auxiliary_symbols,native_tables)
         if self.inspection['status']=='decoded':return self.inspection
         expected=struct.unpack_from('<I',self.setup,12)[0]
@@ -83,11 +83,13 @@ class ResilientTransport:
             self.object_error=error.reason
             raise TransportError(3,error.reason) from error
         self._type_catalog=native_types
+        self._type_binding_stamp=native_types.binding_stamp() if native_types is not None else None
         self.source_type_verification=(native_types.verify(templates.templates) if native_types is not None else
-                                       verification('unavailable' if templates.templates else 'idle'))
+                                       verification('unavailable' if templates.templates else 'idle',unresolved=len(templates.templates)))
         if self.source_type_verification['status']=='mismatch':
             self.type_error='source_type_verification_failed'
             raise TransportError(3,self.type_error)
+        self.require_type_binding(native_types)
         source=Source(native_types.source_acd_sha256,native_types.source_l5x_sha256) if native_types is not None else None
         self.source_object_verification=object_verification.verify(objects,source,native_symbols,native_routines,native_auxiliary_symbols,native_tables)
         if self.source_object_verification['status']=='mismatch':
@@ -101,9 +103,16 @@ class ResilientTransport:
         except ImageError as error:
             self.image_error=error.reason
             raise TransportError(3,error.reason) from error
+        self.require_type_binding(native_types)
         self.templates=templates;self.diagnostics=diagnostics;self.objects=objects
         self.download_image=image
         return self.inspection
+
+    def require_type_binding(self,native_types):
+        try:stamp=native_types.binding_stamp() if native_types is not None else None
+        except (ValueError,TypeError,KeyError,AttributeError):raise TransportError(0x0C,'native_type_binding_changed') from None
+        if native_types is not self._type_catalog or stamp!=self._type_binding_stamp:
+            raise TransportError(0x0C,'native_type_binding_changed')
 
     def require_object_bindings(self,symbols,routines,auxiliary=None,tables=None):
         try:stamp=object_verification.binding_stamp(symbols,routines,auxiliary,tables)
@@ -133,6 +142,7 @@ class ResilientTransport:
             image.require_source(source)
         except ImageError as error:
             raise TransportError(0x0C,error.reason) from error
+        self.require_type_binding(self._type_catalog)
         binding=(source,image.record_sha256,image.records,id(self._type_catalog))
         if self.image_preparation_started and self._image_start_binding!=binding:
             raise TransportError(0x0C,'device_image_preparation_binding_changed')

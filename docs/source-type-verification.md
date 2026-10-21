@@ -65,6 +65,33 @@ establish equivalent execution.
 
 ## Staging and cleanup
 
+### Original Template identities
+
+Version `.109` compares each staged Template ID with the matching original
+DataType ID already retained from active `Comps.Dat` format-177 records. A
+known ID that disagrees produces `source_template_identity_mismatch`, even if
+all layouts and nested references have been consistently renumbered. This
+check does not renumber public/model Templates or decode their opaque trailers.
+
+Old manifests without `type_ids`, and partially bound inventories, retain their
+layout checks. Missing original IDs remain unresolved. The summary reports
+`template_ids_matched`, `template_ids_unresolved` and
+`template_identities_verified`. The unresolved count includes staged entries
+whose ID cannot be established, including malformed definitions and mismatches.
+The flag is true only when every staged Template has its original ID and all
+layout checks also pass. It checks the staged subset, without requiring every
+type in the source catalog to occur in a particular transfer. Empty batches do
+not claim an identity match.
+
+A private fingerprint pins the source pair, member layouts and original ID map
+during inspection, preparation and result queries. Replacing the catalog or
+changing its contents rejects cached processing. A change during verification
+or image construction rejects publication of the temporary models. Cleanup
+clears both the fingerprint and aggregate identity counts. SDK probe admission
+checks the new idle fields when advertised and accepts older summaries that
+omit them. These changes grant no storage, native address, signature or
+installation authority.
+
 The signed device-operation handler requires a current source-bound catalog
 before using it. A mismatch returns `0x03` with a fixed
 `source_type_verification_failed` reason. No completed Template, Diagnostic or
@@ -101,6 +128,15 @@ that the supplied L5X was produced by a particular converter. No controller is
 contacted and captured signatures are not verified.
 
 ## Validation boundary
+
+The `.109` saved 911-record transfer matches all 243 original Template IDs,
+alongside the existing member comparisons and source object identities.
+Synthetic checks reject consistently renumbered nested Templates, mismatched
+known IDs and changed cached metadata. Signed protocol checks preserve active
+values and scan state and reject a mismatched ID before temporary objects are
+published. Combined inventory and supported routine-edit checks use independent
+disposable models. This validation uses no SDK or physical controller and does
+not establish native transfer acceptance.
 
 The preserved demo download matches all 242 source types and 13,312 members,
 including the earlier 5,337 encoded offsets. Synthetic tests cover mismatches,

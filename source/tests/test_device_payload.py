@@ -263,6 +263,29 @@ class InspectionSignedTests(unittest.TestCase):
         self.app.native_types=catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256,types=source_types()[:1])
         self.app.native_symbols,self.app.native_routines=bindings(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256)
 
+    def test_signed_original_template_ids_match_but_changed_cached_ids_reject_result_queries(self):
+        self.object_source_fixture();self.app.native_types.type_ids['inner']=0x101
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(INSPECT)[2],0)
+        result=self.description()['source_type_verification'];self.assertTrue(result['template_identities_verified'])
+        self.assertEqual(result['template_ids_matched'],1);self.assertEqual(result['template_ids_unresolved'],0)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.app.native_types.type_ids['inner']=0x301
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
+        self.assertEqual(self.send(INSPECT)[2],12)
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+        self.send(transport.DELETE);self.assertFalse(self.description()['source_type_verification']['template_identities_verified'])
+
+    def test_signed_wrong_original_template_id_atomically_rejects_temporary_models(self):
+        self.object_source_fixture();self.app.native_types.type_ids['inner']=0x301
+        before=copy.deepcopy(self.app.engine.memory.values)
+        for _ in range(2):self.assertEqual(self.send(INSPECT)[2],3)
+        result=self.description();self.assertEqual(result['source_type_verification']['errors'],
+            [dict(reason='source_template_identity_mismatch',types=1)])
+        self.assertFalse(result['source_type_verification']['template_identities_verified'])
+        self.assertEqual(result['template_staging']['templates'],0);self.assertEqual(result['object_staging']['records_modeled'],0)
+        self.assertEqual(result['download_image']['storage_bytes'],0);self.assertEqual(self.app.engine.memory.values,before)
+
     def test_signed_original_object_identity_match_and_unresolved_symbols_are_separate(self):
         self.object_source_fixture(extra_symbol=True);before=copy.deepcopy(self.app.engine.memory.values)
         self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))

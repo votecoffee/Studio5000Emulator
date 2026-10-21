@@ -148,6 +148,9 @@ checks, while their runtime tags, values and alias behavior remain unavailable.
 Version `.108` adds [original Data Table identity checks](docs/source-object-identities.md#data-table-identities).
 Staged Table IDs must match the source inventory before temporary download
 objects are published; native addresses and storage/value decoding remain unfinished.
+Version `.109` adds [original Template ID checks](docs/source-type-verification.md#original-template-identities).
+Known IDs must match even when a transfer consistently renumbers nested types;
+cached source metadata changes also reject temporary processing and result queries.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

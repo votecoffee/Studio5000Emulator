@@ -6,7 +6,9 @@ This does not validate opaque trailers, native signatures or executable types.
 from collections import Counter
 from dataclasses import asdict, dataclass
 import gzip
+import hashlib
 import io
+import json
 import math
 import re
 import struct
@@ -99,8 +101,9 @@ class Type:
     members: tuple[Member,...]
 
 
-def verification(status='idle', *, matched=0, members=0, failed=0, errors=()):
+def verification(status='idle', *, matched=0, members=0, failed=0, ids=0, unresolved=0, identities=False, errors=()):
     return {'status':status,'types_matched':matched,'members_matched':members,'types_unavailable':failed,
+            'template_ids_matched':ids,'template_ids_unresolved':unresolved,'template_identities_verified':identities,
             'errors':[{'reason':reason,'types':count} for reason,count in errors],
             'member_locations_verified':status=='matched',
             'storage_mapping_supported':False,'signature_verified':False,
@@ -253,26 +256,36 @@ class NativeTypes:
                 'native_type_ids':len(self.type_ids),
                 'source_l5x_sha256':self.source_l5x_sha256,'compiled_addresses':False,'runtime_equivalence':False}
 
+    def binding_stamp(self):
+        """Pin the source pair, layouts and optional original IDs during staging."""
+        raw=json.dumps(self.manifest(),sort_keys=True,separators=(',',':')).encode('utf-8')
+        return hashlib.sha256(raw).hexdigest()
+
     def verify(self, templates):
         definitions={};errors=Counter();matched=members=0
         for t in templates:
             try:d=decode(t.definition,t.attributes.members)
             except LayoutError:errors['template_definition_unavailable']+=1
             else:
-                if t.instance in definitions:return verification('mismatch',failed=len(templates),errors=(('duplicate_template_id',1),))
+                if t.instance in definitions:return verification('mismatch',failed=len(templates),unresolved=len(templates),errors=(('duplicate_template_id',1),))
                 definitions[t.instance]=(t,d)
         names=[d.name.lower() for _,d in definitions.values()]
-        if len(set(names))!=len(names):return verification('mismatch',failed=len(templates),errors=(('duplicate_template_name',1),))
+        if len(set(names))!=len(names):return verification('mismatch',failed=len(templates),unresolved=len(templates),errors=(('duplicate_template_name',1),))
+        ids=sum(self.type_ids.get(d.name.lower())==t.instance for t,d in definitions.values())
         for t,d in definitions.values():
             reason=self._check(t,d,definitions)
             if reason:errors[reason]+=1
             else:matched+=1;members+=len(d.members)
         return verification('matched' if templates and not errors else 'mismatch' if templates else 'idle',
-                            matched=matched,members=members,failed=len(templates)-matched,errors=sorted(errors.items()))
+                            matched=matched,members=members,failed=len(templates)-matched,ids=ids,
+                            unresolved=len(templates)-ids,identities=bool(templates) and ids==len(templates) and not errors,
+                            errors=sorted(errors.items()))
 
     def _check(self,t,d,definitions):
         source=self.types.get(d.name.lower())
         if source is None:return 'source_type_unavailable'
+        instance=self.type_ids.get(d.name.lower())
+        if instance is not None and t.instance!=instance:return 'source_template_identity_mismatch'
         if t.attributes.structure_bytes!=source.size:return 'source_type_size_mismatch'
         if len(d.members)!=len(source.members):return 'source_member_count_mismatch'
         for m,s in zip(d.members,source.members):

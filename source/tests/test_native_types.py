@@ -29,7 +29,7 @@ def source_types():
                 nt.Member('Active','BOOL',16,None,(),'Read/Write',False))))
 
 
-def catalog(acd='a'*64,l5x='b'*64,types=None):return nt.NativeTypes(acd,l5x,source_types() if types is None else types)
+def catalog(acd='a'*64,l5x='b'*64,types=None,type_ids=None):return nt.NativeTypes(acd,l5x,source_types() if types is None else types,type_ids)
 
 
 def staged(rows=None):

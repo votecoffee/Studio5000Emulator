@@ -128,6 +128,33 @@ class DownloadImageTests(unittest.TestCase):
 
 
 class TransportDownloadImageTests(unittest.TestCase):
+    def test_mutated_original_ids_or_layouts_reject_cached_processing_start_and_result_queries(self):
+        for change in ('ids','layout','broken'):
+            self.stage.clear();self.stage_image();self.stage.start_prepared_image()
+            if change=='ids':self.native.type_ids['inner']=0x301
+            elif change=='layout':self.native.types['inner']=replace(self.native.types['inner'],size=8)
+            else:self.native.types['inner']=None
+            for action in (lambda:self.stage.inspect_payload(self.native),self.stage.start_prepared_image,
+                           lambda:self.stage.prepared_result_state(self.native)):
+                with self.subTest(change=change),self.assertRaises(TransportError) as error:action()
+                self.assertEqual(error.exception.reason,'native_type_binding_changed')
+            self.assertEqual(self.stage.download_image.records,11)
+        self.stage.clear();self.assertIsNone(self.stage._type_binding_stamp)
+        result=self.stage.description()['source_type_verification']
+        self.assertEqual(result['template_ids_matched'],0);self.assertEqual(result['template_ids_unresolved'],0)
+        self.assertFalse(result['template_identities_verified'])
+
+    def test_source_mutated_during_verification_never_publishes_models(self):
+        expanded=b''.join(record(r.request) for r in batch());fill(self.stage,container(zlib.compress(expanded)),expanded)
+        native=catalog(types=source_types()[:1]);original=type(native).verify
+        def mutate(value,templates):
+            result=original(value,templates);value.type_ids['inner']=0x301;return result
+        with patch.object(type(native),'verify',mutate),self.assertRaises(TransportError) as error:
+            self.stage.inspect_payload(native)
+        self.assertEqual(error.exception.reason,'native_type_binding_changed')
+        self.assertEqual(self.stage.templates.templates,());self.assertEqual(self.stage.objects.records,0)
+        self.assertEqual(self.stage.download_image.records,0)
+
     def setUp(self):self.now=100.;self.stage=ResilientTransport(lambda:self.now)
 
     def stage_image(self):

@@ -200,7 +200,8 @@ def exercise(app,client,payload=None,expanded=None):
             if not result.matches:raise ValueError('Preparation result does not match temporary resources')
             if result.historical_transition:historical+=1
             else:matches+=1
-        image_receipt={**image.description(),'source_object_verification':transport.description()['source_object_verification'],
+        image_receipt={**image.description(),'source_type_verification':transport.description()['source_type_verification'],
+                       'source_object_verification':transport.description()['source_object_verification'],
             'current_resource_readbacks':matches,'historical_transitions':historical}
         check('unsupported_result_request',bytes.fromhex('4d03210012042400'),bytes.fromhex('cd000f00'))
         check('transport_delete',bytes.fromhex('0903210012042400'),bytes.fromhex('89000000'))
