@@ -39,6 +39,11 @@ The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
 local.
 
+AOI connectivity checks include `test_native_aoi_routines.py`: separate parent
+namespaces, original format-54 identities, signed TCP discovery, optional legacy
+descriptions, unavailable protected children and rejected writes. The independent
+inventory client applies a shared Routine budget across AOIs and Programs.
+
 ## Native SDK acceptance probe
 
 Upload/download cases also retain [transfer-specific checkpoints and an offline

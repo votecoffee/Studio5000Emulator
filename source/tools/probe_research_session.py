@@ -27,6 +27,7 @@ from logixlab.native_types import NativeTypes
 from logixlab.native_tasks import NativeTasks
 from logixlab.native_routines import NativeRoutines
 from logixlab.native_aois import NativeAOIs
+from logixlab.native_aoi_routines import NativeAOIRoutines
 from logixlab.model import Project,ModelError
 from logixlab.resilient_transport import DEVICE_HEADER,MAX_BUFFER_BYTES
 from tools.anonymous_client import AnonymousClient
@@ -287,6 +288,11 @@ def main():
         if project.aoi_catalog.metadata is None:raise ModelError('Complete AOI declarations are unavailable')
         aois=NativeAOIs.from_acd(args.acd,l5x_hash,[row.name for row in project.aoi_catalog.metadata])
     except (ModelError,UnicodeError,OSError) as error:aoi_error=str(error)
+    aoi_routines=None;aoi_routine_error=None
+    try:
+        expected=[{'aoi':row.name,'name':r.name} for row in project.aoi_catalog.metadata or () for r in row.routines or ()]
+        aoi_routines=NativeAOIRoutines.from_acd(args.acd,l5x_hash,expected,aois)
+    except (ModelError,UnicodeError,OSError) as error:aoi_routine_error=str(error)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     if args.output.exists():p.error('Use a new private report path')
     with tempfile.TemporaryDirectory(prefix='logixlab-research-') as folder:
@@ -298,6 +304,7 @@ def main():
                 'native_types':NativeTypes.from_acd(args.acd,l5x_hash).manifest(),
                 **({'native_tasks':tasks.manifest()} if tasks is not None else {}),
                 **({'native_routines':routines.manifest()} if routines is not None else {}),
+                **({'native_aoi_routines':aoi_routines.manifest()} if aoi_routines is not None else {}),
                 **({'native_aois':aois.manifest()} if aois is not None else {})}
             app.command('load',load_request)
             before=app.state()
@@ -323,6 +330,8 @@ def main():
                 'native_routine_binding_error':routine_error,
                 'native_aoi_binding':app.native_aois.description() if app.native_aois is not None else None,
                 'native_aoi_binding_error':aoi_error,
+                'native_aoi_routine_binding':app.native_aoi_routines.description() if app.native_aoi_routines is not None else None,
+                'native_aoi_routine_binding_error':aoi_routine_error,
                 'upload_inventory':inventory,
                 'routine_edit_probe':routine_edit,
                 'prepared_image':image,'cleanup_confirmed':True,'source_and_model_preserved':True,

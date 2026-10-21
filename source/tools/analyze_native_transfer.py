@@ -48,7 +48,7 @@ def request_row(child,result,sequence,ordinal):
     end=2+2*child[1];path=decode_path(child[2:end]);start=4+2*result[3]
     row=dict(ordinal=ordinal,sequence=sequence,service=child[0],class_id=path.class_id,
         instance=path.instance,attribute=path.attribute,program_instance=path.program_instance,
-        io_map_instance=path.io_map_instance,controller_instance=path.controller_instance,
+        io_map_instance=path.io_map_instance,controller_instance=path.controller_instance,aoi_instance=path.aoi_instance,
         symbolic=bool(path.symbols),status=result[2],request_payload_bytes=len(child)-end,
         response_payload_bytes=len(result)-start,
         additional_status=list(struct.unpack('<'+'H'*result[3],result[4:start])))
@@ -63,7 +63,7 @@ def request_row(child,result,sequence,ordinal):
 
 def gap_delta(before,after):
     """Endpoint-wide counts; these do not attribute gaps to one native client."""
-    fields=('generation','class_id','instance','program_instance','io_map_instance','controller_instance','service')
+    fields=('generation','class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','service')
     def key(row):return tuple(row.get(k) for k in fields)+(tuple(a['id'] for a in row.get('attributes',[])),)
     for snapshot in (before,after):
         rows=snapshot.get('attribute_gaps',[])
@@ -129,14 +129,14 @@ def analyze(before,after,operation,report=None):
             if matched+len(rows)>MAX_REQUESTS:limited=True;break
             for row in rows:
                 matched+=1;tail.append(row)
-                key=tuple(row[k] for k in ('class_id','instance','program_instance','io_map_instance','controller_instance','symbolic'))
+                key=tuple(row[k] for k in ('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'))
                 objects[key]+=1
                 if row['status']:
                     failed+=1
                     if len(failures)<MAX_REPORT_ROWS:failures.append(row)
         except (ValueError,IndexError,KeyError,TypeError,CIPError,struct.error):unparsed+=1
     gaps,gaps_truncated=gap_delta(before,after)
-    object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','symbolic'),key),requests=count)
+    object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),key),requests=count)
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
         'analysis_complete':not (unparsed or limited),'signed_envelopes':envelopes,'requests_observed':matched,

@@ -90,7 +90,7 @@ This checks source-bound readback relationships, not runtime scheduling or
 firmware acceptance.
 
 Each discovered Program row also retains an `executable_catalog` and its
-`executables`. Executable class `0x6D` is queried only beneath that Program's
+`executables`. Executable class `0x6D` is queried beneath that Program's
 actual `0x68` ID, including class metadata and every sparse-ID pagination cursor.
 The same Routine ID in two Programs remains two distinct scoped objects. There
 is no flattened global Routine catalog, synthetic ID or inferred Routine name.
@@ -108,6 +108,15 @@ and unavailable Program IDs. A missing or mismatched Routine binding preserves
 its unavailable catalog and `executables: null`; it never becomes a successful
 empty list. The Routine budget counts every scoped entry, including repeated
 child IDs under different parents, and is checked before reading their metadata.
+
+Version `.105` also queries Executable catalogs under discovered AOI Definition
+`0x338` parents. Each AOI row retains its `executable_catalog` and `executables`;
+`aoi_executable_inventory` reports the discovered child count and unavailable
+AOI IDs. Every request records `aoi_instance` separately from `program_instance`.
+Identical IDs under those parent classes stay distinct. Protected or missing
+source/bindings retain failed catalogs and `executables: null`. The aggregate
+Routine budget covers both AOI and Program entries. This adds discovery and
+legacy descriptions, with `aoi_definition_upload` still false.
 
 `read_values=False` collects metadata and Template definitions without issuing
 Data Table value reads. Values read

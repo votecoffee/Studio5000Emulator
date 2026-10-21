@@ -163,6 +163,19 @@ class EditTransferModelTests(unittest.TestCase):
 
 
 class EditTransferSignedTests(unittest.TestCase):
+    def test_aoi_scoped_fragment_cannot_use_a_same_number_program_reservation(self):
+        from tools.upload_inventory import logical_path
+        self.ready();before=copy.deepcopy(self.app.engine.memory.values)
+        path=logical_path(0x6D,self.routine,aoi=300)
+        operation=bytes((0x5C,len(path)//2))+path+struct.pack('<4I',3,1,123,0)
+        self.fragment(0x101,72,operation+container()[:32],0x0F)
+        stage=self.endpoint.state()['native_programming_lease']['edit_transfer']
+        self.assertEqual(stage['retained_bytes'],0);self.assertIsNone(self.endpoint.programming_lease.edit_transfer.target)
+        self.assertEqual(self.app.engine.memory.values,before)
+        # The rejected AOI path neither resolves nor poisons the Program target.
+        self.first();self.fragment(0x201,32,container()[32:])
+        self.assertEqual(self.endpoint.state()['native_programming_lease']['edit_transfer']['status'],'complete')
+
     setUp=edits.EditPreparationWireTests.setUp
     tearDown=edits.EditPreparationWireTests.tearDown
     cip=edits.EditPreparationWireTests.cip

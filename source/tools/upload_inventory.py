@@ -41,7 +41,7 @@ class Limits:
                 raise InventoryError('Invalid inventory '+name+' limit')
 
 
-def logical_path(class_id, instance, program=None):
+def logical_path(class_id, instance, program=None, *, aoi=None):
     """Encode numeric model paths independently of the endpoint's encoder."""
     def segment(kind,value):
         if type(value) is not int or not 0<=value<=0xFFFFFFFF:
@@ -49,7 +49,10 @@ def logical_path(class_id, instance, program=None):
         if value<=255:return bytes((kind,value))
         if value<=65535:return bytes((kind+1,0))+struct.pack('<H',value)
         return bytes((kind+2,0))+struct.pack('<I',value)
-    prefix=b'' if program is None else segment(0x20,0x68)+segment(0x24,program)
+    if aoi is not None and (program is not None or class_id!=0x6D or type(aoi) is not int or not 1<=aoi<=0xFFFFFFFF):
+        raise InventoryError('AOI scope requires one numeric AOI parent and Executable child')
+    prefix=(segment(0x20,0x338)+segment(0x24,aoi) if aoi is not None else
+            b'' if program is None else segment(0x20,0x68)+segment(0x24,program))
     return prefix+segment(0x20,class_id)+segment(0x24,instance)
 
 
@@ -260,17 +263,17 @@ class _Reader:
         self.client=client;self.limits=limits;self.read_values=read_values;self.requests=[]
         self.template_rows={};self.template_catalog=None;self.template_bytes=0;self.template_reserved_bytes=0
 
-    def exchange(self,service,class_id,instance,data=b'',program=None,attribute=None):
+    def exchange(self,service,class_id,instance,data=b'',program=None,attribute=None,*,aoi=None):
         # Fixed read services only. In particular 0x4B is a list service only
         # for these catalog classes, never a Create/setup opcode elsewhere.
         if (service not in (1,3,0x0E,0x4B,0x4C,0x4F) or
                 service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6C,0x6D,0x70,0x338) or
                 service==0x4C and class_id!=0x6C or class_id==0x6C and program is not None or
-                class_id==0x6D and (type(program) is not int or not 1<=program<=0xFFFFFFFF) or
+                class_id==0x6D and aoi is None and (type(program) is not int or not 1<=program<=0xFFFFFFFF) or
                 service==0x4F and class_id!=0x6A or service==0x0E and attribute is None):
             raise InventoryError('Unsupported inventory read service')
         if len(self.requests)>=self.limits.requests:raise InventoryError('Inventory request budget exceeded')
-        path=logical_path(class_id,instance,program)
+        path=logical_path(class_id,instance,program,aoi=aoi)
         if attribute is not None:
             if type(attribute) is not int or not 1<=attribute<=255:
                 raise InventoryError('Inventory single attribute must fit USINT')
@@ -279,21 +282,21 @@ class _Reader:
         response=self.client.request(request)
         status,_,_=decode_reply(response,service)
         self.requests.append({'service':service,'class_id':class_id,'instance':instance,
-                              'program_instance':program,'status':status,
+                              'program_instance':program,'aoi_instance':aoi,'status':status,
                               'attribute':attribute,
                               'request_hex':request.hex(),'response_hex':response.hex()})
         return response
 
-    def attributes(self,class_id,instance,schema,program=None):
+    def attributes(self,class_id,instance,schema,program=None,*,aoi=None):
         requested=tuple(schema)
-        raw=self.exchange(3,class_id,instance,struct.pack('<'+'H'*(len(requested)+1),len(requested),*requested),program)
+        raw=self.exchange(3,class_id,instance,struct.pack('<'+'H'*(len(requested)+1),len(requested),*requested),program,aoi=aoi)
         return decode_attribute_list(raw,requested,schema)
 
-    def catalog(self,class_id,program=None,max_instances=None):
-        metadata=self.attributes(class_id,0,CLASS_SCHEMA,program)
+    def catalog(self,class_id,program=None,max_instances=None,*,aoi=None):
+        metadata=self.attributes(class_id,0,CLASS_SCHEMA,program,aoi=aoi)
         ids=[];cursor=0
         for _ in range(self.limits.pages):
-            page=decode_instance_page(self.exchange(0x4B,class_id,cursor,program=program),cursor)
+            page=decode_instance_page(self.exchange(0x4B,class_id,cursor,program=program,aoi=aoi),cursor)
             if page['instances'] is None:
                 return {'status':page['status'],'instances':None,'metadata':metadata}
             ids.extend(page['instances'])
@@ -445,8 +448,19 @@ class _Reader:
             raise InventoryError('Inventory Program budget exceeded')
         template_rows=self.templates()
         aoi_catalog=self.catalog(0x338,max_instances=self.limits.aois)
-        aoi_rows=None if aoi_catalog['instances'] is None else [
-            {'instance':instance,'metadata':self.attributes(0x338,instance,AOI_SCHEMA)} for instance in aoi_catalog['instances']]
+        aoi_rows=None if aoi_catalog['instances'] is None else []
+        aoi_routine_count=0;unavailable_aoi_routines=[]
+        for instance in aoi_catalog['instances'] or []:
+            executables=self.catalog(0x6D,max_instances=self.limits.routines,aoi=instance)
+            executable_rows=None
+            if executables['instances'] is not None:
+                aoi_routine_count+=len(executables['instances'])
+                if aoi_routine_count>self.limits.routines:raise InventoryError('Inventory AOI Routine budget exceeded')
+                executable_rows=[{'aoi_instance':instance,'instance':routine,
+                    'metadata':self.attributes(0x6D,routine,EXECUTABLE_SCHEMA,aoi=instance)} for routine in executables['instances']]
+            else:unavailable_aoi_routines.append(instance)
+            aoi_rows.append({'instance':instance,'metadata':self.attributes(0x338,instance,AOI_SCHEMA),
+                             'executable_catalog':{'aoi_instance':instance,**executables},'executables':executable_rows})
         program_rows=[];scopes=[self.scope()];routine_count=0;unavailable_routine_programs=[]
         for instance in programs['instances'] or []:
             metadata=self.attributes(0x68,instance,PROGRAM_SCHEMA)
@@ -454,7 +468,7 @@ class _Reader:
             executable_rows=None
             if executables['instances'] is not None:
                 routine_count+=len(executables['instances'])
-                if routine_count>self.limits.routines:raise InventoryError('Inventory scoped Routine budget exceeded')
+                if routine_count+aoi_routine_count>self.limits.routines:raise InventoryError('Inventory scoped Routine budget exceeded')
                 executable_rows=[{'program_instance':instance,'instance':routine,
                                   'metadata':self.attributes(0x6D,routine,EXECUTABLE_SCHEMA,instance)}
                                  for routine in executables['instances']]
@@ -481,6 +495,9 @@ class _Reader:
                 'template_definition_bytes':self.template_bytes,'template_reserved_bytes':self.template_reserved_bytes,
                 'structured_values_decoded':False,
                 'aoi_catalog':aoi_catalog,'aois':aoi_rows,'aoi_definition_upload':False,
+                'aoi_executable_inventory':{'discovered_count':aoi_routine_count,
+                    'unavailable_aoi_instances':unavailable_aoi_routines,'parent_inventory_available':aoi_rows is not None,
+                    'scoped_by_aoi':True,'names_inferred':False,'compiled_definition_upload':False},
                 'program_catalog':programs,'programs':program_rows,'scopes':scopes,
                 'executable_inventory':{'state':'unavailable' if programs['instances'] is None or
                                        unavailable_routine_programs and len(unavailable_routine_programs)==len(program_rows) else

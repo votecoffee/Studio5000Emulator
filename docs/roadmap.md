@@ -6,10 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.104` adds [source-bound AOI discovery and metadata](aoi-metadata.md).
-Original ACD definition IDs and explicit L5X headers back read-only metadata;
-protected payloads remain opaque. Signed fixture checks and a separate large
-offline-project TCP read verify these paths without the SDK.
+Current milestone: `.105` adds [AOI-scoped Routine discovery](aoi-metadata.md#aoi-scoped-routines).
+Original ACD child IDs retain their AOI parents, including sparse pagination and
+available source descriptions. Signed fixtures and a separate unchanged offline
+project exercise discovery without the SDK; protected children stay unavailable.
+Version `.104` adds definition identities and source header metadata.
 Typed UDT decoding and complete native transfer remain unfinished. Unresolved
 metadata overrides remain excluded; a private experiment faulted the SDK, so
 native retesting is held pending service recovery.

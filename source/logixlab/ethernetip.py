@@ -79,6 +79,7 @@ class Path:
     program_instance:int|None=None
     io_map_instance:int|None=None
     controller_instance:int|None=None
+    aoi_instance:int|None=None
 
     def reference(self,base=''):
         result=base;indices=[]
@@ -116,10 +117,12 @@ def decode_path(raw):
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
                 scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B,0x6D,0x74)
+                         else 'aoi_instance' if p.class_id==0x338 and value==0x6D
                          else 'io_map_instance' if p.class_id==0x69 and value==0x7E
                          else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
                 if (attr=='class_id' and scope and p.instance and p.attribute is None and not p.symbols
-                        and p.program_instance is None and p.io_map_instance is None and p.controller_instance is None):
+                        and p.program_instance is None and p.io_map_instance is None and p.controller_instance is None
+                        and p.aoi_instance is None):
                     setattr(p,scope,p.instance);p.class_id=value;p.instance=None
                     continue
                 if getattr(p,attr) is not None:raise CIPError(4,'Duplicate logical segment')
@@ -129,6 +132,7 @@ def decode_path(raw):
     if p.program_instance is not None and p.instance is None:raise CIPError(4,'Program object requires a child instance')
     if p.io_map_instance is not None and p.instance is None:raise CIPError(4,'I/O Map object requires a child instance')
     if p.controller_instance is not None and p.instance is None:raise CIPError(4,'Controller object requires a child instance')
+    if p.aoi_instance is not None and p.instance is None:raise CIPError(4,'AOI object requires a child instance')
     return p
 
 
@@ -923,9 +927,33 @@ class Router:
             rows.append({'id':routine.instance,'name':name,'program':program['name'],'program_instance':program_instance})
         return sorted(rows,key=lambda row:row['id'])
 
+    def aoi_routines(self,aoi_instance):
+        parent=next((row for row in self.aoi_definitions() if row['id']==aoi_instance),None)
+        if parent is None:raise CIPError(5,'Unknown AOI parent for Executable inventory')
+        metadata=parent['metadata'];native=getattr(self.app,'native_aoi_routines',None)
+        binding=self.app.native_aois;project=self.app.engine.project
+        if (metadata.routines is None or native is None or native.source_l5x_sha256!=project.sha256
+                or native.source_acd_sha256!=binding.source_acd_sha256):
+            raise CIPError(0x0C,'AOI Executable inventory requires complete readable source and native identities')
+        expected={r.name.casefold() for r in metadata.routines}
+        found=[r for r in native.rows if r.aoi.casefold()==metadata.name.casefold()]
+        if {r.name.casefold() for r in found}!=expected or any(r.aoi_instance!=aoi_instance for r in found):
+            raise CIPError(0x0C,'AOI Executable inventory differs from the selected parent')
+        by_name={r.name.casefold():r for r in metadata.routines}
+        return sorted(({'id':r.instance,'metadata':by_name[r.name.casefold()]} for r in found),key=lambda r:r['id'])
+
     def routine_service(self,service,path,data,limit):
         if path.symbols or path.instance is None:
             raise CIPError(4,'Executable metadata requires a numeric instance path')
+        if path.aoi_instance is not None:
+            if service==0x4B:return self.instance_list(path,data,limit)
+            rows=self.aoi_routines(path.aoi_instance)
+            if path.instance==0:attributes=self.catalog_class_attributes([row['id'] for row in rows])
+            else:
+                row=next((row for row in rows if row['id']==path.instance),None)
+                if row is None:raise CIPError(5,'Unknown Executable instance in the selected AOI')
+                attributes=row['metadata'].attributes()
+            return self.attribute_read(service,path,data,attributes)
         if path.program_instance is None:
             if path.instance==0 and service in (3,0x0E):
                 # Partial legacy layout revision only; never flatten Programs.
@@ -1100,8 +1128,10 @@ class Router:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'Task discovery must be controller scoped')
             ids=[task['id'] for task in self.tasks()]
         elif path.class_id==0x6D:
-            if path.symbols or path.program_instance is None:raise CIPError(4,'Executable discovery requires a parent Program')
-            ids=[routine['id'] for routine in self.routines(path.program_instance)]
+            if path.symbols or path.program_instance is None and path.aoi_instance is None:
+                raise CIPError(4,'Executable discovery requires a Program or AOI parent')
+            ids=[routine['id'] for routine in (self.aoi_routines(path.aoi_instance) if path.aoi_instance is not None
+                                              else self.routines(path.program_instance))]
         elif path.class_id==0x338:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'AOI discovery must be controller scoped')
             ids=[row['id'] for row in self.aoi_definitions()]
@@ -1634,6 +1664,7 @@ class Endpoint:
                     'native_tasks':self.app.native_tasks.description() if self.enabled and getattr(self.app,'native_tasks',None) else None,
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
+                    'native_aoi_routines':self.app.native_aoi_routines.description() if self.enabled and getattr(self.app,'native_aoi_routines',None) else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,
@@ -1657,7 +1688,7 @@ class Endpoint:
         with self.lock:
             self.attribute_gaps.record(path.class_id,path.instance,path.program_instance,
                                        scope,missing,self.app.generation,service,io_map_instance=path.io_map_instance,
-                                       controller_instance=path.controller_instance)
+                                       controller_instance=path.controller_instance,aoi_instance=path.aoi_instance)
 
     def record_native_rejection(self,service,path,status,reason):
         with self.lock:

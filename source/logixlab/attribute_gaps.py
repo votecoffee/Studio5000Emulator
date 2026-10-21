@@ -49,16 +49,17 @@ class AttributeGaps:
     def __init__(self):
         self.rows = OrderedDict()
 
-    def record(self, class_id, instance, program_instance, scope, missing, generation, service, *, io_map_instance=None, controller_instance=None):
+    def record(self, class_id, instance, program_instance, scope, missing, generation, service, *, io_map_instance=None, controller_instance=None, aoi_instance=None):
         missing = tuple(sorted(set(missing)))
         if not missing:
             return
-        key = (generation, class_id, instance, program_instance, io_map_instance, controller_instance, scope, missing, service)
+        key = (generation, class_id, instance, program_instance, io_map_instance, controller_instance, aoi_instance, scope, missing, service)
         previous = self.rows.pop(key, None)
         self.rows[key] = {'generation': generation, 'class_id': class_id,
                          'instance': instance, 'program_instance': program_instance,
                          'io_map_instance':io_map_instance,
                          'controller_instance':controller_instance,
+                         'aoi_instance':aoi_instance,
                          'scope': scope, 'missing': missing, 'service': service,
                          'count': previous['count'] + 1 if previous else 1,
                          'last_seen': time.time()}

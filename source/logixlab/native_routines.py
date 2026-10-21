@@ -59,8 +59,10 @@ def _programs(bindings):
     return result,instances
 
 
-def routine_paths(data, expected_routines, program_ids):
+def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
     """Bind explicit source names to unambiguous active format-54 child paths."""
+    if type(parent_class) is not int or parent_class not in (0x68,0x338):
+        raise ModelError('Unsupported native routine parent class')
     expected=_expected(expected_routines)
     programs,program_names=_programs(program_ids)
     if any(program not in programs for program,_ in expected):
@@ -86,7 +88,7 @@ def routine_paths(data, expected_routines, program_ids):
         used=struct.unpack_from('<I',record)[0]
         if not 148<=used<=len(record) or struct.unpack_from('<I',record,12)[0]!=0:
             raise ModelError('Unsupported native routine component header layout')
-        if struct.unpack_from('<H',record,10)[0]!=256:continue
+        if struct.unpack_from('<H',record,10)[0]!={0x68:256,0x338:259}[parent_class]:continue
         raw_name=bytes(record[24:148])
         stop=next((index for index in range(0,124,2) if raw_name[index:index+2]==b'\0\0'),None)
         if stop is None:raise ModelError('Unterminated native routine component name')
@@ -99,7 +101,7 @@ def routine_paths(data, expected_routines, program_ids):
         logical=struct.unpack_from('<6H',body,10)
         if logical[0]==0x6D:
             raise ModelError('Native routine requires its Program parent scope')
-        if logical[0]!=0x68 or logical[2]!=0x6D:continue
+        if logical[0]!=parent_class or logical[2]!=0x6D:continue
         program=program_names.get(logical[1]);key=(program,name)
         if key not in expected:continue
         if version!=54:raise ModelError('Unsupported native routine body version')

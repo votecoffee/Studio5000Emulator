@@ -212,7 +212,7 @@ def edit_request(state, program, routine, option, *, code='NOP();',apply=False,p
 def rejection_delta(before, after):
     """Report newly rejected structural requests without mistaking earlier probes for this one."""
     fields = ('generation', 'service', 'class_id', 'instance', 'attribute', 'program_instance',
-              'io_map_instance', 'controller_instance', 'symbolic', 'status', 'reason')
+              'io_map_instance', 'controller_instance', 'aoi_instance', 'symbolic', 'status', 'reason')
     previous = {tuple(row.get(field) for field in fields): row.get('count', 0)
                 for row in before.get('native_rejections', [])}
     rows = []
@@ -349,7 +349,7 @@ def edit_trace_evidence(trace, report, *, before_edit=None, after_edit=None, imp
                 path = decode_path(child[2:2 + child[1] * 2])
                 failures.append(dict(time=event['time'], service=child[0], class_id=path.class_id,
                     instance=path.instance, attribute=path.attribute, program_instance=path.program_instance,
-                    io_map_instance=path.io_map_instance, controller_instance=path.controller_instance,
+                    io_map_instance=path.io_map_instance, controller_instance=path.controller_instance,aoi_instance=path.aoi_instance,
                     symbolic=bool(path.symbols), status=result[2], sequence=sequence,
                     payload_bytes=len(child) - 2 - child[1]*2))
         except (ValueError, IndexError, CIPError):skipped += 1

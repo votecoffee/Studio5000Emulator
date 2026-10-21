@@ -15,6 +15,7 @@ from .native_tasks import NativeTasks
 from .task_configuration import TaskConfiguration
 from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
+from .native_aoi_routines import NativeAOIRoutines
 from .aoi_catalog import AOICatalog
 from .executable_configuration import ExecutableConfiguration
 
@@ -92,6 +93,12 @@ def convert_acd(source, destination, converter=None):
         manifest['native_aois']=NativeAOIs.from_acd(source,manifest['l5x_sha256'],[row.name for row in catalog.metadata]).manifest()
     except (ModelError,UnicodeError,OSError,ET.ParseError) as error:
         manifest['native_aois_error']=str(error)
+    try:
+        parents=NativeAOIs.from_manifest(manifest.get('native_aois'),manifest['l5x_sha256'])
+        expected=[{'aoi':row.name,'name':r.name} for row in catalog.metadata for r in row.routines or ()]
+        manifest['native_aoi_routines']=NativeAOIRoutines.from_acd(source,manifest['l5x_sha256'],expected,parents).manifest()
+    except (ModelError,UnicodeError,OSError,ET.ParseError) as error:
+        manifest['native_aoi_routines_error']=str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

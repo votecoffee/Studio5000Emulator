@@ -19,6 +19,17 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_aoi_and_program_parent_ids_remain_distinct_in_diagnostics(self):
+        from tools.upload_inventory import logical_path
+        children=[]
+        for parent in (logical_path(0x6D,7,program=700),logical_path(0x6D,7,aoi=700)):
+            children.append(bytes((0x0E,len(parent)//2+1))+parent+b'\x30\x07')
+        result=tool.analyze({'events':[]},{'events':[event(child,bytes.fromhex('8e001400'),sequence=10+i)
+                for i,child in enumerate(children)]},'upload')
+        self.assertEqual(result['requests_observed'],2)
+        self.assertEqual([(r['program_instance'],r['aoi_instance']) for r in result['last_requests']],[(700,None),(None,700)])
+        self.assertEqual(len(result['objects']),2)
+
     def test_checkpoint_anchor_excludes_prior_calls_ignores_duplicate_inner_events_and_sdk_clock(self):
         old=event(bytes.fromhex('0102208e2401'),bytes.fromhex('81000800'))
         new=event(bytes.fromhex('0302208e2401020001000600'),bytes.fromhex('83000a0002000100140006001400'),8)

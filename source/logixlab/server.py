@@ -21,6 +21,7 @@ from .native_types import NativeTypes
 from .native_tasks import NativeTasks
 from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
+from .native_aoi_routines import NativeAOIRoutines
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -52,6 +53,7 @@ class Application:
         self.native_tasks = None
         self.native_routines = None
         self.native_aois = None
+        self.native_aoi_routines = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -154,7 +156,7 @@ class Application:
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'executable_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
+            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'executable_configuration':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -310,6 +312,20 @@ class Application:
                     if metadata is None or set(native_aois.definitions)!={row.name.casefold() for row in metadata}:
                         raise ModelError('Native AOI identities do not match the complete AOI source declarations')
                     provenance['native_aois']=native_aois.description()
+                aoi_routine_manifest=provenance.get('native_aoi_routines')
+                if action=='load' and Path(name).suffix.lower()=='.l5x' and 'native_aoi_routines' in data:
+                    aoi_routine_manifest=data['native_aoi_routines']
+                native_aoi_routines=NativeAOIRoutines.from_manifest(aoi_routine_manifest,project.sha256) if aoi_routine_manifest is not None else None
+                if native_aoi_routines:
+                    if native_aois is None or native_aoi_routines.source_acd_sha256!=native_aois.source_acd_sha256:
+                        raise ModelError('AOI routine identities require matching AOI parent bindings')
+                    expected={(row.name.casefold(),r.name.casefold()) for row in project.aoi_catalog.metadata
+                              for r in row.routines or ()}
+                    actual={(r.aoi.casefold(),r.name.casefold()) for r in native_aoi_routines.rows}
+                    if actual!=expected or any(native_aois.definitions[r.aoi.casefold()][1]!=r.aoi_instance
+                                              for r in native_aoi_routines.rows):
+                        raise ModelError('AOI routine identities do not match readable source and AOI parents')
+                    provenance['native_aoi_routines']=native_aoi_routines.description()
                 engine = Engine(project,defer_prescan=True)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
@@ -325,6 +341,7 @@ class Application:
                     self.native_tasks = native_tasks
                     self.native_routines = native_routines
                     self.native_aois = native_aois
+                    self.native_aoi_routines = native_aoi_routines
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

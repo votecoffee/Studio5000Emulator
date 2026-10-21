@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import re
 import struct
 from .tag_catalog import complete_tag_source
+from .executable_configuration import RoutineMetadata,LANGUAGES,_description,_alias,_hidden
 
 
 MAX_DEFINITIONS=1024
@@ -19,8 +20,33 @@ class DefinitionMetadata:
     classification: str
     fields: tuple
     protected: bool = False
+    routines: tuple | None = None
 
     def attributes(self):return dict(self.fields)
+
+
+def routine_metadata(node,classification):
+    """Unknown, protected or partial children remain unavailable, never empty."""
+    sections=node.findall('Routines');routines=node.findall('./Routines/Routine')
+    allowed={*(id(section) for section in sections),*(id(routine) for routine in routines)}
+    if any(child.tag.rsplit('}',1)[-1].casefold() in ('routines','routine') and id(child) not in allowed
+           for child in node.iter()):return None
+    if (len(sections)!=1 or node.findall('.//Routines')!=sections or node.findall('.//Routine')!=routines
+            or len(routines)>16384 or _hidden(sections[0]) or set(sections[0].attrib)-{'Use'}
+            or sections[0].get('Use') not in (None,'Target') or (sections[0].text or '').strip()
+            or any(child.tag!='Routine' for child in sections[0])):return None
+    rows=[];names=set()
+    for routine in routines:
+        name=routine.get('Name','');language=routine.get('Type')
+        if (not NAME.fullmatch(name) or name.casefold() in names or language not in LANGUAGES
+                or routine.get('Use') not in (None,'Target') or routine.get('Class') not in (None,classification)
+                or _alias(routine,{'Name','Type','Class','Use'}) or _hidden(routine)
+                or (routine.text or '').strip() or (routine.tail or '').strip()
+                or len(routine.findall(language+'Content'))!=1
+                or any(child.tag not in ('Description',language+'Content') for child in routine)):
+            return None
+        names.add(name.casefold());rows.append(RoutineMetadata(name,language,_description(routine)))
+    return tuple(rows)
 
 
 def source_metadata(root,controller):
@@ -69,7 +95,8 @@ def source_metadata(root,controller):
             try:raw=value.encode('ascii')
             except UnicodeError:continue
             if len(raw)<=40 and b'\0' not in raw:fields[number]=struct.pack('<H',len(raw))+raw
-        names.add(name.casefold());result.append(DefinitionMetadata(name,classification,tuple(fields.items()),protected))
+        names.add(name.casefold());result.append(DefinitionMetadata(name,classification,tuple(fields.items()),protected,
+            None if protected else routine_metadata(node,classification)))
     return tuple(result)
 
 
@@ -108,5 +135,7 @@ class AOICatalog:
                 'source_definition_count':len(self.metadata) if self.metadata is not None else None,
                 'protected_declarations':sum(row.protected for row in self.metadata) if self.metadata is not None else None,
                 'source_metadata_attributes':[1,12,13,19,21],
+                'source_routine_parents_available':sum(row.routines is not None for row in self.metadata) if self.metadata is not None else None,
+                'source_routines_available':sum(len(row.routines or ()) for row in self.metadata) if self.metadata is not None else None,
                 'bound_inventory_supported':True,'native_identity_binding_required':not self.empty,
                 'definition_upload': False, 'native_aoi_execution': False}

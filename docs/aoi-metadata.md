@@ -41,7 +41,7 @@ unavailable, separately from an explicitly empty source catalog.
 Missing, malformed, non-ASCII or oversized header fields remain unavailable.
 An explicit empty string has a successful zero length. Ordered attribute lists
 preserve duplicates, individual failures and exact widths. Class maximum/count
-fields, compiled pointers, executable IDs, CRCs and other unmodeled values remain
+fields, compiled pointers, CRCs and other unmodeled values remain
 unavailable. Setters, object creation/deletion and compiled-definition upload
 are unsupported.
 
@@ -53,6 +53,36 @@ unsupported; reading a Safety declaration does not execute its logic.
 The [independent inventory reader](upload-inventory-client.md) records the AOI
 catalog and each available metadata row. Names absent from the wire are not
 inferred. `aoi_definition_upload` remains false.
+
+## AOI-scoped routines
+
+Version `.105` adds optional `native_aoi_routines` bindings for readable source
+Routine declarations. The ACD reader requires component type 259, header version
+0 and body format 54. Its logical words must contain an original AOI `0x338`
+parent and Executable `0x6D` child with no further path. Program Routine records
+use component type 256 and a separate parent namespace. Numeric parent and child
+IDs may repeat across those namespaces without identifying the same object.
+
+Both original hashes, exact readable Routine coverage and all parent IDs are
+validated before a load replaces the active project. Conversion and appliance
+import carry the new binding automatically when available. Missing, context-only,
+protected or ambiguous Routine source withholds that parent's inventory. A
+readable explicit empty `Routines` section can expose an empty catalog. Names
+and IDs are never generated from source order or opaque protected data.
+
+Scoped `0x4B` discovery preserves the parent for each sparse cursor. Scoped
+class instance 0 exposes the partial legacy revision-1 catalog metadata. Positive
+instances expose only an available legacy attribute 7 Description: a UINT16 byte
+length followed by at most 128 ASCII bytes. Missing or malformed descriptions
+stay unavailable; an explicit empty description has zero length. Type enums,
+UIDs, addresses, compiled code and latest-ADF equivalence remain unimplemented.
+
+The inventory reader retains each AOI's `executable_catalog` and `executables`,
+along with `aoi_executable_inventory` counts and unavailable parents. Program and
+AOI children share an aggregate Routine budget. Attribute-gap, rejection and
+transfer diagnostics retain the AOI parent. Writes and compiled fragments cannot
+resolve through the AOI identity binding or change its logic. Safety declarations
+provide metadata only, with no native safety execution.
 
 ## Validation and limits
 
@@ -72,3 +102,10 @@ the state reply shape, not identity equivalence for a different source revision.
 No SDK or Windows service is used by these checks. Native Studio acceptance,
 complete upload/download, compiled AOI execution and AOI online edits require
 separate implementation and validation.
+
+AOI Routine fixtures additionally check reused IDs across parents, pagination,
+stale and cross-source bindings, exact import coverage, protected children,
+denied edits and inventory bounds over independently keyed TCP. An unchanged
+offline source pair supplies 98 readable Routine identities under 65 AOIs;
+three protected AOIs remain unavailable. This is a separate unsigned research
+endpoint check with no scans, SDK use or native GuardLogix acceptance.

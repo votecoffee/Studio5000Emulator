@@ -383,6 +383,8 @@ def import_project(directory, project, converter=None):
                                             if 'native_tasks' in provenance else {}),
                                          **({'native_routines':provenance['native_routines']}
                                             if 'native_routines' in provenance else {}),
+                                         **({'native_aoi_routines':provenance['native_aoi_routines']}
+                                            if 'native_aoi_routines' in provenance else {}),
                                          **({'native_aois':provenance['native_aois']}
                                             if 'native_aois' in provenance else {})})
     if digest(source) != original_hash:
