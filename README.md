@@ -123,12 +123,13 @@ using the existing symbolic UDT layouts, with real network readback and queued
 external member writes. Native UDT upload stops at earlier Template metadata;
 native tag monitoring and full upload/download remain unfinished.
 Version `.101` adds [source-known Template family metadata and aligned definition reads](docs/template-metadata.md).
-Independent signed TCP checks pass. SDK retesting is held after a private
-metadata experiment faulted the SDK; the unverified overrides are excluded.
+Independent signed TCP checks pass. A fresh native Go Online/Go Offline test
+passes after SDK service recovery; the previously faulting metadata overrides
+remain excluded.
 Version `.102` extends the [SDK-free inventory reader](docs/upload-inventory-client.md)
 with bounded Template definitions, multidimensional atomic arrays and raw UDT
 value bytes. Malformed replies stop decoding and release the reader's connection.
-SDK retesting remains held pending service recovery.
+The independent reader does not require the SDK.
 Version `.103` adds an [isolated signed routine-edit probe](docs/research-session-probe.md#supported-routine-replacement)
 that checks commit ordering, reconnection, next-scan execution and edited L5X
 reload alongside inventory and temporary-download checks, without the SDK.
@@ -151,6 +152,11 @@ objects are published; native addresses and storage/value decoding remain unfini
 Version `.109` adds [original Template ID checks](docs/source-type-verification.md#original-template-identities).
 Known IDs must match even when a transfer consistently renumbers nested types;
 cached source metadata changes also reject temporary processing and result queries.
+Version `.110` includes [source identity results in transfer diagnostics](docs/native-transfer-diagnostics.md#source-verification-results).
+A fresh native download matches all 242 Template IDs, 20 Symbol IDs and 16 Table
+IDs in the original demo before reaching the unfinished result-response step.
+The limited Program-mode accepted-rung SDK import also passes on an isolated
+controller, with native Offline and source preservation confirmed.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

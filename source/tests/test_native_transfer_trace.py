@@ -19,6 +19,50 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_original_identity_events_preserve_order_and_flags_without_names_or_error_text(self):
+        types=dict(kind='native_source_type_verification',status='matched',types_matched=242,
+            members_matched=13312,types_unavailable=0,template_ids_matched=242,template_ids_unresolved=0,
+            template_identities_verified=True,storage_mapping_supported=False,errors=[],
+            source_acd_sha256='private-hash',type_names=['PrivateType'])
+        objects=dict(kind='native_source_object_verification',status='mismatch',programs_matched=1,
+            routines_matched=2,symbols_matched=20,tables_matched=16,tables_unresolved=0,
+            table_identities_verified=False,install_authority=False,commit=False,
+            errors=['PrivateFailureText'],original_ids=[1234])
+        result=tool.analyze({'events':[]},{'events':[types,objects]},'download')
+        rows=result['source_verifications'];self.assertEqual([r['kind'] for r in rows],[types['kind'],objects['kind']])
+        self.assertEqual(rows[0]['template_ids_matched'],242);self.assertTrue(rows[0]['template_identities_verified'])
+        self.assertEqual(rows[1]['status'],'mismatch');self.assertEqual(rows[1]['error_categories'],1)
+        self.assertFalse(rows[1]['install_authority']);self.assertFalse(rows[1]['commit'])
+        self.assertEqual(result['source_verifications_observed'],2);self.assertTrue(result['analysis_complete'])
+        for secret in ('PrivateType','PrivateFailureText','private-hash','1234'):self.assertNotIn(secret,json.dumps(result))
+        self.assertEqual(result['failure_cause'],'NOT INFERRED');self.assertEqual(result['mac_verification'],'NOT PERFORMED')
+
+    def test_invalid_identity_counts_flags_status_and_error_lists_make_analysis_incomplete(self):
+        base=dict(kind='native_source_type_verification',status='matched',types_matched=1,errors=[])
+        variants=({'types_matched':True},{'types_matched':-1},{'types_matched':2**32},
+                  {'template_ids_unresolved':False},{'template_identities_verified':1},
+                  {'status':'PrivateStatus'},{'errors':'PrivateError'},{'errors':[{}]*65})
+        for change in variants:
+            result=tool.analyze({'events':[]},{'events':[{**base,**change}]},'download')
+            self.assertFalse(result['analysis_complete']);self.assertEqual(result['source_verifications_invalid'],1)
+            self.assertEqual(result['source_verifications'],[]);self.assertNotIn('Private',json.dumps(result))
+
+    def test_identity_display_limit_retains_counts_and_old_events_keep_missing_fields_absent(self):
+        old=dict(kind='native_source_type_verification',status='matched',types_matched=1,errors=[])
+        result=tool.analyze({'events':[]},{'events':[old]*17},'download')
+        self.assertEqual(result['source_verifications_observed'],17);self.assertEqual(len(result['source_verifications']),16)
+        self.assertTrue(result['source_verifications_truncated']);self.assertTrue(result['analysis_complete'])
+        self.assertNotIn('template_identities_verified',result['source_verifications'][0])
+        empty=tool.analyze({'events':[]},{'events':[]},'upload')
+        self.assertEqual(empty['source_verifications'],[]);self.assertEqual(empty['source_verifications_observed'],0)
+
+    def test_identity_events_obey_checkpoint_interval_and_never_retain_previous_transfer_matches(self):
+        old=dict(kind='native_source_type_verification',status='matched',types_matched=242,errors=[])
+        marker=dict(kind='marker');new=dict(kind='native_source_type_verification',status='unavailable',errors=[])
+        result=tool.analyze({'events':[old,marker]},{'events':[old,marker,new]},'download')
+        self.assertEqual(result['source_verifications'],[dict(kind=new['kind'],status='unavailable',error_categories=0)])
+        self.assertEqual(result['source_verifications_observed'],1)
+
     def test_aoi_and_program_parent_ids_remain_distinct_in_diagnostics(self):
         from tools.upload_inventory import logical_path
         children=[]

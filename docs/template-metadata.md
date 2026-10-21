@@ -37,6 +37,7 @@ advanced to a native Template-definition read, then faulted the SDK. Native
 Offline was not confirmed. The source and active model were preserved through
 explicit emulator endpoint cleanup. Those overrides are excluded from the app.
 The aligned-storage change has independent protocol validation; neither the
-cause nor resolution of that SDK fault is established. SDK retesting is held
-pending service recovery. Full native type upload and address-cache population
-remain unfinished.
+cause nor resolution of that SDK fault is established. After service recovery,
+the bounded native Go Online/Go Offline health case passes without a reported
+fatal fault. The failed metadata hypothesis has not been retried. Full native
+type upload and address-cache population remain unfinished.

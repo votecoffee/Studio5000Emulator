@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.109` adds [original Template identity checks](source-type-verification.md#original-template-identities).
+Current milestone: `.110` exposes [source verification results in transfer reports](native-transfer-diagnostics.md#source-verification-results).
+After SDK service recovery, the bounded native Go Online/Go Offline test passes.
+A fresh demo download matches all source identities and prepares all 904 records,
+then fails at the unfinished result response. Native tag reads still lack an
+online address. Source/model preservation and native Offline cleanup pass.
+The isolated accepted-NOP SDK import also passes in the supported Program-mode
+replacement profile; native Test/Untest/Assemble remains unfinished.
+
+Version `.109` adds [original Template identity checks](source-type-verification.md#original-template-identities).
 All 243 staged Template IDs in the saved transfer match the source. Consistent
 renumbering cannot substitute known IDs; changed source layouts/IDs reject
 cached processing and result queries. Vendor result encoding, native addresses

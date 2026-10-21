@@ -69,6 +69,13 @@ as an executable identity or claims ELF/source equivalence.
 
 ## Native result
 
+After SDK service recovery, the isolated `.110` accepted-NOP import passes with
+120 verified signed requests. The helper confirms the resulting routine edit,
+native Offline, unchanged original ACD and clean endpoint shutdown without a
+reported fatal fault. The main demo remains unchanged. This is the limited
+Program-mode routine replacement profile; native Test/Untest/Assemble and the
+Studio GUI workflow remain unverified.
+
 The isolated `.89` SDK import of `MOV(123,SpeedSetpoint);` succeeds across 119
 verified signed requests. The active routine contains the inserted rung plus
 its original nine rungs. Application preserves tag values, scan/time history,

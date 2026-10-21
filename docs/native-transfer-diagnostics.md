@@ -39,6 +39,26 @@ the reader then reports an incomplete interval.
 
 ## Offline reader
 
+### Source verification results
+
+Version `.110` includes `source_verifications` in the derived report. Ordered
+type and object verification events retain their advertised status, aggregate
+match/unresolved counts and capability flags, including original Template and
+Table identity checks. Error contents, object IDs, source hashes, names and
+member definitions are omitted; `error_categories` counts the reported entries.
+
+These events use the same retained checkpoint interval as the signed requests.
+Earlier transfer matches cannot supply evidence for the current operation.
+Older events retain only fields they actually advertised; missing fields do
+not become successful identity checks. At most 16 valid rows are retained,
+with observation/invalid counts and a truncation flag. Invalid statuses, integer
+counts, boolean flags or error-list bounds make analysis incomplete. Malformed
+rows are omitted without hiding the other request/phase diagnostics.
+
+This reports the emulator's source comparisons alongside its temporary image
+preparation. It does not independently verify their provenance, a native MAC,
+device execution or installation, and does not infer the SDK failure's cause.
+
 The same report can be generated later from saved files, without starting the
 SDK, connecting to a controller, or reading a packet-capture interface:
 
@@ -70,6 +90,26 @@ handler-reference encoding, full upload/download, native tag-address discovery
 and the full native edit lifecycle remain unfinished.
 
 ## Native validation
+
+### Recovered-service baseline
+
+The fresh `.109` baseline after SDK service recovery passes native Go Online
+and Go Offline with 78 verified signed requests. It preserves the source ACD
+and active model and confirms endpoint cleanup without a reported fatal fault.
+The separate DINT tag-read case still reports `RxDA_E_NO_ONLINE_ADDRESS` and
+also confirms Offline and cleanup. Failed metadata hypotheses are not retried.
+
+The fresh demo download matches all 242 original Template IDs and 13,312
+members, one Program, two Routines, 20 Symbols (including six auxiliary entries)
+and 16 Data Tables. It prepares all 904 temporary records and reaches the RTO
+result query; `RxCsE_DOWNLOAD_OF_DEVICES_FAILED` remains the SDK result. The
+report decodes 183 inner requests and all 21 fragment acknowledgements, with
+zero malformed events. Native Offline, endpoint cleanup and source/model
+preservation pass, and the SDK service remains running.
+
+The `.110` offline reader reproduces this saved exchange and retains both
+identity verification events with no new native calls. Full transfer, native
+tag addresses and the vendor result encoding remain unfinished.
 
 The `.96` demo upload verifies 195 signed requests and still reports
 `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Its checkpoint report decodes

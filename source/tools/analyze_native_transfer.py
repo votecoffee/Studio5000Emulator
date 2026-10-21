@@ -22,6 +22,37 @@ MAX_FILE_BYTES=32*1024*1024
 PHASES={'native_transport_inspection','native_download_image_preparation','native_download_result_query'}
 PHASE_FIELDS=('record_count','expanded_bytes','records_prepared','templates_retained','diagnostics_retained',
               'programs_retained','routines_retained','tables_allocated','storage_bytes','preparation_started','commit')
+VERIFICATIONS={
+    'native_source_type_verification':(
+        ('types_matched','members_matched','types_unavailable','template_ids_matched','template_ids_unresolved'),
+        ('member_locations_verified','template_identities_verified','storage_mapping_supported','signature_verified',
+         'definitions_exposed','execution_supported')),
+    'native_source_object_verification':(
+        ('programs_matched','routines_matched','symbols_matched','auxiliary_symbols_matched','symbols_unresolved',
+         'tables_matched','tables_unresolved'),
+        ('identity_checks_only','table_identities_verified','compiled_code_verified','addresses_verified',
+         'install_authority','active_catalog_replaced','commit'))}
+
+
+def verification_row(event):
+    """Retain advertised aggregate evidence without source IDs or error text."""
+    if event.get('status') not in ('idle','unavailable','matched','partial','mismatch'):
+        raise ValueError('Invalid source verification status')
+    counters,flags=VERIFICATIONS[event['kind']]
+    result={'kind':event['kind'],'status':event['status']}
+    for field in counters:
+        if field in event:
+            if type(event[field]) is not int or not 0<=event[field]<=0xFFFFFFFF:
+                raise ValueError('Invalid source verification count')
+            result[field]=event[field]
+    for field in flags:
+        if field in event:
+            if type(event[field]) is not bool:raise ValueError('Invalid source verification flag')
+            result[field]=event[field]
+    errors=event.get('errors')
+    if not isinstance(errors,list) or len(errors)>MAX_REPORT_ROWS:raise ValueError('Invalid source verification errors')
+    result['error_categories']=len(errors)
+    return result
 
 
 def event_interval(before,after):
@@ -91,10 +122,17 @@ def analyze(before,after,operation,report=None):
     if len(steps)==1:base.update(sdk_method=method,sdk_status=steps[0].get('status'))
     events,error=event_interval(before,after)
     if error:return {**base,'status':error,'analysis_complete':False,'requests_observed':0}
-    failures=[];wrappers=[];tail=deque(maxlen=16);phases=[];objects=Counter()
+    failures=[];wrappers=[];tail=deque(maxlen=16);phases=[];objects=Counter();verifications=[]
     matched=envelopes=fragments=fragment_bytes=unparsed=failed=wrapper_count=phase_count=0
+    verification_count=invalid_verifications=0
     limited=False
     for event in events:
+        if event.get('kind') in VERIFICATIONS:
+            verification_count+=1
+            try:row=verification_row(event)
+            except ValueError:invalid_verifications+=1
+            else:
+                if len(verifications)<16:verifications.append(row)
         if event.get('kind') in PHASES:
             phase_count+=1
             if len(phases)<16:
@@ -139,13 +177,15 @@ def analyze(before,after,operation,report=None):
     object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),key),requests=count)
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
-        'analysis_complete':not (unparsed or limited),'signed_envelopes':envelopes,'requests_observed':matched,
+        'analysis_complete':not (unparsed or limited or invalid_verifications),'signed_envelopes':envelopes,'requests_observed':matched,
         'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'unparsed_events':unparsed,
         'request_limit_reached':limited,'failed_request_count':failed,'failed_requests':failures,
         'failures_truncated':failed>MAX_REPORT_ROWS,'last_requests':list(tail),
         'wrapper_rejections':wrappers,'wrapper_rejections_truncated':wrapper_count>MAX_REPORT_ROWS,
         'objects':object_rows[:MAX_REPORT_ROWS],'objects_truncated':len(object_rows)>MAX_REPORT_ROWS,
         'preparation_events':phases,'preparation_events_truncated':phase_count>16,
+        'source_verifications':verifications,'source_verifications_observed':verification_count,
+        'source_verifications_invalid':invalid_verifications,'source_verifications_truncated':verification_count-invalid_verifications>16,
         'endpoint_attribute_gaps':gaps,'attribute_gaps_truncated':gaps_truncated,
         'attribute_gap_scope':'all endpoint readers between checkpoints'}
 
