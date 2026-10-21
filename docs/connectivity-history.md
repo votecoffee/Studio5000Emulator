@@ -191,3 +191,8 @@ The isolated upload comparison accepts four more fields, reducing unavailable
 Program fields from 9 to 5. Untested-edit reads require idle native edit staging;
 unknown fault history remains unavailable until reset. Full transfer remains
 unfinished.
+
+Version `.121` adds [Standard memory reads and bounded normal Program status](program-memory-status.md).
+Program and Task Data Use remain distinct from execution status; normal status
+requires source/native ownership and known-clean supported execution. Offline
+diagnostics also frame Task collections without exposing values by default.

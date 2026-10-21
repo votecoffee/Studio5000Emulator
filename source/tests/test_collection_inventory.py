@@ -3,7 +3,7 @@ import hashlib
 import json
 import struct
 import unittest
-from tools.collection_inventory import CollectionError, decode_attribute_list
+from tools.collection_inventory import CollectionError, decode_attribute_list, instance_supported
 
 
 def reply(rows, status=0):
@@ -16,6 +16,30 @@ def string(value, *, padded=False):
 
 
 class CollectionInventoryTests(unittest.TestCase):
+    def test_task_fields_counted_lists_trigger_and_name_are_structural_only(self):
+        widths={2:4,3:4,5:2,6:2,7:4,8:4,9:4,11:4,12:4,13:8,14:8,15:8,16:4,
+                17:4,18:4,19:4,20:2,21:2,22:4,23:4}
+        values={n:bytes(w) for n,w in widths.items()}
+        values[1]=struct.pack('<HII',2,7,90000);values[4]=struct.pack('<H',3)+b'abc'
+        values[24]=struct.pack('<I',5)+b'Task1'
+        raw=reply([(n,0,v) for n,v in values.items()]);decoded=decode_attribute_list(raw,list(values),0x70)
+        self.assertEqual([r['value_bytes'] for r in decoded['attributes']],list(widths.values())+[10,5,9])
+        self.assertEqual(decoded['value_semantics'],'NOT INFERRED');self.assertNotIn('data_hex',json.dumps(decoded))
+        for n,value in ((1,struct.pack('<H',1029)+bytes(4116)),(1,b'\1\0'),(4,struct.pack('<H',4097)+bytes(4097)),
+                        (4,b'\3\0ab'),(24,struct.pack('<I',41)+bytes(41)),(20,bytes(1))):
+            with self.assertRaises(CollectionError):decode_attribute_list(reply([(n,0,value)]),[n],0x70)
+        for instance in (1,65535,0xFFFFFFFF):self.assertTrue(instance_supported(0x70,instance))
+        for instance in (0,True,-1,1<<32):self.assertFalse(instance_supported(0x70,instance))
+
+    def test_task_truncation_partial_errors_and_unknown_success_are_not_guessed(self):
+        raw=reply([(1,0,b'\1\0'+bytes(4)),(20,0,bytes(2)),(24,0,struct.pack('<I',3)+b'abc')])
+        for end in range(len(raw)):
+            with self.assertRaises(CollectionError):decode_attribute_list(raw[:end],[1,20,24],0x70)
+        with self.assertRaises(CollectionError):decode_attribute_list(raw+b'\0',[1,20,24],0x70)
+        with self.assertRaises(CollectionError):decode_attribute_list(reply([(10,0,bytes(4))]),[10],0x70)
+        result=decode_attribute_list(reply([(20,0,bytes(2)),(10,20,b'')],6),[20,10,20],0x70)
+        self.assertEqual(result['remaining_attributes'],[20]);self.assertTrue(result['partial'])
+
     def test_program_faults_addresses_kind_and_bounded_children_are_structural_only(self):
         widths={1:2,2:4,3:4,5:4,7:4,9:4,11:2,13:4,15:2,16:4,19:1,
                 20:44,21:44,22:4,24:4,25:4,26:2,27:4,29:1,30:1,31:1}

@@ -23,6 +23,26 @@ class ProgramMetadataWireTests(unittest.TestCase):
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
 
+    def test_normal_status_and_standard_memory_require_source_kind_owner_and_clean_idle_state(self):
+        root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')
+        self.app.command('load',{'name':'status.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        digest=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':77}])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('030320682500b665020001001a00')),bytes.fromhex('8300000002000100000000001a0000000000'))
+        self.assertEqual(self.signed(5,bytes.fromhex('0e0420682500b6653001')),bytes.fromhex('8e0000000000'))
+        self.assertEqual(self.signed(6,bytes.fromhex('0e0420682500b665301a')),bytes.fromhex('8e0000000000'))
+        self.assertEqual(self.signed(7,bytes.fromhex('100420682500b66530010000'))[2],15)
+        self.app.native_tasks=None
+        self.assertEqual(self.signed(8,bytes.fromhex('0e0420682500b6653001'))[2],20)
+        self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':77}])
+        self.app.engine.fault='unknown';self.app.engine.fault=''
+        self.assertEqual(self.signed(9,bytes.fromhex('0e0420682500b6653001'))[2],20)
+        self.assertEqual(self.signed(10,bytes.fromhex('0e0420682500b665301a')),bytes.fromhex('8e0000000000'))
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
     def test_idle_edit_mode_null_output_and_clean_faults_withhold_during_changes_and_faults(self):
         import test_program_reservations as reservations
         root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')

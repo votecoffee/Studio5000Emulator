@@ -13,6 +13,7 @@ MAX_PROGRAMS = 4096
 MAX_SCHEDULED_PROGRAMS = 1028
 NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
 SHA256 = re.compile(r'[0-9a-f]{64}\Z')
+MEMORY_FIELDS=frozenset(('Name','Class','Use','Type','Rate','Priority','Watchdog','DisableUpdateOutputs','InhibitTask'))
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,7 @@ class TaskConfiguration:
     unavailable_tasks: int = 0
     _program_owners: Mapping[str,str] = field(default_factory=dict,repr=False)
     _unscheduled_programs: frozenset[str] = field(default_factory=frozenset,repr=False)
+    _standard_memory_tasks: frozenset[str] = field(default_factory=frozenset,repr=False)
 
     def __post_init__(self):
         if not isinstance(self.source_sha256, str) or not SHA256.fullmatch(self.source_sha256):
@@ -124,6 +126,10 @@ class TaskConfiguration:
             raise ValueError('Program owners require complete Task schedules')
         object.__setattr__(self,'_program_owners',MappingProxyType(owners))
         object.__setattr__(self,'_unscheduled_programs',frozenset(unscheduled))
+        memory=self._standard_memory_tasks
+        if (not isinstance(memory,(set,frozenset)) or not memory<=rows.keys() or memory and not self.source_complete):
+            raise ValueError('Invalid Standard Task memory inventory')
+        object.__setattr__(self,'_standard_memory_tasks',frozenset(memory))
 
     @classmethod
     def from_source(cls, root, controller, source_sha256):
@@ -175,7 +181,11 @@ class TaskConfiguration:
         if len(values)==len(tasks) and all(row.scheduled_programs is not None for row in values.values()):
             proven_owners={program.casefold():name for name,row in values.items() for program in row.scheduled_programs}
             unscheduled=frozenset(n for n,(_,ordinary) in (programs or {}).items() if ordinary and n not in proven_owners)
-        return cls(source_sha256, True, values, missing,proven_owners,unscheduled)
+        memory=frozenset(task.get('Name').casefold() for task in tasks
+            if task.get('Name').casefold() in values and not task.attrib.keys()-MEMORY_FIELDS
+            and task.get('Type') in ('Continuous','CONTINUOUS','Periodic','PERIODIC')
+            and all(node.tag in ('Description','ScheduledPrograms') for node in task))
+        return cls(source_sha256, True, values, missing,proven_owners,unscheduled,memory)
 
     @property
     def names(self):
@@ -185,6 +195,11 @@ class TaskConfiguration:
         if source_sha256 != self.source_sha256 or not isinstance(task, str):return {}
         row = self._tasks.get(task.casefold()) if self.source_complete else None
         return row.attributes() if row else {}
+
+    def memory_attributes(self,task,*,source_sha256):
+        if (source_sha256!=self.source_sha256 or not self.source_complete or not isinstance(task,str) or
+                task.casefold() not in self._standard_memory_tasks):return {}
+        return {20:bytes(2)}
 
     def scheduled_attributes(self, task, *, source_sha256, source_acd_sha256, program_ids,
                              program_source_l5x_sha256, program_source_acd_sha256):
@@ -212,7 +227,7 @@ class TaskConfiguration:
         return {1:struct.pack('<H',len(ids))+b''.join(struct.pack('<I',instance) for instance in ids)}
 
     def description(self):
-        return {'source_complete':self.source_complete, 'attributes':[1, 6, 18, 19],
+        return {'source_complete':self.source_complete, 'attributes':[1, 6, 18, 19, 20],
                 'tasks_available':sum(bool(row.attributes()) for row in self._tasks.values()),
                 'tasks_unavailable':self.unavailable_tasks, 'missing_values_defaulted':False,
                 'source':'Explicit Task priority, output-update and inhibit settings in complete v35 source',
@@ -221,6 +236,8 @@ class TaskConfiguration:
                 'program_list_binding_required':True,'task_instance_readback':False,
                 'program_owner_attribute':13,'program_owners_available':len(self._program_owners),
                 'source_unscheduled_programs':len(self._unscheduled_programs),
+                'standard_memory_tasks_available':len(self._standard_memory_tasks),'standard_memory_code':0,
+                'safety_memory_modeled':False,
                 'native_id_inferred':False, 'native_writes':False, 'execution_state_changed':False}
 
     def owner_attributes(self,program,*,source_sha256,source_acd_sha256,task_ids,

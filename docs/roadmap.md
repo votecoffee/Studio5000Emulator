@@ -6,7 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.120` adds [Program output/edit diagnostics and model fault records](program-diagnostics.md).
+Current milestone: `.121` adds [Standard memory reads and bounded normal Program status](program-memory-status.md),
+with shared Task collection diagnostics. Source kind, original native owner and
+actual model fault/edit state govern availability. Full transfers remain unfinished.
+
+Version `.120` adds [Program output/edit diagnostics and model fault records](program-diagnostics.md).
 Source-known null lists and untested RLL state are separate from native edit
 acceptance. Fault records withhold unknown history after simulator failures.
 Full native transfers remain unfinished.

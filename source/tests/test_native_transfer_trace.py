@@ -19,6 +19,18 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_task_collection_keeps_scope_program_ids_and_memory_fields_structural(self):
+        query=bytes.fromhex('0303207025002c01020001001400')
+        answer=bytes.fromhex('830000000200010000000100')+struct.pack('<I',90000)+bytes.fromhex('140000000000')
+        result=tool.analyze({'events':[]},{'events':[event(query,answer)]},'upload')
+        self.assertTrue(result['analysis_complete']);self.assertEqual(result['collection_layout_errors'],0)
+        row,=result['collection_attribute_lists'];self.assertEqual(row['instance'],300)
+        self.assertEqual([f['value_bytes'] for f in row['collection_attribute_list']['attributes']],[6,2])
+        self.assertNotIn('data_hex',json.dumps(result))
+        for query in ('03022070240001001400','0304206824012070240101001400'):
+            result=tool.analyze({'events':[]},{'events':[event(bytes.fromhex(query),answer)]},'upload')
+            self.assertEqual(result['collection_lists_observed'],0)
+
     def test_program_collection_uses_original_instance_and_excludes_class_and_parent_scopes(self):
         answer=bytes.fromhex('8300000001001e00000001')
         query=bytes.fromhex('030320682500d80101001e00')

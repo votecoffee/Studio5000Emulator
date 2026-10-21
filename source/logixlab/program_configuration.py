@@ -108,13 +108,15 @@ class ProgramConfiguration:
         return {ATTRIBUTE: bytes((int(self._disabled[name]),))}
 
     def description(self):
-        return {'source_complete': self.source_complete, 'attributes': [ATTRIBUTE,29,30,31],
+        return {'source_complete': self.source_complete, 'attributes': [ATTRIBUTE,26,29,30,31],
                 'source': 'Explicit Program@Disabled in complete v35 program declarations',
                 'encoding': 'BITS8; false=0, true=1', 'programs_available': len(self._disabled),
                 'programs_unavailable': self.unavailable_programs, 'missing_values_defaulted': False,
                 'ordinary_programs_available':len(self._ordinary),'ordinary_program_type':1,
                 'program_type_source':'Complete v35 Programs/Program; Standard or omitted Class; Normal or omitted Type; canonical fields only',
                 'phase_sequence_types':False,
+                'standard_memory_programs_available':len(self._ordinary),'standard_memory_code':0,
+                'safety_memory_modeled':False,
                 'synchronize_flags_available':len(self._synchronize),'can_schedule_flags_available':len(self._can_schedule),
                 'flag_source':'Explicit canonical L5X SynchronizeRedundancyDataAfterExecution and inverse UseAsFolder booleans',
                 'redundancy_execution':False,
@@ -131,3 +133,7 @@ class ProgramConfiguration:
         if (source_sha256!=self.source_sha256 or not self.source_complete or
                 not isinstance(program,str) or program.casefold() not in self._ordinary):return {}
         return {30:b'\1'}
+
+    def memory_attributes(self,program,*,source_sha256):
+        if not self.type_attributes(program,source_sha256=source_sha256):return {}
+        return {26:bytes(2)}

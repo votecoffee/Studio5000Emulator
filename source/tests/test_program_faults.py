@@ -9,6 +9,16 @@ class ProgramFaultTests(unittest.TestCase):
     setUp=fixtures.RuntimeTests.setUp
     engine=fixtures.RuntimeTests.engine
 
+    def test_normal_status_needs_real_owner_clean_whole_project_and_idle_untested_source(self):
+        engine=self.engine(['NOP();'],mutate=lambda root:root.find('./Controller/Programs/Program').set('TestEdits','false'))
+        args=dict(source_sha256=engine.project.sha256,task_owner=7,idle=True)
+        self.assertEqual(engine.program_status_attributes('MainProgram',**args),{1:bytes(2)})
+        for update in ({'task_owner':None},{'task_owner':0},{'task_owner':True},{'task_owner':65536},
+                       {'idle':False},{'source_sha256':'a'*64}):
+            self.assertEqual(engine.program_status_attributes('MainProgram',**{**args,**update}),{})
+        engine.fault='unknown';engine.fault=''
+        self.assertEqual(engine.program_status_attributes('MainProgram',**args),{})
+
     def test_clean_model_records_are_44_bytes_and_reads_do_not_scan(self):
         engine=self.engine(['NOP();']);digest=engine.project.sha256
         self.assertEqual(engine.program_fault_attributes('MAINPROGRAM',source_sha256=digest),{20:bytes(44),21:bytes(44)})

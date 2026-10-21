@@ -19,6 +19,18 @@ def source():
 
 
 class ProgramConfigurationTests(unittest.TestCase):
+    def test_standard_memory_follows_ordinary_kind_without_defaulting_safety_or_opaque_kinds(self):
+        root,controller=source();program=controller.find('./Programs/Program')
+        program.attrib.pop('Disabled');program.attrib.pop('Class')
+        reader=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+        self.assertEqual(reader.memory_attributes('MAINPROGRAM',source_sha256=SOURCE_HASH),{26:bytes(2)})
+        self.assertEqual(reader.memory_attributes(None,source_sha256=SOURCE_HASH),{})
+        self.assertEqual(reader.memory_attributes('MainProgram',source_sha256='b'*64),{})
+        for field,value in (('Class','Safety'),('Class','Unknown'),('Type','EquipmentPhase'),('DataUse','6'),('ClassUId','unknown')):
+            root,controller=source();controller.find('./Programs/Program').set(field,value)
+            reader=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            self.assertEqual(reader.memory_attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+
     def test_explicit_folder_and_sync_flags_are_independent_immutable_bytes(self):
         for folder in ('true','false'):
             for sync in ('true','false'):

@@ -83,6 +83,15 @@ class Engine:
                 'record_bytes':44,'native_fault_classification':False,'physical_fault_history_imported':False,
                 'unknown_records_withheld_until_reset':True}
 
+    def program_status_attributes(self,program,*,source_sha256,task_owner,idle):
+        # Only the reference's normal zero state is modeled. Neither the
+        # unscheduled 0x0110 word nor unclassified fault/edit bits are inferred.
+        if (type(task_owner) is not int or not 1<=task_owner<=0xFFFF or
+                not self.program_fault_attributes(program,source_sha256=source_sha256) or
+                not self.project.program_diagnostics.edit_attributes(program,source_sha256=source_sha256,idle=idle)):
+            return {}
+        return {1:bytes(2)}
+
     def program_timing_attributes(self, program, *, source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
                 or not isinstance(program,str)):return {}

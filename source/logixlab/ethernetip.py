@@ -847,12 +847,13 @@ class Router:
         attributes.update(self.app.engine.project.program_configuration.type_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
         project=self.app.engine.project;source=project.sha256
+        attributes.update(project.program_configuration.memory_attributes(program['name'],source_sha256=source))
         attributes.update(project.program_configuration.flag_attributes(program['name'],source_sha256=source))
         attributes.update(self.app.engine.program_timing_attributes(program['name'],source_sha256=source))
         attributes.update(self.app.engine.program_fault_attributes(program['name'],source_sha256=source))
         attributes.update(project.program_diagnostics.output_attributes(program['name'],source_sha256=source))
-        attributes.update(project.program_diagnostics.edit_attributes(program['name'],source_sha256=source,
-            idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,program['id'])))
+        idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,program['id'])
+        attributes.update(project.program_diagnostics.edit_attributes(program['name'],source_sha256=source,idle=idle))
         attributes.update(project.program_hierarchy.attributes(program['name'],source_sha256=source))
         identity=getattr(self.app,'native_project_identity',None);symbols=self.app.native_symbols
         if identity is not None and identity.source_l5x_sha256==source:
@@ -864,6 +865,9 @@ class Router:
                 attributes.update(project.task_configuration.owner_attributes(program['name'],source_sha256=source,
                     source_acd_sha256=identity.source_acd_sha256,task_ids=tasks.tasks,
                     task_source_l5x_sha256=tasks.source_l5x_sha256,task_source_acd_sha256=tasks.source_acd_sha256))
+        owner=attributes.get(13)
+        attributes.update(self.app.engine.program_status_attributes(program['name'],source_sha256=source,
+            task_owner=int.from_bytes(owner,'little') if isinstance(owner,bytes) and len(owner)==4 else None,idle=idle))
         if self.zero_program_stack_supported(program):attributes[27]=bytes(4)
         return self.attribute_read(service,path,data,attributes)
 
@@ -1026,6 +1030,8 @@ class Router:
             if task is None:raise CIPError(5,'Unknown or unexposed Task instance')
             attributes=self.app.engine.project.task_configuration.attributes(
                 task['name'],source_sha256=self.app.engine.project.sha256)
+            attributes.update(self.app.engine.project.task_configuration.memory_attributes(
+                task['name'],source_sha256=self.app.engine.project.sha256))
             attributes.update(self.app.engine.project.task_timing.attributes(
                 task['name'],source_sha256=self.app.engine.project.sha256))
             programs=getattr(self.app,'native_symbols',None)

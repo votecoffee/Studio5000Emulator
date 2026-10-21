@@ -29,6 +29,17 @@ class TaskMetadataWireTests(unittest.TestCase):
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
 
+    def test_standard_memory_single_list_and_write_denial_preserve_the_model(self):
+        self.prepare();digest=self.app.engine.project.sha256
+        self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':1}])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('0e03207024013014')),bytes.fromhex('8e0000000000'))
+        self.assertEqual(self.signed(5,bytes.fromhex('030220702401020014000600')),bytes.fromhex('830000000200140000000000060000000a00'))
+        self.assertEqual(self.signed(6,bytes.fromhex('10032070240130140000'))[2],15)
+        self.app.native_tasks=NativeTasks('a'*64,'b'*64,[{'name':'MainTask','instance':1}])
+        self.assertEqual(self.signed(7,bytes.fromhex('0e03207024013014'))[2],12)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
     def test_captured_edit_reads_and_task_discovery_return_exact_source_values(self):
         self.prepare();project=self.app.engine.project
         self.app.native_tasks=NativeTasks('a'*64,project.sha256,[{'name':'MainTask','instance':1}])

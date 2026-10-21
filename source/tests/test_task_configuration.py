@@ -27,6 +27,19 @@ def scheduled(config, task='MainTask', **updates):
 
 
 class TaskConfigurationTests(unittest.TestCase):
+    def test_standard_memory_is_source_bound_immutable_and_not_defaulted_for_unknown_tasks(self):
+        root,controller=source();task=controller.find('./Tasks/Task');task.attrib.pop('Class',None)
+        reader=TaskConfiguration.from_source(root,controller,HASH)
+        self.assertEqual(reader.memory_attributes('MAINTASK',source_sha256=HASH),{20:bytes(2)})
+        task.set('Class','Safety');self.assertEqual(reader.memory_attributes('MainTask',source_sha256=HASH),{20:bytes(2)})
+        self.assertEqual(reader.memory_attributes('MainTask',source_sha256='b'*64),{})
+        self.assertEqual(reader.memory_attributes(None,source_sha256=HASH),{})
+        for field,value in (('Class','Safety'),('Class','Unknown'),('Type','Event'),('ClassUId','unknown'),('MemoryClass','0')):
+            root,controller=source();controller.find('./Tasks/Task').set(field,value)
+            other=TaskConfiguration.from_source(root,controller,HASH)
+            self.assertEqual(other.memory_attributes('MainTask',source_sha256=HASH),{})
+        with self.assertRaises(ValueError):TaskConfiguration(HASH,True,_standard_memory_tasks={'missing'})
+
     def test_inverse_owner_uses_actual_task_id_and_same_source_pairs(self):
         root,controller=source();config=TaskConfiguration.from_source(root,controller,HASH)
         args=dict(source_sha256=HASH,source_acd_sha256=ACD_HASH,task_ids={'MainTask':77},
