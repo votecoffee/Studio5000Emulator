@@ -12,11 +12,11 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.125` adds [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md)
-for alarms, HMI Button Controls and Messages, and keeps unsupported scoped
-requests visible in transfer diagnostics. The isolated SDK upload now reaches
-device diagnostic messages after Program collection; full transfer still fails.
-It retains original [Program and Task reference symbols](docs/reference-symbols.md),
+Version `.126` adds [source-bound device diagnostic message definitions](docs/device-diagnostic-messages.md),
+including original IDs, message codes and revisions. The isolated SDK upload
+now reaches device diagnostic profiles; full transfer still fails.
+It retains [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md),
+original [Program and Task reference symbols](docs/reference-symbols.md),
 the [nonredundant synchronization default](docs/program-synchronization-default.md),
 [runtime Program and main-Routine references](docs/runtime-object-references.md),
 [Standard memory and normal Program status](docs/program-memory-status.md),

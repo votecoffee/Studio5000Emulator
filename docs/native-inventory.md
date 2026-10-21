@@ -28,6 +28,11 @@ Their individual absence checks remain conservative across the complete source.
 Other Program-scoped catalogs remain unsupported unless separately documented.
 See [Program catalog discovery](program-catalog-discovery.md).
 
+Version `.126` adds the separate, nonempty Device Diagnostic Message (`0x3B2`)
+catalog from original ACD definitions. This is source metadata rather than a
+claim of empty diagnostics or active fault status. See
+[device diagnostic messages](device-diagnostic-messages.md).
+
 I/O Map class attributes `2` and `3` expose zero maximum instance and zero
 instance count as separate four-byte UDINTs. Existing force and LED status
 remain two-byte UINTs. A matching `Local` controller module in a native export

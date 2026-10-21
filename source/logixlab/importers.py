@@ -18,6 +18,7 @@ from .native_aois import NativeAOIs
 from .native_aoi_routines import NativeAOIRoutines
 from .native_auxiliary_symbols import NativeAuxiliarySymbols
 from .native_tables import NativeTables
+from .native_diagnostics import NativeDiagnostics
 from .aoi_catalog import AOICatalog
 from .executable_configuration import ExecutableConfiguration
 
@@ -110,6 +111,12 @@ def convert_acd(source, destination, converter=None):
         manifest['native_tables']=NativeTables.from_acd(source,manifest['l5x_sha256']).manifest()
     except (ModelError,UnicodeError,OSError) as error:
         manifest['native_tables_error']=str(error)
+    try:
+        identity=NativeProjectIdentity.from_manifest(manifest.get('native_project_identity'),manifest['l5x_sha256'])
+        if identity.source_acd_sha256!=original_hash:raise ModelError('Diagnostic Project identity differs from original ACD')
+        manifest['native_diagnostics']=NativeDiagnostics.from_acd(source,manifest['l5x_sha256']).manifest()
+    except (ModelError,UnicodeError,OSError) as error:
+        manifest['native_diagnostics_error']=str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

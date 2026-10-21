@@ -4,6 +4,13 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.126` adds [source-bound device diagnostic message definitions](device-diagnostic-messages.md).
+The importer retains original ACD IDs, message strings and revisions; the
+read-only endpoint exposes bounded instance lists and attributes. Missing or
+stale bindings withhold the catalog. Shared offline framing covers the counted
+strings without exposing values by default. The trace event limit increases to
+2,000 while its existing byte budget remains unchanged.
+
 Version `.125` adds [Program-scoped empty catalog discovery](program-catalog-discovery.md)
 for Digital/Analog Alarms, HMI Button Controls and Messages. Each catalog uses
 its own complete-source absence check and matching native Program identity.

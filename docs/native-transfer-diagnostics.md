@@ -37,6 +37,11 @@ Capture retention and framing validation remain distinct from MAC verification,
 image acceptance and execution. Busy endpoints can still evict a checkpoint;
 the reader then reports an incomplete interval.
 
+Version `.126` increases the event limit to 2,000 after the 136-definition
+diagnostic upload exceeded the earlier 1,000-event ring. The 2 MiB retained-byte
+budget and per-packet limit remain unchanged. Both bounds still evict whole
+events and report loss. A discarded checkpoint still makes analysis incomplete.
+
 ## Offline reader
 
 Version `.125` retains well-framed object paths even when the live path decoder
@@ -48,6 +53,12 @@ unparsed; this does not authorize new live routes or infer an SDK failure cause.
 See [Program catalog discovery](program-catalog-discovery.md).
 
 ### Collection attribute lists
+
+Version `.126` adds Device Diagnostic Message (`0x3B2`) instance framing:
+USINT-counted Message ID and Message Code strings, bounded at 40 and 128 bytes,
+and a two-byte revision. Class instance zero and parent-scoped paths are excluded
+from this instance schema. The [source-bound runtime catalog](device-diagnostic-messages.md)
+and offline decoding are separate capabilities.
 
 Version `.115` decodes established instance-one attribute-list layouts for
 Time Sync (`0x43`), Extended Device (`0x64`), PLC message mapping (`0x67`),
