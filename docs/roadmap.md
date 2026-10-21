@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.126` adds [original device diagnostic message definitions](device-diagnostic-messages.md)
+Current milestone: `.127` adds [source-bound empty diagnostic profile discovery](device-diagnostic-profiles.md).
+The isolated SDK upload accepts the new list and advances to Device Diagnostic
+Objects (`0x3B0`). Those objects may depend on runtime hardware; an empty source
+collection alone does not prove their runtime inventory. Full native transfer
+and reconstructed Routine logic remain unverified.
+
+Version `.126` adds [original device diagnostic message definitions](device-diagnostic-messages.md)
 from the matching ACD. Catalog lists and read-only fields retain original IDs,
 bounded strings and revisions. The isolated SDK upload advances to device
 diagnostic profiles (`0x3B1`) after successfully reading all three fields from

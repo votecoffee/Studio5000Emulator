@@ -12,9 +12,10 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.126` adds [source-bound device diagnostic message definitions](docs/device-diagnostic-messages.md),
-including original IDs, message codes and revisions. The isolated SDK upload
-now reaches device diagnostic profiles; full transfer still fails.
+Version `.127` adds [source-bound empty device diagnostic profile discovery](docs/device-diagnostic-profiles.md).
+The isolated SDK upload accepts that list and advances to Device Diagnostic
+Objects; full transfer still fails. It retains
+[original diagnostic message IDs, codes and revisions](docs/device-diagnostic-messages.md).
 It retains [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md),
 original [Program and Task reference symbols](docs/reference-symbols.md),
 the [nonredundant synchronization default](docs/program-synchronization-default.md),

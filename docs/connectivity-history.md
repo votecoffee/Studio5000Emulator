@@ -4,6 +4,16 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.127` adds [empty device diagnostic profile discovery](device-diagnostic-profiles.md),
+requiring explicit original ACD collection evidence and matching source hashes.
+Nonempty, absent, unsupported and stale sources remain unavailable. Class
+counts are proven zero; class revision is not inferred. The isolated SDK upload
+accepts the new list and advances to Device Diagnostic Objects (`0x3B0`), with
+status `0x0F`. Its complete trace retains 355 expanded leaf requests; 352 signed
+requests are verified. Offline/cleanup and source/model preservation are
+confirmed, with no reported fatal SDK fault. Full transfers remain unfinished.
+All 230 affected checks pass; the full suite was not rerun.
+
 Version `.126` adds [source-bound device diagnostic message definitions](device-diagnostic-messages.md).
 The importer retains original ACD IDs, message strings and revisions; the
 read-only endpoint exposes bounded instance lists and attributes. Missing or

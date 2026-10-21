@@ -387,6 +387,8 @@ def import_project(directory, project, converter=None):
                                             if 'native_tables' in provenance else {}),
                                          **({'native_diagnostics':provenance['native_diagnostics']}
                                             if 'native_diagnostics' in provenance else {}),
+                                         **({'native_diagnostic_profiles':provenance['native_diagnostic_profiles']}
+                                            if 'native_diagnostic_profiles' in provenance else {}),
                                          **({'native_auxiliary_symbols':provenance['native_auxiliary_symbols']}
                                             if 'native_auxiliary_symbols' in provenance else {}),
                                          **({'native_aoi_routines':provenance['native_aoi_routines']}

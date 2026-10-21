@@ -503,7 +503,7 @@ class Router:
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
-                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E,0x3B2) or
+                inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36E,0x3B1,0x3B2) or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -1204,6 +1204,14 @@ class Router:
             raise CIPError(0x0C,'Original diagnostic definition binding is unavailable or stale')
         return catalog
 
+    def diagnostic_profiles(self):
+        catalog=getattr(self.app,'native_diagnostic_profiles',None);identity=getattr(self.app,'native_project_identity',None)
+        source=self.app.engine.project.sha256
+        if (catalog is None or identity is None or catalog.source_l5x_sha256!=source or
+                identity.source_l5x_sha256!=source or catalog.source_acd_sha256!=identity.source_acd_sha256):
+            raise CIPError(0x0C,'Original empty diagnostic profile binding is unavailable or stale')
+        return catalog
+
     def instance_list(self,path,data,limit):
         """Get Instance List: cursor in the path, packed UDINT IDs in reply."""
         if path.instance is None or path.attribute is not None:
@@ -1229,6 +1237,9 @@ class Router:
         elif path.class_id==0x3B2:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'Diagnostic definitions require a controller scope')
             ids=[row.instance for row in self.diagnostics().rows]
+        elif path.class_id==0x3B1:
+            if path.symbols or path.program_instance is not None:raise CIPError(4,'Diagnostic profiles require a controller scope')
+            self.diagnostic_profiles();ids=[]
         elif path.class_id in (*alarm_catalog.PROGRAM_CLASSES,0x8D,0x36E) and path.program_instance is not None:
             if path.symbols:raise CIPError(4,'Inventory discovery requires a numeric Program parent')
             program=self.source_bound_program(path.program_instance)
@@ -1390,7 +1401,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x74,wall_clock.CLASS_ID,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E,0x3B2)+( (*controller_schemas.SCHEMA_REVISIONS,0x378) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x74,wall_clock.CLASS_ID,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E,0x3B1,0x3B2)+( (*controller_schemas.SCHEMA_REVISIONS,0x378) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -1513,6 +1524,16 @@ class Router:
         if path.class_id==0x36E:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
+        if path.class_id==0x3B1:
+            if (path.symbols or path.program_instance is not None or path.io_map_instance is not None or
+                    path.controller_instance is not None or path.aoi_instance is not None or path.instance is None):
+                raise CIPError(4,'Diagnostic profiles require a controller-scoped instance')
+            if service==0x4B:return self.instance_list(path,data,limit)
+            self.diagnostic_profiles()
+            if path.instance!=0:raise CIPError(5,'No diagnostic profile instance is bound')
+            # Source proves maximum/count zero. Class revision is not inferred
+            # from a storage-format version or a vendor description filename.
+            return self.attribute_read(service,path,data,{2:bytes(4),3:bytes(4)})
         if path.class_id==0x3B2:
             if (path.symbols or path.program_instance is not None or path.io_map_instance is not None or
                     path.controller_instance is not None or path.aoi_instance is not None or path.instance is None):
@@ -1817,6 +1838,7 @@ class Endpoint:
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
                     'native_tables':self.app.native_tables.description() if self.enabled and getattr(self.app,'native_tables',None) else None,
                     'native_diagnostics':self.app.native_diagnostics.description() if self.enabled and getattr(self.app,'native_diagnostics',None) else None,
+                    'native_diagnostic_profiles':self.app.native_diagnostic_profiles.description() if self.enabled and getattr(self.app,'native_diagnostic_profiles',None) else None,
                     'native_auxiliary_symbols':self.app.native_auxiliary_symbols.description() if self.enabled and getattr(self.app,'native_auxiliary_symbols',None) else None,
                     'native_reference_symbols':self.app.native_reference_symbols.description() if self.enabled and getattr(self.app,'native_reference_symbols',None) else None,
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
