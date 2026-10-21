@@ -5,6 +5,11 @@ without Studio 5000 or the Logix Designer SDK. It accepts an already-loaded,
 owned, in-process `Endpoint` bound to loopback with native read mode enabled
 and network writes disabled. It accepts no remote address and imports no ACD.
 
+Version `.113` also reads explicitly loaded [native Template snapshots](native-template-snapshots.md)
+for supported user structures. Their saved headers/trailers remain opaque;
+the reader does not require three zero alignment bytes in that profile.
+It recognizes only the exact four-byte null Multiply Code reference.
+
 ```python
 from tools.upload_inventory import collect_inventory, Limits
 

@@ -18,6 +18,7 @@ from .importers import convert_acd, default_converter
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
+from .native_templates import NativeTemplates
 from .native_tasks import NativeTasks
 from .native_routines import NativeRoutines
 from .native_aois import NativeAOIs
@@ -52,6 +53,7 @@ class Application:
         self.native_project_identity = None
         self.native_symbols = None
         self.native_types = None
+        self.native_templates = None
         self.native_tasks = None
         self.native_routines = None
         self.native_aois = None
@@ -275,6 +277,11 @@ class Application:
                     # Keep the full catalog in its own bound object. Polling and
                     # snapshot provenance must not repeat megabytes of members.
                     provenance['native_types'] = native_types.description()
+                template_manifest = data.get('native_templates') if action == 'load' and Path(name).suffix.lower() == '.l5x' else None
+                native_templates = NativeTemplates.from_manifest(template_manifest, native_types) if template_manifest is not None else None
+                if native_templates:
+                    native_templates.bind(project, native_types)
+                    provenance['native_templates'] = native_templates.description()
                 task_manifest = provenance.get('native_tasks')
                 if action == 'load' and Path(name).suffix.lower() == '.l5x' and 'native_tasks' in data:
                     task_manifest = data['native_tasks']
@@ -361,6 +368,7 @@ class Application:
                     self.native_project_identity = native_identity
                     self.native_symbols = native_symbols
                     self.native_types = native_types
+                    self.native_templates = native_templates
                     self.native_tasks = native_tasks
                     self.native_routines = native_routines
                     self.native_aois = native_aois

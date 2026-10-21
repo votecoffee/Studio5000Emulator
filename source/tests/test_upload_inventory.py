@@ -21,6 +21,17 @@ from tools.upload_inventory import (InventoryError, Limits, _Reader, collect_inv
 
 
 class InventoryFramingTests(unittest.TestCase):
+    def test_template_null_reference_has_no_numeric_address_or_execution_meaning(self):
+        from tools.upload_inventory import TEMPLATE_SCHEMA
+        raw=bytes.fromhex('83000000')+struct.pack('<HHHIHHB',2,7,0,0,8,0,3)
+        parsed=decode_attribute_list(raw,(7,8),TEMPLATE_SCHEMA)
+        self.assertIsNone(parsed['attributes'][0]['value'])
+        self.assertEqual(parsed['attributes'][0]['encoding'],'NULL_UINT32')
+        self.assertEqual(parsed['attributes'][1]['value'],3)
+        bad=bytearray(raw);struct.pack_into('<I',bad,10,1)
+        with self.assertRaisesRegex(InventoryError,'nonnull'):
+            decode_attribute_list(bytes(bad),(7,8),TEMPLATE_SCHEMA)
+
     def test_program_zero_stack_keeps_unavailable_distinct_and_preserves_following_name(self):
         from tools.upload_inventory import PROGRAM_SCHEMA
         for status in (0,0x14):

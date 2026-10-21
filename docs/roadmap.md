@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.112` expands [offline upload capture analysis](development.md#offline-cip-capture-inspection)
+Current milestone: `.113` adds optional [native Template snapshots](native-template-snapshots.md)
+checked against the original source identities, member layouts and supported
+software structures. Saved definition bytes and handles remain coherent with
+Symbol metadata and structured reads. A disposable SDK case advances to tag
+upload without a reported fatal fault; full project transfer is unfinished.
+
+Version `.112` expands [offline upload capture analysis](development.md#offline-cip-capture-inspection)
 to 250,000 input frames with compact extraction, explicit packet-bound reporting
 and strict Time Sync field framing. A successful reference upload's two clock
 replies decode as 24 returned fields followed by eight in a separate request.

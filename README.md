@@ -164,6 +164,10 @@ Version `.112` improves [offline capture analysis](docs/development.md#offline-c
 for complete upload recordings and decodes bounded Time Sync attribute lists,
 including partial replies and vendor descriptions. Revision-only SDK experiments
 still fail upload; their substituted revisions are not shipped.
+Version `.113` adds optional [source-bound native Template snapshots](docs/native-template-snapshots.md).
+Supported structures can retain their original IDs, handles and complete saved
+definitions while values remain in software memory. An isolated SDK case
+advances to tag upload without a reported fatal fault; full transfers remain unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

@@ -171,7 +171,11 @@ class Router:
 
     def templates(self):
         project=self.app.engine.project
-        if self._catalog is None or self._catalog.project is not project:self._catalog=Catalog(project)
+        snapshot=getattr(self.app,'native_templates',None) if self.endpoint.native_read_only else None
+        if snapshot:snapshot.check_source(project,self.app.native_types)
+        if self._catalog is None or self._catalog.project is not project or getattr(self,'_catalog_snapshot',None) is not snapshot:
+            self._catalog=snapshot.bind(project,self.app.native_types) if snapshot else Catalog(project)
+            self._catalog_snapshot=snapshot
         return self._catalog
 
     def identity_attributes(self):
@@ -1670,6 +1674,7 @@ class Endpoint:
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
+                    'native_templates':self.app.native_templates.description() if self.enabled and getattr(self.app,'native_templates',None) else None,
                     'native_tasks':self.app.native_tasks.description() if self.enabled and getattr(self.app,'native_tasks',None) else None,
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
                     'native_tables':self.app.native_tables.description() if self.enabled and getattr(self.app,'native_tables',None) else None,

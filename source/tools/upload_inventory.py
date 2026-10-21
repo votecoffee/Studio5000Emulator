@@ -110,6 +110,9 @@ def decode_attribute_list(raw, requested, schema):
                 count=struct.unpack_from('<H',data,offset)[0]
                 end=offset+2+4*count
                 row['value']=decode_task_program_list(data[offset:end]);offset=end
+            elif encoding=='null32':
+                if data[offset:offset+4]!=bytes(4):raise InventoryError('Unsupported nonnull Template code reference')
+                offset+=4;row['encoding']='NULL_UINT32'
             elif encoding in ('ascii16','ascii32','description16'):
                 width=4 if encoding=='ascii32' else 2
                 if offset+width>len(data):raise InventoryError('Truncated inventory string length')
@@ -153,9 +156,9 @@ REVISION_SCHEMA={1:2,2:2,3:4,4:4,10:4}
 CONTROLLER_SCHEMA={3:2,7:2,8:2,9:1,13:4,15:1,16:2,17:1,23:1,25:4,26:4}
 SYMBOL_SCHEMA={1:'ascii16',2:2,3:4,5:4,6:4,7:2,8:12,9:1,10:1,11:1,12:4,14:4}
 TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
-# A successful Multiply Code field has no established decoder in this reader.
-# Missing values retain their error; they are never filled with a null address.
-TEMPLATE_SCHEMA={1:2,2:2,4:4,5:4,6:2,7:None,8:1}
+# Only the software model's exact null Multiply Code reference is decoded.
+# Other references retain no inferred execution or address semantics.
+TEMPLATE_SCHEMA={1:2,2:2,4:4,5:4,6:2,7:'null32',8:1}
 AOI_SCHEMA={1:2,12:2,13:2,19:'ascii16',21:'ascii16'}
 PROGRAM_SCHEMA={19:1,27:4,28:'ascii32'}
 TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
@@ -259,8 +262,9 @@ def match_task_schedules(task_catalog,task_rows,program_catalog,program_rows):
 
 
 class _Reader:
-    def __init__(self,client,limits,read_values):
+    def __init__(self,client,limits,read_values,*,saved_templates=False):
         self.client=client;self.limits=limits;self.read_values=read_values;self.requests=[]
+        self.saved_templates=saved_templates
         self.template_rows={};self.template_catalog=None;self.template_bytes=0;self.template_reserved_bytes=0
 
     def exchange(self,service,class_id,instance,data=b'',program=None,attribute=None,*,aoi=None):
@@ -337,16 +341,18 @@ class _Reader:
                 if status==0 and len(data)!=size:raise InventoryError('Template read ended before its advertised aligned extent')
                 if status==6 and len(data)==size:raise InventoryError('Template partial status continues beyond its allocation')
                 if status==0:
-                    if data[-3:]!=bytes(3):raise InventoryError('Template reserved alignment bytes are nonzero')
+                    if not self.saved_templates and data[-3:]!=bytes(3):raise InventoryError('Template reserved alignment bytes are nonzero')
                     try:definition=decode_template(bytes(data),fields[2])
                     except LayoutError as error:raise InventoryError('Invalid Template definition: '+error.reason) from error
                     if definition.name.lower() in names:raise InventoryError('Template names are repeated')
                     names.add(definition.name.lower())
                     row.update(definition_state='read',definition={'name':definition.name,
                         'members':[asdict(member) for member in definition.members],
-                        'trailer_bytes':definition.trailer_bytes,'compact_bytes':compact,'allocated_bytes':size,
+                        'trailer_bytes':definition.trailer_bytes,'compact_bytes':None if self.saved_templates else compact,'allocated_bytes':size,
                         'sha256':hashlib.sha256(data).hexdigest(),'data_hex':data.hex(),
-                        'reserved_padding_zero':True,'member_offsets_interpreted':False})
+                        'reserved_padding_zero':None if self.saved_templates else True,
+                        'definition_profile':'saved_native' if self.saved_templates else 'software_model',
+                        'member_offsets_interpreted':False})
                     break
             else:raise InventoryError('Template definition page budget exceeded')
         return rows
@@ -527,7 +533,8 @@ def collect_inventory(endpoint, *, read_values=True, limits=None):
     try:
         with client:
             client.bind()
-            result=_Reader(client,limits,read_values).collect()
+            result=_Reader(client,limits,read_values,saved_templates=bool(
+                endpoint.native_read_only and getattr(endpoint.app,'native_templates',None))).collect()
     finally:
         # Wait for this socket's asynchronous server cleanup on both success
         # and decode failure. Other observers are never disconnected.
