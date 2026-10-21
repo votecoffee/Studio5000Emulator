@@ -19,6 +19,44 @@ def source():
 
 
 class ProgramConfigurationTests(unittest.TestCase):
+    def test_ordinary_user_program_type_is_independent_of_disable_and_bound_to_source(self):
+        root,controller=source();program=controller.find('./Programs/Program')
+        program.attrib.pop('Disabled');program.attrib.pop('Class')
+        config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+        self.assertEqual(config.attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+        self.assertEqual(config.type_attributes('MAINPROGRAM',source_sha256=SOURCE_HASH),{30:b'\1'})
+        self.assertEqual(config.type_attributes('MainProgram',source_sha256='b'*64),{})
+        self.assertEqual(config.type_attributes('Missing',source_sha256=SOURCE_HASH),{})
+        self.assertEqual(config.type_attributes(None,source_sha256=SOURCE_HASH),{})
+        program.set('Type','Normal')
+        explicit=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+        self.assertEqual(explicit.type_attributes('MainProgram',source_sha256=SOURCE_HASH),{30:b'\1'})
+        program.set('Type','EquipmentPhase')
+        self.assertEqual(config.type_attributes('MainProgram',source_sha256=SOURCE_HASH),{30:b'\1'})
+        self.assertEqual(config.description()['ordinary_programs_available'],1)
+        self.assertFalse(config.description()['phase_sequence_types'])
+
+    def test_type_withheld_for_unknown_kinds_opaque_children_context_and_safety(self):
+        for mode in ('Type','ProgramType','programtype','{urn:test}Type','TypeUId','EquipmentPhase',
+                     'EquipmentSequence','VendorFlag','opaque','Safety','context','nested','duplicate','major'):
+            root,controller=source();program=controller.find('./Programs/Program')
+            if mode=='opaque':E.SubElement(program,'VendorKind')
+            elif mode=='Safety':program.set('Class','Safety')
+            elif mode=='context':root.set('ContainsContext','true')
+            elif mode=='nested':E.SubElement(controller,'VendorWrapper').append(copy.deepcopy(program))
+            elif mode=='duplicate':controller.find('Programs').append(copy.deepcopy(program))
+            elif mode=='major':controller.set('MajorRev','36')
+            else:program.set(mode,'Unknown')
+            config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            with self.subTest(mode=mode):self.assertEqual(config.type_attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+
+    def test_type_inventory_constructor_rejects_bad_names_and_copies_mutable_input(self):
+        names={'mainprogram'};config=ProgramConfiguration(SOURCE_HASH,True,_ordinary=names)
+        names.clear();self.assertEqual(config.type_attributes('MainProgram',source_sha256=SOURCE_HASH),{30:b'\1'})
+        for names in ('mainprogram',None,{'MainProgram'},{1},{'bad.name'}):
+            with self.assertRaises(ValueError):ProgramConfiguration(SOURCE_HASH,True,_ordinary=names)
+        with self.assertRaises(ValueError):ProgramConfiguration(SOURCE_HASH,_ordinary={'mainprogram'})
+
     def test_explicit_enabled_and_disabled_programs_have_independent_single_byte_values(self):
         root, controller = source();programs = controller.find('Programs')
         other = copy.deepcopy(programs[0]);other.set('Name','DisabledProgram');other.set('Disabled','true');programs.append(other)

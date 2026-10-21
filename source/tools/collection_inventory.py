@@ -7,8 +7,10 @@ security authority, clock measurements or native upload acceptance.
 import hashlib
 from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as time_sync_list
 
-CLASSES = (0x43, 0x64, 0x67, 0x8B, 0xF5, 0xF6)
+CLASSES = (0x43, 0x64, 0x67, 0x68, 0x8B, 0xF5, 0xF6)
 FIXED = {0x67: {1: 2, 2: 4},
+         0x68: {1:2,2:4,3:4,5:4,7:4,9:4,11:2,13:4,15:2,16:4,19:1,
+                20:44,21:44,22:4,24:4,25:4,26:2,27:4,29:1,30:1,31:1},
          0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1}}
@@ -16,6 +18,11 @@ FIXED = {0x67: {1: 2, 2: 4},
 
 class CollectionError(ValueError):
     pass
+
+
+def instance_supported(class_id, instance):
+    return (type(class_id) is int and class_id in CLASSES and type(instance) is int and
+            (1<=instance<=0xFFFFFFFF if class_id==0x68 else instance==1))
 
 
 class Cursor:
@@ -56,10 +63,14 @@ def attribute_value(cursor, class_id, attribute):
             raise CollectionError('Nonempty trusted-slot layout is unsupported')
     elif class_id == 0x64 and attribute == 8:
         cursor.take(4)
-    elif class_id == 0x8B and attribute == 8:
+    elif class_id == 0x68 and attribute == 32:
+        count = cursor.uint()
+        if count > 1000:raise CollectionError('Program child list exceeds its bound')
+        cursor.take(4*count)
+    elif (class_id,attribute) in ((0x68,28),(0x8B,8)):
         count = int.from_bytes(cursor.take(4), 'little')
-        if count > 82:
-            raise CollectionError('Wall Clock timezone string exceeds its bound')
+        if count > (40 if class_id==0x68 else 82):
+            raise CollectionError('Counted collection string exceeds its bound')
         cursor.take(count)
     elif class_id == 0xF5 and attribute == 4:
         words = cursor.uint()

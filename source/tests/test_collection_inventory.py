@@ -16,6 +16,21 @@ def string(value, *, padded=False):
 
 
 class CollectionInventoryTests(unittest.TestCase):
+    def test_program_faults_addresses_kind_and_bounded_children_are_structural_only(self):
+        widths={1:2,2:4,3:4,5:4,7:4,9:4,11:2,13:4,15:2,16:4,19:1,
+                20:44,21:44,22:4,24:4,25:4,26:2,27:4,29:1,30:1,31:1}
+        values={n:bytes(w) for n,w in widths.items()}
+        values[28]=struct.pack('<I',7)+b'Program';values[32]=struct.pack('<HII',2,123,456)
+        result=decode_attribute_list(reply([(n,0,v) for n,v in values.items()]),list(values),0x68)
+        self.assertEqual([row['value_bytes'] for row in result['attributes']],list(widths.values())+[11,10])
+        self.assertEqual(result['value_semantics'],'NOT INFERRED')
+        self.assertNotIn('50726f6772616d',json.dumps(result));self.assertNotIn('data_hex',json.dumps(result))
+        for n,value in ((32,struct.pack('<H',1001)+bytes(4004)),(32,b'\1\0'),
+                        (28,struct.pack('<I',41)+bytes(41)),(20,bytes(43)),(30,bytes(2))):
+            with self.assertRaises(CollectionError):decode_attribute_list(reply([(n,0,value)]),[n],0x68)
+        result=decode_attribute_list(reply([(30,0,b'\1'),(100,0x14,b''),(30,0,b'\1')],6),[30,100,30,28],0x68)
+        self.assertTrue(result['partial']);self.assertEqual(result['remaining_attributes'],[28])
+
     def test_wall_clock_legacy_utc_and_timezone_fields_frame_without_inferring_values(self):
         widths={1:8,2:2,3:8,4:2,5:28,6:8,7:28,9:2,10:1,11:8}
         values={n:bytes(widths[n]) if n!=8 else struct.pack('<I',3)+b'UTC' for n in range(1,12)}

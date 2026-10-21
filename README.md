@@ -180,6 +180,9 @@ Version `.116` adds [supplemental schema discovery and read-only Wall Clock Time
 The clock distinguishes legacy 1972 counters from UTC 1970 counters and checks
 source settings before serving legacy local values. SDK schema queries succeed;
 complete upload still fails during device collection.
+Version `.117` adds [source-checked Program kind and original instance reads](docs/edit-program-state.md#program-kind-and-original-instance)
+and Program collection diagnostics. A disposable complete-clock experiment
+reaches Program collection; its generated clock settings remain unshipped.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

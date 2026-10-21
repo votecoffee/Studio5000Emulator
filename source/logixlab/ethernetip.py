@@ -825,7 +825,8 @@ class Router:
         return sorted(rows,key=lambda row:row['id'])
 
     def program_service(self,service,path,data,limit):
-        if path.symbols or path.program_instance is not None or path.instance is None:
+        if (path.symbols or path.program_instance is not None or path.io_map_instance is not None or
+                path.controller_instance is not None or path.aoi_instance is not None or path.instance is None):
             raise CIPError(4,'Program metadata requires a controller-scoped instance path')
         if service==0x4B:return self.instance_list(path,data,limit)
         if path.instance==0:
@@ -838,9 +839,12 @@ class Router:
         program=next((p for p in self.programs() if p['id']==path.instance),None)
         if program is None:raise CIPError(5,'Unknown or unexposed Program instance')
         name=program['name'].encode('ascii')
-        attributes={28:struct.pack('<I',len(name))+name} if len(name)<=40 else {}
+        attributes={22:struct.pack('<I',program['id'])}
+        if len(name)<=40:attributes[28]=struct.pack('<I',len(name))+name
         attributes.update(self.app.engine.project.program_forces.attributes(program['name']))
         attributes.update(self.app.engine.project.program_configuration.attributes(
+            program['name'],source_sha256=self.app.engine.project.sha256))
+        attributes.update(self.app.engine.project.program_configuration.type_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
         if self.zero_program_stack_supported(program):attributes[27]=bytes(4)
         return self.attribute_read(service,path,data,attributes)

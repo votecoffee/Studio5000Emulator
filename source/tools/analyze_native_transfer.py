@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import signed_messages as sm
 from logixlab.ethernetip import CIPError,decode_path
-from tools.collection_inventory import CLASSES as COLLECTION_CLASSES, CollectionError, decode_attribute_list
+from tools.collection_inventory import instance_supported as collection_instance, CollectionError, decode_attribute_list
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -90,7 +90,7 @@ def request_row(child,result,sequence,ordinal):
             count=struct.unpack_from('<H',data)[0];row['attribute_list_count']=count
             if 1<=count<=32 and len(data)==2+2*count:
                 row['requested_attributes']=list(struct.unpack_from('<'+'H'*count,data,2))
-                if (path.class_id in COLLECTION_CLASSES and path.instance==1 and not path.symbols and
+                if (collection_instance(path.class_id,path.instance) and not path.symbols and
                         all(getattr(path,name) is None for name in ('program_instance','io_map_instance','controller_instance','aoi_instance')) and
                         result[2] in (0,6,0x0A)):
                     try:row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],path.class_id)

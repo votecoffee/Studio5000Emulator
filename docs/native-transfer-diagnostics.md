@@ -70,6 +70,13 @@ class `0x8B` to the shared decoder. It preserves the separate legacy/UTC counter
 widths, calendar arrays and UINT32-length timezone string framing. Decoding a
 recorded field does not enable that field in the runtime.
 
+Version `.117` adds [Program collections](edit-program-state.md#program-kind-and-original-instance)
+at their actual nonzero instances. Shared framing includes opaque address
+widths, 44-byte fault records, counted names and up to 1,000 child IDs. Class
+instance zero and nested parent scopes are excluded. All 40 Program lists in
+the completed reference upload frame without errors; values remain omitted by
+default. Runtime support remains limited to separately implemented fields.
+
 Extended Device strings use the installed v35 UINT-length profile without word
 padding. TCP/IP domain and hostname strings use their separate padded profile;
 [OpENer's string encoder](https://github.com/EIPStackGroup/OpENer/blob/master/source/src/cip/cipcommon.c)

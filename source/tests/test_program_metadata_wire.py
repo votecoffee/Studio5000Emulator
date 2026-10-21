@@ -35,5 +35,29 @@ class ProgramMetadataWireTests(unittest.TestCase):
                                               [{'name':'MainProgram','instance':26039}])
         self.assertEqual(self.signed(6,READ)[2],5)
 
+    def test_program_type_single_list_and_mixed_errors_preserve_model_and_deny_writes(self):
+        self.prepare()
+        self.app.native_symbols=NativeSymbols('a'*64,self.app.engine.project.sha256,[],
+                                              [{'name':'MainProgram','instance':26038}])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('030320682500b66501001e00')),
+                         bytes.fromhex('8300000001001e00000001'))
+        self.assertEqual(self.signed(5,bytes.fromhex('0e0420682500b665301e')),bytes.fromhex('8e00000001'))
+        self.assertEqual(self.signed(6,bytes.fromhex('030320682500b66503001e0063001e00')),
+                         bytes.fromhex('83000a0003001e00000001630014001e00000001'))
+        self.assertEqual(self.signed(7,bytes.fromhex('100420682500b665301e00'))[2],15)
+        self.assertEqual(self.signed(8,bytes.fromhex('030320682500b665020016001e00')),
+                         bytes.fromhex('83000000020016000000b66500001e00000001'))
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+        self.app.native_symbols=NativeSymbols('a'*64,'f'*64,[],[{'name':'MainProgram','instance':26038}])
+        self.assertEqual(self.signed(9,bytes.fromhex('0e0420682500b665301e'))[2],12)
+
+    def test_program_type_never_resolves_other_parent_scopes(self):
+        self.prepare();self.app.native_symbols=NativeSymbols('a'*64,self.app.engine.project.sha256,[],
+                                              [{'name':'MainProgram','instance':26038}])
+        for seq,parent in enumerate(('208e2401','20692401','210038032401'),4):
+            path=bytes.fromhex(parent+'20682500b665301e')
+            self.assertEqual(self.signed(seq,bytes((0x0e,len(path)//2))+path)[2],4)
+
 
 if __name__=='__main__':unittest.main()

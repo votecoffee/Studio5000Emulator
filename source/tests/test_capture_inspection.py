@@ -23,6 +23,16 @@ def packet(frame, raw, reference=None, stream=0):
 
 
 class CaptureInspectionTests(unittest.TestCase):
+    def test_program_collection_decodes_nonunit_instances_plain_signed_and_batch(self):
+        query=bytes.fromhex('030320682500d80101001e00');answer=bytes.fromhex('8300000001001e00000001')
+        for request,response in ((query,answer),(signed_request(0x36,query),signed_response(0x36,answer)),
+                (batch((query,)),batch((answer,),response=True))):
+            decoded=summarize([packet(1,request),packet(2,response,1)])['exchanges'][0]['response']
+            if 'signed_envelope' in decoded:
+                envelope=decoded['signed_envelope'];decoded=envelope.get('inner') or envelope['children'][0]
+            self.assertEqual(decoded['collection_attribute_list']['attributes'][0]['value_bytes'],1)
+            self.assertNotIn('data_hex',json.dumps(decoded))
+
     def test_device_collection_layouts_decode_plain_signed_and_batch_without_private_values(self):
         query=bytes.fromhex('030220642401020001000800')
         answer=bytes.fromhex('830000000200010000000300')+b'Lab'+bytes.fromhex('0800000000000000')

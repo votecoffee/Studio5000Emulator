@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.116` adds [supplemental schema discovery and Wall Clock reads](controller-schema-discovery.md).
+Current milestone: `.117` adds [Program kind and original instance reads](edit-program-state.md#program-kind-and-original-instance)
+with shared Program collection decoding. A disposable complete-clock comparison
+advances to Program collection, accepts the new kind read and reaches the full
+Program attribute list. Generated clock profiles remain unshipped; the released
+profile still fails during Controller collection. Complete upload remains unfinished.
+
+Version `.116` adds [supplemental schema discovery and Wall Clock reads](controller-schema-discovery.md).
 Classes `0x66` and `0x72` expose their observed revision fields without instance
 operations. Wall Clock Time serves host UTC counters and calendar fields, plus
 source-checked legacy UTC reads. Five isolated SDK upload comparisons confirm
