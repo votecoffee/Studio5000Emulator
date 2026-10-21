@@ -463,6 +463,7 @@ def validate_staging(lease):
             check=stage['source_object_verification']
             if (not isinstance(check,dict) or check.get('status')!='idle' or check.get('errors')!=[]
                     or check.get('identity_checks_only') is not True
+                    or 'auxiliary_symbols_matched' in check and (type(check['auxiliary_symbols_matched']) is not int or check['auxiliary_symbols_matched']!=0)
                     or any(type(check.get(f)) is not int or check[f]!=0 for f in
                         ('programs_matched','routines_matched','symbols_matched','symbols_unresolved'))
                     or any(check.get(f) is not False for f in ('table_identities_verified','compiled_code_verified',

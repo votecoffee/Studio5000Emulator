@@ -41,14 +41,14 @@ class ResilientTransport:
         self.objects=ObjectStaging();self.object_error=None
         self.source_type_verification=verification();self.type_error=None;self._type_catalog=None
         self.source_object_verification=object_verification.summary();self.source_object_error=None
-        self._object_catalogs=(None,None);self._object_binding_stamp=None
+        self._object_catalogs=(None,None,None);self._object_binding_stamp=None
         self.download_image=DownloadImage();self.image_error=None
         self.image_preparation_started=False;self._image_start_binding=None
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
 
-    def inspect_payload(self, native_types=None, *, native_symbols=None,native_routines=None):
+    def inspect_payload(self, native_types=None, *, native_symbols=None,native_routines=None,native_auxiliary_symbols=None):
         self.expire()
         if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
         if self.inspection['status']=='invalid':raise TransportError(3,self.inspection['reason'])
@@ -60,7 +60,7 @@ class ResilientTransport:
         if self.image_error:raise TransportError(3,self.image_error)
         if self.inspection['status']=='decoded' and self._type_catalog is not native_types:
             raise TransportError(0x0C,'native_type_binding_changed')
-        if self.inspection['status']=='decoded':self.require_object_bindings(native_symbols,native_routines)
+        if self.inspection['status']=='decoded':self.require_object_bindings(native_symbols,native_routines,native_auxiliary_symbols)
         if self.inspection['status']=='decoded':return self.inspection
         expected=struct.unpack_from('<I',self.setup,12)[0]
         try:
@@ -89,12 +89,12 @@ class ResilientTransport:
             self.type_error='source_type_verification_failed'
             raise TransportError(3,self.type_error)
         source=Source(native_types.source_acd_sha256,native_types.source_l5x_sha256) if native_types is not None else None
-        self.source_object_verification=object_verification.verify(objects,source,native_symbols,native_routines)
+        self.source_object_verification=object_verification.verify(objects,source,native_symbols,native_routines,native_auxiliary_symbols)
         if self.source_object_verification['status']=='mismatch':
             self.source_object_error='source_object_verification_failed'
             raise TransportError(3,self.source_object_error)
-        self._object_catalogs=(native_symbols,native_routines)
-        self._object_binding_stamp=object_verification.binding_stamp(native_symbols,native_routines)
+        self._object_catalogs=(native_symbols,native_routines,native_auxiliary_symbols)
+        self._object_binding_stamp=object_verification.binding_stamp(*self._object_catalogs)
         try:
             image=DownloadImage.prepare(batch,templates,diagnostics,objects,native_types,
                                         self.source_type_verification)
@@ -105,8 +105,8 @@ class ResilientTransport:
         self.download_image=image
         return self.inspection
 
-    def require_object_bindings(self,symbols,routines):
-        try:stamp=object_verification.binding_stamp(symbols,routines)
+    def require_object_bindings(self,symbols,routines,auxiliary=None):
+        try:stamp=object_verification.binding_stamp(symbols,routines,auxiliary)
         except (ValueError,TypeError,KeyError):raise TransportError(0x0C,'native_object_binding_changed') from None
         if stamp!=self._object_binding_stamp:raise TransportError(0x0C,'native_object_binding_changed')
 
@@ -143,7 +143,7 @@ class ResilientTransport:
         self._image_start_binding=binding;self.image_preparation_started=True
         return {**image.description(),'preparation_started':True}
 
-    def prepared_result_state(self,native_types,*,native_symbols=None,native_routines=None):
+    def prepared_result_state(self,native_types,*,native_symbols=None,native_routines=None,native_auxiliary_symbols=None):
         """Recheck an already started image for result-query diagnostics only.
 
         This does not encode native results or start an unstarted image. The
@@ -155,7 +155,7 @@ class ResilientTransport:
             raise TransportError(0x0C,'device_image_preparation_required')
         if native_types is None or native_types is not self._type_catalog:
             raise TransportError(0x0C,'device_image_result_catalog_changed')
-        self.require_object_bindings(native_symbols,native_routines)
+        self.require_object_bindings(native_symbols,native_routines,native_auxiliary_symbols)
         return self.start_prepared_image()
 
     def expire(self):

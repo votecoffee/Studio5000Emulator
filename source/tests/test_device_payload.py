@@ -246,6 +246,22 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
         self.send(transport.DELETE);self.assertEqual(self.description()['source_object_verification']['status'],'idle')
 
+    def test_signed_auxiliary_source_binding_resolves_identity_without_exposing_values_or_changing_result_encoding(self):
+        from logixlab.native_auxiliary_symbols import NativeAuxiliarySymbols
+        self.object_source_fixture(extra_symbol=True)
+        primary=self.app.native_symbols
+        self.app.native_auxiliary_symbols=NativeAuxiliarySymbols(primary.source_acd_sha256,primary.source_l5x_sha256,
+            [dict(program_instance=0,instance=9,name='__Aux',component_type=264)])
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(INSPECT)[2],0)
+        result=self.description()['source_object_verification']
+        self.assertEqual((result['status'],result['symbols_matched'],result['auxiliary_symbols_matched'],result['symbols_unresolved']),('matched',3,1,0))
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.app.native_auxiliary_symbols=None
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
+        self.assertEqual(self.app.engine.memory.values,before)
+
+
     def test_signed_mismatched_source_object_ids_never_publish_temporary_resources(self):
         from logixlab.native_routines import NativeRoutines
         self.object_source_fixture();before=copy.deepcopy(self.app.engine.memory.values)

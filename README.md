@@ -142,6 +142,9 @@ diagnostics. Protected Routine inventories remain unavailable.
 Version `.106` adds [source identity checks for downloaded objects](docs/source-object-identities.md).
 Program/Routine IDs and known Symbol IDs must match their source scopes before
 temporary objects are published; additional internal Symbols remain unresolved.
+Version `.107` adds [source-bound auxiliary Symbol identities](docs/source-object-identities.md#auxiliary-symbol-identities).
+Original component records resolve Symbols omitted by TagInfo during download
+checks, while their runtime tags, values and alias behavior remain unavailable.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

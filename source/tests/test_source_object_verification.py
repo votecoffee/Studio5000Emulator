@@ -8,6 +8,7 @@ from logixlab import source_object_verification as check
 from logixlab.download_image import Source
 from logixlab.native_symbols import NativeSymbols,Symbol
 from logixlab.native_routines import NativeRoutines
+from logixlab.native_auxiliary_symbols import NativeAuxiliarySymbols
 from logixlab.object_staging import ObjectStaging,NULL_REFERENCE
 from logixlab.resilient_transport import ResilientTransport,TransportError
 import test_object_staging as objects
@@ -24,6 +25,22 @@ def bindings(acd='a'*64,l5x='b'*64):
 
 
 class SourceObjectTests(unittest.TestCase):
+    def test_auxiliary_identities_complete_both_scopes_but_unknown_and_missing_ids_stay_explicit(self):
+        symbols,routines=bindings();source=Source('a'*64,'b'*64)
+        rows=objects.batch()[:-1]+(objects.symbol(instance=9,table=NULL_REFERENCE,program=2),)+objects.batch()[-1:]
+        rows+=(objects.symbol(instance=9,table=NULL_REFERENCE),)
+        stage=ObjectStaging.from_batch(rows)
+        auxiliary=NativeAuxiliarySymbols('a'*64,'b'*64,[dict(program_instance=p,instance=9,name='__Aux',component_type=256) for p in (0,2)])
+        result=check.verify(stage,source,symbols,routines,auxiliary)
+        self.assertEqual((result['status'],result['symbols_matched'],result['auxiliary_symbols_matched'],result['symbols_unresolved']),('matched',4,2,0))
+        extra=ObjectStaging.from_batch(rows+(objects.symbol(instance=10,table=NULL_REFERENCE),))
+        self.assertEqual(check.verify(extra,source,symbols,routines,auxiliary)['status'],'partial')
+        missing=ObjectStaging.from_batch(objects.batch())
+        self.assertIn('native_auxiliary_symbol_identity_missing',check.verify(missing,source,symbols,routines,auxiliary)['errors'])
+        for value in (NativeAuxiliarySymbols('c'*64,'b'*64,auxiliary.manifest()['symbols']),
+                      NativeAuxiliarySymbols('a'*64,'b'*64,[dict(program_instance=0,instance=1,name='__Bad',component_type=256)])):
+            self.assertEqual(check.verify(stage,source,symbols,routines,value)['status'],'mismatch')
+
     def test_original_scoped_id_sets_match_without_claiming_table_or_compiled_equivalence(self):
         symbols,routines=bindings();stage=ObjectStaging.from_batch(objects.batch())
         result=check.verify(stage,Source('a'*64,'b'*64),symbols,routines)
@@ -65,10 +82,25 @@ class SourceObjectTests(unittest.TestCase):
         symbols,routines=bindings();stamp=check.binding_stamp(symbols,routines)
         self.assertEqual(stamp,check.binding_stamp(*bindings()))
         symbols.program_ids[3]='Other';self.assertNotEqual(stamp,check.binding_stamp(symbols,routines))
-        self.assertEqual(check.binding_stamp(None,None),(None,None))
+        self.assertEqual(check.binding_stamp(None,None),(None,None,None))
 
 
 class SourceObjectTransportTests(unittest.TestCase):
+    def test_auxiliary_source_is_pinned_through_processing_and_result_queries(self):
+        self.stage.clear()
+        rows=images.batch()+(objects.symbol(instance=9,table=NULL_REFERENCE),)
+        raw=b''.join(payloads.record(row.request) for row in rows)
+        payloads.fill(self.stage,payloads.container(zlib.compress(raw)),raw)
+        auxiliary=NativeAuxiliarySymbols('a'*64,'b'*64,[dict(program_instance=0,instance=9,name='__Aux',component_type=256)])
+        self.stage.inspect_payload(self.native,native_symbols=self.symbols,native_routines=self.routines,native_auxiliary_symbols=auxiliary)
+        self.assertEqual(self.stage.description()['source_object_verification']['auxiliary_symbols_matched'],1)
+        self.stage.start_prepared_image()
+        for binding in (None,NativeAuxiliarySymbols('a'*64,'b'*64,[])):
+            with self.assertRaises(TransportError):self.stage.prepared_result_state(self.native,
+                native_symbols=self.symbols,native_routines=self.routines,native_auxiliary_symbols=binding)
+        self.stage.prepared_result_state(self.native,native_symbols=self.symbols,native_routines=self.routines,native_auxiliary_symbols=auxiliary)
+        self.stage.clear();self.assertEqual(self.stage.description()['source_object_verification']['auxiliary_symbols_matched'],0)
+
     def setUp(self):
         self.now=100;self.stage=ResilientTransport(lambda:self.now);self.native=catalog(types=source_types()[:1])
         self.symbols,self.routines=bindings();self.fill()
