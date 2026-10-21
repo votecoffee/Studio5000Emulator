@@ -1,5 +1,6 @@
 """Offline protocol evidence: conservative pairing, byte boundaries and privacy."""
 import hashlib
+import io
 import json
 from pathlib import Path
 import struct
@@ -7,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.inspect_cip_capture import describe, inspect, summarize
+from tools.inspect_cip_capture import CaptureDecode, describe, field_packets, inspect, summarize
 from logixlab.ethernetip import CIPError, decode_path
 from test_signed_messages import request as signed_request, response as signed_response
 from test_signed_batches import REQUEST as BATCH_REQUEST, RESPONSE as BATCH_RESPONSE, batch
@@ -22,6 +23,38 @@ def packet(frame, raw, reference=None, stream=0):
 
 
 class CaptureInspectionTests(unittest.TestCase):
+    def test_time_sync_layouts_decode_plain_signed_and_batch_replies(self):
+        query = bytes.fromhex('030220432401020001000300')
+        answer = bytes.fromhex('8300060001000100000000')
+        pairs = [(query, answer),
+                 (signed_request(0x36, query), signed_response(0x36, answer)),
+                 (batch((query,)), batch((answer,), response=True))]
+        for request, response in pairs:
+            with self.subTest(request=request.hex()):
+                result = summarize([packet(1, request), packet(2, response, 1)])
+                pair, = result['exchanges']
+                decoded = pair['response']
+                if 'signed_envelope' in decoded:
+                    envelope = decoded['signed_envelope']
+                    decoded = envelope.get('inner') or envelope['children'][0]
+                layout = decoded['time_sync_attribute_list']
+                self.assertTrue(layout['partial'])
+                self.assertEqual(layout['remaining_attributes'], [3])
+                self.assertEqual(layout['attributes'][0]['value_bytes'], 1)
+                self.assertNotIn('data_hex', layout['attributes'][0])
+                self.assertEqual(result['signed_integrity'], 'NOT VERIFIED')
+
+    def test_bad_clock_layout_keeps_exchange_and_does_not_guess_field_boundaries(self):
+        query = bytes.fromhex('03022043240101001500')
+        answer = bytes.fromhex('8300000001001500000004000000')+b'ab'
+        result = summarize([packet(1, query), packet(2, answer, 1)])
+        pair, = result['exchanges']
+        self.assertEqual(pair['response']['status'], 0)
+        layout = pair['response']['time_sync_attribute_list']
+        self.assertEqual(layout['structure'], 'UNSUPPORTED OR MALFORMED')
+        self.assertNotIn('attributes', layout)
+        self.assertFalse(result['skipped_packets'])
+
     def test_batch_pair_exposes_ordered_children_and_partial_errors(self):
         report = summarize([packet(1, BATCH_REQUEST), packet(2, BATCH_RESPONSE, 1)])
         pair, = report['exchanges']
@@ -278,16 +311,61 @@ class CaptureInspectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             capture = Path(folder) / 'capture.pcap'
             capture.write_bytes(b'original')
-            with patch('tools.inspect_cip_capture.decode_capture', return_value=[]):
+            with patch('tools.inspect_cip_capture.decode_capture', return_value=CaptureDecode([], 3)):
                 result = inspect(capture, 'not-executed')
             self.assertTrue(result['input_unchanged'])
+            self.assertEqual(result['limits']['input_frames_read'], 3)
+            self.assertFalse(result['limits']['packet_bound_reached'])
             self.assertEqual(capture.read_bytes(), b'original')
             def change(*_):
                 capture.write_bytes(b'changed')
-                return []
+                return CaptureDecode([], 0)
             with patch('tools.inspect_cip_capture.decode_capture', side_effect=change):
                 with self.assertRaisesRegex(ValueError, 'changed during analysis'):
                     inspect(capture, 'not-executed')
+
+    def test_compact_fields_count_non_cip_frames_and_pair_late_exchanges(self):
+        fields = (b'1\t\t\t\n50001\t2\t\t0e:03:20:01:24:01:30:01\n'
+                  b'50002\t2\t50001\t8e:00:00:00:01:00\n50003\t\t\t\n')
+        decoded = field_packets(io.BytesIO(fields))
+        self.assertEqual(decoded.input_frames, 4)
+        result = summarize(decoded.packets)
+        self.assertEqual(result['cip_packets'], 2)
+        pair, = result['exchanges']
+        self.assertEqual(pair['request']['frame'], 50001)
+        self.assertEqual(pair['response']['status'], 0)
+        self.assertFalse(result['skipped_packets'])
+
+    def test_compact_fields_keep_multiple_pdus_and_references_ambiguous(self):
+        fields = (b'1\t0\t\t0e03200124013001,0e03200124013002\n'
+                  b'2\t0\t1,3\t8e0000000100\n'
+                  b'3\t0\t\tprivate-invalid-hex\n')
+        result = summarize(field_packets(io.BytesIO(fields)).packets)
+        self.assertFalse(result['exchanges'])
+        self.assertEqual(len(result['skipped_packets']), 3)
+        self.assertNotIn('private-invalid-hex', json.dumps(result))
+
+    def test_compact_field_framing_and_bounds_reject_invalid_extraction(self):
+        for fields in (b'1\t\t\n', b'\xff\t\t\t\n', b'0\t\t\t\n',
+                       b'bad\t\t\t\n', b'1\t\t\t\textra\n'):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                field_packets(io.BytesIO(fields))
+        with patch('tools.inspect_cip_capture.MAX_LINE', 12):
+            with self.assertRaisesRegex(ValueError, 'line exceeds'):
+                field_packets(io.BytesIO(b'1\t0\t\t' + b'00' * 12))
+        with patch('tools.inspect_cip_capture.PACKET_LIMIT', 2):
+            with self.assertRaisesRegex(ValueError, 'packet bound'):
+                field_packets(io.BytesIO(b'1\t\t\t\n2\t\t\t\n3\t\t\t\n'))
+
+    def test_hitting_input_bound_is_explicit_even_without_cip_frames(self):
+        with tempfile.TemporaryDirectory() as folder:
+            capture = Path(folder) / 'capture.pcap'
+            capture.write_bytes(b'original')
+            with patch('tools.inspect_cip_capture.PACKET_LIMIT', 2), patch(
+                    'tools.inspect_cip_capture.decode_capture', return_value=CaptureDecode([], 2)):
+                result = inspect(capture, 'not-executed')
+            self.assertTrue(result['limits']['packet_bound_reached'])
+            self.assertEqual(result['limits']['capture_completeness'], 'NOT ASSESSED')
 
 
 if __name__ == '__main__':

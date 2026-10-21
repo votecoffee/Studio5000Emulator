@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -22,10 +23,54 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
 from logixlab import signed_messages
+from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as decode_time_sync_list
 
 MAX_CAPTURE = 64 * 1024 * 1024
-MAX_JSON = 128 * 1024 * 1024
-PACKET_LIMIT = 50_000
+MAX_OUTPUT = 128 * 1024 * 1024
+MAX_LINE = 1024 * 1024
+PACKET_LIMIT = 250_000
+
+
+@dataclass(frozen=True)
+class CaptureDecode:
+    packets: list
+    input_frames: int
+
+
+def field_packets(source):
+    """Read compact TShark fields, preserving ambiguous frames as skipped rows.
+
+    All frames are counted, including non-CIP frames, so hitting the input
+    bound cannot silently look like a complete capture. Raw protocol fields
+    are accepted only when one outer CIP PDU exists in the frame.
+    """
+    packets = []
+    frames = 0
+    while line := source.readline(MAX_LINE + 1):
+        if len(line) > MAX_LINE:
+            raise ValueError('TShark field line exceeds the output bound')
+        frames += 1
+        if frames > PACKET_LIMIT:
+            raise ValueError('TShark returned more than the packet bound')
+        try:
+            fields = line.rstrip(b'\r\n').decode('ascii').split('\t')
+        except UnicodeDecodeError as error:
+            raise ValueError('TShark fields are not ASCII') from error
+        if len(fields) != 4:
+            raise ValueError('Expected four TShark fields per frame')
+        frame, stream, references, raw = fields
+        if not frame.isdecimal() or int(frame) < 1:
+            raise ValueError('Invalid TShark frame number')
+        if not raw:
+            continue
+        layers = {'frame': {'frame.number': frame}, 'tcp': {'tcp.stream': stream}, 'enip': {}}
+        if references:
+            layers['enip']['enip.response_to'] = references.split(',')
+        # A comma denotes more than one PDU. Never select an arbitrary one.
+        if ',' not in raw:
+            layers['cip_raw'] = [raw.replace(':', '')]
+        packets.append({'_source': {'layers': layers}})
+    return CaptureDecode(packets, frames)
 
 
 def values(node, name):
@@ -158,6 +203,18 @@ def describe(raw, include_payloads=False, *, unwrap=True):
     return message
 
 
+def time_sync_layout(request, response, raw, include_payloads):
+    if (request.get('class_id') == 0x43 and request.get('instance') == 1 and
+            request.get('service') == 3 and request.get('attribute') is None and
+            request.get('requested_attributes') and response.get('status') in (0, 6, 0x0A)):
+        try:
+            response['time_sync_attribute_list'] = decode_time_sync_list(
+                raw, request['requested_attributes'], include_payloads=include_payloads)
+        except TimeSyncError as error:
+            response['time_sync_attribute_list'] = {'structure': 'UNSUPPORTED OR MALFORMED',
+                                                    'reason': str(error)}
+
+
 def summarize(packets, include_payloads=False):
     messages, raw_messages, skipped, duplicate_frames = {}, {}, [], set()
     for packet in packets:
@@ -199,9 +256,16 @@ def summarize(packets, include_payloads=False):
                 parsed = signed_messages.parse_request(raw_messages[request['frame']])
                 decoded = signed_messages.parse_response(raw_messages[response['frame']], parsed)
                 response['signed_envelope'] = envelope_description(decoded, include_payloads)
+                left, right = request['signed_envelope'], response['signed_envelope']
+                if 'inner' in left and 'inner' in right:
+                    time_sync_layout(left['inner'], right['inner'], decoded.inner, include_payloads)
+                elif 'children' in left and 'children' in right:
+                    for child, reply, raw in zip(left['children'], right['children'], decoded.children, strict=True):
+                        time_sync_layout(child, reply, raw, include_payloads)
             except (signed_messages.EnvelopeError, ValueError) as error:
                 response['signed_envelope'] = {'structure': 'UNSUPPORTED OR MALFORMED',
                                                'integrity': 'NOT VERIFIED', 'reason': str(error)}
+        time_sync_layout(request, response, raw_messages[response['frame']], include_payloads)
         exchanges.append({'request': request, 'response': response})
         paired_requests.add(request['frame']); paired_responses.add(response['frame'])
     counts = Counter(f"0x{value['service']:02X}" for value in messages.values() if not value['response'])
@@ -227,24 +291,27 @@ def find_tshark(explicit=None):
 def decode_capture(capture, tshark):
     # -r and -n keep this offline, including name resolution. Bound packets,
     # output size and execution time independently of the capture's file size.
+    # Expanded JSON repeats every dissected field and raw byte many times.
+    # @cip supplies the outer protocol bytes without a tree of byte fields.
     command = [tshark, '-n', '-2', '-r', str(capture), '-c', str(PACKET_LIMIT),
-               '-Y', 'cip', '-T', 'json', '-x', '--no-duplicate-keys']
+               '-T', 'fields', '-e', 'frame.number', '-e', 'tcp.stream',
+               '-e', 'enip.response_to', '-e', '@cip']
     with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
         process = subprocess.Popen(command, stdout=output, stderr=errors,
                                    **({'creationflags':subprocess.CREATE_NO_WINDOW} if os.name=='nt' else {}))
         try:
             deadline = time.monotonic() + 60
             while process.poll() is None:
-                if os.fstat(output.fileno()).st_size > MAX_JSON or time.monotonic() > deadline:
+                if os.fstat(output.fileno()).st_size > MAX_OUTPUT or time.monotonic() > deadline:
                     raise ValueError('TShark output or time limit exceeded')
                 time.sleep(0.1)
-            if output.seek(0, 2) > MAX_JSON:
+            if output.seek(0, 2) > MAX_OUTPUT:
                 raise ValueError('TShark output limit exceeded')
             if process.returncode:
                 errors.seek(0)
                 raise ValueError('TShark failed: ' + errors.read(2000).decode('utf-8', errors='replace'))
             output.seek(0)
-            return json.load(output)
+            return field_packets(output)
         finally:
             if process.poll() is None:
                 process.kill(); process.wait()
@@ -257,13 +324,16 @@ def inspect(capture, tshark, include_payloads=False):
     if len(original) > MAX_CAPTURE:
         raise ValueError('Capture exceeds the 64 MiB limit; trim it offline first')
     digest = hashlib.sha256(original).hexdigest()
-    result = summarize(decode_capture(capture, tshark), include_payloads)
+    decoded = decode_capture(capture, tshark)
+    result = summarize(decoded.packets, include_payloads)
     with capture.open('rb') as source:
         after = source.read(MAX_CAPTURE + 1)
     if hashlib.sha256(after).hexdigest() != digest:
         raise ValueError('Capture changed during analysis; use a completed capture')
     result.update(capture_sha256=digest, capture_bytes=len(original),
-                  limits={'input_packets': PACKET_LIMIT, 'capture_completeness': 'NOT ASSESSED'},
+                  limits={'input_packets': PACKET_LIMIT, 'input_frames_read': decoded.input_frames,
+                          'packet_bound_reached': decoded.input_frames >= PACKET_LIMIT,
+                          'capture_completeness': 'NOT ASSESSED'},
                   input_unchanged=True, payloads_included=include_payloads)
     return result
 

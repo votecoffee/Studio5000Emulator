@@ -160,6 +160,10 @@ controller, with native Offline and source preservation confirmed.
 Version `.111` adds [null Controller handler and aggregate reads](docs/controller-handlers.md)
 from a successful v35 reference upload. Configured handler references remain
 unavailable; successful object replies still do not complete native upload.
+Version `.112` improves [offline capture analysis](docs/development.md#offline-cip-capture-inspection)
+for complete upload recordings and decodes bounded Time Sync attribute lists,
+including partial replies and vendor descriptions. Revision-only SDK experiments
+still fail upload; their substituted revisions are not shipped.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

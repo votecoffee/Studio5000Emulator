@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.111` adds [reference-backed null Controller handlers](controller-handlers.md)
+Current milestone: `.112` expands [offline upload capture analysis](development.md#offline-cip-capture-inspection)
+to 250,000 input frames with compact extraction, explicit packet-bound reporting
+and strict Time Sync field framing. A successful reference upload's two clock
+replies decode as 24 returned fields followed by eight in a separate request.
+Disposable SDK revision-only comparisons still fail collection without a reported
+fatal SDK fault. These experiments do not change the runtime's object revisions
+or supply unimplemented clock data. Complete native transfers remain unfinished.
+
+Version `.111` adds [reference-backed null Controller handlers](controller-handlers.md)
 and the observed aggregate profile. Fresh SDK upload cases receive successful
 object replies but still fail Controller collection. Native connection/Offline,
 source/model preservation and cleanup pass without a reported fatal fault.

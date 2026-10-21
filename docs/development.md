@@ -990,12 +990,55 @@ Embedded services inside other routed requests or Multiple Service Packets
 require separate inspection. The tool does not infer embedded vendor-service
 meanings or successful Studio Go Online, and it never executes decoded requests.
 
-Analysis is bounded to 64 MiB input, 50,000 input packets, 128 MiB decoded JSON
-and 60 seconds. Capture completeness is reported as unassessed. The input hash
+Version `.112` replaces expanded TShark JSON with compact fields containing
+frame number, TCP stream, response-to references and raw outer CIP bytes.
+This permits larger upload recordings without duplicating every dissected byte.
+All input frames are counted, including frames without CIP; `limits` reports
+`input_frames_read` and `packet_bound_reached`. Reaching the bound means analysis
+may have stopped before the end. Multiple PDUs or response references remain
+ambiguous; the reader never selects one arbitrarily.
+
+Paired Time Sync class `0x43`, instance `1`, Get Attribute List replies also
+include `time_sync_attribute_list`, both for plain requests and inside one
+observed signed layer. The decoder preserves order, duplicates, individual
+errors and exact field boundaries. Status `0x06` contains a strict requested
+prefix and reports `remaining_attributes`; status `0x0A` contains the complete
+list with individual errors. It does not merge separate requests into a clock
+snapshot. Default rows contain only attribute ID, status, byte count and value
+hash. `--include-payloads` also includes field bytes.
+
+The bounded layouts cover the requested attributes `1` through `28` and `102`
+through `105`: scalar widths, counted port arrays, descriptions and vendor
+structures. The plain installed v35 Time Synchronize definitions establish
+their fields. A successful reference upload additionally establishes the partial
+reply boundary and the compact vendor port-address encoding: attribute `104`
+transmits its counted address bytes, while the port records in attributes `25`
+and `26` reserve 16 bytes per address. Successful unknown fields, oversized
+counts, truncated values, mismatched order and trailing data retain an explicit
+structural error; their remaining boundaries are never guessed. This analysis
+does not interpret identities, offsets, delays or clock discipline, or supply
+those values to the runtime.
+
+Analysis is bounded to 64 MiB input, 250,000 input frames, 128 MiB compact
+TShark output, 1 MiB per output line and 60 seconds of TShark execution.
+Capture completeness is reported as unassessed. The input hash
 must remain unchanged during analysis; copying a finished capture avoids races
 with a live capture writer. Validation includes synthetic request/reply,
 malformed-header, ambiguous-pairing and privacy checks. Reference PLC projects,
 captures and native connection receipts remain local.
+
+The `.112` reader processed a completed 107,064-frame reference recording,
+paired all 35,400 observed CIP exchanges and decoded the two Time Sync lists
+without skipped CIP frames or reaching the packet bound. Separate disposable
+SDK upload trials substituted Time Sync revision 5, then Time Sync revision 5
+and Controller revision 15 together. Both still failed Controller collection,
+with native Offline, endpoint cleanup and source/model preservation confirmed
+and no reported fatal SDK fault. The runtime retains its implementation
+revisions; the experiments neither establish a failure cause nor complete upload.
+The rebuilt `.112` runtime separately passes a 78-request native SDK connection
+and Go Offline check, with source/model preservation and endpoint cleanup.
+All 62 affected capture and signed-envelope tests pass; the full suite was not
+run for this diagnostic iteration.
 
 ## Optional protocol probes
 
