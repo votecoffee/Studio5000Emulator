@@ -73,3 +73,10 @@ The live endpoint still rejects `0x3A`; this revision adds analysis primitives
 without native stream-read or write authority. Routine source semantics, full
 native upload/download and native client reconstruction remain unfinished or
 unverified.
+
+All 324 affected checks pass; the full suite was not rerun. The restarted demo
+passes 274 live checks and native SDK Go Online/Go Offline across 75 verified
+signed requests, with actual Offline/cleanup, unchanged source/model and no
+reported fatal SDK fault. Inputs, logic and edit configuration match across the
+restart. The webpage, packaged assets, executable version and all 93 deployed
+app modules match `.132`.

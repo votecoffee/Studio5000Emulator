@@ -21,6 +21,11 @@ requests and all 408 source-matched diagnostic fields; it reaches no `0x3A`
 read. Actual Offline/cleanup and unchanged source/model are confirmed, with no
 reported fatal SDK fault or physical-controller contact. The private Template
 snapshot and clock hypotheses remain separate from the normal demo.
+The restarted release passes 274 live checks and native SDK Go Online/Go Offline
+across 75 verified signed requests, with actual Offline/cleanup, unchanged
+source/model and no reported fatal SDK fault. Inputs, logic and edit settings
+match across restart. All 93 deployed app modules, webpage, packaged assets and
+executable version match `.132`.
 
 Version `.131` adds [live Routine headers, main/subroutine flags, original opaque source metadata and unsigned state](routine-bulk-metadata.md)
 for the guarded ordinary RLL profile. Field 8 is identified as Header Address,
