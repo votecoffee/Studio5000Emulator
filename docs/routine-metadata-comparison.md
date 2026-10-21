@@ -69,3 +69,13 @@ not run because all saved successful examples use zero.
 The current failure remains before source retrieval. Full native upload/download,
 source reconstruction and the complete native edit lifecycle remain unfinished.
 These diagnostics improve comparison evidence and do not change live dispatch.
+
+All 162 affected software tests pass, including profile privacy, incomplete and
+failed fields, identity-independent comparison, changed state fields, malformed
+frames and both scoped capture/checkpoint readers. The full suite was not rerun.
+
+The restarted `.134` release passes 12 focused deployment checks. All 94 app
+modules match the build, and the webpage, packaged assets and Windows executable
+versions match. Native SDK Go Online/Go Offline passes across 75 verified signed
+requests, with actual Offline/cleanup, unchanged source/model and no reported
+fatal SDK fault. Inputs, logic and edit settings match across the restart.

@@ -14,6 +14,12 @@ source request. The address-range change is exercised but not shipped. The
 trials retain 357/358 verified signed requests and 360/361 expanded leaf requests,
 with actual Offline/cleanup, unchanged source/model and no reported fatal SDK
 fault. No physical-controller contact or live read/write authority is added.
+All 162 affected tests and 12 deployment checks pass; the full suite was not
+rerun. The restarted `.134` demo passes SDK Go Online/Go Offline across 75
+verified signed requests, with actual Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. Inputs, logic and edit settings match across
+restart. All 94 deployed app modules, webpage, packaged assets and executable
+version match `.134`.
 
 Version `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
 All 806 supported containers in the saved upload retain their Standard/Safety
