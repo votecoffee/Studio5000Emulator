@@ -18,6 +18,8 @@ matching native ownership, idle edits and known-clean fault history. It retains
 [Program diagnostics](docs/program-diagnostics.md) and
 [measured scan times](docs/program-timing-and-flags.md). Full native transfer
 remains unfinished.
+The isolated upload comparison reduces missing Program fields from 5 to 3;
+the compiled addresses and omitted synchronization setting remain unavailable.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

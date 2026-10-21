@@ -9,6 +9,8 @@ native Studio connection and programming services remain unfinished.
 Current milestone: `.121` adds [Standard memory reads and bounded normal Program status](program-memory-status.md),
 with shared Task collection diagnostics. Source kind, original native owner and
 actual model fault/edit state govern availability. Full transfers remain unfinished.
+The isolated comparison accepts the new Program fields and reduces missing
+fields from 5 to 3. Compiled addresses and omitted synchronization remain unresolved.
 
 Version `.120` adds [Program output/edit diagnostics and model fault records](program-diagnostics.md).
 Source-known null lists and untested RLL state are separate from native edit

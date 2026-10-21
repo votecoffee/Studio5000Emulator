@@ -94,6 +94,10 @@ Version `.120` adds the bounded [untested edit-mode read and Program diagnostics
 It requires explicit ordinary RLL source and idle native edit staging. Unknown
 or pending state remains unavailable; Test/Untest/Assemble is still unfinished.
 
+Version `.121` adds [Standard memory classification and bounded normal status](program-memory-status.md).
+Normal status also requires a matching nonzero native Task owner and known-clean
+supported execution; unavailable fault/edit states do not become normal status.
+
 ## Earlier native checks
 
 Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)

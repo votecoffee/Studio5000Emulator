@@ -53,3 +53,26 @@ skipped. Default reports contain lengths/hashes and no raw names or values;
 payload inspection remains an explicit private-analysis option. Framing does
 not infer memory semantics, authenticate a recorded exchange or prove upload
 acceptance.
+
+## Native comparison
+
+The isolated before/after SDK upload accepts the new normal-status and Program
+memory fields, reducing unavailable fields in its full Program list from 5 to 3:
+`5` Main Executable, `16` Program Address and `29` Synchronize Data. The last
+field remains unavailable when source omits its setting. Both attempts still
+report `RxCsE_UPLOAD_OF_PROGRAMS_FAILED`, across 204 and 202 verified signed
+requests, with Offline, cleanup and unchanged source/model confirmed and no
+reported fatal SDK fault.
+
+This comparison uses unshipped clock datasets and revision selectors to reach
+Program collection. The released clock behavior is unchanged. This iteration
+does not repeat the unchanged public-profile upload failure from `.120`;
+connection and live readback are checked separately. Successful field reads do
+not establish complete transfer or the cause of the remaining failure.
+
+The restarted `.121` demo passes SDK Go Online/Go Offline with 75 verified
+signed requests, clean Offline/cleanup and unchanged source/model, without a
+reported fatal SDK fault. All 236 affected software tests and 31 live readback
+checks pass; the full suite was not rerun. The app, served webpage and Windows
+executable versions agree. Studio GUI acceptance and full native transfers
+remain unfinished.

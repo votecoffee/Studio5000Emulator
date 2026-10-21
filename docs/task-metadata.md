@@ -1,7 +1,7 @@
 # Source-bound Task metadata
 
-The Task object (`0x70`) supplies read-only settings from explicit
-values in a complete v35 controller L5X:
+The Task object (`0x70`) supplies read-only settings and source class metadata
+from a complete v35 controller L5X:
 
 | Attribute | L5X Task field | Encoding |
 | --- | --- | --- |
@@ -9,6 +9,7 @@ values in a complete v35 controller L5X:
 | 2, Rate | `Rate`, for Periodic Tasks only | Little-endian positive 32-bit microseconds |
 | 6, Priority | `Priority` | Little-endian UINT16, 1 through 15 |
 | 12, Watchdog | Positive `Watchdog` | Little-endian positive 32-bit microseconds |
+| 20, Data Use | Canonical Standard Continuous/Periodic Task declaration | Two-byte Standard memory code `0` |
 | 18, Disable Output Update | `DisableUpdateOutputs` | Little-endian UINT32, false=0, true=1 |
 | 19, Inhibit | `InhibitTask` | Little-endian UINT32, false=0, true=1 |
 
