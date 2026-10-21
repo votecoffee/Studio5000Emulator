@@ -972,6 +972,40 @@ class Router:
                     program_source_acd_sha256=programs.source_acd_sha256))
         return self.attribute_read(service,path,data,attributes)
 
+    def aoi_definitions(self):
+        project=self.app.engine.project;catalog=project.aoi_catalog
+        if catalog.empty:return []
+        binding=getattr(self.app,'native_aois',None);identity=self.app.native_project_identity
+        if (catalog.metadata is None or binding is None or binding.source_l5x_sha256!=project.sha256
+                or identity is None or identity.source_l5x_sha256!=project.sha256
+                or binding.source_acd_sha256!=identity.source_acd_sha256
+                or set(binding.definitions)!={row.name.casefold() for row in catalog.metadata}):
+            raise CIPError(0x0C,'AOI inventory requires complete matching source identities')
+        return sorted(({'id':binding.definitions[row.name.casefold()][1],'metadata':row}
+                       for row in catalog.metadata),key=lambda row:row['id'])
+
+    def aoi_service(self,service,path,data,limit):
+        if path.symbols or path.program_instance is not None or path.instance is None:
+            raise CIPError(4,'AOI definitions require a controller-scoped numeric instance')
+        if service==0x4B:return self.instance_list(path,data,limit)
+        if path.instance==0:
+            # Installed v35 revision 6 and captured original AOI state reads.
+            # This revision does not declare max/count or compiled addresses.
+            attributes={1:struct.pack('<H',6)}
+        else:
+            row=next((row for row in self.aoi_definitions() if row['id']==path.instance),None)
+            if row is None:raise CIPError(5,'Unknown source AOI definition')
+            attributes=row['metadata'].attributes()
+        return self.attribute_read(service,path,data,attributes)
+
+    def aoi_description(self):
+        result=self.app.engine.project.aoi_catalog.description()
+        try:rows=self.aoi_definitions()
+        except CIPError:
+            return {**result,'instance_list':False,'instance_count':None,'identity_binding_available':False}
+        return {**result,'instance_list':True,'instance_count':len(rows),
+                'identity_binding_available':getattr(self.app,'native_aois',None) is not None}
+
     @staticmethod
     def catalog_class_attributes(instances):
         # Model revision 1, sparse maximum ID and visible instance count.
@@ -1068,6 +1102,9 @@ class Router:
         elif path.class_id==0x6D:
             if path.symbols or path.program_instance is None:raise CIPError(4,'Executable discovery requires a parent Program')
             ids=[routine['id'] for routine in self.routines(path.program_instance)]
+        elif path.class_id==0x338:
+            if path.symbols or path.program_instance is not None:raise CIPError(4,'AOI discovery must be controller scoped')
+            ids=[row['id'] for row in self.aoi_definitions()]
         else:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'This instance list requires a global class path')
@@ -1075,8 +1112,6 @@ class Router:
                 raise CIPError(0x0C,'Motion catalog is nonempty or unavailable from this source')
             if path.class_id in alarm_catalog.CLASSES and not self.app.engine.project.alarm_catalog.empty:
                 raise CIPError(0x0C,'Alarm catalog is nonempty or unavailable from this source')
-            if path.class_id==0x338 and not self.app.engine.project.aoi_catalog.empty:
-                raise CIPError(0x0C,'AOI definition catalog is nonempty or unavailable from this source')
             if path.class_id==0x69 and not self.app.engine.project.io_map.empty:
                 raise CIPError(0x0C,'I/O Map catalog is nonempty or unavailable from this source')
             if path.class_id==0x71 and not self.app.engine.project.data_log_catalog.empty:
@@ -1327,8 +1362,7 @@ class Router:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty alarm discovery is supported')
         if path.class_id==0x338:
-            if service==0x4B:return self.instance_list(path,data,limit)
-            raise CIPError(8,'Only source-checked empty AOI definition discovery is supported')
+            return self.aoi_service(service,path,data,limit)
         if path.class_id==0x71:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'Data Logging discovery must be controller scoped')
@@ -1577,7 +1611,7 @@ class Endpoint:
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,
-                    'aoi_catalog':self.app.engine.project.aoi_catalog.description() if self.enabled else None,
+                    'aoi_catalog':self.router.aoi_description() if self.enabled else None,
                     'data_log_catalog':self.app.engine.project.data_log_catalog.description() if self.enabled else None,
                     'hmi_button_control':self.app.engine.project.hmi_button_catalog.description() if self.enabled else None,
                     'energy_catalog':self.app.engine.project.energy_catalog.description() if self.enabled else None,
@@ -1599,6 +1633,7 @@ class Endpoint:
                     'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
                     'native_tasks':self.app.native_tasks.description() if self.enabled and getattr(self.app,'native_tasks',None) else None,
                     'native_routines':self.app.native_routines.description() if self.enabled and getattr(self.app,'native_routines',None) else None,
+                    'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
                     'locator':self.locator_state(),
                     'network_interface':self.interface.description() if self.interface else None,
                     'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,

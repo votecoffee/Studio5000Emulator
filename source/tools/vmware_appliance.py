@@ -382,7 +382,9 @@ def import_project(directory, project, converter=None):
                                          **({'native_tasks':provenance['native_tasks']}
                                             if 'native_tasks' in provenance else {}),
                                          **({'native_routines':provenance['native_routines']}
-                                            if 'native_routines' in provenance else {})})
+                                            if 'native_routines' in provenance else {}),
+                                         **({'native_aois':provenance['native_aois']}
+                                            if 'native_aois' in provenance else {})})
     if digest(source) != original_hash:
         raise ValueError('Source project changed during import')
     receipt = {'app_version': result['app_version'], 'project': result['name'],

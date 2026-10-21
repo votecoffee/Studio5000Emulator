@@ -32,9 +32,10 @@ class Limits:
     tasks: int = 32
     routines: int = 4096
     templates: int = 1024
+    aois: int = 1024
 
     def __post_init__(self):
-        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('routines',4096),('templates',1024),('pages',256),('requests',32768)):
+        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('routines',4096),('templates',1024),('aois',1024),('pages',256),('requests',32768)):
             value=getattr(self,name)
             if type(value) is not int or not 1<=value<=maximum:
                 raise InventoryError('Invalid inventory '+name+' limit')
@@ -152,6 +153,7 @@ TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
 # A successful Multiply Code field has no established decoder in this reader.
 # Missing values retain their error; they are never filled with a null address.
 TEMPLATE_SCHEMA={1:2,2:2,4:4,5:4,6:2,7:None,8:1}
+AOI_SCHEMA={1:2,12:2,13:2,19:'ascii16',21:'ascii16'}
 PROGRAM_SCHEMA={19:1,27:4,28:'ascii32'}
 TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
 # Only the legacy Description attribute has an established source decoder.
@@ -262,7 +264,7 @@ class _Reader:
         # Fixed read services only. In particular 0x4B is a list service only
         # for these catalog classes, never a Create/setup opcode elsewhere.
         if (service not in (1,3,0x0E,0x4B,0x4C,0x4F) or
-                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6C,0x6D,0x70) or
+                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6C,0x6D,0x70,0x338) or
                 service==0x4C and class_id!=0x6C or class_id==0x6C and program is not None or
                 class_id==0x6D and (type(program) is not int or not 1<=program<=0xFFFFFFFF) or
                 service==0x4F and class_id!=0x6A or service==0x0E and attribute is None):
@@ -442,6 +444,9 @@ class _Reader:
         if programs['instances'] is not None and len(programs['instances'])>self.limits.programs:
             raise InventoryError('Inventory Program budget exceeded')
         template_rows=self.templates()
+        aoi_catalog=self.catalog(0x338,max_instances=self.limits.aois)
+        aoi_rows=None if aoi_catalog['instances'] is None else [
+            {'instance':instance,'metadata':self.attributes(0x338,instance,AOI_SCHEMA)} for instance in aoi_catalog['instances']]
         program_rows=[];scopes=[self.scope()];routine_count=0;unavailable_routine_programs=[]
         for instance in programs['instances'] or []:
             metadata=self.attributes(0x68,instance,PROGRAM_SCHEMA)
@@ -475,6 +480,7 @@ class _Reader:
                 'template_catalog':self.template_catalog,'templates':template_rows,
                 'template_definition_bytes':self.template_bytes,'template_reserved_bytes':self.template_reserved_bytes,
                 'structured_values_decoded':False,
+                'aoi_catalog':aoi_catalog,'aois':aoi_rows,'aoi_definition_upload':False,
                 'program_catalog':programs,'programs':program_rows,'scopes':scopes,
                 'executable_inventory':{'state':'unavailable' if programs['instances'] is None or
                                        unavailable_routine_programs and len(unavailable_routine_programs)==len(program_rows) else

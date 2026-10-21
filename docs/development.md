@@ -244,6 +244,17 @@ next-scan execution, inventory and an edited L5X export/reload. Synthetic code
 containers test only the custom model's contract. The main app and original
 source pair are preserved; native SDK acceptance remains unassessed while SDK
 testing is held. The full suite was not rerun.
+
+Version `.104` adds source-bound UDI Definition IDs and read-only AOI metadata.
+Seventy-four focused tests cover identity parsing, source/manifest consistency,
+protected headers, real signed reads, import/reload and affected client/appliance
+behavior. A separate unchanged offline project supplies 68 original IDs and
+three protected headers through research-profile loopback TCP, with no scans or
+SDK calls. Signed exchange checks use a matching L85E fixture. The combined
+structured-project probe still passes 44 transfer checks, 911 temporary records
+and 15 edit checks; inventory now completes 72 requests including AOI discovery.
+Native Studio acceptance and compiled AOI upload remain unassessed; SDK testing
+is held, and the full suite was not rerun.
 The frozen `.81` protocol probe passes 24 signed checks plus 56 independent
 inventory reads against the retained source pair. The rebuilt appliance passes
 15 focused wire checks; all 69 application modules and the served/packaged

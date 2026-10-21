@@ -10,7 +10,7 @@ from tools.upload_inventory import collect_inventory, Limits
 
 report = collect_inventory(owned_endpoint, read_values=True,
                            limits=Limits(instances=4096, programs=128,
-                                         tasks=32, routines=4096, templates=1024,
+                                         tasks=32, routines=4096, templates=1024, aois=1024,
                                          pages=128, requests=16384))
 ```
 
@@ -25,7 +25,7 @@ The reader:
   the same application instance, source bytes and generation for every request.
 - Reads Controller configuration and retains unsupported aggregate and handler
   responses as evidence. It does not invent a `POINTER` decoder.
-- Enumerates Template, Program, Task, scoped Executable, Symbol and Data Table catalogs with bounded sparse-ID
+- Enumerates AOI Definition, Template, Program, Task, scoped Executable, Symbol and Data Table catalogs with bounded sparse-ID
   pagination, independent class counts and exact attribute-list framing.
 - Reads Task priority, output-update/inhibit flags and explicitly available
   rate/watchdog values in wire microseconds. Task attribute 16 remains an
@@ -47,6 +47,9 @@ The reader:
   row-major order with up to three dimensions checked against the Symbol rank.
 - Links structured values to observed Template IDs and retains their complete
   wire bytes. It does not interpret UDT member offsets or decode typed UDT values.
+- Reads available AOI state, revision and vendor headers through class `0x338`.
+  Missing bindings and protected-state fields stay unavailable; definition names
+  absent from the wire are not inferred, and compiled AOI upload is unsupported.
 
 Unavailable catalogs retain `instances: null` and their status, separately
 from a successful empty catalog. Attribute failures remain individual rows;
@@ -111,7 +114,7 @@ Data Table value reads. Values read
 with the default option are individually observed values, not one simultaneous
 snapshot; the reader does not freeze ongoing simulation. It closes only its
 own connection and waits briefly for its server-side cleanup on success and
-decode errors. Request, instance, Program, Task, scoped Routine, Template and
+decode errors. Request, instance, Program, Task, scoped Routine, Template, AOI and
 page budgets stop unexpectedly large or non-progressing inventories. A complete
 value that exceeds the negotiated reply size retains its read error; the reader
 does not invent fragmented Data Table semantics.

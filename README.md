@@ -132,6 +132,9 @@ SDK retesting remains held pending service recovery.
 Version `.103` adds an [isolated signed routine-edit probe](docs/research-session-probe.md#supported-routine-replacement)
 that checks commit ordering, reconnection, next-scan execution and edited L5X
 reload alongside inventory and temporary-download checks, without the SDK.
+Version `.104` adds [source-bound AOI definition discovery and metadata reads](docs/aoi-metadata.md),
+including original ACD IDs, clean model state, revisions and readable vendor
+headers. Protected payloads remain opaque and do not gain a clean-state value.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio
@@ -356,6 +359,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches and observed single-inner `0x39` transfers with reply correlation; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
+| AOI metadata | Original source-bound definition IDs, read-only clean model state and explicit revision/vendor headers; compiled definitions and native AOI edits remain unavailable |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |
 | PLC message mapping | Source-checked empty PCCC mapping descriptors; configured mappings and PCCC commands remain unsupported |
 | Time Sync | Source-backed PTP enable/priorities, read-only local UTC time and explicit unsynchronized/empty-port state; PTP networking remains unsupported |

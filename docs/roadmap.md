@@ -6,10 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.103` combines [signed routine-edit checks](research-session-probe.md#supported-routine-replacement)
-with SDK-free structured inventory and temporary-download checks. A separate
-disposable app verifies commit ordering, reconnect, next-scan execution and an
-edited L5X reload; failures close the connection without retrying a commit.
+Current milestone: `.104` adds [source-bound AOI discovery and metadata](aoi-metadata.md).
+Original ACD definition IDs and explicit L5X headers back read-only metadata;
+protected payloads remain opaque. Signed fixture checks and a separate large
+offline-project TCP read verify these paths without the SDK.
 Typed UDT decoding and complete native transfer remain unfinished. Unresolved
 metadata overrides remain excluded; a private experiment faulted the SDK, so
 native retesting is held pending service recovery.
