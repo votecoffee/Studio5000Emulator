@@ -8,6 +8,11 @@ the tested batch's 904 records now have temporary models. No record executes
 against the active project. Compiled definitions, device processing and project
 commit remain unfinished, so service `0x06` still returns execution denial.
 
+Later versions prepare an isolated, source-bound image without active installation.
+Version `.106` additionally checks [original Program/Routine/Symbol identities](source-object-identities.md)
+before publishing those temporary objects. Unknown internal Symbols remain
+unresolved, and native result encoding and full commit remain unfinished.
+
 ## Observed profile
 
 This is a bounded model of an observed programming profile, not a general

@@ -404,7 +404,8 @@ class Router:
                         if native_types and (native_types.source_acd_sha256!=identity.source_acd_sha256
                                 or native_types.source_l5x_sha256!=self.app.engine.project.sha256):
                             return reject(0x0C,'native_type_source_mismatch')
-                        image=lease.transport.prepared_result_state(native_types)
+                        image=lease.transport.prepared_result_state(native_types,
+                            native_symbols=self.app.native_symbols,native_routines=self.app.native_routines)
                         self.endpoint.record('native_download_result_query',**image)
                         return reject(0x0F,'device_image_result_encoding_unavailable')
                     if inner[0]==6:
@@ -413,7 +414,8 @@ class Router:
                         if native_types and (native_types.source_acd_sha256!=identity.source_acd_sha256
                                 or native_types.source_l5x_sha256!=self.app.engine.project.sha256):
                             return reject(0x0C,'native_type_source_mismatch')
-                        inspection=lease.transport.inspect_payload(native_types)
+                        inspection=lease.transport.inspect_payload(native_types,
+                            native_symbols=self.app.native_symbols,native_routines=self.app.native_routines)
                         self.endpoint.record('native_transport_inspection',expanded_bytes=inspection['expanded_bytes'],
                             record_count=inspection['record_count'],scoped_records=inspection['scoped_records'],records_executed=0)
                         staged=lease.transport.templates.description()
@@ -421,6 +423,7 @@ class Router:
                             records_modeled=staged['records_modeled'],write_fragments=staged['write_fragments'],unsupported_records=staged['unsupported_records'])
                         self.endpoint.record('native_template_layout_inspection',**staged['layout_inspection'])
                         self.endpoint.record('native_source_type_verification',**lease.transport.source_type_verification)
+                        self.endpoint.record('native_source_object_verification',**lease.transport.source_object_verification)
                         diagnostics=lease.transport.diagnostics.description()
                         modeled=staged['records_modeled']+diagnostics['records_modeled']
                         self.endpoint.record('native_diagnostic_staging',messages=diagnostics['messages'],text_bytes=diagnostics['text_bytes'],

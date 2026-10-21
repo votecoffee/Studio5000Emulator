@@ -459,6 +459,15 @@ def validate_staging(lease):
                     any(check.get(f) is not False for f in ('member_locations_verified','storage_mapping_supported',
                         'signature_verified','definitions_exposed','execution_supported'))):
                 raise ValueError('Probe requires empty source type verification')
+        if 'source_object_verification' in stage:
+            check=stage['source_object_verification']
+            if (not isinstance(check,dict) or check.get('status')!='idle' or check.get('errors')!=[]
+                    or check.get('identity_checks_only') is not True
+                    or any(type(check.get(f)) is not int or check[f]!=0 for f in
+                        ('programs_matched','routines_matched','symbols_matched','symbols_unresolved'))
+                    or any(check.get(f) is not False for f in ('table_identities_verified','compiled_code_verified',
+                        'addresses_verified','install_authority','active_catalog_replaced','commit'))):
+                raise ValueError('Probe requires empty source object identity verification')
         if 'download_image' in stage:
             image = stage['download_image']
             if (not isinstance(image, dict) or image.get('status') != 'idle' or

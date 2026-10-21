@@ -226,6 +226,46 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
+    def object_source_fixture(self,*,extra_symbol=False):
+        from test_source_object_verification import bindings
+        from test_download_image import batch
+        from test_native_types import catalog,source_types
+        rows=batch()+(objects.symbol(instance=9,table=objects.os.NULL_REFERENCE),) if extra_symbol else batch()
+        self.stage(b''.join(record(row.request) for row in rows))
+        identity=self.app.native_project_identity
+        self.app.native_types=catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256,types=source_types()[:1])
+        self.app.native_symbols,self.app.native_routines=bindings(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256)
+
+    def test_signed_original_object_identity_match_and_unresolved_symbols_are_separate(self):
+        self.object_source_fixture(extra_symbol=True);before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
+        report=self.description()['source_object_verification']
+        self.assertEqual((report['status'],report['symbols_matched'],report['symbols_unresolved']),('partial',2,1))
+        self.assertEqual(self.endpoint.counts['native_source_object_verification'],1)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+        self.send(transport.DELETE);self.assertEqual(self.description()['source_object_verification']['status'],'idle')
+
+    def test_signed_mismatched_source_object_ids_never_publish_temporary_resources(self):
+        from logixlab.native_routines import NativeRoutines
+        self.object_source_fixture();before=copy.deepcopy(self.app.engine.memory.values)
+        binding=self.app.native_routines
+        self.app.native_routines=NativeRoutines(binding.source_acd_sha256,binding.source_l5x_sha256,
+            [dict(program='ProgramA',name='Logic',program_instance=2,instance=9)])
+        for _ in range(2):self.assertEqual(self.send(INSPECT)[2],3)
+        state=self.description();self.assertEqual(state['source_object_verification']['status'],'mismatch')
+        self.assertEqual(state['object_staging']['records_modeled'],0);self.assertEqual(state['template_staging']['templates'],0)
+        self.assertEqual(state['download_image']['storage_bytes'],0)
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertTrue(any(row['reason']=='source_object_verification_failed' for row in self.endpoint.state()['native_rejections']))
+
+    def test_signed_result_query_rejects_a_mutated_cached_source_binding(self):
+        self.object_source_fixture();self.assertEqual(self.send(INSPECT)[2],0)
+        self.app.native_symbols.program_ids[3]='Other'
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
+        self.assertEqual(self.send(INSPECT)[2],12)
+        self.assertTrue(any(row['reason']=='native_object_binding_changed' for row in self.endpoint.state()['native_rejections']))
+
     def test_signed_source_comparison_checks_binding_then_starts_temporary_image(self):
         from test_native_types import catalog,source_types
         from test_template_layout import definition
@@ -390,6 +430,7 @@ class InspectionSignedTests(unittest.TestCase):
             self.assertEqual(self.endpoint.programming_lease.transport.description()['diagnostic_staging']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['object_staging']['status'],'idle')
             self.assertEqual(self.endpoint.programming_lease.transport.description()['source_type_verification']['status'],'idle')
+            self.assertEqual(self.endpoint.programming_lease.transport.description()['source_object_verification']['status'],'idle')
             if action in ('reset','reload','disconnect'):
                 self.client.close();self.client=leases.Client(self.endpoint.port);self.client.register()
 

@@ -44,6 +44,10 @@ namespaces, original format-54 identities, signed TCP discovery, optional legacy
 descriptions, unavailable protected children and rejected writes. The independent
 inventory client applies a shared Routine budget across AOIs and Programs.
 
+Download identity tests in `test_source_object_verification.py` and
+`test_device_payload.py` cover scope, cached source changes, partial Symbol
+coverage and atomic temporary-object rejection. These checks use no native SDK.
+
 ## Native SDK acceptance probe
 
 Upload/download cases also retain [transfer-specific checkpoints and an offline

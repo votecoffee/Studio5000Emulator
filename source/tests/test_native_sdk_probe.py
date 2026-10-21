@@ -190,6 +190,23 @@ class NativeSdkProbeTests(unittest.TestCase):
             other=copy.deepcopy(state);other['connectivity']['native_programming_lease']['resilient_transport']['download_image']=value
             with self.assertRaises(ValueError):validate_idle(other)
 
+    def test_source_object_verification_must_be_idle_empty_and_without_install_authority(self):
+        from logixlab.resilient_transport import ResilientTransport
+        state=self.state();lease=state['connectivity']['native_programming_lease']
+        lease['resilient_transport']=ResilientTransport().description();validate_idle(state)
+        for field,value in (('status','matched'),('programs_matched',1),('routines_matched',1),
+                ('symbols_matched',1),('symbols_unresolved',1),('symbols_matched',False),
+                ('errors',['native_object_source_mismatch']),('identity_checks_only',False),
+                ('table_identities_verified',True),('compiled_code_verified',True),('addresses_verified',True),
+                ('install_authority',True),('active_catalog_replaced',True),('commit',True)):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['source_object_verification'][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_idle(other)
+        for value in (None,{},[]):
+            other=copy.deepcopy(state)
+            other['connectivity']['native_programming_lease']['resilient_transport']['source_object_verification']=value
+            with self.assertRaises(ValueError):validate_idle(other)
+
     def test_source_type_verification_must_be_idle_and_not_retain_prior_matches(self):
         from logixlab.resilient_transport import ResilientTransport
         state=self.state();lease=state['connectivity']['native_programming_lease']
@@ -497,7 +514,7 @@ class NativeSdkProbeTests(unittest.TestCase):
         self.assertEqual(result['requests_observed'],1)
         self.assertEqual(result['unparsed_events'],1)
         self.assertEqual(result['first_failed_request'],dict(time=1.5,service=6,class_id=0x412,instance=0,
-            attribute=None,program_instance=None,io_map_instance=None,controller_instance=None,symbolic=False,
+        attribute=None,program_instance=None,io_map_instance=None,controller_instance=None,aoi_instance=None,symbolic=False,
             status=15,sequence=7,payload_bytes=0))
         self.assertEqual(result['mac_verification'],'not performed by report parser')
         self.assertEqual(edit_trace_evidence(trace, {'steps':[]})['status'],'import_not_reached')

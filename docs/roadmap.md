@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.105` adds [AOI-scoped Routine discovery](aoi-metadata.md#aoi-scoped-routines).
+Current milestone: `.106` adds [download source object identity checks](source-object-identities.md).
+Program/Routine ID sets and known Symbol scopes are checked before temporary
+objects are published. Extra internal Symbols remain explicitly unresolved;
+cached binding changes reject processing and result queries. Full device commit
+and vendor result encoding remain unfinished.
+
+Version `.105` adds [AOI-scoped Routine discovery](aoi-metadata.md#aoi-scoped-routines).
 Original ACD child IDs retain their AOI parents, including sparse pagination and
 available source descriptions. Signed fixtures and a separate unchanged offline
 project exercise discovery without the SDK; protected children stay unavailable.
