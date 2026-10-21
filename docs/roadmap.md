@@ -6,12 +6,18 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.132` adds [signed read transport framing and detached assembly](read-transport.md).
+Current milestone: `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
+Of 809 saved Routine source streams, 806 decode with their Standard/Safety class
+and Original/TestEdits state preserved. Test-edit pairs retain both records and
+their shared RegionId; no active source is selected. Three unsupported containers
+remain explicit errors. The edit/import profile remains separate and strict.
+Next, resolve the earlier client interpretation failure, then establish scoped
+source association and the remaining upload stream semantics. The live endpoint
+still rejects `0x3A`; native upload, download and reconstruction remain unfinished.
+
+Version `.132` adds [signed read transport framing and detached assembly](read-transport.md).
 All 4,333 saved `0x3A` exchanges reassemble into 2,394 complete streams. The
 isolated revision-11 trial is exercised by Studio but does not advance upload.
-The live endpoint retains its existing partial revision and rejects `0x3A`.
-Next, establish Routine source-stream semantics and the earlier client-side
-interpretation failure without replaying captured source into another project.
 
 Version `.131` adds [the remaining guarded Routine bulk fields](routine-bulk-metadata.md),
 including live header references, role flags, original opaque source metadata

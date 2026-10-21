@@ -70,7 +70,8 @@ class RoutineSource:
                 'text_exposed':False,'source_applied':False}
 
 
-def decode(data):
+def _container(data):
+    """Read the bounded shared compression framing; assign no XML profile."""
     if not isinstance(data,bytes):raise SourceError('routine_source_bytes_required')
     size,aux_offset,aux_size=source_header(data,len(data))
     stored,expanded=struct.unpack_from('<II',data,32);compressed=stored&0x3FFFFFFF
@@ -80,6 +81,11 @@ def decode(data):
     version,aux_expanded=struct.unpack_from('<II',data,aux_offset)
     if version!=1:raise SourceError('routine_source_auxiliary_profile')
     auxiliary=inflate(data[aux_offset+8:aux_offset+aux_size],aux_expanded,MAX_AUXILIARY)
+    return xml,auxiliary
+
+
+def decode(data):
+    xml,auxiliary=_container(data)
     try:
         # This observed stream declares UTF-16 but carries UTF-8 text. Decode
         # the bounded bytes explicitly; do not let the declaration guess it.
@@ -123,6 +129,7 @@ def resolve(source,project,symbols,routines,types,program):
     This returns neutral text for inspection. It does not validate execution,
     compare the ELF with source, change a project or commit controller edits.
     """
+    if type(source) is not RoutineSource:raise SourceError('routine_source_edit_profile_required')
     from .model import parse_rung,Branch,ModelError,INT_BITS,Memory,split_indices
     catalogs=(symbols,routines,types)
     if any(c is None or c.source_l5x_sha256!=project.sha256 for c in catalogs):
@@ -257,6 +264,7 @@ def resolve(source,project,symbols,routines,types,program):
 
 def candidate_project(source,neutral,project,program):
     """Build an independent routine table; preserve original artifact bindings."""
+    if type(source) is not RoutineSource:raise SourceError('routine_source_edit_profile_required')
     import copy
     if len(neutral)!=len(source.rungs):raise SourceError('ioi_candidate_rung_count_mismatch')
     key=(program+'/'+source.name).casefold()

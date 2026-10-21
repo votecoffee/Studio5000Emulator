@@ -4,6 +4,18 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.133` adds [read-only Routine upload-source decoding](upload-routine-source.md).
+All 806 supported containers in the saved upload retain their Standard/Safety
+class and Original/TestEdits state. The 14,414 rung records include 15 adjacent
+`IR`/`R` pairs with shared RegionIds; no active record is selected. Three other
+containers retain an explicit unsupported compression-header error. Metadata
+omits source text, names and native regions by default. Completed scoped
+selector-`(1, 3)` reads can be inspected through the detached read assembler.
+The online-edit/import XML profile remains strict, and its resolver/planner
+reject the distinct upload result type. No live `0x3A` handler, source installation
+or native transfer authority is added. The latest SDK upload remains blocked
+before requesting source streams; full native transfer remains unfinished.
+
 Version `.132` adds [signed read-stream decoding and bounded detached assembly](read-transport.md)
 for Message Router `0x3A`. All 4,333 saved exchanges frame into 2,394 complete
 streams totaling 1,100,885 bytes. Reports retain scope, offsets, lengths and

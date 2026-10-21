@@ -69,10 +69,11 @@ successful 22-field Routine reply. That change does not resolve the current
 failure and is not shipped. The next successful reference step uses `0x3A`;
 the failing SDK attempt does not reach it.
 
-The live endpoint still rejects `0x3A`; this revision adds analysis primitives
-without native stream-read or write authority. Routine source semantics, full
-native upload/download and native client reconstruction remain unfinished or
-unverified.
+Version `.133` adds separate [Routine upload-source inspection](upload-routine-source.md)
+for completed Routine selector-`(1, 3)` streams. The live endpoint still rejects
+`0x3A`; these are analysis primitives without native stream-read or write authority.
+Source association, full native upload/download and native client reconstruction
+remain unfinished or unverified.
 
 All 324 affected checks pass; the full suite was not rerun. The restarted demo
 passes 274 live checks and native SDK Go Online/Go Offline across 75 verified

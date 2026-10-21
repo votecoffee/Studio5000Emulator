@@ -1,5 +1,10 @@
 # Routine source containers and object references
 
+This is the strict online-edit/import source profile. Version `.133` adds a
+separate [read-only upload-source profile](upload-routine-source.md) for XML that
+retains Standard/Safety class and Original/TestEdits state. Upload records are
+rejected by this profile's edit resolver and candidate planner.
+
 Version `.87` extends [compiled edit staging](edit-transfer.md) with the source
 container sent after the compiled ELF. Both belong to the same reserved,
 source-bound RLL routine. Receipt of a complete ELF acknowledges temporary

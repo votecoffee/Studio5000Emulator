@@ -12,10 +12,13 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.132` adds [signed read-stream decoding and bounded assembly](docs/read-transport.md)
-for Message Router `0x3A`, covering 4,333 saved exchanges and 2,394 complete
-streams. The revision-11 trial does not resolve the upload failure; the normal
-endpoint retains its partial legacy revision.
+Version `.133` adds [read-only Routine upload-source decoding](docs/upload-routine-source.md).
+It decodes 806 saved source streams while retaining separate Standard, Safety
+and TestEdits profiles, including paired edit regions. Three unsupported
+containers remain explicit errors. This adds source inspection; native upload
+still fails before requesting these streams.
+It retains [signed read-stream decoding and bounded assembly](docs/read-transport.md)
+for Message Router `0x3A`, covering 4,333 saved exchanges and 2,394 complete streams.
 It retains [the guarded RLL bulk metadata](docs/routine-bulk-metadata.md):
 live header references, main/subroutine flags, original opaque source-key
 metadata and unsigned model state. The supported profile can supply all 22

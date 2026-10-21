@@ -150,3 +150,8 @@ class Assembly:
     def value(self):
         if not self.complete:raise Error('Read stream is incomplete')
         return bytes(self._data)
+
+    def routine_source(self):
+        """Inspect a complete scoped source read using its separate upload profile."""
+        from .upload_routine_source import decode_assembly
+        return decode_assembly(self)
