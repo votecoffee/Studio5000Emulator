@@ -28,6 +28,11 @@ Their individual absence checks remain conservative across the complete source.
 Other Program-scoped catalogs remain unsupported unless separately documented.
 See [Program catalog discovery](program-catalog-discovery.md).
 
+Version `.129` adds [original Routine Type words](routine-types.md) to validated
+Program- and AOI-scoped Executable bindings. Legacy manifests and unsupported
+record layouts retain unavailable Type fields; L5X language names do not supply
+wire values. Shared offline framing preserves those numeric parent scopes.
+
 Version `.128` adds separate [empty Device Diagnostic Object (`0x3B0`) discovery](device-diagnostic-objects.md),
 requiring its own explicit original ACD collection with no active definitions.
 Shared offline framing covers populated object fields without exposing them in

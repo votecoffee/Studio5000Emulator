@@ -54,6 +54,11 @@ See [Program catalog discovery](program-catalog-discovery.md).
 
 ### Collection attribute lists
 
+Version `.129` adds [scoped Executable (`0x6D`) Type and legacy-description framing](routine-types.md#offline-framing).
+Instance fields require exactly one numeric Program or AOI parent. Unscoped
+class-revision reads stay outside that schema. Parent identities, individual
+errors and partial suffixes remain visible without exposing values by default.
+
 Version `.128` adds [Device Diagnostic Object (`0x3B0`) instance framing](device-diagnostic-objects.md#shared-offline-decoder)
 for Profile ID, Enable and counted 16-bit Conditions. Original source absence
 checks govern the separate empty runtime catalog. Decoding populated saved

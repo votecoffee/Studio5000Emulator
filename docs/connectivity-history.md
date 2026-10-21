@@ -4,6 +4,18 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.129` adds [source-bound Routine Type words](routine-types.md) for the
+unprotected format-54/body-371 ACD profile. Older manifests and other layouts
+withhold Type; Program and AOI parent scopes remain distinct. An owned RLL/ST
+project passes native Offline save/reopen validation. Shared offline framing
+covers all 809 recorded Type replies, excluding separate class-revision reads.
+The isolated SDK upload accepts Type in both a single-field and bulk request,
+then fails because the other 21 requested Routine fields remain unavailable.
+Its complete trace retains 360 expanded leaf requests; 357 signed requests are
+verified. Offline/cleanup and unchanged source/model are confirmed, with no
+reported fatal SDK fault. Full transfer remains unfinished. All 182 affected
+checks pass; the full suite was not rerun.
+
 Version `.128` adds [empty Device Diagnostic Object discovery](device-diagnostic-objects.md)
 from explicit original ACD collections and shared offline framing for populated
 object fields. Nonempty sources remain unavailable to the runtime; all 132

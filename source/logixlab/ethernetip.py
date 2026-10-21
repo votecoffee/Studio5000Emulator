@@ -1005,7 +1005,8 @@ class Router:
             routine=native.lookup(program['name'],name)
             if routine is None or routine.program_instance!=program_instance:
                 raise CIPError(0x0C,'Native Executable inventory is incomplete for this Program')
-            rows.append({'id':routine.instance,'name':name,'program':program['name'],'program_instance':program_instance})
+            rows.append({'id':routine.instance,'name':name,'program':program['name'],'program_instance':program_instance,
+                         'type_word':routine.type_word})
         return sorted(rows,key=lambda row:row['id'])
 
     def aoi_routines(self,aoi_instance):
@@ -1021,10 +1022,16 @@ class Router:
         if {r.name.casefold() for r in found}!=expected or any(r.aoi_instance!=aoi_instance for r in found):
             raise CIPError(0x0C,'AOI Executable inventory differs from the selected parent')
         by_name={r.name.casefold():r for r in metadata.routines}
-        return sorted(({'id':r.instance,'metadata':by_name[r.name.casefold()]} for r in found),key=lambda r:r['id'])
+        return sorted(({'id':r.instance,'metadata':by_name[r.name.casefold()],'type_word':r.type_word} for r in found),key=lambda r:r['id'])
+
+    def routine_type_attributes(self,binding,type_word):
+        identity=getattr(self.app,'native_project_identity',None);source=self.app.engine.project.sha256
+        if (type_word is None or binding is None or identity is None or identity.source_l5x_sha256!=source or
+                binding.source_l5x_sha256!=source or binding.source_acd_sha256!=identity.source_acd_sha256):return {}
+        return {1:struct.pack('<H',type_word)}
 
     def routine_service(self,service,path,data,limit):
-        if path.symbols or path.instance is None:
+        if path.symbols or path.instance is None or path.io_map_instance is not None or path.controller_instance is not None:
             raise CIPError(4,'Executable metadata requires a numeric instance path')
         if path.aoi_instance is not None:
             if service==0x4B:return self.instance_list(path,data,limit)
@@ -1034,6 +1041,7 @@ class Router:
                 row=next((row for row in rows if row['id']==path.instance),None)
                 if row is None:raise CIPError(5,'Unknown Executable instance in the selected AOI')
                 attributes=row['metadata'].attributes()
+                attributes.update(self.routine_type_attributes(self.app.native_aoi_routines,row['type_word']))
             return self.attribute_read(service,path,data,attributes)
         if path.program_instance is None:
             if path.instance==0 and service in (3,0x0E):
@@ -1049,6 +1057,7 @@ class Router:
             if routine is None:raise CIPError(5,'Unknown Executable instance in the selected Program')
             attributes=self.app.engine.project.executable_configuration.attributes(
                 routine['program'],routine['name'],source_sha256=self.app.engine.project.sha256)
+            attributes.update(self.routine_type_attributes(self.app.native_routines,routine['type_word']))
         return self.attribute_read(service,path,data,attributes)
 
     def task_service(self,service,path,data,limit):

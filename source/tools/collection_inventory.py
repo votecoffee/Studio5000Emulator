@@ -7,7 +7,7 @@ security authority, clock measurements or native upload acceptance.
 import hashlib
 from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as time_sync_list
 
-CLASSES = (0x43, 0x64, 0x67, 0x68, 0x70, 0x8B, 0xF5, 0xF6, 0x3B0, 0x3B2)
+CLASSES = (0x43, 0x64, 0x67, 0x68, 0x6D, 0x70, 0x8B, 0xF5, 0xF6, 0x3B0, 0x3B2)
 FIXED = {0x67: {1: 2, 2: 4},
          0x68: {1:2,2:4,3:4,5:4,7:4,9:4,11:2,13:4,15:2,16:4,19:1,
                 20:44,21:44,22:4,24:4,25:4,26:2,27:4,29:1,30:1,31:1},
@@ -16,7 +16,7 @@ FIXED = {0x67: {1: 2, 2: 4},
          0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1},
-         0x3B0: {1:4,2:1}, 0x3B2: {3:2}}
+         0x6D: {1:2}, 0x3B0: {1:4,2:1}, 0x3B2: {3:2}}
 
 
 class CollectionError(ValueError):
@@ -25,7 +25,17 @@ class CollectionError(ValueError):
 
 def instance_supported(class_id, instance):
     return (type(class_id) is int and class_id in CLASSES and type(instance) is int and
-            (1<=instance<=0xFFFFFFFF if class_id in (0x68,0x70,0x3B0,0x3B2) else instance==1))
+            (1<=instance<=0xFFFFFFFF if class_id in (0x68,0x6D,0x70,0x3B0,0x3B2) else instance==1))
+
+
+def scope_supported(class_id,*,program_instance=None,aoi_instance=None,io_map_instance=None,controller_instance=None):
+    """Executable instance fields require exactly one ordinary numeric parent."""
+    parents=(program_instance,aoi_instance)
+    if class_id==0x6D:
+        supplied=[value for value in parents if value is not None]
+        return (io_map_instance is None and controller_instance is None and len(supplied)==1 and
+                type(supplied[0]) is int and 1<=supplied[0]<=0xFFFFFFFF)
+    return all(value is None for value in (*parents,io_map_instance,controller_instance))
 
 
 class Cursor:
@@ -64,6 +74,8 @@ def attribute_value(cursor, class_id, attribute):
         count=int.from_bytes(cursor.take(1),'little')
         if count>(40 if attribute==1 else 128):raise CollectionError('Diagnostic string exceeds its bound')
         cursor.take(count)
+    elif class_id==0x6D and attribute==7:
+        cursor.string(128)
     elif class_id == 0x64 and attribute in (1, 2, 3, 6):
         # These installed v35 strings carry a UINT count without word padding.
         cursor.string(40 if attribute == 1 else 128)

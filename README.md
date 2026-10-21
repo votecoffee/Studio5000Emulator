@@ -12,10 +12,11 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.128` adds [source-bound empty Device Diagnostic Object discovery](docs/device-diagnostic-objects.md)
-and offline framing for populated object fields. The isolated SDK upload passes
-that discovery and reaches Routine Type reads; full transfer still fails.
-It retains [empty diagnostic profile discovery](docs/device-diagnostic-profiles.md) and
+Version `.129` adds [original Routine Type words](docs/routine-types.md),
+preserving Program and AOI parent scopes. The isolated SDK upload accepts Type
+and reaches further Routine metadata reads; full transfer still fails.
+It retains [empty Device Diagnostic Object discovery](docs/device-diagnostic-objects.md),
+[empty diagnostic profile discovery](docs/device-diagnostic-profiles.md) and
 [original diagnostic message IDs, codes and revisions](docs/device-diagnostic-messages.md).
 It retains [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md),
 original [Program and Task reference symbols](docs/reference-symbols.md),

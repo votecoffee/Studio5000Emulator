@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.128` adds [source-bound empty Diagnostic Object discovery](device-diagnostic-objects.md)
+Current milestone: `.129` adds [original Routine Type words](routine-types.md)
+for the validated original ACD record profile. The isolated SDK upload accepts
+Type and reaches a bulk Routine metadata read. The remaining 21 fields,
+including Code Address, stay unavailable. Full native transfer and Routine
+reconstruction remain unfinished.
+
+Version `.128` adds [source-bound empty Diagnostic Object discovery](device-diagnostic-objects.md)
 and shared offline framing for populated object fields. The isolated SDK upload
 accepts the new list and reaches Program-scoped Routine Type reads (`0x6D`,
 attribute 1), which remain unsupported. Full transfer and reconstructed Routine

@@ -4,6 +4,8 @@ The owned v35 source establishes component type 256, header version 0 and
 body format 54. Its six UINT16 logical words describe Program 0x68 parent
 and Executable 0x6D child IDs. Nothing here reads compiled code or addresses,
 generates IDs from source order, or grants native edit/execution authority.
+The unprotected 371-byte body profile also retains its original Type word;
+other body layouts retain identities without inventing that field.
 """
 from dataclasses import dataclass
 import gzip
@@ -110,9 +112,15 @@ def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
         if key in found:raise ModelError('Duplicate or ambiguous historical native routine records')
         pair=(logical[1],logical[3])
         if pair in instances:raise ModelError('Conflicting native routine child instances')
-        found[key]=pair;instances.add(pair)
+        type_word=None
+        # The ordinary unprotected format-54/body-371 data area starts at 90.
+        # Other layouts still supply identities but no guessed Type attribute.
+        if (len(body)==371 and struct.unpack_from('<4I',body,74)==(297,9,1,189)):
+            type_word=struct.unpack_from('<H',body,90)[0]
+        found[key]=(*pair,type_word);instances.add(pair)
     if found.keys()!=expected.keys():raise ModelError('Incomplete native routine inventory')
-    return [dict(expected[key],program_instance=found[key][0],instance=found[key][1]) for key in sorted(found)]
+    return [dict(expected[key],program_instance=found[key][0],instance=found[key][1],
+                 **({'type_word':found[key][2]} if found[key][2] is not None else {})) for key in sorted(found)]
 
 
 @dataclass(frozen=True)
@@ -121,15 +129,19 @@ class Routine:
     name: str
     program_instance: int
     instance: int
+    type_word: int | None = None
 
     def __post_init__(self):
         if any(not isinstance(value,str) or not NAME.fullmatch(value) for value in (self.program,self.name)):
             raise ModelError('Invalid native routine name')
         if any(type(value) is not int or not 1<=value<=0xFFFF for value in (self.program_instance,self.instance)):
             raise ModelError('Invalid native routine logical identity')
+        if self.type_word is not None and (type(self.type_word) is not int or not 0<=self.type_word<=0xFFFF):
+            raise ModelError('Invalid native routine Type word')
 
     def manifest(self):
-        return dict(program=self.program,name=self.name,program_instance=self.program_instance,instance=self.instance)
+        return dict(program=self.program,name=self.name,program_instance=self.program_instance,instance=self.instance,
+                    **({'type_word':self.type_word} if self.type_word is not None else {}))
 
 
 @dataclass(frozen=True,init=False)
@@ -146,7 +158,9 @@ class NativeRoutines:
             raise ModelError('Invalid or excessive native routine inventory')
         names={};instances={};programs={};program_names={};rows=[]
         for row in routines:
-            if not isinstance(row,dict) or set(row)!={'program','name','program_instance','instance'}:
+            required={'program','name','program_instance','instance'}
+            if (not isinstance(row,dict) or not required<=row.keys() or row.keys()-required-{'type_word'} or
+                    'type_word' in row and type(row['type_word']) is not int):
                 raise ModelError('Invalid native routine manifest fields')
             routine=Routine(**row);program=routine.program.casefold()
             key=(program,routine.name.casefold());pair=(routine.program_instance,routine.instance)
@@ -198,4 +212,7 @@ class NativeRoutines:
         return dict(bound=True,complete=True,routines=len(self.rows),programs=len({row.program_instance for row in self.rows}),
                     source='ACD Comps.Dat Executable format 54 and complete source routine names',
                     source_acd_sha256=self.source_acd_sha256,source_l5x_sha256=self.source_l5x_sha256,
+                    type_words_available=sum(row.type_word is not None for row in self.rows),
+                    type_word_source='Original unprotected format-54/body-371 data, UINT16 at offset 90',
+                    type_word_semantics_inferred=False,
                     compiled_code=False,compiled_addresses=False,native_edit_authority=False,runtime_equivalence=False)

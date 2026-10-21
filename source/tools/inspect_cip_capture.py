@@ -23,7 +23,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
 from logixlab import signed_messages
-from tools.collection_inventory import instance_supported as collection_instance, CollectionError, decode_attribute_list as decode_collection_list
+from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list as decode_collection_list
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_OUTPUT = 128 * 1024 * 1024
@@ -204,13 +204,19 @@ def describe(raw, include_payloads=False, *, unwrap=True):
 
 
 def time_sync_layout(request, response, raw, include_payloads):
-    if (collection_instance(request.get('class_id'),request.get('instance')) and
-            not request.get('symbolic_path') and not request.get('object_path') and
-            request.get('service') == 3 and request.get('attribute') is None and
+    target=request;parents={};scopes=request.get('object_path')
+    if scopes:
+        if len(scopes)!=2 or scopes[0].get('class_id') not in (0x68,0x338) or scopes[0].get('attribute') is not None:return
+        target=scopes[1]
+        if target.get('class_id')!=0x6D:return
+        parents['program_instance' if scopes[0]['class_id']==0x68 else 'aoi_instance']=scopes[0].get('instance')
+    if (collection_instance(target.get('class_id'),target.get('instance')) and
+            collection_scope(target.get('class_id'),**parents) and not request.get('symbolic_path') and
+            request.get('service') == 3 and target.get('attribute') is None and
             request.get('requested_attributes') and response.get('status') in (0, 6, 0x0A)):
-        key = 'time_sync_attribute_list' if request['class_id'] == 0x43 else 'collection_attribute_list'
+        key = 'time_sync_attribute_list' if target['class_id'] == 0x43 else 'collection_attribute_list'
         try:
-            response[key] = decode_collection_list(raw, request['requested_attributes'], request['class_id'],
+            response[key] = decode_collection_list(raw, request['requested_attributes'], target['class_id'],
                                                     include_payloads=include_payloads)
         except CollectionError as error:
             response[key] = {'structure': 'UNSUPPORTED OR MALFORMED', 'reason': str(error)}
