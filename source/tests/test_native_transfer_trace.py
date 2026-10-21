@@ -19,6 +19,30 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_correlated_collection_fields_preserve_errors_without_endpoint_gap_counters(self):
+        query=bytes.fromhex('0302204324010300020005000b00')
+        answer=bytes.fromhex('83000a0003000200000000050014000b0000000000')
+        result=tool.analyze({'events':[]},{'events':[event(query,answer)]},'upload')
+        self.assertEqual(result['collection_lists_observed'],1)
+        self.assertEqual(result['collection_layout_errors'],0)
+        self.assertTrue(result['analysis_complete'])
+        row,=result['collection_attribute_lists']
+        self.assertEqual(row['sequence'],7)
+        self.assertEqual([r['status'] for r in row['collection_attribute_list']['attributes']],[0,0x14,0])
+        self.assertEqual(result['endpoint_attribute_gaps'],[])
+
+    def test_bad_collection_framing_is_retained_and_reported_as_incomplete_analysis(self):
+        query=bytes.fromhex('03022064240101000100')
+        answer=bytes.fromhex('830000000100010000000300')+b'x'
+        result=tool.analyze({'events':[]},{'events':[event(query,answer)]},'upload')
+        self.assertEqual(result['requests_observed'],1);self.assertEqual(result['unparsed_events'],0)
+        self.assertEqual(result['collection_layout_errors'],1);self.assertFalse(result['analysis_complete'])
+        self.assertEqual(result['collection_attribute_lists'][0]['collection_attribute_list']['structure'],'UNSUPPORTED OR MALFORMED')
+        entries=[event(query,bytes.fromhex('830000000100010000000100')+b'x',sequence=i) for i in range(70)]
+        result=tool.analyze({'events':[]},{'events':entries},'upload')
+        self.assertEqual(result['collection_lists_observed'],70)
+        self.assertEqual(len(result['collection_attribute_lists']),64);self.assertTrue(result['collection_lists_truncated'])
+
     def test_original_identity_events_preserve_order_and_flags_without_names_or_error_text(self):
         types=dict(kind='native_source_type_verification',status='matched',types_matched=242,
             members_matched=13312,types_unavailable=0,template_ids_matched=242,template_ids_unresolved=0,

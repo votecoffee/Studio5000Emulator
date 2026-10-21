@@ -172,6 +172,10 @@ Version `.114` adds [source-checked empty Energy discovery](docs/connectivity.md
 for ordinary user types and the newer Base/Electrical discovery request. The
 isolated structured-project SDK upload passes Controller tag collection and
 reaches device/extended-device/memory collection, where it still fails.
+Version `.115` adds [field-level collection diagnostics](docs/native-transfer-diagnostics.md#collection-attribute-lists)
+to native transfer reports and offline capture analysis. Valid field layouts,
+unavailable attributes and undecoded layouts are reported separately. An isolated
+complete-clock experiment still fails device collection and is not shipped.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

@@ -23,7 +23,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
 from logixlab import signed_messages
-from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as decode_time_sync_list
+from tools.collection_inventory import CLASSES as COLLECTION_CLASSES, CollectionError, decode_attribute_list as decode_collection_list
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_OUTPUT = 128 * 1024 * 1024
@@ -204,15 +204,16 @@ def describe(raw, include_payloads=False, *, unwrap=True):
 
 
 def time_sync_layout(request, response, raw, include_payloads):
-    if (request.get('class_id') == 0x43 and request.get('instance') == 1 and
+    if (request.get('class_id') in COLLECTION_CLASSES and request.get('instance') == 1 and
+            not request.get('symbolic_path') and not request.get('object_path') and
             request.get('service') == 3 and request.get('attribute') is None and
             request.get('requested_attributes') and response.get('status') in (0, 6, 0x0A)):
+        key = 'time_sync_attribute_list' if request['class_id'] == 0x43 else 'collection_attribute_list'
         try:
-            response['time_sync_attribute_list'] = decode_time_sync_list(
-                raw, request['requested_attributes'], include_payloads=include_payloads)
-        except TimeSyncError as error:
-            response['time_sync_attribute_list'] = {'structure': 'UNSUPPORTED OR MALFORMED',
-                                                    'reason': str(error)}
+            response[key] = decode_collection_list(raw, request['requested_attributes'], request['class_id'],
+                                                    include_payloads=include_payloads)
+        except CollectionError as error:
+            response[key] = {'structure': 'UNSUPPORTED OR MALFORMED', 'reason': str(error)}
 
 
 def summarize(packets, include_payloads=False):

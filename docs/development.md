@@ -1042,6 +1042,13 @@ run for this diagnostic iteration.
 
 ## Optional protocol probes
 
+Version `.115` also frames [Controller collection attribute lists](native-transfer-diagnostics.md#collection-attribute-lists)
+for Extended Device, TCP/IP Interface, Ethernet Link and PLC message mapping.
+Default capture reports retain only field IDs, statuses, lengths and hashes.
+Explicit raw-field output follows the existing `--include-payloads` option.
+Unsupported successful fields retain structural errors instead of guessed
+offsets. The shared decoder also enriches native transfer checkpoint reports.
+
 The probes use the optional `pycomm3` client. Version 1.2.16 is used by the
 existing acceptance scripts; it is not an application dependency.
 

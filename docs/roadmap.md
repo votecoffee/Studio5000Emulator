@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.114` adds [empty Energy discovery for ordinary user types](connectivity.md#empty-energy-discovery-for-ordinary-user-types).
+Current milestone: `.115` adds [field-level Controller collection diagnostics](native-transfer-diagnostics.md#collection-attribute-lists)
+to checkpoint reports and offline captures. All 130 recognized lists in the
+successful reference recording frame correctly. A disposable complete-clock
+comparison still fails device collection; its generated datasets are not shipped.
+The remaining upload failure is not attributed to the last request or missing
+clock fields alone. Full native upload/download remain unfinished.
+
+Version `.114` adds [empty Energy discovery for ordinary user types](connectivity.md#empty-energy-discovery-for-ordinary-user-types).
 A disposable structured-project SDK upload passes Controller tag collection
 and reaches device/extended-device/memory collection before failing. The
 199-request exchange ends Offline with source/model preservation and cleanup

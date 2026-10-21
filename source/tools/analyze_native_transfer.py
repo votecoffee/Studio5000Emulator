@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import signed_messages as sm
 from logixlab.ethernetip import CIPError,decode_path
+from tools.collection_inventory import CLASSES as COLLECTION_CLASSES, CollectionError, decode_attribute_list
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -89,6 +90,12 @@ def request_row(child,result,sequence,ordinal):
             count=struct.unpack_from('<H',data)[0];row['attribute_list_count']=count
             if 1<=count<=32 and len(data)==2+2*count:
                 row['requested_attributes']=list(struct.unpack_from('<'+'H'*count,data,2))
+                if (path.class_id in COLLECTION_CLASSES and path.instance==1 and not path.symbols and
+                        all(getattr(path,name) is None for name in ('program_instance','io_map_instance','controller_instance','aoi_instance')) and
+                        result[2] in (0,6,0x0A)):
+                    try:row['collection_attribute_list']=decode_attribute_list(result,row['requested_attributes'],path.class_id)
+                    except CollectionError as error:
+                        row['collection_attribute_list']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     return row
 
 
@@ -125,6 +132,7 @@ def analyze(before,after,operation,report=None):
     failures=[];wrappers=[];tail=deque(maxlen=16);phases=[];objects=Counter();verifications=[]
     matched=envelopes=fragments=fragment_bytes=unparsed=failed=wrapper_count=phase_count=0
     verification_count=invalid_verifications=0
+    collections=[];collection_count=collection_errors=0
     limited=False
     for event in events:
         if event.get('kind') in VERIFICATIONS:
@@ -167,6 +175,10 @@ def analyze(before,after,operation,report=None):
             if matched+len(rows)>MAX_REQUESTS:limited=True;break
             for row in rows:
                 matched+=1;tail.append(row)
+                if 'collection_attribute_list' in row:
+                    collection_count+=1
+                    if row['collection_attribute_list'].get('structure')=='UNSUPPORTED OR MALFORMED':collection_errors+=1
+                    if len(collections)<MAX_REPORT_ROWS:collections.append(row)
                 key=tuple(row[k] for k in ('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'))
                 objects[key]+=1
                 if row['status']:
@@ -177,7 +189,7 @@ def analyze(before,after,operation,report=None):
     object_rows=[dict(zip(('class_id','instance','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),key),requests=count)
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
-        'analysis_complete':not (unparsed or limited or invalid_verifications),'signed_envelopes':envelopes,'requests_observed':matched,
+        'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors),'signed_envelopes':envelopes,'requests_observed':matched,
         'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'unparsed_events':unparsed,
         'request_limit_reached':limited,'failed_request_count':failed,'failed_requests':failures,
         'failures_truncated':failed>MAX_REPORT_ROWS,'last_requests':list(tail),
@@ -186,6 +198,8 @@ def analyze(before,after,operation,report=None):
         'preparation_events':phases,'preparation_events_truncated':phase_count>16,
         'source_verifications':verifications,'source_verifications_observed':verification_count,
         'source_verifications_invalid':invalid_verifications,'source_verifications_truncated':verification_count-invalid_verifications>16,
+        'collection_attribute_lists':collections,'collection_lists_observed':collection_count,
+        'collection_layout_errors':collection_errors,'collection_lists_truncated':collection_count>MAX_REPORT_ROWS,
         'endpoint_attribute_gaps':gaps,'attribute_gaps_truncated':gaps_truncated,
         'attribute_gap_scope':'all endpoint readers between checkpoints'}
 

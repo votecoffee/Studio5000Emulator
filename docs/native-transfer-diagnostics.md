@@ -39,6 +39,50 @@ the reader then reports an incomplete interval.
 
 ## Offline reader
 
+### Collection attribute lists
+
+Version `.115` decodes established instance-one attribute-list layouts for
+Time Sync (`0x43`), Extended Device (`0x64`), PLC message mapping (`0x67`),
+TCP/IP Interface (`0xF5`) and Ethernet Link (`0xF6`). Both saved capture analysis
+and checkpoint reports use the same bounded decoder. No SDK or network call is
+needed to analyze existing files.
+
+Checkpoint reports retain up to 64 `collection_attribute_lists`, with total
+observations, layout-error counts and a truncation flag. Each row retains its
+signed request sequence, ordinal, numeric object target and requested fields.
+Field rows contain ID, status, value byte count and a hash for successful values.
+These are responses correlated to the specific signed request, independently
+of the endpoint-wide attribute-gap counters. Attribute values remain omitted.
+The capture reader also permits explicit `--include-payloads`; its existing
+`time_sync_attribute_list` field remains compatible, and other recognized
+objects use `collection_attribute_list`.
+
+The decoder verifies request order, duplicates, exact field bounds and general
+versus field statuses. Partial replies retain their unreturned suffix separately.
+Unknown successful fields, unsupported nonempty trusted-slot layouts, truncation
+and trailing data retain an explicit `UNSUPPORTED OR MALFORMED` result. A
+malformed collection keeps the request in the checkpoint report and makes
+`analysis_complete` false. It does not hide other requests or count as native
+upload failure by itself. Value meanings and failure causes remain unassessed.
+
+Extended Device strings use the installed v35 UINT-length profile without word
+padding. TCP/IP domain and hostname strings use their separate padded profile;
+[OpENer's string encoder](https://github.com/EIPStackGroup/OpENer/blob/master/source/src/cip/cipcommon.c)
+provides an independent implementation reference. Ethernet Link counter fields
+retain their fixed array widths. No third-party implementation is bundled.
+
+Validation frames all 130 recognized collection lists in a completed successful
+v35 reference upload, including both partial Time Sync replies. Reanalysis of
+the `.114` structured-project SDK trace finds seven recognized lists with no
+layout errors and fourteen unavailable Time Sync fields. A separate disposable
+comparison supplies complete generated software-clock datasets with corrected
+counted vendor-address framing. It receives a successful full clock list but
+still fails `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` across 200 verified
+signed requests. Native Offline, cleanup and source/model preservation pass
+without a reported fatal SDK fault. The generated no-master conventions are
+experimental and are not loaded by the released app; they do not establish
+physical clock semantics or a completed native upload.
+
 ### Source verification results
 
 Version `.110` includes `source_verifications` in the derived report. Ordered

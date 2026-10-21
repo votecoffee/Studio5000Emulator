@@ -23,6 +23,22 @@ def packet(frame, raw, reference=None, stream=0):
 
 
 class CaptureInspectionTests(unittest.TestCase):
+    def test_device_collection_layouts_decode_plain_signed_and_batch_without_private_values(self):
+        query=bytes.fromhex('030220642401020001000800')
+        answer=bytes.fromhex('830000000200010000000300')+b'Lab'+bytes.fromhex('0800000000000000')
+        for request,response in ((query,answer),(signed_request(0x36,query),signed_response(0x36,answer)),
+                (batch((query,)),batch((answer,),response=True))):
+            report=summarize([packet(1,request),packet(2,response,1)])
+            decoded=report['exchanges'][0]['response']
+            if 'signed_envelope' in decoded:
+                envelope=decoded['signed_envelope'];decoded=envelope.get('inner') or envelope['children'][0]
+            self.assertEqual([r['value_bytes'] for r in decoded['collection_attribute_list']['attributes']],[5,4])
+            self.assertNotIn('Lab',json.dumps(report))
+        bad=answer+b'\0'
+        report=summarize([packet(1,query),packet(2,bad,1)])
+        self.assertEqual(report['exchanges'][0]['response']['collection_attribute_list']['structure'],'UNSUPPORTED OR MALFORMED')
+        self.assertFalse(report['skipped_packets'])
+
     def test_time_sync_layouts_decode_plain_signed_and_batch_replies(self):
         query = bytes.fromhex('030220432401020001000300')
         answer = bytes.fromhex('8300060001000100000000')
