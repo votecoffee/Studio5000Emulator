@@ -188,5 +188,20 @@ class ReferenceWireTests(unittest.TestCase):
             self.assertEqual(client.request(bytes((14,len(path)//2))+path),b'\x8e\0\0\0'+struct.pack('<H',0x1068))
         for key in ('tags','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
 
+    def test_independent_inventory_keeps_references_without_attempting_value_reads(self):
+        from tools.upload_inventory import collect_inventory,values
+        self.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True);self.app.endpoint=self.endpoint
+        self.endpoint.start();before=copy.deepcopy(self.app.state())
+        report=collect_inventory(self.endpoint)
+        scope=report['scopes'][0];rows={row['instance']:row for row in scope['symbols']}
+        for instance in (17,18):
+            self.assertIn(instance,rows)
+            self.assertEqual(values(rows[instance]['metadata'])[12],65535)
+            self.assertEqual(rows[instance]['value_state'],'table_unavailable')
+            self.assertIsNone(rows[instance]['value'])
+        self.assertFalse(any(row['instance'] in (17,18) for row in scope['tables']))
+        self.assertFalse(any(request['service']==0x4F and request['instance'] in (17,18) for request in report['requests']))
+        for key in ('tags','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
 
 if __name__=='__main__':unittest.main()

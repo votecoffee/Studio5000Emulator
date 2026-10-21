@@ -153,13 +153,18 @@ class InventoryTypesTcpTests(unittest.TestCase):
                 with self.assertRaises(InventoryError):collect_inventory(self.endpoint)
             self.assertEqual(len(calls),1);self.assert_closed_and_unchanged(before)
 
-    def test_successful_unestablished_multiply_code_is_rejected_before_definition_reads(self):
-        original=Router.attribute_read;before=copy.deepcopy(self.app.engine.memory.values)
+    def test_nonnull_multiply_code_is_rejected_before_definition_reads(self):
+        original=Router.attribute_read;request=AnonymousClient.request
+        before=copy.deepcopy(self.app.engine.memory.values);definition_reads=[]
         def changed(router,service,path,data,attributes):
-            if path.class_id==0x6C and path.instance:attributes={**attributes,7:bytes(4)}
+            if path.class_id==0x6C and path.instance:attributes={**attributes,7:struct.pack('<I',1)}
             return original(router,service,path,data,attributes)
-        with patch.object(Router,'attribute_read',changed):
-            with self.assertRaisesRegex(InventoryError,'no established decoder'):collect_inventory(self.endpoint)
+        def observed(client,raw,wrapper=0x36):
+            if raw[0]==0x4C:definition_reads.append(raw)
+            return request(client,raw,wrapper)
+        with patch.object(Router,'attribute_read',changed),patch.object(AnonymousClient,'request',observed):
+            with self.assertRaisesRegex(InventoryError,'nonnull Template code reference'):collect_inventory(self.endpoint)
+        self.assertEqual(definition_reads,[])
         self.assert_closed_and_unchanged(before)
 
     def test_shape_and_template_size_disagreements_are_errors_even_with_successful_packets(self):

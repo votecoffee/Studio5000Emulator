@@ -77,5 +77,16 @@ monitoring.
 
 Focused checks cover source parsing, metadata framing, real object resolution,
 reset, stale bindings, unsupported kinds, scope, enumeration and denied value
-access. Two unrelated fixed-array storage assertions were also corrected after
-reproducing their failures on `.123`; array storage behavior is unchanged.
+access. The independent signed TCP inventory reader preserves both reference
+descriptors without attempting value reads or adding storage tables.
+
+The restarted released `.124` demo passes SDK Go Online/Go Offline across 75
+verified signed requests, with Offline/cleanup, unchanged source/model and no
+reported fatal SDK fault. All 292 affected software checks and 47 live readback
+checks pass. The full suite was not rerun. The deployed 88 app modules, webpage,
+packaged assets and Windows executable version match the source.
+
+Two unrelated fixed-array storage assertions and a null Template-code decoder
+assertion were corrected after reproducing their failures on `.123`. Existing
+array storage and null-code decoding behavior is unchanged. The decoder check
+now verifies that a nonnull code reference stops before definition reads.

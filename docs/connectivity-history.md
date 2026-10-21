@@ -11,6 +11,10 @@ Symbol descriptors. References have no tag-value or Data Table storage.
 The isolated SDK upload reads both added references and all 22 Program fields,
 then requests Program-scoped Data Table discovery. It still reports a Program
 upload failure. Full native transfer and Studio GUI monitoring remain unfinished.
+The restarted release passes SDK Go Online/Go Offline with 75 verified signed
+requests; Offline/cleanup, unchanged source/model and no fatal SDK fault are
+confirmed. All 292 focused software checks and 47 live readbacks pass without
+rerunning the full suite. Source, webpage and executable versions match `.124`.
 
 Version `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
 Explicit settings keep precedence; unknown, enabled-redundancy and unsupported
