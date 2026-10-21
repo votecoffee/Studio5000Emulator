@@ -6,10 +6,16 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.127` adds [source-bound empty diagnostic profile discovery](device-diagnostic-profiles.md).
+Current milestone: `.128` adds [source-bound empty Diagnostic Object discovery](device-diagnostic-objects.md)
+and shared offline framing for populated object fields. The isolated SDK upload
+accepts the new list and reaches Program-scoped Routine Type reads (`0x6D`,
+attribute 1), which remain unsupported. Full transfer and reconstructed Routine
+logic remain unverified.
+
+Version `.127` adds [source-bound empty diagnostic profile discovery](device-diagnostic-profiles.md).
 The isolated SDK upload accepts the new list and advances to Device Diagnostic
-Objects (`0x3B0`). Those objects may depend on runtime hardware; an empty source
-collection alone does not prove their runtime inventory. Full native transfer
+Objects (`0x3B0`). Profile absence alone does not establish the object inventory.
+Version `.128` adds separate original ACD collection checks. Full native transfer
 and reconstructed Routine logic remain unverified.
 
 Version `.126` adds [original device diagnostic message definitions](device-diagnostic-messages.md)

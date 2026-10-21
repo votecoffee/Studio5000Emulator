@@ -28,9 +28,14 @@ Their individual absence checks remain conservative across the complete source.
 Other Program-scoped catalogs remain unsupported unless separately documented.
 See [Program catalog discovery](program-catalog-discovery.md).
 
+Version `.128` adds separate [empty Device Diagnostic Object (`0x3B0`) discovery](device-diagnostic-objects.md),
+requiring its own explicit original ACD collection with no active definitions.
+Shared offline framing covers populated object fields without exposing them in
+the runtime.
+
 Version `.127` adds separate [empty Device Diagnostic Profile (`0x3B1`) discovery](device-diagnostic-profiles.md),
 requiring an explicit original ACD collection and no active profile definitions.
-It does not infer empty runtime Device Diagnostic Objects from that source.
+It does not infer empty Device Diagnostic Objects from profile absence.
 
 Version `.126` adds the separate, nonempty Device Diagnostic Message (`0x3B2`)
 catalog from original ACD definitions. This is source metadata rather than a

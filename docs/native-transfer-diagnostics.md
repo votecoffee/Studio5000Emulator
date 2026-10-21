@@ -54,6 +54,11 @@ See [Program catalog discovery](program-catalog-discovery.md).
 
 ### Collection attribute lists
 
+Version `.128` adds [Device Diagnostic Object (`0x3B0`) instance framing](device-diagnostic-objects.md#shared-offline-decoder)
+for Profile ID, Enable and counted 16-bit Conditions. Original source absence
+checks govern the separate empty runtime catalog. Decoding populated saved
+responses does not implement nonempty runtime objects or copy their values.
+
 Version `.126` adds Device Diagnostic Message (`0x3B2`) instance framing:
 USINT-counted Message ID and Message Code strings, bounded at 40 and 128 bytes,
 and a two-byte revision. Class instance zero and parent-scoped paths are excluded

@@ -36,9 +36,10 @@ binding. The connectivity API reports availability and count under
 - Unbound instances, parent scopes, malformed payloads and configuration writes
   remain denied. Missing or stale source evidence returns an unavailable state.
 
-This does not implement nonempty profile definitions or Device Diagnostic
-Objects (`0x3B0`). The latter may include runtime hardware objects; an empty
-source collection alone does not establish their runtime inventory.
+This does not implement nonempty profile definitions. Version `.128` adds
+separate [empty Device Diagnostic Object (`0x3B0`) discovery](device-diagnostic-objects.md)
+using its own original ACD collection evidence. Profile absence alone does not
+establish that object inventory.
 
 ## Validation and limits
 

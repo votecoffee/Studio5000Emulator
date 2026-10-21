@@ -4,6 +4,17 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.128` adds [empty Device Diagnostic Object discovery](device-diagnostic-objects.md)
+from explicit original ACD collections and shared offline framing for populated
+object fields. Nonempty sources remain unavailable to the runtime; all 132
+fields across 44 saved reference objects frame without replaying their values.
+The isolated SDK upload accepts the new list and reaches Program-scoped Routine
+Type reads (`0x6D`, attribute 1), which remain unsupported. Its complete trace
+retains 360 expanded leaf requests; 357 signed requests are verified. Actual
+Offline/cleanup and source/model preservation are confirmed, with no reported
+fatal SDK fault. Full transfer remains unfinished. All 243 affected checks pass;
+the full suite was not rerun.
+
 Version `.127` adds [empty device diagnostic profile discovery](device-diagnostic-profiles.md),
 requiring explicit original ACD collection evidence and matching source hashes.
 Nonempty, absent, unsupported and stale sources remain unavailable. Class
