@@ -44,6 +44,13 @@ events and report loss. A discarded checkpoint still makes analysis incomplete.
 
 ## Offline reader
 
+Version `.132` adds [signed `0x3A` read-stream framing](read-transport.md).
+The first request retains its object scope; replies retain raw chunk sizes,
+offsets and hashes separately from embedded CIP responses. Checkpoint reports
+count these frames and bytes separately. No operation status is inferred from
+chunk contents. Detached bounded assembly checks complete streams without
+dispatching captured requests or importing their values.
+
 Version `.125` retains well-framed object paths even when the live path decoder
 does not support that parent/child combination. Numeric parent scopes and
 rejected replies remain visible, with `object_path` and

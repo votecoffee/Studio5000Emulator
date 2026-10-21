@@ -12,7 +12,11 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.131` adds [the remaining guarded RLL bulk metadata](docs/routine-bulk-metadata.md):
+Version `.132` adds [signed read-stream decoding and bounded assembly](docs/read-transport.md)
+for Message Router `0x3A`, covering 4,333 saved exchanges and 2,394 complete
+streams. The revision-11 trial does not resolve the upload failure; the normal
+endpoint retains its partial legacy revision.
+It retains [the guarded RLL bulk metadata](docs/routine-bulk-metadata.md):
 live header references, main/subroutine flags, original opaque source-key
 metadata and unsigned model state. The supported profile can supply all 22
 requested Routine fields. Full transfer remains unfinished.
@@ -252,7 +256,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Atomic transfers | Reads/writes, fragmented transfers and integer OR/AND mask updates |
 | Structured transfers | Aligned numeric UDTs, explicit user LEN/DATA strings, packed Boolean flags and fragmented reads/writes |
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
-| Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches and observed single-inner `0x39` transfers with reply correlation; decoded captures never execute |
+| Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |

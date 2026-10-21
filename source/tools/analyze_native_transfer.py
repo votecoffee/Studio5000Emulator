@@ -6,6 +6,7 @@ the cause of a native client's higher-level failure. Payloads stay private.
 """
 from collections import Counter,deque
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import struct
@@ -13,9 +14,10 @@ import sys
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import signed_messages as sm
+from logixlab import read_transport as rt
 from logixlab.ethernetip import CIPError,decode_path
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list
-from tools.inspect_cip_capture import describe_path
+from tools.inspect_cip_capture import describe_path,describe
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -147,6 +149,7 @@ def analyze(before,after,operation,report=None):
     matched=envelopes=fragments=fragment_bytes=unparsed=failed=wrapper_count=phase_count=0
     verification_count=invalid_verifications=0
     collections=[];collection_count=collection_errors=0
+    reads=[];read_count=read_bytes=0
     limited=False
     for event in events:
         if event.get('kind') in VERIFICATIONS:
@@ -167,7 +170,7 @@ def analyze(before,after,operation,report=None):
             text=event.get('request_hex','')
             if not isinstance(text,str) or len(text)>2*sm.MAX_MESSAGE:raise ValueError('Request extent')
             raw=bytes.fromhex(text)
-            if not raw or raw[0] not in (0x36,0x37,0x38,0x39):continue
+            if not raw or raw[0] not in (0x36,0x37,0x38,0x39,0x3A):continue
             if event.get('truncated'):raise ValueError('Truncated event')
             text=event.get('response_hex','')
             if not isinstance(text,str) or len(text)>2*sm.MAX_MESSAGE:raise ValueError('Response extent')
@@ -180,6 +183,15 @@ def analyze(before,after,operation,report=None):
                         additional_status=list(struct.unpack('<'+'H'*response[3],response[4:]))))
                 continue
             reply=sm.parse_response(response,request);envelopes+=1
+            if isinstance(request,rt.ReadRequest):
+                read_count+=1;read_bytes+=len(reply.data)
+                if len(reads)<MAX_REPORT_ROWS:
+                    row=dict(sequence=request.sequence,request_format=request.container_format,request_position=request.position,
+                        response_format=reply.container_format,response_position=reply.position,chunk_bytes=len(reply.data),
+                        chunk_sha256=hashlib.sha256(reply.data).hexdigest(),complete=reply.container_format in (0x301,0x201))
+                    if request.inner:row['first_request']=describe(request.inner)
+                    reads.append(row)
+                continue
             if isinstance(request,sm.FragmentEnvelope):
                 fragments+=1;fragment_bytes+=len(request.fragment);continue
             children=(tuple(zip(request.children,reply.children)) if isinstance(request,sm.BatchEnvelope)
@@ -207,6 +219,8 @@ def analyze(before,after,operation,report=None):
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
         'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors),'signed_envelopes':envelopes,'requests_observed':matched,
         'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'unparsed_events':unparsed,
+        'read_transport_frames':reads,'read_transport_frames_observed':read_count,'read_transport_bytes':read_bytes,
+        'read_transport_frames_truncated':read_count>MAX_REPORT_ROWS,
         'request_limit_reached':limited,'failed_request_count':failed,'failed_requests':failures,
         'failures_truncated':failed>MAX_REPORT_ROWS,'last_requests':list(tail),
         'wrapper_rejections':wrappers,'wrapper_rejections_truncated':wrapper_count>MAX_REPORT_ROWS,

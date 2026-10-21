@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.131` adds [the remaining guarded Routine bulk fields](routine-bulk-metadata.md),
+Current milestone: `.132` adds [signed read transport framing and detached assembly](read-transport.md).
+All 4,333 saved `0x3A` exchanges reassemble into 2,394 complete streams. The
+isolated revision-11 trial is exercised by Studio but does not advance upload.
+The live endpoint retains its existing partial revision and rejects `0x3A`.
+Next, establish Routine source-stream semantics and the earlier client-side
+interpretation failure without replaying captured source into another project.
+
+Version `.131` adds [the remaining guarded Routine bulk fields](routine-bulk-metadata.md),
 including live header references, role flags, original opaque source metadata
 and canonical unsigned state. The supported RLL model supplies all 22 requested
 metadata fields. Full native transfer and Routine reconstruction remain

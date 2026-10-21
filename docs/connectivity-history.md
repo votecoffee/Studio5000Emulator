@@ -4,6 +4,24 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.132` adds [signed read-stream decoding and bounded detached assembly](read-transport.md)
+for Message Router `0x3A`. All 4,333 saved exchanges frame into 2,394 complete
+streams totaling 1,100,885 bytes. Reports retain scope, offsets, lengths and
+hashes without claiming an embedded CIP response or exposing bytes by default.
+Known-key synthetic checks cover MAC tampering, counters and invalid assembly.
+The live endpoint still rejects this service; no new stream execution or write
+authority is added. A private revision-11 trial is actually read by Studio but
+still fails Program upload after the successful 22-field Routine reply. The
+normal endpoint retains its partial legacy revision. Full native transfer and
+Routine reconstruction remain unfinished.
+All 324 affected checks pass; the full suite was not rerun. The final isolated
+SDK probe still fails Program upload after all 22 Routine fields return zero
+statuses. Its trace retains 364 expanded leaf requests, 360 verified signed
+requests and all 408 source-matched diagnostic fields; it reaches no `0x3A`
+read. Actual Offline/cleanup and unchanged source/model are confirmed, with no
+reported fatal SDK fault or physical-controller contact. The private Template
+snapshot and clock hypotheses remain separate from the normal demo.
+
 Version `.131` adds [live Routine headers, main/subroutine flags, original opaque source metadata and unsigned state](routine-bulk-metadata.md)
 for the guarded ordinary RLL profile. Field 8 is identified as Header Address,
 correcting the earlier UID label. Its live reference matches the Program main

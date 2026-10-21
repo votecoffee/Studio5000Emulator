@@ -1,4 +1,4 @@
-"""Offline codec for observed v35 Message Router 0x36-0x39 envelopes.
+"""Offline codec for observed v35 Message Router 0x36-0x3A envelopes.
 
 Parsing establishes structure only. Verification requires the caller's 20-byte
 test/session key and covers the complete CIP message before its MAC.
@@ -164,6 +164,9 @@ def parse_request(raw):
     """Decode one observed envelope without asserting MAC validity."""
     _bounded(raw)
     service = raw[0]
+    if service==0x3A:
+        from .read_transport import parse_request as parse_read
+        return parse_read(raw)
     if service not in (0x36, 0x37, 0x38, 0x39):
         raise EnvelopeError('Unsupported signed request service')
     if raw[1] != 2 or raw[2:6] != ROUTER_PATH:
@@ -210,6 +213,8 @@ def parse_response(raw, request):
     This function checks framing, embedded service and the echoed counter only.
     Use verify_response for a known-key MAC check.
     """
+    from .read_transport import ReadRequest,parse_response as parse_read_response
+    if isinstance(request,ReadRequest):return parse_read_response(raw,request)
     _bounded(raw)
     if isinstance(request,FragmentEnvelope):
         _fragment_context(request)

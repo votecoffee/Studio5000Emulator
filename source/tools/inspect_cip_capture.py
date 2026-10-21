@@ -22,7 +22,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from logixlab.ethernetip import CIPError, decode_path
-from logixlab import signed_messages
+from logixlab import signed_messages,read_transport
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list as decode_collection_list
 
 MAX_CAPTURE = 64 * 1024 * 1024
@@ -144,7 +144,16 @@ def describe_path(raw):
 def envelope_description(envelope, include_payloads):
     result = {'structure': 'DECODED', 'integrity': 'NOT VERIFIED',
               'sequence': envelope.sequence}
-    if isinstance(envelope,signed_messages.FragmentEnvelope):
+    if isinstance(envelope,read_transport.ReadRequest):
+        result.update(container_format=envelope.container_format,position=envelope.position,
+                      read_transport=True,continuation=not bool(envelope.inner))
+        if envelope.inner:result['first_request']=describe(envelope.inner,include_payloads,unwrap=False)
+    elif isinstance(envelope,read_transport.ReadChunk):
+        result.update(container_format=envelope.container_format,position=envelope.position,
+                      read_transport=True,chunk_bytes=len(envelope.data),chunk_sha256=hashlib.sha256(envelope.data).hexdigest(),
+                      complete=envelope.container_format in (0x301,0x201))
+        if include_payloads:result['chunk_hex']=envelope.data.hex()
+    elif isinstance(envelope,signed_messages.FragmentEnvelope):
         result.update(container_format=envelope.container_format,position=envelope.position,
                       fragment_bytes=len(envelope.fragment),fragment_sha256=hashlib.sha256(envelope.fragment).hexdigest())
         if envelope.container_format==0x101:result['first_request']=describe(envelope.fragment,include_payloads,unwrap=False)
@@ -194,7 +203,7 @@ def describe(raw, include_payloads=False, *, unwrap=True):
     if include_payloads:
         message['message_hex'] = raw.hex()
     if (unwrap and not message['response'] and message['class_id'] == 2 and message['instance'] == 1 and
-            message['attribute'] is None and not message['symbolic_path'] and service in (0x36, 0x37, 0x38, 0x39)):
+            message['attribute'] is None and not message['symbolic_path'] and service in (0x36, 0x37, 0x38, 0x39, 0x3A)):
         try:
             message['signed_envelope'] = envelope_description(signed_messages.parse_request(raw), include_payloads)
         except (signed_messages.EnvelopeError, ValueError) as error:
