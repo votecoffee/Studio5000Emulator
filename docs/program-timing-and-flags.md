@@ -51,3 +51,23 @@ Focused runtime and signed-wire checks cover measurement, rollback, source
 flags and access boundaries. Full native upload/download and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished. SDK connection acceptance
 does not establish Studio GUI acceptance or complete programming support.
+
+An isolated before/after SDK upload comparison accepts the new `2`, `3` and
+`31` fields, reducing unavailable fields in the full Program list from 12 to 9.
+The remaining fields are `1`, `5`, `7`, `11`, `16`, `20`, `21`, `26` and `29`.
+Synchronization stays unavailable because the test project's source omits that
+setting. Both attempts still report `RxCsE_UPLOAD_OF_PROGRAMS_FAILED`, across
+205 and 202 verified signed requests respectively, and confirm Offline,
+cleanup and unchanged source/model without a reported fatal SDK fault.
+
+That comparison uses disposable clock values and class revision substitutions
+to reach Program collection. Those experimental settings are not shipped; the
+released profile retains its actual clock capabilities. Passing more fields
+does not establish that the remaining fields alone cause the upload failure.
+
+The unpatched `.119` profile still fails during Controller collection across
+197 verified requests. The restarted demo separately passes SDK Go Online/Go
+Offline with 75 verified requests, clean Offline/cleanup and unchanged
+source/model without a reported fatal SDK fault. All 238 affected software tests
+and 24 live readback checks pass; the full suite was not rerun. The running app,
+served webpage and Windows executable versions agree.

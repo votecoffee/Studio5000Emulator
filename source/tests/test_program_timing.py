@@ -91,4 +91,3 @@ class ProgramTimingTests(unittest.TestCase):
             with self.assertRaises(ValueError):ProgramTiming(*args)
         with self.assertRaises(FrozenInstanceError):timing.executions=2
 
-

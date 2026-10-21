@@ -10,6 +10,8 @@ Current milestone: `.119` adds [measured Program durations and source flags](pro
 Last/maximum timings describe actual committed emulator scans. Explicit source
 flags describe synchronization and scheduling eligibility; folders cannot execute.
 Complete native transfer remains unfinished.
+The isolated before/after SDK comparison accepts three more Program fields,
+reducing unavailable fields from 12 to 9 while still failing Program upload.
 
 Version `.118` adds [Program Task owners, logical children and null fault references](program-hierarchy.md).
 The disposable complete-clock upload accepts all three new fields, reducing
