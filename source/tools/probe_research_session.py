@@ -209,7 +209,7 @@ def main():
     p.add_argument('--acd',type=Path,required=True);p.add_argument('--l5x',type=Path,required=True)
     p.add_argument('--device-payload',type=Path);p.add_argument('--expanded-bytes',type=int)
     p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--inventory',action='store_true',help='Read private Task/Program/tag inventory through a fresh owned TCP session')
+    p.add_argument('--inventory',action='store_true',help='Read private Template/Task/Program/tag inventory through a fresh owned TCP session')
     args=p.parse_args()
     if bool(args.device_payload)!=(args.expanded_bytes is not None):p.error('Supply both payload and expanded size')
     if args.acd.suffix.lower()!='.acd' or args.l5x.suffix.lower()!='.l5x':p.error('Select an ACD and complete L5X export')

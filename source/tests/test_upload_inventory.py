@@ -179,7 +179,7 @@ class InventoryTcpTests(unittest.TestCase):
 
     def tearDown(self):self.app.close();self.tmp.cleanup()
 
-    def test_actual_signed_inventory_reads_scalars_and_retains_arrays_aliases_and_constants(self):
+    def test_actual_signed_inventory_reads_scalars_and_retains_large_array_errors_aliases_and_constants(self):
         before=copy.deepcopy(self.app.engine.memory.values)
         report=collect_inventory(self.endpoint)
         self.assertTrue(report['catalog_consistent']);self.assertFalse(report['project_upload_complete'])
@@ -198,7 +198,9 @@ class InventoryTcpTests(unittest.TestCase):
         self.assertEqual(rows['ControlWord']['value'],32)
         self.assertEqual(rows['Command']['value'],2)
         self.assertEqual(rows['Observed']['value'],0)
-        self.assertEqual(rows['Transfer']['value_state'],'non_scalar_or_unsupported_type')
+        self.assertEqual(rows['Transfer']['value_state'],'read_failed')
+        self.assertEqual(rows['Transfer']['value_read']['status'],0x1B)
+        self.assertEqual(rows['Transfer']['array_dimensions'],[1200])
         self.assertEqual(rows['Fixed']['value_state'],'storage_unavailable')
         self.assertEqual(rows['CommandAlias']['value_state'],'table_unavailable')
         self.assertEqual(scopes[1]['symbols'][0]['instance'],3)

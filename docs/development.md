@@ -223,6 +223,16 @@ TCP scenarios complete 139 verified signed exchanges. The iteration passes
 43 focused tests (27 Task and 16 inventory tests); the full suite was not rerun.
 Task execution slot attribute 16 remains unavailable. Native SDK use remains
 paused, and the upload/download/edit acceptance boundaries are unchanged.
+
+Version `.102` extends the independent inventory reader with paginated Template
+definitions, multidimensional atomic arrays and raw UDT value bytes. It passes
+45 focused tests covering decoder bounds, actual signed TCP reads and cleanup
+after malformed replies. Separate source-bound array and structured-project
+probes pass 34 signed checks each. The structured temporary-download probe
+passes 44 signed checks, prepares 911 records and completes 70 inventory reads
+while preserving source files and model state. These probes use no SDK or
+Windows services. The full suite was not rerun; native transfer acceptance and
+typed UDT value decoding remain unfinished, and SDK testing remains held.
 The frozen `.81` protocol probe passes 24 signed checks plus 56 independent
 inventory reads against the retained source pair. The rebuilt appliance passes
 15 focused wire checks; all 69 application modules and the served/packaged

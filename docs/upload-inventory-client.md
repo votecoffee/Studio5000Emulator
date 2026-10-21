@@ -10,7 +10,7 @@ from tools.upload_inventory import collect_inventory, Limits
 
 report = collect_inventory(owned_endpoint, read_values=True,
                            limits=Limits(instances=4096, programs=128,
-                                         tasks=32, routines=4096,
+                                         tasks=32, routines=4096, templates=1024,
                                          pages=128, requests=16384))
 ```
 
@@ -25,7 +25,7 @@ The reader:
   the same application instance, source bytes and generation for every request.
 - Reads Controller configuration and retains unsupported aggregate and handler
   responses as evidence. It does not invent a `POINTER` decoder.
-- Enumerates Program, Task, scoped Executable, Symbol and Data Table catalogs with bounded sparse-ID
+- Enumerates Template, Program, Task, scoped Executable, Symbol and Data Table catalogs with bounded sparse-ID
   pagination, independent class counts and exact attribute-list framing.
 - Reads Task priority, output-update/inhibit flags and explicitly available
   rate/watchdog values in wire microseconds. Task attribute 16 remains an
@@ -39,16 +39,37 @@ The reader:
 - Reads Program attribute 27 as a UDINT. A source-supported zero UDI-stack
   requirement remains distinct from an unavailable stack attribute.
 - Keeps controller and Program namespaces distinct and checks Symbol/Data Table
-  links, types, dimensions, value addresses and scalar element sizes.
-- Reads supported scalar bytes through Data Table service `0x4F` with selector
-  zero and the complete atomic width. The values come from wire replies.
+  links, types, dimensions, value addresses and element sizes.
+- Retrieves bounded Template definitions through service `0x4C`, preserving
+  member descriptors, raw offsets, definition bytes and their SHA-256 hashes.
+- Reads supported scalar and atomic-array bytes through Data Table service
+  `0x4F` with selector zero and the complete value width. Arrays decode in
+  row-major order with up to three dimensions checked against the Symbol rank.
+- Links structured values to observed Template IDs and retains their complete
+  wire bytes. It does not interpret UDT member offsets or decode typed UDT values.
 
 Unavailable catalogs retain `instances: null` and their status, separately
 from a successful empty catalog. Attribute failures remain individual rows;
 duplicates, byte alignment and response order are preserved. Missing storage,
-aliases, constants, arrays and unsupported types do not acquire zero values.
-Unknown scalar values retain their read failure. Nonfinite floating-point
-encodings retain raw bytes and an explicit label rather than invalid JSON.
+aliases, constants and unsupported types do not acquire zero values.
+Unknown values retain their read failure. Packed BOOL arrays remain unsupported.
+Nonfinite floating-point encodings retain raw bytes and an explicit label rather
+than invalid JSON; array reports also identify each affected element's coordinates.
+
+Template instance metadata includes attributes 1, 2, 4, 5, 6, 7 and 8. Missing
+fields retain their individual errors. Attribute 7, Multiply Code, has no
+established decoder; an unexpected successful value stops the inventory before
+definition parsing. Unknown fields never become invented null pointers.
+
+Definition reads cover the advertised aligned allocation, `4 * words - 20`,
+including three reserved zero bytes after the compact definition. Short final
+replies, empty progress, oversized chunks, contradictory partial status and
+nonzero reserved bytes fail decoding. Each definition and value is bounded to
+32 KiB, and all declared Template allocations together are bounded to 1 MiB.
+Definitions also require checked member counts, names and framing. Raw member
+offsets remain uninterpreted; `structured_values_decoded` is always false.
+Structured Symbols with a known but absent Template are consistency errors;
+unavailable Template catalogs remain unavailable.
 
 Task catalogs require a matching `NativeTasks` source binding. Task schedules
 also require matching source-bound Program identities and an explicit complete
@@ -85,11 +106,15 @@ its unavailable catalog and `executables: null`; it never becomes a successful
 empty list. The Routine budget counts every scoped entry, including repeated
 child IDs under different parents, and is checked before reading their metadata.
 
-`read_values=False` collects metadata without issuing scalar reads. Values read
+`read_values=False` collects metadata and Template definitions without issuing
+Data Table value reads. Values read
 with the default option are individually observed values, not one simultaneous
 snapshot; the reader does not freeze ongoing simulation. It closes only its
-own connection. Request, instance, Program, Task, scoped Routine and page budgets stop unexpectedly
-large or non-progressing inventories.
+own connection and waits briefly for its server-side cleanup on success and
+decode errors. Request, instance, Program, Task, scoped Routine, Template and
+page budgets stop unexpectedly large or non-progressing inventories. A complete
+value that exceeds the negotiated reply size retains its read error; the reader
+does not invent fragmented Data Table semantics.
 
 Reports include project names, tag names, observed values and raw read traffic.
 Keep saved reports in ignored local storage. Model descriptor addresses and
@@ -99,4 +124,5 @@ This is a model inventory, not an ACD export or a complete project upload.
 `project_upload_complete` is always false and native Studio acceptance remains
 unassessed. Focused tests cover malformed framing, duplicate/ordered fields,
 sparse pagination, scoped values, unsupported storage, source replacement,
-request budgets, denied targets, schedule resolution and actual owned TCP reads.
+request budgets, denied targets, schedule resolution, Template pagination,
+multidimensional arrays, raw UDT bytes and actual owned TCP reads.

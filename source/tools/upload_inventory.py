@@ -3,14 +3,20 @@
 The independent AnonymousClient performs the real TCP challenge/MAC exchange.
 This reader never opens a remote target, imports an ACD, creates a project,
 writes PLC data or claims a native Studio upload. It decodes bounded model
-catalogs and supported scalar values; unavailable fields remain explicit.
+catalogs, Template definitions and bounded values; unavailable fields remain explicit.
 """
-from dataclasses import dataclass
+from dataclasses import asdict,dataclass
+import hashlib
 import math
 import struct
 import time
 
 from .anonymous_client import AnonymousClient
+from logixlab.template_layout import decode as decode_template,LayoutError
+
+MAX_VALUE_BYTES=32768
+MAX_TEMPLATE_BYTES=32768
+MAX_TOTAL_TEMPLATE_BYTES=1024*1024
 
 
 class InventoryError(ValueError):
@@ -25,9 +31,10 @@ class Limits:
     requests: int = 16384
     tasks: int = 32
     routines: int = 4096
+    templates: int = 1024
 
     def __post_init__(self):
-        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('routines',4096),('pages',256),('requests',32768)):
+        for name, maximum in (('instances',4096),('programs',4096),('tasks',32),('routines',4096),('templates',1024),('pages',256),('requests',32768)):
             value=getattr(self,name)
             if type(value) is not int or not 1<=value<=maximum:
                 raise InventoryError('Invalid inventory '+name+' limit')
@@ -142,6 +149,9 @@ REVISION_SCHEMA={1:2,2:2,3:4,4:4,10:4}
 CONTROLLER_SCHEMA={3:2,7:2,8:2,9:1,13:4,15:1,16:2,17:1,23:1,25:4,26:4}
 SYMBOL_SCHEMA={1:'ascii16',2:2,3:4,5:4,6:4,7:2,8:12,9:1,10:1,11:1,12:4,14:4}
 TABLE_SCHEMA={1:12,2:2,3:4,6:2,7:4,8:4,9:2}
+# A successful Multiply Code field has no established decoder in this reader.
+# Missing values retain their error; they are never filled with a null address.
+TEMPLATE_SCHEMA={1:2,2:2,4:4,5:4,6:2,7:None,8:1}
 PROGRAM_SCHEMA={19:1,27:4,28:'ascii32'}
 TASK_SCHEMA={1:'task_program_list',2:4,6:2,12:4,16:4,18:4,19:4}
 # Only the legacy Description attribute has an established source decoder.
@@ -155,6 +165,43 @@ ATOMS={0xC1:('BOOL','B'),0xC2:('SINT','b'),0xC3:('INT','h'),0xC4:('DINT','i'),
 
 def values(reply):
     return {row['attribute']:row['value'] for row in reply.get('attributes') or [] if row['status']==0}
+
+
+def array_shape(code,dimensions):
+    """Check the Symbol rank against its three padded UDINT dimensions."""
+    if (type(code) is not int or not 0<=code<=0xFFFF or not isinstance(dimensions,(list,tuple))
+            or len(dimensions)!=3 or any(type(d) is not int or not 0<=d<=0xFFFFFFFF for d in dimensions)):
+        raise InventoryError('Invalid value type or dimensions')
+    shape=tuple(d for d in dimensions if d)
+    if tuple(dimensions)!=shape+(0,)*(3-len(shape)) or (code>>13)&3!=len(shape):
+        raise InventoryError('Value dimensions disagree with encoded rank')
+    return shape
+
+
+def decode_atomic_value(data,code,shape):
+    """Decode row-major atoms, preserving JSON-safe locations of nonfinite reals."""
+    if code not in ATOMS or not isinstance(shape,tuple) or len(shape)>3 or any(type(d) is not int or d<=0 for d in shape):
+        raise InventoryError('Unsupported atomic value shape')
+    dtype,fmt=ATOMS[code];count=math.prod(shape);width=struct.calcsize('<'+fmt)
+    if code==0xC1 and shape:raise InventoryError('Packed BOOL arrays have no inventory decoder')
+    if not isinstance(data,bytes) or not 1<=count*width<=MAX_VALUE_BYTES or len(data)!=count*width:
+        raise InventoryError('Value read size differs from its declared atomic shape')
+    items=[];nonfinite=[]
+    for index,(value,) in enumerate(struct.iter_unpack('<'+fmt,data)):
+        if dtype=='BOOL':
+            if value not in (0,1):raise InventoryError('Scalar BOOL is not zero or one')
+            value=bool(value)
+        if isinstance(value,float) and not math.isfinite(value):
+            coordinates=[];position=index
+            for dimension in reversed(shape):coordinates.append(position%dimension);position//=dimension
+            label='NaN' if math.isnan(value) else 'Infinity' if value>0 else '-Infinity'
+            nonfinite.append({'index':list(reversed(coordinates)),'value':label});value=None
+        items.append(value)
+    def reshape(offset,depth):
+        if depth==len(shape):return items[offset]
+        stride=math.prod(shape[depth+1:])
+        return [reshape(offset+i*stride,depth+1) for i in range(shape[depth])]
+    return reshape(0,0),nonfinite
 
 
 def match_task_schedules(task_catalog,task_rows,program_catalog,program_rows):
@@ -209,12 +256,14 @@ def match_task_schedules(task_catalog,task_rows,program_catalog,program_rows):
 class _Reader:
     def __init__(self,client,limits,read_values):
         self.client=client;self.limits=limits;self.read_values=read_values;self.requests=[]
+        self.template_rows={};self.template_catalog=None;self.template_bytes=0;self.template_reserved_bytes=0
 
     def exchange(self,service,class_id,instance,data=b'',program=None,attribute=None):
         # Fixed read services only. In particular 0x4B is a list service only
         # for these catalog classes, never a Create/setup opcode elsewhere.
-        if (service not in (1,3,0x0E,0x4B,0x4F) or
-                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6D,0x70) or
+        if (service not in (1,3,0x0E,0x4B,0x4C,0x4F) or
+                service==0x4B and class_id not in (0x68,0x6A,0x6B,0x6C,0x6D,0x70) or
+                service==0x4C and class_id!=0x6C or class_id==0x6C and program is not None or
                 class_id==0x6D and (type(program) is not int or not 1<=program<=0xFFFFFFFF) or
                 service==0x4F and class_id!=0x6A or service==0x0E and attribute is None):
             raise InventoryError('Unsupported inventory read service')
@@ -256,6 +305,47 @@ class _Reader:
             cursor=ids[-1]+1
         raise InventoryError('Inventory page budget exceeded')
 
+    def templates(self):
+        self.template_catalog=self.catalog(0x6C,max_instances=self.limits.templates)
+        rows=None if self.template_catalog['instances'] is None else []
+        names=set()
+        for instance in self.template_catalog['instances'] or []:
+            if instance>0xFFF:raise InventoryError('Template instance exceeds its Symbol type field')
+            metadata=self.attributes(0x6C,instance,TEMPLATE_SCHEMA);fields=values(metadata)
+            row={'instance':instance,'metadata':metadata,'definition_state':'metadata_unavailable','definition':None,
+                 'unavailable_attributes':[item['attribute'] for item in metadata.get('attributes') or [] if item['status']]}
+            rows.append(row);self.template_rows[instance]=row
+            if any(number not in fields for number in (2,4,5)):continue
+            size=4*fields[4]-20;compact=size-3
+            if not (1<=fields[2]<=4096 and 1<=fields[5]<=MAX_VALUE_BYTES and 1<=compact<size<=MAX_TEMPLATE_BYTES):
+                raise InventoryError('Template sizes or member count exceed inventory bounds')
+            if self.template_reserved_bytes+size>MAX_TOTAL_TEMPLATE_BYTES:raise InventoryError('Template aggregate byte budget exceeded')
+            self.template_reserved_bytes+=size;data=bytearray();row['definition_state']='reading'
+            for _ in range(self.limits.pages):
+                remaining=size-len(data)
+                raw=self.exchange(0x4C,0x6C,instance,struct.pack('<IH',len(data),remaining))
+                status,chunk,extra=decode_reply(raw,0x4C)
+                if status not in (0,6):
+                    row.update(definition_state='read_failed',definition_error={'status':status,'additional_status':extra});break
+                if not chunk or len(chunk)>remaining:raise InventoryError('Template read has empty or oversized progress')
+                data.extend(chunk);self.template_bytes+=len(chunk)
+                if status==0 and len(data)!=size:raise InventoryError('Template read ended before its advertised aligned extent')
+                if status==6 and len(data)==size:raise InventoryError('Template partial status continues beyond its allocation')
+                if status==0:
+                    if data[-3:]!=bytes(3):raise InventoryError('Template reserved alignment bytes are nonzero')
+                    try:definition=decode_template(bytes(data),fields[2])
+                    except LayoutError as error:raise InventoryError('Invalid Template definition: '+error.reason) from error
+                    if definition.name.lower() in names:raise InventoryError('Template names are repeated')
+                    names.add(definition.name.lower())
+                    row.update(definition_state='read',definition={'name':definition.name,
+                        'members':[asdict(member) for member in definition.members],
+                        'trailer_bytes':definition.trailer_bytes,'compact_bytes':compact,'allocated_bytes':size,
+                        'sha256':hashlib.sha256(data).hexdigest(),'data_hex':data.hex(),
+                        'reserved_padding_zero':True,'member_offsets_interpreted':False})
+                    break
+            else:raise InventoryError('Template definition page budget exceeded')
+        return rows
+
     def scope(self,program=None,name=None):
         symbols=self.catalog(0x6B,program);tables=self.catalog(0x6A,program)
         result={'program_instance':program,'program_name':name,'symbol_catalog':symbols,
@@ -288,28 +378,50 @@ class _Reader:
             symbol['table_instance']=table['instance']
             if not self.read_values:
                 symbol['value_state']='not_requested';continue
-            code=fields.get(2)
-            if code not in ATOMS or fields.get(8)!=[0,0,0]:
-                symbol['value_state']='non_scalar_or_unsupported_type';continue
+            code=fields.get(2);dimensions=fields.get(8)
+            if code is None or dimensions is None:
+                symbol['value_state']='metadata_unavailable';continue
+            shape=array_shape(code,dimensions);atom=code&0x1FFF
+            structured=bool(code&0x8000)
+            if not structured and atom not in ATOMS or code&0x1000:
+                symbol['value_state']='unsupported_type';continue
+            symbol.update(array_dimensions=list(shape),element_count=math.prod(shape))
+            if atom==0xC1 and shape and not structured:
+                symbol['value_state']='unsupported_packed_bool_array';continue
             if any(number not in table_fields for number in (3,7)) or 7 not in fields:
                 symbol['value_state']='storage_unavailable';continue
-            dtype,fmt=ATOMS[code];width=struct.calcsize('<'+fmt)
-            if fields[7]!=width:raise InventoryError('Scalar descriptor size differs from its atomic type')
-            raw=self.exchange(0x4F,0x6A,table['instance'],struct.pack('<IH',0,width),program)
+            if structured:
+                template=self.template_rows.get(code&0xFFF)
+                if template is None:
+                    if self.template_catalog and self.template_catalog['instances'] is not None:
+                        raise InventoryError('Symbol references an absent Template')
+                    symbol['value_state']='template_unavailable';continue
+                metadata=values(template['metadata']);width=metadata.get(5)
+                if width is None or template['definition'] is None:
+                    symbol['value_state']='template_unavailable';continue
+                dtype=template['definition']['name'];symbol['template_instance']=template['instance']
+            else:
+                dtype,fmt=ATOMS[atom];width=struct.calcsize('<'+fmt)
+            if fields[7]!=width:raise InventoryError('Symbol element size differs from its data type')
+            size=math.prod(shape)*width
+            if not 1<=size<=MAX_VALUE_BYTES:
+                symbol['value_state']='value_byte_limit';continue
+            raw=self.exchange(0x4F,0x6A,table['instance'],struct.pack('<IH',0,size),program)
             status,data,extra=decode_reply(raw,0x4F)
             symbol['value_read']={'status':status,'additional_status':extra,'data_hex':data.hex()}
             symbol['data_type']=dtype
             if status:
                 symbol['value_state']='read_failed';continue
-            if len(data)!=width:raise InventoryError('Scalar read size differs from its atomic type')
-            value=struct.unpack('<'+fmt,data)[0]
-            if dtype=='BOOL':
-                if value not in (0,1):raise InventoryError('Scalar BOOL is not zero or one')
-                value=bool(value)
+            if len(data)!=size:raise InventoryError('Value read size differs from its declared shape')
+            if structured:
+                symbol['value_state']='raw_structure';continue
+            value,nonfinite=decode_atomic_value(data,atom,shape)
             symbol['value_state']='read'
-            if isinstance(value,float) and not math.isfinite(value):
-                symbol['value_state']='nonfinite';symbol['nonfinite']='NaN' if math.isnan(value) else 'Infinity' if value>0 else '-Infinity'
-            else:symbol['value']=value
+            symbol['value']=value
+            if nonfinite:
+                symbol['value_state']='nonfinite'
+                if not shape:symbol['nonfinite']=nonfinite[0]['value']
+                else:symbol['nonfinite_elements']=nonfinite
         return result
 
     def collect(self):
@@ -329,6 +441,7 @@ class _Reader:
         programs=self.catalog(0x68)
         if programs['instances'] is not None and len(programs['instances'])>self.limits.programs:
             raise InventoryError('Inventory Program budget exceeded')
+        template_rows=self.templates()
         program_rows=[];scopes=[self.scope()];routine_count=0;unavailable_routine_programs=[]
         for instance in programs['instances'] or []:
             metadata=self.attributes(0x68,instance,PROGRAM_SCHEMA)
@@ -359,6 +472,9 @@ class _Reader:
                 'generation':self.client.generation,'catalog_consistent':True,'revision':before,
                 'controller_configuration':controller,'controller_get_all':controller_all,
                 'controller_handlers':handlers,
+                'template_catalog':self.template_catalog,'templates':template_rows,
+                'template_definition_bytes':self.template_bytes,'template_reserved_bytes':self.template_reserved_bytes,
+                'structured_values_decoded':False,
                 'program_catalog':programs,'programs':program_rows,'scopes':scopes,
                 'executable_inventory':{'state':'unavailable' if programs['instances'] is None or
                                        unavailable_routine_programs and len(unavailable_routine_programs)==len(program_rows) else
@@ -369,7 +485,7 @@ class _Reader:
                                        'compiled_definition_upload':False},
                 'task_catalog':task_catalog,'tasks':task_rows,'scheduling_consistency':scheduling,
                 'requests':self.requests,'request_count':len(self.requests),
-                'scalar_values_requested':self.read_values,'values_are_one_snapshot':False,
+                'scalar_values_requested':self.read_values,'values_requested':self.read_values,'values_are_one_snapshot':False,
                 'project_upload_complete':False,'native_acceptance':'NOT ASSESSED'}
 
 
@@ -383,12 +499,16 @@ def collect_inventory(endpoint, *, read_values=True, limits=None):
     if type(read_values) is not bool:raise InventoryError('read_values must be boolean')
     limits=Limits() if limits is None else limits
     if not isinstance(limits,Limits):raise InventoryError('Use validated inventory limits')
-    with AnonymousClient(endpoint) as client:
-        client.bind()
-        result=_Reader(client,limits,read_values).collect()
-    # Only this client is closed. Other observers, if present, remain connected.
-    deadline=time.monotonic()+.5
-    while endpoint.state()['active_tcp_clients'] and time.monotonic()<deadline:
-        time.sleep(.005)
+    client=AnonymousClient(endpoint)
+    try:
+        with client:
+            client.bind()
+            result=_Reader(client,limits,read_values).collect()
+    finally:
+        # Wait for this socket's asynchronous server cleanup on both success
+        # and decode failure. Other observers are never disconnected.
+        deadline=time.monotonic()+.5
+        while endpoint.state()['active_tcp_clients'] and time.monotonic()<deadline:
+            time.sleep(.005)
     result['endpoint_clients_after_close']=endpoint.state()['active_tcp_clients']
     return result

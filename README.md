@@ -125,6 +125,10 @@ native tag monitoring and full upload/download remain unfinished.
 Version `.101` adds [source-known Template family metadata and aligned definition reads](docs/template-metadata.md).
 Independent signed TCP checks pass. SDK retesting is held after a private
 metadata experiment faulted the SDK; the unverified overrides are excluded.
+Version `.102` extends the [SDK-free inventory reader](docs/upload-inventory-client.md)
+with bounded Template definitions, multidimensional atomic arrays and raw UDT
+value bytes. Malformed replies stop decoding and release the reader's connection.
+SDK retesting remains held pending service recovery.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

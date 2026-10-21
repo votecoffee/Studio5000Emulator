@@ -6,10 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.101` adds [Template family metadata and aligned reads](template-metadata.md).
-Signed TCP checks verify the source-known family and both definition extents.
-Unresolved metadata overrides remain excluded; a private experiment faulted
-the SDK, so native retesting is held pending service recovery.
+Current milestone: `.102` extends the [SDK-free inventory reader](upload-inventory-client.md)
+with bounded Template definitions, atomic arrays and raw UDT value bytes.
+Signed TCP checks exercise structured inventory and temporary download records.
+Typed UDT decoding and complete native transfer remain unfinished. Unresolved
+metadata overrides remain excluded; a private experiment faulted the SDK, so
+native retesting is held pending service recovery.
 
 Version `.100` adds [structured Data Table storage](structured-storage.md)
 using the existing symbolic UDT layouts. Real TCP reads agree with symbolic
