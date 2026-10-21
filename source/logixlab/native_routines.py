@@ -7,7 +7,7 @@ generates IDs from source order, or grants native edit/execution authority.
 The unprotected 371-byte body profile also retains its original Type word;
 other body layouts retain identities without inventing that field.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 import gzip
 import io
 import re
@@ -27,6 +27,15 @@ MAX_BYTES = 128_000_000
 MAX_RECORDS = 200_000
 MAX_STREAM_BYTES = 16_000_000
 NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
+
+
+def source_key_bytes(value):
+    """Retain the observed opaque unprotected blob, never decrypt a key."""
+    if not isinstance(value,str) or not re.fullmatch(r'[0-9a-f]{132}',value):
+        raise ModelError('Invalid native Routine source-key metadata')
+    data=bytes.fromhex(value)
+    if data[:2]!=b'\0\x08':raise ModelError('Unsupported native Routine source-key metadata format')
+    return data
 
 
 def _expected(rows):
@@ -112,15 +121,17 @@ def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
         if key in found:raise ModelError('Duplicate or ambiguous historical native routine records')
         pair=(logical[1],logical[3])
         if pair in instances:raise ModelError('Conflicting native routine child instances')
-        type_word=None
+        type_word=None;source_key=None
         # The ordinary unprotected format-54/body-371 data area starts at 90.
         # Other layouts still supply identities but no guessed Type attribute.
         if (len(body)==371 and struct.unpack_from('<4I',body,74)==(297,9,1,189)):
             type_word=struct.unpack_from('<H',body,90)[0]
-        found[key]=(*pair,type_word);instances.add(pair)
+            if body[156:160]==b'\x42\0\0\x08':source_key=bytes(body[158:224])
+        found[key]=(*pair,type_word,source_key);instances.add(pair)
     if found.keys()!=expected.keys():raise ModelError('Incomplete native routine inventory')
     return [dict(expected[key],program_instance=found[key][0],instance=found[key][1],
-                 **({'type_word':found[key][2]} if found[key][2] is not None else {})) for key in sorted(found)]
+                 **({'type_word':found[key][2]} if found[key][2] is not None else {}),
+                 **({'source_key_hex':found[key][3].hex()} if found[key][3] is not None else {})) for key in sorted(found)]
 
 
 @dataclass(frozen=True)
@@ -130,6 +141,7 @@ class Routine:
     program_instance: int
     instance: int
     type_word: int | None = None
+    source_key: bytes | None = field(default=None,repr=False)
 
     def __post_init__(self):
         if any(not isinstance(value,str) or not NAME.fullmatch(value) for value in (self.program,self.name)):
@@ -138,10 +150,15 @@ class Routine:
             raise ModelError('Invalid native routine logical identity')
         if self.type_word is not None and (type(self.type_word) is not int or not 0<=self.type_word<=0xFFFF):
             raise ModelError('Invalid native routine Type word')
+        if self.source_key is not None:
+            if not isinstance(self.source_key,bytes) or self.type_word is None:
+                raise ModelError('Routine source-key metadata requires a validated Type profile')
+            source_key_bytes(self.source_key.hex())
 
     def manifest(self):
         return dict(program=self.program,name=self.name,program_instance=self.program_instance,instance=self.instance,
-                    **({'type_word':self.type_word} if self.type_word is not None else {}))
+                    **({'type_word':self.type_word} if self.type_word is not None else {}),
+                    **({'source_key_hex':self.source_key.hex()} if self.source_key is not None else {}))
 
 
 @dataclass(frozen=True,init=False)
@@ -159,10 +176,12 @@ class NativeRoutines:
         names={};instances={};programs={};program_names={};rows=[]
         for row in routines:
             required={'program','name','program_instance','instance'}
-            if (not isinstance(row,dict) or not required<=row.keys() or row.keys()-required-{'type_word'} or
+            if (not isinstance(row,dict) or not required<=row.keys() or row.keys()-required-{'type_word','source_key_hex'} or
                     'type_word' in row and type(row['type_word']) is not int):
                 raise ModelError('Invalid native routine manifest fields')
-            routine=Routine(**row);program=routine.program.casefold()
+            values={k:v for k,v in row.items() if k!='source_key_hex'}
+            if 'source_key_hex' in row:values['source_key']=source_key_bytes(row['source_key_hex'])
+            routine=Routine(**values);program=routine.program.casefold()
             key=(program,routine.name.casefold());pair=(routine.program_instance,routine.instance)
             if key in names or pair in instances:raise ModelError('Duplicate native routine name or child instance')
             if (programs.get(program,routine.program_instance)!=routine.program_instance
@@ -213,6 +232,8 @@ class NativeRoutines:
                     source='ACD Comps.Dat Executable format 54 and complete source routine names',
                     source_acd_sha256=self.source_acd_sha256,source_l5x_sha256=self.source_l5x_sha256,
                     type_words_available=sum(row.type_word is not None for row in self.rows),
+                    source_key_metadata_available=sum(row.source_key is not None for row in self.rows),
+                    source_keys_decrypted=False,
                     type_word_source='Original unprotected format-54/body-371 data, UINT16 at offset 90',
                     type_word_semantics_inferred=False,
                     compiled_code=False,compiled_addresses=False,native_edit_authority=False,runtime_equivalence=False)

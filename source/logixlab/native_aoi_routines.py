@@ -4,7 +4,7 @@ AOI and Program parents use separate namespaces even when their numeric IDs
 coincide. The shared bounded Comps.Dat parser accepts only component type 259,
 header version 0 and body format 54 for AOI parents (Program uses type 256).
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 import gzip
 import io
 import zlib
@@ -21,10 +21,12 @@ class AOIRoutine:
     aoi_instance: int
     instance: int
     type_word: int | None = None
+    source_key: bytes | None = field(default=None,repr=False)
 
     def manifest(self):
         return dict(aoi=self.aoi,name=self.name,aoi_instance=self.aoi_instance,instance=self.instance,
-                    **({'type_word':self.type_word} if self.type_word is not None else {}))
+                    **({'type_word':self.type_word} if self.type_word is not None else {}),
+                    **({'source_key_hex':self.source_key.hex()} if self.source_key is not None else {}))
 
 
 @dataclass(frozen=True,init=False)
@@ -39,16 +41,17 @@ class NativeAOIRoutines:
         converted=[]
         for row in routines:
             required={'aoi','name','aoi_instance','instance'}
-            if not isinstance(row,dict) or not required<=row.keys() or row.keys()-required-{'type_word'}:
+            if not isinstance(row,dict) or not required<=row.keys() or row.keys()-required-{'type_word','source_key_hex'}:
                 raise ModelError('Invalid native AOI routine fields')
             converted.append(dict(program=row['aoi'],name=row['name'],program_instance=row['aoi_instance'],instance=row['instance'],
-                                  **({'type_word':row['type_word']} if 'type_word' in row else {})))
+                                  **({'type_word':row['type_word']} if 'type_word' in row else {}),
+                                  **({'source_key_hex':row['source_key_hex']} if 'source_key_hex' in row else {})))
         # Reuse immutable manifest validation, including duplicate child IDs,
         # exact hashes, bounded names/counts and conflicting parent identities.
         validated=NativeRoutines(source_acd_sha256,source_l5x_sha256,converted)
         object.__setattr__(self,'source_acd_sha256',validated.source_acd_sha256)
         object.__setattr__(self,'source_l5x_sha256',validated.source_l5x_sha256)
-        object.__setattr__(self,'rows',tuple(AOIRoutine(r.program,r.name,r.program_instance,r.instance,r.type_word) for r in validated.rows))
+        object.__setattr__(self,'rows',tuple(AOIRoutine(r.program,r.name,r.program_instance,r.instance,r.type_word,r.source_key) for r in validated.rows))
 
     @classmethod
     def from_acd(cls,path,source_l5x_sha256,expected_routines,native_aois):
@@ -69,7 +72,8 @@ class NativeAOIRoutines:
         rows=routine_paths(data,expected,{name:pair[1] for name,pair in native_aois.definitions.items()},parent_class=0x338)
         return cls(digest,source_l5x_sha256,[dict(aoi=r['program'],name=r['name'],
             aoi_instance=r['program_instance'],instance=r['instance'],
-            **({'type_word':r['type_word']} if 'type_word' in r else {})) for r in rows])
+            **({'type_word':r['type_word']} if 'type_word' in r else {}),
+            **({'source_key_hex':r['source_key_hex']} if 'source_key_hex' in r else {})) for r in rows])
 
     @classmethod
     def from_manifest(cls,manifest,source_l5x_sha256):
@@ -91,4 +95,5 @@ class NativeAOIRoutines:
             source='ACD Comps.Dat AOI-scoped Executable format 54 and explicit readable source routines',
             source_acd_sha256=self.source_acd_sha256,source_l5x_sha256=self.source_l5x_sha256,
             type_words_available=sum(row.type_word is not None for row in self.rows),type_word_semantics_inferred=False,
+            source_key_metadata_available=sum(row.source_key is not None for row in self.rows),source_keys_decrypted=False,
             compiled_code=False,native_edit_authority=False,native_safety_execution=False)

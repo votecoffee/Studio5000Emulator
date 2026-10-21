@@ -43,16 +43,26 @@ def untested_rll(program, executable, source_sha256):
     return True
 
 
+def signature_free(root):
+    # Only a complete ordinary RLL declaration with canonical attributes can
+    # establish absence. Unknown signature containers/aliases stay unavailable.
+    for node in root.iter():
+        if ('signature' in node.tag.rsplit('}',1)[-1].casefold() or
+                any('signature' in key.casefold() for key in node.attrib)):return False
+    return True
+
+
 @dataclass(frozen=True)
 class ProgramDiagnostics:
     source_sha256: str
     _empty_outputs: frozenset[str] = field(default_factory=frozenset,repr=False)
     _untested: frozenset[str] = field(default_factory=frozenset,repr=False)
+    _unsigned: frozenset[str] = field(default_factory=frozenset,repr=False)
 
     def __post_init__(self):
         if not isinstance(self.source_sha256,str) or not SHA256.fullmatch(self.source_sha256):
             raise ValueError('Invalid Program diagnostic source hash')
-        for attribute in ('_empty_outputs','_untested'):
+        for attribute in ('_empty_outputs','_untested','_unsigned'):
             names=getattr(self,attribute)
             if (not isinstance(names,(set,frozenset)) or len(names)>MAX_PROGRAMS or
                     any(not isinstance(n,str) or not NAME.fullmatch(n) or n!=n.casefold() for n in names)):
@@ -63,13 +73,17 @@ class ProgramDiagnostics:
     def from_source(cls,root,controller,source_sha256,configuration,executable,io_map):
         if (not complete_tag_source(root,controller) or controller.get('MajorRev')!='35' or
                 configuration.source_sha256!=source_sha256 or executable.source_sha256!=source_sha256):return cls(source_sha256)
-        outputs=set();untested=set();empty=no_output_connections(controller,io_map)
+        outputs=set();untested=set();unsigned=set();empty=no_output_connections(controller,io_map)
+        no_signatures=signature_free(root)
         for program in controller.findall('./Programs/Program'):
             name=program.get('Name')
             if not configuration.type_attributes(name,source_sha256=source_sha256):continue
             if empty:outputs.add(name.casefold())
-            if untested_rll(program,executable,source_sha256):untested.add(name.casefold())
-        return cls(source_sha256,outputs,untested)
+            if untested_rll(program,executable,source_sha256):
+                untested.add(name.casefold())
+                if no_signatures and all(not r.attrib.keys()-{'Name','Type','Class','Use'}
+                        for r in program.findall('./Routines/Routine')):unsigned.add(name.casefold())
+        return cls(source_sha256,outputs,untested,unsigned)
 
     def output_attributes(self,program,*,source_sha256):
         if (source_sha256!=self.source_sha256 or not isinstance(program,str) or
@@ -81,9 +95,15 @@ class ProgramDiagnostics:
                 program.casefold() not in self._untested):return {}
         return {11:bytes(2)}
 
+    def signature_attributes(self,program,*,source_sha256):
+        if (source_sha256!=self.source_sha256 or not isinstance(program,str) or
+                program.casefold() not in self._unsigned):return {}
+        return {28:bytes(4)}
+
     def description(self):
         return {'attributes':[7,11],'null_output_lists_available':len(self._empty_outputs),
                 'untested_rll_programs_available':len(self._untested),'source_hash_required':True,
+                'unsigned_rll_programs_available':len(self._unsigned),'native_signature_verification':False,
                 'source':'Complete ordinary v35 source; no output connections; explicit TestEdits=false and normal RLL rungs',
                 'native_edits_idle_required':True,'nonzero_output_addresses':False,
                 'test_untest_assemble':False,'native_writes':False}

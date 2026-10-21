@@ -1007,7 +1007,7 @@ class Router:
             if routine is None or routine.program_instance!=program_instance:
                 raise CIPError(0x0C,'Native Executable inventory is incomplete for this Program')
             rows.append({'id':routine.instance,'name':name,'program':program['name'],'program_instance':program_instance,
-                         'type_word':routine.type_word})
+                         'type_word':routine.type_word,'source_key':routine.source_key})
         return sorted(rows,key=lambda row:row['id'])
 
     def aoi_routines(self,aoi_instance):
@@ -1063,8 +1063,11 @@ class Router:
             if identity_fields:
                 source=self.app.engine.project.sha256
                 idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,path.program_instance)
-                attributes.update(routine_state.attributes(self.app.engine,routine['program'],routine['name'],
-                    source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None))
+                state_fields=routine_state.attributes(self.app.engine,routine['program'],routine['name'],
+                    source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None)
+                attributes.update(state_fields)
+                if state_fields and routine['source_key'] is not None:
+                    attributes[22]=struct.pack('<H',len(routine['source_key']))+routine['source_key']
         return self.attribute_read(service,path,data,attributes)
 
     def task_service(self,service,path,data,limit):

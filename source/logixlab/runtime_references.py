@@ -88,6 +88,16 @@ class RuntimeReferences:
     def bind_reference_catalog(self,catalog):
         self._reference_catalog=catalog
 
+    def routine_attributes(self,project,program,routine):
+        """Header reference and main/subroutine flags for a guarded RLL model."""
+        if not isinstance(program,str) or not isinstance(routine,str):return {}
+        parent=self._current(project,'program',program.casefold())
+        key=(program+'/'+routine).casefold();target=self._current(project,'routine',key)
+        if parent is None or not parent.get('main') or target is None or target.kind!='RLL':return {}
+        address=self.reference(project,'routine',key)
+        if address is None:return {}
+        return {8:struct.pack('<I',address),24:struct.pack('<I',0 if routine.casefold()==parent['main'].casefold() else 2)}
+
     def symbol_addresses(self,project,catalog,row):
         if (project is not self._project or catalog.source_l5x_sha256!=project.sha256 or
                 catalog.by_instance.get(row.instance) is not row or
@@ -99,6 +109,7 @@ class RuntimeReferences:
 
     def description(self):
         return {'attributes':[5,16],'address_bits':32,'alignment':4,
+                'routine_attributes':[8,24],'routine_header_reference_backed':True,
                 'backing':'Live interpreter Program, Routine, Task and validated reference Symbol objects',
                 'scope':'Current Engine in this emulator process',
                 'allocated_objects':len(self._objects),'addresses_reused':False,

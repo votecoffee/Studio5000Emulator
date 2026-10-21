@@ -1,6 +1,7 @@
 # Routine identities and guarded RLL state
 
-Version `.130` extends source-bound Executable (`0x6D`) metadata. Ordered bulk
+Version `.130` extends source-bound Executable (`0x6D`) metadata. Version `.131`
+adds the [remaining bulk fields](routine-bulk-metadata.md). Ordered bulk
 and single-attribute reads use the same checks, including signed sessions.
 The separate [original Type word](routine-types.md) remains unchanged.
 
@@ -33,9 +34,10 @@ guarded state. Missing, stale or foreign Project evidence withholds both new
 identity and state fields. Unsupported children keep their scoped errors.
 Setters acquire no additional authority.
 
-UID (8), Source Key (22), Executable Flags (24) and Signature Types (28) remain
-unavailable. In particular, zero signatures are not inferred from readable
-source, and captured flags or keys are not copied into another project.
+In `.130`, fields 8, 22, 24 and 28 remain unavailable. Version `.131` identifies
+field 8 as Header Address and adds narrowly guarded reads for these four fields.
+Signature absence requires a separate canonical-source check; captured flags
+or keys are not copied into another project.
 
 ## Offline framing
 

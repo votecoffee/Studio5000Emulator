@@ -4,12 +4,31 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.131` adds [live Routine headers, main/subroutine flags, original opaque source metadata and unsigned state](routine-bulk-metadata.md)
+for the guarded ordinary RLL profile. Field 8 is identified as Header Address,
+correcting the earlier UID label. Its live reference matches the Program main
+reference; original blob contents come only from the matching loaded ACD.
+The source proof for zero Signature Types rejects signature markers and unknown
+Routine attributes. No native memory service or signature verification is added.
+All 227 affected checks pass; the full suite was not rerun.
+The isolated SDK upload receives all 22 Routine fields with status zero, but
+still reports `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` without further Routine requests.
+The complete trace retains 360 expanded leaf requests, 357 verified signed
+requests and all 408 source-matched diagnostic fields. The header reference
+matches the earlier Program main reference, and opaque source metadata matches
+the original owned ACD. Actual Offline/cleanup and unchanged source/model are
+confirmed, with no reported fatal SDK fault or physical-controller contact.
+The candidate retains its matching Template snapshot and private clock
+hypotheses; these remain separate from the normal demo. Full transfer and
+Routine reconstruction remain unfinished; successful field statuses do not
+establish client interpretation or Routine acceptance.
+
 Version `.130` adds [original Routine instance IDs and guarded ordinary RLL state](routine-state.md).
 Matching original Program/AOI bindings supply Executable Instance; clean,
 unmodified, idle ordinary Program RLL can also supply a null native Code Address,
 absent edit buffers and unprotected/non-SFC one-byte state. Missing source,
 uncertain faults, changed logic and pending native edit state withhold these
-fields. UID, Source Key, Executable Flags and Signature Types remain unavailable.
+fields. Header Address, Source Key, Executable Flags and Signature Types remain unavailable.
 The shared decoder frames all 809 saved bulk replies and checks 17,798 field
 lengths/hashes without copying their values into the runtime.
 The isolated native SDK upload receives 18 of 22 fields, up from one in `.129`,

@@ -54,6 +54,11 @@ See [Program catalog discovery](program-catalog-discovery.md).
 
 ### Collection attribute lists
 
+Version `.131` identifies Executable field 8 as Header Address, correcting the
+earlier unresolved UID label. Its four-byte framing stays unchanged. The
+[guarded live header](routine-bulk-metadata.md#header-references-and-flags)
+belongs to the emulator's object registry and is separate from Code Address.
+
 Version `.130` extends [scoped Executable bulk framing](routine-state.md#offline-framing)
 to all 22 observed metadata fields, including bounded counted Source Key data
 and an opaque four-byte field 8. All 809 saved replies consume exactly, with

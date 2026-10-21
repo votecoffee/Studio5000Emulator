@@ -6,9 +6,17 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.130` adds [original Routine instance IDs and guarded RLL state](routine-state.md).
+Current milestone: `.131` adds [the remaining guarded Routine bulk fields](routine-bulk-metadata.md),
+including live header references, role flags, original opaque source metadata
+and canonical unsigned state. The supported RLL model supplies all 22 requested
+metadata fields. Full native transfer and Routine reconstruction remain
+unfinished. The isolated SDK probe confirms zero statuses for all 22 fields but
+still fails Program upload without further Routine requests. Investigate client
+interpretation and reconstruction next; do not assume another missing field.
+
+Version `.130` adds [original Routine instance IDs and guarded RLL state](routine-state.md).
 The isolated SDK upload receives 18 of 22 requested Routine metadata fields,
-including a null native Code Address and absent native edit buffers. UID,
+including a null native Code Address and absent native edit buffers. Header Address,
 Source Key, Executable Flags and Signature Types remain unavailable. Program
 upload still fails; individual field requirements remain unverified. Full native
 transfer and Routine reconstruction remain unfinished. Shared diagnostics now

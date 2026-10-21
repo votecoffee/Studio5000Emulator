@@ -67,9 +67,9 @@ class RoutineStateWireTests(unittest.TestCase):
             client.bind();raw=client.request(bytes((3,len(path)//2))+path+struct.pack('<'+'H'*(len(BULK)+1),len(BULK),*BULK))
             decoded=decode_attribute_list(raw,BULK,0x6d,include_payloads=True)
             available={r['attribute']:bytes.fromhex(r['data_hex']) for r in decoded['attributes'] if r['status']==0}
-            self.assertEqual(set(available),{1,9,*STATE});self.assertEqual(available[9],struct.pack('<I',7))
+            self.assertEqual(set(available),{1,8,9,24,28,*STATE});self.assertEqual(available[9],struct.pack('<I',7))
             self.assertTrue(all(not any(available[n]) for n in STATE))
-            self.assertEqual([r['attribute'] for r in decoded['attributes'] if r['status']],[8,22,24,28])
+            self.assertEqual([r['attribute'] for r in decoded['attributes'] if r['status']],[22])
             for attr in (2,9,10,23,26):
                 target=path+bytes((0x30,attr));self.assertNotEqual(client.request(bytes((0x10,len(target)//2))+target+bytes(4))[2],0)
         for key in ('tags','scan','ms','controller','routines','tasks'):self.assertEqual(self.app.state()[key],before[key])
@@ -113,7 +113,7 @@ class RoutineStateWireTests(unittest.TestCase):
             self.load(root)
             self.assertEqual(self.call(10)[2],0x14);self.assertEqual(self.call(9)[2],0)
         self.load(self.root)
-        self.app.native_routines=NativeRoutines('a'*64,self.binding.source_l5x_sha256,[{k:v for k,v in row.manifest().items() if k!='type_word'} for row in self.binding.rows])
+        self.app.native_routines=NativeRoutines('a'*64,self.binding.source_l5x_sha256,[{k:v for k,v in row.manifest().items() if k not in ('type_word','source_key_hex')} for row in self.binding.rows])
         self.assertEqual(self.call(10)[2],0x14);self.assertEqual(self.call(9)[2],0)
 
     def test_foreign_stale_or_missing_identity_and_unknown_children_cannot_leak_state(self):

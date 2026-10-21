@@ -28,11 +28,15 @@ Their individual absence checks remain conservative across the complete source.
 Other Program-scoped catalogs remain unsupported unless separately documented.
 See [Program catalog discovery](program-catalog-discovery.md).
 
+Version `.131` adds [live Routine headers, role flags, original opaque source metadata and unsigned state](routine-bulk-metadata.md)
+for the guarded ordinary RLL profile. This completes its observed 22-field
+metadata reply without reconstructing compiled Routine logic.
+
 Version `.130` adds [original Routine instance IDs and guarded ordinary RLL state](routine-state.md).
 Edit-buffer absence, a null native Code Address and non-SFC pause state require
 current source proof and clean, unmodified simulator/edit state. AOIs expose
-original IDs without those Program state fields. Unknown UID, keys, flags and
-signature metadata remain unavailable.
+original IDs without those Program state fields. Header Address, keys, flags
+and signature metadata remained unavailable in that revision.
 
 Version `.129` adds [original Routine Type words](routine-types.md) to validated
 Program- and AOI-scoped Executable bindings. Legacy manifests and unsupported
