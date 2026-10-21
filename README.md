@@ -176,6 +176,10 @@ Version `.115` adds [field-level collection diagnostics](docs/native-transfer-di
 to native transfer reports and offline capture analysis. Valid field layouts,
 unavailable attributes and undecoded layouts are reported separately. An isolated
 complete-clock experiment still fails device collection and is not shipped.
+Version `.116` adds [supplemental schema discovery and read-only Wall Clock Time](docs/controller-schema-discovery.md).
+The clock distinguishes legacy 1972 counters from UTC 1970 counters and checks
+source settings before serving legacy local values. SDK schema queries succeed;
+complete upload still fails during device collection.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

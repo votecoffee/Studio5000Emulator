@@ -24,7 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
-from . import alarm_catalog, attribute_gaps, controller_configuration, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata
+from . import alarm_catalog, attribute_gaps, controller_configuration, controller_schemas, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata, wall_clock
 
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
@@ -1300,7 +1300,7 @@ class Router:
                 return self.attribute_read(service,path,data,{1:b'\1\0',2:b'\1\0',3:b'\1\0',6:b'\7\0',7:struct.pack('<H',102)})
             raise CIPError(5,'Unknown Identity object instance')
         if path.class_id==2 and path.instance==1 and not path.symbols and service in (1,3,0x0E):
-            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x74,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (0x378,) if self.endpoint.native_read_only else () )
+            ids=(1,2,6,0x43,*energy_catalog.CLASSES,0x64,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x70,0x71,0x74,wall_clock.CLASS_ID,0x8D,0x8E,0xAC,0xB0,0xB1,0xF4,0xF5,0xF6,0x31A,0x32B,*alarm_catalog.CLASSES,0x338,0x349,0x36E)+( (*controller_schemas.SCHEMA_REVISIONS,0x378) if self.endpoint.native_read_only else () )
             classes=struct.pack('<'+'H'*(len(ids)+1),len(ids),*ids)
             if service==1 and path.attribute is None:exact(data,0);return 0,classes
             return self.attribute_read(service,path,data,{1:classes})
@@ -1400,6 +1400,12 @@ class Router:
             if path.symbols:raise CIPError(4,'File Manager paths do not take symbols')
             if path.instance!=0:raise CIPError(5,'No File Manager storage instances are modeled')
             return self.attribute_read(service,path,data,file_manager.class_attributes())
+        if path.class_id in controller_schemas.SCHEMA_REVISIONS and self.endpoint.native_read_only:
+            if (path.symbols or path.program_instance is not None or path.io_map_instance is not None or
+                    path.controller_instance is not None or path.aoi_instance is not None or path.instance is None):
+                raise CIPError(4,'Schema discovery requires a controller-scoped class path')
+            if path.instance!=0:raise CIPError(5,'Schema instance operations are unavailable')
+            return self.attribute_read(service,path,data,controller_schemas.class_attributes(path.class_id))
         if path.class_id in (0xB0,0xB1,0x32B):
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty motion discovery is supported')
@@ -1417,6 +1423,23 @@ class Router:
         if path.class_id==0x36E:
             if service==0x4B:return self.instance_list(path,data,limit)
             raise CIPError(8,'Only source-checked empty HMI Button Control discovery is supported')
+        if path.class_id==wall_clock.CLASS_ID:
+            if (path.symbols or path.program_instance is not None or path.io_map_instance is not None or
+                    path.controller_instance is not None or path.aoi_instance is not None):
+                raise CIPError(4,'Wall Clock Time paths must be controller scoped')
+            if path.instance==0:attributes=wall_clock.class_attributes()
+            elif path.instance==1:
+                requested=False
+                if service==0x0E:
+                    exact(data,0);requested=path.attribute in wall_clock.TIME_ATTRIBUTES
+                if service==3 and path.attribute is None:
+                    need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
+                    if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
+                    requested=bool(set(wall_clock.TIME_ATTRIBUTES).intersection(struct.unpack_from('<'+'H'*count,data,2)))
+                attributes=self.app.engine.project.wall_clock.attributes(read_time=requested)
+            elif path.instance is None:raise CIPError(4,'Wall Clock Time requires an instance')
+            else:raise CIPError(5,'Unknown Wall Clock Time instance')
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x43:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'Time Sync paths must be controller scoped')
@@ -1649,6 +1672,7 @@ class Endpoint:
                     'identity':self.identity.description(),'profile':self.profile,'source_l5x_sha256':self.source_sha256,
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
+                    'controller_schemas':controller_schemas.description() if self.enabled and self.native_read_only else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
@@ -1667,6 +1691,7 @@ class Endpoint:
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
                     'pccc_mapping':self.app.engine.project.pccc_mapping.description() if self.enabled else None,
                     'time_sync':self.app.engine.project.time_sync.description() if self.enabled else None,
+                    'wall_clock_time':self.app.engine.project.wall_clock.description() if self.enabled else None,
                     'program_forces':self.app.engine.project.program_forces.description() if self.enabled else None,
                     'io_map':self.app.engine.project.io_map.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,

@@ -16,6 +16,15 @@ def string(value, *, padded=False):
 
 
 class CollectionInventoryTests(unittest.TestCase):
+    def test_wall_clock_legacy_utc_and_timezone_fields_frame_without_inferring_values(self):
+        widths={1:8,2:2,3:8,4:2,5:28,6:8,7:28,9:2,10:1,11:8}
+        values={n:bytes(widths[n]) if n!=8 else struct.pack('<I',3)+b'UTC' for n in range(1,12)}
+        result=decode_attribute_list(reply([(n,0,data) for n,data in values.items()]),list(values),0x8B)
+        self.assertEqual([r['value_bytes'] for r in result['attributes']],[8,2,8,2,28,8,28,7,2,1,8])
+        self.assertNotIn('UTC',json.dumps(result));self.assertEqual(result['value_semantics'],'NOT INFERRED')
+        for value in (struct.pack('<I',83)+bytes(83),struct.pack('<I',3)+b'UT',struct.pack('<I',3)+b'UTC\0'):
+            with self.assertRaises(CollectionError):decode_attribute_list(reply([(8,0,value)]),[8],0x8B)
+
     def test_extended_device_odd_strings_empty_trust_and_operator_keep_exact_boundaries(self):
         values={1:string(b'Demo1'),2:string(b'Example'),3:string(b''),6:string(b'en-US'),7:bytes(2),8:bytes(4)}
         raw=reply([(n,0,data) for n,data in values.items()])

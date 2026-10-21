@@ -65,6 +65,11 @@ malformed collection keeps the request in the checkpoint report and makes
 `analysis_complete` false. It does not hide other requests or count as native
 upload failure by itself. Value meanings and failure causes remain unassessed.
 
+Version `.116` adds [Wall Clock Time](controller-schema-discovery.md#read-only-wall-clock-time)
+class `0x8B` to the shared decoder. It preserves the separate legacy/UTC counter
+widths, calendar arrays and UINT32-length timezone string framing. Decoding a
+recorded field does not enable that field in the runtime.
+
 Extended Device strings use the installed v35 UINT-length profile without word
 padding. TCP/IP domain and hostname strings use their separate padded profile;
 [OpENer's string encoder](https://github.com/EIPStackGroup/OpENer/blob/master/source/src/cip/cipcommon.c)

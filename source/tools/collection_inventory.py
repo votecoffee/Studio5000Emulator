@@ -7,8 +7,9 @@ security authority, clock measurements or native upload acceptance.
 import hashlib
 from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as time_sync_list
 
-CLASSES = (0x43, 0x64, 0x67, 0xF5, 0xF6)
+CLASSES = (0x43, 0x64, 0x67, 0x8B, 0xF5, 0xF6)
 FIXED = {0x67: {1: 2, 2: 4},
+         0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1}}
 
@@ -55,6 +56,11 @@ def attribute_value(cursor, class_id, attribute):
             raise CollectionError('Nonempty trusted-slot layout is unsupported')
     elif class_id == 0x64 and attribute == 8:
         cursor.take(4)
+    elif class_id == 0x8B and attribute == 8:
+        count = int.from_bytes(cursor.take(4), 'little')
+        if count > 82:
+            raise CollectionError('Wall Clock timezone string exceeds its bound')
+        cursor.take(count)
     elif class_id == 0xF5 and attribute == 4:
         words = cursor.uint()
         if words > 64:

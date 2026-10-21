@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.115` adds [field-level Controller collection diagnostics](native-transfer-diagnostics.md#collection-attribute-lists)
+Current milestone: `.116` adds [supplemental schema discovery and Wall Clock reads](controller-schema-discovery.md).
+Classes `0x66` and `0x72` expose their observed revision fields without instance
+operations. Wall Clock Time serves host UTC counters and calendar fields, plus
+source-checked legacy UTC reads. Five isolated SDK upload comparisons confirm
+clean Offline and source/model preservation without a reported fatal fault;
+complete upload remains blocked during device collection.
+
+Version `.115` adds [field-level Controller collection diagnostics](native-transfer-diagnostics.md#collection-attribute-lists)
 to checkpoint reports and offline captures. All 130 recognized lists in the
 successful reference recording frame correctly. A disposable complete-clock
 comparison still fails device collection; its generated datasets are not shipped.

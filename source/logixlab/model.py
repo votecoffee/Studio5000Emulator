@@ -18,6 +18,7 @@ from .energy_catalog import EnergyCatalog
 from .message_catalog import MessageCatalog
 from .pccc_mapping import PcccMapping
 from .time_sync import TimeSync
+from .wall_clock import WallClock
 from .program_forces import ProgramForces
 from .program_configuration import ProgramConfiguration
 from .task_configuration import TaskConfiguration
@@ -308,6 +309,7 @@ class Project:
         self.message_catalog = MessageCatalog.from_source(root, c)
         self.pccc_mapping = PcccMapping.from_source(root, c)
         self.time_sync = TimeSync.from_source(root, c)
+        self.wall_clock = WallClock.from_source(root, c)
         self.program_forces = ProgramForces.from_source(root, c)
         self.program_configuration = ProgramConfiguration.from_source(root, c, self.sha256)
         self.task_configuration = TaskConfiguration.from_source(root, c, self.sha256)

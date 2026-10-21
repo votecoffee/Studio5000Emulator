@@ -338,6 +338,28 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(result.children,(b'\xBB\0\0\0',b'\x90\0\x0F\0'))
         self.assertEqual(self.app.engine.memory.values,before)
 
+    def test_user_memory_class_discovery_does_not_enable_instance_or_write_access(self):
+        query=bytes.fromhex('03022072240001000100')
+        self.begin();self.assertEqual(self.signed(1,query)[2],0x0F)
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.signed(4,query),bytes.fromhex('830000000100010000000500'))
+        self.assertEqual(self.signed(5,bytes.fromhex('0e03207224013001'))[2],5)
+        self.assertEqual(self.signed(6,bytes.fromhex('10032072240030010500'))[2],0x0F)
+        self.assertEqual(self.signed(7,bytes.fromhex('03022066240001000100')),bytes.fromhex('830000000100010000000300'))
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
+
+    def test_signed_wall_clock_reads_preserve_cst_and_setter_boundaries(self):
+        from unittest.mock import patch
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        with patch('logixlab.wall_clock.time.time_ns',return_value=1_000_000) as clock:
+            self.assertEqual(self.signed(4,bytes.fromhex('0e03208b24013006')),
+                             bytes.fromhex('8e000000e803000000000000'))
+            clock.assert_called_once_with()
+        self.assertEqual(self.signed(5,bytes.fromhex('0e03208b24013003'))[2],0x14)
+        self.assertEqual(self.signed(6,bytes.fromhex('1003208b24013006')+bytes(8))[2],0x0F)
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+
     def test_only_observed_empty_energy_profiles_succeed_without_inner_dispatch(self):
         self.bind();count=self.endpoint.counts['cip']
         for sequence,cls in enumerate((0x4E,0x4F,0x50),4):
