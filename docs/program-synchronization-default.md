@@ -54,3 +54,10 @@ hypotheses. The public clock profile remains unchanged; its unchanged upload
 failure is not rerun in this iteration. Released connection acceptance is
 checked separately. Full upload/download, the complete online-edit lifecycle
 and Studio GUI monitoring remain unfinished.
+
+The restarted released `.123` demo passes SDK Go Online/Go Offline with 75
+verified signed requests, confirmed Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. All 225 affected software checks and 35 live
+readback checks pass, including the complete Program list. The full suite was
+not rerun. The 87 deployed app modules, served and packaged webpage assets,
+and Windows executable version match the source.
