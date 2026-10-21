@@ -9,12 +9,18 @@ unprotected format-54/body-371 ACD profile. Older manifests and other layouts
 withhold Type; Program and AOI parent scopes remain distinct. An owned RLL/ST
 project passes native Offline save/reopen validation. Shared offline framing
 covers all 809 recorded Type replies, excluding separate class-revision reads.
-The isolated SDK upload accepts Type in both a single-field and bulk request,
-then fails because the other 21 requested Routine fields remain unavailable.
+The isolated SDK upload accepts Type in both a single-field and bulk request.
+The bulk reply reports the other 21 requested Routine fields unavailable, and
+SDK Program upload still fails; individual field requirements remain unverified.
 Its complete trace retains 360 expanded leaf requests; 357 signed requests are
 verified. Offline/cleanup and unchanged source/model are confirmed, with no
 reported fatal SDK fault. Full transfer remains unfinished. All 182 affected
 checks pass; the full suite was not rerun.
+The restarted release passes 227 live readbacks and SDK Go Online/Go Offline
+across 75 verified signed requests, with actual Offline/cleanup, unchanged
+source/model and no reported fatal SDK fault. Inputs and logic match across the
+restart. All 91 deployed app modules, webpage, packaged assets and executable
+version match `.129`.
 
 Version `.128` adds [empty Device Diagnostic Object discovery](device-diagnostic-objects.md)
 from explicit original ACD collections and shared offline framing for populated

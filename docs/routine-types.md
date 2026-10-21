@@ -77,3 +77,8 @@ upload/download, reconstructed Routine logic, Studio GUI monitoring and the
 complete Test/Untest/Assemble lifecycle remain unfinished or unverified.
 
 All 182 affected software checks pass; the full suite was not rerun.
+The restarted normal demo passes 227 live readbacks and native SDK Go Online/Go
+Offline across 75 verified signed requests, with actual Offline, cleanup and
+unchanged source/model confirmed and no reported fatal SDK fault. The demo's
+inputs and logic also match the saved state across the restart. All 91 deployed
+app modules, served webpage, packaged assets and executable version match `.129`.
