@@ -68,6 +68,8 @@ class RoutineEditWireTests(unittest.TestCase):
         old=self.app.engine;old.memory.write('SpeedSetpoint',7);old.scan_count=12;old.time_ms=120
         old.prescan_count=3;old._initial_prescan_pending=False;old.memory.first_scan=False
         old.last_timer={('startdelay',()):100};old.changes=[{'scan':10,'tag':'SpeedSetpoint'}]
+        from logixlab.program_timing import ProgramTiming
+        old._program_timings['mainprogram']=ProgramTiming(5000,10000,12)
         source_hash=hashlib.sha256(old.project.path.read_bytes()).hexdigest()
         self.stage();before=copy.deepcopy(self.app.state())
         self.assertEqual(self.send(COMMIT)[2],12)
@@ -78,6 +80,7 @@ class RoutineEditWireTests(unittest.TestCase):
         after=self.app.state();self.assertIsNot(self.app.engine,old)
         for key in ('tags','scan','ms','changes','controller','tasks','entry_routines'):self.assertEqual(before[key],after[key])
         self.assertEqual(self.app.engine.last_timer,old.last_timer)
+        self.assertEqual(self.app.engine._program_timings,old._program_timings)
         self.assertEqual(self.app.engine.memory.first_scan,old.memory.first_scan)
         self.assertEqual(after['routine_edits']['revision'],1);self.assertTrue(after['routine_edits']['modified'])
         self.assertEqual(after['routine_edits']['edited_routines'],['mainprogram/mainroutine'])

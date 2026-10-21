@@ -30,6 +30,8 @@ class ProgramConfiguration:
     _disabled: Mapping[str, bool] = field(default_factory=dict, repr=False)
     unavailable_programs: int = 0
     _ordinary: frozenset[str] = field(default_factory=frozenset, repr=False)
+    _synchronize: Mapping[str, bool] = field(default_factory=dict, repr=False)
+    _can_schedule: Mapping[str, bool] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
         if not isinstance(self.source_sha256, str) or not SHA256.fullmatch(self.source_sha256):
@@ -50,6 +52,11 @@ class ProgramConfiguration:
             raise ValueError('Invalid ordinary Program inventory')
         object.__setattr__(self, '_disabled', MappingProxyType(rows))
         object.__setattr__(self, '_ordinary', ordinary)
+        for attribute in ('_synchronize','_can_schedule'):
+            flags=dict(getattr(self,attribute))
+            if any(name not in ordinary or type(value) is not bool for name,value in flags.items()):
+                raise ValueError('Invalid ordinary Program flags')
+            object.__setattr__(self,attribute,MappingProxyType(flags))
 
     @classmethod
     def from_source(cls, root, controller, source_sha256):
@@ -64,7 +71,7 @@ class ProgramConfiguration:
         if (any(not isinstance(name, str) or not NAME.fullmatch(name) for name in names)
                 or len({name.casefold() for name in names}) != len(names)):
             return unavailable
-        values = {};ordinary = set()
+        values = {};ordinary = set();synchronize={};can_schedule={}
         for name, program in zip(names, programs):
             fields = ('Name', 'Class', 'Disabled')
             aliases = [key for key in program.attrib
@@ -82,11 +89,15 @@ class ProgramConfiguration:
             if (not program.attrib.keys()-ORDINARY_ATTRIBUTES and program.get('Type') in (None,'Normal')
                     and all(child.tag in ('Description','Tags','Routines','ChildPrograms') for child in program)):
                 ordinary.add(name.casefold())
+                value=program.get('SynchronizeRedundancyDataAfterExecution')
+                if value in ('true','false'):synchronize[name.casefold()]=value=='true'
+                value=program.get('UseAsFolder')
+                if value in ('true','false'):can_schedule[name.casefold()]=value=='false'
             value = program.get('Disabled')
             if value not in ('true', 'false'):
                 continue
             values[name.casefold()] = value == 'true'
-        return cls(source_sha256, True, values, len(programs) - len(values), frozenset(ordinary))
+        return cls(source_sha256, True, values, len(programs) - len(values), frozenset(ordinary),synchronize,can_schedule)
 
     def attributes(self, program, *, source_sha256):
         if source_sha256 != self.source_sha256 or not isinstance(program, str):
@@ -97,14 +108,24 @@ class ProgramConfiguration:
         return {ATTRIBUTE: bytes((int(self._disabled[name]),))}
 
     def description(self):
-        return {'source_complete': self.source_complete, 'attributes': [ATTRIBUTE,30],
+        return {'source_complete': self.source_complete, 'attributes': [ATTRIBUTE,29,30,31],
                 'source': 'Explicit Program@Disabled in complete v35 program declarations',
                 'encoding': 'BITS8; false=0, true=1', 'programs_available': len(self._disabled),
                 'programs_unavailable': self.unavailable_programs, 'missing_values_defaulted': False,
                 'ordinary_programs_available':len(self._ordinary),'ordinary_program_type':1,
                 'program_type_source':'Complete v35 Programs/Program; Standard or omitted Class; Normal or omitted Type; canonical fields only',
                 'phase_sequence_types':False,
+                'synchronize_flags_available':len(self._synchronize),'can_schedule_flags_available':len(self._can_schedule),
+                'flag_source':'Explicit canonical L5X SynchronizeRedundancyDataAfterExecution and inverse UseAsFolder booleans',
+                'redundancy_execution':False,
                 'execution_state_changed': False, 'native_writes': False, 'online_edit_acceptance': False}
+
+    def flag_attributes(self, program, *, source_sha256):
+        if source_sha256!=self.source_sha256 or not self.source_complete or not isinstance(program,str):return {}
+        name=program.casefold();values={}
+        for number,flags in ((29,self._synchronize),(31,self._can_schedule)):
+            if name in flags:values[number]=bytes((int(flags[name]),))
+        return values
 
     def type_attributes(self, program, *, source_sha256):
         if (source_sha256!=self.source_sha256 or not self.source_complete or

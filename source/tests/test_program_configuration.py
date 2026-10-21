@@ -19,6 +19,44 @@ def source():
 
 
 class ProgramConfigurationTests(unittest.TestCase):
+    def test_explicit_folder_and_sync_flags_are_independent_immutable_bytes(self):
+        for folder in ('true','false'):
+            for sync in ('true','false'):
+                root,controller=source();program=controller.find('./Programs/Program')
+                program.set('UseAsFolder',folder);program.set('SynchronizeRedundancyDataAfterExecution',sync)
+                config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+                expected={29:bytes((int(sync=='true'),)),31:bytes((int(folder=='false'),))}
+                self.assertEqual(config.flag_attributes('MAINPROGRAM',source_sha256=SOURCE_HASH),expected)
+                program.set('UseAsFolder','false');program.set('SynchronizeRedundancyDataAfterExecution','false')
+                self.assertEqual(config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH),expected)
+                self.assertEqual(config.flag_attributes('MainProgram',source_sha256='b'*64),{})
+                self.assertEqual(config.flag_attributes(None,source_sha256=SOURCE_HASH),{})
+                with self.assertRaises(TypeError):config._can_schedule['mainprogram']=True
+
+    def test_missing_or_noncanonical_flags_are_unavailable_without_defaulting_other_fields(self):
+        for value in (None,'','0','1','TRUE','False','false ',' true'):
+            root,controller=source();program=controller.find('./Programs/Program')
+            if value is not None:
+                program.set('UseAsFolder',value);program.set('SynchronizeRedundancyDataAfterExecution',value)
+            config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            self.assertEqual(config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+            self.assertEqual(config.attributes('MainProgram',source_sha256=SOURCE_HASH),{19:b'\0'})
+
+    def test_flags_require_ordinary_complete_canonical_declarations(self):
+        for mode in ('context','Safety','EquipmentPhase','alias','namespace','opaque'):
+            root,controller=source();program=controller.find('./Programs/Program')
+            program.set('UseAsFolder','false');program.set('SynchronizeRedundancyDataAfterExecution','true')
+            if mode=='context':root.set('ContainsContext','true')
+            elif mode=='Safety':program.set('Class',mode)
+            elif mode=='EquipmentPhase':program.set('Type',mode)
+            elif mode=='alias':program.set('useasfolder','true')
+            elif mode=='namespace':program.set('{urn:test}UseAsFolder','true')
+            else:E.SubElement(program,'VendorFlags')
+            config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            self.assertEqual(config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+        for flags in ({'mainprogram':0},{'other':True}):
+            with self.assertRaises(ValueError):ProgramConfiguration(SOURCE_HASH,True,_ordinary={'mainprogram'},_can_schedule=flags)
+
     def test_ordinary_user_program_type_is_independent_of_disable_and_bound_to_source(self):
         root,controller=source();program=controller.find('./Programs/Program')
         program.attrib.pop('Disabled');program.attrib.pop('Class')

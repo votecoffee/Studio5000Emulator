@@ -391,7 +391,8 @@ class Project:
         for p in c.findall("./Programs/Program"):
             name = p.get("Name")
             self.programs[name] = {"main": p.get("MainRoutineName", ""), "class": p.get("Class", "Standard"),
-                                   "disabled": p.get("Disabled", "false").lower() == "true"}
+                                   "disabled": p.get("Disabled", "false").lower() == "true",
+                                   "use_as_folder": p.get('UseAsFolder') == 'true'}
             for tag in p.findall("./Tags/Tag"): self._tag(tag, name)
             for r in p.findall("./Routines/Routine"):
                 routine = self._routine(r,name)

@@ -3,6 +3,7 @@ import copy
 import base64
 import struct
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 from logixlab.native_symbols import NativeSymbols
@@ -21,6 +22,23 @@ class ProgramMetadataWireTests(unittest.TestCase):
     signed=leases.SemaphoreSignedTests.signed
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
+
+    def test_measured_timing_and_source_flags_list_single_and_denied_writes(self):
+        root=E.parse(self.app.engine.project.path).getroot();program=root.find('./Controller/Programs/Program')
+        program.set('UseAsFolder','false');program.set('SynchronizeRedundancyDataAfterExecution','true')
+        self.app.command('load',{'name':'flags.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        digest=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        with patch('logixlab.runtime.perf_counter_ns',side_effect=(0,123456)):self.app.engine.step()
+        before=copy.deepcopy(self.app.state())
+        expected=bytes.fromhex('830000000400020000007b000000030000007b0000001d000000011f00000001')
+        self.assertEqual(self.signed(4,bytes.fromhex('030320682500b6650400020003001d001f00')),expected)
+        for seq,number,value in ((5,2,struct.pack('<I',123)),(6,3,struct.pack('<I',123)),(7,29,b'\1'),(8,31,b'\1')):
+            path=bytes.fromhex('20682500b66530')+bytes((number,))
+            self.assertEqual(self.signed(seq,bytes((14,len(path)//2))+path),bytes.fromhex('8e000000')+value)
+        self.assertEqual(self.signed(9,bytes.fromhex('100420682500b665301f00'))[2],15)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
 
     def test_nonempty_child_list_uses_source_order_and_original_bound_ids(self):
         root=E.parse(self.app.engine.project.path).getroot();programs=root.find('./Controller/Programs')

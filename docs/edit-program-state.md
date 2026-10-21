@@ -86,6 +86,10 @@ Version `.118` adds the separately source-checked [Task owner, child list and nu
 reads observed in the full Program collection. These remain metadata reads;
 the full native online-edit lifecycle is unfinished.
 
+Version `.119` adds [committed Program scan timings and explicit source flags](program-timing-and-flags.md).
+Supported routine replacements preserve the recorded timing history. This does
+not add native timing/flag setters or the complete Test/Untest/Assemble lifecycle.
+
 ## Earlier native checks
 
 Version `.80` adds the separately source-bound [Task Inhibit read](task-metadata.md)

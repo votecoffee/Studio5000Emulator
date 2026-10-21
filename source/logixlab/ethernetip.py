@@ -847,6 +847,8 @@ class Router:
         attributes.update(self.app.engine.project.program_configuration.type_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
         project=self.app.engine.project;source=project.sha256
+        attributes.update(project.program_configuration.flag_attributes(program['name'],source_sha256=source))
+        attributes.update(self.app.engine.program_timing_attributes(program['name'],source_sha256=source))
         attributes.update(project.program_hierarchy.attributes(program['name'],source_sha256=source))
         identity=getattr(self.app,'native_project_identity',None);symbols=self.app.native_symbols
         if identity is not None and identity.source_l5x_sha256==source:
@@ -1692,6 +1694,7 @@ class Endpoint:
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'program_hierarchy':self.app.engine.project.program_hierarchy.description() if self.enabled else None,
+                    'program_timing':self.app.engine.program_timing_description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,

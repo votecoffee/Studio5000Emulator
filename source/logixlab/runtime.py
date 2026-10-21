@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import operator
 from collections import Counter
+from time import perf_counter_ns
+from .program_timing import ProgramTiming
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -44,12 +46,31 @@ class Engine:
         self.addons = AddOns(self)
         self.calls = Calls(self)
         self.structured = Structured(self)
+        self._program_timings = {}
         self._plan()
         if not self.blockers:
             try:self._apply_prescan(preview=defer_prescan,report_fault=False)
             except ModelError as e:
                 self.blockers.append(f"Prescan: {e}")
             self.trace=[]
+        if self.mode=='project' and not self.blockers:
+            for entry in self.entries:
+                name=self.project.routines[entry].program
+                if self.project.program_configuration.type_attributes(name,source_sha256=project.sha256):
+                    self._program_timings[name.casefold()]=ProgramTiming()
+
+    def program_timing_attributes(self, program, *, source_sha256):
+        if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
+                or not isinstance(program,str)):return {}
+        timing=self._program_timings.get(program.casefold())
+        return timing.attributes() if timing is not None else {}
+
+    def program_timing_description(self):
+        return {'attributes':[2,3],'programs_available':len(self._program_timings),
+                'successful_program_executions':sum(t.executions for t in self._program_timings.values()),
+                'measurement':'Host monotonic perf_counter_ns; completed main routine including nested calls',
+                'units':'Whole microseconds; initial counters are zero until a successful scan',
+                'failed_scans_update_counters':False,'prescan_included':False,'controller_performance_prediction':False}
 
     def _apply_prescan(self, *, preview=False, report_fault=True):
         # AOI prescan routines can copy parameters and mutate instance state.
@@ -101,6 +122,8 @@ class Engine:
                     program = self.project.programs.get(name)
                     if program is None:
                         self.blockers.append(f"Scheduled program {name} is missing")
+                    elif program['use_as_folder']:
+                        self.blockers.append(f"Program {name} is a folder and cannot be scheduled")
                     elif not program["disabled"]:
                         self.entries.append(f"{name}/{program['main']}".lower())
                         # Program prescan includes all its routines, including routines not called.
@@ -127,6 +150,8 @@ class Engine:
             self.active.add(key)
             if self.project.programs[r.program]["class"] != "Standard":
                 self.blockers.append(f"{r.key}: safety program execution is unsupported")
+            if self.project.programs[r.program]['use_as_folder']:
+                self.blockers.append(f"{r.key}: folder program execution is unsupported")
             for p in r.problems: self.blockers.append(f"{r.key}: {p}")
             try:self.calls.validate_routine(r,entry=key in self.entries)
             except ModelError as e:self.blockers.append(str(e))
@@ -257,11 +282,19 @@ class Engine:
         self.time_ms += dt
         self.trace = []
         self.budget = self.instruction_limit
+        timings=dict(self._program_timings)
         try:
-            for entry in self.entries: self._routine(entry, 0)
+            for entry in self.entries:
+                name=self.project.routines[entry].program.casefold()
+                if name in timings:
+                    start=perf_counter_ns()
+                    self._routine(entry, 0)
+                    timings[name]=timings[name].record(perf_counter_ns()-start)
+                else:self._routine(entry, 0)
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
+            self._program_timings=timings
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace = previous

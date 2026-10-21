@@ -185,6 +185,9 @@ and Program collection diagnostics. A disposable complete-clock experiment
 reaches Program collection; its generated clock settings remain unshipped.
 Version `.118` adds [Program Task owners, logical children and null fault references](docs/program-hierarchy.md).
 The isolated upload accepts these three fields, while full transfer remains unfinished.
+Version `.119` adds [measured Program scan durations and source scheduling/synchronization flags](docs/program-timing-and-flags.md).
+Program timings track successful emulator scans and roll back on a failed scan;
+programs used as folders cannot execute. Full native transfer remains unfinished.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

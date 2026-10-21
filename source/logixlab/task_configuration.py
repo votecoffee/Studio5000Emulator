@@ -56,7 +56,8 @@ def _program_names(controller):
                     for key in program.attrib)):
             return None
         result[name.casefold()]=(name,program.get('Class') in (None,'Standard') and
-            program.get('Type') in (None,'Normal') and not program.attrib.keys()-ORDINARY_ATTRIBUTES)
+            program.get('Type') in (None,'Normal') and not program.attrib.keys()-ORDINARY_ATTRIBUTES and
+            program.get('UseAsFolder') in (None,'false'))
     return result
 
 

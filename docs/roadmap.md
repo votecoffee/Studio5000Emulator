@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.118` adds [Program Task owners, logical children and null fault references](program-hierarchy.md).
+Current milestone: `.119` adds [measured Program durations and source flags](program-timing-and-flags.md).
+Last/maximum timings describe actual committed emulator scans. Explicit source
+flags describe synchronization and scheduling eligibility; folders cannot execute.
+Complete native transfer remains unfinished.
+
+Version `.118` adds [Program Task owners, logical children and null fault references](program-hierarchy.md).
 The disposable complete-clock upload accepts all three new fields, reducing
 unavailable fields in its Program list from 15 to 12. Full Program upload still
 fails; the unpatched public profile remains blocked at Controller collection.
