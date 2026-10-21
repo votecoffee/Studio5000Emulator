@@ -49,3 +49,29 @@ The endpoint exposes aggregate `program_diagnostics` and `program_faults`
 availability summaries. Reads do not advance scans or alter tags. Empty native
 records describe this model's known-clean history; they do not establish full
 native fault handling or equivalence to a physical controller.
+
+## Native comparison
+
+A disposable before/after SDK upload comparison accepts all four new fields,
+reducing unavailable fields in its full Program list from 9 to 5. The remaining
+fields are `1`, `5`, `16`, `26` and `29`. Both attempts still report
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED`, across 205 and 202 verified signed requests
+respectively. Offline, cleanup and source/model preservation are confirmed
+without a reported fatal SDK fault.
+
+The comparison uses unshipped clock datasets and revision selectors to reach
+Program collection. Successful field reads do not prove the cause of the
+remaining failure or complete native upload/download. Physical fault history,
+compiled addresses and recorded controller identity are not replayed.
+
+The unpatched `.120` profile still fails during Controller collection across
+195 verified requests, with Offline, cleanup and source/model preservation
+confirmed and no reported fatal SDK fault. The clock trial does not extend the
+released profile's clock capabilities.
+
+The restarted `.120` demo separately passes SDK Go Online/Go Offline with 75
+verified signed requests, clean Offline/cleanup and unchanged source/model,
+without a reported fatal SDK fault. All 227 affected software tests and 28 live
+readback checks pass. The full suite was not rerun. The running app, served
+webpage and Windows executable versions agree. Studio GUI acceptance, complete
+native transfers and the full online-edit lifecycle remain unfinished.

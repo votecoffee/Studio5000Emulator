@@ -10,6 +10,8 @@ Current milestone: `.120` adds [Program output/edit diagnostics and model fault 
 Source-known null lists and untested RLL state are separate from native edit
 acceptance. Fault records withhold unknown history after simulator failures.
 Full native transfers remain unfinished.
+The disposable SDK comparison accepts all four added fields and reduces
+unavailable Program fields from 9 to 5; full Program upload still fails.
 
 Version `.119` adds [measured Program durations and source flags](program-timing-and-flags.md).
 Last/maximum timings describe actual committed emulator scans. Explicit source

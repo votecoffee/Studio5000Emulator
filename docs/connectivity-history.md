@@ -185,3 +185,9 @@ Version `.119` adds [measured Program scan durations and source scheduling/synch
 Program timings track successful emulator scans and roll back on a failed scan;
 programs used as folders cannot execute. The isolated upload comparison accepts
 three more Program fields; full native transfer remains unfinished.
+
+Version `.120` adds [Program output/edit diagnostics and model fault records](program-diagnostics.md).
+The isolated upload comparison accepts four more fields, reducing unavailable
+Program fields from 9 to 5. Untested-edit reads require idle native edit staging;
+unknown fault history remains unavailable until reset. Full transfer remains
+unfinished.

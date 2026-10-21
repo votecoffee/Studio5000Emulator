@@ -16,6 +16,8 @@ Version `.120` adds [source-checked output/edit diagnostics and model fault reco
 Untested-edit reads become unavailable during native edit preparation; fault
 records become unavailable after an unclassified emulator fault until reset.
 It retains [measured Program scan times and source flags](docs/program-timing-and-flags.md).
+The isolated upload comparison accepts four more fields, reducing unavailable
+Program fields from 9 to 5; full native transfer remains unfinished.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
