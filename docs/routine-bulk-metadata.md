@@ -76,6 +76,11 @@ matching the original ACD. It still reports `RxCsE_UPLOAD_OF_PROGRAMS_FAILED`
 without further Routine requests. Actual Offline/cleanup and unchanged
 source/model are confirmed, with no reported fatal SDK fault. Successful field
 statuses do not establish native client interpretation or Routine acceptance.
+The restarted release passes 273 live checks. The webpage, packaged assets,
+executable version and all 92 deployed app modules match `.131`.
+Native SDK Go Online/Go Offline passes across 75 verified signed requests, with
+actual Offline/cleanup, unchanged source/model and no reported fatal SDK fault.
+Demo inputs, logic and edit configuration match across the restart.
 
 Full native upload/download, reconstructed Routine logic, Studio GUI monitoring
 and the complete native edit lifecycle remain unfinished or unverified.

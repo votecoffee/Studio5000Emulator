@@ -22,6 +22,11 @@ The candidate retains its matching Template snapshot and private clock
 hypotheses; these remain separate from the normal demo. Full transfer and
 Routine reconstruction remain unfinished; successful field statuses do not
 establish client interpretation or Routine acceptance.
+The restarted release passes 273 live checks. The webpage, packaged assets,
+executable version and all 92 deployed app modules match `.131`.
+Native SDK Go Online/Go Offline also passes across 75 verified signed requests,
+with actual Offline/cleanup, unchanged source/model and no reported fatal SDK
+fault. Demo inputs, logic and edit configuration match across the restart.
 
 Version `.130` adds [original Routine instance IDs and guarded ordinary RLL state](routine-state.md).
 Matching original Program/AOI bindings supply Executable Instance; clean,
