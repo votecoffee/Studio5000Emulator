@@ -30,6 +30,7 @@ from logixlab.model import Project,ModelError
 from logixlab.resilient_transport import DEVICE_HEADER,MAX_BUFFER_BYTES
 from tools.anonymous_client import AnonymousClient
 from tools.upload_inventory import collect_inventory
+from tools.routine_edit_probe import replace_routine
 
 
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -204,13 +205,58 @@ def exercise(app,client,payload=None,expanded=None):
     return checks,image_receipt
 
 
+def edit_case(load_request,target,value):
+    """Use a second disposable app so transfer/inventory baselines stay intact."""
+    with tempfile.TemporaryDirectory(prefix='logixlab-edit-research-') as folder:
+        app=Application(folder)
+        try:
+            app.command('load',load_request)
+            app.command('routine-edits-configure',{'allow_writes':True})
+            app.endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True).start()
+            result=replace_routine(app.endpoint,program=target[0],routine=target[1],tag=target[2],value=value)
+            # A fresh independent session must see the same committed revision
+            # and original value before the first scan of the new logic.
+            original=app.engine.memory.read(target[2])
+            with AnonymousClient(app.endpoint) as client:
+                client.bind();path=symbol_path(target[2]);request=bytes((0x4C,len(path)//2))+path+b'\1\0'
+                expected=bytes.fromhex('cc000000c400')+struct.pack('<i',original)
+                if client.request(request)!=expected:raise ValueError('Post-edit reconnect value read differs')
+            app.command('step',{'count':1})
+            if app.engine.memory.read(target[2])!=value:raise ValueError('Edited routine did not execute on the next scan')
+            inventory=collect_inventory(app.endpoint)
+            matches=[row for scope in inventory['scopes'] if scope['program_instance'] is None
+                     for row in scope['symbols'] or [] if any(field['attribute']==1 and isinstance(field['value'],str)
+                                                               and field['value'].casefold()==target[2].casefold()
+                                                               for field in row['metadata']['attributes'] or [])]
+            if len(matches)!=1 or matches[0]['value']!=value:raise ValueError('Post-edit inventory value differs')
+            exported=app.command('export-edited-l5x',{})
+            with tempfile.TemporaryDirectory(prefix='logixlab-edit-reload-') as reload_folder:
+                reload=Application(reload_folder)
+                try:
+                    reload.command('load',{'name':'edited.L5X','content':base64.b64encode(exported['content'].encode()).decode()})
+                    if reload.engine.memory.read(target[2])!=original:raise ValueError('Edited export lost original initial values')
+                    reload.command('step',{'count':1})
+                    if reload.engine.memory.read(target[2])!=value:raise ValueError('Edited L5X reload did not reproduce execution')
+                finally:reload.close()
+            result.update(reconnect_value_read=True,next_scan_execution=True,inventory_requests=inventory['request_count'],
+                          inventory_value=value,l5x_export_sha256=exported['sha256'],l5x_reload_execution=True,
+                          original_initial_value_preserved=True,isolated_model_changed=True)
+        finally:app.close()
+    result['isolated_app_closed']=True
+    return result
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--acd',type=Path,required=True);p.add_argument('--l5x',type=Path,required=True)
     p.add_argument('--device-payload',type=Path);p.add_argument('--expanded-bytes',type=int)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--inventory',action='store_true',help='Read private Template/Task/Program/tag inventory through a fresh owned TCP session')
+    p.add_argument('--edit-target',nargs=3,metavar=('PROGRAM','ROUTINE','DINT_TAG'),
+                   help='Test supported replacement and execution in a second disposable emulator')
+    p.add_argument('--edit-value',type=int,default=123,help='Signed DINT literal for the optional edit probe')
     args=p.parse_args()
+    if not -(1<<31)<=args.edit_value<(1<<31):p.error('Edit value must fit a signed DINT')
     if bool(args.device_payload)!=(args.expanded_bytes is not None):p.error('Supply both payload and expanded size')
     if args.acd.suffix.lower()!='.acd' or args.l5x.suffix.lower()!='.l5x':p.error('Select an ACD and complete L5X export')
     for path in (args.acd,args.l5x):
@@ -240,12 +286,13 @@ def main():
     with tempfile.TemporaryDirectory(prefix='logixlab-research-') as folder:
         app=Application(folder)
         try:
-            app.command('load',{'name':'research.L5X','content':base64.b64encode(args.l5x.read_bytes()).decode(),
+            load_request={'name':'research.L5X','content':base64.b64encode(args.l5x.read_bytes()).decode(),
                 'native_project_identity':NativeProjectIdentity.from_acd(args.acd,l5x_hash).manifest(),
                 'native_symbols':symbols.manifest(),
                 'native_types':NativeTypes.from_acd(args.acd,l5x_hash).manifest(),
                 **({'native_tasks':tasks.manifest()} if tasks is not None else {}),
-                **({'native_routines':routines.manifest()} if routines is not None else {})})
+                **({'native_routines':routines.manifest()} if routines is not None else {})}
+            app.command('load',load_request)
             before=app.state()
             app.endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True).start()
             with AnonymousClient(app.endpoint) as client:
@@ -258,6 +305,7 @@ def main():
             assert lease['resilient_transport']['download_image']['status']=='idle'
             assert app.endpoint.state()['active_tcp_clients']==0
             assert all(before[k]==after[k] for k in ('tags','routines','tasks','scan','ms','controller'))
+            routine_edit=edit_case(load_request,args.edit_target,args.edit_value) if args.edit_target else None
             assert acd_hash==digest(args.acd) and l5x_hash==digest(args.l5x)
             report={'version':__version__,'status':'passed','transport':'owned loopback TCP',
                 'ephemeral_client_key':True,'server_nonce_patched':False,'windows_services_used':False,
@@ -267,11 +315,13 @@ def main():
                 'native_routine_binding':app.native_routines.description() if app.native_routines is not None else None,
                 'native_routine_binding_error':routine_error,
                 'upload_inventory':inventory,
+                'routine_edit_probe':routine_edit,
                 'prepared_image':image,'cleanup_confirmed':True,'source_and_model_preserved':True,
                 'native_sdk_acceptance':'NOT ASSESSED','studio_gui_acceptance':'NOT ASSESSED'}
             args.output.write_text(json.dumps(report,indent=2),encoding='utf-8')
             print(json.dumps({'version':__version__,'checks':len(checks),'records':image['records_prepared'] if image else 0,
                               'inventory_requests':inventory['request_count'] if inventory else None,
+                              'routine_edit_checks':len(routine_edit['checks']) if routine_edit else None,
                               'source_and_model_preserved':True,'report':str(args.output),'native_sdk_acceptance':'NOT ASSESSED'}))
         finally:app.close()
 

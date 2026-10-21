@@ -97,3 +97,47 @@ The `.89` read-only case retains all 44 signed checks, 60 inventory reads and
 survives Program release and that phase close discards it when application is
 disabled. Active Program-mode replacement has separate signed-wire, native SDK
 and subsequent execution evidence.
+
+## Supported routine replacement
+
+Version `.103` adds `--edit-target PROGRAM ROUTINE DINT_TAG` and an optional
+`--edit-value` signed DINT literal (default 123). For example, using the native
+counterpart of the public Conveyor Demo:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_research_session.py --acd .local/ConveyorDemo.ACD --l5x .local/ConveyorDemo.L5X --inventory --edit-target MainProgram MainRoutine SpeedSetpoint --edit-value 321 --output .local/edit-research.json
+```
+
+The optional case creates a second disposable emulator from the same bound
+source pair and enables supported routine edits there. It replaces only the
+selected Routine with a single `MOV(value, DINT_TAG)` rung. The destination must
+be a source-bound writable scalar controller DINT; Program tags, constants,
+aliases, missing bindings and out-of-range literals cannot select a target.
+
+The independent client generates a fresh key, reserves the Controller and
+Program, prepares the zero stack, and sends synthetic code/source containers
+with verified signed fragment receipts. It checks that commit is denied while
+the Program remains reserved, then releases the Program and commits. A duplicate
+commit on the same reservation must preserve the resulting logic revision.
+Values, scan count and mode must remain unchanged during activation. Closing
+the phase and releasing the Controller must clear the temporary candidate and
+lease; only the client's own socket closes.
+
+A fresh connection reads the original tag value before the first scan. The
+next scan must execute the new rung, and a fresh inventory must read its result.
+The edited L5X is exported and loaded in a third temporary app: original tag
+initial values must remain intact, and a scan must reproduce the same result.
+All temporary apps close afterward, including on failures. Protocol failures
+are not retried or rolled back; a lost commit reply can mean the isolated
+routine changed, so that app is discarded without another commit attempt.
+
+The report's `routine_edit_probe` records the revision, checks, execution and
+reload results separately from the unchanged primary transfer/inventory app.
+It includes the selected names and value and belongs in private local storage.
+The `.103` combined structured-project case passes 44 transfer checks, 70
+inventory requests, 911 temporary preparation results and 15 edit checks, plus
+post-edit reconnect, inventory, execution and export/reload checks.
+
+This tests the custom Program-mode replacement contract with synthetic
+containers. It does not execute native ELF or demonstrate Studio compilation,
+SDK acceptance, GUI editing, Test/Untest/Assemble or complete native transfer.

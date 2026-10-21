@@ -6,9 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.102` extends the [SDK-free inventory reader](upload-inventory-client.md)
-with bounded Template definitions, atomic arrays and raw UDT value bytes.
-Signed TCP checks exercise structured inventory and temporary download records.
+Current milestone: `.103` combines [signed routine-edit checks](research-session-probe.md#supported-routine-replacement)
+with SDK-free structured inventory and temporary-download checks. A separate
+disposable app verifies commit ordering, reconnect, next-scan execution and an
+edited L5X reload; failures close the connection without retrying a commit.
 Typed UDT decoding and complete native transfer remain unfinished. Unresolved
 metadata overrides remain excluded; a private experiment faulted the SDK, so
 native retesting is held pending service recovery.

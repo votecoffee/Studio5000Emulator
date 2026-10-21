@@ -129,6 +129,9 @@ Version `.102` extends the [SDK-free inventory reader](docs/upload-inventory-cli
 with bounded Template definitions, multidimensional atomic arrays and raw UDT
 value bytes. Malformed replies stop decoding and release the reader's connection.
 SDK retesting remains held pending service recovery.
+Version `.103` adds an [isolated signed routine-edit probe](docs/research-session-probe.md#supported-routine-replacement)
+that checks commit ordering, reconnection, next-scan execution and edited L5X
+reload alongside inventory and temporary-download checks, without the SDK.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

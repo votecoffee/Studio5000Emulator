@@ -233,6 +233,17 @@ passes 44 signed checks, prepares 911 records and completes 70 inventory reads
 while preserving source files and model state. These probes use no SDK or
 Windows services. The full suite was not rerun; native transfer acceptance and
 typed UDT value decoding remain unfinished, and SDK testing remains held.
+
+Version `.103` adds an SDK-free supported-edit case to the combined research
+probe. Forty-seven focused tests cover real independently keyed TCP activation,
+repeated replacements, source changes, denied targets and a lost commit reply
+without retries. The source-bound structured-project case completes 44 transfer
+checks, 911 temporary record readbacks and 70 inventory requests; its separate
+disposable edit app completes 15 signed checks plus fresh-session readback,
+next-scan execution, inventory and an edited L5X export/reload. Synthetic code
+containers test only the custom model's contract. The main app and original
+source pair are preserved; native SDK acceptance remains unassessed while SDK
+testing is held. The full suite was not rerun.
 The frozen `.81` protocol probe passes 24 signed checks plus 56 independent
 inventory reads against the retained source pair. The rebuilt appliance passes
 15 focused wire checks; all 69 application modules and the served/packaged
