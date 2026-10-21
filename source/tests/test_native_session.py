@@ -321,13 +321,13 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.signed(7,bytes.fromhex('4b0321006e032400'))[2],0x0C)
         self.assertEqual(self.app.engine.memory.values,before)
 
-    def test_exact_energy_probe_reports_unsupported_without_dispatch_or_write_permission(self):
+    def test_exact_empty_energy_probe_succeeds_without_dispatch_or_write_permission(self):
         probe=bytes.fromhex('3b02204e2400')
         self.begin()
         self.assertEqual(self.signed(1,probe)[2],0x0F)
         self.bind();before=copy.deepcopy(self.app.engine.memory.values)
         count=self.endpoint.counts['cip']
-        self.assertEqual(self.signed(4,probe),b'\xBB\0\x08\0')
+        self.assertEqual(self.signed(4,probe),b'\xBB\0\0\0')
         self.assertEqual(self.endpoint.counts['cip'],count+1)  # no inner dispatch
         for sequence,raw in enumerate((probe+b'\0',bytes.fromhex('3b02204e2401'),
                 bytes.fromhex('3b03204e24003001'),bytes.fromhex('1003204e24013001')+bytes(4)),5):
@@ -335,15 +335,30 @@ class NativeSessionTests(unittest.TestCase):
         raw=batch((probe,bytes.fromhex('1003204e24013001')+bytes(4)),sequence=9)
         raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
         result=signed_messages.verify_response(self.cip(raw),KEY,request=signed_messages.parse_request(raw))
-        self.assertEqual(result.children,(b'\xBB\0\x08\0',b'\x90\0\x0F\0'))
+        self.assertEqual(result.children,(b'\xBB\0\0\0',b'\x90\0\x0F\0'))
         self.assertEqual(self.app.engine.memory.values,before)
 
-    def test_all_new_energy_probes_are_negative_capabilities_without_inner_dispatch(self):
+    def test_only_observed_empty_energy_profiles_succeed_without_inner_dispatch(self):
         self.bind();count=self.endpoint.counts['cip']
         for sequence,cls in enumerate((0x4E,0x4F,0x50),4):
-            self.assertEqual(self.signed(sequence,bytes((0x3B,2,0x20,cls,0x24,0))),b'\xBB\0\x08\0')
+            expected=b'\xBB\0\0\0' if cls in (0x4E,0x4F) else b'\xBB\0\x08\0'
+            self.assertEqual(self.signed(sequence,bytes((0x3B,2,0x20,cls,0x24,0))),expected)
         self.assertEqual(self.endpoint.counts['cip'],count+3)
         self.assertEqual(self.signed(7,bytes.fromhex('3b0220512400'))[2],0x0F)
+
+    def test_energy_probe_program_scope_requires_original_known_program_binding(self):
+        source=self.app.engine.project.sha256
+        self.app.native_project_identity=NativeProjectIdentity('a'*64,source,1,1,1,1,1,1)
+        self.app.native_symbols=NativeSymbols('a'*64,source,[],[{'name':'MainProgram','instance':1234}])
+        self.bind();before=copy.deepcopy(self.app.engine.memory.values)
+        path=bytes.fromhex('20682500d204204e2400')
+        self.assertEqual(self.signed(4,bytes((0x3B,len(path)//2))+path),b'\xBB\0\0\0')
+        unknown=path.replace(bytes.fromhex('d204'),bytes.fromhex('d304'))
+        self.assertEqual(self.signed(5,bytes((0x3B,len(unknown)//2))+unknown)[2],5)
+        self.app.native_symbols=None
+        self.assertEqual(self.signed(6,bytes((0x3B,len(path)//2))+path)[2],0x0C)
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
 
     def test_energy_legacy_lists_require_supported_source_and_keep_other_operations_denied(self):
         from logixlab.energy_catalog import EnergyCatalog

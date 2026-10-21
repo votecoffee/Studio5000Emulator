@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.113` adds optional [native Template snapshots](native-template-snapshots.md)
+Current milestone: `.114` adds [empty Energy discovery for ordinary user types](connectivity.md#empty-energy-discovery-for-ordinary-user-types).
+A disposable structured-project SDK upload passes Controller tag collection
+and reaches device/extended-device/memory collection before failing. The
+199-request exchange ends Offline with source/model preservation and cleanup
+confirmed, without a reported fatal SDK fault. Complete upload remains unfinished.
+
+Version `.113` adds optional [native Template snapshots](native-template-snapshots.md)
 checked against the original source identities, member layouts and supported
 software structures. Saved definition bytes and handles remain coherent with
 Symbol metadata and structured reads. A disposable SDK case advances to tag

@@ -77,6 +77,13 @@ Offline, cleanup and source/model preservation pass, without a reported fatal
 SDK fault. This is progress in type inventory, not a completed project upload
 or proof of the individual cause of earlier failures.
 
+With the same saved snapshot, `.114` adds [source-checked empty Energy discovery](connectivity.md#empty-energy-discovery-for-ordinary-user-types).
+The structured-project SDK case passes Controller tag collection and reaches
+device/extended-device/memory collection, then fails with
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` across 199 verified signed
+requests. Native Offline, cleanup and source/model preservation pass without
+a reported fatal SDK fault. Complete project upload remains unfinished.
+
 Snapshots are bounded to 1,024 definitions, 65,536 bytes per definition and
 1 MiB total. Exposed software definitions also retain the 32,768-byte model
 bound. Only existing supported numeric, nested and packed-bit user layouts can

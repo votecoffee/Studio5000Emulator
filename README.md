@@ -168,6 +168,10 @@ Version `.113` adds optional [source-bound native Template snapshots](docs/nativ
 Supported structures can retain their original IDs, handles and complete saved
 definitions while values remain in software memory. An isolated SDK case
 advances to tag upload without a reported fatal fault; full transfers remain unfinished.
+Version `.114` adds [source-checked empty Energy discovery](docs/connectivity.md#empty-energy-discovery-for-ordinary-user-types)
+for ordinary user types and the newer Base/Electrical discovery request. The
+isolated structured-project SDK upload passes Controller tag collection and
+reaches device/extended-device/memory collection, where it still fails.
 Native SDK tag reads still fail
 online address discovery. Native upload/download and the full Test/Untest/Assemble
 edit lifecycle remain unfinished. Studio

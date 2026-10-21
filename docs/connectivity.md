@@ -605,6 +605,9 @@ remain denied. No measurements, class revisions or energy control state are
 invented. [ODVA's energy object overview](https://www.odva.org/wp-content/uploads/2022/06/2012_ODVA_Conference_Blair_FINAL.pdf)
 describes the three related classes; no third-party implementation is bundled.
 
+Version `.114` extends these original restrictions as described in
+[empty Energy discovery for ordinary user types](#empty-energy-discovery-for-ordinary-user-types).
+
 Message class `0x8D` also supports a source-checked empty list. Complete source
 must contain no `MESSAGE` types, Message data format or `MessageParameters`,
 including declarations in programs and AOIs. Alarm text messages alone do not
@@ -641,6 +644,40 @@ These checks preserved the source ACD, model values and zero scan count; network
 writes remained disabled. Deployed modules, browser assets and the Windows build
 matched the source, including the displayed version. Studio GUI monitoring,
 complete upload/download and native online edits remain unverified or failing.
+
+### Empty Energy discovery for ordinary user types
+
+Version `.114` permits an empty Energy catalog when complete L5X source contains
+checked ordinary user types. Each canonical `User` / `NoFamily` declaration must
+resolve through ordinary atomic/predefined members or other checked user types.
+Packed `BIT` members require a preceding hidden scalar `SINT` host and valid
+unique bit positions. Unknown references, cycles, ambiguous/context declarations,
+opaque children and explicit Energy configuration keep the inventory unavailable.
+The graph is bounded to 1,024 types, 256 members per type, 65,536 total members
+and eight nested user types. Existing AOI/external-module restrictions remain.
+This check establishes absence of Energy objects in the software model; member
+wire layouts and tag values use their separate existing checks.
+
+A completed successful v35 reference upload contains 44 empty successful replies
+to service `0x3B` at Base Energy (`0x4E`) or Electrical Energy (`0x4F`), instance
+zero: four global replies and forty replies under twenty Program scopes. The
+software controller now returns the same empty shape for that exact no-payload,
+no-attribute request in a bound signed session when the source check passes.
+Program paths retain their parent and require a known original source-bound
+Program. Unknown Programs or missing source bindings return errors. Unsigned
+requests, writes and malformed probe variants retain errors. The newer
+Non-Electrical (`0x50`) probe remains unsupported because that response was not
+observed; the existing global legacy lists retain their source checks.
+Energy measurements, aggregation and control remain unimplemented.
+
+The isolated `.114` structured-project SDK case, using the same source-bound
+Template snapshot as `.113`, receives four empty Base/Electrical replies and
+successful Symbol attribute lists. Its progress advances from Controller tags
+to device/extended-device/memory collection, then fails with
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED` across 199 verified signed
+requests. Native Offline, cleanup and source/model preservation pass without a
+reported fatal SDK fault. The result establishes phase progress; it does not
+identify the cause of the remaining error or complete native upload.
 
 ### Backed scalar Symbol descriptors
 

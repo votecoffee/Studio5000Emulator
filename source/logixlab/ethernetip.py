@@ -116,7 +116,7 @@ def decode_path(raw):
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
-                scope = ('program_instance' if p.class_id==0x68 and value in (0x6A,0x6B,0x6D,0x74)
+                scope = ('program_instance' if p.class_id==0x68 and value in (*energy_catalog.CLASSES,0x6A,0x6B,0x6D,0x74)
                          else 'aoi_instance' if p.class_id==0x338 and value==0x6D
                          else 'io_map_instance' if p.class_id==0x69 and value==0x7E
                          else 'controller_instance' if p.class_id==0x8E and value==0x74 else None)
@@ -308,9 +308,15 @@ class Router:
                 except ModelError:return reject(0x0C,'controller_mode_unavailable')
                 with self.endpoint.lock:self.endpoint.counts['native_mode_'+mode.lower()]+=1
                 return reply(inner[0])
-            if any(inner==bytes((0x3B,2,0x20,cls,0x24,0)) for cls in energy_catalog.CLASSES):
-                # This newer probe is unimplemented. Return an error without
-                # dispatching it; callers may try the supported legacy list.
+            if inner[0]==0x3B and path.class_id in energy_catalog.CLASSES:
+                if (path.instance!=0 or path.attribute is not None or path.symbols or payload or
+                        path.io_map_instance is not None or path.controller_instance is not None or path.aoi_instance is not None):
+                    return reject(0x0F,'read_only_policy')
+                if path.program_instance is not None:self.source_bound_program(path.program_instance)
+                if path.class_id in energy_catalog.EMPTY_PROBE_CLASSES and self.app.engine.project.energy_catalog.empty:
+                    return reply(0x3B)
+                # Unknown/nonempty sources and unobserved newer profiles keep
+                # their negative reply. No Energy readings or writes dispatch.
                 return reject(8,'unsupported_probe')
             if path.class_id==0x74 and path.program_instance is not None and inner[0] in (0x4B,0x4C):
                 if path.symbols or path.attribute is not None:
