@@ -12,9 +12,11 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.129` adds [original Routine Type words](docs/routine-types.md),
-preserving Program and AOI parent scopes. The isolated SDK upload accepts Type
-and reaches further Routine metadata reads; full transfer still fails.
+Version `.130` adds [original Routine instance IDs and guarded RLL state](docs/routine-state.md),
+including absent native edit buffers and pause state. Shared diagnostics can
+frame the complete 22-field Routine metadata reply. Full transfer still fails.
+It retains [original Routine Type words](docs/routine-types.md) and separate
+Program and AOI parent scopes.
 It retains [empty Device Diagnostic Object discovery](docs/device-diagnostic-objects.md),
 [empty diagnostic profile discovery](docs/device-diagnostic-profiles.md) and
 [original diagnostic message IDs, codes and revisions](docs/device-diagnostic-messages.md).

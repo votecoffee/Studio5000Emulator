@@ -169,7 +169,7 @@ class Application:
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
-            'native_reference_symbols':None,'native_diagnostics':None,'native_diagnostic_profiles':None,'native_diagnostic_objects':None,
+            'native_reference_symbols':None,'native_diagnostics':None,'native_diagnostic_profiles':None,'native_diagnostic_objects':None,'routine_state':None,
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
             'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,

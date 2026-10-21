@@ -6,11 +6,17 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.129` adds [original Routine Type words](routine-types.md)
-for the validated original ACD record profile. The isolated SDK upload accepts
-Type and reaches a bulk Routine metadata read. The remaining 21 fields,
-including Code Address, stay unavailable. Full native transfer and Routine
-reconstruction remain unfinished.
+Current milestone: `.130` adds [original Routine instance IDs and guarded RLL state](routine-state.md).
+The isolated SDK upload receives 18 of 22 requested Routine metadata fields,
+including a null native Code Address and absent native edit buffers. UID,
+Source Key, Executable Flags and Signature Types remain unavailable. Program
+upload still fails; individual field requirements remain unverified. Full native
+transfer and Routine reconstruction remain unfinished. Shared diagnostics now
+frame all 809 saved bulk replies without replaying captured values.
+
+Version `.129` adds [original Routine Type words](routine-types.md)
+for the validated original ACD record profile. Its isolated SDK upload accepts
+Type and reaches the bulk Routine metadata read.
 
 Version `.128` adds [source-bound empty Diagnostic Object discovery](device-diagnostic-objects.md)
 and shared offline framing for populated object fields. The isolated SDK upload

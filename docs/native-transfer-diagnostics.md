@@ -54,6 +54,12 @@ See [Program catalog discovery](program-catalog-discovery.md).
 
 ### Collection attribute lists
 
+Version `.130` extends [scoped Executable bulk framing](routine-state.md#offline-framing)
+to all 22 observed metadata fields, including bounded counted Source Key data
+and an opaque four-byte field 8. All 809 saved replies consume exactly, with
+17,798 field lengths and hashes checked. Framing these fields does not make
+their captured values available to the runtime.
+
 Version `.129` adds [scoped Executable (`0x6D`) Type and legacy-description framing](routine-types.md#offline-framing).
 Instance fields require exactly one numeric Program or AOI parent. Unscoped
 class-revision reads stay outside that schema. Parent identities, individual

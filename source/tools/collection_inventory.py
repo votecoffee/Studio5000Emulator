@@ -16,7 +16,10 @@ FIXED = {0x67: {1: 2, 2: 4},
          0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1},
-         0x6D: {1:2}, 0x3B0: {1:4,2:1}, 0x3B2: {3:2}}
+         # Executable field 8 is an opaque four-byte value: exact full-list
+         # framing establishes its width, without assigning UID semantics.
+         0x6D: {1:2,2:4,**{n:4 for n in range(8,22)},23:1,24:4,26:1,27:1,28:4},
+         0x3B0: {1:4,2:1}, 0x3B2: {3:2}}
 
 
 class CollectionError(ValueError):
@@ -74,8 +77,8 @@ def attribute_value(cursor, class_id, attribute):
         count=int.from_bytes(cursor.take(1),'little')
         if count>(40 if attribute==1 else 128):raise CollectionError('Diagnostic string exceeds its bound')
         cursor.take(count)
-    elif class_id==0x6D and attribute==7:
-        cursor.string(128)
+    elif class_id==0x6D and attribute in (7,22):
+        cursor.string(128 if attribute==7 else 66)
     elif class_id == 0x64 and attribute in (1, 2, 3, 6):
         # These installed v35 strings carry a UINT count without word padding.
         cursor.string(40 if attribute == 1 else 128)

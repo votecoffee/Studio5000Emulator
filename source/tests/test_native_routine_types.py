@@ -143,7 +143,7 @@ class RoutineTypeDecoderTests(unittest.TestCase):
         raw=bytes.fromhex('83000000020001000000ff07070000000300')+b'abc'
         for end in range(len(raw)):
             with self.assertRaises(CollectionError):decode_attribute_list(raw[:end],(1,7),0x6d)
-        for data,attrs in ((raw+b'\0',(1,7)),(bytes.fromhex('8300000001000200000000000000'),(2,)),
+        for data,attrs in ((raw+b'\0',(1,7)),(bytes.fromhex('8300000001000500000000000000'),(5,)),
                            (bytes.fromhex('830000000100070000008100')+bytes(129),(7,))):
             with self.assertRaises(CollectionError):decode_attribute_list(data,attrs,0x6d)
 

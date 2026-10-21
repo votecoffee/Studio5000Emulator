@@ -24,6 +24,7 @@ from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
+from . import routine_state
 from . import alarm_catalog, attribute_gaps, controller_configuration, controller_schemas, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata, wall_clock
 
 HEADER = struct.Struct('<HHII8sI')
@@ -1024,11 +1025,11 @@ class Router:
         by_name={r.name.casefold():r for r in metadata.routines}
         return sorted(({'id':r.instance,'metadata':by_name[r.name.casefold()],'type_word':r.type_word} for r in found),key=lambda r:r['id'])
 
-    def routine_type_attributes(self,binding,type_word):
+    def routine_identity_attributes(self,binding,type_word,instance):
         identity=getattr(self.app,'native_project_identity',None);source=self.app.engine.project.sha256
-        if (type_word is None or binding is None or identity is None or identity.source_l5x_sha256!=source or
+        if (binding is None or identity is None or identity.source_l5x_sha256!=source or
                 binding.source_l5x_sha256!=source or binding.source_acd_sha256!=identity.source_acd_sha256):return {}
-        return {1:struct.pack('<H',type_word)}
+        return {9:struct.pack('<I',instance),**({1:struct.pack('<H',type_word)} if type_word is not None else {})}
 
     def routine_service(self,service,path,data,limit):
         if path.symbols or path.instance is None or path.io_map_instance is not None or path.controller_instance is not None:
@@ -1041,7 +1042,7 @@ class Router:
                 row=next((row for row in rows if row['id']==path.instance),None)
                 if row is None:raise CIPError(5,'Unknown Executable instance in the selected AOI')
                 attributes=row['metadata'].attributes()
-                attributes.update(self.routine_type_attributes(self.app.native_aoi_routines,row['type_word']))
+                attributes.update(self.routine_identity_attributes(self.app.native_aoi_routines,row['type_word'],row['id']))
             return self.attribute_read(service,path,data,attributes)
         if path.program_instance is None:
             if path.instance==0 and service in (3,0x0E):
@@ -1057,7 +1058,13 @@ class Router:
             if routine is None:raise CIPError(5,'Unknown Executable instance in the selected Program')
             attributes=self.app.engine.project.executable_configuration.attributes(
                 routine['program'],routine['name'],source_sha256=self.app.engine.project.sha256)
-            attributes.update(self.routine_type_attributes(self.app.native_routines,routine['type_word']))
+            identity_fields=self.routine_identity_attributes(self.app.native_routines,routine['type_word'],routine['id'])
+            attributes.update(identity_fields)
+            if identity_fields:
+                source=self.app.engine.project.sha256
+                idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,path.program_instance)
+                attributes.update(routine_state.attributes(self.app.engine,routine['program'],routine['name'],
+                    source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None))
         return self.attribute_read(service,path,data,attributes)
 
     def task_service(self,service,path,data,limit):
@@ -1834,6 +1841,7 @@ class Endpoint:
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
+                    'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
                     'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
