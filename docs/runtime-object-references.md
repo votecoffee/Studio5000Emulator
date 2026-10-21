@@ -54,3 +54,8 @@ verified signed requests, confirmed Offline/cleanup, unchanged source/model and
 no reported fatal SDK fault. All 282 affected software checks and 33 live
 readback checks pass. The full suite was not rerun. The deployed 87 app modules,
 served webpage, packaged assets and Windows executable version match the source.
+
+The subsequent [synchronization model default](program-synchronization-default.md)
+in `.123` supplies the remaining field for its narrow nonredundant profile.
+All 22 requested fields then read successfully; Program reconstruction and full
+upload still fail. The one-field result above describes `.122`.

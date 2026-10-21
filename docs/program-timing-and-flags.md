@@ -6,13 +6,14 @@ Version `.119` adds read-only Program attributes to the native profile:
 | --- | --- | --- |
 | `2` Last Execution Time | DWORD, whole microseconds | Executable scheduled ordinary Programs in whole-project mode |
 | `3` Maximum Execution Time | DWORD, whole microseconds | Same as `2` |
-| `29` Synchronize Data | One byte, false `0`, true `1` | Explicit canonical `SynchronizeRedundancyDataAfterExecution` boolean |
+| `29` Synchronize Data | One byte, false `0`, true `1` | Explicit canonical `SynchronizeRedundancyDataAfterExecution` boolean, or the identified [nonredundant model default](program-synchronization-default.md) |
 | `31` Can Schedule | One byte, folder `0`, ordinary program `1` | Explicit canonical `UseAsFolder` boolean |
 
 Program identity and the active source must match the native bindings. Single
-and list reads share these values. Writes remain denied. Missing, malformed,
-contextual, opaque or unsupported source flags remain unavailable; omitted
-synchronization settings never acquire a default. Disable and scheduling
+and list reads share these values. Writes remain denied. Malformed, contextual,
+opaque and unsupported source flags remain unavailable. Since `.123`, an omitted
+synchronization setting can use the explicitly identified nonredundant model
+default above; other missing flags remain unavailable. Disable and scheduling
 eligibility are separate: a disabled ordinary Program can still be schedulable.
 
 The source flags follow the Program settings in Rockwell's

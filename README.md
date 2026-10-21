@@ -12,14 +12,13 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.122` adds [runtime Program and main-Routine references](docs/runtime-object-references.md)
-backed by the interpreter's own objects, with source, native-identity and edit
-guards. It retains [Standard memory and normal Program status](docs/program-memory-status.md),
+Version `.123` adds an identified [nonredundant Program synchronization model default](docs/program-synchronization-default.md).
+The isolated SDK upload now reads all 22 requested Program fields successfully;
+full Program reconstruction and native transfer still fail.
+It retains [runtime Program and main-Routine references](docs/runtime-object-references.md),
+[Standard memory and normal Program status](docs/program-memory-status.md),
 [Program diagnostics](docs/program-diagnostics.md) and
 [measured scan times](docs/program-timing-and-flags.md).
-The isolated upload diagnostic accepts both references, reducing unavailable
-Program fields from three to one. The omitted synchronization setting and full
-native transfer remain unresolved.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

@@ -4,6 +4,12 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
+Explicit settings keep precedence; unknown, enabled-redundancy and unsupported
+profiles stay unavailable. The isolated SDK upload reads all 22 requested
+Program fields successfully, but full Program upload still fails. Successful
+attribute replies remain separate from reconstruction and transfer acceptance.
+
 Version `.122` adds [runtime Program and main-Routine references](runtime-object-references.md).
 Opaque aligned addresses resolve to live interpreter objects, remain separate
 from logical IDs and are revoked on object replacement. The isolated native

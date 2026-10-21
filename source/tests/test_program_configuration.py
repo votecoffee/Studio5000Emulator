@@ -19,6 +19,59 @@ def source():
 
 
 class ProgramConfigurationTests(unittest.TestCase):
+    def test_omitted_sync_uses_identified_nonredundant_model_default_and_explicit_values_win(self):
+        root,controller=source();program=controller.find('./Programs/Program');program.set('UseAsFolder','false')
+        E.SubElement(controller,'RedundancyInfo',Enabled='false',KeepTestEditsOnSwitchOver='false')
+        config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+        self.assertEqual(config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH),{29:b'\1',31:b'\1'})
+        self.assertEqual(config.description()['synchronize_model_defaults'],1)
+        self.assertEqual(config.description()['synchronize_source_values'],0)
+        self.assertTrue(config.description()['missing_values_defaulted'])
+        self.assertFalse(config.description()['synchronize_default_recovers_original_acd_setting'])
+        for value in ('false','true'):
+            program.set('SynchronizeRedundancyDataAfterExecution',value)
+            explicit=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            self.assertEqual(explicit.flag_attributes('MainProgram',source_sha256=SOURCE_HASH)[29],bytes((int(value=='true'),)))
+            self.assertEqual(explicit.description()['synchronize_model_defaults'],0)
+            self.assertEqual(explicit.description()['synchronize_source_values'],1)
+        self.assertEqual(config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH)[29],b'\1')
+        with self.assertRaises(FrozenInstanceError):config._synchronize_defaulted=frozenset()
+
+    def test_sync_default_withholds_ambiguous_inactive_or_unknown_profiles_and_invalid_values(self):
+        for mode in ('missing','enabled','malformed','duplicate','nested','namespace','alias','opaque','children',
+                     'revision_alias','processor_alias','processor','folder','folder_missing','sync_invalid','Safety','context'):
+            root,controller=source();program=controller.find('./Programs/Program');program.set('UseAsFolder','false')
+            node=E.SubElement(controller,'RedundancyInfo',Enabled='false')
+            if mode=='missing':controller.remove(node)
+            elif mode=='enabled':node.set('Enabled','true')
+            elif mode=='malformed':node.set('Enabled','False')
+            elif mode=='duplicate':controller.append(copy.deepcopy(node))
+            elif mode=='nested':controller.remove(node);E.SubElement(controller,'Wrapper').append(node)
+            elif mode=='namespace':node.tag='{urn:test}RedundancyInfo'
+            elif mode=='alias':node.set('enabled','false')
+            elif mode=='opaque':node.set('EnabledUId','unknown')
+            elif mode=='children':E.SubElement(node,'Unknown')
+            elif mode=='revision_alias':controller.set('majorrev','35')
+            elif mode=='processor_alias':controller.set('ProcessorTypeUId','1756-L85E')
+            elif mode=='processor':controller.set('ProcessorType','1756-L85EP')
+            elif mode=='folder':program.set('UseAsFolder','true')
+            elif mode=='folder_missing':program.attrib.pop('UseAsFolder')
+            elif mode=='sync_invalid':program.set('SynchronizeRedundancyDataAfterExecution','0')
+            elif mode=='Safety':program.set('Class','Safety')
+            elif mode=='context':root.set('ContainsContext','true')
+            config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
+            with self.subTest(mode=mode):
+                self.assertNotIn(29,config.flag_attributes('MainProgram',source_sha256=SOURCE_HASH))
+                self.assertEqual(config.description()['synchronize_model_defaults'],0)
+
+    def test_sync_default_constructor_copies_and_rejects_inconsistent_origin(self):
+        defaults={'mainprogram'}
+        config=ProgramConfiguration(SOURCE_HASH,True,_ordinary={'mainprogram'},_synchronize={'mainprogram':True},_synchronize_defaulted=defaults)
+        defaults.clear();self.assertEqual(config.description()['synchronize_model_defaults'],1)
+        for value,defaults in ((False,{'mainprogram'}),(True,{'other'}),(True,'mainprogram'),(True,None)):
+            with self.assertRaises(ValueError):
+                ProgramConfiguration(SOURCE_HASH,True,_ordinary={'mainprogram'},_synchronize={'mainprogram':value},_synchronize_defaulted=defaults)
+
     def test_standard_memory_follows_ordinary_kind_without_defaulting_safety_or_opaque_kinds(self):
         root,controller=source();program=controller.find('./Programs/Program')
         program.attrib.pop('Disabled');program.attrib.pop('Class')

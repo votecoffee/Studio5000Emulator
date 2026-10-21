@@ -24,6 +24,20 @@ class ProgramMetadataWireTests(unittest.TestCase):
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
 
+    def test_nonredundant_sync_model_default_single_and_list_are_read_only_and_identified(self):
+        root=E.parse(self.app.engine.project.path).getroot();program=root.find('./Controller/Programs/Program')
+        program.set('UseAsFolder','false');E.SubElement(root.find('Controller'),'RedundancyInfo',Enabled='false')
+        self.app.command('load',{'name':'sync.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        digest=self.app.engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.signed(4,bytes.fromhex('0e0420682500b665301d')),bytes.fromhex('8e00000001'))
+        self.assertEqual(self.signed(5,bytes.fromhex('030320682500b66501001d00')),bytes.fromhex('8300000001001d00000001'))
+        self.assertEqual(self.signed(6,bytes.fromhex('100420682500b665301d00'))[2],15)
+        self.assertEqual(self.app.state()['connectivity']['program_configuration']['synchronize_model_defaults'],1)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+
     def test_emulator_program_and_main_addresses_require_bound_ordinary_idle_rll_objects(self):
         root=E.parse(self.app.engine.project.path).getroot();root.find('./Controller/Programs/Program').set('TestEdits','false')
         self.app.command('load',{'name':'references.L5X','content':base64.b64encode(E.tostring(root)).decode()})

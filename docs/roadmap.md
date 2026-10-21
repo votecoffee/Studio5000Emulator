@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.122` adds [runtime Program and main-Routine references](runtime-object-references.md)
+Current milestone: `.123` adds an identified [nonredundant Program synchronization model default](program-synchronization-default.md).
+The isolated SDK diagnostic reads all 22 requested Program fields successfully.
+Upload still fails after that read without a subsequent rejected request;
+complete field reads do not prove Program reconstruction. Public clock behavior
+and complete transfers remain unresolved.
+
+Version `.122` adds [runtime Program and main-Routine references](runtime-object-references.md)
 backed by actual interpreter objects, without importing physical addresses.
 The isolated native upload accepts both fields, reducing unavailable Program
 fields from three to one. The omitted synchronization setting, clock behavior
