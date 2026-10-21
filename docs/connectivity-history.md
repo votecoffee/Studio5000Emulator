@@ -14,6 +14,10 @@ retains 360 expanded leaf requests; 357 signed requests are verified. Actual
 Offline/cleanup and source/model preservation are confirmed, with no reported
 fatal SDK fault. Full transfer remains unfinished. All 243 affected checks pass;
 the full suite was not rerun.
+The restarted release passes 222 live readbacks and SDK Go Online/Go Offline
+across 75 verified signed requests, with confirmed Offline/cleanup, unchanged
+source/model and no reported fatal SDK fault. All 91 deployed app modules,
+webpage, packaged assets and executable version match `.128`.
 
 Version `.127` adds [empty device diagnostic profile discovery](device-diagnostic-profiles.md),
 requiring explicit original ACD collection evidence and matching source hashes.
