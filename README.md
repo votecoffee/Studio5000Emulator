@@ -23,6 +23,13 @@ webpage, executable and appliance versions match.
 Metadata values and Program query `0x50` remain unsupported; full upload/download
 remain unfinished.
 
+Version `.148` adds [fragmented metadata upload decoding](docs/metadata-upload-query.md)
+and an offline replay tool. It reconstructs 10,301 saved query exchanges into
+nine complete streams and decodes 43,833 records, including numeric values,
+reference arrays and string blobs. Capture and checkpoint diagnostics share
+the frame decoder. These are detached protocol checks; live metadata values,
+Program query `0x50` and complete native transfers remain unfinished.
+
 Version `.146` adds [offline Program upload-query diagnostics](docs/program-upload-query.md)
 to capture and checkpoint reports. It checks all 60 saved reference replies and
 identifies a later upload boundary exposed by an isolated experiment. It adds no

@@ -26,6 +26,7 @@ from logixlab import signed_messages,read_transport
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list as decode_collection_list
 from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
 from tools.program_upload_query import describe as describe_program_query
+from tools.metadata_upload_query import describe as describe_metadata_query
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_OUTPUT = 128 * 1024 * 1024
@@ -216,6 +217,12 @@ def describe(raw, include_payloads=False, *, unwrap=True):
 
 def time_sync_layout(request, response, raw, include_payloads, *, query=None):
     target=request;parents={};scopes=request.get('object_path')
+    if (query is not None and not scopes and request.get('service')==0x53 and
+            target.get('class_id')==0x349 and target.get('instance')==0 and target.get('attribute') is None and
+            not request.get('symbolic_path')):
+        try:response['metadata_upload_query']=describe_metadata_query(query,raw)
+        except ValueError as error:
+            response['metadata_upload_query']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     if (query is not None and not scopes and request.get('service')==0x50 and
             target.get('class_id')==0x68 and target.get('instance') and target.get('attribute') is None and
             not request.get('symbolic_path')):

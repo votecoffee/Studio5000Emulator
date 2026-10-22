@@ -4,6 +4,18 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.148` adds [Metadata Definition `0x53` stream decoding](metadata-upload-query.md).
+The reply header carries the echoed cursor, including zero in the initial
+reply, rather than a total byte count. Bounded assembly retains exact fragment
+order and selection; detached records retain target/context/qualifier words,
+locales, definition and record IDs, string blobs, numeric arrays, reference
+arrays and empty values. A saved reference's 10,301 selected query exchanges
+consume as nine complete streams and 43,833 records. Capture and checkpoint
+readers share frame diagnostics; the replay tool checks whole streams and
+records. Reports omit values and IDs. Live metadata values, source mapping,
+Program `0x50`, complete upload and the download result response remain
+unfinished. No new native response is dispatched by this change.
+
 Version `.147` adds [original ACD Metadata Definition names and IDs](metadata-definitions.md)
 to the read-only CIP catalog. The stored format-0 Name field must agree with the
 component name, with one explicit collection and unambiguous active records.

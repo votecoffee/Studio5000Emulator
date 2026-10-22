@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.147` adds [source-bound Metadata Definition discovery](metadata-definitions.md)
+Current milestone: `.148` adds [fragmented metadata upload decoding](metadata-upload-query.md)
+and an offline replay tool. All 10,301 selected reference query exchanges
+reconstruct into nine complete streams containing 43,833 records. Original ACD
+value/target mapping and the independent Program `0x50` response contract still
+need to be established before adding live upload values. The download `0x412`
+result-response gap remains independent.
+
+Version `.147` adds [source-bound Metadata Definition discovery](metadata-definitions.md)
 and Name reads from original ACD records. The rebuilt app passes 26 live CIP
 catalog checks and the SDK Go Online/Offline case. Upload and download retain
 their separate query/result gaps with Offline/cleanup and no reported SDK fault. Definition

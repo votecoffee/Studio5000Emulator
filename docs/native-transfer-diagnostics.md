@@ -48,6 +48,13 @@ events and report loss. A discarded checkpoint still makes analysis incomplete.
 
 ## Offline reader
 
+Version `.148` describes [Metadata Definition `0x53` query frames](metadata-upload-query.md)
+with exact selections, echoed cursor positions, chunk sizes and hashes. Capture
+and checkpoint readers share the decoder. Checkpoint errors prevent complete
+analysis, and counters continue beyond retained rows. The separate offline
+replay tool validates complete ordered streams and all contained records;
+individual checkpoint frame annotations do not establish stream completeness.
+
 Version `.146` describes [Program upload service `0x50` queries](program-upload-query.md)
 with the three observed selectors, reply status, exact byte counts and a hash of
 the returned opaque word. Capture and checkpoint readers share the decoder.

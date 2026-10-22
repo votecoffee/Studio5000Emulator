@@ -20,6 +20,7 @@ from tools.collection_inventory import instance_supported as collection_instance
 from tools.inspect_cip_capture import describe_path,describe
 from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
 from tools.program_upload_query import describe as describe_program_query
+from tools.metadata_upload_query import describe as describe_metadata_query
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -102,6 +103,12 @@ def request_row(child,result,sequence,ordinal):
         status=result[2],request_payload_bytes=len(child)-end,
         response_payload_bytes=len(result)-start,
         additional_status=list(struct.unpack('<'+'H'*result[3],result[4:start])))
+    if (child[0]==0x53 and row['class_id']==0x349 and row['instance']==0 and
+            row['attribute'] is None and not row['symbolic'] and 'object_path' not in row and
+            all(row[key] is None for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+        try:row['metadata_upload_query']=describe_metadata_query(child,result)
+        except ValueError as error:
+            row['metadata_upload_query']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     if (child[0]==0x50 and row['class_id']==0x68 and row['instance'] and
             row['attribute'] is None and not row['symbolic'] and 'object_path' not in row and
             all(row[key] is None for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
@@ -162,6 +169,7 @@ def analyze(before,after,operation,report=None):
     collections=[];collection_count=collection_errors=0
     reads=[];read_count=read_bytes=0
     program_queries=[];program_query_count=program_query_errors=0
+    metadata_queries=[];metadata_query_count=metadata_query_errors=0
     limited=False
     for event in events:
         if event.get('kind') in VERIFICATIONS:
@@ -213,6 +221,10 @@ def analyze(before,after,operation,report=None):
             if matched+len(rows)>MAX_REQUESTS:limited=True;break
             for row in rows:
                 matched+=1;tail.append(row)
+                if 'metadata_upload_query' in row:
+                    metadata_query_count+=1
+                    if row['metadata_upload_query'].get('structure')=='UNSUPPORTED OR MALFORMED':metadata_query_errors+=1
+                    if len(metadata_queries)<MAX_REPORT_ROWS:metadata_queries.append(row)
                 if 'program_upload_query' in row:
                     program_query_count+=1
                     if row['program_upload_query'].get('structure')=='UNSUPPORTED OR MALFORMED':program_query_errors+=1
@@ -233,7 +245,7 @@ def analyze(before,after,operation,report=None):
                      **({'object_path':[dict(zip(('class_id','instance','attribute','symbolic_path'),scope)) for scope in key[-1]]} if key[-1] else {}))
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
-        'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors or program_query_errors),'signed_envelopes':envelopes,'requests_observed':matched,
+        'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors or program_query_errors or metadata_query_errors),'signed_envelopes':envelopes,'requests_observed':matched,
         'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'unparsed_events':unparsed,
         'read_transport_frames':reads,'read_transport_frames_observed':read_count,'read_transport_bytes':read_bytes,
         'read_transport_frames_truncated':read_count>MAX_REPORT_ROWS,
@@ -248,6 +260,8 @@ def analyze(before,after,operation,report=None):
         'collection_layout_errors':collection_errors,'collection_lists_truncated':collection_count>MAX_REPORT_ROWS,
         'program_upload_queries':program_queries,'program_upload_queries_observed':program_query_count,
         'program_upload_query_errors':program_query_errors,'program_upload_queries_truncated':program_query_count>MAX_REPORT_ROWS,
+        'metadata_query_frames':metadata_queries,'metadata_query_frames_observed':metadata_query_count,
+        'metadata_query_errors':metadata_query_errors,'metadata_query_frames_truncated':metadata_query_count>MAX_REPORT_ROWS,
         'endpoint_attribute_gaps':gaps,'attribute_gaps_truncated':gaps_truncated,
         'attribute_gap_scope':'all endpoint readers between checkpoints'}
 
