@@ -232,6 +232,7 @@ class Router:
                         candidate,receipt=prepare(self.app.engine,stage.source,neutral,program['name'],stage.base_revision)
                     except (SourceError,ModelError):return reject(0x0C,'routine_replacement_validation_failed')
                     self.app.engine=candidate;self.app._io_dirty=True
+                    candidate.change_detection.record('routine_transaction')
                     self._catalog=None;self._storage=None;self._storage_key=None
                     lease.applied_edit=receipt;stage.clear()
                     self.endpoint.record('native_routine_edit_applied',**receipt)
@@ -305,7 +306,7 @@ class Router:
                 with self.endpoint.lock:
                     self.endpoint.programming_lease.require_owner(native,self.app.generation,self.app.engine.project.sha256)
                 mode='Run' if inner[0]==6 else 'Program'
-                try:self.app.set_controller_mode(mode)
+                try:self.app.set_controller_mode(mode,remote_request=True)
                 except ModelError:return reject(0x0C,'controller_mode_unavailable')
                 with self.endpoint.lock:self.endpoint.counts['native_mode_'+mode.lower()]+=1
                 return reply(inner[0])
@@ -1671,6 +1672,7 @@ class Router:
             elif path.instance==1:
                 configuration=self.app.engine.project.controller_configuration
                 attributes=configuration.compatibility_attributes() if self.endpoint.native_read_only else configuration.attributes()
+                attributes.update(self.app.engine.change_detection.attributes(self.app.engine.project.sha256))
                 if self.endpoint.native_read_only:
                     with self.endpoint.lock:
                         attributes[7]=struct.pack('<H',self.endpoint.programming_lease.inhibit(
@@ -1867,6 +1869,7 @@ class Endpoint:
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_schemas':controller_schemas.description() if self.enabled and self.native_read_only else None,
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
+                    'controller_change_detection':self.app.engine.change_detection.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'runtime_references':self.app.engine.runtime_references.description() if self.enabled else None,
                     'program_hierarchy':self.app.engine.project.program_hierarchy.description() if self.enabled else None,

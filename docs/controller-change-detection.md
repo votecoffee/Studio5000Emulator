@@ -3,6 +3,8 @@
 Source revision `.143` adds read-only Controller attribute 28 (CCUID
 Configuration / ChangesToDetect). Native SDK acceptance has not been run for
 this revision. The most recent native-validated build remains `.142`.
+Source revision `.144` separately adds a [simulator-owned Audit Value](simulator-audit-value.md)
+for selected modeled events; the source setting itself remains read-only.
 
 The value comes from an explicit `Controller/Security@ChangesToDetect`
 declaration in a complete Controller L5X export. The supported source profile
@@ -33,8 +35,8 @@ CCUID and signature fields. Reports retain their original IDs and unsupported
 statuses, preserve unknown IDs and remain value-free. A named gap is still an
 unsupported response; its name does not establish the cause of a client failure.
 
-With a supported source mask, the source model can supply field 28. Controller
-fields 11/12/27/33/34 remain unavailable. This is a model result, not a new native
+With a supported source mask, source revision `.143` can supply field 28. Controller
+fields 11/12/27/33/34 remain unavailable in that revision. This is a model result, not a new native
 upload result. Task fields 22/23, nonempty Routine source retrieval, full native
 transfer and the complete edit lifecycle retain their existing limitations.
 

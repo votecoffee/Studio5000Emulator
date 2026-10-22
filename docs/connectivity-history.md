@@ -4,6 +4,15 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Source revision `.144` adds a [simulator Controller Audit Value](simulator-audit-value.md).
+An explicit supported source mask enables an execution-model epoch, stable reads,
+selected successful mode changes and supported routine-transaction updates.
+Detached preparation and repeated commits preserve the original value.
+Unclassified faults withhold it until reset. The generator is simulator-owned;
+no archived audit value or native signature is substituted. Pure source/stub
+checks accompany this revision; native SDK acceptance, build and restart are
+pending, and `.142` remains the most recent native-validated build.
+
 Source revision `.143` adds [change-detection configuration reads](controller-change-detection.md)
 and named Controller field gaps. An explicit canonical L5X ChangesToDetect
 mask supplies the eight-byte Controller field 28 without inventing audit values,

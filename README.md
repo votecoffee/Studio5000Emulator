@@ -13,10 +13,12 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Source revision `.143` adds a [read-only Controller change-detection configuration mask](docs/controller-change-detection.md)
-and named Controller gap diagnostics. Pure source/stub checks pass; native SDK
+Source revision `.144` adds a [simulator Controller Audit Value](docs/simulator-audit-value.md)
+with mask-selected mode and supported routine-transaction events. Pure source/stub checks pass; native SDK
 acceptance, executable rebuild and restart remain pending for this revision.
 The most recent native-validated build remains `.142`.
+Source revision `.143` added the separate [read-only change-detection configuration mask](docs/controller-change-detection.md)
+and named Controller gap diagnostics.
 
 Version `.142` adds [source-checked Controller retention and diagnostic settings](docs/controller-diagnostic-settings.md)
 and offline Controller response decoding. The isolated SDK upload reads both
@@ -263,6 +265,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Catalog refresh | Controller class revision/inventory and source-bound comparison tokens |
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, name/description and read-only pass-through configuration; limited Metadata Definition discovery; security enforcement and pass-through routing remain unsupported |
+| Change detection | Source `.144`: explicit source mask plus a simulator-owned Audit Value for selected mode/routine events; native acceptance pending; State Detection signatures remain unsupported |
 | Software device metadata | Read-only location/locale and empty trusted-slot/operator state, explicitly identified as emulator defaults |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |

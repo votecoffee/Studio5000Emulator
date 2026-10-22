@@ -111,12 +111,14 @@ class Application:
             except (ValueError,TypeError,KeyError):pass
         return 10
 
-    def set_controller_mode(self, mode, dt=None):
+    def set_controller_mode(self, mode, dt=None, *, remote_request=False):
         # Shared by HTTP controls and verified native requests. Caller owns app.lock.
         if mode not in ('Run','Program'):raise ModelError('Supported controller modes are Run and Program')
         if mode == 'Program':
+            changed=self.running
             if self.running:self._scan_epoch+=1
             self.running = False
+            if changed and remote_request:self.engine.change_detection.record('remote_mode')
             self._scan_condition.notify_all()
             return
         if self._closed:raise ModelError('Application is shutting down')
@@ -127,7 +129,8 @@ class Application:
         if type(interval) is not int:raise ModelError('Scan interval must be an integer in milliseconds')
         self.engine.validate_interval(interval)
         if self.running and interval == self.scan_interval_ms:return
-        if not self.running:
+        changed=not self.running
+        if changed:
             self.engine.enter_run()
             self._io_dirty=True
         self.scan_interval_ms = interval
@@ -136,6 +139,7 @@ class Application:
         if self._scan_thread is None:
             self._scan_thread = threading.Thread(target=self._scan_loop,name='LogixLab scans',daemon=True)
             self._scan_thread.start()
+        if changed and remote_request:self.engine.change_detection.record('remote_mode')
         self._scan_condition.notify_all()
 
     def _scan_loop(self):
@@ -173,7 +177,7 @@ class Application:
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
             'native_reference_symbols':None,'native_diagnostics':None,'native_diagnostic_profiles':None,'native_diagnostic_objects':None,'native_security_bindings':None,'routine_state':None,
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
-            'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
+            'controller_configuration':None,'controller_change_detection':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
@@ -468,7 +472,7 @@ class Application:
                 self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()
             elif action == 'controller-mode':
-                self.set_controller_mode(data.get('mode'),data.get('dt'))
+                self.set_controller_mode(data.get('mode'),data.get('dt'),remote_request=True)
             elif action == "step":
                 if self.running:raise ModelError('Switch to Program before stepping manually')
                 if self.endpoint and self.endpoint.native_read_only:

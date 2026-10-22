@@ -6,10 +6,16 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current source milestone: `.143` adds [read-only change-detection configuration](controller-change-detection.md)
+Current source milestone: `.144` adds a [simulator Audit Value](simulator-audit-value.md)
+for mask-selected remote mode changes and accepted supported routine transactions.
+Establish native acceptance of the two separate audit/configuration reads before
+claiming upload progress. The source model still withholds physical memory and
+State Detection signatures. The latest demonstrated native build remains `.142`.
+
+Version `.143` adds [read-only change-detection configuration](controller-change-detection.md)
 and named Controller gap reports. Validate the eight-byte configuration read
 with the native SDK before claiming upload progress. The source model retains
-five unavailable Controller fields, while the last demonstrated native comparison
+five unavailable Controller fields at that revision, while the last demonstrated native comparison
 on `.142` retains six. Establish the separate Audit Value, memory and signature
 contracts without substituting archived runtime data.
 

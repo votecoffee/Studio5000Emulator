@@ -8,6 +8,7 @@ from .program_timing import ProgramTiming
 from . import task_runtime
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
+from .change_detection import ChangeDetection
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -28,6 +29,7 @@ class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
     def __init__(self, project, mode="project", routine="", *, defer_prescan=False):
         self.project = project
+        self.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
         self.runtime_references = RuntimeReferences(project)
         self.mode = mode
         self.selected = routine.lower()
@@ -126,7 +128,9 @@ class Engine:
         self._fault=value
         # No native type/code/info mapping exists for simulator failures.
         # A later successful scan cannot turn that unknown history into clean.
-        if value:self._native_fault_history_uncertain=True
+        if value:
+            self._native_fault_history_uncertain=True
+            self.change_detection.invalidate()
 
     def program_fault_attributes(self,program,*,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers or self.fault or
