@@ -6,9 +6,9 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.155` demonstrates Go Online and
+**Status: experimental.** Native validation on `.157` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
-Remote Run/Program requests and actual mode reads also pass on `.153`.
+Remote Run/Program requests and actual mode reads also pass on `.156`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
@@ -16,6 +16,14 @@ preserving the original source files.
 Version `.157` adds source-bound [empty PLC file-mapping discovery](docs/empty-plc-file-mapping.md)
 for the catalog request reached by the empty-routine upload fixture. Unknown
 or configured mappings remain unavailable, and writes remain denied.
+All 252 focused checks and live signed clock/catalog reads pass. SDK Go Online/
+Offline verifies 74 requests. Normal upload verifies 349 requests and retains
+its Program/Routine failure. The empty-routine fixture now passes PLC file-
+mapping discovery and reaches Task collection after 358 requests, with Task
+fields 13/22/23 unavailable. All three native cases confirm Offline/cleanup,
+source/model preservation and no reported SDK fault. Webpage, executable and
+appliance versions match; the original demo is restored to stopped Program
+mode with zero scan/audit state. Full native transfers remain unfinished.
 
 Version `.156` adds [software Wall Clock policy](docs/wall-clock-policy.md):
 UTC time-zone/DST reads and a CST offset derived from a real monotonic

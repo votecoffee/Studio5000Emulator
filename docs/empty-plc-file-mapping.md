@@ -35,3 +35,18 @@ Program collection and returned a discovery denial, followed by
 `RxCsE_FAILED_2_UPLOAD_PLC_FILE_MAPPING_INFO`. That identifies the request being
 implemented; it does not establish support for populated mapping repositories
 or a complete saved upload.
+
+On the rebuilt `.157`, all 252 focused checks and live signed catalog reads
+pass. SDK Go Online/Offline verifies 74 requests. The normal demo upload
+retains its separate Program/Routine failure after 349 verified requests.
+The empty-routine fixture receives the new empty mapping reply successfully,
+then requests Task metadata and reports `RxCsE_UPLOAD_OF_TASKS_FAILED` after
+358 verified requests. Task fields 13/22/23 remain unavailable. This advances
+the tested fixture past file-mapping discovery; it does not complete upload.
+
+The raw transfer intervals are retained and their inspected layouts report
+no framing errors. The bounded collection summary retains only its first 64
+lists, so the later Task request is checked in the separate final-request
+view. Source/model preservation, actual Offline/cleanup and no reported SDK
+fault are confirmed for all three cases. The original demo is restored to
+stopped Program mode with zero scan/audit state; no upload-save trial is run.

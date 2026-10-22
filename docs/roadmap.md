@@ -10,6 +10,15 @@ Current milestone: `.157` adds guarded [empty PLC file-mapping discovery](empty-
 for a native upload catalog request. Complete source and matching native
 identity must prove an empty mapping set; populated/unknown mappings and
 file operations remain unsupported.
+All 252 focused checks and signed live clock/catalog reads pass. The rebuilt
+SDK connection verifies 74 requests. Normal upload verifies 349 requests and
+still fails at Program/Routine upload. The empty-routine fixture passes the
+new catalog and reaches Task collection after 358 requests, with fields
+13/22/23 unavailable. These remain separate transfer boundaries. All cases
+confirm actual Offline/cleanup, source/model preservation and no SDK fault.
+Webpage/executable/appliance versions match, and the original demo is restored
+to stopped Program mode with zero scan/audit state. Complete native transfers
+and the full edit lifecycle remain unfinished.
 
 Version `.156` adds [software Wall Clock policy](wall-clock-policy.md)
 and an application-lifetime monotonic counter. The accepted source UTC profile
