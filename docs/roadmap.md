@@ -6,7 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.155` adds size-bounded [inactive Time Sync reads](inactive-clock-dataset.md)
+Current milestone: `.156` adds [software Wall Clock policy](wall-clock-policy.md)
+and an application-lifetime monotonic counter. The accepted source UTC profile
+gains time-zone/DST reads and a computed CST offset, completing its eleven
+modeled fields. These runtime choices remain separate from saved extended
+time-zone/DST settings and synchronized physical clocks.
+
+Version `.155` adds size-bounded [inactive Time Sync reads](inactive-clock-dataset.md)
 for complete controller source with explicit PTP disabled. Its twelve added
 fields describe initialized simulator state and no assigned master or PTP port.
 Lists exceeding the reply budget return a whole-record prefix for a suffix

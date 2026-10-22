@@ -8,7 +8,7 @@ from unittest.mock import patch
 from xml.etree import ElementTree as E
 from logixlab.ethernetip import Endpoint, Session
 from logixlab.model import Project
-from logixlab.wall_clock import WallClock, LEGACY_EPOCH_MICROSECONDS
+from logixlab.wall_clock import WallClock, LEGACY_EPOCH_MICROSECONDS, UTC_ZONE
 from logixlab.server import Application
 
 
@@ -57,7 +57,8 @@ class WallClockTests(unittest.TestCase):
             if microseconds==0x7FFFFFFFFFFFFFFF:self.assertNotIn(5,values);self.assertNotIn(7,values)
         for invalid in (-1,None,True,1.5,'1',0x8000000000000000*1000):
             with patch('logixlab.wall_clock.time.time_ns',return_value=invalid):
-                self.assertEqual(clock.attributes(read_time=True),{2:bytes(2),4:bytes(2)})
+                self.assertEqual(clock.attributes(read_time=True),{2:bytes(2),4:bytes(2),
+                    8:struct.pack('<I',len(UTC_ZONE))+UTC_ZONE,9:bytes(2),10:bytes(1)})
         for error in (OSError('unavailable'),OverflowError('range'),ValueError('invalid')):
             with patch('logixlab.wall_clock.time.time_ns',side_effect=error):
                 self.assertEqual(self.send(6),bytes.fromhex('8e001400'))
@@ -77,14 +78,16 @@ class WallClockTests(unittest.TestCase):
             self.load(root)
             with patch('logixlab.wall_clock.time.time_ns',return_value=1000):
                 self.assertEqual(self.send(6),bytes.fromhex('8e0000000100000000000000'))
-                for attr in (1,2,4,5):self.assertEqual(self.send(attr)[2],0x14)
+                for attr in (1,2,3,4,5,8,9,10):self.assertEqual(self.send(attr)[2],0x14)
 
     def test_static_class_and_legacy_settings_do_not_sample_or_set_host_time(self):
         with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Unneeded time read')):
             self.assertEqual(self.send(1,instance=0),bytes.fromhex('8e0000000400'))
             self.assertEqual(self.send(2,instance=0),bytes.fromhex('8e0000000100'))
             for attr in (2,4):self.assertEqual(self.send(attr),bytes.fromhex('8e0000000000'))
-            for attr in (3,8,9,10,100):self.assertEqual(self.send(attr)[2],0x14)
+            self.assertEqual(self.send(8)[4:],struct.pack('<I',len(UTC_ZONE))+UTC_ZONE)
+            self.assertEqual(self.send(9)[4:],bytes(2));self.assertEqual(self.send(10)[4:],bytes(1))
+            self.assertEqual(self.send(100)[2],0x14)
             for service,attr,data in ((0x10,6,bytes(8)),(4,None,bytes.fromhex('01000600')+bytes(8)),
                                       (1,None,b''),(3,None,b''),(3,None,bytes(2)),(0x0E,6,b'x')):
                 self.assertNotEqual(self.send(attr,service,data)[2],0)
@@ -99,8 +102,9 @@ class WallClockTests(unittest.TestCase):
         self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
         self.assertEqual(self.app.engine.time_ms,1234);self.assertEqual(self.app.engine.project.path.read_bytes(),source)
         info=self.app.engine.project.wall_clock.description()
-        for name in ('cst_offset','timezone_string','dst_parameters','clock_setters','physical_clock','ptp_engine'):
+        for name in ('cst_offset','clock_setters','physical_clock','ptp_engine'):
             self.assertFalse(info[name])
+        for name in ('timezone_string','dst_parameters'):self.assertTrue(info[name])
         self.assertTrue(info['source_legacy_utc_available'])
 
 

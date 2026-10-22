@@ -1688,7 +1688,8 @@ class Router:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
                     requested=bool(set(wall_clock.TIME_ATTRIBUTES).intersection(struct.unpack_from('<'+'H'*count,data,2)))
-                attributes=self.app.engine.project.wall_clock.attributes(read_time=requested)
+                attributes=self.app.engine.project.wall_clock.attributes(read_time=requested,
+                            coordinated_clock=self.app.coordinated_clock)
             elif path.instance is None:raise CIPError(4,'Wall Clock Time requires an instance')
             else:raise CIPError(5,'Unknown Wall Clock Time instance')
             return self.attribute_read(service,path,data,attributes)
@@ -1976,7 +1977,8 @@ class Endpoint:
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
                     'pccc_mapping':self.app.engine.project.pccc_mapping.description() if self.enabled else None,
                     'time_sync':self.app.engine.project.time_sync.description(instance_id=self.app.instance_id,native_compatibility=self.native_read_only) if self.enabled else None,
-                    'wall_clock_time':self.app.engine.project.wall_clock.description() if self.enabled else None,
+                    'wall_clock_time':self.app.engine.project.wall_clock.description(
+                        coordinated_clock=self.app.coordinated_clock) if self.enabled else None,
                     'program_forces':self.app.engine.project.program_forces.description() if self.enabled else None,
                     'io_map':self.app.engine.project.io_map.description() if self.enabled else None,
                     'key_exchange':{**key_exchange.description(self.native_read_only),'session_secret_retained':any(n.key is not None for n in self.native_sessions.values())} if self.enabled else None,

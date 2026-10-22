@@ -33,6 +33,7 @@ from .native_security_bindings import NativeSecurityBindings
 from .native_metadata_definitions import NativeMetadataDefinitions
 from .native_metadata_values import NativeMetadataValues
 from .device_io import DeviceIO
+from .wall_clock import CoordinatedClock
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -81,6 +82,7 @@ class Application:
         self.connectivity_lock = threading.RLock()
         self.desktop = {'tray_available': False, 'tray_error': None}
         self.instance_id = uuid.uuid4().hex
+        self.coordinated_clock = CoordinatedClock.start()
         self.device_io = DeviceIO(self.instance_id)
         self._io_dirty = False
         self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')

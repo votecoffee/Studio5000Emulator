@@ -164,6 +164,24 @@ class NativeSessionTests(unittest.TestCase):
         self.assertEqual(self.app.engine.memory.values,before)
         self.assertEqual(self.app.engine.scan_count,0)
 
+    def test_signed_wall_clock_policy_and_counter_relation_preserve_write_denials(self):
+        from logixlab.wall_clock import CoordinatedClock,WallClock,UTC_ZONE
+        from tools.collection_inventory import decode_attribute_list
+        self.app.engine.project.wall_clock=WallClock(True)
+        self.app.coordinated_clock=CoordinatedClock(1_000_000)
+        self.bind();order=tuple(range(1,12));utc=1_700_000_000_123_456
+        with patch('logixlab.wall_clock.time.time_ns',return_value=utc*1000),\
+             patch('logixlab.wall_clock.time.monotonic_ns',return_value=2_234_567):
+            response=self.signed(4,bytes.fromhex('0302208b2401')+struct.pack('<12H',11,*order))
+        rows=decode_attribute_list(response,order,0x8b,include_payloads=True)['attributes']
+        self.assertTrue(all(row['status']==0 for row in rows))
+        values={row['attribute']:bytes.fromhex(row['data_hex']) for row in rows}
+        self.assertEqual(struct.unpack('<q',values[3])[0]+1234,utc)
+        self.assertEqual(values[8],struct.pack('<I',len(UTC_ZONE))+UTC_ZONE)
+        for sequence,attr in enumerate((3,8,9,10),5):
+            self.assertEqual(self.signed(sequence,bytes((0x10,3,0x20,0x8b,0x24,1,0x30,attr))+b'\0')[2],15)
+        self.assertEqual(self.app.engine.scan_count,0)
+
     def test_signed_program_discovery_keeps_names_read_only_and_source_bound(self):
         self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,[],
                                              [{'name':'MainProgram','instance':1234}])

@@ -13,6 +13,12 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.156` adds [software Wall Clock policy](docs/wall-clock-policy.md):
+UTC time-zone/DST reads and a CST offset derived from a real monotonic
+application counter. This fills the remaining four clock fields for the
+accepted source UTC profile. The API identifies the settings as emulator
+policy; saved extended DST/time-zone settings are not inferred or imported.
+
 Version `.155` adds size-bounded [inactive Time Sync reads](docs/inactive-clock-dataset.md)
 for complete source projects that explicitly disable PTP. The 32-field clock
 collection includes initialized, unmeasured offsets, empty master/port state
