@@ -13,6 +13,15 @@ Task upload across 358 verified signed requests and 361 expanded leaves, with
 actual Offline/cleanup, preserved source/model and no fatal SDK fault. Private
 clock/schema/repository hypotheses remain unshipped. Full transfer and the
 nonempty Routine source-retrieval boundary remain unfinished.
+A separate SDK Program-mode NOP insertion and reconnect preserve nonzero Task
+measurements across engine replacement; the next scan updates them normally.
+All 183 signed requests complete with actual Offline/cleanup, unchanged original
+files and no fatal SDK fault, using the normal protocol behavior.
+The restarted normal demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, confirming actual Offline/cleanup, preserved source/model and
+no fatal SDK fault. All 17 deployment checks pass; all 95 deployed modules and
+served/packaged assets match the `.137` build. Webpage and executable versions
+agree, and tags, logic, tasks, mode and edit configuration survive the restart.
 
 Version `.136` supports [scheduled empty Programs](empty-programs.md) with
 source-proven no-op execution, null main references, live Program references

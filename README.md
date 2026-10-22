@@ -14,8 +14,10 @@ custom execution model while preserving the original source files.
 
 Version `.137` adds [measured Task execution times and a live Task reference](docs/task-runtime.md).
 The isolated SDK comparison reads five more Task fields; upload still fails
-with 11 Task fields unavailable. Supported Routine replacement preserves the
-measurement record. Full native transfer remains unfinished.
+with 11 Task fields unavailable. A supported SDK Program-mode import and
+reconnect preserve the measurement record across Routine replacement.
+The restarted demo passes SDK Go Online/Go Offline. Full native transfer
+remains unfinished.
 Version `.136` adds [scheduled empty Programs](docs/empty-programs.md) as
 source-checked no-ops with null main references and empty Routine discovery.
 The isolated empty-Program upload advances to later file-mapping collection;

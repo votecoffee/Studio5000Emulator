@@ -73,3 +73,19 @@ successfully, leaving 11 unavailable fields. Both still fail Task upload across
 and endpoint cleanup, preserved source/model and no fatal SDK fault are confirmed.
 The private substitutes remain unshipped. Full native upload/download and the
 nonempty Routine source-retrieval failure remain unfinished.
+
+A separate native SDK test uses the saved/reopened single-NOP project and the
+normal protocol behavior. After one measured scan, a supported Program-mode
+rung insertion and reconnect preserve the four timing values and execution
+count. The replacement engine supplies a new live Task reference; a second
+scan records the changed logic normally. All 183 signed requests complete with
+actual Offline/cleanup, preserved original files and no fatal SDK fault.
+This validates the supported import and reconnect; Test/Untest/Assemble remains
+unfinished.
+
+The restarted normal demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 17 deployment checks pass, including the frozen executable's
+Task measurements and references. All 95 deployed modules match the build;
+served assets, packaged resources and webpage/executable versions match `.137`.
+The demo's tags, logic, tasks, mode and edit configuration survive the restart.
