@@ -12,6 +12,10 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
+Version `.136` adds [scheduled empty Programs](docs/empty-programs.md) as
+source-checked no-ops with null main references and empty Routine discovery.
+The isolated empty-project upload advances to later file-mapping collection;
+nonempty Routine source retrieval and full native transfer remain unfinished.
 Version `.135` adds [separate offline upload merge targets](docs/upload-merge-targets.md)
 to the native diagnostic probe. The emulator source and both original ACDs stay
 preserved while the SDK uses a new private working copy. A same-project offline

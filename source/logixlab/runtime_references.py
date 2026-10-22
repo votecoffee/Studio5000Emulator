@@ -74,7 +74,12 @@ class RuntimeReferences:
         """Router establishes complete source, native identity and edit guards."""
         if not isinstance(program,str):return {}
         target=self._current(project,'program',program.casefold())
-        if target is None or not target.get('main'):return {}
+        if target is None:return {}
+        if not target.get('main'):
+            if (not project.program_diagnostics.is_empty(program,source_sha256=project.sha256)
+                    or any(row.program.casefold()==program.casefold() for row in project.routines.values())):return {}
+            address=self.reference(project,'program',program)
+            return {5:bytes(4),16:struct.pack('<I',address)} if address is not None else {}
         main=program.casefold()+'/'+target['main'].casefold()
         routine=self._current(project,'routine',main)
         if routine is None or routine.kind!='RLL':return {}

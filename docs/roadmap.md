@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.135` adds [separate offline upload merge targets](upload-merge-targets.md).
+Current milestone: `.136` adds [source-checked scheduled empty Programs](empty-programs.md).
+The empty-project SDK upload passes Program collection and empty Routine
+discovery, reaching a later file-mapping collection gap. Resolve that independent
+gap alongside the nonempty Routine interpretation/source-identity investigation.
+
+Version `.135` adds [separate offline upload merge targets](upload-merge-targets.md).
 The native probe pins the emulator's original source independently of the SDK's
 private input copy. A same-project target with one offline NOP reaches the same
 Routine metadata boundary and still fails without source reads; an unrelated

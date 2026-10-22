@@ -4,6 +4,15 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.136` supports [scheduled empty Programs](empty-programs.md) with
+source-proven no-op execution, null main references, live Program references
+and existing fault/edit guards. All 121 affected tests pass; the full suite was
+not rerun. The isolated empty-Program upload advances from a 204-request Program
+collection failure to later PLC file-mapping collection across 357 verified
+signed requests. Both retain actual Offline/cleanup, unchanged source/model
+and no fatal SDK fault. Private clock/schema experiments remain unshipped.
+Full native transfer and the nonempty Routine upload boundary remain unfinished.
+
 Version `.135` adds [separate offline upload merge targets](upload-merge-targets.md)
 to the native acceptance probe. The SDK input is independently hashed while
 backend checks retain the original emulator source pin. Both originals stay

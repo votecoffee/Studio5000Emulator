@@ -907,7 +907,8 @@ class Router:
             self.source_bound_program(program['id'])
             routines=self.routines(program['id'])
         except CIPError:return {}
-        if (not routines or any(project.routines.get((program['name']+'/'+row['name']).casefold()) is None or
+        if (not routines and not project.program_diagnostics.is_empty(program['name'],source_sha256=source)
+                or any(project.routines.get((program['name']+'/'+row['name']).casefold()) is None or
                 project.routines[(program['name']+'/'+row['name']).casefold()].kind!='RLL' for row in routines)):
             return {}
         return engine.runtime_references.program_attributes(project,program['name'])
