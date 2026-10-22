@@ -395,6 +395,8 @@ def import_project(directory, project, converter=None):
                                             if 'native_security_bindings' in provenance else {}),
                                          **({'native_metadata_definitions':provenance['native_metadata_definitions']}
                                             if 'native_metadata_definitions' in provenance else {}),
+                                         **({'native_metadata_values':provenance['native_metadata_values']}
+                                            if 'native_metadata_values' in provenance else {}),
                                          **({'native_auxiliary_symbols':provenance['native_auxiliary_symbols']}
                                             if 'native_auxiliary_symbols' in provenance else {}),
                                          **({'native_aoi_routines':provenance['native_aoi_routines']}

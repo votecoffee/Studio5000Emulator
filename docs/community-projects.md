@@ -74,6 +74,12 @@ Unsupported optional metadata leaves TagInfo tag mappings available and reports
 a diagnostic. No upstream parser code, native database files or additional
 runtime packages are bundled.
 
+Version `.149` also reviews the upstream Comments record layout as a reference
+for the original bounded [metadata value reader](native-metadata-values.md).
+The supported v35 numeric, reference, qualifier and locale layouts are checked
+against owned ACDs and decoded reference responses. No upstream parser code or
+new runtime dependency is bundled.
+
 ## Reusable conversion comparison
 
 From the repository root:

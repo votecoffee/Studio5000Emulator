@@ -23,6 +23,13 @@ confirmed cleanup and no reported SDK fault. The webpage, executable and
 appliance versions match. Live metadata values, Program query `0x50` and complete
 native transfers remain unfinished.
 
+Version `.149` adds [original ACD metadata value reads](docs/native-metadata-values.md)
+through signed, fragmented queries. The catalog retains source definition,
+locale, qualifier and reference data, with an independent cursor per session.
+Two owned projects supply 1,670 and 1,660 records; 1,638 shared built-in records
+match decoded reference responses for each project. Program `0x50` and complete
+native transfers remain unfinished.
+
 Version `.147` adds [source-bound Metadata Definition names and IDs](docs/metadata-definitions.md)
 from the original ACD, including read-only instance discovery and Name reads.
 It also corrects the SDK probe's missing unhandled-exception fatal check.

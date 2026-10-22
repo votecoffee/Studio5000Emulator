@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.148` adds [fragmented metadata upload decoding](metadata-upload-query.md)
+Current milestone: `.149` adds [original metadata value reads](native-metadata-values.md)
+from supported ACD records, with source-bound manifests and signed fragmented
+query responses. Two owned projects supply 1,670/1,660 values; each matches 1,638
+shared built-in reference records. Program `0x50`, missing Controller fields,
+target/address resolution and the download result response remain independent
+gaps. Complete native transfers remain unfinished.
+
+Version `.148` adds [fragmented metadata upload decoding](metadata-upload-query.md)
 and an offline replay tool. All 10,301 selected reference query exchanges
 reconstruct into nine complete streams containing 43,833 records. Original ACD
 value/target mapping and the independent Program `0x50` response contract still

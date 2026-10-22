@@ -4,6 +4,17 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.149` adds [source-bound original metadata values](native-metadata-values.md)
+from supported `Comments.Dat` records. Stored ValueType declarations drive the
+string, numeric and reference readers, including ten observed locale profiles.
+The immutable catalog preserves source targets and supplies simulator-local
+record IDs. Signed query cursors are session/source-bound and response sizes
+respect the native wrapper's budget. Original metadata does not describe edited
+runtime logic, so nonempty reads become unavailable after a supported edit.
+Project-specific source data remains private; two owned projects each match
+1,638 shared built-in records from a saved upload. Complete native transfer,
+Program `0x50` and download-result behavior remain unfinished.
+
 Version `.148` adds [Metadata Definition `0x53` stream decoding](metadata-upload-query.md).
 The reply header carries the echoed cursor, including zero in the initial
 reply, rather than a total byte count. Bounded assembly retains exact fragment

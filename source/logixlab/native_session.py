@@ -29,6 +29,7 @@ class NativeSession:
         self.context = None
         self.operator_digest = None
         self.deadline = 0
+        self.metadata_query = None
 
     def begin(self, offer, *, nonce=None):
         self.close()

@@ -23,6 +23,7 @@ from .native_diagnostic_profiles import NativeDiagnosticProfiles
 from .native_diagnostic_objects import NativeDiagnosticObjects
 from .native_security_bindings import NativeSecurityBindings
 from .native_metadata_definitions import NativeMetadataDefinitions
+from .native_metadata_values import NativeMetadataValues
 from .aoi_catalog import AOICatalog
 from .executable_configuration import ExecutableConfiguration
 
@@ -145,6 +146,12 @@ def convert_acd(source, destination, converter=None):
         manifest['native_metadata_definitions']=NativeMetadataDefinitions.from_acd(source,manifest['l5x_sha256']).manifest()
     except (ModelError,UnicodeError,OSError) as error:
         manifest['native_metadata_definitions_error']=str(error)
+    try:
+        definitions=NativeMetadataDefinitions.from_manifest(manifest.get('native_metadata_definitions'),manifest['l5x_sha256'])
+        if definitions.source_acd_sha256!=original_hash:raise ModelError('Metadata value Project identity differs from original ACD')
+        manifest['native_metadata_values']=NativeMetadataValues.from_acd(source,manifest['l5x_sha256'],definitions).manifest()
+    except (ModelError,UnicodeError,OSError) as error:
+        manifest['native_metadata_values_error']=str(error)
     if digest(source) != original_hash: raise ModelError("Source hash changed during correlation import")
     (destination.parent / "provenance.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

@@ -78,10 +78,12 @@ SDK fault. That connection check does not exercise a complete metadata upload.
 
 ## Remaining work
 
-The live endpoint's existing bounded empty selections are unchanged.
+Version `.149` adds [source-bound live metadata reads](native-metadata-values.md)
+using this framing and original ACD values. The `.148` decoder itself remains
+detached from dispatch. Its existing bounded empty selection is retained.
 [Source-bound definition names and IDs](metadata-definitions.md) are separate
-from metadata values. Mapping original ACD values to runtime targets, qualifier
-and locale semantics, string expansion, the [Program `0x50` query](program-upload-query.md)
+from metadata values. Resolving original target words into runtime addresses,
+broader qualifier/locale forms, compressed-string expansion, the [Program `0x50` query](program-upload-query.md)
 and complete native upload remain unfinished. Download still needs the separate
 class `0x412` result-response contract. This decoder verifies neither MACs nor
 source binding, native acceptance or controller equivalence.

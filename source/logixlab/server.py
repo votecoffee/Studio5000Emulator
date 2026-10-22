@@ -31,6 +31,7 @@ from .native_diagnostic_profiles import NativeDiagnosticProfiles
 from .native_diagnostic_objects import NativeDiagnosticObjects
 from .native_security_bindings import NativeSecurityBindings
 from .native_metadata_definitions import NativeMetadataDefinitions
+from .native_metadata_values import NativeMetadataValues
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -72,6 +73,7 @@ class Application:
         self.native_diagnostic_objects = None
         self.native_security_bindings = None
         self.native_metadata_definitions = None
+        self.native_metadata_values = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -181,6 +183,7 @@ class Application:
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
             'controller_configuration':None,'controller_change_detection':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
+            'metadata_values':None,
             'locator':{'active':False,'remaining_ms':0,'elapsed_ms':0,'request_id':None},
             'counts':{},'unsupported':[],'attribute_gaps':[],'native_rejections':[],'trace_events':0,'studio_go_online':'NOT IMPLEMENTED OR VERIFIED'}
 
@@ -418,6 +421,11 @@ class Application:
                             for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols,native_tables,native_diagnostics,native_diagnostic_profiles,native_diagnostic_objects,native_security_bindings)):
                         raise ModelError('Metadata Definition binding differs from original ACD')
                     provenance['native_metadata_definitions']=native_metadata_definitions.description()
+                values_manifest=provenance.get('native_metadata_values')
+                if action=='load' and Path(name).suffix.lower()=='.l5x' and 'native_metadata_values' in data:
+                    values_manifest=data['native_metadata_values']
+                native_metadata_values=NativeMetadataValues.from_manifest(values_manifest,project.sha256,native_metadata_definitions) if values_manifest is not None else None
+                if native_metadata_values:provenance['native_metadata_values']=native_metadata_values.description()
                 native_reference_symbols=ReferenceSymbols.from_source(project,native_identity,native_symbols,native_tasks,native_auxiliary_symbols)
                 if native_reference_symbols:provenance['native_reference_symbols']=native_reference_symbols.description()
                 engine = Engine(project,defer_prescan=True)
@@ -445,6 +453,7 @@ class Application:
                     self.native_diagnostic_objects = native_diagnostic_objects
                     self.native_security_bindings = native_security_bindings
                     self.native_metadata_definitions = native_metadata_definitions
+                    self.native_metadata_values = native_metadata_values
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

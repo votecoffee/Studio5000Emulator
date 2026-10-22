@@ -25,6 +25,7 @@ from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
+from . import metadata_query
 from . import alarm_catalog, attribute_gaps, controller_configuration, controller_schemas, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata, wall_clock
 
 HEADER = struct.Struct('<HHII8sI')
@@ -509,9 +510,12 @@ class Router:
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
-                path.attribute is None and not path.symbols and
-                controller_configuration.empty_metadata_query(payload)):
-                return reply(inner[0],0,struct.pack('<II',0x301,0))
+                path.attribute is None and not path.symbols and all(getattr(path,key) is None for key in
+                    ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                if getattr(self.app,'native_metadata_values',None) is not None:
+                    return self.read_metadata_values(payload,native,limit)
+                if controller_configuration.empty_metadata_query(payload):
+                    return reply(inner[0],0,struct.pack('<II',0x301,0))
             return reject(0x0F,'read_only_policy')
         except CIPError as error:return reject(error.status,'invalid_request')
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
@@ -1267,6 +1271,30 @@ class Router:
             raise CIPError(0x0C,'Original Metadata Definition binding is unavailable or stale')
         return catalog
 
+    def read_metadata_values(self,payload,native,limit):
+        catalog=self.app.native_metadata_values;definitions=self.metadata_definitions()
+        if (catalog.source_acd_sha256!=definitions.source_acd_sha256 or
+                catalog.source_l5x_sha256!=definitions.source_l5x_sha256 or catalog.definitions!=definitions):
+            native.metadata_query=None
+            raise CIPError(0x0C,'Original Metadata Value binding is unavailable or stale')
+        try:query=metadata_query.parse_query(payload)
+        except ValueError as error:raise CIPError(3,'Unsupported metadata value query') from error
+        if getattr(self.app.engine.project,'runtime_revision',0) and query.selection!='controller-attribute-26':
+            native.metadata_query=None
+            raise CIPError(0x0C,'Original metadata values do not describe edited runtime logic')
+        data=catalog.body(query.selection);cursor=native.metadata_query
+        if query.format==1 and (cursor is None or cursor[0] is not catalog or cursor[1]!=self.app.generation
+                or cursor[2:]!=(query.selection,query.position)):
+            native.metadata_query=None
+            raise CIPError(0x0C,'Metadata value cursor does not match this session and source')
+        available=min(limit,REPLY_LIMIT)-12
+        if available<0 or (query.position<len(data) and available==0):raise CIPError(0x1B,'Metadata value reply cannot fit')
+        chunk=data[query.position:query.position+available];position=query.position+len(chunk);final=position==len(data)
+        fmt=(0x301 if final else 0x101) if query.format==0x101 else (0x201 if final else 1)
+        native.metadata_query=None if final else (catalog,self.app.generation,query.selection,position)
+        self.endpoint.counts['native_metadata_value_chunks']+=1
+        return reply(0x53,0,struct.pack('<II',fmt,query.position)+chunk)
+
     def instance_list(self,path,data,limit):
         """Get Instance List: cursor in the path, packed UDINT IDs in reply."""
         if path.instance is None or path.attribute is not None:
@@ -1904,8 +1932,11 @@ class Endpoint:
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
-                    'metadata_definition':(self.app.native_metadata_definitions.description() if getattr(self.app,'native_metadata_definitions',None)
+                    'metadata_definition':({**self.app.native_metadata_definitions.description(),
+                        'metadata_values':getattr(self.app,'native_metadata_values',None) is not None,
+                        'metadata_services':getattr(self.app,'native_metadata_values',None) is not None} if getattr(self.app,'native_metadata_definitions',None)
                         else controller_configuration.metadata_description()) if self.enabled else None,
+                    'metadata_values':self.app.native_metadata_values.description() if self.enabled and getattr(self.app,'native_metadata_values',None) else None,
                     'data_table':data_table.description() if self.enabled else None,
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
