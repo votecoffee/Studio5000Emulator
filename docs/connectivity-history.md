@@ -15,6 +15,19 @@ new fields, reducing unavailable Task fields from 8 to 3 across 358 verified
 requests and 361 expanded leaves. It still fails Task collection. Actual Offline,
 cleanup, unchanged originals/model and no fatal SDK fault are confirmed. Private
 clock/schema/repository hypotheses remain unshipped; full transfer is unfinished.
+The normal-protocol SDK Program-mode NOP insertion and reconnect retains all
+five stored settings, Task status, slot and timings across 183 verified requests.
+The next scan executes the changed logic normally. The source-matched download
+retains the result-response gap across 176 requests and 909 temporary records,
+without active commit. Both confirm actual Offline/cleanup, unchanged original
+files and no fatal SDK fault; the supported import changes only its authorized
+Routine in the custom execution model.
+The restarted `.139` demo passes SDK Go Online/Go Offline across 75 verified
+requests, confirming actual Offline/cleanup, preserved source/model and no fatal
+SDK fault. All 21 deployment checks pass, including the frozen stored-record
+reader and binding/legacy checks. All 96 deployed modules match the build;
+served assets, packaged resources and webpage/executable versions agree on
+`.139`. The prior model and edit configuration survive restart.
 
 Version `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
 Known clean status and overlap reads use the single serial executor; an

@@ -71,3 +71,20 @@ still fails Task collection. Both trials use identical original project files,
 Template snapshot and private clock/schema/repository hypotheses; those
 hypotheses remain unshipped. Actual Offline/cleanup, unchanged source/model and
 no fatal SDK fault are confirmed.
+
+A separate normal-protocol SDK Program-mode NOP insertion and reconnect preserves
+all five stored fields, Task status, slot and measured counters. The replacement
+engine supplies a new live Task reference and executes the next scan normally.
+All 183 verified requests succeed, with actual Offline/cleanup, unchanged
+originals and no fatal SDK fault. The source-matched download retains the
+result-response gap across 176 verified requests, 909 temporary records, 243
+Templates and 18 Tables, without an active image commit. Test/Untest/Assemble
+and full upload/download remain unfinished.
+
+The restarted normal demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 21 deployment checks pass, including the frozen executable's
+stored-record reader, source bindings and legacy manifests. All 96 deployed
+modules and served assets match the build; webpage, executable resources and
+Windows versions agree on `.139`. The prior model and edit configuration survive
+restart.
