@@ -10,6 +10,9 @@ Current milestone: `.140` adds [simulator Task Start Time](task-start-time.md).
 The isolated SDK upload accepts the timestamp after a successful scan; Task
 fields 22/23 remain unavailable. Resolve their contracts alongside the
 independent Routine source-retrieval and download result-response gaps.
+A private stack-field trial advances to Security Authority Binding (`0x36A`)
+discovery. Establish an explicitly source-checked empty/nonempty catalog contract;
+the tentative stack values remain excluded from the release.
 
 Version `.139` adds [original stored Task configuration](stored-task-configuration.md),
 with source and schedule checks for rate, trigger, type, timeout and mapping count.

@@ -4,6 +4,34 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.140` adds [Task Start Time](task-start-time.md), sampled from the
+simulator WALLCLOCKTIME before scheduled Programs and committed only after a
+successful whole-Task scan. Monotonic measurements remain independent. Unavailable
+clock samples withhold only the current timestamp; prescan, reset and failed
+scans do not invent or overwrite a successful timestamp. Reads do not resample.
+All 185 affected tests pass, without a full suite run. The isolated SDK upload
+accepts attribute 13 after one scan and leaves only fields 22/23 unavailable,
+still failing Task collection across 358 verified requests and 361 expanded
+leaves. A separate private stack-field hypothesis makes all 22 requested Task
+fields readable and advances to Security Authority Binding (`0x36A`) discovery,
+where the client fails with the SABO diagnostic after 359 verified requests.
+The stack association and values remain unverified and unshipped. Existing
+private clock/schema/repository hypotheses remain unshipped as well.
+The normal-protocol SDK Program-mode NOP insertion and reconnect preserves
+Start Time and the separate Task settings/status/slot/timing record across 183
+verified requests. The next scan updates the timestamp. The independent download
+retains its result-response gap across 176 verified requests and 909 temporary
+records, with no active commit. All four cases confirm actual Offline/cleanup,
+unchanged original files and no fatal SDK fault. Full native transfer and the
+complete Test/Untest/Assemble lifecycle remain unfinished.
+
+The restarted `.140` normal demo passes SDK Go Online/Go Offline across 75
+verified requests with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 22 deployment checks pass, including frozen Start Time
+sampling, epoch and invalid-clock isolation. All 96 deployed app modules match
+the build. Served assets, packaged resources and webpage/executable versions
+agree on `.140`; the prior model and edit configuration survive restart.
+
 Version `.139` adds [original stored Task configuration](stored-task-configuration.md).
 Controlled offline SDK saves/reopens correlate the fixed format-18 layout with
 Continuous/Periodic type, rate, priority, watchdog and Boolean changes. An optional

@@ -51,3 +51,29 @@ fails Task collection across 358 verified signed requests and 361 expanded
 leaves. Actual Offline/cleanup, preserved originals/model and no fatal SDK fault
 are confirmed. The private hypotheses remain excluded from the release.
 Full native upload/download and the complete edit lifecycle remain unfinished.
+
+A separate private client-acceptance trial supplies tentative fields 22/23 for
+this no-AOI fixture. All 22 requested Task fields then return successfully and
+the client advances one request to Security Authority Binding discovery
+(class `0x36A`, service `0x4B`), where upload fails with the SDK's SABO diagnostic.
+The installed class schema identifies that object, but this trial does not
+establish the stack fields' meanings or their production values. Its substitutes
+are not shipped.
+
+The normal-protocol SDK Program-mode NOP insertion and reconnect preserve the
+committed timestamp and the independent Task settings, status, slot and timing
+record across 183 verified requests. The next scan updates Start Time. Original
+files are unchanged, actual Offline/cleanup succeeds and no fatal SDK fault
+occurs. This covers the supported import and reconnect; the complete
+Test/Untest/Assemble lifecycle remains unfinished.
+
+The independent source-matched download still reaches the known result-response
+gap across 176 verified requests and 909 temporary records. It performs no active
+commit, preserves source/model, confirms actual Offline/cleanup and reports no
+fatal SDK fault. All 185 affected tests pass without a full suite run.
+
+The restarted normal demo passes SDK Go Online/Go Offline across 75 verified
+requests. All 22 deployment checks pass, including executable-contained Start
+Time/clock tests and matching `.140` webpage/app/executable versions. All 96
+deployed app modules match the build; the demo model and edit configuration are
+preserved. Actual Offline/cleanup succeeds without a fatal SDK fault.
