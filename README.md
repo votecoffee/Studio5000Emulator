@@ -13,6 +13,11 @@ Remote Run/Program requests, actual mode reads and supported
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
 
+Version `.152` adds a [local software-clock identity](docs/software-clock-identity.md)
+for native inventory reads. Its Local Clock Information and Clock User Description
+share one application-lifetime identity, with unknown accuracy and no asserted
+PTP master, hardware OUI or clock discipline. Full native transfers remain unfinished.
+
 Version `.151` adds source-backed [empty Change Log lookups](docs/native-change-log.md)
 for the v35 upload cursors, preserving the requested position and original
 source. A private minimal fixture now completes SDK `UploadAsync`; its temporary

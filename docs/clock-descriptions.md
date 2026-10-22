@@ -38,6 +38,9 @@ of an exported TimeSynchronize declaration. Revision data uses the same app
 version as the executable and webpage. Connectivity `time_sync.software_clock`
 metadata exposes the software version and description attributes.
 
+Version `.152` adds separate [local software-clock identity reads](software-clock-identity.md).
+The original `.62` scope below remains historical.
+
 No manufacturer OUI, hardware serial number, hardware revision or firmware
 revision is assigned. The compatibility profile's controller identity is
 separate. Clock identity, PTP node type, grandmaster/parent measurements and

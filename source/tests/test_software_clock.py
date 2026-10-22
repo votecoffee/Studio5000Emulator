@@ -144,7 +144,7 @@ class SoftwareClockTests(unittest.TestCase):
                 response=self.send(path=bytes.fromhex('2043240130')+bytes((attr,)))
                 self.assertEqual(response,bytes.fromhex('8e000000')+struct.pack('<I',len(text))+text)
             # No assigned manufacturer OUI or clock hardware identity is known.
-            for attr in (10,19,20,102,103,104,105):
+            for attr in (19,20,102,103,104):
                 self.assertEqual(self.send(path=bytes.fromhex('2043240130')+bytes((attr,))),bytes.fromhex('8e001400'))
         info=self.app.engine.project.time_sync.description()['software_clock']
         self.assertEqual(info['software_version'],__version__)

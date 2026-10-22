@@ -40,12 +40,13 @@ class TimeSync:
         values = ((1, self.ptp_enabled), (16, self.priority1), (17, self.priority2))
         return {number: bytes((value,)) for number, value in values if value is not None}
 
-    def description(self):
+    def description(self, *, instance_id=None):
+        clock = software_clock.description(instance_id=instance_id)
         return {'object_revision': 1, 'ptp_enabled': self.ptp_enabled,
                 'priority1': self.priority1, 'priority2': self.priority2,
                 'source': 'Controller/TimeSynchronize PTPEnable/Priority1/Priority2',
                 'source_attributes': list(self.attributes()),
-                'available_attributes': sorted(set(self.attributes()) | set(software_clock.STATIC_ATTRIBUTES)),
+                'available_attributes': sorted(set(self.attributes()) | set(clock['static_attributes'])),
                 'dynamic_attributes': list(software_clock.TIME_ATTRIBUTES), 'settings_writable': False,
                 'ptp_engine': False, 'clock_measurements': True, 'port_metadata': True,
-                'software_clock': software_clock.description()}
+                'software_clock': clock}

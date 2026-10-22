@@ -15,7 +15,7 @@ evidence to assign the failure to that object.
 | Data Table and Symbol | Bounded model descriptors and supported atomic/UDT scalar and array values correlated to imported tag identifiers | Native compiled addresses, layouts and complete type upload |
 | Template | Shared explicit UDT layouts, aligned reads, basic metadata and explicit NoFamily values | Multiply Code, Recon Data and complete native type upload |
 | Network inventory | Actual selected interface information and supported host counters | Device-specific fields without a host or source counterpart |
-| Time Sync | Imported PTP configuration, unsynchronized status, empty PTP port set, software descriptions and current host UTC | PTP master, parent, identity and synchronization measurements |
+| Time Sync | Imported PTP configuration, unsynchronized status, empty PTP port set, software descriptions, application-lifetime local clock identity and current host UTC | PTP master/parent, hardware identity and synchronization measurements |
 | Controller | Supported source settings, run mode, programming lease state and proven null handler references | Configured handler references and complete upload collection |
 | Task | Bound native IDs, ordered Program references and explicit source settings/times | Execution slot, measured timing and complete native Task upload |
 | Executable | Bound Program-scoped Routine IDs and limited legacy descriptions | Native type/UID mapping, compiled addresses/bodies and complete native Routine upload |

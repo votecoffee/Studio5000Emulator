@@ -128,6 +128,9 @@ class TimeSyncTests(unittest.TestCase):
         revision=(';;'+__version__).encode('utf-8')
         values.update({21:struct.pack('<I',len(product))+product,
                        22:struct.pack('<I',len(revision))+revision,23:bytes(4)})
+        from logixlab.software_clock import clock_identity
+        identity=clock_identity(self.app.instance_id)
+        values.update({10:identity+struct.pack('<6H',248,0xfe,0xffff,0,0,0xa0),105:identity+bytes(2)})
         expected = struct.pack('<H', len(order))
         for attr in order:
             expected += struct.pack('<HH', attr, 0 if attr in values else 0x14) + values.get(attr, b'')
