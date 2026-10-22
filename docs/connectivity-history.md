@@ -12,6 +12,18 @@ collection failure to later PLC file-mapping collection across 357 verified
 signed requests. Both retain actual Offline/cleanup, unchanged source/model
 and no fatal SDK fault. Private clock/schema experiments remain unshipped.
 Full native transfer and the nonempty Routine upload boundary remain unfinished.
+The corrected single-NOP Routine upload reproduces that boundary across 357
+verified signed requests. Two source-matched downloads reach the result-response
+gap across 176 requests each, retaining 907/909 temporary records. A private
+empty-`0x6E` comparison advances to Task collection across 358 requests; that
+substitute remains unshipped. All six retained comparisons confirm actual
+Offline/cleanup, unchanged originals/model and no fatal SDK fault.
+The restarted `.136` demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, confirming actual Offline/cleanup and unchanged source/model
+without a fatal SDK fault. All 13 deployment checks pass, including the frozen
+empty-Program implementation. All 94 deployed modules match the build; served
+assets, packaged resources and webpage/executable versions match `.136`.
+Tags, logic, tasks, mode and edit configuration are preserved across restart.
 
 Version `.135` adds [separate offline upload merge targets](upload-merge-targets.md)
 to the native acceptance probe. The SDK input is independently hashed while

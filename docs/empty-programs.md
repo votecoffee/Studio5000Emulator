@@ -56,3 +56,30 @@ private clock/schema hypotheses needed to reach these stages remain unshipped.
 
 Full native upload/download and source reconstruction remain unfinished. This
 empty-source case does not resolve the existing nonempty Routine upload failure.
+
+The corrected single-Routine comparison contains one `NOP()` rung, no removed
+Routine references, and an independently saved/reopened ACD and Template snapshot.
+Its upload still receives the complete Routine reply, then fails Program upload
+before source retrieval across 357 verified signed requests. The Routine boundary
+therefore also occurs with this minimal logic; its cause remains unresolved.
+
+Two source-matched native download trials, using the empty Program and single
+NOP Routine respectively, both reach the existing result-response gap across
+176 verified signed requests. Their temporary images retain 907/909 records,
+243 Templates and 18 Data Tables; no active image is committed. Both confirm
+actual Offline/cleanup, unchanged source/model and no fatal SDK fault.
+
+A separate private comparison exercises empty class-`0x6E` discovery and advances
+the empty-Program upload to Task collection across 358 verified signed requests.
+Sixteen requested Task fields remain unavailable and upload fails. This does
+not establish a general empty repository or mapping contract, and the substitute
+is not shipped. All six retained upload/download comparisons preserve their
+originals and emulator model; no physical-controller contact was initiated.
+
+The rebuilt and restarted `.136` demo passes SDK Go Online/Go Offline across
+75 verified signed requests, with actual Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. All 13 deployment checks pass, including
+execution of the frozen empty-Program implementation and its source guards.
+All 94 deployed app modules match the build; served assets, executable resources
+and webpage/executable versions match `.136`. The demo's tags, routines, tasks,
+mode and edit configuration match their state before restart.
