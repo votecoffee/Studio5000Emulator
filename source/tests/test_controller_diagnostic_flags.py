@@ -75,7 +75,7 @@ class ControllerDiagnosticFlagTests(unittest.TestCase):
     def test_signed_mixed_reads_preserve_order_values_and_write_policy(self):
         self.app.native_project_identity=NativeProjectIdentity('a'*64,self.app.engine.project.sha256,1,1,1,1,1,1)
         self.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True);self.app.endpoint=self.endpoint;self.endpoint.start()
-        before=copy.deepcopy(self.app.state());requested=(35,10,11,35,33)
+        before=copy.deepcopy(self.app.state());requested=(35,10,32,35,33)
         with AnonymousClient(self.endpoint) as client:
             client.bind()
             raw=client.request(bytes.fromhex('0302208e2401')+struct.pack('<6H',len(requested),*requested))

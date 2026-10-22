@@ -34,6 +34,11 @@ CCUID and signature fields. Reports retain their original IDs and unsupported
 statuses, preserve unknown IDs and remain value-free. A named gap is still an
 unsupported response; its name does not establish the cause of a client failure.
 
+Version `.159` separately implements fields 11/12 as
+[spare-memory configuration](controller-memory-padding.md), with explicit source
+values and a documented omission policy. They are not live free-RAM measurements.
+The State Detection signatures remain unavailable.
+
 With a supported source mask, source revision `.143` can supply field 28. Controller
 fields 11/12/27/33/34 remain unavailable in that revision. This is a model result, not a new native
 upload result. Task fields 22/23, nonempty Routine source retrieval, full native

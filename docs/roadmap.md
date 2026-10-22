@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `.159` adds [Controller spare-memory configuration](controller-memory-padding.md)
+reads for fields 11/12, preserving explicit source percentages and identifying
+the disabled-redundancy zero-reservation policy for omitted settings. All 181
+affected checks pass. The two State Detection signatures, complete native
+transfers and the full edit lifecycle remain unfinished.
+
 Version `.158` adds [initialized Task metadata](task-initial-state.md): zero Start Time before
 any successful scan and zero pending/active AOI stack allocation only for a
 complete source project with no AOI declarations. The API distinguishes an

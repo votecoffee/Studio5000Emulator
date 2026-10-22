@@ -12,6 +12,43 @@ from . import controller_schemas
 
 
 PASS_THROUGH = {'Disabled': 0, 'Enabled': 1, 'EnabledWithAppend': 3}
+MEMORY_PAD_FIELDS = ('IOMemoryPadPercentage','DataTablePadPercentage')
+REDUNDANCY_FIELDS = {'Enabled','KeepTestEditsOnSwitchOver','Use',*MEMORY_PAD_FIELDS}
+
+
+def memory_padding(root,controller):
+    """Static spare-memory settings, never percentages of live free RAM.
+
+    Explicit disabled redundancy selects this emulator's zero-reservation
+    policy for omitted settings. Enabled/unknown redundancy has no defaults.
+    Malformed explicit values never fall back to the omission policy.
+    """
+    unavailable=((None,None),(False,False))
+    if (root is None or not complete_tag_source(root,controller) or controller.get('MajorRev')!='35'
+            or root.get('SchemaRevision')!='1.0' or not re.fullmatch(r'35\.[0-9]{2}',root.get('SoftwareRevision',''))):
+        return unavailable
+    nodes=controller.findall('RedundancyInfo')
+    if len(nodes)!=1:return unavailable
+    node=nodes[0]
+    if (node.attrib.keys()-REDUNDANCY_FIELDS or node.get('Use') not in (None,'Target')
+            or node.get('Enabled') not in ('true','false') or len(node) or (node.text or '').strip()):
+        return unavailable
+    # Reject aliases and shadows even when the canonical setting is omitted.
+    names=('redundancyinfo',*(name.casefold() for name in MEMORY_PAD_FIELDS))
+    for item in controller.iter():
+        local=item.tag.rsplit('}',1)[-1].casefold()
+        if any(local.startswith(name) for name in names) and item is not node:return unavailable
+        for key in item.attrib:
+            if any(key.rsplit('}',1)[-1].casefold().startswith(name) for name in names):
+                if item is not node or key not in MEMORY_PAD_FIELDS:return unavailable
+    values=[];defaulted=[]
+    for name in MEMORY_PAD_FIELDS:
+        text=node.get(name)
+        use_default=text is None and node.get('Enabled')=='false'
+        value=(0 if use_default else int(text) if isinstance(text,str)
+               and re.fullmatch(r'(?:0|[1-9][0-9]{0,2})',text) and int(text)<=100 else None)
+        values.append(value);defaulted.append(use_default)
+    return tuple(values),tuple(defaulted)
 
 
 def change_detection_mask(root,controller):
@@ -52,6 +89,9 @@ class ControllerConfiguration:
     continue_test_edits: bool | None = None
     automatic_diagnostics_enabled: bool | None = None
     changes_to_detect: int | None = None
+    io_memory_pad_percentage: int | None = None
+    data_table_pad_percentage: int | None = None
+    memory_pad_defaulted: tuple[bool,bool] = (False,False)
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -86,7 +126,7 @@ class ControllerConfiguration:
         retain=None
         if (complete and len(redundancy)==1 and related_redundancy==redundancy):
             node=redundancy[0]
-            if (not node.attrib.keys()-{'Enabled','KeepTestEditsOnSwitchOver','Use'} and
+            if (not node.attrib.keys()-REDUNDANCY_FIELDS and
                     node.get('Use') in (None,'Target') and node.get('Enabled') in ('true','false') and
                     not len(node) and not (node.text or '').strip()):
                 retain={'true':True,'false':False}.get(node.get('KeepTestEditsOnSwitchOver'))
@@ -108,6 +148,7 @@ class ControllerConfiguration:
                 if local.lower() in related:
                     if name not in names or value:return False
             return complete
+        padding,defaulted=memory_padding(root,controller)
         return cls(value if value is not None and value <= 0xFFFFFFFF else None,
                    controller.get('Name', 'Controller'), description,
                    {'true':True,'false':False}.get(enabled),time_slice,share,
@@ -115,7 +156,7 @@ class ControllerConfiguration:
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
                    empty_handler('MajorFaultProgram'),pass_mode,
                    match_project,firmware,producer_rpi,report_overflow,retain,diagnostics,
-                   change_detection_mask(root,controller))
+                   change_detection_mask(root,controller),*padding,defaulted)
 
     def attributes(self):
         values={13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
@@ -128,6 +169,8 @@ class ControllerConfiguration:
                              (31,self.report_minor_overflow),(35,self.automatic_diagnostics_enabled)):
             if value is not None:values[number]=bytes((value,))
         if self.changes_to_detect is not None:values[28]=struct.pack('<Q',self.changes_to_detect)
+        for number,value in ((11,self.io_memory_pad_percentage),(12,self.data_table_pad_percentage)):
+            if value is not None:values[number]=struct.pack('<H',value)
         return values
 
     def compatibility_attributes(self):
@@ -197,6 +240,13 @@ class ControllerConfiguration:
                 'changes_to_detect_available':self.changes_to_detect is not None,
                 'changes_to_detect_source':'Controller/Security@ChangesToDetect; explicit radix-16 mask',
                 'changes_to_detect_bits':64,'change_detection_audit_value':False,
+                'memory_padding':{'read_attributes':[11,12],
+                    'io_memory_pad_percentage':self.io_memory_pad_percentage,
+                    'data_table_pad_percentage':self.data_table_pad_percentage,
+                    'defaulted':dict(zip(MEMORY_PAD_FIELDS,self.memory_pad_defaulted)),
+                    'source':'Controller/RedundancyInfo; explicit percentage or disabled-redundancy omission policy',
+                    'omission_policy':'Zero reservation only with explicit disabled redundancy in complete v35 source',
+                    'live_free_memory_measurement':False,'native_reservation_enforcement':False},
                 'change_detection_events_recorded':False,'state_detection_signatures':False,
                 'source_read_attributes':sorted(self.attributes()),
                 'source_flag_attributes':{'10':'Controller/RedundancyInfo@KeepTestEditsOnSwitchOver',

@@ -13,6 +13,13 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.159` adds [Controller spare-memory configuration](docs/controller-memory-padding.md)
+reads for fields 11/12. Explicit source percentages are preserved; complete
+source with disabled redundancy selects zero reservation for omitted settings.
+The API reports that policy separately from saved properties and live RAM.
+All 181 affected checks pass. State Detection signatures remain unavailable;
+native transfer acceptance is tracked separately.
+
 Version `.158` adds [initialized Task metadata](docs/task-initial-state.md): zero Start Time before
 any successful scan and zero pending/active AOI stack allocation only for a
 complete source project with no AOI declarations. The API distinguishes an

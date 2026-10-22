@@ -96,7 +96,7 @@ class ControllerChangeMaskTests(unittest.TestCase):
         rows=gaps.snapshot(7);names={x['id']:x['name'] for x in rows[0]['attributes']}
         self.assertEqual(names[28],'CCUID Configuration (ChangesToDetect)')
         self.assertEqual(names[27],'CCUID Value (Audit Value)')
-        self.assertEqual(names[11],'Percent Free I/O Memory')
+        self.assertEqual(names[11],'I/O memory spare percentage (configuration)')
         self.assertEqual(names[33],'State Detection Static Signature')
         self.assertEqual(names[65000],'Attribute 65000')
         self.assertNotIn('data_hex',str(rows));self.assertEqual(gaps.snapshot(8),[])
