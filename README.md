@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.151` demonstrates Go Online and
+**Status: experimental.** Native validation on `.152` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
@@ -17,6 +17,14 @@ Version `.152` adds a [local software-clock identity](docs/software-clock-identi
 for native inventory reads. Its Local Clock Information and Clock User Description
 share one application-lifetime identity, with unknown accuracy and no asserted
 PTP master, hardware OUI or clock discipline. Full native transfers remain unfinished.
+All 195 affected checks and live identity/inventory reads pass. The rebuilt
+SDK Go Online/Offline case verifies 74 requests with unchanged source/model,
+confirmed Offline/cleanup and no reported fault. Webpage, executable and
+appliance versions match.
+Native upload returns both new fields successfully across 191 verified requests
+and proceeds to Controller Get All before reporting its collection failure.
+Offline/cleanup and original source/model preservation are confirmed, with no
+reported SDK fault. Complete native upload remains unfinished.
 
 Version `.151` adds source-backed [empty Change Log lookups](docs/native-change-log.md)
 for the v35 upload cursors, preserving the requested position and original

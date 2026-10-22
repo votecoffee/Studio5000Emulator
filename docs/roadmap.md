@@ -6,7 +6,19 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.151` adds source-backed
+Current milestone: `.152` adds [local software-clock identity reads](software-clock-identity.md)
+for native inventory. The generated identity persists across project reloads
+within an app instance, with unknown accuracy and no PTP master/port or hardware
+identity claims. All 195 affected checks, live signed identity reads and the
+rebuilt SDK Go Online/Offline case pass; webpage, executable and appliance
+versions match. Native upload verifies 191 requests, returns both new fields
+successfully and proceeds to Controller Get All before reporting its collection
+failure, with Offline/cleanup and no SDK fault. The 32-field Time Sync list
+retains twelve unavailable fields. Resolve the remaining clock/Controller source
+and response contracts while retaining the separate complete-transfer and edit
+lifecycle gaps.
+
+Version `.151` adds source-backed
 [empty Change Log lookups](native-change-log.md). The strict original empty-log
 profile permits the two observed upload searches while preserving each requested
 cursor. All 222 affected checks, live cursor/Program reads and the rebuilt SDK

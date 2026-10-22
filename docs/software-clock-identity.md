@@ -23,7 +23,7 @@ and ordered Get Attributes List (`0x03`) for the additional fields:
 
 | Attribute | Value |
 | --- | --- |
-| 10, Local Clock Information | Eight-byte identity followed by six little-endian UINT fields |
+| 10, Local Clock Information | Eight-byte identity followed by six little-endian 16-bit fields |
 | 105, Clock User Description | The same identity followed by two USINT-counted empty strings |
 
 Attribute 10 uses Clock Class `248`, Time Accuracy `0xFE` (unknown), Variance
@@ -55,9 +55,27 @@ enable setting. Master/parent identities, offsets, delays, domain, clock type,
 manufacturer OUI and vendor device/port structures remain unavailable. Writes
 retain their errors and acquire no programming authority.
 
-A private earlier experiment used clock type `8`. That bit identifies an
-end-to-end transparent clock and does not describe this emulator. It remains
-excluded together with the experiment's unproved master/port datasets.
-
 These reads do not complete upload, download or native clock discipline.
 Validation keeps the normal application separate from private upload fixtures.
+
+## Validation
+
+All 195 affected checks pass. Cases cover identity lifetime and app separation,
+missing/malformed instance IDs, exact field sizes and unknown-quality values,
+ordered/duplicate lists, one shared time sample, exposed endpoint metadata,
+source/model/audit preservation, unknown master fields and retained write denial.
+
+The rebuilt `.152` passes signed and direct identity reads, mixed-list checks
+and the complete 32-field Time Sync query with twelve remaining unavailable
+fields. The normal SDK Go Online/Offline case verifies 74 requests, confirms
+Offline/cleanup and reports no SDK fault. Webpage, executable and appliance
+versions match. The original project and zero-scan Program state are preserved.
+
+The normal native upload verifies 191 requests and receives both new fields
+with successful statuses and exact matching hashes. It proceeds from the
+partial Time Sync list to Controller Get All, whose modeled legacy response
+succeeds at the CIP layer, then reports
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. This does not establish the
+cause of the native collection failure or complete project reconstruction.
+Offline/cleanup, original source/model preservation and no SDK fault are
+confirmed. No private clock overrides or upload-save trial are used.
