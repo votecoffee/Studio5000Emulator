@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.142` adds [Controller retention and diagnostic settings](controller-diagnostic-settings.md)
+Current source milestone: `.143` adds [read-only change-detection configuration](controller-change-detection.md)
+and named Controller gap reports. Validate the eight-byte configuration read
+with the native SDK before claiming upload progress. The source model retains
+five unavailable Controller fields, while the last demonstrated native comparison
+on `.142` retains six. Establish the separate Audit Value, memory and signature
+contracts without substituting archived runtime data.
+
+Version `.142` adds [Controller retention and diagnostic settings](controller-diagnostic-settings.md)
 and offline Controller bulk-response framing. The isolated SDK upload accepts
 fields 10/35, leaving 11/12/27/28/33/34 unavailable. Establish their memory,
 CCUID and signature contracts while retaining the separate Task 22/23

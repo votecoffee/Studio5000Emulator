@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** The native v35 SDK can Go Online to the tested demo
+**Status: experimental.** The native-validated `.142` build can Go Online to the
+tested demo with the v35 SDK
 in anonymous compatibility mode, request Remote Run or Program, read the
 emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
+
+Source revision `.143` adds a [read-only Controller change-detection configuration mask](docs/controller-change-detection.md)
+and named Controller gap diagnostics. Pure source/stub checks pass; native SDK
+acceptance, executable rebuild and restart remain pending for this revision.
+The most recent native-validated build remains `.142`.
 
 Version `.142` adds [source-checked Controller retention and diagnostic settings](docs/controller-diagnostic-settings.md)
 and offline Controller response decoding. The isolated SDK upload reads both

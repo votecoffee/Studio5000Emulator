@@ -4,6 +4,16 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Source revision `.143` adds [change-detection configuration reads](controller-change-detection.md)
+and named Controller field gaps. An explicit canonical L5X ChangesToDetect
+mask supplies the eight-byte Controller field 28 without inventing audit values,
+memory percentages, event history or signatures. Missing, ambiguous and malformed
+source declarations remain unavailable. Thirty pure source/in-memory checks
+pass with process, worker and network starts prohibited and no resource-start
+attempts. Native SDK acceptance, executable build and restart have not been
+performed for this revision. `.142` remains the last native-validated build;
+no reduction in native upload gaps is claimed for `.143`.
+
 Version `.142` adds [Controller retention and diagnostic settings](controller-diagnostic-settings.md)
 for attributes 10/35, plus strict offline Controller upload/connection-response
 framing. The settings require complete canonical source declarations; missing,

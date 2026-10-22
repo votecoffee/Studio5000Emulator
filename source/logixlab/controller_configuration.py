@@ -13,6 +13,24 @@ from .tag_catalog import complete_tag_source
 PASS_THROUGH = {'Disabled': 0, 'Enabled': 1, 'EnabledWithAppend': 3}
 
 
+def change_detection_mask(root,controller):
+    """Read the explicit unsigned 64-bit hex mask, independently of audit history."""
+    if root is None or not complete_tag_source(root,controller):return None
+    related=[node for node in controller if
+             node.tag.rsplit('}',1)[-1].casefold().startswith('security')]
+    nodes=controller.findall('Security')
+    if len(nodes)!=1 or related!=nodes:return None
+    node=nodes[0]
+    if (node.attrib.keys()-{'Code','ChangesToDetect','Use'} or
+            node.get('Use') not in (None,'Target') or len(node) or (node.text or '').strip()):return None
+    text=node.get('ChangesToDetect')
+    if not isinstance(text,str) or len(text)>22:return None
+    # Support the observed L5X radix-16 form, either ungrouped or groups of
+    # four hex digits. Missing/other representations never become zero.
+    if not re.fullmatch(r'16#(?:[0-9A-Fa-f]{1,16}|[0-9A-Fa-f]{1,4}(?:_[0-9A-Fa-f]{4}){1,3})',text):return None
+    return int(text[3:].replace('_',''),16)
+
+
 @dataclass(frozen=True)
 class ControllerConfiguration:
     security_code: int | None
@@ -32,6 +50,7 @@ class ControllerConfiguration:
     report_minor_overflow: bool | None = None
     continue_test_edits: bool | None = None
     automatic_diagnostics_enabled: bool | None = None
+    changes_to_detect: int | None = None
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -94,7 +113,8 @@ class ControllerConfiguration:
                    slice_text is None,share_text is None,
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
                    empty_handler('MajorFaultProgram'),pass_mode,
-                   match_project,firmware,producer_rpi,report_overflow,retain,diagnostics)
+                   match_project,firmware,producer_rpi,report_overflow,retain,diagnostics,
+                   change_detection_mask(root,controller))
 
     def attributes(self):
         values={13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
@@ -106,6 +126,7 @@ class ControllerConfiguration:
                              (23,self.can_use_rpi_from_producer),
                              (31,self.report_minor_overflow),(35,self.automatic_diagnostics_enabled)):
             if value is not None:values[number]=bytes((value,))
+        if self.changes_to_detect is not None:values[28]=struct.pack('<Q',self.changes_to_detect)
         return values
 
     def compatibility_attributes(self):
@@ -171,6 +192,10 @@ class ControllerConfiguration:
                 'report_minor_overflow':self.report_minor_overflow,
                 'continue_test_edits':self.continue_test_edits,
                 'automatic_diagnostics_enabled':self.automatic_diagnostics_enabled,
+                'changes_to_detect_available':self.changes_to_detect is not None,
+                'changes_to_detect_source':'Controller/Security@ChangesToDetect; explicit radix-16 mask',
+                'changes_to_detect_bits':64,'change_detection_audit_value':False,
+                'change_detection_events_recorded':False,'state_detection_signatures':False,
                 'source_read_attributes':sorted(self.attributes()),
                 'source_flag_attributes':{'10':'Controller/RedundancyInfo@KeepTestEditsOnSwitchOver',
                                           '15':'Controller@MatchProjectToController',
