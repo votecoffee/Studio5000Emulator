@@ -43,5 +43,32 @@ remain unavailable; no placeholder signatures are added.
 
 All 181 affected checks pass, including strict parsing, omission versus invalid
 values, independent fields, supported source context, signed framing, write
-denial, reset and existing Controller/mode/edit behavior. Native upload and
-connection acceptance are recorded separately from these software checks.
+denial, reset and existing Controller/mode/edit behavior. Eight live signed
+requests verify MACs, both initialized zero-reservation settings, duplicates,
+single/mixed reads, signature gaps and write denial without changing source,
+model or audit state.
+
+The unmodified public runtime's empty-routine upload verifies 361 requests.
+Both new fields return their two-byte zero reservations successfully, while
+State Detection signatures 33/34 retain unavailable statuses in the final
+Controller list. Task collection still accepts all 22 fields. The SDK diagnostic
+remains `RxCsE_ASA_ATTRIBUTE_LIST_ERROR`; passing these fields does not complete
+upload. The raw transfer interval is complete with no reported collection
+framing errors. The bounded earlier collection summary truncates, while the
+final-request view retains the full Controller and Task lists.
+
+SDK Go Online/Offline verifies 74 requests. The supported Program-mode routine
+import/reconnect verifies 192, preserves the settings across engine replacement,
+and produces exactly one logic revision and audit update. The original demo is
+restored afterward to stopped Program mode with zero scans and zero audit state.
+This does not establish the complete Test/Untest/Assemble lifecycle.
+
+The normal demo upload retains its Program/Routine failure after 349 verified
+requests. Download verifies 175 and prepares 904 temporary records, including
+242 Templates and 16 Tables, before stopping at the result query. No active
+image is committed. All five native cases confirm actual Offline/cleanup,
+preserved original files and no reported SDK fault. The connection and transfer cases
+preserve the active model; the routine-import case changes its supported logic
+intentionally before restoration. Webpage, executable and appliance versions
+match `.159`. Full native upload/download and a valid saved uploaded ACD remain
+unfinished. No uploaded-file save was attempted.

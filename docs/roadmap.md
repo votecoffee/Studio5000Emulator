@@ -9,8 +9,17 @@ native Studio connection and programming services remain unfinished.
 Version `.159` adds [Controller spare-memory configuration](controller-memory-padding.md)
 reads for fields 11/12, preserving explicit source percentages and identifying
 the disabled-redundancy zero-reservation policy for omitted settings. All 181
-affected checks pass. The two State Detection signatures, complete native
-transfers and the full edit lifecycle remain unfinished.
+affected checks and live signed reads pass. SDK connection verifies 74
+requests; supported Program-mode routine import/reconnect verifies 192 and
+preserves the settings through replacement. The empty-routine upload accepts
+both fields after 361 requests and retains Controller gaps 33/34. Normal upload
+retains the separate Program/Routine failure after 349 requests. Download
+verifies 175 requests and prepares 904 temporary records before stopping at the
+result query, without an active image commit. All five cases confirm actual
+Offline/cleanup, source preservation and no SDK fault. The original zero-scan/
+audit demo is restored, and webpage/executable/appliance versions match. The two
+State Detection signatures, complete native transfers and the full edit
+lifecycle remain unfinished.
 
 Version `.158` adds [initialized Task metadata](task-initial-state.md): zero Start Time before
 any successful scan and zero pending/active AOI stack allocation only for a

@@ -6,19 +6,28 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.158` demonstrates Go Online and
+**Status: experimental.** Native validation on `.159` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests and actual mode reads also pass on `.158`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
-validated on `.155`. Supported imports update the custom execution model while
+validated on `.159`. Supported imports update the custom execution model while
 preserving the original source files.
 
 Version `.159` adds [Controller spare-memory configuration](docs/controller-memory-padding.md)
 reads for fields 11/12. Explicit source percentages are preserved; complete
 source with disabled redundancy selects zero reservation for omitted settings.
 The API reports that policy separately from saved properties and live RAM.
-All 181 affected checks pass. State Detection signatures remain unavailable;
-native transfer acceptance is tracked separately.
+All 181 affected checks and live signed reads pass. SDK Go Online/Offline
+verifies 74 requests, and the supported Program-mode routine import/reconnect
+verifies 192 with one audit update. The empty-routine upload accepts both new
+fields after 361 requests; its remaining Controller gaps are State Detection
+signatures 33/34. The normal demo retains its Program/Routine upload failure
+after 349 requests. Download verifies 175 requests and prepares 904 temporary
+records, then stops at the result query without committing an active image.
+All five cases confirm Offline/cleanup, original-file preservation and no
+reported SDK fault. The original stopped Program-mode demo is restored with
+zero scan/audit state. Webpage/executable/appliance versions match. Complete
+native transfers and the full Test/Untest/Assemble lifecycle remain unfinished.
 
 Version `.158` adds [initialized Task metadata](docs/task-initial-state.md): zero Start Time before
 any successful scan and zero pending/active AOI stack allocation only for a
