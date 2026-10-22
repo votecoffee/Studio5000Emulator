@@ -6,11 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current source milestone: `.144` adds a [simulator Audit Value](simulator-audit-value.md)
+Current milestone: `.144` adds a [simulator Audit Value](simulator-audit-value.md)
 for mask-selected remote mode changes and accepted supported routine transactions.
-Establish native acceptance of the two separate audit/configuration reads before
-claiming upload progress. The source model still withholds physical memory and
-State Detection signatures. The latest demonstrated native build remains `.142`.
+SDK mode cycles and supported import/reconnect verify the expected audit updates.
+The isolated upload comparison returns fields 27/28 successfully, leaving 11/12
+and 33/34 unavailable; its earlier private hypotheses remain unshipped. Establish
+the memory and State Detection signature contracts, alongside the separate
+Routine source-retrieval and download preparation-result gaps. The latest
+native-validated and rebuilt version is `.144`.
 
 Version `.143` adds [read-only change-detection configuration](controller-change-detection.md)
 and named Controller gap reports. Validate the eight-byte configuration read
@@ -258,8 +261,8 @@ available source descriptions. Signed fixtures and a separate unchanged offline
 project exercise discovery without the SDK; protected children stay unavailable.
 Version `.104` adds definition identities and source header metadata.
 Typed UDT decoding and complete native transfer remain unfinished. Unresolved
-metadata overrides remain excluded; a private experiment faulted the SDK, so
-native retesting is held pending service recovery.
+metadata overrides remain excluded. A private experiment faulted the SDK;
+native retesting was deferred at that revision pending service recovery.
 
 Version `.100` adds [structured Data Table storage](structured-storage.md)
 using the existing symbolic UDT layouts. Real TCP reads agree with symbolic

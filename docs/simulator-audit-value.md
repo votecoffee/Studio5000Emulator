@@ -1,10 +1,10 @@
 # Simulator Controller Audit Value
 
-Source revision `.144` adds a simulator-owned Controller attribute 27, alongside
+Version `.144` adds a simulator-owned Controller attribute 27, alongside
 the [source configuration mask](controller-change-detection.md) in attribute 28.
-Native SDK acceptance, executable rebuild and restart are pending. The last
-native-validated build remains `.142`; this change establishes no new completed
-upload, download or edit lifecycle.
+Native SDK mode control and supported import/reconnect checks pass. The rebuilt
+executable, appliance and webpage report `.144`. Full upload, download and the
+complete edit lifecycle remain unfinished.
 
 Rockwell describes AuditValue as a runtime value generated on project download
 or storage load and updated for selected events. Mask bit 13 selects remote mode
@@ -66,6 +66,30 @@ Fifty-eight focused pure checks pass. They cover mask selection in both words, s
 source mismatch, wrap/exhaustion, fault invalidation, detached candidates,
 shared mode control, in-memory native mode/commit handlers, retransmission,
 mixed reads and write rejection. They prohibit process, worker and network starts.
-Controller fields 11/12/33/34 remain unavailable in the source model. The last
-native upload comparison on `.142` still retains its six reported missing
-Controller fields; no source-only result is substituted for that observation.
+Controller fields 11/12/33/34 remain unavailable.
+
+Twenty-two additional affected local mode/edit protocol checks pass. Frozen
+executable checks exercise the configuration parser and runtime audit model;
+all 98 application modules match between source, build manifest and appliance.
+The executable's file/product versions, packaged assets and served webpage
+version agree.
+
+The normal-protocol SDK mode trial passes Go Online/Offline across 108 verified
+signed requests. Two SDK Run/Program cycles and one web Run/Program cycle produce
+exactly six audit updates; repeated Run retains its existing value. The supported
+Program-mode NOP import and reconnect pass across 181 verified requests and
+produce exactly one update. Original source files remain unchanged.
+
+The isolated empty-Program upload comparison returns both eight-byte fields
+27/28 successfully. Its 21-field Controller read now has four unsupported fields
+(11/12/33/34), compared with six in `.142`. The SDK still reports
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR` across 361 verified requests and 364 expanded
+leaves. This trial uses the earlier private clock/schema/repository/Task-stack
+hypotheses to reach that collection; they remain excluded from the app.
+
+The independent normal-protocol download still fails at its preparation-result
+reply across 175 verified requests. It preserves the active model and audit
+value. All four SDK trials confirm actual Offline, endpoint cleanup and original
+source preservation, with no reported SDK server fault. The temporary controller
+is stopped after comparison. These results establish the bounded behaviors
+above, not a completed native transfer or Studio GUI monitoring acceptance.

@@ -1,9 +1,8 @@
 # Controller change-detection configuration
 
-Source revision `.143` adds read-only Controller attribute 28 (CCUID
-Configuration / ChangesToDetect). Native SDK acceptance has not been run for
-this revision. The most recent native-validated build remains `.142`.
-Source revision `.144` separately adds a [simulator-owned Audit Value](simulator-audit-value.md)
+Version `.143` introduced read-only Controller attribute 28 (CCUID
+Configuration / ChangesToDetect). The `.144` native SDK upload comparison
+returns this field successfully, alongside a separate [simulator-owned Audit Value](simulator-audit-value.md)
 for selected modeled events; the source setting itself remains read-only.
 
 The value comes from an explicit `Controller/Security@ChangesToDetect`
@@ -48,6 +47,6 @@ single and ordered mixed reads, duplicate fields, write rejection, named gaps,
 collection framing and existing Controller metadata behavior. The checks prohibit
 process, worker and network starts and record zero resource-start attempts.
 
-No native SDK test, application restart or executable rebuild accompanies this
-source revision. `.142` remains the last build with demonstrated native SDK
-Go Online/Go Offline and supported Program-mode import/reconnect acceptance.
+The original `.143` checks were source-only. The later `.144` rebuild, restart,
+native mode/import checks and isolated upload comparison are documented with
+their limits in [simulator Audit Value validation](simulator-audit-value.md#validation-scope).

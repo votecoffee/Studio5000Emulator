@@ -4,14 +4,22 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
-Source revision `.144` adds a [simulator Controller Audit Value](simulator-audit-value.md).
+Version `.144` adds a [simulator Controller Audit Value](simulator-audit-value.md).
 An explicit supported source mask enables an execution-model epoch, stable reads,
 selected successful mode changes and supported routine-transaction updates.
 Detached preparation and repeated commits preserve the original value.
 Unclassified faults withhold it until reset. The generator is simulator-owned;
-no archived audit value or native signature is substituted. Pure source/stub
-checks accompany this revision; native SDK acceptance, build and restart are
-pending, and `.142` remains the most recent native-validated build.
+no archived audit value or native signature is substituted. Fifty-eight pure
+checks and 22 affected local runtime/protocol checks pass. The rebuilt executable,
+appliance and webpage versions match, with all 98 app module hashes checked.
+Normal-protocol SDK mode control passes across 108 verified requests with six
+updates for six transitions. Supported Program-mode NOP import and reconnect
+pass across 181 requests with one audit update. The isolated upload comparison
+returns fields 27/28 successfully, leaving four Controller gaps across 361
+verified requests and 364 leaves; private earlier-stage hypotheses remain
+unshipped. Download retains its preparation-result gap across 175 requests,
+without active model or audit-value change. All four SDK trials confirm actual
+Offline/cleanup, unchanged originals and no reported SDK server fault.
 
 Source revision `.143` adds [change-detection configuration reads](controller-change-detection.md)
 and named Controller field gaps. An explicit canonical L5X ChangesToDetect
