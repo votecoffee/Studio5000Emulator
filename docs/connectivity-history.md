@@ -4,6 +4,35 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.142` adds [Controller retention and diagnostic settings](controller-diagnostic-settings.md)
+for attributes 10/35, plus strict offline Controller upload/connection-response
+framing. The settings require complete canonical source declarations; missing,
+ambiguous and unknown values stay unavailable. They do not enable switchover or
+diagnostic delivery. Two new offline SDK save/reopen/export trials preserve
+each changed setting in private ACDs without changing originals or contacting a
+physical controller. One saved Controller bulk reference confirms the framing
+widths, independently of value semantics or source association.
+All 101 affected tests pass without a full suite run. The isolated SDK upload
+accepts the two settings, leaving six Controller fields unavailable:
+11/12/27/28/33/34. It also accepts the existing legacy 16-byte fallback, then
+reports the attribute-list diagnostic across 361 verified requests and 364
+expanded leaves. The complete interval frames without layout errors. Private
+clock/schema/repository/Task-stack assumptions remain unshipped.
+The normal-protocol SDK Program-mode NOP import and reconnect preserve the
+settings, authority catalog and existing Task state across 181 verified requests;
+the next scan executes normally. The independent download retains the result
+response gap across 175 verified requests and 909 temporary records, without
+active commit. All three cases confirm actual Offline/cleanup, original-file
+preservation and no fatal SDK fault. Full native transfer and the complete
+Test/Untest/Assemble lifecycle remain unfinished.
+
+The restarted `.142` normal demo passes SDK Go Online/Go Offline across 74
+verified requests with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 26 deployment checks pass, including live Controller setting
+reads and frozen source/shadow guards. All 97 deployed app modules match the
+build. Served assets, packaged resources and webpage/executable versions agree
+on `.142`; the model and edit configuration survive restart.
+
 Version `.141` adds [explicit empty Security Authority Binding discovery](security-authority-discovery.md).
 The original ACD must contain one checked format-0/body-74 collection with no
 active binding definitions. The optional immutable manifest, original hashes,

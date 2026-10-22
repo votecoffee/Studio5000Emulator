@@ -20,6 +20,8 @@ class ControllerCollectionTests(unittest.TestCase):
         with self.assertRaises(CollectionError):decode_attribute_list(raw+b'\0',list(widths),0x8E)
 
     def test_partial_error_and_repeated_field_lists_do_not_hide_missing_suffixes(self):
+        startup=decode_attribute_list(reply([(8,0,bytes(2)),(9,0,b'\0')]),[8,9],0x8E)
+        self.assertEqual([r['value_bytes'] for r in startup['attributes']],[2,1])
         raw=reply([(35,0,b'\1'),(11,20,b''),(35,0,b'\1')],6)
         result=decode_attribute_list(raw,[35,11,35,33],0x8E)
         self.assertTrue(result['partial']);self.assertEqual(result['remaining_attributes'],[33])

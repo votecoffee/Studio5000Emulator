@@ -14,9 +14,9 @@ FIXED = {0x67: {1: 2, 2: 4},
          0x70: {2:4,3:4,5:2,6:2,7:4,8:4,9:4,11:4,12:4,13:8,14:8,15:8,
                 16:4,17:4,18:4,19:4,20:2,21:2,22:4,23:4},
          0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
-         # Observed v35 upload profile. These widths frame existing replies;
+         # Observed v35 upload and connection profiles. These widths frame replies;
          # they never supply unavailable CCUIDs, signatures or memory values.
-         0x8E: {1:4,3:2,6:4,7:2,9:1,10:1,11:2,12:2,13:4,15:1,16:2,17:1,
+         0x8E: {1:4,3:2,6:4,7:2,8:2,9:1,10:1,11:2,12:2,13:4,15:1,16:2,17:1,
                 23:1,25:4,26:4,27:8,28:8,31:1,33:32,34:32,35:1},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1},
