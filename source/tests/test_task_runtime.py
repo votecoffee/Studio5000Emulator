@@ -21,7 +21,7 @@ class TaskMeasurementTests(unittest.TestCase):
     engine=runtime.RuntimeTests.engine
 
     def test_exact_units_initial_intervals_and_independent_overflow_withholding(self):
-        empty=TaskMeasurements();self.assertEqual(empty.attributes(),{7:bytes(4),8:bytes(4),14:bytes(8),15:bytes(8)})
+        empty=TaskMeasurements();self.assertEqual(empty.attributes(),{7:bytes(4),8:bytes(4),13:bytes(8),14:bytes(8),15:bytes(8)})
         first=empty.record(100,4250)
         self.assertEqual(first.attributes(),{7:struct.pack('<I',4),8:struct.pack('<I',4),14:bytes(8),15:bytes(8)})
         final=first.record(10000,14000).record(15000,16099)
@@ -72,7 +72,9 @@ class TaskMeasurementTests(unittest.TestCase):
     def test_start_time_uses_wallclock_epoch_at_start_and_accepts_clock_adjustments(self):
         from logixlab.wall_clock import WallClock
         engine=self.engine(['NOP();']);digest=engine.project.sha256
-        self.assertNotIn(13,engine.task_measurement_attributes('MainTask',source_sha256=digest))
+        self.assertEqual(engine.task_measurement_attributes('MainTask',source_sha256=digest)[13],bytes(8))
+        self.assertTrue(engine.task_measurement_description()['start_time_available'])
+        self.assertFalse(engine.task_measurement_description()['start_time_measured'])
         with patch('logixlab.wall_clock.time.time_ns',side_effect=(1_750_000_000_123_456_999,1_749_999_999_999_999_000)) as clock:
             engine.enter_run();self.assertEqual(clock.call_count,0)
             engine.step();self.assertEqual(clock.call_count,1)
@@ -106,7 +108,8 @@ class TaskMeasurementTests(unittest.TestCase):
         engine=self.engine(['NOP();'])
         with patch('logixlab.wall_clock.time.time_ns',return_value=1000):engine.step()
         fresh=type(engine)(engine.project)
-        self.assertNotIn(13,fresh.task_measurement_attributes('MainTask',source_sha256=fresh.project.sha256))
+        self.assertEqual(fresh.task_measurement_attributes('MainTask',source_sha256=fresh.project.sha256)[13],bytes(8))
+        self.assertFalse(fresh.task_measurement_description()['start_time_measured'])
         self.assertEqual(fresh._task_measurements,TaskMeasurements())
 
     def test_source_task_mode_and_configuration_guards_withhold_measurements(self):
@@ -153,9 +156,9 @@ class TaskMeasurementWireTests(unittest.TestCase):
     def test_signed_start_time_reads_are_committed_repeated_and_read_only(self):
         self.prepare();engine=self.app.engine;digest=engine.project.sha256
         self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':1}])
-        self.assertEqual(self.signed(4,bytes.fromhex('0e0320702401300d'))[2],20)
+        self.assertEqual(self.signed(4,bytes.fromhex('0e0320702401300d')),bytes.fromhex('8e000000')+bytes(8))
         with patch('logixlab.wall_clock.time.time_ns',return_value=1_750_000_000_123_456_999):engine.step()
-        before=copy.deepcopy(self.app.state());requested=(13,22,13,23)
+        before=copy.deepcopy(self.app.state());requested=(13,24,13,25)
         with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Read must not resample Task start')):
             response=self.signed(5,bytes.fromhex('030220702401')+struct.pack('<5H',4,*requested))
             fields=decode_attribute_list(response,requested,0x70,include_payloads=True)['attributes']

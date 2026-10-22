@@ -14,7 +14,8 @@ commits the timestamp alongside Task measurements only when the entire scan
 succeeds. A failed scan preserves the previous successful timestamp and rolls
 back values and timing state. Prescan does not record a Task execution.
 
-Before the first successful execution, attribute 13 is unavailable. If a clock
+Version `.158` supplies an [initialized zero](task-initial-state.md) before the
+first successful execution, separately reported as unmeasured. If a clock
 sample fails, has the wrong type, is negative or exceeds the signed 64-bit
 microsecond range, a successful scan still commits its independent monotonic
 measurements, while Start Time becomes unavailable. A later valid scan restores
@@ -29,7 +30,8 @@ object and execution-mode guards apply. Native writes remain denied.
 
 Endpoint state exposes Start Time availability, clock source and lifetime in
 `task_measurements`. It does not expose monotonic start ticks or claim physical
-scheduler accuracy. Task fields 22/23 retain their unavailable statuses.
+scheduler accuracy. Version `.158` separately adds guarded no-AOI allocation
+reads for Task fields 22/23.
 
 ## Contract and verification
 

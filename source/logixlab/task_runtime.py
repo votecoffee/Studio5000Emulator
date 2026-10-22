@@ -46,5 +46,8 @@ class TaskMeasurements:
                 14:(self.minimum_interval_ns,64),15:(self.maximum_interval_ns,64)}
         result={number:struct.pack('<I' if bits==32 else '<Q',value//1000)
                 for number,(value,bits) in values.items() if value//1000<1<<bits}
-        if self.start_time_us is not None:result[13]=struct.pack('<q',self.start_time_us)
+        # Zero is this emulator's initialized, never-executed timestamp. After
+        # any successful execution an invalid clock sample stays unavailable.
+        if not self.executions:result[13]=bytes(8)
+        elif self.start_time_us is not None:result[13]=struct.pack('<q',self.start_time_us)
         return result

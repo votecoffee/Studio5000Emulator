@@ -107,6 +107,22 @@ class Engine:
                 'periodic_deadline_overlaps_modeled':False,'native_watchdog_enforcement':False,
                 'physical_history_imported':False,'native_writes':False}
 
+    def task_stack_attributes(self,task,*,source_sha256):
+        # No AOI declarations means no AOI frames or pending allocation in this
+        # interpreter. Do not apply that policy to parsed/hidden AOI projects.
+        if (not self._task_runtime_available(task,source_sha256) or self.fault
+                or self._native_fault_history_uncertain or not self.project.aoi_catalog.empty
+                or self.project.aois or self.addons.active or self.addons.instances):return {}
+        return {22:bytes(4),23:bytes(4)}
+
+    def task_stack_description(self):
+        available=bool(self.task_stack_attributes(self._measured_task,source_sha256=self.project.sha256))
+        return {'attributes':[22,23],'tasks_available':int(available),
+                'policy':'No AOI declarations: zero pending and active AOI stack allocation',
+                'pending_allocation_bytes':0 if available else None,
+                'active_allocation_bytes':0 if available else None,
+                'nonempty_aoi_stack_modeled':False,'physical_stack_imported':False,'native_writes':False}
+
     def task_measurement_description(self):
         available=bool(self.task_measurement_attributes(self._measured_task,source_sha256=self.project.sha256))
         return {'attributes':[7,8,13,14,15],'tasks_available':int(available),
@@ -114,9 +130,10 @@ class Engine:
                 'measurement':'Host monotonic perf_counter_ns; complete scheduled interpreter Task',
                 'scan_time_bits':32,'interval_bits':64,'units':'Whole microseconds',
                 'interval_scope':'Between successful Task starts; zero until two executions',
-                'start_time_available':bool(available and self._task_measurements.start_time_us is not None),
+                'start_time_available':bool(available and 13 in self._task_measurements.attributes()),
+                'start_time_measured':bool(available and self._task_measurements.start_time_us is not None),
                 'start_time_source':'Simulator WALLCLOCKTIME; UTC microseconds since 1970-01-01',
-                'start_time_before_first_success':'Unavailable',
+                'start_time_before_first_success':'Initialized zero; not a measured execution timestamp',
                 'wall_clock_adjustments_visible':True,
                 'prescan_included':False,'failed_scans_update_counters':False,
                 'watchdog_enforced':False,'controller_performance_prediction':False}

@@ -6,7 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.157` adds guarded [empty PLC file-mapping discovery](empty-plc-file-mapping.md)
+Version `.158` adds [initialized Task metadata](task-initial-state.md): zero Start Time before
+any successful scan and zero pending/active AOI stack allocation only for a
+complete source project with no AOI declarations. The API distinguishes an
+initialized timestamp from a measured execution. Unknown or populated AOI
+source retains its stack gaps. All 177 affected checks pass; native transfer
+acceptance is tracked separately.
+
+Version `.157` adds guarded [empty PLC file-mapping discovery](empty-plc-file-mapping.md)
 for a native upload catalog request. Complete source and matching native
 identity must prove an empty mapping set; populated/unknown mappings and
 file operations remain unsupported.

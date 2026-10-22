@@ -3,6 +3,7 @@
 The Task object (`0x70`) supplies read-only settings and source class metadata
 from a complete v35 controller L5X:
 
+Version `.158` adds [initialized Start Time and no-AOI stack allocation](task-initial-state.md).
 Version `.137` adds separate [runtime Task measurements and a backed Task reference](task-runtime.md).
 Version `.138` adds [serial execution status and a registered Task slot](task-execution-state.md).
 Version `.139` adds optional [original stored Task configuration](stored-task-configuration.md),

@@ -13,6 +13,13 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.158` adds [initialized Task metadata](docs/task-initial-state.md): zero Start Time before
+any successful scan and zero pending/active AOI stack allocation only for a
+complete source project with no AOI declarations. The API distinguishes an
+initialized timestamp from a measured execution. Unknown or populated AOI
+source retains its stack gaps. All 177 affected checks pass; native transfer
+acceptance is tracked separately.
+
 Version `.157` adds source-bound [empty PLC file-mapping discovery](docs/empty-plc-file-mapping.md)
 for the catalog request reached by the empty-routine upload fixture. Unknown
 or configured mappings remain unavailable, and writes remain denied.

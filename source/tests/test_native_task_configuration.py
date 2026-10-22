@@ -164,7 +164,7 @@ class StoredTaskWireTests(unittest.TestCase):
         self.prepare();project=self.app.engine.project;digest=project.sha256
         self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':1}],configurations={'maintask':read(body())})
         self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
-        before=copy.deepcopy(self.app.state());numbers=(2,4,5,17,21,13,22,4)
+        before=copy.deepcopy(self.app.state());numbers=(2,4,5,17,21,24,25,4)
         request=bytes.fromhex('030220702401')+struct.pack('<9H',8,*numbers)
         fields=decode_attribute_list(self.signed(4,request),numbers,0x70,include_payloads=True)['attributes']
         self.assertEqual([f['status'] for f in fields],[0,0,0,0,0,20,20,0])
