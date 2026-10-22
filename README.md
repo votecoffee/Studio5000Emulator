@@ -6,9 +6,9 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.157` demonstrates Go Online and
+**Status: experimental.** Native validation on `.158` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
-Remote Run/Program requests and actual mode reads also pass on `.156`.
+Remote Run/Program requests and actual mode reads also pass on `.158`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
@@ -17,8 +17,16 @@ Version `.158` adds [initialized Task metadata](docs/task-initial-state.md): zer
 any successful scan and zero pending/active AOI stack allocation only for a
 complete source project with no AOI declarations. The API distinguishes an
 initialized timestamp from a measured execution. Unknown or populated AOI
-source retains its stack gaps. All 177 affected checks pass; native transfer
-acceptance is tracked separately.
+source retains its stack gaps. All 177 affected checks and live signed reads
+pass. SDK connection verifies 74 requests; bidirectional Run/Program verifies
+107, including real scans and timestamp reset on reload. Normal upload retains
+its Program/Routine failure after 349 requests. The empty-routine fixture now
+passes all 22 Task fields, Security Authority and trend discovery, then stops
+at a later Controller list with fields 11/12/33/34 unavailable after 361
+requests. All four cases confirm actual Offline/cleanup without a reported SDK
+fault. Original files are preserved; the original zero-scan demo is restored.
+Webpage/executable/appliance versions match. Full native transfers and a valid
+saved uploaded ACD remain unfinished.
 
 Version `.157` adds source-bound [empty PLC file-mapping discovery](docs/empty-plc-file-mapping.md)
 for the catalog request reached by the empty-routine upload fixture. Unknown

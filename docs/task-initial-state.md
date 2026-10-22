@@ -39,6 +39,28 @@ tags or audit state. Native setters remain denied.
 
 ## Validation
 
-Focused software and live native results are recorded with this revision's
-release evidence. Complete native upload/download, a saved uploaded ACD, and
-the complete Test/Untest/Assemble lifecycle remain separate acceptance goals.
+All 177 affected checks pass, covering initialization versus failed samples,
+Task/source/mode guards, ambiguous and nonempty AOI catalogs, unknown fault
+history, signed mixed and duplicate reads, write denial and preserved state.
+Live signed reads verify reply MACs and all 22 Task fields without running a
+scan. The native Run/Program case verifies 107 requests and 118 actual scans;
+the measured Start Time replaces zero, both stack sizes remain zero, and reload
+returns to the initialized state with the original demo restored.
+
+The empty-routine native upload verifies 361 signed requests on the unmodified
+public runtime. It accepts all 22 Task fields, then passes empty Security
+Authority Binding and trend discovery. It stops at a later Controller attribute
+list with unavailable fields 11/12/33/34 and the SDK diagnostic
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR`. The raw transfer interval is complete and has
+no reported collection framing errors. Its bounded collection summary truncates
+earlier rows; the final-request view retains the full Task list. This is native
+acceptance of the Task collection in the no-AOI fixture, not a complete upload.
+
+The normal demo upload retains its separate Program/Routine failure after 349
+verified requests. SDK Go Online/Offline passes across 74 requests. All four
+native cases confirm actual Offline/cleanup, unchanged original files and no
+reported SDK fault. Read-only cases preserve the model; the mode test executes
+logic intentionally before the original zero-scan/audit demo is restored.
+Webpage, executable and appliance versions match `.158`. No uploaded-file save
+was attempted. Complete native upload/download, a saved uploaded ACD, and the
+complete Test/Untest/Assemble lifecycle remain separate acceptance goals.

@@ -50,8 +50,8 @@ The wire field requires the same current ACD/L5X Project and Task bindings as
 Task Address. Programming scan inhibit withholds both fields until cleanup.
 Read services share one registry, preserve mixed attribute-list framing and do
 not grant native setters or memory services. Stored type, trigger and timeout
-reads have the separate `.139` profile above. Start-time and unresolved stack
-encodings remain unavailable.
+reads have the separate `.139` profile above. [Start Time](task-start-time.md) and the guarded
+[no-AOI stack policy](task-initial-state.md) have separate later revisions.
 
 ## Validation
 
