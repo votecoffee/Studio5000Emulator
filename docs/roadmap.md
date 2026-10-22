@@ -8,7 +8,9 @@ native Studio connection and programming services remain unfinished.
 
 Current milestone: `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
 Retain the separation between model execution, native logical IDs and physical
-scheduler semantics while testing the next upload boundary.
+scheduler semantics while testing the next upload boundary. The isolated SDK
+upload accepts the three added fields and leaves 8 unavailable Task fields.
+The independent download result-response and Routine source-retrieval gaps remain.
 
 Version `.137` adds [whole-Task measurements and a live Task reference](task-runtime.md).
 The isolated SDK upload reads five additional Task fields, reducing the remaining

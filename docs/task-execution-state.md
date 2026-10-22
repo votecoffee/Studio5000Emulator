@@ -58,3 +58,29 @@ scans, fault-history withholding and reset, source/mode and object-lifetime
 guards, slot bounds and identity, signed mixed reads, write denial and programming
 scan inhibit. Routine replacement retains unknown fault history while registering
 the replacement Engine's actual Task object.
+
+The isolated SDK upload accepts all three added fields across 358 verified
+signed requests and 361 expanded leaf requests. The unavailable Task fields fall
+from 11 to 8 compared with the retained `.137` trial using identical original
+project files, Template snapshot and private clock/schema/repository hypotheses.
+The `.137` code hashes match the frozen control; that control was reused instead
+of repeating an unchanged test. Upload still fails Task collection. The private
+hypotheses remain unshipped.
+
+A separate SDK Program-mode NOP insertion and reconnect uses normal protocol
+behavior. Task status, slot and timing values survive replacement, the object
+reference changes, and the next scan executes normally. All 183 verified signed
+requests complete successfully. A source-matched download reaches the same
+result-response gap across 176 verified signed requests, with 909 temporary
+records, 243 Templates and 18 Tables prepared and no active image commit.
+All three trials confirm actual Offline/cleanup, preserved originals and no
+fatal SDK fault. The transfer trials preserve the active model; the edit trial
+changes only its authorized Routine. Full upload/download and the complete
+Test/Untest/Assemble lifecycle remain unfinished.
+
+The restarted normal demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 19 deployment checks pass, including the frozen executable's
+status, slot, fault-history and reset checks. All 95 deployed modules and served
+assets match the build; webpage, executable resources and Windows versions
+agree on `.138`. Tags, logic, tasks, mode and edit configuration survive restart.

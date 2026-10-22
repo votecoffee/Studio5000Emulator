@@ -10,6 +10,20 @@ unclassified simulator fault withholds them until reset. Slot lookup resolves
 the current registry's actual Task object independently of CIP IDs and DWORD
 references, rejecting changed registrations and foreign projects. All 158
 affected tests pass; the full suite was not rerun. Native transfer remains unfinished.
+The SDK upload accepts all three added fields, leaving 8 unavailable Task fields
+across 358 verified signed requests and 361 expanded leaves. The comparison reuses
+the exact-source `.137` control and identical private hypotheses, which remain
+unshipped. A normal-protocol Program-mode NOP import and reconnect preserves
+Task status, slot and timings across 183 verified requests. The source-matched
+download retains the same result-response gap across 176 requests and 909
+temporary records, without active commit. All three trials confirm actual
+Offline/cleanup, preserved originals and no fatal SDK fault.
+The restarted `.138` normal demo passes SDK Go Online/Go Offline across 75
+verified requests, with actual Offline/cleanup and preserved source/model.
+All 19 deployment checks pass, including frozen status, slots, fault history
+and reset. All 95 deployed modules match the build; served/packaged assets and
+webpage/executable versions match `.138`. The previous model and edit
+configuration survive restart.
 
 Version `.137` adds [whole-Task execution measurements and a backed Task reference](task-runtime.md).
 Measurements cover all scheduled Program calls, commit only on a successful scan
