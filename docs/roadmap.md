@@ -12,6 +12,11 @@ zero-position queries, with matching original Program identity required.
 All 60 recorded replies match the derived checksum relationship, and 153
 affected checks pass. Controller collection and complete native transfer
 remain unfinished.
+The rebuilt app passes live selector reads and SDK Go Online/Offline across
+74 verified requests. Normal upload verifies 189 requests and retains its
+earlier Controller collection failure before reaching these selector queries.
+Both SDK cases confirm Offline, cleanup, unchanged source/model state and no
+reported fault; served webpage, executable and appliance versions match.
 
 Version `.149` adds [original metadata value reads](native-metadata-values.md)
 from supported ACD records, with source-bound manifests and signed fragmented

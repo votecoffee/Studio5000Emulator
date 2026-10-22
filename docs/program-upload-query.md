@@ -64,3 +64,28 @@ uses the checksum relationship subsequently verified against all 60 recorded
 replies. It does not reuse the retired empty response. Controller collection
 remains an earlier incomplete upload stage; download result encoding and full
 native transfer remain unfinished.
+
+## Validation in `.150`
+
+All 153 affected software checks pass, including malformed/checksum-corrupted
+replies, signed routing, missing or foreign source bindings, unsupported paths,
+reply budgets and retained write denials. The full suite was not rerun.
+
+Live signed reads against the rebuilt appliance reproduce all three calculated
+20-byte replies with verified response MACs. The original project, tag values,
+scan state, audit epoch and lease state remain unchanged. All 103 application
+modules match the build and running appliance, and the packaged selector codec
+matches all 60 reference checksums. Served assets, Windows executable resources
+and app version agree.
+
+The v35 SDK's Go Online/Go Offline check succeeds across 74 verified requests,
+with actual Offline, endpoint cleanup, source/model preservation and no reported
+SDK fault. This connection sequence does not request Program `0x50`; it is a
+regression check, not evidence of full native upload acceptance.
+
+The normal upload trial verifies 189 signed requests and still reports
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Its checkpoint decoder consumes
+192 inner requests without malformed events; the Time Sync list is partial,
+and a later Controller Get All read succeeds. This trial does not reach Program
+`0x50`. Actual Offline, endpoint cleanup, unchanged source/model/audit values and
+no reported SDK fault are confirmed. No physical controller is contacted.

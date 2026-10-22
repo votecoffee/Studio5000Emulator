@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.149` demonstrates Go Online and
+**Status: experimental.** Native validation on `.150` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
@@ -17,7 +17,11 @@ Version `.150` adds CRC-checked [Program selector reads](docs/program-upload-que
 All 60 saved reference replies match the calculated checksum of their returned
 selector. The signed response requires a matching source Program and leaves
 execution and programming authority unchanged. All 153 affected checks pass.
-Full upload/download remain unfinished.
+The rebuilt app passes SDK Go Online/Offline across 74 verified requests, with
+source/model preservation and no reported SDK fault. All three new selector
+replies pass live signed checks; webpage, executable and appliance versions
+match. Upload still fails at the earlier Controller collection stage, with
+Offline and cleanup confirmed. Full upload/download remain unfinished.
 
 Version `.149` adds [original ACD metadata value reads](docs/native-metadata-values.md)
 through signed, fragmented queries. The running app returns all 1,670 demo
