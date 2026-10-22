@@ -6,10 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.154` adds an [inactive Time Sync dataset](inactive-clock-dataset.md)
+Current milestone: `.155` adds size-bounded [inactive Time Sync reads](inactive-clock-dataset.md)
 for complete controller source with explicit PTP disabled. Its twelve added
 fields describe initialized simulator state and no assigned master or PTP port.
-Zero offsets are unmeasured; enabled or missing source settings retain their
+Lists exceeding the reply budget return a whole-record prefix for a suffix
+request. Zero offsets are unmeasured; enabled or missing source settings retain their
 gaps. Native transfer completion remains unfinished.
 
 Version `.153` aligns [Controller and Time Sync schema selection](controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)

@@ -48,6 +48,15 @@ aggregate layouts, independently checked by the bounded offline decoder.
 
 ## Validation and limits
 
+Version `.155` bounds Time Sync list replies by the negotiated connection
+size, including signed-envelope overhead. An oversized list returns general
+status `0x06` with a nonempty prefix of complete attribute records and its
+actual count. The client requests the remaining suffix. Order, duplicate
+attributes and individual field errors are retained; an attribute that cannot
+fit even as the first record returns `0x1B` without an empty progress reply.
+Each follow-up is a separate time sample. The reference capture also uses
+partial Time Sync lists; its field boundary is not assumed to be universal.
+
 Focused checks cover the complete 32-field list, exact structure widths,
 duplicate fields, one time sample, source gating, invalid identities/revisions,
 API availability, read-only behavior and source/model/audit preservation.

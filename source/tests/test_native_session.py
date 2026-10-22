@@ -135,6 +135,35 @@ class NativeSessionTests(unittest.TestCase):
         self.assertFalse(metadata['key_exchange']['confirmation'])
         self.assertFalse(metadata['key_exchange']['peer_identity_verified'])
 
+    def test_time_sync_partial_lists_fit_signed_and_batch_reply_budgets(self):
+        from logixlab.time_sync import TimeSync
+        from tools.time_sync_inventory import decode_attribute_list
+        self.app.engine.project.time_sync=TimeSync(False,128,128)
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.bind();sequence=4;order=(*range(1,29),102,103,104,105)
+        def query(numbers):
+            return bytes.fromhex('030220432401')+struct.pack('<'+'H'*(len(numbers)+1),len(numbers),*numbers)
+        for wrapper in (0x36,0x37):
+            pending=order;returned=[]
+            while pending:
+                raw=request(wrapper,query(pending),sequence);sequence+=1
+                response=self.cip(raw);self.assertLessEqual(len(response),480)
+                inner=signed_messages.verify_response(response,KEY,request=signed_messages.parse_request(raw)).inner
+                decoded=decode_attribute_list(inner,pending)
+                self.assertTrue(all(row['status']==0 for row in decoded['attributes']))
+                returned.extend(row['attribute'] for row in decoded['attributes'])
+                pending=tuple(decoded['remaining_attributes'])
+            self.assertEqual(returned,list(order))
+        raw=batch((query(order),bytes.fromhex('0e03200124013001')),sequence=sequence)
+        raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
+        response=self.cip(raw);self.assertLessEqual(len(response),480)
+        children=signed_messages.verify_response(response,KEY,request=signed_messages.parse_request(raw)).children
+        self.assertEqual(children[1],bytes.fromhex('8e0000000100'))
+        prefix=decode_attribute_list(children[0],order)
+        self.assertTrue(prefix['partial']);self.assertTrue(prefix['attributes'])
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.app.engine.scan_count,0)
+
     def test_signed_program_discovery_keeps_names_read_only_and_source_bound(self):
         self.app.native_symbols=NativeSymbols('1'*64,self.app.engine.project.sha256,[],
                                              [{'name':'MainProgram','instance':1234}])

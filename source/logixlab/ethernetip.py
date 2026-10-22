@@ -542,7 +542,7 @@ class Router:
                 self.endpoint.interface=snapshot;self.endpoint.interface_error=error;self.endpoint.interface_queried=True
         return self.endpoint.interface
 
-    def attribute_read(self,service,path,data,attributes):
+    def attribute_read(self,service,path,data,attributes,*,limit=None):
         if service==0x0E:
             exact(data,0)
             if path.attribute not in attributes:
@@ -552,13 +552,18 @@ class Router:
         if service==3 and path.attribute is None:
             need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
             if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-            result=struct.pack('<H',count);failed=False;missing=[]
+            result=bytearray(2);failed=False;missing=[];returned=0
             for number in struct.unpack_from('<'+'H'*count,data,2):
                 value=attributes.get(number);status=0 if value is not None else 0x14
+                entry=struct.pack('<HH',number,status)+(value if value is not None else b'')
+                if limit is not None and 4+len(result)+len(entry)>limit:
+                    if not returned:raise CIPError(0x1B,'First attribute exceeds negotiated connection size')
+                    break
                 if status:missing.append(number)
-                failed|=status!=0;result+=struct.pack('<HH',number,status)+(value if value is not None else b'')
+                failed|=status!=0;result+=entry;returned+=1
             if missing:self.endpoint.record_attribute_gap(path,missing,service)
-            return 0x0A if failed else 0,result
+            struct.pack_into('<H',result,0,returned)
+            return (6 if returned<count else 0x0A if failed else 0),bytes(result)
         raise CIPError(8,'Unsupported attribute service')
 
     def symbols(self,scope=''):
@@ -1707,7 +1712,7 @@ class Router:
                                                         ptp_enabled=self.app.engine.project.time_sync.ptp_enabled)}
             elif path.instance is None:raise CIPError(4,'Time Sync requires an instance')
             else:raise CIPError(5,'Unknown Time Sync instance')
-            return self.attribute_read(service,path,data,attributes)
+            return self.attribute_read(service,path,data,attributes,limit=limit)
         if path.class_id==0x67:
             if path.symbols or path.program_instance is not None:
                 raise CIPError(4,'PLC message mapping paths must be controller scoped')
