@@ -6,7 +6,20 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.152` adds [local software-clock identity reads](software-clock-identity.md)
+Current milestone: `.153` aligns [Controller and Time Sync schema selection](controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
+with observed v35 revisions 15 and 5. The research profile retains revision 1,
+and the established legacy Controller aggregate remains unchanged. All 151
+affected checks, 14 reference revision comparisons, seven aggregate frame checks
+and live signed reads pass. SDK Go Online/Offline verifies 74 requests; the
+bidirectional Run/Program case verifies 108 requests with six audit updates and
+the original demo restored afterward. The upload trial receives the selected
+schemas across 189 requests but still fails Controller collection after the
+partial Time Sync list and legacy aggregate. All three cases confirm Offline/
+cleanup and no SDK fault; webpage, executable and appliance versions match.
+Remaining source/response contracts, complete transfers and the full edit
+lifecycle remain unfinished.
+
+Version `.152` adds [local software-clock identity reads](software-clock-identity.md)
 for native inventory. The generated identity persists across project reloads
 within an app instance, with unknown accuracy and no PTP master/port or hardware
 identity claims. All 195 affected checks, live signed identity reads and the

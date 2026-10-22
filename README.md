@@ -6,17 +6,28 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.152` demonstrates Go Online and
+**Status: experimental.** Native validation on `.153` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
-Remote Run/Program requests, actual mode reads and supported
-[Program-mode routine imports](docs/supported-routine-edits.md) were validated
-on `.145`. Supported imports update the custom execution model while preserving
-the original source files.
+Remote Run/Program requests and actual mode reads also pass on `.153`.
+Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
+validated on `.145`. Supported imports update the custom execution model while
+preserving the original source files.
 
 Version `.153` aligns native [Controller and Time Sync schema selection](docs/controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
 with the observed v35 revisions, 15 and 5. The research profile retains revision
 1, and the established 16-byte Controller aggregate is preserved. Schema
 selection leaves unavailable instance fields and complete native transfers unfinished.
+All 151 affected checks pass. The rebuilt app passes live signed schema reads
+and SDK Go Online/Offline across 74 verified requests, with source/model
+preservation, confirmed Offline/cleanup and no reported fault. Webpage,
+executable and appliance versions match.
+The mode case verifies 108 requests, both control directions, scan start/stop,
+prescan behavior and six expected audit updates. The original demo is then
+restored to stopped Program mode with zero scans.
+Upload verifies 189 requests and receives the selected revisions, but still
+fails Controller collection after the partial Time Sync list and successful
+legacy aggregate. Offline/cleanup and source/model preservation are confirmed
+without a reported SDK fault. Full upload/download remains unfinished.
 
 Version `.152` adds a [local software-clock identity](docs/software-clock-identity.md)
 for native inventory reads. Its Local Clock Information and Clock User Description

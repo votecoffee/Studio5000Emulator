@@ -77,6 +77,14 @@ and the complete native controller mode-transition contract remain unverified.
 This is a software execution control, not a safety function or physical I/O
 mode implementation.
 
+The rebuilt `.153` mode probe passes across 108 verified requests with the v35
+Controller/Time Sync schema selections. It verifies SDK Run/Program scan control,
+webpage mode readback through the SDK, one prescan per Run entry, no repeated
+prescan for an already active Run request and six expected audit updates.
+Offline/cleanup is confirmed, the original ACD is unchanged and no SDK fault is
+reported. The test intentionally advances the model; afterward the original
+demo is reloaded into stopped Program mode with zero scans and audit updates.
+
 The `.74` milestone below predates the expanded `.75` mode probe.
 The rebuilt `.74` runtime passes all 291 live protocol checks. The 987-test
 behavioral suite passes on Windows (985 passed, two platform skips) and Linux

@@ -60,6 +60,29 @@ schema revisions and are not substituted for them.
 The earlier private schema-selection trials are historical evidence, not
 complete upload acceptance. Native transfer success requires its own checks.
 
+All 151 affected checks pass. Fourteen saved reference revision replies match
+the selected values, and seven reference aggregate responses retain the
+16-byte framing. The rebuilt `.153` passes live signed revision/list/metadata
+comparisons, unknown-field and write denials, and the preserved aggregate.
+Its SDK Go Online/Offline case verifies 74 requests with original source/model
+preservation, confirmed Offline/cleanup and no reported fault. Webpage,
+executable and appliance versions match.
+The separate mode case verifies 108 requests: SDK Run/Program controls actual
+scans and webpage Run/Program reads back through the SDK, with the expected
+prescan behavior and six audit updates. Native Offline/cleanup is confirmed,
+the ACD remains unchanged and no SDK fault is reported. The original demo is
+reloaded afterward, preserving the software-clock identity and restoring zero
+scans and audit updates in stopped Program mode.
+
+The normal upload verifies 189 requests. Its saved signed exchanges confirm
+Time Sync revision 5 and Controller revision 15, followed by the partial
+32-field Time Sync list and successful 16-byte Controller aggregate. The SDK
+still reports `RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. The twelve
+clock fields remain unavailable; changing schema selection alone does not
+resolve the collection failure. No failure cause or cached-client behavior is
+inferred. Native Offline/cleanup and source/model preservation are confirmed,
+with no SDK fault and no upload-save trial.
+
 ## Read-only Wall Clock Time
 
 Wall Clock Time class `0x8B` is available in both endpoint profiles. Its class
