@@ -54,6 +54,28 @@ collections, source validation and unchanged public/model Table catalogs.
 
 ## Native SDK acceptance probe
 
+Version `.151` adds `--save-uploaded-acd` for an upload case. After `UploadAsync`
+succeeds, the helper goes Offline, saves a new `uploaded.ACD`, closes and reopens
+it through the SDK, verifies Offline again and exports `uploaded.L5X`. Both
+files belong to the new private output folder; existing files are not replaced.
+An upload failure skips this save sequence. Saving or reopening is not retried.
+
+The report checks the artifact hashes, native reopen receipt and bounded L5X
+structure under `saved_uploaded_acd_verified`. This establishes saved/reopened
+artifacts, not equivalent uploaded logic or values; `uploaded_logic_equivalence`
+remains `NOT ASSESSED`. Compare the exported L5X with the original project
+separately. Original controller-source and merge-baseline checks still apply.
+The option is rejected for connection, download, mode and edit operations.
+
+The `.151` private minimal upload fixture passes `UploadAsync`, but its
+`SaveAsAsync:uploaded.ACD` trial reports `LgxSrv_E_UNHANDLED_EXCEPTION` and stops
+the SDK service before creating an ACD. The report remains failed, with
+`upload_result_persistence="failed"`; no saved/reopened artifact or complete
+upload is claimed. Original files and emulator state are preserved, endpoint
+cleanup is confirmed, and post-fault SDK Offline cleanup is skipped. This save
+trial is not repeated after the fault. Its temporary Controller/clock/Task
+responses remain unshipped.
+
 Version `.135` adds an upload-only [separate offline merge target](upload-merge-targets.md)
 with independent emulator-source and private-working-copy hash checks.
 

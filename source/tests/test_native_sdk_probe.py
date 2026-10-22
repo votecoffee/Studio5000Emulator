@@ -15,6 +15,39 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_saving_uploaded_results_is_explicit_and_upload_only(self):
+        from tools.probe_native_sdk import validate_upload_save
+        validate_upload_save('upload',True);validate_upload_save('upload',False)
+        for operation in ('connection','download','modes','edits'):
+            validate_upload_save(operation,False)
+            with self.assertRaises(ValueError):validate_upload_save(operation,True)
+        for value in (1,None,'true',[]):
+            with self.assertRaises(ValueError):validate_upload_save('upload',value)
+
+    def test_uploaded_save_receipt_checks_artifact_hashes_flags_and_xml_not_logic_equivalence(self):
+        from tools.probe_native_sdk import saved_uploaded_acd_effect,digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);acd=root/'uploaded.ACD';xml=root/'uploaded.L5X'
+            acd.write_bytes(b'\r\nsynthetic-native-save-evidence')
+            content='<RSLogix5000Content TargetType="Controller"><Controller Name="Test"/></RSLogix5000Content>'
+            xml.write_text(content,encoding='utf-8')
+            receipt=dict(nativeAcdReopened=True,offlineOnly=True,uploadResultSaved=True,
+                acdSha256=digest(acd),reopenedL5xSha256=digest(xml))
+            self.assertTrue(saved_uploaded_acd_effect(root,receipt))
+            self.assertFalse(saved_uploaded_acd_effect(root,None))
+            for key in ('nativeAcdReopened','offlineOnly','uploadResultSaved','acdSha256','reopenedL5xSha256'):
+                self.assertFalse(saved_uploaded_acd_effect(root,{**receipt,key:False}))
+            for bad in ('<broken',content.replace('Controller"','Routine"'),
+                        content.replace('</RSLogix5000Content>','<Controller/></RSLogix5000Content>'),
+                        '<!DOCTYPE source [<!ENTITY value "text">]>'+content):
+                xml.write_text(bad,encoding='utf-8')
+                self.assertFalse(saved_uploaded_acd_effect(root,{**receipt,'reopenedL5xSha256':digest(xml)}))
+            xml.write_text(content,encoding='utf-16')
+            self.assertTrue(saved_uploaded_acd_effect(root,{**receipt,'reopenedL5xSha256':digest(xml)}))
+            acd.write_bytes(b'changed artifact')
+            self.assertFalse(saved_uploaded_acd_effect(root,receipt))
+            acd.unlink();self.assertFalse(saved_uploaded_acd_effect(root,receipt))
+
     def test_post_edit_read_and_native_save_options_require_explicit_edit_application(self):
         from tools.probe_native_sdk import validate_edit_extensions
         validate_edit_extensions('connection',False,[],False)
@@ -146,6 +179,48 @@ class NativeSdkProbeTests(unittest.TestCase):
             self.assertTrue(report['cleanup_confirmed'])
             self.assertTrue(report['sdk_server_faulted'])
             self.assertIs(report['native_sdk_offline_confirmed'],False)
+
+    def test_upload_save_fault_does_not_claim_persistence_or_retry_the_native_operation(self):
+        from tools.probe_native_sdk import digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+            output=root/'report';state=self.state()
+            state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='upload',tag=[],
+                output=str(output),sdk_feed=None,save_uploaded_acd=True)
+            trace={'events':[],'counts':{'native_verified':0}};native_calls=[]
+            def process(command,**kwargs):
+                if command[0]=='dotnet':
+                    (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                    (output/'bin/NativeSdkProbe.dll').write_bytes(b'fake-code')
+                    return subprocess.CompletedProcess(command,0)
+                native_calls.append(command)
+                self.assertTrue(json.loads(Path(command[1]).read_text())['SaveUploadedAcd'])
+                Path(command[2]).write_text(json.dumps({'status':'failed','steps':[
+                    {'method':'UploadAsync','status':'succeeded'},
+                    {'method':'SaveAsAsync:uploaded.ACD','status':'failed',
+                     'errors':[{'message':'LgxSrv_E_UNHANDLED_EXCEPTION'}]}],
+                    'serverFaulted':True,'sdkOfflineConfirmed':False,'savedUploadedProject':None}))
+                return subprocess.CompletedProcess(command,1)
+            with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                    patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                    patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state),patch('builtins.print'):
+                self.assertEqual(run(args),1)
+            report=json.loads((output/'summary.json').read_text())
+            self.assertEqual(len(native_calls),1)
+            self.assertEqual(report['status'],'failed')
+            self.assertEqual(report['upload_result_persistence'],'failed')
+            self.assertEqual(report['uploaded_logic_equivalence'],'NOT ASSESSED')
+            self.assertFalse(report['saved_uploaded_acd_verified'])
+            self.assertTrue(report['source_unchanged'] and report['model_unchanged'] and report['cleanup_confirmed'])
+            self.assertTrue(report['sdk_server_faulted'])
+            self.assertIs(report['native_sdk_offline_confirmed'],False)
+            self.assertFalse((output/'uploaded.ACD').exists())
 
     def test_edit_reservation_must_be_idle_empty_unbound_and_without_active_edit_authority(self):
         from logixlab.programming_lease import ProgrammingLease

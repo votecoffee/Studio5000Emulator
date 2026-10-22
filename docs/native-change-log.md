@@ -62,6 +62,11 @@ shipped and do not establish full upload support in the normal application.
 The retained trace suffix shows all three accepted selector replies; the
 complete interval exceeds the current trace retention bound.
 
+A subsequent successful `UploadAsync` is followed by a failed native ACD save:
+the SDK service faults before creating the output file. The original files and
+model remain unchanged. API-level upload success therefore does not establish
+a valid reconstructed project; see the [upload-save diagnostic](development.md#native-sdk-acceptance-probe).
+
 Normal application upload still stops at the earlier Controller collection
 stage. Native download, complete history reconstruction and arbitrary cursor
 searches remain unfinished.

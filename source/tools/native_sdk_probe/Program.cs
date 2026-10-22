@@ -27,6 +27,7 @@ if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.Re
 if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operation != "edits" || !options.ApplySupportedEdits) ||
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
+if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
     if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") ||
         !options.ApplySupportedEdits && (edit.InsertPosition != 0 || edit.ReplaceCount != 0) ||
@@ -51,6 +52,7 @@ using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = fals
 http.DefaultRequestHeaders.ConnectionClose = true;
 var backendReadRecoveries = new List<object>();
 object? savedEditedProject = null;
+object? savedUploadedProject = null;
 async Task<T> BackendRead<T>(string operation, Func<Task<T>> read)
 {
     for (int attempt = 1; ; attempt++)
@@ -175,6 +177,41 @@ async Task SaveEditedAcd()
     savedEditedProject = new { inputL5xSha256 = xmlHash, acdSha256 = HashFile(acdPath),
         reopenedL5xSha256 = HashFile(reopenedPath), nativeAcdReopened = true, offlineOnly = true };
 }
+async Task SaveUploadedAcd()
+{
+    var directory = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+    var acdPath = Path.Combine(directory, "uploaded.ACD");
+    var xmlPath = Path.Combine(directory, "uploaded.L5X");
+    if (new[] { acdPath, xmlPath }.Any(File.Exists))
+        throw new InvalidOperationException("Uploaded-project outputs must be new files");
+    var before = await Backend();
+    if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+        await Step("GoOfflineAsync:before-upload-save", async () => { await project!.GoOfflineAsync(); return true; });
+    await Step("Verify uploaded project is Offline before saving", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+            throw new InvalidOperationException("Upload must be Offline before saving");
+        return true;
+    });
+    await Step("SaveAsAsync:uploaded.ACD", async () => { await project!.SaveAsAsync(acdPath, false); return true; });
+    await Step("Close uploaded project before ACD reopen", () => {
+        var closing = project!; project = null; closing.Dispose(); return Task.FromResult<object?>(true);
+    });
+    await Step("OpenLogixProjectAsync:uploaded.ACD", async () => {
+        project = await LogixProject.OpenLogixProjectAsync(acdPath, logger); return true;
+    });
+    await Step("Verify reopened uploaded ACD is Offline", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+            throw new InvalidOperationException("Reopened uploaded ACD unexpectedly connected");
+        return true;
+    });
+    await Step("SaveAsAsync:uploaded.L5X", async () => { await project!.SaveAsAsync(xmlPath, false); return true; });
+    if (new FileInfo(acdPath).Length == 0 || new FileInfo(xmlPath).Length == 0)
+        throw new InvalidOperationException("Uploaded save produced an empty file");
+    CheckPreserved(before, await Backend(), true);
+    string HashFile(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+    savedUploadedProject = new { acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
+        nativeAcdReopened = true, offlineOnly = true, uploadResultSaved = true };
+}
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
     Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), state.GetRawText());
@@ -257,6 +294,7 @@ try
                 await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
         }
         finally { await CaptureProtocolTrace("after-transfer-trace.json", options.Operation); }
+        if (options.SaveUploadedAcd) await SaveUploadedAcd();
     }
     else
     {
@@ -449,7 +487,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;
@@ -458,7 +496,8 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null,
                       string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
-                      bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null)
+                      bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
+                      bool SaveUploadedAcd = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

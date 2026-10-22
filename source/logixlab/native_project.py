@@ -1,4 +1,4 @@
-"""Read only the offline correlation header; never extract or modify an ACD.
+"""Read offline correlation and bounded empty-log evidence without changing an ACD.
 
 These identifiers let a native client compare its offline project to this model.
 They do not establish firmware authenticity or equivalent execution semantics.

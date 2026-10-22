@@ -18,6 +18,10 @@ for the v35 upload cursors, preserving the requested position and original
 source. A private minimal fixture now completes SDK `UploadAsync`; its temporary
 Controller/clock/Task responses remain unshipped. Normal application upload
 still stops earlier at Controller collection.
+The optional native probe also supports `--save-uploaded-acd` to save a
+successful upload to a new ACD, reopen it Offline and export an L5X for comparison.
+The private fixture's save trial faults the SDK before creating a file, so a
+valid reconstructed upload remains unproved.
 
 Version `.150` adds CRC-checked [Program selector reads](docs/program-upload-query.md).
 All 60 saved reference replies match the calculated checksum of their returned

@@ -184,6 +184,29 @@ def saved_acd_effect(state,folder,receipt):
     except (OSError,ValueError,KeyError,TypeError,ModelError):return False
 
 
+def validate_upload_save(operation,save):
+    if type(save) is not bool or save and operation!='upload':
+        raise ValueError('Saving an uploaded ACD requires an upload operation and a boolean option')
+
+
+def saved_uploaded_acd_effect(folder,receipt):
+    """Verify new saved/reopened artifacts; source/logic equivalence is separate."""
+    try:
+        if not isinstance(receipt,dict) or any(receipt.get(key) is not True for key in
+                ('nativeAcdReopened','offlineOnly','uploadResultSaved')):return False
+        for filename,key,maximum in (('uploaded.ACD','acdSha256',100_000_000),
+                                     ('uploaded.L5X','reopenedL5xSha256',16_000_000)):
+            path=folder/filename
+            if (path.is_symlink() or not path.is_file() or not 8<=path.stat().st_size<=maximum
+                    or digest(path)!=receipt.get(key)):return False
+        raw=(folder/'uploaded.L5X').read_bytes()
+        text=raw.decode('utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else 'utf-8-sig')
+        if '\0' in text or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():return False
+        root=ET.fromstring(text)
+        return root.tag=='RSLogix5000Content' and root.get('TargetType')=='Controller' and len(root.findall('Controller'))==1
+    except (OSError,ValueError,TypeError,ET.ParseError):return False
+
+
 def edit_request(state, program, routine, option, *, code='NOP();',apply=False,position=0,replace=0):
     """Create one checked rung insert for an ordinary RLL routine, never arbitrary XML."""
     if option not in ('LeaveEdits', 'AcceptEdits'):
@@ -604,6 +627,7 @@ def run(args):
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
+    save_upload=getattr(args,'save_uploaded_acd',False);validate_upload_save(args.operation,save_upload)
     baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
     baseline_hash=digest(baseline)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
@@ -654,6 +678,7 @@ def run(args):
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
+    config['SaveUploadedAcd']=save_upload
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
         edit_file=output/('nop-rung.L5X' if index==0 else 'second-rung.L5X')
@@ -713,7 +738,7 @@ def run(args):
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
-                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd else 120, **background_options())
+                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd or save_upload else 120, **background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
         summary['tag_read_type']=tag_read_type
@@ -776,9 +801,16 @@ def run(args):
         if save_acd:
             summary['saved_edited_acd_verified']=saved_acd_effect(final,output,report.get('savedEditedProject') if report else None)
             summary['saved_edited_project']=report.get('savedEditedProject') if report else None
+        if save_upload:
+            summary['save_uploaded_acd_requested']=True
+            summary['saved_uploaded_acd_verified']=saved_uploaded_acd_effect(output,report.get('savedUploadedProject') if report else None)
+            summary['saved_uploaded_project']=report.get('savedUploadedProject') if report else None
+            summary['uploaded_logic_equivalence']='NOT ASSESSED'
+            summary['upload_result_persistence']='saved_and_reopened' if summary['saved_uploaded_acd_verified'] else 'failed'
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
         if (not summary['source_unchanged'] or not summary['working_copy_present'] or not model_ok or summary.get('edit_payload_unchanged') is False
-                or save_acd and not summary.get('saved_edited_acd_verified')):
+                or save_acd and not summary.get('saved_edited_acd_verified')
+                or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
         if args.operation=='upload' and summary['status']=='succeeded' and (
                 summary['working_copy_matches_sdk'] is not True or summary['sdk_controller_source_matches'] is not True):
@@ -812,6 +844,7 @@ def main():
     parser.add_argument('--reconnect-edits',action='store_true',help='Explicit supported edits only: go Offline/Online after each checked insert')
     parser.add_argument('--post-edit-tag',action='append',default=[],help='Explicit supported edits only: diagnose a DINT SDK read after the imports, before Offline; may repeat up to eight times')
     parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
+    parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')
