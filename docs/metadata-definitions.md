@@ -42,5 +42,7 @@ loaded. This does not establish SDK use of every definition or metadata values.
 
 Definition names and IDs do not establish metadata values, MUID encoding,
 locales, qualifiers or the [Program `0x50` query response](program-upload-query.md).
-Those live value/query services remain unsupported. Full native upload/download
-and the separate download result-response format remain unfinished.
+Version `.149` adds a separate [original metadata value catalog](native-metadata-values.md)
+with supported locale/qualifier forms and signed stream reads. Its record IDs
+are simulator-local. Program `0x50`, full native upload/download and the separate
+download result-response format remain unfinished.

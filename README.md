@@ -6,12 +6,21 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.148` demonstrates Go Online and
+**Status: experimental.** Native validation on `.149` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
+
+Version `.149` adds [original ACD metadata value reads](docs/native-metadata-values.md)
+through signed, fragmented queries. The running app returns all 1,670 demo
+records across 505 replies with byte-for-byte source matches. All 183 affected
+checks pass. SDK Go Online/Offline and supported import/reconnect pass with no
+reported SDK fault. The upload trial receives nonempty Controller metadata,
+then fails at the later Controller collection/Time Sync boundary with Offline
+and cleanup confirmed. The original demo is restored; webpage, executable and
+appliance versions match. Full upload/download remain unfinished.
 
 Version `.148` adds [fragmented metadata upload decoding](docs/metadata-upload-query.md)
 and an offline replay tool. It reconstructs 10,301 saved query exchanges into
@@ -21,13 +30,6 @@ the frame decoder. All 183 focused checks pass. The rebuilt app passes SDK
 Go Online/Offline across 74 verified requests with source/model preservation,
 confirmed cleanup and no reported SDK fault. The webpage, executable and
 appliance versions match. Live metadata values, Program query `0x50` and complete
-native transfers remain unfinished.
-
-Version `.149` adds [original ACD metadata value reads](docs/native-metadata-values.md)
-through signed, fragmented queries. The catalog retains source definition,
-locale, qualifier and reference data, with an independent cursor per session.
-Two owned projects supply 1,670 and 1,660 records; 1,638 shared built-in records
-match decoded reference responses for each project. Program `0x50` and complete
 native transfers remain unfinished.
 
 Version `.147` adds [source-bound Metadata Definition names and IDs](docs/metadata-definitions.md)

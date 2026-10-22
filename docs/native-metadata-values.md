@@ -61,6 +61,24 @@ capability limits. It omits names, qualifiers, references and values.
 
 ## Limits
 
+All 183 affected checks pass. The rebuilt appliance returns the original demo's
+221,937 metadata bytes and 1,670 records across 505 signed replies, matching the
+source catalog exactly. Controller and empty compatibility reads also pass.
+Cross-session cursor reuse, changed selections and active metadata writes reject
+without changing source, tags, scans or audit values. The packaged executable
+runs the same source reader. All 102 source/build/guest module hashes and served
+webpage/executable/appliance versions match.
+
+Native SDK Go Online/Offline passes across 75 verified requests. A supported
+Program-mode import and reconnect passes across 188 verified requests, with the
+expected single simulator audit update. The upload trial receives the nonempty
+Controller metadata reply and proceeds to later requests; it still fails the
+Controller collection stage at the unresolved Time Sync response. All three
+cases confirm native Offline and endpoint cleanup, preserve original source
+files and report no SDK fault. After the edit, direct checks confirm that
+nonempty original metadata is withheld while the empty reconnect selection
+remains available. The original demo is restored afterward.
+
 Serving these metadata records does not complete native upload. Program `0x50`,
 the remaining Controller fields and other source/response contracts remain
 independent upload gaps. Download still needs the class `0x412` result response.

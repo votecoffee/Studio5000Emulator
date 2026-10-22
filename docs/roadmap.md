@@ -12,6 +12,11 @@ query responses. Two owned projects supply 1,670/1,660 values; each matches 1,63
 shared built-in reference records. Program `0x50`, missing Controller fields,
 target/address resolution and the download result response remain independent
 gaps. Complete native transfers remain unfinished.
+All 183 affected checks pass. Live signed reads reproduce all 1,670 original
+demo metadata records; SDK Go Online/Offline and supported import/reconnect
+pass without reported faults. The upload trial reads nonempty Controller
+metadata and reaches the unresolved Controller collection/Time Sync boundary.
+Offline/cleanup is confirmed for all trials, and the original demo is restored.
 
 Version `.148` adds [fragmented metadata upload decoding](metadata-upload-query.md)
 and an offline replay tool. All 10,301 selected reference query exchanges

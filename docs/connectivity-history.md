@@ -14,6 +14,16 @@ runtime logic, so nonempty reads become unavailable after a supported edit.
 Project-specific source data remains private; two owned projects each match
 1,638 shared built-in records from a saved upload. Complete native transfer,
 Program `0x50` and download-result behavior remain unfinished.
+All 183 affected checks pass. Live signed reads return 1,670 source records
+across 505 replies, with all 221,937 body bytes matching. Cross-session cursors,
+changed selections and writes reject without source/model/audit changes. SDK
+Go Online/Offline passes across 75 verified requests; supported import/reconnect
+passes across 188 with one expected audit update. Upload reads nonempty
+Controller metadata and advances, then fails the Controller collection/Time
+Sync stage across 190 verified requests. Every case confirms Offline/cleanup
+and reports no SDK fault. Post-edit metadata invalidation is checked before
+restoring the original demo. The packaged reader and all 102 source/build/guest
+module hashes and served versions match.
 
 Version `.148` adds [Metadata Definition `0x53` stream decoding](metadata-upload-query.md).
 The reply header carries the echoed cursor, including zero in the initial
