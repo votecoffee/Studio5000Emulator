@@ -1094,6 +1094,13 @@ class Router:
                 task['name'],source_sha256=self.app.engine.project.sha256))
             attributes.update(self.app.engine.project.task_timing.attributes(
                 task['name'],source_sha256=self.app.engine.project.sha256))
+            measured=self.app.engine.task_measurement_attributes(task['name'],source_sha256=self.app.engine.project.sha256)
+            attributes.update(measured)
+            identity=getattr(self.app,'native_project_identity',None);source=self.app.engine.project.sha256
+            if (measured and identity is not None and identity.source_l5x_sha256==source
+                    and identity.source_acd_sha256==self.app.native_tasks.source_acd_sha256
+                    and not self.endpoint.programming_lease.scan_inhibited(self.app.generation,source)):
+                attributes.update(self.app.engine.runtime_references.task_attributes(self.app.engine.project,task['name']))
             programs=getattr(self.app,'native_symbols',None)
             if programs is not None:
                 attributes.update(self.app.engine.project.task_configuration.scheduled_attributes(
@@ -1844,6 +1851,7 @@ class Endpoint:
                     'program_diagnostics':self.app.engine.project.program_diagnostics.description() if self.enabled else None,
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
+                    'task_measurements':self.app.engine.task_measurement_description() if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,

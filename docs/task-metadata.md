@@ -3,6 +3,9 @@
 The Task object (`0x70`) supplies read-only settings and source class metadata
 from a complete v35 controller L5X:
 
+Version `.137` adds separate [runtime Task measurements and a backed Task reference](task-runtime.md).
+Source rate/watchdog settings retain the rules below.
+
 | Attribute | L5X Task field | Encoding |
 | --- | --- | --- |
 | 1, Task Program List | Ordered schedule names and matching native Program IDs | UINT16 count followed by UINT32 IDs |
@@ -18,8 +21,8 @@ revision 2 onward. Task Inhibit occupies four bytes; the separately implemented
 [Program Disable field](edit-program-state.md) occupies one byte. Single and
 list reads use identical values and preserve requested order and duplicates.
 Missing or malformed settings remain unavailable without hiding valid sibling
-settings. Measured runtime timing, compiled addresses, trigger formats, native handler
-references and aggregate instance reads remain unsupported.
+settings. Other runtime status fields, native machine-code addresses, trigger
+formats, native handler references and aggregate instance reads remain unsupported.
 
 ## Native identity binding
 
@@ -79,11 +82,12 @@ inhibit a task, switch controller mode or accept an online edit. Native setters
 remain denied. The signed research endpoint uses the same read path as ordinary
 explicit messaging.
 
-A retained native edit trace requested Task attribute 19 after successfully
+The original metadata addition used a retained native edit trace that requested Task attribute 19 after successfully
 reading Program Disable. Offline replay and an independent signed TCP session
 now return the exact four-byte setting for that source-correlated Task. No SDK
-test was performed for this change. Native edit acceptance remains unresolved,
-and SDK testing remains paused.
+test was performed for that revision, when SDK testing was paused. Current
+bounded [Program-mode Routine import results](supported-routine-edits.md) and
+[runtime Task validation](task-runtime.md) have separate acceptance scopes.
 
 Version `.81` adds schedule and time reads, checked through focused source,
 wire and independent inventory tests. These additional fields have no new SDK

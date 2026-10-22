@@ -70,6 +70,8 @@ class RoutineEditWireTests(unittest.TestCase):
         old.last_timer={('startdelay',()):100};old.changes=[{'scan':10,'tag':'SpeedSetpoint'}]
         from logixlab.program_timing import ProgramTiming
         old._program_timings['mainprogram']=ProgramTiming(5000,10000,12)
+        from logixlab.task_runtime import TaskMeasurements
+        old._task_measurements=TaskMeasurements().record(1000,10000).record(12000,15000)
         old._native_fault_history_uncertain=True
         source_hash=hashlib.sha256(old.project.path.read_bytes()).hexdigest()
         self.stage();before=copy.deepcopy(self.app.state())
@@ -82,6 +84,7 @@ class RoutineEditWireTests(unittest.TestCase):
         for key in ('tags','scan','ms','changes','controller','tasks','entry_routines'):self.assertEqual(before[key],after[key])
         self.assertEqual(self.app.engine.last_timer,old.last_timer)
         self.assertEqual(self.app.engine._program_timings,old._program_timings)
+        self.assertEqual(self.app.engine._task_measurements,old._task_measurements)
         self.assertTrue(self.app.engine._native_fault_history_uncertain)
         self.assertEqual(self.app.engine.memory.first_scan,old.memory.first_scan)
         self.assertEqual(after['routine_edits']['revision'],1);self.assertTrue(after['routine_edits']['modified'])

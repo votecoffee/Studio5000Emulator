@@ -8,7 +8,7 @@ import time
 
 
 MAX_GAPS = 64
-CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol', 0x71:'Data Logging', 0x74:'Semaphore', 0x7E:'I/O Connection',
+CLASSES = {1: 'Identity', 0x43: 'Time Sync', 0x64: 'Extended Device', 0x67: 'PCCC Mapping', 0x68: 'Program', 0x69: 'I/O Map', 0x6A: 'Data Table', 0x6B: 'Symbol', 0x70:'Task', 0x71:'Data Logging', 0x74:'Semaphore', 0x7E:'I/O Connection',
            0x8E: 'Controller', 0xF5: 'TCP/IP Interface', 0xF6: 'Ethernet Link'}
 NAMES = {
     0x43: {1: 'PTP enable', 2: 'Synchronization status', 3: 'Time in microseconds',
@@ -26,6 +26,10 @@ NAMES = {
     0x67: {1: 'PLC-2 file', 2: 'PCCC mapping descriptor'},
     0x68: {15: 'SFC force enable', 24: 'SFC transition force list', 25: 'SFC leg force list', 28: 'Program name'},
     0x69: {9:'I/O force status', 10:'Link address', 11:'I/O LED status'},
+    0x70: {1:'Task Program List',2:'Rate',3:'Status',4:'Trigger',5:'Type',6:'Priority',
+           7:'Maximum Scan Time',8:'Last Scan Time',9:'Overlap Count',11:'Task Address',
+           12:'Watchdog',13:'Start Time',14:'Minimum Interval',15:'Maximum Interval',
+           16:'Task Instance',17:'Timeout',18:'Disable Output Update',19:'Inhibit',20:'Data Use',21:'Tag Mapping Count'},
     0x74: {1:'Revision'},
     0x7E: {1:'Revision'},
     0x8E: {1: 'Power-loss handler reference', 3: 'Communication time slice',

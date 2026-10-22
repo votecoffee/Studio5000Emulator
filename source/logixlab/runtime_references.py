@@ -93,6 +93,11 @@ class RuntimeReferences:
     def bind_reference_catalog(self,catalog):
         self._reference_catalog=catalog
 
+    def task_attributes(self,project,task):
+        """Router establishes the current complete single-Task model and source."""
+        address=self.reference(project,'task',task)
+        return {11:struct.pack('<I',address)} if address is not None else {}
+
     def routine_attributes(self,project,program,routine):
         """Header reference and main/subroutine flags for a guarded RLL model."""
         if not isinstance(program,str) or not isinstance(routine,str):return {}
@@ -115,6 +120,7 @@ class RuntimeReferences:
     def description(self):
         return {'attributes':[5,16],'address_bits':32,'alignment':4,
                 'routine_attributes':[8,24],'routine_header_reference_backed':True,
+                'task_attributes':[11],'task_reference_backed':True,
                 'backing':'Live interpreter Program, Routine, Task and validated reference Symbol objects',
                 'scope':'Current Engine in this emulator process',
                 'allocated_objects':len(self._objects),'addresses_reused':False,

@@ -66,7 +66,7 @@ class TaskMetadataWireTests(unittest.TestCase):
         self.prepare();self.app.native_tasks=NativeTasks('a'*64,self.app.engine.project.sha256,[{'name':'MainTask','instance':1}])
         self.assertEqual(self.signed(4,bytes.fromhex('0302207024010300130063001300')),
                          bytes.fromhex('83000a0003001300000000000000630014001300000000000000'))
-        self.assertEqual(self.signed(5,bytes.fromhex('0e03207024013007'))[2],20)
+        self.assertEqual(self.signed(5,bytes.fromhex('0e0320702401301f'))[2],20)
         self.assertEqual(self.signed(6,READ+b'x')[2],21)
         self.assertEqual(self.signed(7,bytes.fromhex('4b03207024003013'))[2],4)
         self.assertEqual(self.signed(8,bytes.fromhex('010220702401'))[2],8)

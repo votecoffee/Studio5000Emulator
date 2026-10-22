@@ -4,6 +4,16 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.137` adds [whole-Task execution measurements and a backed Task reference](task-runtime.md).
+Measurements cover all scheduled Program calls, commit only on a successful scan
+and persist across supported Routine replacement. All 152 affected tests pass;
+the full suite was not rerun. The matched SDK upload comparison reads five more
+Task fields, reducing unavailable fields from 16 to 11. Both trials still fail
+Task upload across 358 verified signed requests and 361 expanded leaves, with
+actual Offline/cleanup, preserved source/model and no fatal SDK fault. Private
+clock/schema/repository hypotheses remain unshipped. Full transfer and the
+nonempty Routine source-retrieval boundary remain unfinished.
+
 Version `.136` supports [scheduled empty Programs](empty-programs.md) with
 source-proven no-op execution, null main references, live Program references
 and existing fault/edit guards. All 121 affected tests pass; the full suite was

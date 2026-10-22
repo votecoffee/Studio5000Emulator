@@ -5,6 +5,7 @@ import operator
 from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
+from . import task_runtime
 from .runtime_references import RuntimeReferences
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
@@ -51,6 +52,8 @@ class Engine:
         self.calls = Calls(self)
         self.structured = Structured(self)
         self._program_timings = {}
+        self._task_measurements = None
+        self._measured_task = None
         self._plan()
         if not self.blockers:
             try:self._apply_prescan(preview=defer_prescan,report_fault=False)
@@ -63,6 +66,30 @@ class Engine:
                 name=self.project.routines[entry].program
                 if self.project.program_configuration.type_attributes(name,source_sha256=project.sha256):
                     self._program_timings[name.casefold()]=ProgramTiming()
+            task=project.tasks[0]['name']
+            if project.task_configuration.measurement_supported(task,source_sha256=project.sha256):
+                self._measured_task=task.casefold()
+                self._task_measurements=task_runtime.TaskMeasurements()
+
+    def task_measurement_attributes(self,task,*,source_sha256):
+        if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
+                or not isinstance(task,str) or task.casefold()!=self._measured_task
+                or self._task_measurements is None or len(self.project.tasks)!=1
+                or self.project.tasks[0]['name'].casefold()!=self._measured_task
+                or self.project.tasks[0]['inhibited']
+                or not self.project.task_configuration.measurement_supported(task,source_sha256=source_sha256)):
+            return {}
+        return self._task_measurements.attributes()
+
+    def task_measurement_description(self):
+        available=bool(self.task_measurement_attributes(self._measured_task,source_sha256=self.project.sha256))
+        return {'attributes':[7,8,14,15],'tasks_available':int(available),
+                'successful_task_executions':self._task_measurements.executions if self._task_measurements else 0,
+                'measurement':'Host monotonic perf_counter_ns; complete scheduled interpreter Task',
+                'scan_time_bits':32,'interval_bits':64,'units':'Whole microseconds',
+                'interval_scope':'Between successful Task starts; zero until two executions',
+                'prescan_included':False,'failed_scans_update_counters':False,
+                'watchdog_enforced':False,'controller_performance_prediction':False}
 
     @property
     def fault(self):return self._fault
@@ -325,6 +352,7 @@ class Engine:
         self.budget = self.instruction_limit
         timings=dict(self._program_timings)
         try:
+            task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
             for entry in self.entries:
                 name=self.project.routines[entry].program.casefold()
                 if name in timings:
@@ -332,10 +360,13 @@ class Engine:
                     self._routine(entry, 0)
                     timings[name]=timings[name].record(perf_counter_ns()-start)
                 else:self._routine(entry, 0)
+            measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns())
+                      if self._task_measurements is not None else None)
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
             self._program_timings=timings
+            self._task_measurements=measured
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace = previous

@@ -201,6 +201,12 @@ class TaskConfiguration:
                 task.casefold() not in self._standard_memory_tasks):return {}
         return {20:bytes(2)}
 
+    def measurement_supported(self,task,*,source_sha256):
+        if not self.memory_attributes(task,source_sha256=source_sha256):return False
+        row=self._tasks.get(task.casefold())
+        return (row is not None and row.scheduled_programs is not None and row.priority is not None
+                and row.disable_output_update is not None and row.inhibited is False)
+
     def scheduled_attributes(self, task, *, source_sha256, source_acd_sha256, program_ids,
                              program_source_l5x_sha256, program_source_acd_sha256):
         """Bind the ordered source list to actual same-source native Program IDs.

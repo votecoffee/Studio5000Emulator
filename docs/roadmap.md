@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.136` adds [source-checked scheduled empty Programs](empty-programs.md).
+Current milestone: `.137` adds [whole-Task measurements and a live Task reference](task-runtime.md).
+The isolated SDK upload reads five additional Task fields, reducing the remaining
+unavailable fields from 16 to 11. Resolve the remaining Task semantics alongside
+the independent Routine source-identity and repository investigations.
+
+Version `.136` adds [source-checked scheduled empty Programs](empty-programs.md).
 The empty-Program SDK upload passes Program collection and empty Routine
 discovery, reaching a later file-mapping collection gap. Resolve that independent
 gap alongside the nonempty Routine interpretation/source-identity investigation.
