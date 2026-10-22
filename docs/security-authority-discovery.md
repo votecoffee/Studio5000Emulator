@@ -46,3 +46,28 @@ profile, deleted/allocation records, immutable manifests, conversion/appliance
 forwarding, atomic load failures, stale/foreign bindings, reset and clearing,
 class revision, list cursors, invalid scopes, signed TCP reads and write denial.
 Native upload acceptance and full native transfer remain separate checks.
+
+All 182 affected tests pass without a full suite run. Three own ACDs contain
+the checked empty collection. The native SDK upload comparison
+uses the same empty-Program project and private clock/schema/repository/Task
+stack assumptions as the preceding trial. It now reads revision 1, accepts
+Security Authority Binding discovery, passes empty Data Logging discovery and
+reaches a later Controller attribute list. That list requests 21 attributes;
+fields 10, 11, 12, 27, 28, 33, 34 and 35 remain unavailable, and upload fails
+with `RxCsE_ASA_ATTRIBUTE_LIST_ERROR` across 360 verified requests and 363
+expanded leaves. The private substitutes remain unshipped.
+
+The normal-protocol SDK Program-mode NOP insertion and reconnect preserve this
+source binding, Task settings, status, slot and measurements across 182 verified
+requests. A second scan executes the changed model. The independent download
+reaches the existing result-response gap across 175 verified requests and 909
+temporary records, with no active commit. All three cases confirm actual
+Offline/cleanup, preserved original files and no fatal SDK fault. Full native
+upload/download and Test/Untest/Assemble remain unfinished.
+
+The restarted normal demo passes SDK Go Online/Go Offline across 74 verified
+requests. All 24 deployment checks pass, including live source-bound authority
+discovery/revision and the executable-contained strict reader. All 97 deployed
+app modules match the build, and webpage/app/executable versions agree on
+`.141`. The model and edit configuration survive restart, actual Offline/cleanup
+succeeds and no fatal SDK fault occurs.

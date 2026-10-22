@@ -4,6 +4,33 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.141` adds [explicit empty Security Authority Binding discovery](security-authority-discovery.md).
+The original ACD must contain one checked format-0/body-74 collection with no
+active binding definitions. The optional immutable manifest, original hashes,
+atomic loader and appliance forwarding retain its source evidence. Missing,
+nonempty, scoped and unknown profiles remain unavailable; original pointers,
+authority administration and authentication decisions are excluded.
+All 182 affected tests pass without a full suite run. The isolated SDK upload
+uses the same private assumptions as the preceding stack-field trial. It now
+accepts revision 1 and empty authority discovery, passes empty Data Logging and
+reaches a later 21-field Controller attribute list. Eight fields remain
+unavailable: 10/11/12/27/28/33/34/35. Upload fails with the attribute-list
+diagnostic across 360 verified requests and 363 expanded leaves. The private
+clock/schema/repository/stack substitutes remain unshipped. The normal-protocol
+SDK Program-mode NOP insertion/reconnect preserves the new source binding and
+existing Task state across 182 verified requests; the next scan executes the
+changed model. The independent download retains the result-response gap across
+175 verified requests and 909 temporary records, without active commit. All
+three cases confirm actual Offline/cleanup, unchanged original files and no
+fatal SDK fault. Full native transfer and the complete edit lifecycle remain
+unfinished.
+The restarted `.141` normal demo passes SDK Go Online/Go Offline across 74
+verified requests with actual Offline/cleanup, preserved source/model and no
+fatal SDK fault. All 24 deployment checks pass, including the live source-bound
+authority list/revision and frozen strict reader. All 97 deployed app modules
+match the build. Served assets, packaged resources and webpage/executable
+versions agree on `.141`; model and edit configuration survive restart.
+
 Version `.140` adds [Task Start Time](task-start-time.md), sampled from the
 simulator WALLCLOCKTIME before scheduled Programs and committed only after a
 successful whole-Task scan. Monotonic measurements remain independent. Unavailable
