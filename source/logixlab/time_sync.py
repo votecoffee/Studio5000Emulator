@@ -41,7 +41,7 @@ class TimeSync:
         return {number: bytes((value,)) for number, value in values if value is not None}
 
     def description(self, *, instance_id=None, native_compatibility=False):
-        clock = software_clock.description(instance_id=instance_id)
+        clock = software_clock.description(instance_id=instance_id, ptp_enabled=self.ptp_enabled)
         return {'object_revision': controller_schemas.object_revision(0x43,native_compatibility=native_compatibility),
                 'ptp_enabled': self.ptp_enabled,
                 'priority1': self.priority1, 'priority2': self.priority2,

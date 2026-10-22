@@ -93,7 +93,7 @@ class SoftwareClockIdentityTests(unittest.TestCase):
             self.assertEqual(self.read(2),bytes.fromhex('8e00000000'))
             self.assertEqual(self.read(11),bytes.fromhex('8e0000000000'))
             for attr in (5,6,7,8,9,18,19,20,27,102,103,104):
-                self.assertEqual(self.read(attr)[2],20)
+                self.assertEqual(self.read(attr)[2],0 if enabled is False else 20)
 
     def test_running_endpoint_state_advertises_the_same_identity_without_sampling_time(self):
         self.endpoint.start()

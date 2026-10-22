@@ -13,6 +13,12 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.145`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.154` adds an [inactive Time Sync dataset](docs/inactive-clock-dataset.md)
+for complete source projects that explicitly disable PTP. The 32-field clock
+collection includes initialized, unmeasured offsets, empty master/port state
+and the application's software identity. Enabled or unknown PTP source retains
+its unsupported fields. Native transfer completion remains unproved.
+
 Version `.153` aligns native [Controller and Time Sync schema selection](docs/controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
 with the observed v35 revisions, 15 and 5. The research profile retains revision
 1, and the established 16-byte Controller aggregate is preserved. Schema

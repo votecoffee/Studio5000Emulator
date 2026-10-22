@@ -1703,7 +1703,8 @@ class Router:
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
                     requested=bool(set(software_clock.TIME_ATTRIBUTES).intersection(struct.unpack_from('<'+'H'*count,data,2)))
                 attributes={**self.app.engine.project.time_sync.attributes(),
-                            **software_clock.attributes(read_time=requested,instance_id=self.app.instance_id)}
+                            **software_clock.attributes(read_time=requested,instance_id=self.app.instance_id,
+                                                        ptp_enabled=self.app.engine.project.time_sync.ptp_enabled)}
             elif path.instance is None:raise CIPError(4,'Time Sync requires an instance')
             else:raise CIPError(5,'Unknown Time Sync instance')
             return self.attribute_read(service,path,data,attributes)

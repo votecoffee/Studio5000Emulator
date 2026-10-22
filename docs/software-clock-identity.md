@@ -51,9 +51,12 @@ The generated identity and its lifetime are emulator design choices.
 Endpoint `time_sync.software_clock` metadata exposes this identity and its
 scope. State polling and static reads do not sample or set the host clock.
 PTP remains unsynchronized with zero ports, regardless of the imported PTP
-enable setting. Master/parent identities, offsets, delays, domain, clock type,
-manufacturer OUI and vendor device/port structures remain unavailable. Writes
-retain their errors and acquire no programming authority.
+enable setting. Version `.154` adds an explicitly
+[inactive dataset](inactive-clock-dataset.md) for source-disabled PTP, including
+empty master/parent state and unmeasured initialized offsets. Enabled or
+unavailable source settings retain those gaps. No assigned manufacturer OUI
+or real PTP master is supplied. Writes retain their errors and acquire no
+programming authority.
 
 These reads do not complete upload, download or native clock discipline.
 Validation keeps the normal application separate from private upload fixtures.

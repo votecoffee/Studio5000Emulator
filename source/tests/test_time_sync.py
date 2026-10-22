@@ -48,7 +48,9 @@ class TimeSyncTests(unittest.TestCase):
             desc = settings.description()
             self.assertEqual(desc['ptp_enabled'], enabled)
             self.assertEqual(desc['source_attributes'], [1, 16, 17])
-            self.assertEqual(desc['available_attributes'], [1, 2, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26])
+            expected=[1, 2, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26]
+            if not enabled:expected=sorted(expected+[5,6,7,8,9,18,19,20,27])
+            self.assertEqual(desc['available_attributes'], expected)
             self.assertEqual(desc['dynamic_attributes'], [3, 4, 28])
             for key in ('settings_writable', 'ptp_engine'):
                 self.assertFalse(desc[key])
@@ -116,7 +118,8 @@ class TimeSyncTests(unittest.TestCase):
         self.assertEqual(self.send(3, bytes.fromhex('20432401'), struct.pack('<4H', 3, 17, 1, 16)),
                          bytes.fromhex('830000000300110000008001000000001000000080'))
 
-    def test_native_requested_list_reports_local_time_and_unknown_master_measurements(self):
+    def test_enabled_ptp_list_reports_local_time_and_unknown_master_measurements(self):
+        self.node.set('PTPEnable','true');self.load()
         order = (*range(1, 29), 102, 103, 104, 105)
         timestamp = 1_700_000_000_123_456_789
         values = {**self.settings().attributes(), 2: b'\0',
