@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.150` demonstrates Go Online and
+**Status: experimental.** Native validation on `.151` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
@@ -22,6 +22,12 @@ The optional native probe also supports `--save-uploaded-acd` to save a
 successful upload to a new ACD, reopen it Offline and export an L5X for comparison.
 The private fixture's save trial faults the SDK before creating a file, so a
 valid reconstructed upload remains unproved.
+All 222 affected checks pass. The rebuilt application passes live cursor and
+Program selector reads and SDK Go Online/Offline across 74 verified requests,
+with unchanged source/model state, confirmed Offline/cleanup and no reported
+fault in that connection check. Webpage, executable and appliance versions match.
+Normal upload verifies 188 requests, then retains the Controller collection
+failure with Offline/cleanup and no reported SDK fault.
 
 Version `.150` adds CRC-checked [Program selector reads](docs/program-upload-query.md).
 All 60 saved reference replies match the calculated checksum of their returned

@@ -51,6 +51,12 @@ Tests cover compressed/plain source profiles, strict EOF/trailer boundaries,
 legacy and malformed manifests, cursor echo and bounds, structural edit and
 source changes, signed requests, retained write denial and unchanged modeled
 state. Both owned native project fixtures contain the supported empty profile.
+All 222 affected protocol/source and native-probe checks pass. The rebuilt `.151`
+application passes live signed current, initial and end cursor reads, the existing
+direct read path, unknown-history/write denials and the three Program selector
+reads. Source/model/audit state is preserved. The normal SDK Go Online/Offline
+case verifies 74 requests, confirms Offline/cleanup and reports no SDK fault;
+the webpage, executable and appliance versions match.
 
 A private minimal fixture completes SDK `UploadAsync` across 969 verified
 requests after this change and the calculated
@@ -68,5 +74,7 @@ model remain unchanged. API-level upload success therefore does not establish
 a valid reconstructed project; see the [upload-save diagnostic](development.md#native-sdk-acceptance-probe).
 
 Normal application upload still stops at the earlier Controller collection
-stage. Native download, complete history reconstruction and arbitrary cursor
+stage. Its `.151` trial verifies 188 requests, confirms Offline/cleanup and
+preserves source/model state without reporting an SDK fault. Native download,
+complete history reconstruction and arbitrary cursor
 searches remain unfinished.

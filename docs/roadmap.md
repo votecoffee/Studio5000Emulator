@@ -6,7 +6,20 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.150` adds calculated CRC-checked
+Current milestone: `.151` adds source-backed
+[empty Change Log lookups](native-change-log.md). The strict original empty-log
+profile permits the two observed upload searches while preserving each requested
+cursor. All 222 affected checks, live cursor/Program reads and the rebuilt SDK
+Go Online/Offline case pass; webpage, executable and appliance versions match.
+A private minimal fixture completes `UploadAsync` with unshipped Controller,
+clock and Task responses. Its subsequent native ACD save faults the SDK before
+creating a file, so a valid reconstructed upload remains unproved. Keep those
+responses private, resolve their source contracts and investigate the failed
+save without retrying the faulted operation. Normal application upload still
+stops earlier at Controller collection; download and full edit lifecycle gaps
+remain independent.
+
+Version `.150` adds calculated CRC-checked
 [Program selector replies](program-upload-query.md) for the three observed
 zero-position queries, with matching original Program identity required.
 All 60 recorded replies match the derived checksum relationship, and 153
