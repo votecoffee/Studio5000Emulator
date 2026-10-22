@@ -13,6 +13,12 @@ Remote Run/Program requests, actual mode reads and supported
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
 
+Version `.151` adds source-backed [empty Change Log lookups](docs/native-change-log.md)
+for the v35 upload cursors, preserving the requested position and original
+source. A private minimal fixture now completes SDK `UploadAsync`; its temporary
+Controller/clock/Task responses remain unshipped. Normal application upload
+still stops earlier at Controller collection.
+
 Version `.150` adds CRC-checked [Program selector reads](docs/program-upload-query.md).
 All 60 saved reference replies match the calculated checksum of their returned
 selector. The signed response requires a matching source Program and leaves

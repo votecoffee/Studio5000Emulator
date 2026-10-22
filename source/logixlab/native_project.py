@@ -77,6 +77,7 @@ class NativeProjectIdentity:
     copy_uid: int
     project_uid: int
     timeline_uid: int
+    empty_change_log: bool = False
 
     def __post_init__(self):
         _hash(self.source_acd_sha256); _hash(self.source_l5x_sha256)
@@ -84,10 +85,13 @@ class NativeProjectIdentity:
             value = getattr(self, name); maximum = 0xFFFF if name.startswith('online_') else 0xFFFFFFFF
             if type(value) is not int or not 0 <= value <= maximum:
                 raise ModelError('Native correlation field is outside its wire range: ' + name)
+        if type(self.empty_change_log) is not bool or self.empty_change_log and self.online_index != 0:
+            raise ModelError('Empty native change-log evidence requires a zero source index')
 
     @classmethod
     def from_manifest(cls, manifest, source_l5x_sha256):
-        if not isinstance(manifest, dict) or set(manifest) != set(cls.__dataclass_fields__):
+        fields = set(cls.__dataclass_fields__)
+        if not isinstance(manifest, dict) or set(manifest) not in (fields, fields-{'empty_change_log'}):
             raise ModelError('Invalid native project correlation manifest')
         identity = cls(**manifest)
         if identity.source_l5x_sha256 != source_l5x_sha256:
@@ -106,14 +110,35 @@ class NativeProjectIdentity:
                 if not 1 <= size <= 65536: raise ModelError('Offline change-log header is too large')
                 header = reader.read(size)
                 if len(header) != size: raise ModelError('Truncated offline change-log header')
+                # The supported empty profile has exactly one zero record-count
+                # trailer and EOF. A missing, nonzero or longer tail supplies no
+                # empty-history evidence; its records are not decoded here.
+                tail = reader.read(5)
         except (OSError, EOFError, zlib.error) as error:
             raise ModelError('Invalid compressed offline change-log stream') from error
         fields = _fields(header)
         if not {3, 8, 9, 10, 11, 12} <= fields.keys():
             raise ModelError('Offline change-log header lacks required correlation fields')
-        return cls(digest, source_l5x_sha256, fields[11], fields[12], fields[10], fields[8], fields[3], fields[9])
+        return cls(digest, source_l5x_sha256, fields[11], fields[12], fields[10], fields[8], fields[3], fields[9],
+                   empty_change_log=fields[11] == 0 and tail == bytes(4))
 
     def manifest(self): return asdict(self)
+
+    def empty_log_search(self, data, *, runtime_revision=0):
+        """No records leaves the search cursor unchanged, never rebased.
+
+        Preserve the existing exact imported-cursor read. The additional v35
+        upload queries are limited to index zero in the next generation and
+        index one in the current generation, backed by the original empty
+        trailer, zero head index and an unedited execution model.
+        """
+        if not isinstance(data, bytes) or len(data) != 4: return None
+        cursor = struct.pack('<HH', self.online_index, self.online_generation)
+        if data == cursor: return data
+        if self.empty_change_log and type(runtime_revision) is int and runtime_revision == 0:
+            if data == struct.pack('<HH', 1, self.online_generation): return data
+            if self.online_generation < 0xFFFF and data == struct.pack('<HH', 0, self.online_generation+1): return data
+        return None
 
     def attributes(self):
         # UID is the download UID; Image UID is the project UID. These are
@@ -126,4 +151,6 @@ class NativeProjectIdentity:
     def description(self):
         return {'bound': True, 'source': 'ACD OfflineChangelog header',
                 'source_acd_sha256': self.source_acd_sha256, 'source_l5x_sha256': self.source_l5x_sha256,
+                'empty_change_log_source': self.empty_change_log,
+                'change_log_records_supplied': False, 'change_log_cursor_rebased': False,
                 'firmware_authentication': False, 'runtime_equivalence': False}

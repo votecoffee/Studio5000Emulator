@@ -26,9 +26,9 @@ def varint(value):
 FIELDS = {3: 0x10203040, 8: 0x20304050, 9: 0x30405060, 10: 0x40506070, 11: 7, 12: 3}
 
 
-def container(fields=None, compressed=True, header=None):
+def container(fields=None, compressed=True, header=None, tail=bytes(4)):
     if header is None: header = b''.join(varint(n*8)+varint(v) for n, v in (FIELDS if fields is None else fields).items())
-    stream = struct.pack('<I', len(header))+header+b'\0'*4
+    stream = struct.pack('<I', len(header))+header+tail
     if compressed: stream = gzip.compress(stream, mtime=0)
     name = 'OfflineChangelog.Dat'.encode('utf-16le').ljust(520, b'\0')
     return b'\r\n'+stream+name+struct.pack('<IIII', len(stream), 2, 1, 0)
@@ -128,6 +128,67 @@ class NativeProjectTests(unittest.TestCase):
             result = convert_acd(self.acd, self.root/'out/project.L5X', executable)
         self.assertEqual(result['native_project_identity'], self.identity().manifest())
         self.assertEqual(json.loads((self.root/'out/provenance.json').read_text())['native_project_identity'], self.identity().manifest())
+
+    def test_empty_source_profile_requires_exact_zero_trailer_eof_and_zero_index(self):
+        for compressed in (False,True):
+            for tail in (b'',bytes(3),bytes(5),b'\1\0\0\0',bytes(4)+b'record'):
+                self.acd.write_bytes(container(fields={**FIELDS,11:0},compressed=compressed,tail=tail))
+                with self.subTest(compressed=compressed,tail=tail):
+                    self.assertFalse(self.identity().empty_change_log)
+            raw=container(fields={**FIELDS,11:0},compressed=compressed);self.acd.write_bytes(raw)
+            identity=self.identity();self.assertTrue(identity.empty_change_log)
+            self.assertEqual(self.acd.read_bytes(),raw)
+            self.assertTrue(identity.description()['empty_change_log_source'])
+            self.assertFalse(identity.description()['change_log_records_supplied'])
+        self.acd.write_bytes(container());self.assertFalse(self.identity().empty_change_log)
+
+    def test_empty_evidence_round_trips_and_legacy_manifests_grant_no_extra_query(self):
+        self.acd.write_bytes(container(fields={**FIELDS,11:0}));identity=self.identity();good=identity.manifest()
+        self.assertEqual(NativeProjectIdentity.from_manifest(good,self.digest),identity)
+        legacy={k:v for k,v in good.items() if k!='empty_change_log'}
+        self.assertFalse(NativeProjectIdentity.from_manifest(legacy,self.digest).empty_change_log)
+        for change in ({'empty_change_log':1},{'empty_change_log':'true'},{'online_index':1}):
+            with self.assertRaises(ModelError):NativeProjectIdentity.from_manifest({**good,**change},self.digest)
+
+    def test_empty_upload_lookup_echoes_only_its_supported_cursors_without_records(self):
+        self.acd.write_bytes(container(fields={**FIELDS,11:0}));identity=self.identity()
+        current=struct.pack('<HH',0,3);upload=struct.pack('<HH',0,4)
+        self.assertEqual(identity.empty_log_search(current),current)
+        self.assertEqual(identity.empty_log_search(upload),upload)
+        end=struct.pack('<HH',1,3);self.assertEqual(identity.empty_log_search(end),end)
+        self.assertNotEqual(identity.empty_log_search(upload),current)
+        for data in (b'',bytes(3),bytes(5),bytearray(upload),None,struct.pack('<HH',2,3),
+                     struct.pack('<HH',0,2),struct.pack('<HH',0,5)):
+            with self.subTest(data=data):self.assertIsNone(identity.empty_log_search(data))
+        for revision in (1,-1,False,None,'0'):
+            self.assertIsNone(identity.empty_log_search(upload,runtime_revision=revision))
+            self.assertIsNone(identity.empty_log_search(end,runtime_revision=revision))
+        legacy=NativeProjectIdentity.from_manifest({k:v for k,v in identity.manifest().items() if k!='empty_change_log'},self.digest)
+        self.assertIsNone(legacy.empty_log_search(upload))
+        self.assertIsNone(legacy.empty_log_search(end))
+        self.acd.write_bytes(container(fields={**FIELDS,11:0,12:65535}));identity=self.identity()
+        self.assertIsNone(identity.empty_log_search(bytes(4)))
+
+    def test_source_bound_wire_upload_lookup_does_not_change_state_or_survive_structural_edits(self):
+        self.acd.write_bytes(container(fields={**FIELDS,11:0}));app=Application(self.root/'empty-log-data')
+        try:
+            data={'name':'model.L5X','content':base64.b64encode(self.l5x.read_bytes()).decode(),
+                  'native_project_identity':self.identity().manifest()}
+            app.command('load',data)
+            endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True);app.endpoint=endpoint
+            prefix=bytes.fromhex('4f0220ac2401');cursor=struct.pack('<HH',0,4);before=app.state()
+            self.assertEqual(endpoint.router.handle(prefix+cursor,Session()),b'\xcf\0\0\0'+cursor)
+            after=app.state()
+            for key in ('tags','routines','tasks','scan','ms','controller','routine_edits'):
+                self.assertEqual(before[key],after[key])
+            self.assertIsNone(endpoint.programming_lease.owner)
+            app.engine.project.runtime_revision=1
+            self.assertEqual(endpoint.router.handle(prefix+cursor,Session())[2],12)
+            self.assertEqual(endpoint.router.handle(prefix+struct.pack('<HH',0,3),Session())[2],0)
+            app.engine.project.runtime_revision=0
+            app.native_project_identity=NativeProjectIdentity.from_manifest({**self.identity().manifest(),'source_l5x_sha256':'a'*64},'a'*64)
+            self.assertEqual(endpoint.router.handle(prefix+cursor,Session())[2],12)
+        finally:app.close()
 
 
 if __name__ == '__main__': unittest.main()

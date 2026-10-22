@@ -89,3 +89,10 @@ The normal upload trial verifies 189 signed requests and still reports
 and a later Controller Get All read succeeds. This trial does not reach Program
 `0x50`. Actual Offline, endpoint cleanup, unchanged source/model/audit values and
 no reported SDK fault are confirmed. No physical controller is contacted.
+
+With the source-backed [empty Change Log lookup](native-change-log.md), a private
+minimal fixture completes SDK `UploadAsync` across 969 verified requests. Its
+retained suffix contains successful, calculated replies for all three Program
+selectors. Native Offline, endpoint cleanup and source/model preservation pass
+without a reported SDK fault. The fixture also uses unshipped Controller/clock/
+Task responses; normal app upload remains blocked at Controller collection.

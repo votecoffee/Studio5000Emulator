@@ -1764,9 +1764,9 @@ class Router:
                     if path.attribute is not None:raise CIPError(4,'Change Log search requires an instance path')
                     exact(data,4)
                     if native_identity is None:raise CIPError(0x0C,'Change Log search requires source-bound ACD correlation')
-                    cursor=attributes[1]+attributes[2]
-                    if data!=cursor:raise CIPError(0x0C,'Change Log history outside the imported cursor is unavailable')
-                    # No structural edits exist after this imported cursor.
+                    cursor=native_identity.empty_log_search(data,
+                        runtime_revision=getattr(self.app.engine.project,'runtime_revision',0))
+                    if cursor is None:raise CIPError(0x0C,'Change Log history outside the supported empty source profile is unavailable')
                     return 0,cursor
                 if self.endpoint.native_read_only and service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes[n] for n in range(1,11))
