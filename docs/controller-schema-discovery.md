@@ -27,6 +27,39 @@ remain unavailable. Neither ordinary tag-write access nor a signed read grants
 those operations. These two classes remain absent from the research profile.
 Connectivity metadata describes the subset under `controller_schemas`.
 
+## Native Controller and Time Sync layout selection
+
+Version `.153` selects the observed v35 schemas for two existing objects in
+the experimental native compatibility profile:
+
+| Object | Class | Native schema revision | Research profile revision |
+| --- | --- | --- | --- |
+| Controller | `0x8E` | 15 | 1 |
+| Time Sync | `0x43` | 5 | 1 |
+
+Seven paired successful reference class reads establish each revision as a
+two-byte UINT. Single and ordered/duplicate list reads return the selected
+value. Endpoint object metadata reports the same revision as the wire.
+`controller_schemas.compatibility_classes` identifies these layout selections
+separately from the two supplemental class-only interfaces above.
+
+These numbers select the v35 response schema for native clients. They do not
+assert complete instance support, firmware equivalence or support for every
+field in that schema. Source-bound settings, unavailable memory/signature and
+PTP fields, programming permissions and the research profile remain governed
+by their existing implementations. Invalid parent-scoped paths and setters
+retain errors. Native clock and Controller reads remain read-only except for
+separately authorized mode and supported edit services.
+
+The seven reference Controller Get All responses also use the existing
+16-byte [legacy aggregate](controller-handlers.md#aggregate-profile). Its
+framing is retained; a revision selection does not replace it with a newly
+invented aggregate. Stored ACD component formats are separate from these CIP
+schema revisions and are not substituted for them.
+
+The earlier private schema-selection trials are historical evidence, not
+complete upload acceptance. Native transfer success requires its own checks.
+
 ## Read-only Wall Clock Time
 
 Wall Clock Time class `0x8B` is available in both endpoint profiles. Its class

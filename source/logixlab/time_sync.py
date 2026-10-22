@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import re
 from .tag_catalog import complete_tag_source
-from . import software_clock
+from . import controller_schemas, software_clock
 
 
 @dataclass(frozen=True)
@@ -40,9 +40,10 @@ class TimeSync:
         values = ((1, self.ptp_enabled), (16, self.priority1), (17, self.priority2))
         return {number: bytes((value,)) for number, value in values if value is not None}
 
-    def description(self, *, instance_id=None):
+    def description(self, *, instance_id=None, native_compatibility=False):
         clock = software_clock.description(instance_id=instance_id)
-        return {'object_revision': 1, 'ptp_enabled': self.ptp_enabled,
+        return {'object_revision': controller_schemas.object_revision(0x43,native_compatibility=native_compatibility),
+                'ptp_enabled': self.ptp_enabled,
                 'priority1': self.priority1, 'priority2': self.priority2,
                 'source': 'Controller/TimeSynchronize PTPEnable/Priority1/Priority2',
                 'source_attributes': list(self.attributes()),

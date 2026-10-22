@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import re
 import struct
 from .tag_catalog import complete_tag_source
+from . import controller_schemas
 
 
 PASS_THROUGH = {'Disabled': 0, 'Enabled': 1, 'EnabledWithAppend': 3}
@@ -174,8 +175,9 @@ class ControllerConfiguration:
         if any(not isinstance(attributes.get(n),bytes) or len(attributes[n])!=size for n,size in fields):return None
         return b''.join(attributes[n] for n,_ in fields)+bytes(2)
 
-    def description(self):
-        return {'object_revision': 1, 'security_code_available': self.security_code is not None,
+    def description(self, *, native_compatibility=False):
+        return {'object_revision': controller_schemas.object_revision(0x8E,native_compatibility=native_compatibility),
+                'security_code_available': self.security_code is not None,
                 'legacy_security_configured': self.security_code != 0 if self.security_code is not None else None,
                 'source': 'Controller/Security@Code', 'security_enforcement': 'NOT IMPLEMENTED',
                 'time_slice':self.time_slice,'share_unused_time_slice':self.share_unused_time_slice,

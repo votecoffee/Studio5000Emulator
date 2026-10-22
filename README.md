@@ -13,6 +13,11 @@ Remote Run/Program requests, actual mode reads and supported
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
 
+Version `.153` aligns native [Controller and Time Sync schema selection](docs/controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
+with the observed v35 revisions, 15 and 5. The research profile retains revision
+1, and the established 16-byte Controller aggregate is preserved. Schema
+selection leaves unavailable instance fields and complete native transfers unfinished.
+
 Version `.152` adds a [local software-clock identity](docs/software-clock-identity.md)
 for native inventory reads. Its Local Clock Information and Clock User Description
 share one application-lifetime identity, with unknown accuracy and no asserted

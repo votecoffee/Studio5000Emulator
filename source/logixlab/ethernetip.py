@@ -1688,9 +1688,12 @@ class Router:
             else:raise CIPError(5,'Unknown Wall Clock Time instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x43:
-            if path.symbols or path.program_instance is not None:
+            if path.symbols or any(getattr(path,key) is not None for key in
+                    ('program_instance','io_map_instance','controller_instance','aoi_instance')):
                 raise CIPError(4,'Time Sync paths must be controller scoped')
-            if path.instance==0:attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+            if path.instance==0:
+                revision=controller_schemas.object_revision(0x43,native_compatibility=self.endpoint.native_read_only)
+                attributes={1:struct.pack('<H',revision),2:b'\1\0',3:b'\1\0'}
             elif path.instance==1:
                 requested=False
                 if service==0x0E:
@@ -1730,8 +1733,12 @@ class Router:
         if path.class_id==0x334 and self.app.engine.project.processor=='1756-L85E':
             raise CIPError(5,'Standard L85E model has no Safety Controller object')
         if path.class_id==0x8E:
-            if path.symbols:raise CIPError(4,'Controller configuration paths do not take symbols')
-            if path.instance==0:attributes={1:b'\1\0'}
+            if path.symbols or any(getattr(path,key) is not None for key in
+                    ('program_instance','io_map_instance','controller_instance','aoi_instance')):
+                raise CIPError(4,'Controller configuration paths must be controller scoped')
+            if path.instance==0:
+                revision=controller_schemas.object_revision(0x8E,native_compatibility=self.endpoint.native_read_only)
+                attributes={1:struct.pack('<H',revision)}
             elif path.instance==1:
                 configuration=self.app.engine.project.controller_configuration
                 attributes=configuration.compatibility_attributes() if self.endpoint.native_read_only else configuration.attributes()
@@ -1931,7 +1938,7 @@ class Endpoint:
                     'catalog_revision':CatalogRevision.from_source(self.source_sha256).description() if self.enabled else None,
                     'file_manager':file_manager.description() if self.enabled else None,
                     'controller_schemas':controller_schemas.description() if self.enabled and self.native_read_only else None,
-                    'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
+                    'controller_configuration':self.app.engine.project.controller_configuration.description(native_compatibility=self.native_read_only) if self.enabled else None,
                     'controller_change_detection':self.app.engine.change_detection.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
                     'program_upload_query':program_query.description() if self.native_read_only else None,
@@ -1962,7 +1969,7 @@ class Endpoint:
                     'energy_catalog':self.app.engine.project.energy_catalog.description() if self.enabled else None,
                     'message_catalog':self.app.engine.project.message_catalog.description() if self.enabled else None,
                     'pccc_mapping':self.app.engine.project.pccc_mapping.description() if self.enabled else None,
-                    'time_sync':self.app.engine.project.time_sync.description(instance_id=self.app.instance_id) if self.enabled else None,
+                    'time_sync':self.app.engine.project.time_sync.description(instance_id=self.app.instance_id,native_compatibility=self.native_read_only) if self.enabled else None,
                     'wall_clock_time':self.app.engine.project.wall_clock.description() if self.enabled else None,
                     'program_forces':self.app.engine.project.program_forces.description() if self.enabled else None,
                     'io_map':self.app.engine.project.io_map.description() if self.enabled else None,

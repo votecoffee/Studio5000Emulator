@@ -44,6 +44,35 @@ class ControllerSchemaTests(unittest.TestCase):
         self.assertNotIn(0x66,classes())
         self.assertEqual(self.send(bytes.fromhex('0e03207224003001'))[2],8)
 
+    def test_native_controller_and_clock_revisions_select_v35_layouts_with_research_revision_one(self):
+        for native in (True,False):
+            self.endpoint.native_read_only=native
+            for cls,revision in ((0x43,5 if native else 1),(0x8e,15 if native else 1)):
+                path=bytes((0x20,cls,0x24,0))
+                self.assertEqual(self.send(bytes((0x0e,3))+path+b'\x30\1'),
+                                 bytes.fromhex('8e000000')+struct.pack('<H',revision))
+                expected=bytes.fromhex('830000000200')+struct.pack('<HHH',1,0,revision)*2
+                self.assertEqual(self.send(bytes((3,2))+path+struct.pack('<3H',2,1,1)),expected)
+                self.assertEqual(self.send(bytes((0x0e,3))+path+b'\x30\x63')[2],0x14)
+
+    def test_v35_revision_reads_do_not_fill_unavailable_instance_fields_or_change_get_all(self):
+        before=copy.deepcopy(self.app.state());source=self.app.engine.project.path.read_bytes()
+        for cls in (0x43,0x8e):
+            self.assertEqual(self.send(bytes((0x0e,3,0x20,cls,0x24,0,0x30,1)))[2],0)
+            for prefix in (bytes.fromhex('20682401'),bytes.fromhex('20692401'),bytes.fromhex('210038032401')):
+                path=prefix+bytes((0x20,cls,0x24,0,0x30,1))
+                self.assertEqual(self.send(bytes((0x0e,len(path)//2))+path)[2],4)
+        for cls,attr in ((0x8e,11),(0x8e,12),(0x8e,33),(0x8e,34),(0x43,5),(0x43,19),(0x43,20)):
+            self.assertEqual(self.send(bytes((0x0e,3,0x20,cls,0x24,1,0x30,attr)))[2],20)
+        self.assertEqual(self.send(bytes.fromhex('0102208e2401')),
+                         bytes.fromhex('81000000')+struct.pack('<HIIHHH',20,0,0,0,0,0))
+        for cls in (0x43,0x8e):
+            self.assertEqual(self.send(bytes((0x10,3,0x20,cls,0x24,0,0x30,1,1,0)))[2],8)
+        after=self.app.state()
+        for key in ('tags','controller','routines','tasks','scan','ms','routine_edits'):
+            self.assertEqual(before[key],after[key])
+        self.assertEqual(self.app.engine.project.path.read_bytes(),source)
+
     def test_unknown_pool_counts_and_mixed_list_fields_remain_errors(self):
         self.assertEqual(self.send(bytes.fromhex('0302207224000300020001000300')),
                          bytes.fromhex('83000a0003000200140001000000050003001400'))
@@ -68,9 +97,15 @@ class ControllerSchemaTests(unittest.TestCase):
         info=self.endpoint.state()['controller_schemas']
         self.assertEqual([(row['class_id'],row['schema_revision']) for row in info['classes']],[(0x66,3),(0x72,5)])
         self.assertIsNone(info['classes'][0]['name'])
+        self.assertEqual([(row['class_id'],row['schema_revision']) for row in info['compatibility_classes']],[(0x43,5),(0x8e,15)])
+        self.assertFalse(info['complete_instance_support'])
+        self.assertEqual(self.endpoint.state()['controller_configuration']['object_revision'],15)
+        self.assertEqual(self.endpoint.state()['time_sync']['object_revision'],5)
         for key in ('instance_attributes','capacity_reporting','pool_addresses','allocation_services','native_controller_equivalence'):
             self.assertFalse(info[key])
         self.endpoint.native_read_only=False;self.assertIsNone(self.endpoint.state()['controller_schemas'])
+        self.assertEqual(self.endpoint.state()['controller_configuration']['object_revision'],1)
+        self.assertEqual(self.endpoint.state()['time_sync']['object_revision'],1)
 
 
 if __name__=='__main__':unittest.main()
