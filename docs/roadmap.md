@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
+Current milestone: `.139` adds [original stored Task configuration](stored-task-configuration.md).
+The isolated SDK upload accepts five recovered fields and leaves 3 unavailable:
+Start Time and fields 22/23. Resolve those runtime contracts alongside the
+independent Routine source-retrieval and download result-response gaps.
+
+Version `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
 Retain the separation between model execution, native logical IDs and physical
 scheduler semantics while testing the next upload boundary. The isolated SDK
 upload accepts the three added fields and leaves 8 unavailable Task fields.

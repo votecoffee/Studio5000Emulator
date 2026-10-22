@@ -16,6 +16,7 @@ import zlib
 
 from .model import ModelError
 from .native_project import _hash, acd_stream
+from .native_task_configuration import StoredTaskConfiguration,read as stored_configuration
 
 
 MAX_TASKS = 32
@@ -45,6 +46,10 @@ def task_paths(data, expected_names):
     withhold the entire inventory. Unmatched names belong to other namespaces
     or historical components and never enlarge the caller's active inventory.
     """
+    return _task_records(data,expected_names)[0]
+
+
+def _task_records(data,expected_names):
     expected = _expected(expected_names)
     if not isinstance(data, (bytes, bytearray, memoryview)) or not 24 <= len(data) <= MAX_BYTES:
         raise ModelError('Native Task database size is outside its limit')
@@ -53,7 +58,7 @@ def task_paths(data, expected_names):
     if (struct.unpack_from('<I', data)[0] + 1 != len(data)
             or not 24 <= position <= min(end, 4096) or end > len(data)):
         raise ModelError('Unsupported native Task database bounds')
-    found = {}; instances = set(); records = 0
+    found = {}; instances = set(); records = 0; configurations={}
     while position < end:
         records += 1
         if records > MAX_RECORDS or end - position < 6:
@@ -98,9 +103,11 @@ def task_paths(data, expected_names):
         if logical[1] in instances:
             raise ModelError('Conflicting native Task instances')
         found[name] = logical[1]; instances.add(logical[1])
+        settings=stored_configuration(body)
+        if settings is not None:configurations[name]=settings
     if found.keys() != expected.keys():
         raise ModelError('Incomplete native Task inventory')
-    return [{'name':expected[name], 'instance':found[name]} for name in sorted(found)]
+    return [{'name':expected[name], 'instance':found[name]} for name in sorted(found)],configurations
 
 
 @dataclass(frozen=True)
@@ -122,8 +129,9 @@ class NativeTasks:
     rows: tuple[Task, ...]
     tasks: Mapping[str, int]
     task_ids: Mapping[int, str]
+    configurations: Mapping[str,StoredTaskConfiguration]
 
-    def __init__(self, source_acd_sha256, source_l5x_sha256, tasks):
+    def __init__(self, source_acd_sha256, source_l5x_sha256, tasks, *, configurations=None):
         _hash(source_acd_sha256); _hash(source_l5x_sha256)
         if not isinstance(tasks, (list, tuple)) or len(tasks) > MAX_TASKS:
             raise ModelError('Invalid or excessive native Task inventory')
@@ -136,8 +144,14 @@ class NativeTasks:
                 raise ModelError('Duplicate native Task name or instance')
             names[name] = task.instance; instances[task.instance] = name; rows.append(task)
         rows.sort(key=lambda row:row.name.casefold())
+        if configurations is not None and not isinstance(configurations,Mapping):
+            raise ModelError('Invalid stored Task configuration inventory')
+        configurations={} if configurations is None else dict(configurations)
+        if (not configurations.keys()<=names.keys() or any(not isinstance(value,StoredTaskConfiguration)
+                for value in configurations.values())):raise ModelError('Invalid stored Task configuration inventory')
         for field, value in (('source_acd_sha256',source_acd_sha256), ('source_l5x_sha256',source_l5x_sha256),
-                ('rows',tuple(rows)), ('tasks',MappingProxyType(dict(names))), ('task_ids',MappingProxyType(dict(instances)))):
+                ('rows',tuple(rows)), ('tasks',MappingProxyType(dict(names))), ('task_ids',MappingProxyType(dict(instances))),
+                ('configurations',MappingProxyType(configurations))):
             object.__setattr__(self, field, value)
 
     @classmethod
@@ -150,28 +164,58 @@ class NativeTasks:
                 data = reader.read(MAX_BYTES + 1)
         except (OSError, EOFError, zlib.error) as error:
             raise ModelError('Invalid compressed native Task inventory') from error
-        return cls(digest, source_l5x_sha256, task_paths(data, expected_names))
+        rows,configurations=_task_records(data,expected_names)
+        return cls(digest, source_l5x_sha256, rows,configurations=configurations)
 
     @classmethod
     def from_manifest(cls, manifest, source_l5x_sha256):
         _hash(source_l5x_sha256)
-        if not isinstance(manifest, dict) or set(manifest) != {'source_acd_sha256','source_l5x_sha256','tasks'}:
+        if (not isinstance(manifest, dict) or set(manifest) not in (
+                {'source_acd_sha256','source_l5x_sha256','tasks'},
+                {'source_acd_sha256','source_l5x_sha256','tasks','configuration'})):
             raise ModelError('Invalid native Task inventory manifest')
         if manifest['source_l5x_sha256'] != source_l5x_sha256:
             raise ModelError('Native Task inventory does not match the loaded L5X bytes')
         if not isinstance(manifest['tasks'], list):
             raise ModelError('Native Task manifest requires an explicit list')
-        return cls(manifest['source_acd_sha256'], source_l5x_sha256, manifest['tasks'])
+        settings=manifest.get('configuration',{})
+        if not isinstance(settings,dict) or len(settings)>MAX_TASKS:raise ModelError('Invalid stored Task configuration inventory')
+        try:parsed={name:StoredTaskConfiguration.from_manifest(value) for name,value in settings.items()}
+        except (TypeError,ValueError) as error:raise ModelError('Invalid stored Task configuration manifest') from error
+        return cls(manifest['source_acd_sha256'], source_l5x_sha256, manifest['tasks'],configurations=parsed)
 
     def lookup(self, name):
         return self.tasks.get(name.casefold()) if isinstance(name, str) else None
 
     def manifest(self):
         return {'source_acd_sha256':self.source_acd_sha256, 'source_l5x_sha256':self.source_l5x_sha256,
-                'tasks':[{'name':row.name,'instance':row.instance} for row in self.rows]}
+                'tasks':[{'name':row.name,'instance':row.instance} for row in self.rows],
+                **({'configuration':{name:value.manifest() for name,value in self.configurations.items()}} if self.configurations else {})}
+
+    def configuration_attributes(self,project,task,identity,programs):
+        source=project.sha256
+        if (not isinstance(task,str) or source!=self.source_l5x_sha256 or identity is None or programs is None
+                or identity.source_acd_sha256!=self.source_acd_sha256 or identity.source_l5x_sha256!=source
+                or programs.source_acd_sha256!=self.source_acd_sha256 or programs.source_l5x_sha256!=source):return {}
+        stored=self.configurations.get(task.casefold())
+        if stored is None:return {}
+        config=project.task_configuration
+        if (config.memory_attributes(task,source_sha256=source)!={20:struct.pack('<H',stored.data_use)}
+                or config.attributes(task,source_sha256=source)!={6:struct.pack('<H',stored.priority),
+                    18:struct.pack('<I',stored.disable_output_update),19:struct.pack('<I',stored.inhibited)}
+                or not project.task_timing.matches_stored(task,source_sha256=source,kind_code=stored.kind_code,
+                    rate_us=stored.rate_us,watchdog_us=stored.watchdog_us)):return {}
+        schedule=config.scheduled_attributes(task,source_sha256=source,source_acd_sha256=self.source_acd_sha256,
+            program_ids=programs.programs,program_source_l5x_sha256=programs.source_l5x_sha256,
+            program_source_acd_sha256=programs.source_acd_sha256)
+        expected=struct.pack('<H',len(stored.programs))+b''.join(struct.pack('<I',n) for n in stored.programs)
+        return stored.attributes() if schedule.get(1)==expected else {}
 
     def description(self):
         return {'bound':True, 'complete':True, 'tasks':len(self.rows),
                 'source':'ACD Comps.Dat Task format 18 and complete L5X task names',
                 'source_acd_sha256':self.source_acd_sha256, 'source_l5x_sha256':self.source_l5x_sha256,
+                'configuration_tasks':len(self.configurations),'configuration_attributes':[2,4,5,17,21],
+                'configuration_profile':'Format 18, fixed 4506-byte Standard non-event body',
+                'stored_continuous_rate_is_scheduler':False,'physical_runtime_state_imported':False,
                 'compiled_addresses':False, 'native_edit_authority':False, 'runtime_equivalence':False}

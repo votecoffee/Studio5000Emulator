@@ -1104,6 +1104,8 @@ class Router:
                 attributes.update(self.app.engine.runtime_references.task_attributes(self.app.engine.project,task['name']))
             programs=getattr(self.app,'native_symbols',None)
             if programs is not None:
+                attributes.update(self.app.native_tasks.configuration_attributes(
+                    self.app.engine.project,task['name'],identity,programs))
                 attributes.update(self.app.engine.project.task_configuration.scheduled_attributes(
                     task['name'],source_sha256=self.app.engine.project.sha256,
                     source_acd_sha256=self.app.native_tasks.source_acd_sha256,program_ids=programs.programs,

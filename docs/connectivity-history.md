@@ -4,6 +4,18 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.139` adds [original stored Task configuration](stored-task-configuration.md).
+Controlled offline SDK saves/reopens correlate the fixed format-18 layout with
+Continuous/Periodic type, rate, priority, watchdog and Boolean changes. An optional
+immutable native manifest retains only the supported static settings and checks
+current Project/Task/Program bindings, source settings and ordered schedule.
+Legacy manifests remain supported; runtime state is excluded. All 176 affected
+tests pass, without a full suite run. The isolated SDK upload accepts all five
+new fields, reducing unavailable Task fields from 8 to 3 across 358 verified
+requests and 361 expanded leaves. It still fails Task collection. Actual Offline,
+cleanup, unchanged originals/model and no fatal SDK fault are confirmed. Private
+clock/schema/repository hypotheses remain unshipped; full transfer is unfinished.
+
 Version `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
 Known clean status and overlap reads use the single serial executor; an
 unclassified simulator fault withholds them until reset. Slot lookup resolves

@@ -55,8 +55,9 @@ memory read/write or machine-code execution service. Logical CIP IDs and Task
 execution-instance slots remain separate. Version `.138` supplies attribute 16
 from the interpreter's own Task registry.
 
-Trigger, Continuous rate, start-time epoch, Task type encoding, timeout,
-tag mappings and AOI stack fields remain outside this change. No setter,
+The `.139` [stored configuration profile](stored-task-configuration.md) separately
+adds trigger, latent rate, type, timeout and mapping-count reads. Start-time epoch
+and AOI stack fields remain outside this change. No setter,
 watchdog enforcement, native scheduler or Test/Untest/Assemble authority is added.
 
 ## Validation

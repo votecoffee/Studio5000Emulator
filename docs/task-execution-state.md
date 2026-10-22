@@ -2,6 +2,7 @@
 
 Version `.138` adds read-only Task status and a registered execution slot to the
 existing [Task measurements and references](task-runtime.md).
+Version `.139` separately adds [original stored configuration](stored-task-configuration.md).
 
 | Task attribute | Current software model | Encoding |
 | --- | --- | --- |
@@ -48,8 +49,9 @@ The internal 32-slot bound does not expand the supported single-Task executor.
 The wire field requires the same current ACD/L5X Project and Task bindings as
 Task Address. Programming scan inhibit withholds both fields until cleanup.
 Read services share one registry, preserve mixed attribute-list framing and do
-not grant native setters or memory services. Unknown Task type, trigger,
-start-time, timeout and stack encodings remain unavailable.
+not grant native setters or memory services. Stored type, trigger and timeout
+reads have the separate `.139` profile above. Start-time and unresolved stack
+encodings remain unavailable.
 
 ## Validation
 

@@ -16,6 +16,7 @@ MAX_TIME_US = 0x7FFFFFFF
 MILLISECONDS = re.compile(r'(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,6})?\Z')
 KINDS = {'Continuous':'Continuous', 'CONTINUOUS':'Continuous',
          'Periodic':'Periodic', 'PERIODIC':'Periodic', 'Event':'Event', 'EVENT':'Event'}
+STORED_TYPE_CODES=MappingProxyType({'Continuous':4,'Periodic':2})
 
 
 def microseconds(value):
@@ -33,15 +34,19 @@ class TaskTimes:
     kind: str
     rate_us: int | None = None
     watchdog_us: int | None = None
+    declared_rate_us: int | None = None
+    rate_present: bool = False
 
     def __post_init__(self):
         if not isinstance(self.name,str) or not NAME.fullmatch(self.name) or self.kind not in KINDS.values():
             raise ValueError('Invalid Task timing identity')
-        for value in (self.rate_us,self.watchdog_us):
+        for value in (self.rate_us,self.watchdog_us,self.declared_rate_us):
             if value is not None and (type(value) is not int or not 0<value<=MAX_TIME_US):
                 raise ValueError('Invalid Task time')
         if self.rate_us is not None and self.kind!='Periodic':
             raise ValueError('Only an explicit periodic Task rate is supported')
+        if type(self.rate_present) is not bool or self.declared_rate_us is not None and not self.rate_present:
+            raise ValueError('Invalid explicit Task rate source')
 
     def attributes(self):
         values={}
@@ -79,7 +84,8 @@ class TaskTiming:
             name=task.get('Name','');kind=KINDS.get(task.get('Type'))
             if name.casefold() not in eligible or kind is None:continue
             rate=microseconds(task.get('Rate')) if kind=='Periodic' else None
-            rows[name.casefold()]=TaskTimes(name,kind,rate,microseconds(task.get('Watchdog')))
+            rows[name.casefold()]=TaskTimes(name,kind,rate,microseconds(task.get('Watchdog')),
+                microseconds(task.get('Rate')),'Rate' in task.attrib)
         return cls(source_sha256,True,rows)
 
     def attributes(self,task,*,source_sha256):
@@ -95,3 +101,11 @@ class TaskTiming:
                 'conversion':'exact; no rounding or defaults','continuous_rate_inferred':False,
                 'event_timeout_supported':False,'native_scheduler':False,'watchdog_enforced':False,
                 'runtime_measurements':False,'native_writes':False}
+
+    def matches_stored(self,task,*,source_sha256,kind_code,rate_us,watchdog_us):
+        if source_sha256!=self.source_sha256 or not self.source_complete or not isinstance(task,str):return False
+        row=self._tasks.get(task.casefold())
+        if (row is None or row.kind not in STORED_TYPE_CODES or kind_code!=STORED_TYPE_CODES[row.kind]
+                or row.watchdog_us!=watchdog_us or row.kind=='Periodic' and row.rate_us!=rate_us
+                or row.rate_present and row.declared_rate_us!=rate_us):return False
+        return True
