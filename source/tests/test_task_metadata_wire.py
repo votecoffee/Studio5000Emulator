@@ -77,8 +77,8 @@ class TaskMetadataWireTests(unittest.TestCase):
         self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
         before=copy.deepcopy(self.app.state())
         self.assertEqual(self.signed(4,bytes.fromhex('0e03207024013001')),bytes.fromhex('8e0000000100b6650000'))
-        self.assertEqual(self.signed(5,bytes.fromhex('030220702401040001000c0006001000')),
-                         bytes.fromhex('83000a000400010000000100b66500000c00000020a10700060000000a0010001400'))
+        self.assertEqual(self.signed(5,bytes.fromhex('030220702401040001000c0006001500')),
+                         bytes.fromhex('83000a000400010000000100b66500000c00000020a10700060000000a0015001400'))
         self.assertEqual(self.signed(6,bytes.fromhex('10032070240130010000'))[2],15)
         for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
 

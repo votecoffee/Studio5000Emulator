@@ -1096,6 +1096,7 @@ class Router:
                 task['name'],source_sha256=self.app.engine.project.sha256))
             measured=self.app.engine.task_measurement_attributes(task['name'],source_sha256=self.app.engine.project.sha256)
             attributes.update(measured)
+            attributes.update(self.app.engine.task_status_attributes(task['name'],source_sha256=self.app.engine.project.sha256))
             identity=getattr(self.app,'native_project_identity',None);source=self.app.engine.project.sha256
             if (measured and identity is not None and identity.source_l5x_sha256==source
                     and identity.source_acd_sha256==self.app.native_tasks.source_acd_sha256
@@ -1852,6 +1853,7 @@ class Endpoint:
                     'task_configuration':self.app.engine.project.task_configuration.description() if self.enabled else None,
                     'task_timing':self.app.engine.project.task_timing.description() if self.enabled else None,
                     'task_measurements':self.app.engine.task_measurement_description() if self.enabled else None,
+                    'task_execution_status':self.app.engine.task_status_description() if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,

@@ -71,15 +71,37 @@ class Engine:
                 self._measured_task=task.casefold()
                 self._task_measurements=task_runtime.TaskMeasurements()
 
-    def task_measurement_attributes(self,task,*,source_sha256):
+    def _task_runtime_available(self,task,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
                 or not isinstance(task,str) or task.casefold()!=self._measured_task
                 or self._task_measurements is None or len(self.project.tasks)!=1
                 or self.project.tasks[0]['name'].casefold()!=self._measured_task
                 or self.project.tasks[0]['inhibited']
-                or not self.project.task_configuration.measurement_supported(task,source_sha256=source_sha256)):
-            return {}
-        return self._task_measurements.attributes()
+                or not self.project.task_configuration.measurement_supported(task,source_sha256=source_sha256)
+                or self.runtime_references.task_slot(self.project,task) is None):
+            return False
+        return True
+
+    def task_measurement_attributes(self,task,*,source_sha256):
+        return self._task_measurements.attributes() if self._task_runtime_available(task,source_sha256) else {}
+
+    def task_status_attributes(self,task,*,source_sha256):
+        # This runner executes one complete Task serially. It has no EVENT or
+        # timeout trigger and never dispatches a second overlapping execution.
+        # Do not classify a simulator failure as a native Task fault/status.
+        if (not self._task_runtime_available(task,source_sha256) or self.fault
+                or self._native_fault_history_uncertain):return {}
+        return {3:bytes(4),9:bytes(4)}
+
+    def task_status_description(self):
+        available=bool(self.task_status_attributes(self._measured_task,source_sha256=self.project.sha256))
+        return {'attributes':[3,9],'known_clean_tasks':int(available),
+                'execution':'One complete Task at a time; no queued overlapping dispatch',
+                'event_triggered':False,'timeout_triggered':False,
+                'unclassified_fault_seen_since_reset':self._native_fault_history_uncertain,
+                'unknown_status_withheld_until_reset':True,'native_fault_classification':False,
+                'periodic_deadline_overlaps_modeled':False,'native_watchdog_enforcement':False,
+                'physical_history_imported':False,'native_writes':False}
 
     def task_measurement_description(self):
         available=bool(self.task_measurement_attributes(self._measured_task,source_sha256=self.project.sha256))

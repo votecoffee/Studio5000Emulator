@@ -2,6 +2,7 @@
 
 Version `.137` adds whole-Task execution measurements and a live Task object
 reference to the existing [source-bound Task metadata](task-metadata.md).
+Version `.138` adds separate [execution status and registered slots](task-execution-state.md).
 
 | Task attribute | Software-model value | Encoding |
 | --- | --- | --- |
@@ -51,9 +52,10 @@ bindings and no programming scan inhibit. The reference resolves to the current
 Task object in the existing interpreter registry. It is stable while that object
 lives; reset or replacement revokes the previous reference. It grants no native
 memory read/write or machine-code execution service. Logical CIP IDs and Task
-execution-instance slots remain separate; attribute 16 is still unavailable.
+execution-instance slots remain separate. Version `.138` supplies attribute 16
+from the interpreter's own Task registry.
 
-Status, trigger, Continuous rate, start-time epoch, Task type encoding, timeout,
+Trigger, Continuous rate, start-time epoch, Task type encoding, timeout,
 tag mappings and AOI stack fields remain outside this change. No setter,
 watchdog enforcement, native scheduler or Test/Untest/Assemble authority is added.
 

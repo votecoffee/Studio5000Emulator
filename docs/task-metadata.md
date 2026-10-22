@@ -4,6 +4,7 @@ The Task object (`0x70`) supplies read-only settings and source class metadata
 from a complete v35 controller L5X:
 
 Version `.137` adds separate [runtime Task measurements and a backed Task reference](task-runtime.md).
+Version `.138` adds [serial execution status and a registered Task slot](task-execution-state.md).
 Source rate/watchdog settings retain the rules below.
 
 | Attribute | L5X Task field | Encoding |
@@ -66,8 +67,10 @@ These are configuration reads, not native scheduling or watchdog enforcement.
 The units agree with installed v35 help and Rockwell's
 [Task object reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html).
 
-Attribute 16 remains unavailable. The documented execution-instance range is
-0–31; the nonzero CIP object ID alone does not establish that execution slot.
+Attribute 16 uses the [current interpreter Task registry](task-execution-state.md).
+The documented execution-instance range is 0–31. The simulator's slot allocation
+is independent of the original nonzero CIP object ID and does not recover a
+physical controller's execution slot.
 
 ## Read services and limits
 

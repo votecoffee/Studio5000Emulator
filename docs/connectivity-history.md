@@ -4,6 +4,13 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
+Known clean status and overlap reads use the single serial executor; an
+unclassified simulator fault withholds them until reset. Slot lookup resolves
+the current registry's actual Task object independently of CIP IDs and DWORD
+references, rejecting changed registrations and foreign projects. All 158
+affected tests pass; the full suite was not rerun. Native transfer remains unfinished.
+
 Version `.137` adds [whole-Task execution measurements and a backed Task reference](task-runtime.md).
 Measurements cover all scheduled Program calls, commit only on a successful scan
 and persist across supported Routine replacement. All 152 affected tests pass;

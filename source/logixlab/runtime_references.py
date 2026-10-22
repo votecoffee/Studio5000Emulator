@@ -29,6 +29,12 @@ class RuntimeReferences:
         self._addresses = {}
         self._objects = {}
         self._reference_catalog = None
+        # Slots are owned by this interpreter registry, independently of CIP
+        # identities and DWORD references. Replacing/reordering Tasks revokes
+        # this registration; a new Engine creates its own registry.
+        tasks=project.tasks
+        names=[row['name'].casefold() for row in tasks]
+        self._task_slots=tuple(zip(names,tasks)) if len(tasks)<=32 and len(set(names))==len(names) else ()
 
     def _current(self, project, kind, key):
         if project is not self._project:
@@ -44,7 +50,7 @@ class RuntimeReferences:
         return None
 
     def reference(self, project, kind, key):
-        """Allocate only for a concrete current Program or Routine object."""
+        """Allocate only for a concrete current interpreter object."""
         if not isinstance(key,str):
             return None
         key=key.casefold();target=self._current(project,kind,key)
@@ -96,7 +102,23 @@ class RuntimeReferences:
     def task_attributes(self,project,task):
         """Router establishes the current complete single-Task model and source."""
         address=self.reference(project,'task',task)
-        return {11:struct.pack('<I',address)} if address is not None else {}
+        values={11:struct.pack('<I',address)} if address is not None else {}
+        slot=self.task_slot(project,task)
+        if slot is not None:values[16]=struct.pack('<I',slot)
+        return values
+
+    def resolve_task_slot(self,project,slot):
+        """Resolve only this registry's unchanged current Task allocation."""
+        if (project is not self._project or type(slot) is not int or not 0<=slot<len(self._task_slots)
+                or len(project.tasks)!=len(self._task_slots)
+                or any(row is not registered or row['name'].casefold()!=name
+                       for row,(name,registered) in zip(project.tasks,self._task_slots))):return None
+        return self._task_slots[slot][1]
+
+    def task_slot(self,project,task):
+        if not isinstance(task,str):return None
+        slot=next((i for i,(name,_) in enumerate(self._task_slots) if name==task.casefold()),None)
+        return slot if slot is not None and self.resolve_task_slot(project,slot) is not None else None
 
     def routine_attributes(self,project,program,routine):
         """Header reference and main/subroutine flags for a guarded RLL model."""
@@ -120,7 +142,10 @@ class RuntimeReferences:
     def description(self):
         return {'attributes':[5,16],'address_bits':32,'alignment':4,
                 'routine_attributes':[8,24],'routine_header_reference_backed':True,
-                'task_attributes':[11],'task_reference_backed':True,
+                'task_attributes':[11,16],'task_reference_backed':True,
+                'task_slots':len(self._task_slots),'task_slot_limit':32,'task_slot_bits':32,
+                'task_slot_backing':'Current interpreter registry in declaration order',
+                'logical_ids_used_as_slots':False,'physical_task_slots_imported':False,
                 'backing':'Live interpreter Program, Routine, Task and validated reference Symbol objects',
                 'scope':'Current Engine in this emulator process',
                 'allocated_objects':len(self._objects),'addresses_reused':False,

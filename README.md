@@ -12,6 +12,10 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
+Version `.138` adds [serial Task status and independently registered execution slots](docs/task-execution-state.md).
+Fault uncertainty remains visible until reset, and slot lookup resolves the
+current simulator object independently of its CIP address. Full native transfer
+remains unfinished.
 Version `.137` adds [measured Task execution times and a live Task reference](docs/task-runtime.md).
 The isolated SDK comparison reads five more Task fields; upload still fails
 with 11 Task fields unavailable. A supported SDK Program-mode import and

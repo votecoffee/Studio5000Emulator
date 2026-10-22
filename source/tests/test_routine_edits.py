@@ -86,6 +86,10 @@ class RoutineEditWireTests(unittest.TestCase):
         self.assertEqual(self.app.engine._program_timings,old._program_timings)
         self.assertEqual(self.app.engine._task_measurements,old._task_measurements)
         self.assertTrue(self.app.engine._native_fault_history_uncertain)
+        current=self.app.engine
+        self.assertEqual(current.task_status_attributes('MainTask',source_sha256=current.project.sha256),{})
+        self.assertIs(current.runtime_references.resolve_task_slot(current.project,0),current.project.tasks[0])
+        self.assertIsNone(old.runtime_references.resolve_task_slot(current.project,0))
         self.assertEqual(self.app.engine.memory.first_scan,old.memory.first_scan)
         self.assertEqual(after['routine_edits']['revision'],1);self.assertTrue(after['routine_edits']['modified'])
         self.assertEqual(after['routine_edits']['edited_routines'],['mainprogram/mainroutine'])

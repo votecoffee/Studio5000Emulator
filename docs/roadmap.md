@@ -6,7 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.137` adds [whole-Task measurements and a live Task reference](task-runtime.md).
+Current milestone: `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
+Retain the separation between model execution, native logical IDs and physical
+scheduler semantics while testing the next upload boundary.
+
+Version `.137` adds [whole-Task measurements and a live Task reference](task-runtime.md).
 The isolated SDK upload reads five additional Task fields, reducing the remaining
 unavailable fields from 16 to 11. Resolve the remaining Task semantics alongside
 the independent Routine source-identity and repository investigations.
