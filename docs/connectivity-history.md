@@ -18,6 +18,12 @@ successful 22-field Routine reply, then fail Program upload without source reads
 The NOP target preserves source-key bytes, so no cache bypass is established.
 All confirm actual Offline/cleanup, unchanged originals/model and no fatal SDK
 fault; no physical-controller contact or live transfer authority is added.
+All 92 affected tests and 12 deployment checks pass; the full suite was not
+rerun. The restarted `.135` demo passes SDK Go Online/Go Offline across 75
+verified signed requests, with actual Offline/cleanup, unchanged source/model
+and no reported fatal SDK fault. Inputs, logic and edit settings match across
+restart. All 94 deployed app modules, served assets and executable resources
+match the build; the webpage and executable report `.135`.
 
 Version `.134` adds [shared Routine metadata comparison diagnostics](routine-metadata-comparison.md)
 to capture and checkpoint reports. Missing and failed values stay unknown;

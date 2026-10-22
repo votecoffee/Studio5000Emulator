@@ -75,3 +75,14 @@ confirm actual Offline/cleanup, and report no fatal SDK fault. None reaches
 `0x3A` source retrieval. No physical controller was contacted. Full native
 upload/download, source reconstruction and complete native online edits remain
 unfinished.
+
+All 92 affected tests pass, including target restrictions, independent source
+pins, preserved originals, changed private upload copies, missing files, SDK
+receipt mismatches and model-change detection. The full suite was not rerun.
+
+The restarted `.135` demo passes SDK Go Online/Go Offline across 75 verified
+signed requests, with actual Offline and endpoint cleanup confirmed. The
+original source, runtime tags, routines, tasks, mode and edit settings remain
+preserved. No fatal SDK fault is reported. All 12 deployment checks pass;
+all 94 deployed app modules, served assets and executable resources match the
+build, and the webpage and executable report `.135`.
