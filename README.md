@@ -12,12 +12,12 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.141` adds [source-checked empty Security Authority Binding discovery](docs/security-authority-discovery.md).
-It requires explicit evidence in the original ACD and matching project hashes.
-Nonempty or unsupported collections remain unavailable. Full native transfer
-remains unfinished. An isolated SDK upload now passes this discovery and reaches
-a later Controller attribute list with eight unavailable fields; private Task
-stack assumptions used to reach that point remain unshipped.
+Version `.142` adds [source-checked Controller retention and diagnostic settings](docs/controller-diagnostic-settings.md)
+and offline Controller response decoding. The isolated SDK upload reads both
+added settings, leaving six unavailable Controller fields. Full native transfer
+remains unfinished; private Task-stack assumptions used in that trial remain
+unshipped. [Empty Security Authority Binding discovery](docs/security-authority-discovery.md)
+continues to require explicit original ACD evidence and matching source hashes.
 
 Task reads also include [source-checked stored settings](docs/stored-task-configuration.md),
 [serial execution status and registered slots](docs/task-execution-state.md),

@@ -6,12 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.141` adds [source-checked empty Security Authority Binding discovery](security-authority-discovery.md).
-The isolated SDK upload passes class `0x36A` and reaches a later Controller
-attribute list. Resolve fields 10/11/12/27/28/33/34/35 while retaining the separate
-Task 22/23 investigation. Nonempty authority bindings and authority administration
-remain unsupported. The independent Routine source-retrieval and download
-result-response gaps remain.
+Current milestone: `.142` adds [Controller retention and diagnostic settings](controller-diagnostic-settings.md)
+and offline Controller bulk-response framing. The isolated SDK upload accepts
+fields 10/35, leaving 11/12/27/28/33/34 unavailable. Establish their memory,
+CCUID and signature contracts while retaining the separate Task 22/23
+investigation and independent Routine source-retrieval/download result gaps.
+
+Version `.141` adds [source-checked empty Security Authority Binding discovery](security-authority-discovery.md).
+The isolated upload passes this collection. Nonempty authority bindings and
+authority administration remain unsupported.
 
 Version `.140` adds [simulator Task Start Time](task-start-time.md). Its private
 stack-field trial identified Security Authority Binding as the next discovery

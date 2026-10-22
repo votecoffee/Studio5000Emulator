@@ -7,13 +7,17 @@ security authority, clock measurements or native upload acceptance.
 import hashlib
 from tools.time_sync_inventory import TimeSyncError, decode_attribute_list as time_sync_list
 
-CLASSES = (0x43, 0x64, 0x67, 0x68, 0x6D, 0x70, 0x8B, 0xF5, 0xF6, 0x3B0, 0x3B2)
+CLASSES = (0x43, 0x64, 0x67, 0x68, 0x6D, 0x70, 0x8B, 0x8E, 0xF5, 0xF6, 0x3B0, 0x3B2)
 FIXED = {0x67: {1: 2, 2: 4},
          0x68: {1:2,2:4,3:4,5:4,7:4,9:4,11:2,13:4,15:2,16:4,19:1,
                 20:44,21:44,22:4,24:4,25:4,26:2,27:4,29:1,30:1,31:1},
          0x70: {2:4,3:4,5:2,6:2,7:4,8:4,9:4,11:4,12:4,13:8,14:8,15:8,
                 16:4,17:4,18:4,19:4,20:2,21:2,22:4,23:4},
          0x8B: {1: 8, 2: 2, 3: 8, 4: 2, 5: 28, 6: 8, 7: 28, 9: 2, 10: 1, 11: 8},
+         # Observed v35 upload profile. These widths frame existing replies;
+         # they never supply unavailable CCUIDs, signatures or memory values.
+         0x8E: {1:4,3:2,6:4,7:2,9:1,10:1,11:2,12:2,13:4,15:1,16:2,17:1,
+                23:1,25:4,26:4,27:8,28:8,31:1,33:32,34:32,35:1},
          0xF5: {1: 4, 2: 4, 3: 4},
          0xF6: {1: 4, 2: 4, 3: 6, 4: 44, 5: 48, 6: 4, 7: 1, 8: 1, 9: 1},
          # Executable field 8 is the four-byte Header Address, separate from

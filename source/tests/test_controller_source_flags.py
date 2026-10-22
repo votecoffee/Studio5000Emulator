@@ -138,7 +138,7 @@ class ControllerSourceFlagTests(unittest.TestCase):
                   struct.pack('<HH',24,0x14)+struct.pack('<HHB',17,0,0))
         self.assertEqual(self.send(3,None,struct.pack('<6H',5,*order)),expected)
 
-    def test_native_read_model_reuses_source_values_without_defaults_or_handler_pointers(self):
+    def test_native_read_model_reuses_source_values_and_proven_null_handler_profile(self):
         self.controller.set('MatchProjectToController','true')
         self.controller.set('InhibitAutomaticFirmwareUpdate','5')
         self.load()
@@ -148,8 +148,8 @@ class ControllerSourceFlagTests(unittest.TestCase):
         self.assertEqual(self.send(attribute=17),bytes.fromhex('8e00000005'))
         self.assertEqual(self.send(attribute=23),bytes.fromhex('8e00000000'))
         self.assertEqual(self.send(attribute=31),bytes.fromhex('8e00000000'))
-        for attr in (1,6):self.assertEqual(self.send(attribute=attr)[2],0x14)
-        self.assertEqual(self.send(1,None)[2],8)
+        for attr in (1,6):self.assertEqual(self.send(attribute=attr),bytes.fromhex('8e00000000000000'))
+        self.assertEqual(self.send(1,None),bytes.fromhex('81000000')+struct.pack('<HIIHHH',20,0,0,0,0,0))
 
     def test_reads_do_not_match_projects_update_firmware_negotiate_io_or_modify_values(self):
         before=copy.deepcopy(self.app.state())

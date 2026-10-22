@@ -120,7 +120,7 @@ class CollectionInventoryTests(unittest.TestCase):
         raw=reply([(1,0,bytes(4))])
         for requested in ([],[1]*33,[True],[0],[65536],None):
             with self.assertRaises(CollectionError):decode_attribute_list(raw,requested,0xF5)
-        for cls in (True,None,0x8E):
+        for cls in (True,None,0x8F):
             with self.assertRaises(CollectionError):decode_attribute_list(raw,[1],cls)
         with self.assertRaises(CollectionError):decode_attribute_list(bytes.fromhex('83000000010001000000'),[1],0x43)
 

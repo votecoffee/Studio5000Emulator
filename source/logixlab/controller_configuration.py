@@ -30,6 +30,8 @@ class ControllerConfiguration:
     automatic_firmware_update_inhibit: int | None = None
     can_use_rpi_from_producer: bool | None = None
     report_minor_overflow: bool | None = None
+    continue_test_edits: bool | None = None
+    automatic_diagnostics_enabled: bool | None = None
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -58,6 +60,16 @@ class ControllerConfiguration:
         match_project={'true':True,'false':False}.get(source_setting('MatchProjectToController'))
         producer_rpi={'true':True,'false':False}.get(source_setting('CanUseRPIFromProducer'))
         report_overflow={'true':True,'false':False}.get(source_setting('ReportMinorOverflow'))
+        diagnostics={'true':True,'false':False}.get(source_setting('AutoDiagsEnabled'))
+        related_redundancy=[node for node in controller if
+            node.tag.rsplit('}',1)[-1].casefold().startswith('redundancyinfo')]
+        retain=None
+        if (complete and len(redundancy)==1 and related_redundancy==redundancy):
+            node=redundancy[0]
+            if (not node.attrib.keys()-{'Enabled','KeepTestEditsOnSwitchOver','Use'} and
+                    node.get('Use') in (None,'Target') and node.get('Enabled') in ('true','false') and
+                    not len(node) and not (node.text or '').strip()):
+                retain={'true':True,'false':False}.get(node.get('KeepTestEditsOnSwitchOver'))
         firmware_text=source_setting('InhibitAutomaticFirmwareUpdate')
         firmware=(int(firmware_text) if firmware_text is not None
                   and re.fullmatch(r'[0-9]{1,3}',firmware_text) and int(firmware_text)<=255 else None)
@@ -82,17 +94,17 @@ class ControllerConfiguration:
                    slice_text is None,share_text is None,
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
                    empty_handler('MajorFaultProgram'),pass_mode,
-                   match_project,firmware,producer_rpi,report_overflow)
+                   match_project,firmware,producer_rpi,report_overflow,retain,diagnostics)
 
     def attributes(self):
         values={13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}
-        # v35 Controller attributes 15, 17, 23 and 31 are BITS8 settings.
+        # v35 Controller attributes 10, 15, 17, 23, 31 and 35 are BITS8 settings.
         # These are source configuration reads, not hardware behavior or
         # permission to match/download a project, update firmware or use I/O.
-        for number,value in ((15,self.match_project_to_controller),
+        for number,value in ((10,self.continue_test_edits),(15,self.match_project_to_controller),
                              (17,self.automatic_firmware_update_inhibit),
                              (23,self.can_use_rpi_from_producer),
-                             (31,self.report_minor_overflow)):
+                             (31,self.report_minor_overflow),(35,self.automatic_diagnostics_enabled)):
             if value is not None:values[number]=bytes((value,))
         return values
 
@@ -157,11 +169,16 @@ class ControllerConfiguration:
                 'automatic_firmware_update_inhibit':self.automatic_firmware_update_inhibit,
                 'can_use_rpi_from_producer':self.can_use_rpi_from_producer,
                 'report_minor_overflow':self.report_minor_overflow,
+                'continue_test_edits':self.continue_test_edits,
+                'automatic_diagnostics_enabled':self.automatic_diagnostics_enabled,
                 'source_read_attributes':sorted(self.attributes()),
-                'source_flag_attributes':{'15':'Controller@MatchProjectToController',
+                'source_flag_attributes':{'10':'Controller/RedundancyInfo@KeepTestEditsOnSwitchOver',
+                                          '15':'Controller@MatchProjectToController',
                                           '17':'Controller@InhibitAutomaticFirmwareUpdate',
                                           '23':'Controller@CanUseRPIFromProducer',
-                                          '31':'Controller@ReportMinorOverflow'},
+                                          '31':'Controller@ReportMinorOverflow',
+                                          '35':'Controller@AutoDiagsEnabled'},
+                'redundant_switchover_execution':False,'automatic_diagnostics_delivery':False,
                 'project_serial_matching_enforced':False,'firmware_update_services':False,
                 'producer_rpi_negotiation':False,'source_settings_writable':False,
                 'native_minor_overflow_fault_reporting':False,
