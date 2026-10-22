@@ -4,8 +4,9 @@ import re
 from dataclasses import dataclass,field
 from .model import ModelError,Op,literal,coerce,operand_problem
 from .st_expression import STExpression
+from . import system_values
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','JSR','SBR','RET'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','JSR','SBR','RET','GSV'}
 
 
 @dataclass
@@ -219,13 +220,16 @@ class Structured:
             for ref in self.expression(expr).refs:
                 dependencies.append(self.engine.calls.operand(ref,scope))
         if any(overlaps(counter,dep) for dep in dependencies):raise ModelError('FOR bounds/step cannot depend on its counter')
-        writes=[]
+        writes=[];extra_writes=[]
         for item in walk(node.body):
             if item.kind in ('assign','for'):writes.append(item.target)
             elif item.kind=='call':
                 op=item.op
                 if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
-                if op.name in self.engine.project.aois:
+                if op.name=='GSV':
+                    key,parts,_=system_values.validate(self.engine,op,scope)
+                    extra_writes.extend((key,part) for part in parts)
+                elif op.name in self.engine.project.aois:
                     writes.append(op.args[0])
                     for p,arg in zip(self.engine.project.aois[op.name].required,op.args[1:]):
                         if p.get('Usage') in ('Output','InOut'):writes.append(arg)
@@ -234,7 +238,8 @@ class Structured:
                                'SBR':list(range(len(op.args)))}.get(op.name,[])
                     writes.extend(op.args[i] for i in positions if i<len(op.args))
         for ref in writes:
-            key,parts,_=self.memory.resolve(ref,scope)
+            key,parts,_=self.memory.resolve(ref,scope);extra_writes.append((key,parts))
+        for key,parts in extra_writes:
             if any(dep.key==key and (parts[:len(dep.parts)]==dep.parts or dep.parts[:len(parts)]==parts) for dep in dependencies):
                 raise ModelError('FOR body cannot modify tags used by its bounds/step')
 

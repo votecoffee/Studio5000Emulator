@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Current source milestone: `.145` adds [Controller GSV reads](controller-gsv.md)
+using the existing simulator audit/configuration values. Focused checks and an
+owned native offline fixture pass; live acceptance and packaging are pending.
+Continue the independent memory/signature, Routine upload and download-result
+investigations without substituting unknown values. Native validation uses
+separately installed SDK tooling.
+
 Current milestone: `.144` adds a [simulator Audit Value](simulator-audit-value.md)
 for mask-selected remote mode changes and accepted supported routine transactions.
 SDK mode cycles and supported import/reconnect verify the expected audit updates.

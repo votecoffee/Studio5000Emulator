@@ -32,6 +32,11 @@ Supported ladder forms include bit logic, comparisons, typed math, timers and
 counters, copies/fills, expressions, strings, jumps and routine calls. The
 project's Coverage view is authoritative for implemented operand forms.
 
+[Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
+source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
+all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms
+remain unsupported.
+
 JSR/SBR/RET require exact parameter counts, compatible types and dimensions,
 static references and bounded call nesting. Calls cannot target a main routine;
 RET in a main routine is blocked. Parameterized subroutines require their caller

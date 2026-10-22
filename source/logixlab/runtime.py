@@ -9,6 +9,7 @@ from . import task_runtime
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
+from . import system_values
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -299,6 +300,7 @@ class Engine:
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
+        if n=='GSV':system_values.validate(self,op,scope);return
         if self.extensions.validate(op,scope):return
         if n in ("TND", "AFI", "NOP"): return
         if n in ("TON", "TOF", "RTO", "CTU", "CTD", "RES"):
@@ -459,6 +461,9 @@ class Engine:
     def _op(self, op, p, scope, depth):
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
+        if n=='GSV':
+            if p:system_values.execute(self,op,scope)
+            return p
         r = lambda i: self.memory.read(a[i], scope)
         w = lambda i, value: self.memory.write(a[i], value, scope)
         extra=self.extensions.execute(op,p,scope)
@@ -600,6 +605,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports SINT/INT/DINT with documented zero-extension; wide/unsigned forms remain blocked",
+                           "GSV reads simulator Controller AuditValue/ChangesToDetect into LINT or two DINT elements; other objects/attributes and SSV are unsupported",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}
