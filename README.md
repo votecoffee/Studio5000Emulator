@@ -6,11 +6,11 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.153` demonstrates Go Online and
+**Status: experimental.** Native validation on `.155` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests and actual mode reads also pass on `.153`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
-validated on `.145`. Supported imports update the custom execution model while
+validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
 
 Version `.155` adds size-bounded [inactive Time Sync reads](docs/inactive-clock-dataset.md)
@@ -18,7 +18,18 @@ for complete source projects that explicitly disable PTP. The 32-field clock
 collection includes initialized, unmeasured offsets, empty master/port state
 and the application's software identity. Oversized lists return a whole-record
 prefix for a suffix request. Enabled or unknown PTP source retains
-its unsupported fields. Native transfer completion remains unproved.
+its unsupported fields. All 204 focused checks pass, and webpage/executable/
+appliance versions match. SDK Go Online/Offline passes across 74 verified
+requests with source/model preservation and no reported fault.
+The supported Program-mode routine import verifies 189 requests and one audit
+update; the original demo is restored afterward to stopped Program mode with
+zero scans and zero audit updates. This does not complete the Test/Untest/
+Assemble lifecycle.
+Native upload verifies 189 requests, returns all 32 Time Sync fields successfully
+and proceeds to the Wall Clock collection, whose CST offset, time zone and DST
+fields remain unavailable. Upload still reports Controller collection failure;
+Offline/cleanup and source/model preservation are confirmed without an SDK
+fault. Complete native upload/download remains unfinished.
 
 Version `.153` aligns native [Controller and Time Sync schema selection](docs/controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
 with the observed v35 revisions, 15 and 5. The research profile retains revision

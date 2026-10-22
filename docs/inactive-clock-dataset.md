@@ -62,3 +62,25 @@ duplicate fields, one time sample, source gating, invalid identities/revisions,
 API availability, read-only behavior and source/model/audit preservation.
 Time reads remain host UTC and independent of scan time. The empty dataset
 does not confer write authority or establish native upload completion.
+
+All 204 affected checks pass. The rebuilt `.155` also passes signed live reads
+of all 32 fields using a 31-field prefix and a one-field suffix at the tested
+reply budget. All twelve new setters remain denied, and source/model/audit
+state is preserved. Webpage, executable and appliance versions match.
+
+SDK Go Online/Offline verifies 74 requests with actual Offline/cleanup and no
+reported fault. The normal native upload verifies 189 requests and receives
+all 32 clock fields successfully in one reply at its negotiated size. The
+twelve new field hashes match the modeled values. It then requests Wall Clock
+class `0x8B` fields 1–11, with fields 3/8/9/10 unavailable, and reports
+`RxCsE_UPLOAD_OF_CONTROLLER_COLLECTION_FAILED`. Source/model preservation,
+actual Offline/cleanup and no SDK fault are confirmed. The new boundary does
+not establish the sole cause of the remaining upload failure. No upload-save
+trial is performed.
+
+An independent supported Program-mode routine import verifies 189 requests,
+updates the execution model with one expected audit increment, reconnects and
+confirms Offline/cleanup without a reported SDK fault. The original demo is
+restored to stopped Program mode with zero scan/audit state while retaining
+the same software-clock identity. This tests the supported import path; the
+complete online-edit lifecycle remains unfinished.

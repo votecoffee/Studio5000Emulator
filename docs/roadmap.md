@@ -10,8 +10,17 @@ Current milestone: `.155` adds size-bounded [inactive Time Sync reads](inactive-
 for complete controller source with explicit PTP disabled. Its twelve added
 fields describe initialized simulator state and no assigned master or PTP port.
 Lists exceeding the reply budget return a whole-record prefix for a suffix
-request. Zero offsets are unmeasured; enabled or missing source settings retain their
-gaps. Native transfer completion remains unfinished.
+request. Zero offsets are unmeasured; enabled or missing source settings retain
+their gaps. All 204 focused checks and live signed reads pass. SDK Go Online/
+Offline verifies 74 requests. The supported Program-mode routine import verifies
+189 requests and one expected audit update, with the original zero-scan demo
+restored afterward. The full edit lifecycle remains unfinished.
+Upload verifies 189 requests and passes the
+32-field Time Sync collection before reaching Wall Clock fields 3/8/9/10, which
+remain unavailable. The native error remains Controller collection failure;
+the last incomplete object alone does not prove its cause. All three cases confirm
+Offline/cleanup, source/model preservation and no SDK fault. Webpage,
+executable and appliance versions match. Full native transfers remain unfinished.
 
 Version `.153` aligns [Controller and Time Sync schema selection](controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
 with observed v35 revisions 15 and 5. The research profile retains revision 1,
