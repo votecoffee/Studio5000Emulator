@@ -6,12 +6,19 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** The native-validated `.145` build can Go Online to the
+**Status: experimental.** Native validation on `.145` demonstrated Go Online to the
 tested demo with the v35 SDK
 in anonymous compatibility mode, request Remote Run or Program, read the
 emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
+
+Version `.146` adds [offline Program upload-query diagnostics](docs/program-upload-query.md)
+to capture and checkpoint reports. It checks all 60 saved reference replies and
+identifies a later upload boundary exposed by an isolated experiment. It adds no
+live responses. A further private response experiment faulted the native SDK;
+that hypothesis is retired and native testing stopped. Full upload/download
+remain unfinished; the latest successful native connection validation is `.145`.
 
 Version `.145` adds [Controller GSV reads](docs/controller-gsv.md) for
 AuditValue and ChangesToDetect in ladder and Structured Text, using the same

@@ -48,6 +48,13 @@ events and report loss. A discarded checkpoint still makes analysis incomplete.
 
 ## Offline reader
 
+Version `.146` describes [Program upload service `0x50` queries](program-upload-query.md)
+with the three observed selectors, reply status, exact byte counts and a hash of
+the returned opaque word. Capture and checkpoint readers share the decoder.
+Checkpoint reports count all queries and shape errors beyond their retained-row
+limit. Unknown success shapes make analysis incomplete; ordinary rejected
+queries retain their status without inventing a result.
+
 Version `.132` adds [signed `0x3A` read-stream framing](read-transport.md).
 The first request retains its object scope; replies retain raw chunk sizes,
 offsets and hashes separately from embedded CIP responses. Checkpoint reports

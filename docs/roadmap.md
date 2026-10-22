@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.145` adds [Controller GSV reads](controller-gsv.md)
+Current milestone: `.146` adds [Program upload-query diagnostics](program-upload-query.md).
+All 60 saved reference replies decode without inferring the returned word's
+meaning. An isolated upload passes the private Controller response-shape trial
+and reaches Program service `0x50`. A further empty-response hypothesis faulted
+the SDK and is retired; no hypothesis is shipped. Establish the source/value
+contract before adding this live service. Full native transfers remain incomplete;
+the latest successful native connection validation is `.145`.
+
+Version `.145` adds [Controller GSV reads](controller-gsv.md)
 using the existing simulator audit/configuration values. Focused checks, native
 fixture save/reopen, live scan/CIP comparisons, SDK mode control and supported
 import/reconnect pass. The rebuilt executable and running appliance report `.145`.

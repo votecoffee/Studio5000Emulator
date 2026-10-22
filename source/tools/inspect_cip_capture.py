@@ -25,6 +25,7 @@ from logixlab.ethernetip import CIPError, decode_path
 from logixlab import signed_messages,read_transport
 from tools.collection_inventory import instance_supported as collection_instance, scope_supported as collection_scope, CollectionError, decode_attribute_list as decode_collection_list
 from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
+from tools.program_upload_query import describe as describe_program_query
 
 MAX_CAPTURE = 64 * 1024 * 1024
 MAX_OUTPUT = 128 * 1024 * 1024
@@ -213,8 +214,14 @@ def describe(raw, include_payloads=False, *, unwrap=True):
     return message
 
 
-def time_sync_layout(request, response, raw, include_payloads):
+def time_sync_layout(request, response, raw, include_payloads, *, query=None):
     target=request;parents={};scopes=request.get('object_path')
+    if (query is not None and not scopes and request.get('service')==0x50 and
+            target.get('class_id')==0x68 and target.get('instance') and target.get('attribute') is None and
+            not request.get('symbolic_path')):
+        try:response['program_upload_query']=describe_program_query(query,raw)
+        except ValueError as error:
+            response['program_upload_query']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     if scopes:
         if len(scopes)!=2 or scopes[0].get('class_id') not in (0x68,0x338) or scopes[0].get('attribute') is not None:return
         target=scopes[1]
@@ -277,14 +284,14 @@ def summarize(packets, include_payloads=False):
                 response['signed_envelope'] = envelope_description(decoded, include_payloads)
                 left, right = request['signed_envelope'], response['signed_envelope']
                 if 'inner' in left and 'inner' in right:
-                    time_sync_layout(left['inner'], right['inner'], decoded.inner, include_payloads)
+                    time_sync_layout(left['inner'], right['inner'], decoded.inner, include_payloads,query=parsed.inner)
                 elif 'children' in left and 'children' in right:
-                    for child, reply, raw in zip(left['children'], right['children'], decoded.children, strict=True):
-                        time_sync_layout(child, reply, raw, include_payloads)
+                    for child, reply, raw, query in zip(left['children'], right['children'], decoded.children, parsed.children, strict=True):
+                        time_sync_layout(child, reply, raw, include_payloads,query=query)
             except (signed_messages.EnvelopeError, ValueError) as error:
                 response['signed_envelope'] = {'structure': 'UNSUPPORTED OR MALFORMED',
                                                'integrity': 'NOT VERIFIED', 'reason': str(error)}
-        time_sync_layout(request, response, raw_messages[response['frame']], include_payloads)
+        time_sync_layout(request, response, raw_messages[response['frame']], include_payloads,query=raw_messages[request['frame']])
         exchanges.append({'request': request, 'response': response})
         paired_requests.add(request['frame']); paired_responses.add(response['frame'])
     counts = Counter(f"0x{value['service']:02X}" for value in messages.values() if not value['response'])

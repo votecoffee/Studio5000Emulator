@@ -4,6 +4,19 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.146` adds [offline Program service `0x50` framing](program-upload-query.md)
+to capture and checkpoint reports. Sixty saved reference exchanges have the three
+observed request selectors and one-record successful replies. Opaque words stay
+hashed, and selector mismatches or unknown success shapes make checkpoint
+analysis incomplete. An isolated Controller response-shape experiment reaches
+this service, which the live app still denies. A subsequent private empty-reply
+experiment faulted the native SDK; native Offline was not confirmed for that
+trial. The source and model were preserved, the private endpoint was stopped,
+and the main demo endpoint restored. Both response hypotheses remain unshipped.
+This revision does not complete upload or change download's unresolved result
+encoding. Native testing stopped after the fault; prior successful `.145`
+connection, mode and supported-import results remain historical evidence.
+
 Version `.145` adds [Controller GSV reads](controller-gsv.md) for the
 simulator AuditValue and explicit ChangesToDetect mask. Ladder and Structured
 Text preserve all bits in LINT or two DINT elements, skip prescan/false paths,
