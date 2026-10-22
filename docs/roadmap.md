@@ -12,6 +12,9 @@ reconstruct into nine complete streams containing 43,833 records. Original ACD
 value/target mapping and the independent Program `0x50` response contract still
 need to be established before adding live upload values. The download `0x412`
 result-response gap remains independent.
+All 183 focused checks and the rebuilt SDK Go Online/Offline case pass, with
+74 verified native requests, confirmed Offline/cleanup and no reported SDK
+fault. Runtime and executable versions match `.148`.
 
 Version `.147` adds [source-bound Metadata Definition discovery](metadata-definitions.md)
 and Name reads from original ACD records. The rebuilt app passes 26 live CIP

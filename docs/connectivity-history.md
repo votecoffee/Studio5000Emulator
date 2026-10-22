@@ -15,6 +15,10 @@ readers share frame diagnostics; the replay tool checks whole streams and
 records. Reports omit values and IDs. Live metadata values, source mapping,
 Program `0x50`, complete upload and the download result response remain
 unfinished. No new native response is dispatched by this change.
+All 183 focused checks pass. The rebuilt `.148` passes SDK Go Online/Offline
+across 74 verified requests with actual Offline, endpoint cleanup and original
+source/model preservation confirmed, and no reported SDK fault. All 101 source/
+build/guest module hashes and webpage/executable/appliance versions match.
 
 Version `.147` adds [original ACD Metadata Definition names and IDs](metadata-definitions.md)
 to the read-only CIP catalog. The stored format-0 Name field must agree with the

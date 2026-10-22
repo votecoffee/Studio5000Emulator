@@ -6,29 +6,29 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.147` demonstrates Go Online and
+**Status: experimental.** Native validation on `.148` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
 
+Version `.148` adds [fragmented metadata upload decoding](docs/metadata-upload-query.md)
+and an offline replay tool. It reconstructs 10,301 saved query exchanges into
+nine complete streams and decodes 43,833 records, including numeric values,
+reference arrays and string blobs. Capture and checkpoint diagnostics share
+the frame decoder. All 183 focused checks pass. The rebuilt app passes SDK
+Go Online/Offline across 74 verified requests with source/model preservation,
+confirmed cleanup and no reported SDK fault. The webpage, executable and
+appliance versions match. Live metadata values, Program query `0x50` and complete
+native transfers remain unfinished.
+
 Version `.147` adds [source-bound Metadata Definition names and IDs](docs/metadata-definitions.md)
 from the original ACD, including read-only instance discovery and Name reads.
 It also corrects the SDK probe's missing unhandled-exception fatal check.
 The rebuilt app passes SDK Go Online/Offline and 26 live CIP checks of all 23
 definition names, original IDs and class counts. Upload/download trials preserve
-the source and model, confirm Offline/cleanup and report no SDK fault. The
-webpage, executable and appliance versions match.
-Metadata values and Program query `0x50` remain unsupported; full upload/download
-remain unfinished.
-
-Version `.148` adds [fragmented metadata upload decoding](docs/metadata-upload-query.md)
-and an offline replay tool. It reconstructs 10,301 saved query exchanges into
-nine complete streams and decodes 43,833 records, including numeric values,
-reference arrays and string blobs. Capture and checkpoint diagnostics share
-the frame decoder. These are detached protocol checks; live metadata values,
-Program query `0x50` and complete native transfers remain unfinished.
+the source and model, confirm Offline/cleanup and report no SDK fault.
 
 Version `.146` adds [offline Program upload-query diagnostics](docs/program-upload-query.md)
 to capture and checkpoint reports. It checks all 60 saved reference replies and

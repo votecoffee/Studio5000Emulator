@@ -69,6 +69,13 @@ also annotate individual query frames with the shared decoder. Per-frame
 checkpoint decoding does not prove that a complete stream was retained; use
 the replay tool for assembly and record validation.
 
+The `.148` release passes 183 focused checks, including every split point in a
+synthetic record, malformed/truncated records, missing or reordered fragments,
+assembly limits, signed/batched capture integration and report privacy. Its
+rebuilt native SDK Go Online/Offline case also passes across 74 verified
+requests with confirmed cleanup, unchanged original source/model and no reported
+SDK fault. That connection check does not exercise a complete metadata upload.
+
 ## Remaining work
 
 The live endpoint's existing bounded empty selections are unchanged.
