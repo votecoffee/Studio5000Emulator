@@ -215,7 +215,7 @@ class MetadataValueEndpointTests(unittest.TestCase):
                     self.assertEqual(status,0);assembly.accept(q,c);position+=len(c.data)
                 self.assertEqual(assembly.data(),self.catalog.body(selection))
             self.assertEqual(client.request(bytes.fromhex('4f03210049032400')+bytes(16))[2],15)
-            self.assertEqual(client.request(bytes.fromhex('50022068240101011f0000000000'))[2],15)
+            self.assertEqual(client.request(bytes.fromhex('50022068240101011f0000000000'))[2],12)
         self.assertEqual(self.app.state()['tags'],before)
         self.assertTrue(self.endpoint.state()['metadata_values']['read_only'])
         self.assertTrue(self.endpoint.state()['metadata_definition']['metadata_values'])

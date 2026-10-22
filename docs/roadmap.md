@@ -6,10 +6,17 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.149` adds [original metadata value reads](native-metadata-values.md)
+Current milestone: `.150` adds calculated CRC-checked
+[Program selector replies](program-upload-query.md) for the three observed
+zero-position queries, with matching original Program identity required.
+All 60 recorded replies match the derived checksum relationship, and 153
+affected checks pass. Controller collection and complete native transfer
+remain unfinished.
+
+Version `.149` adds [original metadata value reads](native-metadata-values.md)
 from supported ACD records, with source-bound manifests and signed fragmented
 query responses. Two owned projects supply 1,670/1,660 values; each matches 1,638
-shared built-in reference records. Program `0x50`, missing Controller fields,
+shared built-in reference records. Missing Controller fields,
 target/address resolution and the download result response remain independent
 gaps. Complete native transfers remain unfinished.
 All 183 affected checks pass. Live signed reads reproduce all 1,670 original

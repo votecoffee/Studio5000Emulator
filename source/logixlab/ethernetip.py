@@ -26,6 +26,7 @@ from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
 from . import metadata_query
+from . import program_query
 from . import alarm_catalog, attribute_gaps, controller_configuration, controller_schemas, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata, wall_clock
 
 HEADER = struct.Struct('<HHII8sI')
@@ -503,6 +504,18 @@ class Router:
                 value=native_session.acknowledge_existing_timeline(payload,identity.timeline_uid)
                 with self.endpoint.lock:self.endpoint.counts['native_timeline_retained']+=1
                 return reply(4,0,value)
+            if inner[0]==0x50 and path.class_id==0x68:
+                if (not path.instance or path.attribute is not None or path.symbols or
+                        any(getattr(path,key) is not None for key in
+                            ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_program_query_scope')
+                try:selector=program_query.selection(payload)
+                except ValueError:return reject(3,'unsupported_program_query')
+                if limit<20:return reject(0x1B,'program_query_reply_budget')
+                self.source_bound_program(path.instance)
+                # Only the captured selector-token profile is implemented.
+                # The CRC protects these four payload bytes, not the Program.
+                return reply(inner[0],0,program_query.body(selector))
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
@@ -1920,6 +1933,7 @@ class Endpoint:
                     'controller_configuration':self.app.engine.project.controller_configuration.description() if self.enabled else None,
                     'controller_change_detection':self.app.engine.change_detection.description() if self.enabled else None,
                     'program_configuration':self.app.engine.project.program_configuration.description() if self.enabled else None,
+                    'program_upload_query':program_query.description() if self.native_read_only else None,
                     'runtime_references':self.app.engine.runtime_references.description() if self.enabled else None,
                     'program_hierarchy':self.app.engine.project.program_hierarchy.description() if self.enabled else None,
                     'program_timing':self.app.engine.program_timing_description() if self.enabled else None,

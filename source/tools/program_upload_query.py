@@ -1,18 +1,19 @@
-"""Observed v35 Program service 0x50 framing, with no assigned field semantics.
+"""Observed v35 Program service 0x50 framing and payload checksum validation.
 
-The returned word stays opaque. This reader cannot create a response, bind a
-metadata value, validate a checksum, or authorize dispatch in the live server.
+The CRC covers only the returned four-byte selector. No Program attributes,
+source identity, compiled code, signature or message MAC are validated here.
 """
 import hashlib
 import struct
 
 from logixlab.ethernetip import CIPError,decode_path
+from logixlab import program_query
 
-SELECTORS=(31,32,33)
+SELECTORS=program_query.SELECTORS
 
 
 def describe(request,response):
-    """Accept the three observed zero-position queries and one-record replies."""
+    """Accept the three observed zero-position queries and checked token replies."""
     if (not isinstance(request,bytes) or not isinstance(response,bytes) or
             not 6<=len(request)<=64 or not 4<=len(response)<=20 or request[0]!=0x50):
         raise ValueError('Unsupported Program upload query extent or service')
@@ -42,6 +43,9 @@ def describe(request,response):
     if container!=0x301 or size!=8:
         raise ValueError('Unsupported Program upload query container or byte count')
     if returned_selector!=selector:raise ValueError('Program upload query selector mismatch')
+    if word!=program_query.checksum(response[16:20]):
+        raise ValueError('Program upload query payload checksum mismatch')
     result.update(record_count=1,opaque_word_sha256=hashlib.sha256(struct.pack('<I',word)).hexdigest(),
-                  returned_selector_matches=True)
+                  returned_selector_matches=True,checksum_verified=True,
+                  checksum_algorithm='complemented_ieee_crc32',checksum_scope='returned_selector_uint32')
     return result
