@@ -7,8 +7,9 @@ native Studio connection and programming services remain unfinished.
 ## Native Linx and Studio connection
 
 Current milestone: `.147` adds [source-bound Metadata Definition discovery](metadata-definitions.md)
-and Name reads from original ACD records. Validate the catalog through direct CIP
-and the native SDK alongside the existing upload/download fronts. Definition
+and Name reads from original ACD records. The rebuilt app passes 26 live CIP
+catalog checks and the SDK Go Online/Offline case. Upload and download retain
+their separate query/result gaps with Offline/cleanup and no reported SDK fault. Definition
 values and Program query `0x50` still need a separate source/response contract.
 
 Version `.146` adds [Program upload-query diagnostics](program-upload-query.md).

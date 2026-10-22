@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.146` demonstrates Go Online and
+**Status: experimental.** Native validation on `.147` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests, actual mode reads and supported
 [Program-mode routine imports](docs/supported-routine-edits.md) were validated
@@ -16,6 +16,10 @@ the original source files.
 Version `.147` adds [source-bound Metadata Definition names and IDs](docs/metadata-definitions.md)
 from the original ACD, including read-only instance discovery and Name reads.
 It also corrects the SDK probe's missing unhandled-exception fatal check.
+The rebuilt app passes SDK Go Online/Offline and 26 live CIP checks of all 23
+definition names, original IDs and class counts. Upload/download trials preserve
+the source and model, confirm Offline/cleanup and report no SDK fault. The
+webpage, executable and appliance versions match.
 Metadata values and Program query `0x50` remain unsupported; full upload/download
 remain unfinished.
 

@@ -11,6 +11,15 @@ ACD/L5X hashes bind the catalog to the loaded project. Unsupported records retai
 the converted offline export without inventing a catalog. Class counts, cursor
 discovery and Name reads do not implement metadata values or Program query `0x50`.
 The SDK probe also recognizes `LgxSrv_E_UNHANDLED_EXCEPTION` as fatal immediately.
+One hundred fifty-three focused checks pass. The original demo catalog contains
+23 definitions; 26 live CIP checks verify every Name and ID plus class counts.
+The native SDK connection/Offline case passes across 74 verified requests.
+Download reaches the existing result-response gap across 175 requests. The
+isolated upload comparison reaches the denied Program `0x50` query across 362
+requests; its earlier Controller/clock/Task hypotheses remain unshipped. All
+three trials preserve the source/model, confirm actual Offline and endpoint
+cleanup, and report no SDK fault. The packaged reader executes successfully,
+and all 100 source/build/guest module hashes and served versions match.
 
 Version `.146` adds [offline Program service `0x50` framing](program-upload-query.md)
 to capture and checkpoint reports. Sixty saved reference exchanges have the three

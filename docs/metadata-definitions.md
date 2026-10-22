@@ -28,6 +28,16 @@ remains available without claiming an original ACD catalog.
 The catalog is independent of temporary download definition staging. Reads do
 not create definitions, write values, alter tags or grant transfer authority.
 
+## Validation
+
+The original demo ACD and a separate native-saved empty-program fixture each
+yield 23 definitions with maximum ID 43. The source files remain unchanged.
+One hundred fifty-three focused checks cover the reader, binding, converter,
+appliance forwarding and affected SDK/session paths. Twenty-six live CIP checks
+read all original names/IDs and class counts. The rebuilt executable runs the
+same reader, and the native SDK Go Online/Offline case passes with the catalog
+loaded. This does not establish SDK use of every definition or metadata values.
+
 ## Remaining upload work
 
 Definition names and IDs do not establish metadata values, MUID encoding,
