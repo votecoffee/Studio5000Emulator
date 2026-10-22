@@ -6,7 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.146` adds [Program upload-query diagnostics](program-upload-query.md).
+Current milestone: `.147` adds [source-bound Metadata Definition discovery](metadata-definitions.md)
+and Name reads from original ACD records. Validate the catalog through direct CIP
+and the native SDK alongside the existing upload/download fronts. Definition
+values and Program query `0x50` still need a separate source/response contract.
+
+Version `.146` adds [Program upload-query diagnostics](program-upload-query.md).
 All 60 saved reference replies decode without inferring the returned word's
 meaning. An isolated upload passes the private Controller response-shape trial
 and reaches Program service `0x50`. A further empty-response hypothesis faulted

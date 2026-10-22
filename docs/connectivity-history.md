@@ -4,6 +4,14 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.147` adds [original ACD Metadata Definition names and IDs](metadata-definitions.md)
+to the read-only CIP catalog. The stored format-0 Name field must agree with the
+component name, with one explicit collection and unambiguous active records.
+ACD/L5X hashes bind the catalog to the loaded project. Unsupported records retain
+the converted offline export without inventing a catalog. Class counts, cursor
+discovery and Name reads do not implement metadata values or Program query `0x50`.
+The SDK probe also recognizes `LgxSrv_E_UNHANDLED_EXCEPTION` as fatal immediately.
+
 Version `.146` adds [offline Program service `0x50` framing](program-upload-query.md)
 to capture and checkpoint reports. Sixty saved reference exchanges have the three
 observed request selectors and one-record successful replies. Opaque words stay

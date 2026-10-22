@@ -43,6 +43,7 @@ void ObserveServerFault(Exception error)
 {
     for (Exception? item = error; item is not null; item = item.InnerException)
         if (item.Message.Contains("LgxSrv_E_FATAL_ERROR", StringComparison.Ordinal) ||
+            item.Message.Contains("LgxSrv_E_UNHANDLED_EXCEPTION", StringComparison.Ordinal) ||
             item.Message.Contains("LgxSrv_E_SERVER_FAULTED", StringComparison.Ordinal))
             serverFaulted = true;
 }

@@ -13,6 +13,12 @@ Remote Run/Program requests, actual mode reads and supported
 on `.145`. Supported imports update the custom execution model while preserving
 the original source files.
 
+Version `.147` adds [source-bound Metadata Definition names and IDs](docs/metadata-definitions.md)
+from the original ACD, including read-only instance discovery and Name reads.
+It also corrects the SDK probe's missing unhandled-exception fatal check.
+Metadata values and Program query `0x50` remain unsupported; full upload/download
+remain unfinished.
+
 Version `.146` adds [offline Program upload-query diagnostics](docs/program-upload-query.md)
 to capture and checkpoint reports. It checks all 60 saved reference replies and
 identifies a later upload boundary exposed by an isolated experiment. It adds no

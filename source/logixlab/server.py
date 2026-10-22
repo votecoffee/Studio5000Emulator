@@ -30,6 +30,7 @@ from .native_diagnostics import NativeDiagnostics
 from .native_diagnostic_profiles import NativeDiagnosticProfiles
 from .native_diagnostic_objects import NativeDiagnosticObjects
 from .native_security_bindings import NativeSecurityBindings
+from .native_metadata_definitions import NativeMetadataDefinitions
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -70,6 +71,7 @@ class Application:
         self.native_diagnostic_profiles = None
         self.native_diagnostic_objects = None
         self.native_security_bindings = None
+        self.native_metadata_definitions = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -407,6 +409,15 @@ class Application:
                             for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols,native_tables,native_diagnostics,native_diagnostic_profiles,native_diagnostic_objects)):
                         raise ModelError('Security authority bindings require matching original Project bindings')
                     provenance['native_security_bindings']=native_security_bindings.description()
+                metadata_manifest=provenance.get('native_metadata_definitions')
+                if action=='load' and Path(name).suffix.lower()=='.l5x' and 'native_metadata_definitions' in data:
+                    metadata_manifest=data['native_metadata_definitions']
+                native_metadata_definitions=NativeMetadataDefinitions.from_manifest(metadata_manifest,project.sha256) if metadata_manifest is not None else None
+                if native_metadata_definitions:
+                    if native_identity is None or any(binding and binding.source_acd_sha256!=native_metadata_definitions.source_acd_sha256
+                            for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols,native_tables,native_diagnostics,native_diagnostic_profiles,native_diagnostic_objects,native_security_bindings)):
+                        raise ModelError('Metadata Definition binding differs from original ACD')
+                    provenance['native_metadata_definitions']=native_metadata_definitions.description()
                 native_reference_symbols=ReferenceSymbols.from_source(project,native_identity,native_symbols,native_tasks,native_auxiliary_symbols)
                 if native_reference_symbols:provenance['native_reference_symbols']=native_reference_symbols.description()
                 engine = Engine(project,defer_prescan=True)
@@ -433,6 +444,7 @@ class Application:
                     self.native_diagnostic_profiles = native_diagnostic_profiles
                     self.native_diagnostic_objects = native_diagnostic_objects
                     self.native_security_bindings = native_security_bindings
+                    self.native_metadata_definitions = native_metadata_definitions
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

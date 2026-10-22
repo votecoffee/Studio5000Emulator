@@ -1259,6 +1259,14 @@ class Router:
             raise CIPError(0x0C,'Original empty security authority binding is unavailable or stale')
         return catalog
 
+    def metadata_definitions(self):
+        catalog=getattr(self.app,'native_metadata_definitions',None);identity=getattr(self.app,'native_project_identity',None)
+        source=self.app.engine.project.sha256
+        if (catalog is None or identity is None or catalog.source_l5x_sha256!=source or
+                identity.source_l5x_sha256!=source or catalog.source_acd_sha256!=identity.source_acd_sha256):
+            raise CIPError(0x0C,'Original Metadata Definition binding is unavailable or stale')
+        return catalog
+
     def instance_list(self,path,data,limit):
         """Get Instance List: cursor in the path, packed UDINT IDs in reply."""
         if path.instance is None or path.attribute is not None:
@@ -1290,6 +1298,10 @@ class Router:
         elif path.class_id==0x3B0:
             if path.symbols or path.program_instance is not None:raise CIPError(4,'Diagnostic objects require a controller scope')
             self.diagnostic_objects();ids=[]
+        elif path.class_id==0x349 and getattr(self.app,'native_metadata_definitions',None) is not None:
+            if path.symbols or any(value is not None for value in (path.program_instance,path.io_map_instance,path.controller_instance,path.aoi_instance)):
+                raise CIPError(4,'Metadata Definition discovery requires a global class path')
+            ids=[row.instance for row in self.metadata_definitions().rows]
         elif path.class_id==0x36A:
             if (path.symbols or any(value is not None for value in (path.program_instance,
                     path.io_map_instance,path.controller_instance,path.aoi_instance))):
@@ -1659,9 +1671,18 @@ class Router:
             else:raise CIPError(5,'Unknown PLC message mapping instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x349:
-            if path.symbols:raise CIPError(4,'Metadata Definition paths do not take symbols')
+            if path.symbols or any(value is not None for value in (path.program_instance,path.io_map_instance,path.controller_instance,path.aoi_instance)):
+                raise CIPError(4,'Metadata Definition paths require a global class scope')
             if service==0x4B:
                 return self.instance_list(path,data,limit)
+            if getattr(self.app,'native_metadata_definitions',None) is not None:
+                catalog=self.metadata_definitions()
+                if path.instance==0:attributes=catalog.class_attributes()
+                else:
+                    row=next((row for row in catalog.rows if row.instance==path.instance),None)
+                    if row is None:raise CIPError(5,'Unknown source Metadata Definition')
+                    attributes=row.attributes()
+                return self.attribute_read(service,path,data,attributes)
             if path.instance!=0:raise CIPError(5,'No Metadata Definition instances are modeled')
             return self.attribute_read(service,path,data,controller_configuration.metadata_class_attributes())
         if path.class_id==0x334 and self.app.engine.project.processor=='1756-L85E':
@@ -1883,7 +1904,8 @@ class Endpoint:
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,
-                    'metadata_definition':controller_configuration.metadata_description() if self.enabled else None,
+                    'metadata_definition':(self.app.native_metadata_definitions.description() if getattr(self.app,'native_metadata_definitions',None)
+                        else controller_configuration.metadata_description()) if self.enabled else None,
                     'data_table':data_table.description() if self.enabled else None,
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
