@@ -39,10 +39,17 @@ class PcccMapping:
     def attributes(self):
         return {1: bytes(2), 2: bytes(4)} if self.empty else {}
 
+    def discovery_body(self):
+        """An empty class-0x6E catalog only for proven absent PLC mappings."""
+        return b'' if self.empty is True else None
+
     def description(self):
         return {'object_revision': 1, 'empty_mapping_available': self.empty,
                 'plc2_file': 0 if self.empty else None,
                 'mapping_value': 0 if self.empty else None,
                 'source': 'complete Controller L5X ProduceInfo PLC2Mapping/PLCMappingFile',
+                'native_discovery_class': 0x6E,
+                'native_discovery_source_empty': self.empty,
+                'native_discovery_requires_source_binding': True,
                 'configured_mapping_upload': False, 'pccc_commands': False,
                 'mapping_execution': False, 'compiled_addresses': False}

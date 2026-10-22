@@ -13,11 +13,22 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.155`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.157` adds source-bound [empty PLC file-mapping discovery](docs/empty-plc-file-mapping.md)
+for the catalog request reached by the empty-routine upload fixture. Unknown
+or configured mappings remain unavailable, and writes remain denied.
+
 Version `.156` adds [software Wall Clock policy](docs/wall-clock-policy.md):
 UTC time-zone/DST reads and a CST offset derived from a real monotonic
 application counter. This fills the remaining four clock fields for the
 accepted source UTC profile. The API identifies the settings as emulator
 policy; saved extended DST/time-zone settings are not inferred or imported.
+All 218 focused checks and live signed reads pass. SDK Go Online/Offline
+verifies 75 requests; Run/Program verifies 108, including continued clock
+progress across modes and reload. Normal upload verifies 349 requests, passes
+both clock collections and reaches Program/Routine metadata before reporting
+Program upload failure. An empty-routine fixture gets past Programs and stops
+at PLC file-mapping discovery after 355 requests. No SDK fault is reported;
+the original demo is restored. Full native transfers remain unfinished.
 
 Version `.155` adds size-bounded [inactive Time Sync reads](docs/inactive-clock-dataset.md)
 for complete source projects that explicitly disable PTP. The 32-field clock

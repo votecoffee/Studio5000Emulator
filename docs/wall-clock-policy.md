@@ -65,3 +65,22 @@ paired samples and duplicates, counter lifetime, host time steps, invalid
 clock/range handling, API metadata, signed TCP replies, denied setters and
 source/model/audit preservation. Native SDK acceptance remains a separate
 check from these software-model and protocol checks.
+
+On the rebuilt `.156`, all 218 focused checks and live signed eleven-field
+reads pass. SDK Go Online/Offline verifies 75 requests. Normal upload verifies
+349 requests, passes both clock collections and reaches Program/Routine
+metadata before `RxCsE_UPLOAD_OF_PROGRAMS_FAILED`; its final Routine metadata
+list returns all 22 requested fields with successful CIP status. The native
+Wall Clock reply preserves the epoch/counter relations and UTC policy.
+
+An independent empty-routine fixture verifies 355 requests and gets past
+Programs before PLC file-mapping discovery fails. It uses the public runtime
+without private protocol overrides. These fixtures differ in other project
+metadata too, so this comparison does not prove a sole cause of the populated
+Routine failure. No saved upload is validated.
+
+The SDK/web Run/Program cycle verifies 108 requests and six expected audit
+updates. The elapsed counter continues across modes and project reload, while
+the original demo is restored to stopped Program mode with zero scan/audit
+state. All four native cases confirm actual Offline/cleanup and no reported
+SDK fault. Webpage, executable and appliance versions match `.156`.

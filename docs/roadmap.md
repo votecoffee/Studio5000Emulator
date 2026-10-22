@@ -6,11 +6,24 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.156` adds [software Wall Clock policy](wall-clock-policy.md)
+Current milestone: `.157` adds guarded [empty PLC file-mapping discovery](empty-plc-file-mapping.md)
+for a native upload catalog request. Complete source and matching native
+identity must prove an empty mapping set; populated/unknown mappings and
+file operations remain unsupported.
+
+Version `.156` adds [software Wall Clock policy](wall-clock-policy.md)
 and an application-lifetime monotonic counter. The accepted source UTC profile
 gains time-zone/DST reads and a computed CST offset, completing its eleven
 modeled fields. These runtime choices remain separate from saved extended
 time-zone/DST settings and synchronized physical clocks.
+All 218 focused checks and live clock reads pass. SDK connection verifies 75
+requests; bidirectional modes verify 108, and the counter continues across
+modes/reload. Normal upload verifies 349 requests, passes both clock collections
+and reaches Program/Routine metadata before Program upload failure. The
+empty-routine fixture gets past Programs and stops at PLC file-mapping
+discovery after 355 requests. All cases confirm Offline/cleanup without a
+reported SDK fault; the original zero-scan demo is restored. Full transfers
+and the complete edit lifecycle remain unfinished.
 
 Version `.155` adds size-bounded [inactive Time Sync reads](inactive-clock-dataset.md)
 for complete controller source with explicit PTP disabled. Its twelve added
