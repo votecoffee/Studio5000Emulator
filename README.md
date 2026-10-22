@@ -6,18 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** The native-validated `.144` build can Go Online to the
+**Status: experimental.** The native-validated `.145` build can Go Online to the
 tested demo with the v35 SDK
 in anonymous compatibility mode, request Remote Run or Program, read the
 emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Source revision `.145` adds [Controller GSV reads](docs/controller-gsv.md) for
+Version `.145` adds [Controller GSV reads](docs/controller-gsv.md) for
 AuditValue and ChangesToDetect in ladder and Structured Text, using the same
-64-bit values as CIP. Focused checks and native offline fixture save/reopen pass;
-live acceptance, rebuild and restart are pending. The latest native-validated
-build remains `.144`.
+64-bit values as CIP. The native-saved four-GSV fixture passes live scan/CIP
+comparisons, SDK mode control and supported import/reconnect. The rebuilt
+executable, appliance and webpage versions match. Full transfers remain unfinished.
 
 Version `.144` adds a [simulator Controller Audit Value](docs/simulator-audit-value.md)
 with mask-selected mode and supported routine-transaction events. SDK mode cycles
@@ -274,7 +274,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, name/description and read-only pass-through configuration; limited Metadata Definition discovery; security enforcement and pass-through routing remain unsupported |
 | Change detection | Explicit source mask plus a simulator-owned Audit Value; SDK mode/import updates and upload field reads verified on `.144`; State Detection signatures remain unsupported |
-| Get System Value | Source `.145`: ladder/ST `GSV` for Controller AuditValue/ChangesToDetect into LINT or two DINTs; other objects/attributes and SSV remain unsupported |
+| Get System Value | Ladder/ST `GSV` for Controller AuditValue/ChangesToDetect into LINT or two DINTs; native-saved fixture and live scan/CIP agreement verified on `.145`; other objects/attributes and SSV remain unsupported |
 | Software device metadata | Read-only location/locale and empty trusted-slot/operator state, explicitly identified as emulator defaults |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |

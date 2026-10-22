@@ -4,13 +4,20 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
-Source revision `.145` adds [Controller GSV reads](controller-gsv.md) for the
+Version `.145` adds [Controller GSV reads](controller-gsv.md) for the
 simulator AuditValue and explicit ChangesToDetect mask. Ladder and Structured
 Text preserve all bits in LINT or two DINT elements, skip prescan/false paths,
 validate the entire destination and retain scan rollback. FOR dependency checks
 include both written words. Eighty-nine focused checks and native offline
-save/reopen/export of a four-GSV fixture pass; live SDK acceptance, packaging and
-restart are pending. The latest native-validated build remains `.144`.
+save/reopen/export of a four-GSV fixture pass. Live scan results agree with
+Controller attribute and symbolic CIP reads. SDK mode control passes across 109
+verified requests, and supported NOP import/reconnect preserves GSV execution
+across 182 requests. Download retains its result-encoding gap across 176
+requests, preserving the model and audit value. Offline/cleanup and original
+source preservation are confirmed, without a reported SDK fault. An initial
+mode trial's HTTP transport failure remains separately recorded. The rebuilt
+executable, appliance and served webpage versions match, with 99 app module
+hashes checked. Full transfer and complete edit-lifecycle work remain unfinished.
 
 Version `.144` adds a [simulator Controller Audit Value](simulator-audit-value.md).
 An explicit supported source mask enables an execution-model epoch, stable reads,

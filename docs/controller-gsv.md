@@ -49,9 +49,29 @@ Eighty-nine focused checks pass, covering both languages, bit preservation,
 prescan, false paths, current-epoch reads, CIP agreement, aliases/local scope,
 destination bounds, rollback and FOR dependencies. An owned four-GSV fixture
 also passes native v35 offline import/save/reopen/export and reloads into the
-execution model with all four instructions preserved. Native online testing,
-packaged rebuild and restart are pending for this source revision; `.144`
-remains the latest native-validated build.
+execution model with all four instructions preserved. The rebuilt executable's
+frozen modules execute that fixture successfully. All 99 app modules match
+source/build/appliance, and the executable resources, packaged assets and served
+webpage version agree on `.145`.
+
+The live fixture's two LINT and two DINT-pair destinations match Controller
+attributes 27/28 and symbolic CIP tag reads after a scan. Twenty-four repeated
+web Run requests preserve the epoch and do not repeat the mode event. A Program
+step refreshes the last scanned values without advancing the audit sequence.
+
+The SDK mode trial passes Go Online/Offline and both SDK/web control directions
+across 109 verified requests, with six updates for six transitions. Supported
+Program-mode NOP import and reconnect pass across 182 requests, preserving the
+four GSV instructions and audit epoch. The next scan reads the updated epoch.
+An initial mode trial had one prematurely ended HTTP response; it retained
+confirmed Offline/cleanup and no reported SDK fault. Its evidence is kept
+separately from the successful fresh trial.
+
+The independent fixture download still stops at its preparation-result encoding
+boundary across 176 verified requests. It preserves the active model and audit
+value. The SDK trials confirm actual Offline, endpoint cleanup, unchanged
+originals and no reported SDK server fault. No Studio GUI monitoring acceptance
+or completed native transfer is implied by these checks.
 
 This adds instruction reads to the existing simulator model. It does not supply
 physical memory statistics, State Detection signatures, complete native

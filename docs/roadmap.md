@@ -6,21 +6,22 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current source milestone: `.145` adds [Controller GSV reads](controller-gsv.md)
-using the existing simulator audit/configuration values. Focused checks and an
-owned native offline fixture pass; live acceptance and packaging are pending.
+Current milestone: `.145` adds [Controller GSV reads](controller-gsv.md)
+using the existing simulator audit/configuration values. Focused checks, native
+fixture save/reopen, live scan/CIP comparisons, SDK mode control and supported
+import/reconnect pass. The rebuilt executable and running appliance report `.145`.
 Continue the independent memory/signature, Routine upload and download-result
 investigations without substituting unknown values. Native validation uses
 separately installed SDK tooling.
 
-Current milestone: `.144` adds a [simulator Audit Value](simulator-audit-value.md)
+Version `.144` adds a [simulator Audit Value](simulator-audit-value.md)
 for mask-selected remote mode changes and accepted supported routine transactions.
 SDK mode cycles and supported import/reconnect verify the expected audit updates.
 The isolated upload comparison returns fields 27/28 successfully, leaving 11/12
 and 33/34 unavailable; its earlier private hypotheses remain unshipped. Establish
 the memory and State Detection signature contracts, alongside the separate
 Routine source-retrieval and download preparation-result gaps. The latest
-native-validated and rebuilt version is `.144`.
+native-validated and rebuilt version is `.145`.
 
 Version `.143` adds [read-only change-detection configuration](controller-change-detection.md)
 and named Controller gap reports. Validate the eight-byte configuration read
