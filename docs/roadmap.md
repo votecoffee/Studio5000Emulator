@@ -6,10 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.139` adds [original stored Task configuration](stored-task-configuration.md).
-The isolated SDK upload accepts five recovered fields and leaves 3 unavailable:
-Start Time and fields 22/23. Resolve those runtime contracts alongside the
+Current milestone: `.140` adds [simulator Task Start Time](task-start-time.md).
+The isolated SDK upload accepts the timestamp after a successful scan; Task
+fields 22/23 remain unavailable. Resolve their contracts alongside the
 independent Routine source-retrieval and download result-response gaps.
+
+Version `.139` adds [original stored Task configuration](stored-task-configuration.md),
+with source and schedule checks for rate, trigger, type, timeout and mapping count.
 
 Version `.138` adds [serial Task status and registered execution slots](task-execution-state.md).
 Retain the separation between model execution, native logical IDs and physical

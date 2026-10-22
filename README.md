@@ -12,60 +12,16 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.139` adds [original stored Task configuration](docs/stored-task-configuration.md).
-The ACD-backed profile recovers latent rate, trigger, type, timeout and mapping
-count with source and schedule checks. The isolated SDK upload accepts all five
-fields, leaving 3 unavailable Task fields. Full native transfer remains unfinished.
-Version `.138` adds [serial Task status and independently registered execution slots](docs/task-execution-state.md).
-Fault uncertainty remains visible until reset, and slot lookup resolves the
-current simulator object independently of its CIP address. The isolated SDK
-upload accepts all three added fields, leaving 8 unavailable Task fields.
-Supported import/reconnect preserves Task state; full native transfer remains
-unfinished.
-Version `.137` adds [measured Task execution times and a live Task reference](docs/task-runtime.md).
-The isolated SDK comparison reads five more Task fields; upload still fails
-with 11 Task fields unavailable. A supported SDK Program-mode import and
-reconnect preserve the measurement record across Routine replacement.
-The restarted demo passes SDK Go Online/Go Offline. Full native transfer
-remains unfinished.
-Version `.136` adds [scheduled empty Programs](docs/empty-programs.md) as
-source-checked no-ops with null main references and empty Routine discovery.
-The isolated empty-Program upload advances to later file-mapping collection;
-nonempty Routine source retrieval and full native transfer remain unfinished.
-Version `.135` adds [separate offline upload merge targets](docs/upload-merge-targets.md)
-to the native diagnostic probe. The emulator source and both original ACDs stay
-preserved while the SDK uses a new private working copy. A same-project offline
-NOP target still fails before source reads; full native transfer remains unfinished.
-Version `.134` adds [Routine bulk metadata comparisons](docs/routine-metadata-comparison.md)
-to the capture and transfer diagnostics. The isolated address-range trial still
-fails before source reads; the normal endpoint keeps its existing references.
-The nonidentity fields match an observed reference profile, narrowing the remaining
-investigation to client interpretation and source/identity association.
-Version `.133` adds [read-only Routine upload-source decoding](docs/upload-routine-source.md).
-It decodes 806 saved source streams while retaining separate Standard, Safety
-and TestEdits profiles, including paired edit regions. Three unsupported
-containers remain explicit errors. This adds source inspection; native upload
-still fails before requesting these streams.
-It retains [signed read-stream decoding and bounded assembly](docs/read-transport.md)
-for Message Router `0x3A`, covering 4,333 saved exchanges and 2,394 complete streams.
-It retains [the guarded RLL bulk metadata](docs/routine-bulk-metadata.md):
-live header references, main/subroutine flags, original opaque source-key
-metadata and unsigned model state. The supported profile can supply all 22
-requested Routine fields. Full transfer remains unfinished.
-It retains [original Routine instance IDs and guarded RLL state](docs/routine-state.md),
-including absent native edit buffers and pause state.
-It retains [original Routine Type words](docs/routine-types.md) and separate
-Program and AOI parent scopes.
-It retains [empty Device Diagnostic Object discovery](docs/device-diagnostic-objects.md),
-[empty diagnostic profile discovery](docs/device-diagnostic-profiles.md) and
-[original diagnostic message IDs, codes and revisions](docs/device-diagnostic-messages.md).
-It retains [Program-scoped empty catalog discovery](docs/program-catalog-discovery.md),
-original [Program and Task reference symbols](docs/reference-symbols.md),
-the [nonredundant synchronization default](docs/program-synchronization-default.md),
-[runtime Program and main-Routine references](docs/runtime-object-references.md),
-[Standard memory and normal Program status](docs/program-memory-status.md),
-[Program diagnostics](docs/program-diagnostics.md) and
-[measured scan times](docs/program-timing-and-flags.md).
+Version `.140` adds [Task Start Time](docs/task-start-time.md), captured from the
+simulator's WALLCLOCKTIME at the start of each successful Task execution.
+The isolated SDK upload reads it successfully after a scan, leaving Task fields
+22/23 unavailable. Complete native transfer remains unfinished.
+
+Task reads also include [source-checked stored settings](docs/stored-task-configuration.md),
+[serial execution status and registered slots](docs/task-execution-state.md),
+and [measured scan times and live references](docs/task-runtime.md).
+The [connectivity history](docs/connectivity-history.md) records earlier discovery,
+source-decoding and supported import work with its validation scope.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

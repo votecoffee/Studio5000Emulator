@@ -71,7 +71,7 @@ class RoutineEditWireTests(unittest.TestCase):
         from logixlab.program_timing import ProgramTiming
         old._program_timings['mainprogram']=ProgramTiming(5000,10000,12)
         from logixlab.task_runtime import TaskMeasurements
-        old._task_measurements=TaskMeasurements().record(1000,10000).record(12000,15000)
+        old._task_measurements=TaskMeasurements().record(1000,10000,start_time_us=123456789).record(12000,15000,start_time_us=123456799)
         old._native_fault_history_uncertain=True
         source_hash=hashlib.sha256(old.project.path.read_bytes()).hexdigest()
         self.stage();before=copy.deepcopy(self.app.state())

@@ -6,6 +6,7 @@ from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
 from . import task_runtime
+from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
@@ -105,11 +106,15 @@ class Engine:
 
     def task_measurement_description(self):
         available=bool(self.task_measurement_attributes(self._measured_task,source_sha256=self.project.sha256))
-        return {'attributes':[7,8,14,15],'tasks_available':int(available),
+        return {'attributes':[7,8,13,14,15],'tasks_available':int(available),
                 'successful_task_executions':self._task_measurements.executions if self._task_measurements else 0,
                 'measurement':'Host monotonic perf_counter_ns; complete scheduled interpreter Task',
                 'scan_time_bits':32,'interval_bits':64,'units':'Whole microseconds',
                 'interval_scope':'Between successful Task starts; zero until two executions',
+                'start_time_available':bool(available and self._task_measurements.start_time_us is not None),
+                'start_time_source':'Simulator WALLCLOCKTIME; UTC microseconds since 1970-01-01',
+                'start_time_before_first_success':'Unavailable',
+                'wall_clock_adjustments_visible':True,
                 'prescan_included':False,'failed_scans_update_counters':False,
                 'watchdog_enforced':False,'controller_performance_prediction':False}
 
@@ -374,6 +379,7 @@ class Engine:
         self.budget = self.instruction_limit
         timings=dict(self._program_timings)
         try:
+            task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
             task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
             for entry in self.entries:
                 name=self.project.routines[entry].program.casefold()
@@ -382,7 +388,7 @@ class Engine:
                     self._routine(entry, 0)
                     timings[name]=timings[name].record(perf_counter_ns()-start)
                 else:self._routine(entry, 0)
-            measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns())
+            measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
             self.scan_count += 1
             self.memory.first_scan = False

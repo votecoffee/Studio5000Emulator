@@ -45,18 +45,18 @@ class TaskMeasurementTests(unittest.TestCase):
         engine=self.engine(['ADD(SpeedCommand,1,SpeedCommand);'],mutate=self.second_program);digest=engine.project.sha256
         before=engine.memory.read('SpeedCommand')
         with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(1000,16099,51000,54000)) as clock:
-            with patch('logixlab.runtime.perf_counter_ns',side_effect=(2000,5000,6000,10000,52000,52500,53000,53500)):
+            with patch('logixlab.runtime.perf_counter_ns',side_effect=(2000,5000,6000,10000,52000,52500,53000,53500)),patch('logixlab.wall_clock.time.time_ns',return_value=123456789999):
                 engine.enter_run();self.assertEqual(clock.call_count,0)
                 engine.step();engine.step()
         self.assertEqual(engine.memory.read('SpeedCommand'),before+4)
         self.assertEqual(engine.task_measurement_attributes('MAINTASK',source_sha256=digest),
-            {7:struct.pack('<I',15),8:struct.pack('<I',3),14:struct.pack('<Q',50),15:struct.pack('<Q',50)})
+            {7:struct.pack('<I',15),8:struct.pack('<I',3),13:struct.pack('<q',123456789),14:struct.pack('<Q',50),15:struct.pack('<Q',50)})
         self.assertEqual(engine.task_measurement_description()['successful_task_executions'],2)
         self.assertEqual(engine.program_timing_attributes('MainProgram',source_sha256=digest)[3],struct.pack('<I',3))
 
     def test_failed_later_program_rolls_back_task_and_program_counters_and_next_interval(self):
         engine=self.engine(['ADD(SpeedCommand,1,SpeedCommand);'],mutate=self.second_program)
-        with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(1000,5000)):engine.step()
+        with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(1000,5000)),patch('logixlab.wall_clock.time.time_ns',return_value=123456789000):engine.step()
         before=copy.deepcopy(engine.memory.values);task=engine._task_measurements;programs=dict(engine._program_timings);run=engine._routine
         def fail(key,depth):
             if key.startswith('worker/'):raise ModelError('worker fault')
@@ -68,6 +68,46 @@ class TaskMeasurementTests(unittest.TestCase):
         with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(30000,33000)):engine.step()
         self.assertEqual(engine._task_measurements.minimum_interval_ns,29000)
         fresh=type(engine)(engine.project);self.assertEqual(fresh._task_measurements,TaskMeasurements())
+
+    def test_start_time_uses_wallclock_epoch_at_start_and_accepts_clock_adjustments(self):
+        from logixlab.wall_clock import WallClock
+        engine=self.engine(['NOP();']);digest=engine.project.sha256
+        self.assertNotIn(13,engine.task_measurement_attributes('MainTask',source_sha256=digest))
+        with patch('logixlab.wall_clock.time.time_ns',side_effect=(1_750_000_000_123_456_999,1_749_999_999_999_999_000)) as clock:
+            engine.enter_run();self.assertEqual(clock.call_count,0)
+            engine.step();self.assertEqual(clock.call_count,1)
+            stamp=engine.task_measurement_attributes('MainTask',source_sha256=digest)[13]
+            self.assertEqual(stamp,struct.pack('<q',1_750_000_000_123_456))
+            self.assertEqual(WallClock().attributes(read_time=True)[6],struct.pack('<q',1_749_999_999_999_999))
+        with patch('logixlab.wall_clock.time.time_ns',return_value=1000):engine.step()
+        self.assertEqual(engine._task_measurements.start_time_us,1)
+        self.assertEqual(engine.scan_count,2)
+        self.assertTrue(engine.task_measurement_description()['start_time_available'])
+
+    def test_invalid_clock_withholds_only_start_time_after_a_successful_scan(self):
+        engine=self.engine(['NOP();']);digest=engine.project.sha256
+        for invalid in (-1,True,None,1.5,'1',0x8000000000000000*1000,OSError('clock unavailable'),OverflowError('range'),ValueError('invalid')):
+            with patch('logixlab.wall_clock.time.time_ns',return_value=1000):engine.step()
+            self.assertEqual(engine._task_measurements.attributes()[13],struct.pack('<q',1))
+            kwargs={'side_effect':invalid} if isinstance(invalid,Exception) else {'return_value':invalid}
+            with self.subTest(invalid=invalid),patch('logixlab.wall_clock.time.time_ns',**kwargs):
+                engine.step();self.assertNotIn(13,engine._task_measurements.attributes())
+                self.assertEqual(set(engine._task_measurements.attributes()),{7,8,14,15})
+                self.assertFalse(engine.task_measurement_description()['start_time_available'])
+        self.assertEqual(engine.scan_count,18);self.assertFalse(engine.fault)
+
+    def test_start_time_record_boundaries_and_reset_never_reuse_original_timestamps(self):
+        for value in (0,0x7FFFFFFFFFFFFFFF):
+            record=TaskMeasurements().record(0,1,start_time_us=value)
+            self.assertEqual(record.attributes()[13],struct.pack('<q',value))
+        for invalid in (-1,True,1.5,'1',0x8000000000000000):
+            with self.subTest(value=invalid),self.assertRaises(ValueError):TaskMeasurements().record(0,1,start_time_us=invalid)
+        with self.assertRaises(ValueError):TaskMeasurements(start_time_us=0)
+        engine=self.engine(['NOP();'])
+        with patch('logixlab.wall_clock.time.time_ns',return_value=1000):engine.step()
+        fresh=type(engine)(engine.project)
+        self.assertNotIn(13,fresh.task_measurement_attributes('MainTask',source_sha256=fresh.project.sha256))
+        self.assertEqual(fresh._task_measurements,TaskMeasurements())
 
     def test_source_task_mode_and_configuration_guards_withhold_measurements(self):
         for kind in ('routine','inhibited','unknown','missing-priority','missing-output','bad-schedule','context'):
@@ -109,6 +149,24 @@ class TaskMeasurementWireTests(unittest.TestCase):
     signed=leases.SemaphoreSignedTests.signed
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
+
+    def test_signed_start_time_reads_are_committed_repeated_and_read_only(self):
+        self.prepare();engine=self.app.engine;digest=engine.project.sha256
+        self.app.native_tasks=NativeTasks('a'*64,digest,[{'name':'MainTask','instance':1}])
+        self.assertEqual(self.signed(4,bytes.fromhex('0e0320702401300d'))[2],20)
+        with patch('logixlab.wall_clock.time.time_ns',return_value=1_750_000_000_123_456_999):engine.step()
+        before=copy.deepcopy(self.app.state());requested=(13,22,13,23)
+        with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Read must not resample Task start')):
+            response=self.signed(5,bytes.fromhex('030220702401')+struct.pack('<5H',4,*requested))
+            fields=decode_attribute_list(response,requested,0x70,include_payloads=True)['attributes']
+            self.assertEqual([row['status'] for row in fields],[0,20,0,20])
+            self.assertEqual(fields[0]['data_hex'],struct.pack('<q',1_750_000_000_123_456).hex())
+            self.assertEqual(fields[0],fields[2])
+            self.assertEqual(self.signed(6,bytes.fromhex('0e0320702401300d')),bytes.fromhex('8e000000')+bytes.fromhex(fields[0]['data_hex']))
+            self.assertEqual(self.signed(7,bytes.fromhex('100320702401300d')+bytes(8))[2],15)
+        for key in ('tags','routines','tasks','scan','ms','controller'):self.assertEqual(self.app.state()[key],before[key])
+        engine.project.tasks[0]=copy.deepcopy(engine.project.tasks[0])
+        self.assertEqual(self.signed(8,bytes.fromhex('0e0320702401300d'))[2],20)
 
     def test_signed_mixed_reads_resolve_task_reference_and_keep_unsupported_fields_and_writes_distinct(self):
         self.prepare();engine=self.app.engine;digest=engine.project.sha256

@@ -18,6 +18,17 @@ LEGACY_ATTRIBUTES = (1, 5)
 TIME_ATTRIBUTES = (*LEGACY_ATTRIBUTES, *UTC_ATTRIBUTES)
 
 
+def current_value_microseconds():
+    """One simulator WALLCLOCKTIME sample, or unavailable without a valid UTC counter."""
+    try:
+        nanoseconds = time.time_ns()
+        if type(nanoseconds) is int and 0 <= nanoseconds < (1 << 63)*1000:
+            return nanoseconds//1000
+    except (OSError, OverflowError, ValueError):
+        pass
+    return None
+
+
 @dataclass(frozen=True)
 class WallClock:
     legacy_utc: bool = False
@@ -37,10 +48,8 @@ class WallClock:
         values = {2: bytes(2), 4: bytes(2)} if self.legacy_utc else {}
         if not read_time:return values
         try:
-            nanoseconds = time.time_ns()
-            if type(nanoseconds) is not int or nanoseconds < 0:return values
-            microseconds = nanoseconds//1000
-            if microseconds > 0x7FFFFFFFFFFFFFFF:return values
+            microseconds = current_value_microseconds()
+            if microseconds is None:return values
             values[6] = values[11] = struct.pack('<q', microseconds)
             if self.legacy_utc and microseconds >= LEGACY_EPOCH_MICROSECONDS:
                 values[1] = struct.pack('<Q', microseconds-LEGACY_EPOCH_MICROSECONDS)

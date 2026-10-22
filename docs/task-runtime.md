@@ -2,6 +2,7 @@
 
 Version `.137` adds whole-Task execution measurements and a live Task object
 reference to the existing [source-bound Task metadata](task-metadata.md).
+Version `.140` adds [simulator WALLCLOCKTIME start timestamps](task-start-time.md).
 Version `.138` adds separate [execution status and registered slots](task-execution-state.md).
 
 | Task attribute | Software-model value | Encoding |
