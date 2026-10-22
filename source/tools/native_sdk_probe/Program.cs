@@ -19,6 +19,9 @@ if (options.Operation is not ("connection" or "upload" or "download" or "modes" 
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
+if (options.ControllerSourceSha256 is not null && (options.Operation != "upload" ||
+    !Regex.IsMatch(options.ControllerSourceSha256, "^[0-9a-f]{64}$"))) return 2;
+var controllerSourceHash = options.ControllerSourceSha256 ?? options.SourceSha256;
 if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.ReconnectEdits) && options.Operation != "edits" ||
     (options.SecondEdit is not null || options.ReconnectEdits) && !options.ApplySupportedEdits) return 2;
 if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operation != "edits" || !options.ApplySupportedEdits) ||
@@ -76,7 +79,7 @@ async Task<JsonElement> Backend(string? mode = null)
         response.EnsureSuccessStatusCode();
         var state = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
         if (state.GetProperty("instance_id").GetString() != options.InstanceId ||
-            state.GetProperty("connectivity").GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
+            state.GetProperty("connectivity").GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != controllerSourceHash)
             throw new InvalidOperationException("Emulator instance/source changed");
         return state;
     }
@@ -101,7 +104,7 @@ async Task CaptureProtocolTrace(string fileName, string operation = "edit")
             return await response.Content.ReadAsStringAsync();
         });
         var trace = JsonDocument.Parse(text).RootElement;
-        if (trace.GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != options.SourceSha256)
+        if (trace.GetProperty("native_correlation").GetProperty("source_acd_sha256").GetString() != controllerSourceHash)
             throw new InvalidOperationException("Protocol trace source changed");
         await Backend();
         await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), text);
@@ -433,11 +436,18 @@ finally
         catch (Exception error) { passed = false; ObserveServerFault(error); steps.Add(new { method = "Dispose", status = "failed", error = error.Message }); }
     }
 }
-var unchanged = Hash() == options.SourceSha256;
-passed &= unchanged;
+string? workingHash = null;
+try { workingHash = Hash(); }
+catch (IOException) { }
+catch (UnauthorizedAccessException) { }
+var unchanged = workingHash == options.SourceSha256;
+// Upload merges into the private working file. Its original baseline and the
+// emulator's bound source are preserved and independently rechecked by Python.
+passed &= workingHash is not null && (unchanged || options.Operation == "upload");
 await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
-    sourceUnchanged = unchanged, steps, events = logger.Events.ToArray(),
+    sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
+    controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
     backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -447,7 +457,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       string? BackendUrl = null, string? InstanceId = null, EditOptions? Edit = null,
                       string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
-                      bool SaveEditedAcd = false, string[]? PostEditTags = null)
+                      bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

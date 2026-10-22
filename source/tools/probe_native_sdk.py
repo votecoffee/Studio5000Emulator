@@ -3,6 +3,9 @@
 The optional installed SDK runs on a private ACD copy. Download attempts require
 disabled project transfer; temporary programming coordination is permitted.
 Reports contain private project metadata and default to ignored .local storage.
+An upload may select a separate preserved offline merge baseline with
+--upload-target; the emulator remains pinned to --project. Only the new private
+working copy may change during upload. Its final hash is checked independently.
 Only explicit --operation modes changes Run/Program and executes scans. It
 restores Program; resulting tag values and scan history are retained. Other
 operations never request mode changes. The edits diagnostic imports a generated
@@ -41,6 +44,28 @@ from logixlab.ethernetip import CIPError, decode_path
 def digest(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def upload_input(source,operation,target=None):
+    """Select a preserved merge baseline; controller binding still uses source."""
+    if target is None:return source
+    if operation!='upload':raise ValueError('--upload-target belongs only to an upload diagnostic')
+    target=Path(target).resolve(strict=True)
+    if not target.is_file() or target.suffix.lower()!='.acd' or not 8<=target.stat().st_size<=100_000_000:
+        raise ValueError('Upload target must be an ACD file of 8..100000000 bytes')
+    return target
+
+
+def input_evidence(source,source_hash,baseline,baseline_hash,copied,operation):
+    """Hash observations must not prevent native cleanup if a file disappears."""
+    def observe(path):
+        try:return digest(path) if path.is_file() and 8<=path.stat().st_size<=100_000_000 else None
+        except OSError:return None
+    original=observe(source)==source_hash;target=observe(baseline)==baseline_hash;working=observe(copied)
+    return dict(source_unchanged=original and target and (operation=='upload' or working==baseline_hash),
+                upload_target_original_unchanged=target,working_copy_sha256=working,
+                working_copy_unchanged=working==baseline_hash,working_copy_present=working is not None,
+                working_copy_changes_permitted=operation=='upload')
 
 
 def runtime_hashes(folder):
@@ -579,6 +604,8 @@ def run(args):
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
+    baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
+    baseline_hash=digest(baseline)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
     apply_edits=getattr(args,'apply_supported_edits',False)
     edit_tags=getattr(args,'post_edit_tag',[]);save_acd=getattr(args,'save_edited_acd',False)
@@ -617,11 +644,12 @@ def run(args):
         time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8])
     output.mkdir(parents=True, exist_ok=False)
     copied = output / 'input.ACD'
-    shutil.copyfile(source, copied)
-    if digest(copied) != source_hash:
+    shutil.copyfile(baseline, copied)
+    if digest(copied) != baseline_hash:
         raise ValueError('Source changed while creating the private copy')
-    config = dict(Project=str(copied), SourceSha256=source_hash, CommunicationsPath=args.path,
+    config = dict(Project=str(copied), SourceSha256=baseline_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
+    if args.operation=='upload':config['ControllerSourceSha256']=source_hash
     if args.operation in ('modes','edits','upload','download'):config.update(BackendUrl=url,InstanceId=instance)
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
@@ -654,7 +682,7 @@ def run(args):
         if (current_edits!=edits or any(digest(file)!=config[key]['Sha256'] for file,key in zip(edit_files,('Edit','SecondEdit'))) or
                 any(state.get(key) != initial.get(key) for key in ('routines', 'tasks', 'entry_routines','routine_edits'))):
             raise ValueError('Edit target or generated rung changed before the native call')
-    if digest(source) != source_hash or digest(copied) != source_hash:
+    if digest(source) != source_hash or digest(baseline)!=baseline_hash or digest(copied) != baseline_hash:
         raise ValueError('Source changed before the native call')
     before = api(url, 'connectivity-trace', {})
     (output / 'before-state.json').write_text(json.dumps(state, indent=2), encoding='utf-8')
@@ -662,6 +690,7 @@ def run(args):
     executable = output / 'bin/NativeSdkProbe.exe'
     summary = dict(operation=args.operation, version=state['app_version'], instance_id=instance,
                    source_sha256=source_hash, harness_sha256=digest(executable),
+                   sdk_input_sha256=baseline_hash,separate_upload_target=baseline!=source,
                    harness_runtime_sha256=runtime_hashes(output / 'bin'),
                    harness_source_sha256={name: digest(SOURCE / 'tools/native_sdk_probe' / name)
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
@@ -677,6 +706,9 @@ def run(args):
         summary['save_edited_acd_requested']=save_acd
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
     if args.operation == 'edits':model_fields += ('routines', 'tasks', 'entry_routines', 'controller')
+    elif args.operation in ('upload','download'):
+        model_fields+=tuple(key for key in ('routines','tasks','entry_routines','controller') if key in state)
+    summary['model_fields_checked']=list(model_fields)
     report = None;final=None
     try:
         with (output / 'sdk.log').open('wb') as log:
@@ -689,7 +721,12 @@ def run(args):
                        native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'),
                        native_sdk_diagnostic_codes=sdk_diagnostic_codes(report))
     finally:
-        summary['source_unchanged'] = digest(source) == source_hash and digest(copied) == source_hash
+        summary.update(input_evidence(source,source_hash,baseline,baseline_hash,copied,args.operation))
+        summary['sdk_working_copy_sha256']=(report or {}).get('workingProjectSha256')
+        summary['working_copy_matches_sdk']=(summary['working_copy_sha256']==summary['sdk_working_copy_sha256']
+                                            if summary['sdk_working_copy_sha256'] is not None else None)
+        summary['sdk_controller_source_matches']=((report or {}).get('controllerSourceSha256')==source_hash
+                                                if 'controllerSourceSha256' in (report or {}) else None)
         try:
             final = api(url, 'state')
             validate_target(final, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
@@ -740,9 +777,12 @@ def run(args):
             summary['saved_edited_acd_verified']=saved_acd_effect(final,output,report.get('savedEditedProject') if report else None)
             summary['saved_edited_project']=report.get('savedEditedProject') if report else None
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
-        if (not summary['source_unchanged'] or not model_ok or summary.get('edit_payload_unchanged') is False
+        if (not summary['source_unchanged'] or not summary['working_copy_present'] or not model_ok or summary.get('edit_payload_unchanged') is False
                 or save_acd and not summary.get('saved_edited_acd_verified')):
             summary['status'] = 'failed'
+        if args.operation=='upload' and summary['status']=='succeeded' and (
+                summary['working_copy_matches_sdk'] is not True or summary['sdk_controller_source_matches'] is not True):
+            summary['status']='failed'
         (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
         print(json.dumps({'report': str(output / 'summary.json'), **summary}, indent=2))
     return 0 if summary['status'] == 'succeeded' and summary.get('process_exit_code') == 0 else 1
@@ -751,6 +791,7 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
+    parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
     parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes', 'edits'), default='connection',

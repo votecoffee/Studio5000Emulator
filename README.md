@@ -12,6 +12,10 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
+Version `.135` adds [separate offline upload merge targets](docs/upload-merge-targets.md)
+to the native diagnostic probe. The emulator source and both original ACDs stay
+preserved while the SDK uses a new private working copy. A same-project offline
+NOP target still fails before source reads; full native transfer remains unfinished.
 Version `.134` adds [Routine bulk metadata comparisons](docs/routine-metadata-comparison.md)
 to the capture and transfer diagnostics. The isolated address-range trial still
 fails before source reads; the normal endpoint keeps its existing references.

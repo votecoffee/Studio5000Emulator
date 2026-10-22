@@ -54,6 +54,9 @@ collections, source validation and unchanged public/model Table catalogs.
 
 ## Native SDK acceptance probe
 
+Version `.135` adds an upload-only [separate offline merge target](upload-merge-targets.md)
+with independent emulator-source and private-working-copy hash checks.
+
 Upload/download cases also retain [transfer-specific checkpoints and an offline
 analysis report](native-transfer-diagnostics.md), independent of the SDK result
 and cleanup confirmations.

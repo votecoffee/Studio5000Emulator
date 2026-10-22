@@ -6,7 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.134` adds [Routine metadata comparison diagnostics](routine-metadata-comparison.md).
+Current milestone: `.135` adds [separate offline upload merge targets](upload-merge-targets.md).
+The native probe pins the emulator's original source independently of the SDK's
+private input copy. A same-project target with one offline NOP reaches the same
+Routine metadata boundary and still fails without source reads; an unrelated
+target is rejected earlier as incompatible. The edited target retains its source
+key bytes, so a source-key cache miss has not been demonstrated. Investigate
+source association and client interpretation next.
+
+Version `.134` adds [Routine metadata comparison diagnostics](routine-metadata-comparison.md).
 Both isolated `.133` trials return the complete 22-field Routine shape and match
 an observed nonidentity reference profile. Changing the virtual reference address
 range does not advance upload. The saved successful replies also use null Code

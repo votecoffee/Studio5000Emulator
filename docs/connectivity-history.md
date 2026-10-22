@@ -4,6 +4,21 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `.135` adds [separate offline upload merge targets](upload-merge-targets.md)
+to the native acceptance probe. The SDK input is independently hashed while
+backend checks retain the original emulator source pin. Both originals stay
+preserved; only the private upload copy may change, with a matching SDK artifact
+receipt required for success. Other operations keep their copy-preservation
+checks. Missing-file evidence cannot suppress cleanup, and transfer comparisons
+now include available Routine, Task, entry and controller state.
+Three isolated `.134` trials retain 357/88/357 verified signed requests and
+360/91/360 expanded leaves. The unrelated target is incompatible before Routine
+upload. The original and same-project offline NOP targets reach the same
+successful 22-field Routine reply, then fail Program upload without source reads.
+The NOP target preserves source-key bytes, so no cache bypass is established.
+All confirm actual Offline/cleanup, unchanged originals/model and no fatal SDK
+fault; no physical-controller contact or live transfer authority is added.
+
 Version `.134` adds [shared Routine metadata comparison diagnostics](routine-metadata-comparison.md)
 to capture and checkpoint reports. Missing and failed values stay unknown;
 complete profiles compare all fields except header references, original instance
