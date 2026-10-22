@@ -14,40 +14,42 @@ MAX_STREAM_BYTES=16_000_000
 MAX_RECORDS=200_000
 
 
-def _empty_records(data,class_id,label,max_bytes,max_records):
+def _empty_records(data,class_id,label,max_bytes,max_records,*,category='diagnostic',collection_tail=None):
     """Require one active format-0 collection and no active definitions.
 
     Absence alone is not evidence. Deleted records and allocation tails are not
     active definitions; nonempty and scoped collections need a future decoder.
     """
-    if not isinstance(data,bytes) or not 24<=len(data)<=max_bytes:raise ModelError(f'Invalid diagnostic {label} database size')
+    label=category+' '+label
+    if not isinstance(data,bytes) or not 24<=len(data)<=max_bytes:raise ModelError(f'Invalid {label} database size')
     size,pos=struct.unpack_from('<II',data,8);end=size+1
     if struct.unpack_from('<I',data)[0]+1!=len(data) or not 24<=pos<=min(end,4096) or end>len(data):
-        raise ModelError(f'Unsupported diagnostic {label} database bounds')
+        raise ModelError(f'Unsupported {label} database bounds')
     collection=False;records=0
     while pos<end:
         records+=1
-        if records>max_records or end-pos<6:raise ModelError(f'Invalid diagnostic {label} record header')
+        if records>max_records or end-pos<6:raise ModelError(f'Invalid {label} record header')
         kind,length=struct.unpack_from('<HI',data,pos)
         if kind not in (0xFAFA,0xFDFD,0xFEFE,0xFBBF) or not 6<=length<=end-pos:
-            raise ModelError(f'Invalid diagnostic {label} record bounds')
+            raise ModelError(f'Invalid {label} record bounds')
         record=memoryview(data)[pos+6:pos+length];pos+=length
         if kind!=0xFAFA:continue
-        if len(record)<148:raise ModelError(f'Truncated diagnostic {label} component')
+        if len(record)<148:raise ModelError(f'Truncated {label} component')
         used=struct.unpack_from('<I',record)[0]
         if not 148<=used<=len(record) or struct.unpack_from('<I',record,12)[0]:
-            raise ModelError(f'Unsupported diagnostic {label} component header')
+            raise ModelError(f'Unsupported {label} component header')
         body=record[148:used]
         if len(body)<22:continue
         path=struct.unpack_from('<6H',body,10)
-        if class_id in path[2::2]:raise ModelError(f'Scoped diagnostic {label} collections are unsupported')
+        if class_id in path[2::2]:raise ModelError(f'Scoped {label} collections are unsupported')
         if path[0]!=class_id:continue
         if (path!=(class_id,0,0,0,0,0) or len(body)!=74 or
-                struct.unpack_from('<H',record,10)[0] or struct.unpack_from('<H',body,8)[0]):
-            raise ModelError(f'Nonempty or unsupported diagnostic {label} collection')
-        if collection:raise ModelError(f'Ambiguous diagnostic {label} collection')
+                struct.unpack_from('<H',record,10)[0] or struct.unpack_from('<H',body,8)[0] or
+                collection_tail is not None and body[22:]!=collection_tail):
+            raise ModelError(f'Nonempty or unsupported {label} collection')
+        if collection:raise ModelError(f'Ambiguous {label} collection')
         collection=True
-    if not collection:raise ModelError(f'Explicit empty diagnostic {label} collection required')
+    if not collection:raise ModelError(f'Explicit empty {label} collection required')
     return []
 
 

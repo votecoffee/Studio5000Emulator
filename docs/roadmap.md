@@ -6,13 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
-Current milestone: `.140` adds [simulator Task Start Time](task-start-time.md).
-The isolated SDK upload accepts the timestamp after a successful scan; Task
-fields 22/23 remain unavailable. Resolve their contracts alongside the
-independent Routine source-retrieval and download result-response gaps.
-A private stack-field trial advances to Security Authority Binding (`0x36A`)
-discovery. Establish an explicitly source-checked empty/nonempty catalog contract;
-the tentative stack values remain excluded from the release.
+Current milestone: `.141` adds [source-checked empty Security Authority Binding discovery](security-authority-discovery.md).
+Validate native upload beyond class `0x36A` while retaining the separate Task
+22/23 investigation. Nonempty authority bindings and authority administration
+remain unsupported. The independent Routine source-retrieval and download
+result-response gaps remain.
+
+Version `.140` adds [simulator Task Start Time](task-start-time.md). Its private
+stack-field trial identified Security Authority Binding as the next discovery
+gap; the tentative stack values remain excluded from the release.
 
 Version `.139` adds [original stored Task configuration](stored-task-configuration.md),
 with source and schedule checks for rate, trigger, type, timeout and mapping count.

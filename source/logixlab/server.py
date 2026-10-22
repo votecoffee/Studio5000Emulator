@@ -29,6 +29,7 @@ from .native_tables import NativeTables
 from .native_diagnostics import NativeDiagnostics
 from .native_diagnostic_profiles import NativeDiagnosticProfiles
 from .native_diagnostic_objects import NativeDiagnosticObjects
+from .native_security_bindings import NativeSecurityBindings
 from .device_io import DeviceIO
 from .model import ModelError, Project, Branch
 from .runtime import Engine
@@ -68,6 +69,7 @@ class Application:
         self.native_diagnostics = None
         self.native_diagnostic_profiles = None
         self.native_diagnostic_objects = None
+        self.native_security_bindings = None
         self.lock = threading.RLock()
         self.busy = False
         self.generation = 0
@@ -169,7 +171,7 @@ class Application:
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
-            'native_reference_symbols':None,'native_diagnostics':None,'native_diagnostic_profiles':None,'native_diagnostic_objects':None,'routine_state':None,
+            'native_reference_symbols':None,'native_diagnostics':None,'native_diagnostic_profiles':None,'native_diagnostic_objects':None,'native_security_bindings':None,'routine_state':None,
             'allow_writes':False,'profile':'research','catalog_revision':None,'file_manager':None,
             'controller_configuration':None,'task_configuration':None,'task_timing':None,'native_tasks':None,'native_routines':None,'native_aois':None,'native_aoi_routines':None,'native_auxiliary_symbols':None,'native_tables':None,'executable_configuration':None,'runtime_references':None,'device_metadata':None,'metadata_definition':None,'data_table':None,'pccc_mapping':None,'time_sync':None,'program_forces':None,'io_map':None,'ethernet_counters':None,'aoi_catalog':None,'data_log_catalog':None,
             'native_session':{'enabled':False},'native_correlation':None,
@@ -392,6 +394,15 @@ class Application:
                             for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols,native_tables,native_diagnostics,native_diagnostic_profiles)):
                         raise ModelError('Diagnostic objects require matching original Project bindings')
                     provenance['native_diagnostic_objects']=native_diagnostic_objects.description()
+                security_manifest=provenance.get('native_security_bindings')
+                if action=='load' and Path(name).suffix.lower()=='.l5x' and 'native_security_bindings' in data:
+                    security_manifest=data['native_security_bindings']
+                native_security_bindings=NativeSecurityBindings.from_manifest(security_manifest,project.sha256) if security_manifest is not None else None
+                if native_security_bindings:
+                    if native_identity is None or any(binding and binding.source_acd_sha256!=native_security_bindings.source_acd_sha256
+                            for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols,native_tables,native_diagnostics,native_diagnostic_profiles,native_diagnostic_objects)):
+                        raise ModelError('Security authority bindings require matching original Project bindings')
+                    provenance['native_security_bindings']=native_security_bindings.description()
                 native_reference_symbols=ReferenceSymbols.from_source(project,native_identity,native_symbols,native_tasks,native_auxiliary_symbols)
                 if native_reference_symbols:provenance['native_reference_symbols']=native_reference_symbols.description()
                 engine = Engine(project,defer_prescan=True)
@@ -417,6 +428,7 @@ class Application:
                     self.native_diagnostics = native_diagnostics
                     self.native_diagnostic_profiles = native_diagnostic_profiles
                     self.native_diagnostic_objects = native_diagnostic_objects
+                    self.native_security_bindings = native_security_bindings
                     self.generation += 1
                     self.device_io.bind(self.generation)
                     self._io_dirty = True

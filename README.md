@@ -12,10 +12,10 @@ emulator's actual mode, and Go Offline. Supported
 [Program-mode routine imports](docs/supported-routine-edits.md) can update the
 custom execution model while preserving the original source files.
 
-Version `.140` adds [Task Start Time](docs/task-start-time.md), captured from the
-simulator's WALLCLOCKTIME at the start of each successful Task execution.
-The isolated SDK upload reads it successfully after a scan, leaving Task fields
-22/23 unavailable. Complete native transfer remains unfinished.
+Version `.141` adds [source-checked empty Security Authority Binding discovery](docs/security-authority-discovery.md).
+It requires explicit evidence in the original ACD and matching project hashes.
+Nonempty or unsupported collections remain unavailable. Full native transfer
+remains unfinished.
 
 Task reads also include [source-checked stored settings](docs/stored-task-configuration.md),
 [serial execution status and registered slots](docs/task-execution-state.md),
