@@ -14,8 +14,13 @@ experiment faulted the native SDK; native Offline was not confirmed for that
 trial. The source and model were preserved, the private endpoint was stopped,
 and the main demo endpoint restored. Both response hypotheses remain unshipped.
 This revision does not complete upload or change download's unresolved result
-encoding. Native testing stopped after the fault; prior successful `.145`
-connection, mode and supported-import results remain historical evidence.
+encoding. Experimental response trials stopped after the fault. Following
+service recovery, the rebuilt `.146` passes the established SDK Go Online/
+Offline path across 74 verified requests, preserving the source, model and audit
+value with actual Offline and endpoint cleanup confirmed and no reported fault.
+The executable, appliance and served webpage versions match, with all 99 app
+module hashes checked. The decoder passes 118 focused checks. Mode and
+supported-import validation remains on `.145`.
 
 Version `.145` adds [Controller GSV reads](controller-gsv.md) for the
 simulator AuditValue and explicit ChangesToDetect mask. Ladder and Structured

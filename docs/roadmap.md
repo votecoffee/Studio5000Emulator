@@ -10,9 +10,11 @@ Current milestone: `.146` adds [Program upload-query diagnostics](program-upload
 All 60 saved reference replies decode without inferring the returned word's
 meaning. An isolated upload passes the private Controller response-shape trial
 and reaches Program service `0x50`. A further empty-response hypothesis faulted
-the SDK and is retired; no hypothesis is shipped. Establish the source/value
-contract before adding this live service. Full native transfers remain incomplete;
-the latest successful native connection validation is `.145`.
+the SDK and is retired; no hypothesis is shipped. After service recovery,
+the rebuilt `.146` passes the established SDK Go Online/Offline path across
+74 verified requests. Establish the source/value contract before adding this
+live service. Full native transfers remain incomplete; mode and supported-import
+validation remains on `.145`.
 
 Version `.145` adds [Controller GSV reads](controller-gsv.md)
 using the existing simulator audit/configuration values. Focused checks, native
@@ -29,7 +31,7 @@ The isolated upload comparison returns fields 27/28 successfully, leaving 11/12
 and 33/34 unavailable; its earlier private hypotheses remain unshipped. Establish
 the memory and State Detection signature contracts, alongside the separate
 Routine source-retrieval and download preparation-result gaps. The latest
-native-validated and rebuilt version is `.145`.
+rebuilt and connection-validated version is `.146`.
 
 Version `.143` adds [read-only change-detection configuration](controller-change-detection.md)
 and named Controller gap reports. Validate the eight-byte configuration read

@@ -33,6 +33,10 @@ A further private empty Program reply experiment faulted the SDK. Its original
 source and model were preserved, but native Offline could not be confirmed.
 The private endpoint was stopped and the main demo endpoint restored. The empty
 reply is not part of this decoder's successful profile and is not a live response.
+After SDK service recovery, the established `.146` demo Go Online/Offline check
+passes across 74 verified requests with native Offline and endpoint cleanup
+confirmed, source/model preservation and no reported fault. The experimental
+response trials remain retired.
 
 Neither experiment establishes a complete upload. No live routing, source
 metadata, checksum algorithm or download result encoding is added here. MAC,
