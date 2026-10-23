@@ -872,6 +872,30 @@ their existing behavior. Serial numbers and hardware revision are not part of
 this attribute. No captured physical identity is copied, and this read confers
 no I/O configuration or download-commit behavior.
 
+The native SDK trial accepts this identity response and reaches the following
+Map attribute 7 write. Version `26.1023.190840` still rejects that write and ends
+with `RxCsE_ASA_NO_PERMISSION` after 279 verified requests. Source/model remain
+unchanged, SDK Offline and cleanup are confirmed, and no SDK fault is reported.
+
+### Prepared Map flag
+
+Version `26.1023.191802` retains the observed late Map attribute 7 value `1`
+in a separate private header. Its earlier incremental header value `5` remains
+intact. The bit meanings are not interpreted, and the active Map is unchanged.
+
+Only the prepared download owner in Program mode may write the exact one-field
+attribute list. All three earlier batches, complete setup, the original header,
+source-equivalent Routine components and explicit Local identity must still
+validate. The proposal is checked before publication; a malformed request,
+changed binding or insufficient reply budget cannot publish a partial flag.
+
+Private readback rechecks the same source/effects and supports the owner's
+Get Attribute Single or List, including lists mixed with public Map fields.
+Other clients and unsigned requests do not gain access to the retained flag.
+End Preparation and disconnection clear it with the temporary namespace.
+This is prepared-state storage, not I/O activation, native code execution or an
+active-project commit. A complete download remains a separate acceptance step.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

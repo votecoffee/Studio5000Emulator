@@ -28,6 +28,7 @@ from . import routine_state
 from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
 from .download_routines import RoutineBindings
+from .download_map import MapBindings
 from .download_tasks import TaskBindings
 from .download_controller import ControllerBindings
 from .download_setup import SetupBindings,PROFILES as SETUP_PROFILES,write_profile as setup_write_profile
@@ -733,6 +734,32 @@ class Router:
                             partial,value=namespace.program_page(path.instance or 0,limit-4)
                             self.endpoint.counts['native_download_program_pages']+=1
                         return reply(inner[0],6 if partial else 0,value)
+            if path.class_id==0x69 and path.instance==1 and inner[0] in (4,3,0x0E):
+                lease=self.endpoint.programming_lease
+                configured=lease.download_namespace is not None and lease.download_namespace.local_map.description()['configured']
+                if inner[0]==4 or configured:
+                    if path.symbols or any(getattr(path,key) is not None for key in ('program_instance','io_map_instance','controller_instance','aoi_instance')):
+                        return reject(4,'invalid_download_map_scope')
+                    if inner[0]!=0x0E and path.attribute is not None:return reject(4,'invalid_download_map_scope')
+                    identity=self.app.native_project_identity
+                    if identity is None or identity.source_l5x_sha256!=self.app.engine.project.sha256:
+                        return reject(0x0C,'source_correlation_unavailable')
+                    with self.endpoint.lock:
+                        lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                        if lease.download_namespace is None:return reject(0x0C,'completed_download_namespace_required')
+                        self.require_download_namespace(lease,identity)
+                        bindings=self.download_map_bindings(lease);stage=lease.download_namespace.local_map
+                        if inner[0]==4:
+                            if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                            if limit<10:return reject(0x1B,'download_map_reply_budget')
+                            response=stage.configure(payload,bindings)
+                            self.endpoint.record('native_download_local_map_configured',**stage.description())
+                            self.endpoint.counts['native_download_local_map_writes']+=1
+                            return reply(inner[0],0,response)
+                        attributes=self.app.engine.runtime_references.io_map_attributes(self.app.engine.project,self.endpoint.identity)
+                        attributes[7]=stage.read(bindings)
+                        status,value=self.attribute_read(inner[0],path,payload,attributes,limit=limit)
+                        return reply(inner[0],status,value)
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
@@ -1162,6 +1189,7 @@ class Router:
             device_identity=self.endpoint.identity,
             setup_bindings=self.download_setup_bindings(lease),
             routine_bindings=self.download_routine_bindings(lease),
+            map_bindings=self.download_map_bindings(lease),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 
@@ -1170,6 +1198,10 @@ class Router:
 
     def download_routine_bindings(self,lease):
         return RoutineBindings(self.download_header_bindings(lease),self.app.native_types)
+
+    def download_map_bindings(self,lease):
+        return MapBindings(self.download_header_bindings(lease),self.app.native_types,
+            getattr(self.app,'native_metadata_values',None),self.endpoint.identity,self.download_setup_bindings(lease))
 
     def download_header_bindings(self,lease):
         return HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,

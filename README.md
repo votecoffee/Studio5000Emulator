@@ -6,15 +6,25 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.190840`.** Versions use the release timestamp
+**Current app version: `26.1023.191802`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds a source-checked [Local Map identity read](docs/download-image.md#local-map-identity)
+This revision adds a private [prepared Map flag](docs/download-image.md#prepared-map-flag)
+after all routine components have been retained. It requires the original
+prepared header, complete setup and unchanged source bindings, and has exact
+owner-only readback. It does not activate I/O or commit the downloaded project.
+
+Version `26.1023.190840` adds a source-checked [Local Map identity read](docs/download-image.md#local-map-identity)
 for download preparation. Its vendor, device type, product code and firmware
 revision must match both the explicit Local module metadata and the current
 software-device profile. Missing or conflicting source keeps the attribute
 unavailable. The read neither changes I/O nor completes a transfer.
+
+The native SDK accepts this identity response, then reaches the Map flag write.
+That version ends download with `RxCsE_ASA_NO_PERMISSION` after 279 verified
+requests, preserving source/model, confirming SDK Offline and cleanup, and
+reporting no SDK fault. Full native transfers remain unfinished.
 
 Version `26.1023.185759` adds a separate [routine download stage](docs/download-image.md#source-matched-routine-batch)
 after the first image and incremental batch. It checks each downloaded ladder

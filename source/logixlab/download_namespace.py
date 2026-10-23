@@ -15,6 +15,7 @@ from .download_controller import DownloadController
 from .download_properties import DownloadProperties
 from .download_repository import DownloadRepository
 from .download_setup import DownloadSetup
+from .download_map import DownloadMap
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
@@ -65,6 +66,7 @@ class DownloadNamespace:
         self.properties=DownloadProperties()
         self.repository=DownloadRepository()
         self.setup=DownloadSetup()
+        self.local_map=DownloadMap()
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -87,7 +89,7 @@ class DownloadNamespace:
             for slot,instance in enumerate(sorted(self._image.programs)))
         self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
-    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,device_identity=None,setup_bindings=None,routine_bindings=None,**catalogs):
+    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,device_identity=None,setup_bindings=None,routine_bindings=None,map_bindings=None,**catalogs):
         self.validate_base(source,native_types,**catalogs)
         if self._incremental is not None:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
@@ -100,6 +102,7 @@ class DownloadNamespace:
         if self._routine_batch is not None:
             self.setup.require_complete(setup_bindings)
             self._routine_batch.verify_effects(routine_bindings)
+        self.local_map.validate(map_bindings)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
@@ -217,4 +220,5 @@ class DownloadNamespace:
             controller_properties=self.properties.description(),
             device_repository=self.repository.description(),
             setup_configuration=self.setup.description(),
+            local_map=self.local_map.description(),
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)
