@@ -15,7 +15,11 @@ grants no operator authority. The preceding `26.1023.175203` native trial accept
 the Ethernet interface label, advances to repository registration after 265
 verified requests, and preserves source/model with actual Offline cleanup and
 no reported SDK fault. Complete functional upload/download remain the priority;
-online-edit expansion follows them.
+online-edit expansion follows them. The current native SDK trial accepts both
+repository registration and handle link, reaching the subsequent setup writes
+after 269 verified requests. Upload retains Program-collection failure after
+349; both preserve source/model, confirm actual Offline cleanup and report no
+SDK fault. All 346 affected checks and all 111 deployed modules match.
 
 Version `26.1023.170949` accepts the prepared download owner's source-checked
 [Controller configuration and follow-up settings](download-image.md#controller-configuration).

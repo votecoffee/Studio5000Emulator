@@ -16,6 +16,14 @@ loaded v35 L85E project and current software-device identity. The record stays
 private and grants no operator authority. Complete native transfers remain
 unfinished.
 
+The native SDK accepts both registration and link, then stops at the following
+setup writes after 269 verified requests: Ethernet administrative state,
+combined Extended Device settings, PCCC mapping, Time Sync and wall-clock
+settings. Upload retains Program-collection failure after 349 requests. Both
+preserve source/model, confirm actual Offline cleanup and report no SDK fault.
+All 346 affected checks pass; all 111 deployed modules and delivery versions
+match. The original demo is restored stopped with zero scans and audit updates.
+
 Version `26.1023.175203` adds the read-only Ethernet Link interface label used by native
 download setup. It returns the selected local OS interface name with the
 installed v35 byte-counted layout; unavailable names remain explicit errors.

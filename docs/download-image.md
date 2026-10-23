@@ -687,6 +687,21 @@ retain the software-device default. Ending preparation or disconnecting the
 owner discards the temporary namespace with its registration and link. Native
 transfer completion and active-project commit remain separate requirements.
 
+The native `26.1023.175952` trial accepts the exact device registration and
+returns its local handle, then accepts the subsequent attribute 8 link using
+that handle. It advances to 269 verified requests and stops with
+`RxCsE_ASA_NO_PERMISSION` in the following setup writes: Ethernet Link attribute
+9; the combined Extended Device attributes 1, 2, 3, 6, 7 and 8; PCCC Mapping;
+Time Sync; and wall-clock settings. These require further source-checked staging,
+not blanket write acknowledgement.
+
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 verified requests,
+before Routine source retrieval. Both trials preserve source/model, confirm
+actual Offline cleanup and report no SDK fault. All 346 affected checks pass;
+all 111 deployed modules and delivery versions match. The original demo is
+restored stopped with zero scans, elapsed time, runtime revision and audit
+updates; SDK/Linx service processes remain unchanged.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
