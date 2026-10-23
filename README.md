@@ -6,14 +6,24 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.082234`.** Versions use the release timestamp
+**Current app version: `26.1023.083349`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision retains a source-checked, owner-only [temporary Symbol catalog](docs/download-image.md#completed-download-symbol-catalog)
-after completed-batch transport deletion. Its handles refer to actual temporary
-objects, including internal Symbols and tags absent from runtime browsing.
-They do not expose physical addresses or install an active project.
+This revision adds capture-informed [temporary Data Table enumeration](docs/download-image.md#completed-download-symbol-catalog).
+Descriptor handles and value addresses resolve to the completed image's own
+typed tables and bounded storage; they do not expose physical memory.
+Version `26.1023.082234` retains the complete temporary Symbol catalog after
+transport deletion, including internal Symbols and otherwise hidden tags.
+Native download accepts all 18 controller Symbols and advances to the Data
+Table query across 180 verified requests. It still reports tag download failure.
+
+On `26.1023.082234`, two SDK `FinalizeEdits` imports and reconnects pass across
+298 verified requests in stopped Program mode. Tag values remain unchanged
+until a model scan executes both edits. Normal upload still stops at Program
+collection after 349 verified requests. All three cases confirm source
+preservation, actual Offline/cleanup and no reported SDK fault. Complete native
+transfers and Run-mode Test/Untest/Assemble remain unfinished.
 
 The preceding `26.1023.075900` release adds capture-informed [completed-batch download status](docs/download-image.md#completed-batch-execution-status).
 Native download accepts this result and advances from device failure to tag

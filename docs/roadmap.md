@@ -6,6 +6,16 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.083349` adds [temporary Data Table enumeration](download-image.md#completed-download-symbol-catalog),
+with descriptor handles and value addresses backed by retained typed objects
+and bounded storage. It implements the next observed SDK download request.
+The prior release accepts all 18 controller Symbols and advances to this query
+across 180 verified requests, then reports tag download failure. Two stopped
+Program-mode FinalizeEdits imports/reconnects and actual custom-model execution
+pass across 298 requests. Normal upload still fails Program collection after
+349 requests. Source preservation and actual Offline/cleanup are confirmed in
+all three cases without a reported SDK fault. Full transfers remain unfinished.
+
 Version `26.1023.082234` retains a source-checked, owner-only
 [temporary Symbol catalog](download-image.md#completed-download-symbol-catalog)
 after completed transport deletion. It includes internal and otherwise hidden

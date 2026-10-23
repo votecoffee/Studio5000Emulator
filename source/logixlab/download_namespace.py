@@ -12,6 +12,8 @@ from . import source_object_verification
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
+TABLE_BASE=0x71000000
+VALUE_BASE=0x72000000
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,13 @@ class SymbolHandle:
     program:int
     instance:int
     table:int
+
+
+@dataclass(frozen=True)
+class TableHandle:
+    address:int
+    value_address:int
+    instance:int
 
 
 class DownloadNamespace:
@@ -37,6 +46,12 @@ class DownloadNamespace:
         self._symbols=tuple(SymbolHandle(SYMBOL_BASE+slot*SYMBOL_STRIDE,program,instance,table)
             for slot,((program,instance),table) in enumerate(sorted(self._image._symbols.items())))
         self._by_address=MappingProxyType({row.address:row for row in self._symbols})
+        tables=[];offset=0
+        for slot,instance in enumerate(sorted(self._image._tables)):
+            tables.append(TableHandle(TABLE_BASE+slot*32,VALUE_BASE+offset,instance))
+            offset+=(len(self._image._regions[instance].data)+7)//8*8
+        self._tables=tuple(tables)
+        self._table_addresses=MappingProxyType({row.address:row for row in self._tables})
 
     def validate(self,source,native_types,**catalogs):
         self._image.require_source(source)
@@ -73,7 +88,30 @@ class DownloadNamespace:
             raise ImageError('download_symbol_address_unavailable')
         return self._by_address[address]
 
+    def table_page(self,start,budget):
+        if (type(start) is not int or not 0<=start<=0xFFFFFFFF
+                or type(budget) is not int or budget<0):
+            raise ImageError('invalid_download_table_page')
+        rows=[row for row in self._tables if row.instance>=start]
+        count=min(len(rows),budget//12)
+        if rows and not count:raise ImageError('download_table_reply_budget')
+        return count<len(rows),b''.join(struct.pack('<III',row.instance,row.address,row.value_address) for row in rows[:count])
+
+    def resolve_table(self,address):
+        if type(address) is not int or address not in self._table_addresses:
+            raise ImageError('download_table_address_unavailable')
+        return self._image._tables[self._table_addresses[address].instance]
+
+    def read_values(self,address,count):
+        if type(address) is not int or type(count) is not int or count<1:
+            raise ImageError('invalid_download_value_range')
+        for row in self._tables:
+            region=self._image._regions[row.instance]
+            if row.value_address<=address<row.value_address+len(region.data):
+                return self._image.read_table(row.instance,address-row.value_address,count,self._source)
+        raise ImageError('download_value_address_unavailable')
+
     def description(self):
-        return dict(status='retained',symbols=len(self._symbols),programs=len(self._image.programs),
+        return dict(status='retained',symbols=len(self._symbols),tables=len(self._tables),programs=len(self._image.programs),
             source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)

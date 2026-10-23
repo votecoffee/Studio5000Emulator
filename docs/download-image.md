@@ -140,6 +140,23 @@ release, disconnect, expiry, reset and invalid authentication discard the
 temporary namespace. An incomplete or unreported batch does not retain it.
 Multiple completed batches and active-project commit remain unsupported.
 
+Version `26.1023.083349` also serves the observed Data Table enumeration (`0x55`,
+attributes 3 and 7). Each 12-byte row contains the table instance, a model
+descriptor handle and its temporary value address. The descriptor resolves to
+the retained typed table, while bounded internal value reads resolve only
+inside its allocated region. Gaps, cross-table reads and descriptor interiors
+are unavailable. The native SDK's preceding query establishes the requested
+fields; the successful reference capture independently contains 17 exchanges
+with this row layout. This adds no raw-memory wire service or tag-value writes.
+
+The `26.1023.082234` native test accepts the complete set of 18 controller
+Symbols, then requests the Data Table fields above. It reaches 180 verified
+requests before `RxCsE_DOWNLOAD_OF_TAGS_FAILED`. Original source and active model
+remain unchanged, and native Offline/cleanup succeed without a reported SDK
+fault. Normal upload retains its separate Program collection failure after
+349 verified requests. Two Program-mode FinalizeEdits imports, reconnects and
+subsequent custom-model execution pass across 298 verified requests.
+
 The preceding `26.1023.075900` native download test accepts the seven-byte
 completion reply and advances beyond `RxCsE_DOWNLOAD_OF_DEVICES_FAILED` to
 `RxCsE_DOWNLOAD_OF_TAGS_FAILED`. It verifies 176 signed requests, preserves

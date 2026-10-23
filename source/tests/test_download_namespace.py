@@ -7,7 +7,7 @@ import unittest
 import zlib
 
 from logixlab.download_image import ImageError,Source
-from logixlab.download_namespace import DownloadNamespace,SYMBOL_BASE,SYMBOL_STRIDE
+from logixlab.download_namespace import DownloadNamespace,SYMBOL_BASE,SYMBOL_STRIDE,TABLE_BASE,VALUE_BASE
 from logixlab.resilient_transport import ResilientTransport
 from test_native_types import catalog,source_types
 from test_source_object_verification import bindings
@@ -18,6 +18,7 @@ import test_programming_lease as leases
 import test_resilient_transport as transport
 
 ENUM=bytes.fromhex('5502206b240001000500')
+TABLE_ENUM=bytes.fromhex('5502206a2400020003000700')
 STATUS=bytes.fromhex('4d03210012042400')
 
 
@@ -64,6 +65,20 @@ class NamespaceTests(unittest.TestCase):
         self.assertEqual(self.namespace.symbol_page(0,0,8),(True,struct.pack('<II',1,SYMBOL_BASE)))
         self.assertEqual(self.namespace.symbol_page(0,2,8),(False,struct.pack('<II',3,SYMBOL_BASE+64)))
 
+    def test_table_handles_resolve_retained_descriptors_and_owned_bounded_value_bytes(self):
+        self.stage.clear();self.namespace.validate(self.source,self.native,**self.catalogs)
+        self.assertEqual(self.namespace.table_page(0,12),(False,struct.pack('<III',1,TABLE_BASE,VALUE_BASE)))
+        self.assertEqual(self.namespace.resolve_table(TABLE_BASE).instance,1)
+        self.assertEqual(self.namespace.read_values(VALUE_BASE,4),bytes(4))
+        self.assertEqual(self.namespace.read_values(VALUE_BASE+1,2),bytes(2))
+        self.assertEqual(self.namespace.table_page(2,12),(False,b''))
+        for address,count in ((VALUE_BASE+3,2),(VALUE_BASE+4,1),(VALUE_BASE-1,1),(VALUE_BASE,0),(True,1)):
+            with self.subTest(address=address,count=count),self.assertRaises(ImageError):self.namespace.read_values(address,count)
+        for args in ((0,11),(True,12),(-1,12),(0,-1)):
+            with self.assertRaises(ImageError):self.namespace.table_page(*args)
+        for address in (TABLE_BASE+1,VALUE_BASE,True):
+            with self.assertRaises(ImageError):self.namespace.resolve_table(address)
+
 
 class NamespaceSignedTests(unittest.TestCase):
     setUp=payloads.InspectionSignedTests.setUp
@@ -103,6 +118,13 @@ class NamespaceSignedTests(unittest.TestCase):
     def test_source_changes_reject_owner_readback(self):
         self.retain();self.app.native_routines=None
         self.assertEqual(self.send(ENUM)[2],12)
+
+    def test_table_enumeration_returns_actual_owned_handles_and_rejects_other_attributes(self):
+        self.retain();before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(TABLE_ENUM),bytes.fromhex('d5000000')+struct.pack('<III',1,TABLE_BASE,VALUE_BASE))
+        self.assertEqual(self.send(TABLE_ENUM[:-2]+b'\x08\0')[2],0x14)
+        self.assertEqual(self.app.engine.memory.values,before)
+        self.assertEqual(self.endpoint.counts['native_download_table_pages'],1)
 
     def test_delete_before_result_query_does_not_retain_namespace(self):
         self.object_source_fixture();self.assertEqual(self.send(payloads.INSPECT)[2],0)
