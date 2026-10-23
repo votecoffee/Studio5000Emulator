@@ -25,6 +25,8 @@ from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
+from .download_namespace import DownloadNamespace
+from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
 from . import alarm_catalog, attribute_gaps, controller_configuration, controller_schemas, data_table, device_metadata, edit_transfer, energy_catalog, ethernet_counters, file_manager, key_exchange, library_staging, metadata_staging, native_rejections, native_session, programming_lease, resilient_transport, signed_messages, software_clock, symbol_metadata, wall_clock
@@ -452,8 +454,19 @@ class Router:
                         image=lease.transport.start_prepared_image()
                         self.endpoint.record('native_download_image_preparation',**image)
                         return reply(inner[0])
-                    if inner[0]==0x4B:lease.transport.open(payload)
-                    else:exact(payload,0);lease.transport.clear()
+                    if inner[0]==0x4B:
+                        if lease.download_namespace is not None:return reject(0x0F,'multiple_download_batches_unimplemented')
+                        lease.transport.open(payload)
+                    else:
+                        exact(payload,0)
+                        try:
+                            if (lease.transport.execution_status_reported
+                                    and lease.transport.source_object_verification['status']=='matched'):
+                                lease.download_namespace=DownloadNamespace(lease.transport,self.app.native_types,
+                                    native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
+                                    native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
+                                self.endpoint.record('native_download_namespace_retained',**lease.download_namespace.description())
+                        finally:lease.transport.clear()
                     self.endpoint.counts['native_transport_'+('setup' if inner[0]==0x4B else 'delete')]+=1
                 return reply(inner[0])
             if inner[0] in (0x60,0x62) and path.class_id==0x8E:
@@ -517,6 +530,24 @@ class Router:
                 # Only the captured selector-token profile is implemented.
                 # The CRC protects these four payload bytes, not the Program.
                 return reply(inner[0],0,program_query.body(selector))
+            if inner[0]==0x55 and path.class_id==0x6B:
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    if (lease.live(self.app.generation,self.app.engine.project.sha256)
+                            and lease.owner is native and lease.download_namespace is not None):
+                        lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                        self.symbol_scope(path)
+                        if path.attribute is not None or path.symbols:return reject(4,'invalid_download_symbol_scope')
+                        if payload!=b'\1\0\5\0':return reject(0x14,'unsupported_download_symbol_attribute')
+                        identity=self.app.native_project_identity
+                        if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                        namespace=lease.download_namespace
+                        namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
+                            native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
+                            native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
+                        partial,value=namespace.symbol_page(path.program_instance or 0,path.instance or 0,limit-4)
+                        self.endpoint.counts['native_download_symbol_pages']+=1
+                        return reply(inner[0],6 if partial else 0,value)
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
@@ -535,6 +566,7 @@ class Router:
         except native_session.NativeError as error:return reject(error.status,'compatibility_context')
         except programming_lease.LeaseError as error:return reject(error.status,error.reason)
         except (library_staging.LibraryError,metadata_staging.MetadataError,resilient_transport.TransportError,edit_transfer.EditTransferError) as error:return reject(error.status,error.reason)
+        except ImageError as error:return reject(0x0C,error.reason)
 
     def network_interface(self):
         if not self.endpoint.interface_queried:

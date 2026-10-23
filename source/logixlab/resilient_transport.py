@@ -46,6 +46,7 @@ class ResilientTransport:
         self._object_catalogs=(None,None,None,None);self._object_binding_stamp=None
         self.download_image=DownloadImage();self.image_error=None
         self.image_preparation_started=False;self._image_start_binding=None
+        self.execution_status_reported=False
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
@@ -184,6 +185,7 @@ class ResilientTransport:
             payload=ExecutionStatus(0,expected).encode(expected)
         except (ImageError,ResultError) as error:
             raise TransportError(0x0C,error.reason) from error
+        self.execution_status_reported=True
         return payload,state
 
     def expire(self):

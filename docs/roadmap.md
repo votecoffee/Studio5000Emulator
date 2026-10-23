@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.082234` retains a source-checked, owner-only
+[temporary Symbol catalog](download-image.md#completed-download-symbol-catalog)
+after completed transport deletion. It includes internal and otherwise hidden
+Symbols, binds handles to retained objects and isolates them from other clients.
+Cleanup and source changes invalidate it; multiple batches and active commit
+remain unsupported. The preceding release's native download accepts the new
+completion reply and moves from device failure to tag failure across 176
+verified requests. Complete upload/download and Run-mode edits remain goals.
+
 Version `26.1023.075900` adds the observed seven-byte
 [completed-batch download status](download-image.md#completed-batch-execution-status).
 The source-bound temporary image must cover every decoded operation, retain

@@ -35,6 +35,7 @@ class ProgrammingLease:
 
     def clear_staging(self):
         self.libraries.clear();self.metadata.clear();self.transport.clear()
+        self.download_namespace=None
         self.program_reservations=set()
         self.edit_phase_open=False;self.program_stack_preparations={}
         self.edit_transfer.clear()
@@ -180,6 +181,7 @@ class ProgrammingLease:
                 'library_staging':self.libraries.description(),
                 'metadata_staging':self.metadata.description(),
                 'resilient_transport':self.transport.description(),
+                'download_namespace':self.download_namespace.description() if self.download_namespace is not None else {'status':'idle'},
                 'remaining_ms':max(0,math.ceil((self.owner.deadline-self.clock())*1000)) if owned else 0,
                 'owner_identity_exposed':False,'project_transfer':False,'online_edits':False,
                 'controller_mode_changes':False,'tag_write_authority':False}

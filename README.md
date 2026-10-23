@@ -6,14 +6,19 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.075900`.** Versions use the release timestamp
+**Current app version: `26.1023.082234`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds a capture-informed [completed-batch download status](docs/download-image.md#completed-batch-execution-status).
-The signed result query now reports the exact expanded byte count only after
-source-bound temporary preparation and actual operation-effect readback succeed.
-It does not commit the active project or imply complete native download support.
+This revision retains a source-checked, owner-only [temporary Symbol catalog](docs/download-image.md#completed-download-symbol-catalog)
+after completed-batch transport deletion. Its handles refer to actual temporary
+objects, including internal Symbols and tags absent from runtime browsing.
+They do not expose physical addresses or install an active project.
+
+The preceding `26.1023.075900` release adds capture-informed [completed-batch download status](docs/download-image.md#completed-batch-execution-status).
+Native download accepts this result and advances from device failure to tag
+failure, across 176 verified requests, with the active model and original files
+preserved. Complete native download support remains unfinished.
 
 Version `26.1023.073618` adds an explicit [new-project upload diagnostic](docs/upload-merge-targets.md#new-project-upload)
 and [SDK FinalizeEdits imports in Program mode](docs/supported-routine-edits.md#sdk-finalizeedits-in-program-mode).

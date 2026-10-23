@@ -123,6 +123,30 @@ trailing words, false completion, source/expiry checks, changed resource readbac
 and signed replies without active-image changes. The source capture, controller
 identities, project and decoded payloads remain outside public Git.
 
+## Completed download Symbol catalog
+
+Version `26.1023.082234` retains a completed image's Symbol handles for the
+owning prepared programming lease after transport deletion. The source-checked
+set includes internal Symbols and ordinary tags absent from the interpreter's
+runtime browser. The observed Symbol enumeration (`0x55`, attribute 5) returns
+sorted instance/handle pairs with negotiated reply limits and continuation.
+
+Each handle resolves to its retained temporary Symbol and table reference.
+These are model object handles; firmware descriptor bytes, physical addresses
+and raw memory access are not inferred. Original ACD/L5X, current type/object
+catalogs and operation effects must remain bound. Source changes reject reads.
+Other clients continue to browse the active runtime catalog. End preparation,
+release, disconnect, expiry, reset and invalid authentication discard the
+temporary namespace. An incomplete or unreported batch does not retain it.
+Multiple completed batches and active-project commit remain unsupported.
+
+The preceding `26.1023.075900` native download test accepts the seven-byte
+completion reply and advances beyond `RxCsE_DOWNLOAD_OF_DEVICES_FAILED` to
+`RxCsE_DOWNLOAD_OF_TAGS_FAILED`. It verifies 176 signed requests, preserves
+source/model and confirms actual SDK Offline and endpoint cleanup without a
+reported SDK fault. Its next query requests Symbol attribute 5. This progress
+does not establish complete tag transfer or a successful native download.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -1,0 +1,79 @@
+"""Lease-owned Symbol handles for a completed temporary download image.
+
+Handles identify retained model objects, not physical memory. No firmware
+descriptor layout, initial values or compiled code is inferred from them.
+"""
+from dataclasses import dataclass
+import struct
+from types import MappingProxyType
+
+from .download_image import ImageError
+from . import source_object_verification
+
+SYMBOL_BASE=0x70000000
+SYMBOL_STRIDE=32
+
+
+@dataclass(frozen=True)
+class SymbolHandle:
+    address:int
+    program:int
+    instance:int
+    table:int
+
+
+class DownloadNamespace:
+    def __init__(self,transport,native_types,**catalogs):
+        transport.execution_status(native_types,**catalogs)
+        if transport.source_object_verification['status']!='matched':
+            raise ImageError('download_namespace_source_identities_required')
+        self._image=transport.download_image
+        self._source=self._image.source
+        self._binding=(self._image.record_sha256,self._image.records)
+        self._types=native_types;self._type_stamp=native_types.binding_stamp()
+        self._catalog_stamp=source_object_verification.binding_stamp(
+            catalogs.get('native_symbols'),catalogs.get('native_routines'),
+            catalogs.get('native_auxiliary_symbols'),catalogs.get('native_tables'))
+        self._symbols=tuple(SymbolHandle(SYMBOL_BASE+slot*SYMBOL_STRIDE,program,instance,table)
+            for slot,((program,instance),table) in enumerate(sorted(self._image._symbols.items())))
+        self._by_address=MappingProxyType({row.address:row for row in self._symbols})
+
+    def validate(self,source,native_types,**catalogs):
+        self._image.require_source(source)
+        try:
+            if native_types is not self._types or native_types.binding_stamp()!=self._type_stamp:
+                raise ImageError('download_namespace_type_binding_changed')
+            stamp=source_object_verification.binding_stamp(
+                catalogs.get('native_symbols'),catalogs.get('native_routines'),
+                catalogs.get('native_auxiliary_symbols'),catalogs.get('native_tables'))
+            if stamp!=self._catalog_stamp:raise ImageError('download_namespace_object_binding_changed')
+        except (ValueError,TypeError,KeyError,AttributeError) as error:
+            if isinstance(error,ImageError):raise
+            raise ImageError('download_namespace_catalog_unavailable') from error
+        if self._binding!=(self._image.record_sha256,self._image.records):
+            raise ImageError('download_namespace_image_binding_changed')
+        for ordinal in range(self._image.records):
+            if not self._image.read_preparation_effect(ordinal,source).matches:
+                raise ImageError('download_namespace_effect_changed')
+
+    def symbol_page(self,program,start,budget):
+        if (any(type(value) is not int for value in (program,start,budget))
+                or not 0<=program<=0xFFFFFFFF or not 0<=start<=0xFFFFFFFF or budget<0):
+            raise ImageError('invalid_download_symbol_page')
+        if program and program not in self._image.programs:
+            raise ImageError('download_symbol_program_unavailable')
+        rows=[row for row in self._symbols if row.program==program and row.instance>=start]
+        count=min(len(rows),budget//8)
+        if rows and not count:raise ImageError('download_symbol_reply_budget')
+        return count<len(rows),b''.join(struct.pack('<II',row.instance,row.address) for row in rows[:count])
+
+    def resolve_symbol(self,address):
+        """Resolve an exact handle; never interpret arbitrary memory ranges."""
+        if type(address) is not int or address not in self._by_address:
+            raise ImageError('download_symbol_address_unavailable')
+        return self._by_address[address]
+
+    def description(self):
+        return dict(status='retained',symbols=len(self._symbols),programs=len(self._image.programs),
+            source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
+            descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)
