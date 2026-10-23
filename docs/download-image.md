@@ -518,6 +518,36 @@ Program-collection failure after 349. Both preserve source/model and confirm
 actual Offline/cleanup without a reported SDK fault. All 195 affected checks
 pass; all 108 deployed modules, served assets and executable versions match.
 
+## Controller configuration
+
+Version `26.1023.170237` stages the observed 14-field Controller Set Attribute
+List after all original Tasks are configured. The supported profile is limited
+to a matching original v35 `1756-L85E` source, prepared programming owner and
+stopped Program mode. Current image, earlier effects and source bindings are
+rechecked before publishing the complete configuration. Unknown, repeated,
+missing, truncated, trailing or source-mismatched fields fail atomically.
+
+Null handlers, Security Code, source flags, pass-through mode and the 64-bit
+change-detection mask must match the source configuration. Explicit legacy time
+slice/share settings must match too. When those two settings are omitted, this
+download profile retains zero operands independently of the declared read
+defaults; neither changes scheduler behavior. Unsupported or missing settings
+remain errors. This is a compatibility profile, not native CPU scheduling.
+
+The two 32-byte State Detection operands support only the explicit all-zero
+reset profile. Their original bytes are retained as private properties;
+signatures are neither calculated nor verified, and live signature reads remain
+unavailable. Returned statuses preserve the request's field order.
+
+All 14 fields have private readback and a source/effect digest. Subsequent
+download catalog operations recheck both. Ending preparation, disconnect,
+expiry or source replacement discards this state with the owning namespace.
+Active tags, configuration, scheduling and audit values remain unchanged.
+
+An offline reconstruction checks the demo's exact native request against its
+original ACD/L5X-derived configuration and verifies preservation of the earlier
+335 effects. Complete native download and activation remain separate boundaries.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -28,6 +28,7 @@ from . import routine_state
 from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
 from .download_tasks import TaskBindings
+from .download_controller import ControllerBindings
 from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
@@ -595,6 +596,24 @@ class Router:
                     value=(tasks.create(path.instance,bindings) if inner[0]==8 else tasks.configure(path.instance,payload,bindings))
                     self.endpoint.record('native_download_task_'+('created' if inner[0]==8 else 'configured'),**tasks.description())
                     return reply(inner[0],0,value)
+            if inner[0]==4 and path.class_id==0x8E and payload[:2]==b'\x0e\0':
+                if (path.instance!=1 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None
+                        for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_download_controller_scope')
+                identity=self.app.native_project_identity
+                if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    namespace=lease.download_namespace
+                    if namespace is None:return reject(0x0C,'completed_download_namespace_required')
+                    self.require_download_namespace(lease,identity)
+                    namespace.tasks.require_configured(self.download_task_bindings(lease))
+                    if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    if limit<62:return reject(0x1B,'download_controller_reply_budget')
+                    value=namespace.controller.configure(payload,ControllerBindings(self.app.engine,namespace,identity))
+                    self.endpoint.record('native_download_controller_configured',**namespace.controller.description())
+                return reply(inner[0],0,value)
             if inner[0]==0x10 and path.class_id==0xF5:
                 if (path.instance!=0 or path.attribute!=101 or path.symbols or any(getattr(path,key) is not None
                         for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
@@ -1072,6 +1091,7 @@ class Router:
         lease.download_namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
             native_metadata_values=getattr(self.app,'native_metadata_values',None),header_bindings=self.download_header_bindings(lease),
             task_bindings=self.download_task_bindings(lease),
+            controller_bindings=ControllerBindings(self.app.engine,lease.download_namespace,identity),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 

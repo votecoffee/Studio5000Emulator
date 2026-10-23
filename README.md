@@ -6,11 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.165303`.** Versions use the release timestamp
+**Current app version: `26.1023.170237`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision handles the observed [embedded HTTP disable request](docs/download-image.md#embedded-http-disable)
+This revision stages the observed [Controller download configuration](docs/download-image.md#controller-configuration)
+after Task configuration. All 14 fields have checked private readback. Explicit
+source settings must match; omitted legacy slice settings use the observed zero
+download profile, and zero signature-reset operands remain separate from signature
+verification. Active configuration and scheduling remain unchanged until the
+unfinished transfer commit is implemented.
+
+Version `26.1023.165303` handles the observed [embedded HTTP disable request](docs/download-image.md#embedded-http-disable)
 after download Task configuration. It retains the endpoint's existing disabled
 state under the prepared owner's source checks. The local browser UI remains
 available. Functional upload/download remain the priority, followed by online
