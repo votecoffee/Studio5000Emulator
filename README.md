@@ -6,11 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.095449`.** Versions use the release timestamp
+**Current app version: `26.1023.102014`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds [isolated second-batch effects](docs/download-image.md#isolated-second-batch-effects).
+This revision adds [typed second-batch header updates](docs/download-image.md#typed-header-updates).
+It stages Symbol, Program, Routine and Local I/O Map properties with source-name,
+scope and backed-reference checks. Original Routine source-key metadata is
+preserved without interpretation. Offline reconstruction now models 333 of 335
+records; two inline router operations still prevent completion. All 235 affected
+checks pass. Full native transfers and Run-mode edits remain unfinished.
+
+Version `26.1023.095449` adds [isolated second-batch effects](docs/download-image.md#isolated-second-batch-effects).
 It stages source-matched metadata values and private whole-table bytes, checks
 empty diagnostic updates and models Program coordination. Offline reconstruction
 models 309 of the observed 335 records, preserving the completed image and active

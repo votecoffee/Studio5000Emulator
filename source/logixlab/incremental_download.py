@@ -13,6 +13,7 @@ from types import MappingProxyType
 from .download_image import ImageError
 from . import metadata_query
 from .native_metadata_values import NativeMetadataValues,encode_records
+from .download_headers import WIDTHS,path_key
 
 MAX_METADATA_VALUES=4096
 
@@ -49,14 +50,23 @@ class IncrementalDownload:
         self._image=None;self._binding=None;self._source=None;self._metadata_stamp=None
         self._metadata=();self._tables=MappingProxyType({});self._diagnostics=();self._coordination=()
         self.records=0;self.metadata_packets=0;self._unsupported=()
+        self._headers=MappingProxyType({});self._header_stamp=None
 
     @classmethod
-    def prepare(cls,batch,image,source,native_metadata_values=None):
+    def prepare(cls,batch,image,source,native_metadata_values=None,header_bindings=None):
         image.require_source(source)
         proposal=cls();metadata=[];tables={};diagnostics=[];coordination=[];held=set();seen=set()
         original=None;stamp=None;unsupported=Counter();modeled=packets=0
+        headers={};header_stamp=None
         for row in batch:
             leaf=row.scopes[-1];operation=(row.service,leaf.class_id)
+            if row.service==4 and leaf.class_id in WIDTHS and header_bindings is not None:
+                if header_stamp is None:header_stamp=header_bindings.stamp(image,source)
+                key=path_key(row)
+                if key[1] and key[1] not in held:raise ImageError('incremental_header_program_reservation_required')
+                key,values=header_bindings.check(row)
+                if key in headers:raise ImageError('incremental_duplicate_header_update')
+                headers[key]=values;modeled+=1;continue
             if operation not in ((0x4F,0x349),(0x50,0x6A),(4,0x3B2),(0x4B,0x74),(0x4C,0x74)):
                 unsupported[operation]+=1;continue
             if any(s.attribute is not None or s.symbolic or type(s.instance) is not int
@@ -110,29 +120,42 @@ class IncrementalDownload:
         if held:raise ImageError('incremental_program_coordination_incomplete')
         if stamp is not None and metadata_stamp(native_metadata_values,source)!=stamp:
             raise ImageError('incremental_metadata_source_changed')
+        if header_stamp is not None and header_bindings.stamp(image,source)!=header_stamp:
+            raise ImageError('incremental_header_source_changed')
         proposal._image=image;proposal._binding=image_binding(image);proposal._source=source;proposal._metadata_stamp=stamp
         proposal._metadata=tuple(metadata);proposal._tables=MappingProxyType(tables)
         proposal._diagnostics=tuple(diagnostics);proposal._coordination=tuple(coordination)
         proposal.records=modeled;proposal.metadata_packets=packets
+        proposal._headers=MappingProxyType(headers);proposal._header_stamp=header_stamp
         proposal._unsupported=tuple((service,cls,count) for (service,cls),count in sorted(unsupported.items()))
         return proposal
 
-    def validate(self,image,source,native_metadata_values=None):
+    def validate(self,image,source,native_metadata_values=None,header_bindings=None):
         image.require_source(source)
         if image is not self._image or source!=self._source or image_binding(image)!=self._binding:
             raise ImageError('incremental_base_image_changed')
         if self._metadata_stamp is not None and metadata_stamp(native_metadata_values,source)!=self._metadata_stamp:
             raise ImageError('incremental_metadata_source_changed')
+        if self._header_stamp is not None and (header_bindings is None or header_bindings.stamp(image,source)!=self._header_stamp):
+            raise ImageError('incremental_header_source_changed')
 
-    def read_metadata(self,ordinal,image,source,native_metadata_values):
-        self.validate(image,source,native_metadata_values)
+    def read_metadata(self,ordinal,image,source,native_metadata_values,header_bindings=None):
+        self.validate(image,source,native_metadata_values,header_bindings)
         if type(ordinal) is not int or not 0<=ordinal<len(self._metadata):raise ImageError('incremental_metadata_read_range')
         return self._metadata[ordinal]
 
-    def read_table(self,instance,image,source,native_metadata_values=None):
-        self.validate(image,source,native_metadata_values)
+    def read_table(self,instance,image,source,native_metadata_values=None,header_bindings=None):
+        self.validate(image,source,native_metadata_values,header_bindings)
         if type(instance) is not int or instance not in self._tables:raise ImageError('incremental_table_read_unavailable')
         return self._tables[instance].data
+
+    def read_attribute(self,class_id,program,instance,number,image,source,native_metadata_values=None,header_bindings=None):
+        self.validate(image,source,native_metadata_values,header_bindings)
+        if any(type(v) is not int for v in (class_id,program,instance,number)):
+            raise ImageError('incremental_header_read_invalid')
+        row=dict(self._headers.get((class_id,program,instance),()))
+        if number not in row:raise ImageError('incremental_header_read_unavailable')
+        return row[number]
 
     def description(self):
         return dict(status='partial' if self._unsupported else 'modeled' if self._image is not None else 'idle',
@@ -143,5 +166,7 @@ class IncrementalDownload:
             source_metadata_verified=self._metadata_stamp is not None,metadata_targets_resolved=False,
             table_writes=len(self._tables),table_bytes=sum(len(t.data) for t in self._tables.values()),
             diagnostic_empty_updates=len(self._diagnostics),coordination_records=len(self._coordination),
+            header_updates=len(self._headers),header_attributes=sum(len(v) for v in self._headers.values()),
+            opaque_symbol_controls=sum(k[0]==0x6B for k in self._headers),symbol_control_bits_interpreted=False,
             open_coordination=0,base_image_modified=False,active_catalog_replaced=False,
             execution_supported=False,completion_supported=False,commit=False,payloads_exposed=False)

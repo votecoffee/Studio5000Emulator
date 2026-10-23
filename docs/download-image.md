@@ -307,6 +307,45 @@ requests. Source and active model remain unchanged, actual Offline/cleanup
 is confirmed, and no SDK fault is reported. All 194 focused checks pass;
 the executable, browser and all 106 deployed app modules match this version.
 
+## Typed header updates
+
+Version `26.1023.102014` adds exact Set Attribute List profiles for temporary
+Symbol, Program, Routine and Local I/O Map headers. The installed v35 attribute
+definitions establish the wire field types. Every profile requires the exact
+field set, unique fields, correct extents and the original numeric parent scope.
+Field order may vary; trailing or truncated data is rejected atomically.
+
+Names and logical identities must match the original catalogs. Symbol value
+addresses and logical paths must refer to the retained table, Program or
+Routine, or the current interpreter Local I/O Map. Equivalent logical segment
+widths are accepted without replacing their bytes. The Task reference profile
+retains an explicit null data address and empty path with a matching source
+Task; it does not invent an allocated Task address.
+
+Routine headers require the original Type and opaque source-key bytes,
+ordinary untested RLL source and unsigned-source proof. Program headers check
+the main Routine reference, source-backed settings, absent output/fault lists,
+child list and bounded zero-stack profile. Scoped Symbol and Routine updates
+also require the batch's existing Program coordination reservation.
+
+The Local I/O Map uses only the exact software profile with Key Mask 0,
+Map Storage 1 and Mode 5, for a current canonical Local map. These retained
+scalars do not allocate physical map storage or operate I/O. Symbol Control
+DWORDs are retained as opaque properties; their bits are not interpreted or
+executed, and they are not claimed to match recovered source control flags.
+
+Scoped Routine reference data names are read from the validated original
+component's counted data-name field. They remain scoped metadata and do not
+enter the root Program/Task reference catalog or public tag storage. Older
+manifests without these optional names cannot supply guessed Routine aliases.
+
+Reconstruction of the received second batch now models 333 of 335 records,
+including all 24 header updates and their 184 attributes. Two router operations
+remain unsupported. Readback rechecks source catalogs, the base image and live
+map/object references. Base headers, table storage, active tags and logic remain
+unchanged. Start and execution status still reject incremental processing;
+neither a property snapshot nor opaque-byte retention establishes completion.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

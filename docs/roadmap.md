@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.102014` adds [typed second-batch headers](download-image.md#typed-header-updates).
+Twenty-four updates cover 184 attributes across Symbol, Program, Routine and
+Local I/O Map objects. Scope, source metadata and temporary object references
+are checked before retaining properties. Explicit scoped Routine data names
+are retained from their original components. Offline reconstruction models
+333 of 335 records, with two inline router operations still unresolved. All
+235 affected checks pass; processing/completion success is still withheld.
+
 Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects).
 Its pending proposal retains original-source metadata, private table bytes,
 validated empty diagnostic updates and paired Program coordination. Offline

@@ -8,6 +8,10 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.102014` adds [typed later-batch header updates](download-image.md#typed-header-updates)
+with source/scope checks and references to real staged objects. The two remaining
+router operations still prevent processing and completion success.
+
 Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects)
 for source-matched metadata, whole-table byte proposals, empty diagnostics and
 Program coordination. Partial coverage still denies processing and completion.

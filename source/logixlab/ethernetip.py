@@ -26,6 +26,7 @@ from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
 from .download_namespace import DownloadNamespace
+from .download_headers import HeaderBindings
 from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
@@ -422,7 +423,9 @@ class Router:
                             self.endpoint.record('native_incremental_transport_inspection',**inspection)
                             staged=lease.transport.prepare_incremental_payload(lease.download_namespace._image,
                                 Source(identity.source_acd_sha256,self.app.engine.project.sha256),
-                                getattr(self.app,'native_metadata_values',None))
+                                getattr(self.app,'native_metadata_values',None),
+                                HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,
+                                    self.app.native_auxiliary_symbols,getattr(self.app,'native_tasks',None),self.app.native_tables))
                             self.endpoint.record('native_incremental_download_staging',**staged)
                             return reject(0x0F,'incremental_download_processing_unimplemented')
                     if inner[0]==0x4D:

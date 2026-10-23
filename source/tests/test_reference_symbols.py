@@ -37,6 +37,26 @@ def reference_record(display='Program:ProgramA',instance=17,**kwargs):
 
 
 class ReferenceSourceTests(unittest.TestCase):
+    def test_scoped_routine_data_names_round_trip_without_entering_root_reference_discovery(self):
+        primary,_=bindings()
+        raw=database(*known(),reference_record('Routine:Logic',instance=2,parent=2))
+        rows=aux.symbol_paths(raw,primary)
+        self.assertEqual(rows,[dict(program_instance=2,instance=2,name='$00000002$',component_type=256,reference_name='Routine:Logic')])
+        catalog=aux.NativeAuxiliarySymbols('a'*64,'b'*64,rows)
+        self.assertEqual(aux.NativeAuxiliarySymbols.from_manifest(catalog.manifest(),'b'*64).manifest(),catalog.manifest())
+        class Project:sha256='b'*64
+        self.assertIsNone(ReferenceSymbols.from_source(Project(),None,None,None,catalog))
+        for parent,display in ((0,'Routine:Logic'),(2,'Program:ProgramA'),(2,'Task:TaskA')):
+            row=dict(program_instance=parent,instance=2,name='$00000002$',component_type=256,reference_name=display)
+            with self.assertRaises(ModelError):aux.NativeAuxiliarySymbols('a'*64,'b'*64,[row])
+
+    def test_scoped_routine_name_count_padding_and_identifier_are_source_checked(self):
+        primary,_=bindings()
+        bad=[reference_record('Routine:Bad Name',instance=2,parent=2),reference_record('Routine:',instance=2,parent=2)]
+        raw=bytearray(reference_record('Routine:Logic',instance=2,parent=2));raw[6+148+92+len('Routine:Logic')]=1;bad.append(bytes(raw))
+        for value in bad:
+            with self.assertRaises(ModelError):aux.symbol_paths(database(*known(),value),primary)
+
     def test_reader_retains_only_explicit_root_program_task_data_names_and_original_ids(self):
         primary,_=bindings()
         raw=database(*known(),reference_record(),reference_record('Task:TaskA',instance=18),

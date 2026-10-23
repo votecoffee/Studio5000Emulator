@@ -76,10 +76,10 @@ class ResilientTransport:
             raise TransportError(3,error.reason) from error
         return self.incremental_inspection
 
-    def prepare_incremental_payload(self,image,source,native_metadata_values=None):
+    def prepare_incremental_payload(self,image,source,native_metadata_values=None,header_bindings=None):
         self.inspect_incremental_payload()
         self.incremental=IncrementalDownload();self.incremental_error=None
-        try:self.incremental=IncrementalDownload.prepare(self._incremental_batch,image,source,native_metadata_values)
+        try:self.incremental=IncrementalDownload.prepare(self._incremental_batch,image,source,native_metadata_values,header_bindings)
         except ImageError as error:
             self.incremental_error=error.reason;raise
         return self.incremental.description()

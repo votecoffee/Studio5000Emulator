@@ -50,7 +50,7 @@ class ReferenceSymbols:
     def from_source(cls,project,identity,symbols,tasks,auxiliary):
         # Old optional manifests need not contain reference data names. They
         # remain comparison-only and never supply guessed public references.
-        candidates=[row for row in auxiliary.rows if row.reference_name is not None] if auxiliary else []
+        candidates=[row for row in auxiliary.rows if row.reference_name is not None and row.program_instance==0] if auxiliary else []
         if not candidates:return None
         if any(binding is None for binding in (identity,symbols,tasks)):
             return None

@@ -8,7 +8,7 @@ Tasks. They are separate from readable and writable tag values.
 
 The ACD auxiliary-symbol reader retains an optional explicit data name from
 root, format-63, component-256 records with the known fixed layout. Only
-`Program:<name>` and `Task:<name>` names are recognized. The original native
+`Program:<name>` and `Task:<name>` names supply root reference discovery. The original native
 Symbol ID is retained; no ID or target is inferred from its hash-style name.
 
 Public references require matching ACD/L5X hashes, native Project identity,
@@ -18,6 +18,12 @@ Periodic Tasks. Safety, folder, event and opaque kinds stay unavailable.
 All eligible targets must have their own reference. Unknown targets, duplicate
 references and root tag-ID/name collisions fail validation. Legacy auxiliary
 manifests without explicit data names retain their previous behavior.
+
+Version `26.1023.102014` also retains explicit `Routine:<name>` data names from
+Program-scoped components for [temporary download header checks](download-image.md#typed-header-updates).
+The source count, terminator, identifier and numeric Program parent must match
+the supported component layout. These scoped records are excluded from the
+root reference catalog and do not create runtime tags or aliases.
 
 The reference catalog and its descriptors are immutable. Discovery checks
 current source bindings, original IDs and target kinds. Stale or replaced

@@ -20,7 +20,7 @@ MAX_STREAM_BYTES=16_000_000
 MAX_RECORDS=200_000
 MAX_AUXILIARY=1024
 COMPONENT_TYPES=frozenset((256,264,1288))
-REFERENCE_NAME=re.compile(r'(?:Program|Task):[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
+REFERENCE_NAME=re.compile(r'(?:Program|Task|Routine):[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
 
 
 @dataclass(frozen=True)
@@ -38,9 +38,10 @@ class AuxiliarySymbol:
                 or not isinstance(self.name,str) or not 1<=len(self.name)<=61
                 or any(not 33<=ord(char)<=126 for char in self.name)):
             raise ModelError('Unsupported auxiliary Symbol identity')
-        if self.reference_name is not None and (self.program_instance!=0 or self.component_type!=256 or
+        if self.reference_name is not None and (self.component_type!=256 or
                 not re.fullmatch(r'\$[0-9a-fA-F]{8}\$',self.name) or
-                not isinstance(self.reference_name,str) or not REFERENCE_NAME.fullmatch(self.reference_name)):
+                not isinstance(self.reference_name,str) or not REFERENCE_NAME.fullmatch(self.reference_name)
+                or self.reference_name.startswith('Routine:')!=bool(self.program_instance)):
             raise ModelError('Unsupported native object reference Symbol')
 
     def manifest(self):
@@ -91,8 +92,9 @@ def symbol_paths(data,native_symbols):
         try:name=raw[:stop].decode('utf-16le')
         except UnicodeError as error:raise ModelError('Invalid auxiliary Symbol name') from error
         key=(parent,instance);reference_name=None
-        if (key not in known and parent==0 and component==256 and re.fullmatch(r'\$[0-9a-fA-F]{8}\$',name)
-                and (bytes(body[92:100])==b'Program:' or bytes(body[92:97])==b'Task:')):
+        if (key not in known and component==256 and re.fullmatch(r'\$[0-9a-fA-F]{8}\$',name)
+                and (parent==0 and (bytes(body[92:100])==b'Program:' or bytes(body[92:97])==b'Task:')
+                     or parent!=0 and bytes(body[92:100])==b'Routine:')):
             size=struct.unpack_from('<H',body,90)[0]
             if not 6<=size<=48 or body[92+size]!=0:raise ModelError('Invalid native reference Symbol data name bounds')
             try:reference_name=bytes(body[92:92+size]).decode('ascii')
