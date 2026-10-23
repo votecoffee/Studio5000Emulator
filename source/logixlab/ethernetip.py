@@ -596,7 +596,8 @@ class Router:
                     value=(tasks.create(path.instance,bindings) if inner[0]==8 else tasks.configure(path.instance,payload,bindings))
                     self.endpoint.record('native_download_task_'+('created' if inner[0]==8 else 'configured'),**tasks.description())
                     return reply(inner[0],0,value)
-            if inner[0]==4 and path.class_id==0x8E and payload[:2]==b'\x0e\0':
+            if (inner[0]==4 and path.class_id==0x8E and (payload[:2]==b'\x0e\0' or
+                    payload[:4] in (b'\1\0\x0a\0',b'\1\0\x0b\0',b'\1\0\x0c\0'))):
                 if (path.instance!=1 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None
                         for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
                     return reject(4,'invalid_download_controller_scope')
@@ -610,7 +611,7 @@ class Router:
                     self.require_download_namespace(lease,identity)
                     namespace.tasks.require_configured(self.download_task_bindings(lease))
                     if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
-                    if limit<62:return reject(0x1B,'download_controller_reply_budget')
+                    if limit<6+4*struct.unpack_from('<H',payload)[0]:return reject(0x1B,'download_controller_reply_budget')
                     value=namespace.controller.configure(payload,ControllerBindings(self.app.engine,namespace,identity))
                     self.endpoint.record('native_download_controller_configured',**namespace.controller.description())
                 return reply(inner[0],0,value)

@@ -6,16 +6,27 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.170237`.** Versions use the release timestamp
+**Current app version: `26.1023.170949`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision stages the observed [Controller download configuration](docs/download-image.md#controller-configuration)
+This revision adds the three separate [Controller settings writes](docs/download-image.md#additional-controller-settings)
+following the base configuration: retain test edits and the two memory spare
+percentages. Each requires the original source value and preserves all earlier
+staged properties. Functional native transfers remain unfinished; online-edit
+work follows upload/download.
+
+Version `26.1023.170237` stages the observed [Controller download configuration](docs/download-image.md#controller-configuration)
 after Task configuration. All 14 fields have checked private readback. Explicit
 source settings must match; omitted legacy slice settings use the observed zero
 download profile, and zero signature-reset operands remain separate from signature
 verification. Active configuration and scheduling remain unchanged until the
 unfinished transfer commit is implemented.
+The native SDK accepts all 14 fields and advances to three separate Controller
+settings writes. Download stops there after 203 verified requests; upload still
+fails Program collection after 349. Both preserve source/model and complete
+actual Offline/cleanup without a reported SDK fault. All 221 affected checks
+pass; all 109 deployed modules, executable and browser versions match.
 
 Version `26.1023.165303` handles the observed [embedded HTTP disable request](docs/download-image.md#embedded-http-disable)
 after download Task configuration. It retains the endpoint's existing disabled

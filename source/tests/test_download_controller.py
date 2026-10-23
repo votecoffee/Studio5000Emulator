@@ -19,7 +19,8 @@ def source_configuration(app):
         time_slice=20,share_unused_time_slice=1,time_slice_defaulted=True,share_unused_defaulted=True,
         pass_through_configuration='EnabledWithAppend',match_project_to_controller=False,
         automatic_firmware_update_inhibit=0,can_use_rpi_from_producer=False,
-        report_minor_overflow=False,automatic_diagnostics_enabled=True,changes_to_detect=2**64-1)
+        report_minor_overflow=False,automatic_diagnostics_enabled=True,changes_to_detect=2**64-1,
+        continue_test_edits=False,io_memory_pad_percentage=0,data_table_pad_percentage=0)
 
 
 def payload(values=None):
@@ -69,6 +70,17 @@ class ControllerModelTests(unittest.TestCase):
         values=attributes(payload());values.update({3:struct.pack('<H',30),16:b'\1\0'})
         self.stage.configure(payload(values),self.bindings);self.stage.validate(self.bindings)
 
+    def test_single_settings_require_base_and_source_values_then_preserve_all_prior_fields(self):
+        with self.assertRaises(ImageError):self.stage.configure(payload({10:b'\0'}),self.bindings)
+        self.stage.configure(payload(),self.bindings)
+        for number,width in ((10,1),(11,2),(12,2)):
+            self.assertEqual(self.stage.configure(payload({number:bytes(width)}),self.bindings),struct.pack('<HHH',1,number,0))
+            before=dict(self.stage._values)
+            with self.assertRaises(ImageError):self.stage.configure(payload({number:b'\1'+bytes(width-1)}),self.bindings)
+            self.assertEqual(dict(self.stage._values),before)
+        self.stage.configure(payload(),self.bindings)
+        self.assertEqual(len(self.stage._values),17);self.stage.validate(self.bindings)
+
     def test_missing_configuration_changed_source_runtime_and_effects_revoke_authority(self):
         for case in ('missing','identity','processor','runtime','configuration','effect'):
             with self.subTest(case=case):
@@ -97,6 +109,10 @@ class ControllerSignedTests(NamespaceFixture,unittest.TestCase):
         response=self.send(raw);self.assertEqual(response[2],0);self.assertEqual(len(response),62)
         self.assertEqual(self.send(ENUM)[2],0)
         self.assertEqual(self.namespace.controller.description()['attributes'],14)
+        for number,width in ((10,1),(11,2),(12,2)):
+            self.assertEqual(self.send(bytes.fromhex('0402208e2401')+payload({number:bytes(width)})),
+                bytes.fromhex('84000000')+struct.pack('<HHH',1,number,0))
+        self.assertEqual(self.namespace.controller.description()['attributes'],17)
         self.assertEqual(self.send(bytes.fromhex('0e03208e24013003'))[4:],struct.pack('<H',20))
         self.assertEqual(self.app.engine.memory.values,memory);self.assertEqual(self.app.engine.scan_count,0)
         self.assertEqual(self.send(prep.END)[2],0);self.assertIsNone(self.endpoint.programming_lease.download_namespace)

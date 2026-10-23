@@ -5,17 +5,20 @@ from types import MappingProxyType
 from .download_image import ImageError
 
 WIDTHS={1:4,6:4,3:2,13:4,15:1,16:2,17:1,23:1,28:8,25:4,31:1,35:1,33:32,34:32}
+SETTINGS={10:1,11:2,12:2}
 
 
 def attributes(payload):
     if not isinstance(payload,bytes) or len(payload)<2:raise ImageError('download_controller_attribute_extent')
-    if struct.unpack_from('<H',payload)[0]!=len(WIDTHS):raise ImageError('download_controller_attribute_profile')
+    count=struct.unpack_from('<H',payload)[0]
+    widths=WIDTHS if count==len(WIDTHS) else SETTINGS if count==1 else {}
+    if not widths:raise ImageError('download_controller_attribute_profile')
     offset=2;values={}
-    for _ in WIDTHS:
+    for _ in range(count):
         if offset+2>len(payload):raise ImageError('download_controller_attribute_extent')
         number=struct.unpack_from('<H',payload,offset)[0];offset+=2
-        if number not in WIDTHS or number in values:raise ImageError('download_controller_attribute_profile')
-        end=offset+WIDTHS[number]
+        if number not in widths or number in values:raise ImageError('download_controller_attribute_profile')
+        end=offset+widths[number]
         if end>len(payload):raise ImageError('download_controller_attribute_extent')
         values[number]=payload[offset:end];offset=end
     if offset!=len(payload):raise ImageError('download_controller_attribute_extent')
@@ -49,6 +52,11 @@ class ControllerBindings:
         return hashlib.sha256(repr((id(project),self.namespace._source,project.processor,
             project.controller_configuration,expected)).encode()).hexdigest()
 
+    def settings(self):
+        self.expected()
+        values=self.engine.project.controller_configuration.compatibility_attributes()
+        return {n:values[n] for n,size in SETTINGS.items() if n in values and len(values[n])==size}
+
 
 class DownloadController:
     def __init__(self):
@@ -59,16 +67,23 @@ class DownloadController:
             if self._values or self._digest is not None:raise ImageError('download_controller_effect_changed')
             return
         if bindings is None or bindings.stamp()!=self._binding:raise ImageError('download_controller_binding_changed')
-        if (tuple(sorted(self._values.items()))!=bindings.expected() or
+        expected=dict(bindings.expected())
+        expected.update({n:v for n,v in bindings.settings().items() if n in self._values})
+        if (dict(self._values)!=expected or
                 hashlib.sha256(repr(tuple(sorted(self._values.items()))).encode()).hexdigest()!=self._digest):
             raise ImageError('download_controller_effect_changed')
 
     def configure(self,payload,bindings):
         self.validate(bindings);stamp=bindings.stamp();values=attributes(payload)
-        if tuple(sorted(values.items()))!=bindings.expected():raise ImageError('download_controller_configuration_mismatch')
+        if len(values)==1:
+            if self._binding is None:raise ImageError('download_controller_base_configuration_required')
+            if any(bindings.settings().get(n)!=v for n,v in values.items()):
+                raise ImageError('download_controller_configuration_mismatch')
+        elif tuple(sorted(values.items()))!=bindings.expected():raise ImageError('download_controller_configuration_mismatch')
         if bindings.stamp()!=stamp:raise ImageError('download_controller_binding_changed')
-        self._values=MappingProxyType(values);self._binding=stamp
-        self._digest=hashlib.sha256(repr(tuple(sorted(values.items()))).encode()).hexdigest()
+        updated=dict(self._values);updated.update(values)
+        self._values=MappingProxyType(updated);self._binding=stamp
+        self._digest=hashlib.sha256(repr(tuple(sorted(updated.items()))).encode()).hexdigest()
         self.validate(bindings)
         return struct.pack('<H',len(values))+b''.join(struct.pack('<HH',n,0) for n in values)
 

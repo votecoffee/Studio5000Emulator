@@ -548,6 +548,27 @@ An offline reconstruction checks the demo's exact native request against its
 original ACD/L5X-derived configuration and verifies preservation of the earlier
 335 effects. Complete native download and activation remain separate boundaries.
 
+The native `26.1023.170237` SDK download accepts all 14 fields and advances to
+three separate Controller updates, for attributes 10, 11 and 12. Those requests
+remain denied in that version; download reports `RxCsE_ASA_NO_PERMISSION` after
+203 verified requests. Upload retains its Program-collection failure after 349.
+Source/model preservation, actual Offline/cleanup and no reported SDK fault are
+confirmed. All 221 affected checks pass; all 109 deployed modules and packaged
+and served versions match.
+
+### Additional Controller settings
+
+Version `26.1023.170949` supports the observed one-field Set Attribute List
+profiles for retain-test-edits (10) and the I/O/Data Table spare-memory
+percentages (11/12). Each requires the base 14-field configuration, current
+prepared owner, complete Tasks and an exact original source value of the
+documented width. Missing source values do not become zero.
+
+These properties extend the same private configuration and preserve earlier
+fields when the base packet repeats. Invalid requests never publish partial
+properties. Source/effect checks and cleanup apply to all 17 retained fields;
+the active configuration, scheduler and audit value remain unchanged.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
