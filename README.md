@@ -6,11 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.083349`.** Versions use the release timestamp
+**Current app version: `26.1023.085003`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds capture-informed [temporary Data Table enumeration](docs/download-image.md#completed-download-symbol-catalog).
+This revision adds capture-informed [temporary Program and Routine enumeration](docs/download-image.md#completed-program-and-routine-catalogs).
+The downloading client can enumerate headers backed by its own completed image,
+with exact parent scope, bounded pages and original source/type/object checks.
+These handles do not install native code or replace the active project.
+
+Version `26.1023.083349` adds capture-informed [temporary Data Table enumeration](docs/download-image.md#completed-download-symbol-catalog).
 Descriptor handles and value addresses resolve to the completed image's own
 typed tables and bounded storage; they do not expose physical memory.
 Native SDK download accepts all 16 table rows and both Program-scoped Symbols,
@@ -23,7 +28,7 @@ transport deletion, including internal Symbols and otherwise hidden tags.
 Native download accepts all 18 controller Symbols and advances to the Data
 Table query across 180 verified requests. It still reports tag download failure.
 
-On the current build, two SDK `FinalizeEdits` imports and reconnects pass across
+On `26.1023.083349`, two SDK `FinalizeEdits` imports and reconnects pass across
 299 verified requests in stopped Program mode. Tag values remain unchanged
 until a model scan executes both edits. Normal upload still stops at Program
 collection after 349 verified requests. All three cases confirm source

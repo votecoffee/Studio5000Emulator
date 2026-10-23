@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.085003` adds [temporary Program and Routine enumeration](download-image.md#completed-program-and-routine-catalogs).
+The observed Routine attribute 8 and Program attribute 16 profiles return
+instance/header pairs backed by retained source-checked objects. Routine IDs
+remain scoped to their Program. Pagination, current binding checks and lease
+cleanup preserve separation from active catalogs and other clients. Native
+binary execution and active-project commit remain separate goals.
+
 Version `26.1023.083349` adds [temporary Data Table enumeration](download-image.md#completed-download-symbol-catalog),
 with descriptor handles and value addresses backed by retained typed objects
 and bounded storage. Native download accepts all 16 table rows and both

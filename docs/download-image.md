@@ -176,6 +176,24 @@ source/model and confirms actual SDK Offline and endpoint cleanup without a
 reported SDK fault. Its next query requests Symbol attribute 5. This progress
 does not establish complete tag transfer or a successful native download.
 
+## Completed Program and Routine catalogs
+
+Version `26.1023.085003` extends the retained temporary namespace with Routine
+header enumeration (class `0x6D`, service `0x55`, attribute 8) and Program header
+enumeration (class `0x68`, service `0x55`, attribute 16). The observed profiles
+return eight-byte instance/header pairs. Routine requests require the original
+Program parent; controller-scoped and AOI-scoped Routine requests remain
+unsupported by this temporary-image profile.
+
+Each header handle resolves to a retained typed object or Program identity,
+with the same source, catalog, operation-effect and owning-lease checks as
+Symbols and tables. It is a model reference rather than physical memory or a
+compiled code entry point. Enumerations preserve instance ordering, reply
+budgets and continuation, including equal Routine IDs in different Programs.
+Cleanup drops all four catalogs together. Other clients continue to use the
+active runtime catalog. No compiled code, initial values or active project are
+installed by these reads.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

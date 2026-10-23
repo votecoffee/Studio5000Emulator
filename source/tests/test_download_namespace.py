@@ -7,7 +7,7 @@ import unittest
 import zlib
 
 from logixlab.download_image import ImageError,Source
-from logixlab.download_namespace import DownloadNamespace,SYMBOL_BASE,SYMBOL_STRIDE,TABLE_BASE,VALUE_BASE
+from logixlab.download_namespace import DownloadNamespace,SYMBOL_BASE,SYMBOL_STRIDE,TABLE_BASE,VALUE_BASE,ROUTINE_BASE,PROGRAM_BASE
 from logixlab.resilient_transport import ResilientTransport
 from test_native_types import catalog,source_types
 from test_source_object_verification import bindings
@@ -16,9 +16,12 @@ import test_download_image as images
 import test_programming_preparation as prep
 import test_programming_lease as leases
 import test_resilient_transport as transport
+import test_object_staging as objects
 
 ENUM=bytes.fromhex('5502206b240001000500')
 TABLE_ENUM=bytes.fromhex('5502206a2400020003000700')
+ROUTINE_ENUM=bytes.fromhex('550420682402206d240001000800')
+PROGRAM_ENUM=bytes.fromhex('55022068240001001000')
 STATUS=bytes.fromhex('4d03210012042400')
 
 
@@ -79,6 +82,47 @@ class NamespaceTests(unittest.TestCase):
         for address in (TABLE_BASE+1,VALUE_BASE,True):
             with self.assertRaises(ImageError):self.namespace.resolve_table(address)
 
+    def test_program_and_routine_handles_resolve_retained_objects_after_transport_delete(self):
+        self.stage.clear();self.namespace.validate(self.source,self.native,**self.catalogs)
+        self.assertEqual(self.namespace.routine_page(2,0,8),(False,struct.pack('<II',1,ROUTINE_BASE)))
+        self.assertEqual(self.namespace.program_page(0,8),(False,struct.pack('<II',2,PROGRAM_BASE)))
+        routine=self.namespace.resolve_routine(ROUTINE_BASE)
+        self.assertEqual((routine.program,routine.instance,routine.create_word),(2,1,0))
+        self.assertEqual(self.namespace.resolve_program(PROGRAM_BASE).instance,2)
+        self.assertEqual(self.namespace.routine_page(2,2,8),(False,b''))
+        self.assertEqual(self.namespace.program_page(3,8),(False,b''))
+        for address in (ROUTINE_BASE+1,PROGRAM_BASE,True):
+            with self.assertRaises(ImageError):self.namespace.resolve_routine(address)
+        for address in (PROGRAM_BASE+1,ROUTINE_BASE,True):
+            with self.assertRaises(ImageError):self.namespace.resolve_program(address)
+        for args in ((0,0,8),(3,0,8),(True,0,8),(2,-1,8),(2,0,7),(2,0,-1)):
+            with self.assertRaises(ImageError):self.namespace.routine_page(*args)
+        for args in ((0,7),(True,8),(-1,8),(0,-1)):
+            with self.assertRaises(ImageError):self.namespace.program_page(*args)
+
+    def test_program_and_routine_pages_sort_scope_and_resume_through_real_prepared_objects(self):
+        from logixlab.native_symbols import NativeSymbols
+        from logixlab.native_routines import NativeRoutines
+        original=self.catalogs['native_symbols'];routines=self.catalogs['native_routines']
+        rows=images.batch()+(objects.coordinate(2),objects.request(0x6D,3,b'\0\0',program=2),objects.coordinate(2,False),
+            objects.request(0x68,4),objects.coordinate(4),objects.request(0x6D,1,b'\0\0',program=4),objects.coordinate(4,False))
+        symbols=NativeSymbols('a'*64,'b'*64,list(original.by_key.values()),
+            programs=[dict(name='ProgramB',instance=4),dict(name='ProgramA',instance=2)])
+        names=[row.manifest() for row in routines.rows]+[
+            dict(program='ProgramA',name='Other',program_instance=2,instance=3),
+            dict(program='ProgramB',name='Other',program_instance=4,instance=1)]
+        catalogs=dict(native_symbols=symbols,native_routines=NativeRoutines('a'*64,'b'*64,names))
+        stage=ResilientTransport();expanded=b''.join(payloads.record(row.request) for row in rows)
+        payloads.fill(stage,payloads.container(zlib.compress(expanded)),expanded)
+        stage.inspect_payload(self.native,**catalogs);stage.start_prepared_image()
+        namespace=DownloadNamespace(stage,self.native,**catalogs);stage.clear()
+        namespace.validate(self.source,self.native,**catalogs)
+        self.assertEqual(namespace.program_page(0,8),(True,struct.pack('<II',2,PROGRAM_BASE)))
+        self.assertEqual(namespace.program_page(3,8),(False,struct.pack('<II',4,PROGRAM_BASE+32)))
+        self.assertEqual(namespace.routine_page(2,0,8),(True,struct.pack('<II',1,ROUTINE_BASE)))
+        self.assertEqual(namespace.routine_page(2,2,8),(False,struct.pack('<II',3,ROUTINE_BASE+32)))
+        self.assertEqual(namespace.routine_page(4,0,8),(False,struct.pack('<II',1,ROUTINE_BASE+64)))
+
 
 class NamespaceSignedTests(unittest.TestCase):
     setUp=payloads.InspectionSignedTests.setUp
@@ -125,6 +169,28 @@ class NamespaceSignedTests(unittest.TestCase):
         self.assertEqual(self.send(TABLE_ENUM[:-2]+b'\x08\0')[2],0x14)
         self.assertEqual(self.app.engine.memory.values,before)
         self.assertEqual(self.endpoint.counts['native_download_table_pages'],1)
+
+    def test_program_and_routine_enumeration_are_source_bound_owner_only_and_preserve_runtime(self):
+        self.retain();before=copy.deepcopy(self.app.state())
+        for query,expected in ((ROUTINE_ENUM,struct.pack('<II',1,ROUTINE_BASE)),(PROGRAM_ENUM,struct.pack('<II',2,PROGRAM_BASE))):
+            self.assertEqual(self.send(query),bytes.fromhex('d5000000')+expected)
+        first=self.client;second=self.second_client()
+        try:
+            self.client=second
+            self.assertEqual(self.signed(4,ROUTINE_ENUM)[2],15)
+            self.assertEqual(self.signed(5,PROGRAM_ENUM)[2],15)
+        finally:self.client=first;second.close()
+        for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
+        self.app.native_routines=None
+        for query in (ROUTINE_ENUM,PROGRAM_ENUM):self.assertEqual(self.send(query)[2],12)
+
+    def test_routine_parent_and_exact_attribute_profiles_are_required(self):
+        self.retain()
+        for query,status in ((bytes.fromhex('5502206d240001000800'),4),
+                (bytes.fromhex('5505210038032402206d240001000800'),4),
+                (ROUTINE_ENUM[:-2]+b'\x09\0',0x14),(PROGRAM_ENUM[:-2]+b'\x05\0',0x14),
+                (ROUTINE_ENUM.replace(b'\x68\x24\x02',b'\x68\x24\x03'),12)):
+            with self.subTest(query=query.hex()):self.assertEqual(self.send(query)[2],status)
 
     def test_delete_before_result_query_does_not_retain_namespace(self):
         self.object_source_fixture();self.assertEqual(self.send(payloads.INSPECT)[2],0)

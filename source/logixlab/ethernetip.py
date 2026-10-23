@@ -530,18 +530,22 @@ class Router:
                 # Only the captured selector-token profile is implemented.
                 # The CRC protects these four payload bytes, not the Program.
                 return reply(inner[0],0,program_query.body(selector))
-            if inner[0]==0x55 and path.class_id in (0x6A,0x6B):
+            if inner[0]==0x55 and path.class_id in (0x68,0x6A,0x6B,0x6D):
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
                     if (lease.live(self.app.generation,self.app.engine.project.sha256)
                             and lease.owner is native and lease.download_namespace is not None):
                         lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
-                        self.symbol_scope(path)
-                        if path.attribute is not None or path.symbols:return reject(4,'invalid_download_catalog_scope')
-                        if path.class_id==0x6B and payload!=b'\1\0\5\0':
-                            return reject(0x14,'unsupported_download_symbol_attribute')
-                        if path.class_id==0x6A and (path.program_instance is not None or payload!=b'\2\0\3\0\7\0'):
-                            return reject(0x14,'unsupported_download_table_attributes')
+                        if (path.attribute is not None or path.symbols or any(getattr(path,key) is not None
+                                for key in ('io_map_instance','controller_instance','aoi_instance'))):
+                            return reject(4,'invalid_download_catalog_scope')
+                        if path.class_id in (0x68,0x6A) and path.program_instance is not None:
+                            return reject(4,'invalid_download_catalog_scope')
+                        if path.class_id==0x6D and path.program_instance is None:
+                            return reject(4,'download_routine_program_required')
+                        if path.class_id==0x6B:self.symbol_scope(path)
+                        expected={0x68:b'\1\0\x10\0',0x6A:b'\2\0\3\0\7\0',0x6B:b'\1\0\5\0',0x6D:b'\1\0\x08\0'}
+                        if payload!=expected[path.class_id]:return reject(0x14,'unsupported_download_catalog_attributes')
                         identity=self.app.native_project_identity
                         if identity is None:return reject(0x0C,'source_correlation_unavailable')
                         namespace=lease.download_namespace
@@ -551,9 +555,15 @@ class Router:
                         if path.class_id==0x6B:
                             partial,value=namespace.symbol_page(path.program_instance or 0,path.instance or 0,limit-4)
                             self.endpoint.counts['native_download_symbol_pages']+=1
-                        else:
+                        elif path.class_id==0x6A:
                             partial,value=namespace.table_page(path.instance or 0,limit-4)
                             self.endpoint.counts['native_download_table_pages']+=1
+                        elif path.class_id==0x6D:
+                            partial,value=namespace.routine_page(path.program_instance,path.instance or 0,limit-4)
+                            self.endpoint.counts['native_download_routine_pages']+=1
+                        else:
+                            partial,value=namespace.program_page(path.instance or 0,limit-4)
+                            self.endpoint.counts['native_download_program_pages']+=1
                         return reply(inner[0],6 if partial else 0,value)
             if (inner[0] in (1,3,0x0E) and path.class_id is not None or
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or

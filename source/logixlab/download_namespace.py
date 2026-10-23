@@ -14,6 +14,8 @@ SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
 TABLE_BASE=0x71000000
 VALUE_BASE=0x72000000
+ROUTINE_BASE=0x73000000
+PROGRAM_BASE=0x74000000
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,19 @@ class SymbolHandle:
 class TableHandle:
     address:int
     value_address:int
+    instance:int
+
+
+@dataclass(frozen=True)
+class RoutineHandle:
+    address:int
+    program:int
+    instance:int
+
+
+@dataclass(frozen=True)
+class ProgramHandle:
+    address:int
     instance:int
 
 
@@ -52,6 +67,12 @@ class DownloadNamespace:
             offset+=(len(self._image._regions[instance].data)+7)//8*8
         self._tables=tuple(tables)
         self._table_addresses=MappingProxyType({row.address:row for row in self._tables})
+        self._routines=tuple(RoutineHandle(ROUTINE_BASE+slot*32,row.program,row.instance)
+            for slot,row in enumerate(sorted(self._image.routines,key=lambda r:(r.program,r.instance))))
+        self._routine_addresses=MappingProxyType({row.address:row for row in self._routines})
+        self._programs=tuple(ProgramHandle(PROGRAM_BASE+slot*32,instance)
+            for slot,instance in enumerate(sorted(self._image.programs)))
+        self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
     def validate(self,source,native_types,**catalogs):
         self._image.require_source(source)
@@ -111,7 +132,36 @@ class DownloadNamespace:
                 return self._image.read_table(row.instance,address-row.value_address,count,self._source)
         raise ImageError('download_value_address_unavailable')
 
+    def routine_page(self,program,start,budget):
+        if (any(type(value) is not int for value in (program,start,budget))
+                or not 1<=program<=0xFFFFFFFF or not 0<=start<=0xFFFFFFFF or budget<0):
+            raise ImageError('invalid_download_routine_page')
+        if program not in self._image.programs:raise ImageError('download_routine_program_unavailable')
+        rows=[row for row in self._routines if row.program==program and row.instance>=start]
+        count=min(len(rows),budget//8)
+        if rows and not count:raise ImageError('download_routine_reply_budget')
+        return count<len(rows),b''.join(struct.pack('<II',row.instance,row.address) for row in rows[:count])
+
+    def resolve_routine(self,address):
+        if type(address) is not int or address not in self._routine_addresses:
+            raise ImageError('download_routine_address_unavailable')
+        handle=self._routine_addresses[address]
+        return next(row for row in self._image.routines if (row.program,row.instance)==(handle.program,handle.instance))
+
+    def program_page(self,start,budget):
+        if type(start) is not int or not 0<=start<=0xFFFFFFFF or type(budget) is not int or budget<0:
+            raise ImageError('invalid_download_program_page')
+        rows=[row for row in self._programs if row.instance>=start]
+        count=min(len(rows),budget//8)
+        if rows and not count:raise ImageError('download_program_reply_budget')
+        return count<len(rows),b''.join(struct.pack('<II',row.instance,row.address) for row in rows[:count])
+
+    def resolve_program(self,address):
+        if type(address) is not int or address not in self._program_addresses:
+            raise ImageError('download_program_address_unavailable')
+        return self._program_addresses[address]
+
     def description(self):
-        return dict(status='retained',symbols=len(self._symbols),tables=len(self._tables),programs=len(self._image.programs),
+        return dict(status='retained',symbols=len(self._symbols),tables=len(self._tables),programs=len(self._programs),routines=len(self._routines),
             source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)
