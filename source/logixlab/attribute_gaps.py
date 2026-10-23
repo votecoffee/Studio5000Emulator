@@ -43,7 +43,7 @@ NAMES = {
            34:'State Detection Static Signature Test',35:'Automatic Diagnostics Enable'},
     0xF6: {1: 'Interface speed', 2: 'Interface flags', 3: 'MAC address',
            4: 'Interface counters', 5: 'Media counters', 6: 'Interface control',
-           7: 'Interface type', 8: 'Interface state', 9: 'Administrative state'},
+           7: 'Interface type', 8: 'Interface state', 9: 'Administrative state',10:'Interface label'},
     0xF5: {1: 'Configuration status', 2: 'Configuration capability',
            3: 'Configuration control', 4: 'Physical link', 5: 'IPv4 configuration', 6: 'Host name',
            101: 'Embedded web server enable', 102: 'Embedded web server status'},

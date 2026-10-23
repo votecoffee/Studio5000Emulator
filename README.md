@@ -6,13 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.173828`.** Versions use the release timestamp
+**Current app version: `26.1023.175203`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds a bounded [Logix family marker](docs/download-image.md#logix-family-marker)
+This revision adds the read-only Ethernet Link interface label used by native
+download setup. It returns the selected local OS interface name with the
+installed v35 byte-counted layout; unavailable names remain explicit errors.
+All 317 affected checks pass. Complete native upload/download remain unfinished.
+
+Version `26.1023.173828` adds a bounded [controller profile marker](docs/download-image.md#controller-profile-marker)
 for the post-configuration `ProjectType` metadata request. It requires a matching
-complete v35 Logix source and the original numeric metadata schema. Stored
+complete v35 L85E source and the original numeric metadata schema. Stored
 properties take precedence; active metadata and controller identity stay unchanged.
 Complete native upload/download remain unfinished.
 

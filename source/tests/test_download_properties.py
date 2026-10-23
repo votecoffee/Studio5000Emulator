@@ -120,13 +120,13 @@ class PropertySignedTests(NamespaceFixture,unittest.TestCase):
         self.configure();project=self.app.engine.project
         marker=replace(self.number,definition=36,target=replace(self.number.target,qualifier=b'ProjectType'),data=b'L\0\0\0')
         self.assertEqual(self.send(request((marker,)))[2],0)
-        self.assertTrue(self.namespace.properties.description()['logix_family_marker'])
+        self.assertTrue(self.namespace.properties.description()['controller_profile_marker'])
         self.assertEqual(self.send(ENUM)[2],0)
         self.assertEqual(self.namespace.properties.read(0,self.namespace._source,self.values,project).data,b'L\0\0\0')
         with self.assertRaises(ImageError):self.namespace.properties.read(0,self.namespace._source,self.values)
         project.version='34';self.assertEqual(self.send(ENUM)[2],12)
 
-    def test_wrong_family_marker_or_an_existing_conflicting_source_value_cannot_use_fallback(self):
+    def test_wrong_profile_marker_or_an_existing_conflicting_source_value_cannot_use_fallback(self):
         self.configure();project=self.app.engine.project
         marker=replace(self.number,definition=36,target=replace(self.number.target,qualifier=b'ProjectType'),data=b'L\0\0\0')
         wrong=replace(marker,data=b'X\0\0\0',record_word=len(self.values.rows)+1)
@@ -136,4 +136,4 @@ class PropertySignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(request((marker,)))[2],12)
         self.assertEqual(self.namespace.properties.description()['values'],0)
         self.assertEqual(self.send(request((wrong,)))[2],0)
-        self.assertFalse(self.namespace.properties.description()['logix_family_marker'])
+        self.assertFalse(self.namespace.properties.description()['controller_profile_marker'])

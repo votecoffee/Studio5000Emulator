@@ -66,6 +66,14 @@ class InterfaceSnapshot:
                 'tcpip_configuration': self.tcpip.description() if self.tcpip else None,
                 'writable': False, 'captured_on_first_query': True}
 
+    def interface_label(self):
+        """Installed v35 Ethernet Link field 10: a byte count and 64 characters."""
+        if not isinstance(self.name, str):return None
+        try:raw=self.name.encode('ascii')
+        except UnicodeEncodeError:return None
+        if not 1<=len(raw)<=64 or any(c<32 or c>126 for c in raw):return None
+        return bytes((len(raw),))+raw
+
 
 def linux_snapshot(address):
     rows=linux_ipv4_addresses();selected=next((row for row in rows if row.address==address),None)

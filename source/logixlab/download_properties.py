@@ -1,4 +1,4 @@
-"""Original Controller metadata and a bounded, source-bound Logix family marker."""
+"""Original Controller metadata and a bounded, source-bound v35 L85E controller-profile marker."""
 import hashlib
 from types import MappingProxyType
 from .download_image import ImageError
@@ -16,21 +16,21 @@ MAX_PACKETS=256
 def key(row):return row.target,row.locale_word,row.definition
 
 
-def family_profile(project,source):
+def controller_profile(project,source):
     if (not isinstance(project,Project) or project.sha256!=source.l5x_sha256
             or project.version!='35' or project.processor!='1756-L85E'
             or not project.task_configuration.source_complete or not project.executable_configuration.source_complete
             or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
-        raise ImageError('download_property_logix_source_required')
+        raise ImageError('download_property_controller_profile_required')
     return id(project),project.sha256,project.version,project.processor
 
 
-def family_marker(row,values):
-    # The observed v35 Logix discriminator is ASCII L in SystemNumeric metadata.
+def profile_marker(row,values):
+    # The tested v35 L85E client emits 0x4C in SystemNumeric metadata.
     # A stored property still takes precedence; this cannot replace its value.
     return (row.target.class_id==0x8E and row.target.instance_word==1 and not row.target.context_word and not row.target.selector_word
         and row.target.qualifier==b'ProjectType' and row.locale_word==0x7F and row.kind==2
-        and row.type_code==0xC4 and row.elements==1 and row.data==ord('L').to_bytes(4,'little')
+        and row.type_code==0xC4 and row.elements==1 and row.data==(0x4C).to_bytes(4,'little')
         and any(d.instance==row.definition and d.name=='SystemNumeric' for d in values.definitions.rows)
         and any(r.target.class_id==0x349 and r.target.instance_word==row.definition and not r.target.context_word
             and not r.target.selector_word and not r.target.qualifier and r.definition==17 and r.locale_word==0x7F
@@ -39,26 +39,26 @@ def family_marker(row,values):
 
 class DownloadProperties:
     def __init__(self):
-        self._values=MappingProxyType({});self._packets=();self._source=None;self._binding=None;self._effect=None;self._family=None
+        self._values=MappingProxyType({});self._packets=();self._source=None;self._binding=None;self._effect=None;self._profile=None
 
     def _digest(self):
         rows=tuple(sorted(self._values.items(),key=lambda pair:repr(pair[0])))
-        return hashlib.sha256(repr((rows,self._packets,self._family)).encode()).hexdigest()
+        return hashlib.sha256(repr((rows,self._packets,self._profile)).encode()).hexdigest()
 
     def validate(self,source,values,project=None):
         if self._binding is None:
-            if self._values or self._packets or self._source is not None or self._effect is not None or self._family is not None:
+            if self._values or self._packets or self._source is not None or self._effect is not None or self._profile is not None:
                 raise ImageError('download_property_effect_changed')
             return
         if source!=self._source or metadata_stamp(values,source)!=self._binding:
             raise ImageError('download_property_source_changed')
         if self._digest()!=self._effect:raise ImageError('download_property_effect_changed')
-        if self._family is not None and family_profile(project,source)!=self._family:
-            raise ImageError('download_property_logix_source_changed')
+        if self._profile is not None and controller_profile(project,source)!=self._profile:
+            raise ImageError('download_property_controller_profile_changed')
         original={value_identity(row) for row in values.rows}
         original_keys={key(row) for row in values.rows}
         if any(key(row)!=target or (value_identity(row) not in original and
-                not (self._family is not None and target not in original_keys and family_marker(row,values)))
+                not (self._profile is not None and target not in original_keys and profile_marker(row,values)))
                 for target,row in self._values.items()):
             raise ImageError('download_property_effect_changed')
 
@@ -74,13 +74,13 @@ class DownloadProperties:
             if target in original and value_identity(original[target])!=value_identity(row):
                 raise ImageError('download_property_source_ambiguous')
             original[target]=row
-        proposal=dict(self._values);profile=self._family
+        proposal=dict(self._values);profile=self._profile
         for row in rows:
             target=row.target;stored=original.get(key(row))
             if target.class_id!=0x8E or target.instance_word!=1 or target.context_word or target.selector_word:
                 raise ImageError('download_property_source_value_required')
-            if stored is None and family_marker(row,values):
-                profile=family_profile(project,source)
+            if stored is None and profile_marker(row,values):
+                profile=controller_profile(project,source)
             elif stored is None or value_identity(row)!=value_identity(stored):
                 raise ImageError('download_property_source_value_required')
             # Packet ordinals are local framing; the actual property key and
@@ -92,9 +92,9 @@ class DownloadProperties:
         if len(proposal)>MAX_VALUES or size>MAX_VALUE_BYTES or len(packets)>MAX_PACKETS:
             raise ImageError('download_property_storage_limit')
         if metadata_stamp(values,source)!=stamp:raise ImageError('download_property_source_changed')
-        if profile is not None and family_profile(project,source)!=profile:raise ImageError('download_property_logix_source_changed')
+        if profile is not None and controller_profile(project,source)!=profile:raise ImageError('download_property_controller_profile_changed')
         self._values=MappingProxyType(proposal);self._packets=packets;self._source=source;self._binding=stamp
-        self._family=profile;self._effect=self._digest();self.validate(source,values,project)
+        self._profile=profile;self._effect=self._digest();self.validate(source,values,project)
 
     def read(self,ordinal,source,values,project=None):
         self.validate(source,values,project)
@@ -103,5 +103,5 @@ class DownloadProperties:
 
     def description(self):
         return dict(packets=len(self._packets),values=len(self._values),source_bound=self._binding is not None,
-            logix_family_marker=self._family is not None,
+            controller_profile_marker=self._profile is not None,
             active_metadata_changed=False,identity_changed=False,commit=False,payloads_exposed=False)

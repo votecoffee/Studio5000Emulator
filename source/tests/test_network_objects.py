@@ -101,6 +101,25 @@ class NetworkObjectTests(unittest.TestCase):
             self.assertEqual(self.send(0xF5, 1, 4)[4:], b'\0\0')
             self.assertEqual(self.send(0xF6, 1, 3)[2], 0x0C)
 
+    def test_interface_label_uses_cached_os_name_with_one_byte_count_and_no_padding(self):
+        with patch('logixlab.ethernetip.interface_snapshot',return_value=(SNAPSHOT,None)) as reader:
+            value=bytes((len(SNAPSHOT.name),))+SNAPSHOT.name.encode('ascii')
+            self.assertEqual(self.send(0xF6,1,10)[4:],value)
+            raw=self.send(0xF6,1,service=3,data=struct.pack('<4H',3,10,3,10))
+            self.assertEqual(raw,b'\x83\0\x0a\0'+struct.pack('<3H',3,10,0)+value+
+                struct.pack('<4H',3,0x14,10,0)+value)
+            reader.assert_called_once()
+        self.endpoint.allow_writes=True
+        self.assertEqual(self.send(0xF6,1,10,service=0x10,data=value)[2],8)
+        self.assertEqual(self.send(0xF6,1,10,data=b'\0')[2],0x15)
+
+    def test_unavailable_or_unrepresentable_interface_labels_are_not_invented(self):
+        for snapshot in (None,*(replace(SNAPSHOT,name=n) for n in ('','a'*65,'bad\0name','bad\nname','\u00e9',None))):
+            self.endpoint.interface_queried=False
+            with self.subTest(snapshot=snapshot),patch('logixlab.ethernetip.interface_snapshot',return_value=(snapshot,None)):
+                self.assertEqual(self.send(0xF6,1,10)[2],0x0C)
+        self.assertEqual(replace(SNAPSHOT,name='x'*64).interface_label(),b'\x40'+b'x'*64)
+
     def test_link_metadata_rejects_writes_and_malformed_requests_with_tag_writes_enabled(self):
         self.endpoint.allow_writes = True
         before = copy.deepcopy(self.app.engine.memory.values)

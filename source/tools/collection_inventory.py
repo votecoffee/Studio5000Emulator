@@ -73,6 +73,10 @@ def attribute_value(cursor, class_id, attribute):
     width = FIXED.get(class_id, {}).get(attribute)
     if width is not None:
         cursor.take(width)
+    elif class_id==0xF6 and attribute==10:
+        count=int.from_bytes(cursor.take(1),'little')
+        if count>64:raise CollectionError('Ethernet interface label exceeds its bound')
+        cursor.take(count)
     elif class_id==0x3B0 and attribute==3:
         count=cursor.uint()
         if count>4096:raise CollectionError('Diagnostic condition count exceeds the decoder limit')

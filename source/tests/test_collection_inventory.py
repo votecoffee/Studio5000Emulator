@@ -16,6 +16,18 @@ def string(value, *, padded=False):
 
 
 class CollectionInventoryTests(unittest.TestCase):
+    def test_ethernet_interface_label_is_short_counted_bounded_and_private(self):
+        values=[(10,0,b'\x03vm1'),(1,0,bytes(4)),(10,0,b'\x40'+b'x'*64)]
+        raw=reply(values)
+        decoded=decode_attribute_list(raw,[10,1,10],0xF6)
+        self.assertEqual([r['value_bytes'] for r in decoded['attributes']],[4,4,65])
+        self.assertNotIn('vm1',json.dumps(decoded));self.assertNotIn('data_hex',json.dumps(decoded))
+        for end in range(len(raw)):
+            with self.assertRaises(CollectionError):decode_attribute_list(raw[:end],[10,1,10],0xF6)
+        for value in (b'\x41'+b'x'*65,b'\x03vm',b'\x03vm1\0'):
+            with self.assertRaises(CollectionError):decode_attribute_list(reply([(10,0,value)]),[10],0xF6)
+        self.assertEqual(decode_attribute_list(reply([(10,0,b'\0')]),[10],0xF6)['attributes'][0]['value_bytes'],1)
+
     def test_task_fields_counted_lists_trigger_and_name_are_structural_only(self):
         widths={2:4,3:4,5:2,6:2,7:4,8:4,9:4,11:4,12:4,13:8,14:8,15:8,16:4,
                 17:4,18:4,19:4,20:2,21:2,22:4,23:4}

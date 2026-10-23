@@ -617,19 +617,18 @@ Program-collection failure after 349. Both preserve source/model, confirm actual
 Offline/cleanup and report no SDK fault. All 290 affected checks pass; all 110
 deployed modules and packaged/served versions match.
 
-### Logix family marker
+### Controller profile marker
 
-Version `26.1023.173828` adds one source-derived compatibility property when
-`ProjectType` is absent from the original comments catalog. A matching complete
-v35 `1756-L85E` Controller export identifies the Logix source family. The
-observed profile uses ASCII `L` packed in a DINT, matching both the saved
-successful download and the current demo request. Installed v35 project-creation
-help names that project family **Logix**. This is a bounded compatibility
-mapping, not a complete native project-type enumeration.
+Version `26.1023.173828` adds a bounded compatibility property when `ProjectType`
+is absent from the original comments catalog. The current native v35 client
+writes DINT `0x4C` for the matching complete `1756-L85E` demo source. Support is
+limited to that tested controller profile. A saved successful reference uses a
+different value, `0x62`; this is not a universal Logix family code or a complete
+native project-type enumeration.
 
 The source must declare the original `SystemNumeric` definition and its numeric
 value schema. Only root Controller `ProjectType`, the observed locale marker,
-one DINT element and the exact family marker are supported. A stored source
+one DINT element and the exact profile value are supported. A stored source
 property takes precedence; this fallback cannot replace a conflicting value.
 Other missing metadata remains an error.
 
@@ -638,6 +637,20 @@ actual source Project object, hash, version and processor remain bound, and
 later operations recheck its complete unedited source profile. It adds no row
 to the original metadata catalog and changes no active project or controller
 identity. Existing owner, Program-mode, atomicity and cleanup checks apply.
+
+### Ethernet interface label
+
+Version `26.1023.175203` supplies Ethernet Link class `0xF6`, instance 1,
+attribute 10 from the selected local interface name. The installed v35 object
+definition specifies one byte of length followed by up to 64 characters. The
+read has no word padding. The emulator returns only an available printable
+ASCII name that fits this field, without truncation or an invented hardware
+label. The cached OS observation is shared with the existing network inventory.
+
+Single and list reads are supported; the bounded offline collection decoder
+recognizes the same layout while omitting payloads by default. Unknown names
+remain unavailable, and network setters stay unsupported. All 317 affected
+checks pass, including malformed labels, truncation, list ordering and privacy.
 
 ## Native boundary
 

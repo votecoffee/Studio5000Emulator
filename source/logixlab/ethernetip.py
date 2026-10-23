@@ -1732,10 +1732,12 @@ class Router:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
                     selected=set(struct.unpack_from('<'+'H'*count,data,2))
-                if {1,2,3,4,5,6,7,8,9}.intersection(selected):
+                if {1,2,3,4,5,6,7,8,9,10}.intersection(selected):
                     snapshot=self.network_interface()
                     if snapshot is not None:
                         if snapshot.mac is not None:attributes[3]=snapshot.mac
+                        label=snapshot.interface_label()
+                        if label is not None:attributes[10]=label
                         if snapshot.link is not None:attributes.update(snapshot.link.attributes())
                         if {4,5}.intersection(selected):
                             attributes.update(self.endpoint.ethernet_counters.read(snapshot.name))
