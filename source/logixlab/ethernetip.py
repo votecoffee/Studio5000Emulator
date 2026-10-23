@@ -1049,11 +1049,16 @@ class Router:
         by_name={r.name.casefold():r for r in metadata.routines}
         return sorted(({'id':r.instance,'metadata':by_name[r.name.casefold()],'type_word':r.type_word} for r in found),key=lambda r:r['id'])
 
-    def routine_identity_attributes(self,binding,type_word,instance):
+    def routine_identity_attributes(self,binding,type_word,instance,name=None):
         identity=getattr(self.app,'native_project_identity',None);source=self.app.engine.project.sha256
         if (binding is None or identity is None or identity.source_l5x_sha256!=source or
                 binding.source_l5x_sha256!=source or binding.source_acd_sha256!=identity.source_acd_sha256):return {}
-        return {9:struct.pack('<I',instance),**({1:struct.pack('<H',type_word)} if type_word is not None else {})}
+        attributes={9:struct.pack('<I',instance),**({1:struct.pack('<H',type_word)} if type_word is not None else {})}
+        # The v35 Executable layout pairs Name with a BITS32 byte count.
+        # This is source metadata, independent of runtime code/edit buffers.
+        if isinstance(name,str) and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,39}',name):
+            raw=name.encode('ascii');attributes[25]=struct.pack('<I',len(raw))+raw
+        return attributes
 
     def routine_service(self,service,path,data,limit):
         if path.symbols or path.instance is None or path.io_map_instance is not None or path.controller_instance is not None:
@@ -1066,7 +1071,7 @@ class Router:
                 row=next((row for row in rows if row['id']==path.instance),None)
                 if row is None:raise CIPError(5,'Unknown Executable instance in the selected AOI')
                 attributes=row['metadata'].attributes()
-                attributes.update(self.routine_identity_attributes(self.app.native_aoi_routines,row['type_word'],row['id']))
+                attributes.update(self.routine_identity_attributes(self.app.native_aoi_routines,row['type_word'],row['id'],row['metadata'].name))
             return self.attribute_read(service,path,data,attributes)
         if path.program_instance is None:
             if path.instance==0 and service in (3,0x0E):
@@ -1082,7 +1087,7 @@ class Router:
             if routine is None:raise CIPError(5,'Unknown Executable instance in the selected Program')
             attributes=self.app.engine.project.executable_configuration.attributes(
                 routine['program'],routine['name'],source_sha256=self.app.engine.project.sha256)
-            identity_fields=self.routine_identity_attributes(self.app.native_routines,routine['type_word'],routine['id'])
+            identity_fields=self.routine_identity_attributes(self.app.native_routines,routine['type_word'],routine['id'],routine['name'])
             attributes.update(identity_fields)
             if identity_fields:
                 source=self.app.engine.project.sha256

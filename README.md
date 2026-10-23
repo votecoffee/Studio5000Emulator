@@ -13,6 +13,13 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.160`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.161` adds source-bound [Routine Name reads](docs/routine-names.md)
+for Program- and AOI-scoped Executable objects, plus bounded offline decoding.
+The read preserves source spelling and requires the original child/parent and
+project bindings. Code/edit-state guards remain independent; writes stay denied.
+The one-NOP project also retains the separate Program upload failure before
+source retrieval. Full Routine upload and download remain unfinished.
+
 Version `.160` adds an explicit [empty simulator component-tracking profile](docs/empty-component-tracking.md)
 for Controller fields 33/34. Its empty active/test groups return zero arrays;
 native membership and signatures are not imported or verified. Explicit tracked

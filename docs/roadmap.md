@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `.161` adds source-bound [Routine Name reads](routine-names.md) for
+Program and AOI children, plus bounded offline collection decoding. It preserves
+source spelling and original parent/child identity while retaining source,
+protection, scope and write guards. The one-NOP upload comparison on `.160`
+retains the Program failure before source retrieval, with actual Offline/cleanup,
+source/model preservation and no reported SDK fault. This does not resolve
+native Routine upload, download result encoding or the complete edit lifecycle.
+
 Version `.160` adds an [empty simulator component-tracking profile](empty-component-tracking.md)
 for fields 33/34. Source absence selects emulator policy and never proves native
 ACD membership. Nonempty/ambiguous tracking remains unsupported. All 187 affected

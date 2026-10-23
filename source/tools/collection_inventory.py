@@ -105,9 +105,9 @@ def attribute_value(cursor, class_id, attribute):
         count=cursor.uint()
         if count>4096:raise CollectionError('Task trigger exceeds the decoder limit')
         cursor.take(count)
-    elif (class_id,attribute) in ((0x68,28),(0x70,24),(0x8B,8)):
+    elif (class_id,attribute) in ((0x68,28),(0x6D,25),(0x70,24),(0x8B,8)):
         count = int.from_bytes(cursor.take(4), 'little')
-        if count > (40 if class_id in (0x68,0x70) else 82):
+        if count > (40 if class_id in (0x68,0x6D,0x70) else 82):
             raise CollectionError('Counted collection string exceeds its bound')
         cursor.take(count)
     elif class_id == 0xF5 and attribute == 4:
