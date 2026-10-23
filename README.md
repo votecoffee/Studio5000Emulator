@@ -16,6 +16,15 @@ source against the loaded project, retains all three components per routine,
 and reports completion only after private readback. Compiled code remains
 opaque; full upload/download and active-project installation remain unfinished.
 
+The native SDK accepts all eight routine records, checks 10 source-matched rungs,
+and completes the third batch's Start/result/Delete sequence. Download advances
+to unsupported I/O Map instance 1 attribute 2 and reports
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR` after 277 verified requests. Upload still reports
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349. Both preserve source/model, confirm
+SDK Offline and normal cleanup, and report no SDK fault. The original demo is
+restored stopped. All 113 deployed modules, webpage assets and executable
+versions match; the latest correction passes 11 focused checks.
+
 Version `26.1023.183656` added bounded [compact transport storage](docs/download-image.md#compact-transport-storage).
 The native SDK accepted its storage acknowledgment and normal on-wire cleanup,
 then stopped at the later-batch processing guard after 275 verified requests.

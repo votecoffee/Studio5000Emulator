@@ -836,6 +836,20 @@ validity or execution. Compiled code and auxiliary source data stay opaque.
 No active-project commit, replacement of tag values or complete functional
 Studio download is claimed by this stage.
 
+The `26.1023.185759` native SDK trial accepts the mode-0 reservation, all eight
+records, two Routines and 10 source-matched rungs. Start and the completed result
+query succeed; Delete retains the separate routine batch alongside the earlier
+image and 335-record update ledger. The next request is Get Attribute List on
+I/O Map instance 1, attribute 2. That attribute remains unsupported and ends the
+download with `RxCsE_ASA_ATTRIBUTE_LIST_ERROR` after 277 verified requests.
+
+Upload still ends at Program collection with
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 verified requests. Both trials
+preserve source and model, confirm SDK Offline and normal cleanup, and report
+no SDK fault. The original demo is restored in stopped Program mode with zero
+scans or audit updates. This confirms native acceptance of the routine storage
+stage while leaving complete transfer and installation unimplemented.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
