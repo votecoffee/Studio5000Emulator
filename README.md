@@ -14,6 +14,15 @@ This revision adds the separate PLC-2 mapping write that follows the full setup
 list. It requires the original empty mapping and preserves the already retained
 mapping descriptor. Complete functional native transfers remain unfinished.
 
+The native SDK accepts all five setup profiles and the separate PLC-2 write,
+then reaches the third transport batch. Its compact single-message container
+is not supported yet. Download reports `RxCsE_ASA_NO_PERMISSION` after 270
+verified requests; upload retains Program-collection failure after 349. Both
+preserve source/model, confirm SDK Offline and disconnect cleanup, and report
+no SDK fault. All 381 focused checks pass; all 112 deployed modules and delivery
+versions match. The original demo is restored stopped with zero scans and
+audit changes.
+
 Version `26.1023.181323` adds [post-registration download settings](docs/download-image.md#post-registration-setup)
 for Ethernet administrative state, combined device properties, PCCC mapping,
 Time Sync and legacy wall-clock settings. All 14 fields have checked private

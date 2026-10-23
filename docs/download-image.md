@@ -747,6 +747,32 @@ full PCCC mapping profile is staged. It requires the same source value and keeps
 the existing descriptor in attribute 2. Its shorter reply has its own checked
 budget. Other partial mapping writes remain unsupported.
 
+The native `26.1023.181855` trial accepts the five setup profiles plus the
+separate PLC-2 write. All 14 staged fields remain checked, and a third RTO setup
+is accepted. Download then rejects a compact single-message transfer before
+processing its payload, with `RxCsE_ASA_NO_PERMISSION` after 270 verified
+requests. Upload retains Program-collection failure after 349. Both preserve
+source/model, confirm SDK Offline and disconnect cleanup, and report no SDK
+fault. All 381 focused checks pass; all 112 deployed modules and delivery
+versions match. The original stopped demo is restored.
+
+### Compact third transfer boundary
+
+The observed third payload fits one `0x39` request with container format `0x301`.
+Its count is the encoded payload length, excluding the 16-byte device header.
+The existing decoder supports fragmented transfers and separate legacy `0x39`
+control forms; it rejects this compact form as an unsupported control. That
+framing rejection closes the compatibility session, so later cleanup requests
+also fail at the wrapper. SDK Offline and endpoint cleanup are confirmed after
+disconnect; successful on-wire End Preparation is not claimed for this trial.
+
+Offline inspection decodes the retained 3,599-byte payload into eight records
+and 7,153 expanded bytes: Program coordination and six wrapped Routine writes
+for two Routines. This establishes byte framing only. The request MAC has not
+been verified offline, and these records have not been accepted or executed.
+Next work needs bounded compact framing, its correct acknowledgment, and a later
+batch model that preserves the earlier retained image and update ledger.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

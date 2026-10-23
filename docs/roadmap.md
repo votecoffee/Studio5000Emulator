@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.181855` accepts the five
+[post-registration setup profiles](download-image.md#post-registration-setup)
+and the later separate PLC-2 mapping write. The native SDK reaches a compact
+third transport batch that remains unsupported. All 381 focused checks pass;
+all 112 deployed modules and delivery versions match. Upload retains its
+Program-collection failure. Full native upload/download remain unfinished;
+online-edit expansion follows those transfers.
+
 Version `26.1023.175952` adds a private, source-checked
 [repository device record and identity link](download-image.md#repository-device-record)
 for the prepared download owner. It preserves active device properties and
