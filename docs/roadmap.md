@@ -13,6 +13,17 @@ are checked before retaining properties. Explicit scoped Routine data names
 are retained from their original components. Offline reconstruction models
 333 of 335 records, with two inline router operations still unresolved. All
 235 affected checks pass; processing/completion success is still withheld.
+Native download confirms the same 333 modeled records, then retains its
+second-pass failure after 193 verified requests. The two remaining operations
+are inline Routine transfers with selector words `(1,9)`. The saved reference
+contains the same 13-byte body across 119 decoded transfers; its effect remains
+unresolved. Source/model preservation and actual Offline/cleanup are confirmed
+without a reported SDK fault, and all 107 modules and delivery versions match.
+Normal upload retains Program-collection failure after 349 verified requests.
+A supported Program-mode import/reconnect passes across 188 requests with one
+expected logic/audit update. Both preserve source and confirm actual
+Offline/cleanup without a reported SDK fault. The original stopped zero-scan
+demo is restored afterward. Complete transfers and Run-mode edits remain open.
 
 Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects).
 Its pending proposal retains original-source metadata, private table bytes,

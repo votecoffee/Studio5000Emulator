@@ -16,6 +16,15 @@ scope and backed-reference checks. Original Routine source-key metadata is
 preserved without interpretation. Offline reconstruction now models 333 of 335
 records; two inline router operations still prevent completion. All 235 affected
 checks pass. Full native transfers and Run-mode edits remain unfinished.
+The native SDK download confirms the same 333 modeled records and all 24
+header updates, then reports `RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified
+requests. Source/model preservation and actual Offline/cleanup are confirmed
+without a reported SDK fault. Executable, browser and 107 deployed modules match.
+Normal upload still fails Program collection after 349 verified requests.
+A supported Program-mode online import/reconnect passes across 188 requests
+with one expected logic/audit update. Both preserve the input and confirm actual
+Offline/cleanup without a reported SDK fault. Validation restores the original
+stopped zero-scan/audit demo afterward.
 
 Version `26.1023.095449` adds [isolated second-batch effects](docs/download-image.md#isolated-second-batch-effects).
 It stages source-matched metadata values and private whole-table bytes, checks

@@ -346,6 +346,19 @@ map/object references. Base headers, table storage, active tags and logic remain
 unchanged. Start and execution status still reject incremental processing;
 neither a property snapshot nor opaque-byte retention establishes completion.
 
+The native trial confirms all 24 header updates and 333 modeled records, then
+stops at the same two remaining operations. Download still reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified requests, preserving source and
+active model with actual Offline/cleanup and no reported SDK fault. All 235
+affected checks pass, and all 107 deployed modules and delivery versions match.
+
+The unresolved operations use router `0x33` to Routine service `0x5C`, with
+selector words `(1,9)` and a 13-byte body. Offline inspection of decoded batches
+from the saved successful-download reference finds the same body in 119 such
+transfers. That is framing evidence: the field's meaning, its required effect
+and its source relationship remain unresolved. The reference inspection does
+not verify capture MACs or turn those bodies into successful model operations.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
