@@ -16,6 +16,7 @@ from . import source_object_verification as object_verification
 from .signed_messages import (FragmentEnvelope,CompactTransferEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE,
                               DEVICE_TRANSFER_HEADER,validate_compact_transfer,EnvelopeError)
 from .incremental_download import IncrementalDownload,record_digest
+from .download_routines import RoutineBatch
 
 MAX_BUFFER_BYTES = 262144
 MAX_FRAGMENTS = 128
@@ -55,6 +56,35 @@ class ResilientTransport:
         self.incremental_inspection={**self.inspection,'operations':[]}
         self._incremental_batch=();self.incremental=IncrementalDownload();self.incremental_error=None
         self.incremental_started=False;self.incremental_status_reported=False;self._incremental_start_binding=None
+        self.routine_batch=None;self.routine_error=None;self.routine_started=False;self.routine_status_reported=False
+        self._routine_start_binding=None
+
+    def start_routine_payload(self,bindings):
+        self.inspect_incremental_payload()
+        if self.routine_error:raise ImageError(self.routine_error)
+        try:
+            if self.routine_batch is None:self.routine_batch=RoutineBatch.prepare(self._incremental_batch,bindings)
+            stage=self.routine_batch;stage.verify_effects(bindings)
+            if (stage.records!=self.incremental_inspection['record_count'] or not stage.records
+                    or stage.record_sha256!=record_digest(self._incremental_batch)):
+                raise ImageError('download_routine_record_binding_changed')
+            binding=(bindings.stamp(),stage.records,stage.record_sha256)
+            if self.routine_started and self._routine_start_binding!=binding:
+                raise ImageError('download_routine_start_binding_changed')
+        except ImageError as error:
+            self.routine_error=error.reason;self.routine_batch=None;raise
+        self._routine_start_binding=binding;self.routine_started=True
+        return {**stage.description(),'preparation_started':True,'effects_verified':stage.records}
+
+    def routine_execution_status(self,bindings):
+        self.expire()
+        if not self.routine_started:raise TransportError(0x0C,'download_routine_preparation_required')
+        state=self.start_routine_payload(bindings)
+        expected=struct.unpack_from('<I',self.setup,12)[0]
+        if self.incremental_inspection['expanded_bytes']!=expected or not expected:
+            raise TransportError(0x0C,'download_routine_byte_coverage_changed')
+        payload=ExecutionStatus(0,expected).encode(expected);self.routine_status_reported=True
+        return payload,state
 
     def inspect_incremental_payload(self):
         """Inspect a later batch without treating it as a complete source image.
@@ -319,6 +349,9 @@ class ResilientTransport:
                 'incremental_staging':{**self.incremental.description(),
                     'preparation_started':self.incremental_started,'status_reported':self.incremental_status_reported,
                     **({'status':'invalid','reason':self.incremental_error} if self.incremental_error else {})},
+                'routine_staging':{**(self.routine_batch.description() if self.routine_batch is not None else {}),
+                    'preparation_started':self.routine_started,'status_reported':self.routine_status_reported,
+                    **({'status':'invalid','reason':self.routine_error} if self.routine_error else {})},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},
                 'source_object_verification':{**self.source_object_verification,

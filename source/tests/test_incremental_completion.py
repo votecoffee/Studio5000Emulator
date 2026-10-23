@@ -139,7 +139,7 @@ class CompletionSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertFalse(self.description()['incremental_staging']['status_reported'])
         self.assertEqual(self.send(ENUM)[2],0)
         self.next_batch((metadata.table(b'\x63\0\0\0'),))
-        self.assertEqual(self.send(payloads.INSPECT)[2],15)
+        self.assertEqual(self.send(payloads.INSPECT)[2],12)
         self.assertEqual(ns.read_values(VALUE_BASE,4),b'\x32\0\0\0')
         self.assertEqual(self.send(transport.DELETE)[2],0)
         self.assertEqual(ns.description()['incremental_records'],2)

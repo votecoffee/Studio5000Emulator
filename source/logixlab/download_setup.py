@@ -81,6 +81,11 @@ class DownloadSetup:
         self._bindings=MappingProxyType({**self._bindings,class_id:stamp});self._digest=self._effect()
         return struct.pack('<H',len(values))+b''.join(struct.pack('<HH',n,0) for n in values)
 
+    def require_complete(self,bindings):
+        self.validate(bindings)
+        if self._values.keys()!=PROFILES.keys() or any(set(self._values[cls])!=set(attrs) for cls,attrs in PROFILES.items()):
+            raise ImageError('download_setup_complete_required')
+
     def read(self,class_id,attribute,bindings):
         self.validate(bindings)
         if type(class_id) is not int or type(attribute) is not int or attribute not in self._values.get(class_id,{}):

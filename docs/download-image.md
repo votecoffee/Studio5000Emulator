@@ -802,6 +802,40 @@ counter and decodes to the same eight records, without executing them. The
 original captured request MAC is not claimed verified by that offline test.
 Native acceptance is assessed separately.
 
+The `26.1023.183656` native SDK download accepted the compact transfer and its
+storage acknowledgment, then reached the later-batch processing guard at RTO
+Start. Delete, End Preparation and lease release also succeeded on the wire.
+The trial ended with `RxCsE_PACKAGE_DOWNLOAD_PAYLOAD_ERROR` after 275 verified
+requests; upload retained its Program-collection failure after 349. Both
+preserved source and model, confirmed SDK Offline and reported no SDK fault.
+
+### Source-matched routine batch
+
+Version `26.1023.185026` adds a separate third-batch model. It requires the
+retained first image, completed incremental updates and all five source-checked
+setup profiles. The prepared owner must remain in Program mode with the same
+original v35 L85E project and native catalogs. The earlier image and update
+ledger remain intact and are revalidated before each namespace operation.
+
+Only balanced Program reservations and wrapped Routine component writes are
+supported. Every original Routine must have exactly one code, source and
+attachment component in that order. Container sizes, markers, target scopes,
+component bounds and aggregate storage are checked. Decoded source names and
+resolved ladder instruction trees must match the loaded original source;
+detached edit-plan validation must also pass. A different source or unsupported
+operand resolution rejects the whole proposal without publishing partial data.
+
+Start retains immutable private components and an individual record ledger.
+The result query rechecks source bindings, record digest, stored effects and
+expanded-byte coverage before returning completed temporary processing. Delete
+retains the batch only after that result was queried. Expiry, disconnect and
+End Preparation clear temporary state. Subsequent batches remain unsupported.
+
+These checks establish source equivalence and exact storage, not native ELF
+validity or execution. Compiled code and auxiliary source data stay opaque.
+No active-project commit, replacement of tag values or complete functional
+Studio download is claimed by this stage.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

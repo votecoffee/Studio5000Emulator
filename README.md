@@ -6,21 +6,27 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.183656`.** Versions use the release timestamp
+**Current app version: `26.1023.185026`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds bounded [compact transport storage](docs/download-image.md#compact-transport-storage)
-for the third download batch. Its complete payload is retained privately with
-MAC/counter, owner, source and capacity checks. Storage acknowledgement does
-not execute its records or complete a download. Native routine processing and
-full upload/download remain unfinished.
+This revision adds a separate [routine download stage](docs/download-image.md#source-matched-routine-batch)
+after the first image and incremental batch. It checks each downloaded ladder
+source against the loaded project, retains all three components per routine,
+and reports completion only after private readback. Compiled code remains
+opaque; full upload/download and active-project installation remain unfinished.
+
+Version `26.1023.183656` added bounded [compact transport storage](docs/download-image.md#compact-transport-storage).
+The native SDK accepted its storage acknowledgment and normal on-wire cleanup,
+then stopped at the later-batch processing guard after 275 verified requests.
+Upload retained Program-collection failure after 349. Both preserved source/model,
+confirmed SDK Offline and reported no SDK fault.
 
 Version `26.1023.181855` adds the separate PLC-2 mapping write that follows the full setup
 list. It requires the original empty mapping and preserves the already retained
 mapping descriptor. Complete functional native transfers remain unfinished.
 
-The native SDK accepts all five setup profiles and the separate PLC-2 write,
+In version `26.1023.181855`, the native SDK accepted all five setup profiles and the separate PLC-2 write,
 then reaches the third transport batch. Its compact single-message container
 is not supported yet. Download reports `RxCsE_ASA_NO_PERMISSION` after 270
 verified requests; upload retains Program-collection failure after 349. Both

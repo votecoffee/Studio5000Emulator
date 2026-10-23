@@ -27,6 +27,7 @@ from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
 from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
+from .download_routines import RoutineBindings
 from .download_tasks import TaskBindings
 from .download_controller import ControllerBindings
 from .download_setup import SetupBindings,PROFILES as SETUP_PROFILES,write_profile as setup_write_profile
@@ -435,7 +436,18 @@ class Router:
                             inspection=lease.transport.inspect_incremental_payload()
                             self.endpoint.record('native_incremental_transport_inspection',**inspection)
                             if lease.download_namespace._incremental is not None:
-                                return reject(0x0F,'incremental_batch_sequence_unimplemented')
+                                if lease.download_namespace._routine_batch is not None:
+                                    return reject(0x0F,'incremental_batch_sequence_unimplemented')
+                                lease.download_namespace.setup.require_complete(self.download_setup_bindings(lease))
+                                bindings=self.download_routine_bindings(lease)
+                                if inner[0]==6:
+                                    state=lease.transport.start_routine_payload(bindings)
+                                    self.endpoint.record('native_routine_batch_preparation',**state)
+                                    return reply(inner[0])
+                                status,state=lease.transport.routine_execution_status(bindings)
+                                self.endpoint.record('native_routine_batch_result',**state)
+                                self.endpoint.counts['native_routine_completed_status']+=1
+                                return reply(inner[0],0,status)
                             source=Source(identity.source_acd_sha256,self.app.engine.project.sha256)
                             bindings=self.download_header_bindings(lease)
                             values=getattr(self.app,'native_metadata_values',None)
@@ -500,6 +512,11 @@ class Router:
                                     native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
                                     native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
                                 self.endpoint.record('native_download_namespace_retained',**lease.download_namespace.description())
+                            elif lease.download_namespace is not None and lease.transport.routine_status_reported:
+                                self.require_download_namespace(lease,identity)
+                                lease.download_namespace.retain_routines(lease.transport,self.download_routine_bindings(lease),
+                                    self.download_setup_bindings(lease))
+                                self.endpoint.record('native_routine_namespace_retained',**lease.download_namespace.description())
                             elif lease.download_namespace is not None and lease.transport.incremental_status_reported:
                                 self.require_download_namespace(lease,identity)
                                 lease.download_namespace.retain_incremental(lease.transport,
@@ -1144,11 +1161,15 @@ class Router:
             controller_bindings=ControllerBindings(self.app.engine,lease.download_namespace,identity),
             device_identity=self.endpoint.identity,
             setup_bindings=self.download_setup_bindings(lease),
+            routine_bindings=self.download_routine_bindings(lease),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 
     def download_setup_bindings(self,lease):
         return SetupBindings(self.app.engine.project,lease.download_namespace,self.endpoint.identity,self.endpoint.interface)
+
+    def download_routine_bindings(self,lease):
+        return RoutineBindings(self.download_header_bindings(lease),self.app.native_types)
 
     def download_header_bindings(self,lease):
         return HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,

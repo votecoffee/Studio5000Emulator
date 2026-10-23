@@ -59,6 +59,7 @@ class DownloadNamespace:
             raise ImageError('download_namespace_source_identities_required')
         self._image=transport.download_image
         self._incremental=None
+        self._routine_batch=None
         self.tasks=DownloadTasks()
         self.controller=DownloadController()
         self.properties=DownloadProperties()
@@ -86,7 +87,7 @@ class DownloadNamespace:
             for slot,instance in enumerate(sorted(self._image.programs)))
         self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
-    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,device_identity=None,setup_bindings=None,**catalogs):
+    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,device_identity=None,setup_bindings=None,routine_bindings=None,**catalogs):
         self.validate_base(source,native_types,**catalogs)
         if self._incremental is not None:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
@@ -96,12 +97,23 @@ class DownloadNamespace:
             controller_bindings.engine.project if controller_bindings is not None else None)
         self.repository.validate(source,controller_bindings.engine.project if controller_bindings is not None else None,device_identity)
         self.setup.validate(setup_bindings)
+        if self._routine_batch is not None:
+            self.setup.require_complete(setup_bindings)
+            self._routine_batch.verify_effects(routine_bindings)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
         if not transport.incremental_status_reported:raise ImageError('incremental_result_query_required')
         transport.incremental_execution_status(self._image,source,native_metadata_values,header_bindings)
         self._incremental=transport.incremental
+
+    def retain_routines(self,transport,bindings,setup_bindings):
+        if self._incremental is None:raise ImageError('completed_incremental_download_required')
+        if self._routine_batch is not None:raise ImageError('download_routine_batch_already_retained')
+        self.setup.require_complete(setup_bindings)
+        if not transport.routine_status_reported:raise ImageError('download_routine_result_query_required')
+        transport.routine_execution_status(bindings)
+        self._routine_batch=transport.routine_batch
 
     def validate_base(self,source,native_types,**catalogs):
         self._image.require_source(source)
@@ -199,6 +211,7 @@ class DownloadNamespace:
             source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
             incremental_batches_retained=int(self._incremental is not None),
             incremental_records=self._incremental.records if self._incremental is not None else 0,
+            routine_batch=self._routine_batch.description() if self._routine_batch is not None else None,
             tasks=self.tasks.description(),
             controller_configuration=self.controller.description(),
             controller_properties=self.properties.description(),
