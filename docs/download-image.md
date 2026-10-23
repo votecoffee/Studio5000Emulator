@@ -299,6 +299,14 @@ Start and execution-status still return an explicit processing rejection.
 Installing the proposal, implementing remaining operations and producing actual
 completed effects are separate required steps before native download succeeds.
 
+The native SDK trial on this version confirms the same 309 modeled records,
+1,255 source-matched metadata values and four private table writes inside the
+actual transfer. Start then receives the explicit unsupported-processing
+response. Download reports `RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified
+requests. Source and active model remain unchanged, actual Offline/cleanup
+is confirmed, and no SDK fault is reported. All 194 focused checks pass;
+the executable, browser and all 106 deployed app modules match this version.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -13,6 +13,15 @@ reconstruction models 309 of 335 observed records, including 1,255 matched
 metadata values and 151 table bytes. Twenty-six attribute/router operations
 remain unsupported. No proposal replaces the completed image or active model,
 and no incremental processing/completion success is returned.
+The native download trial confirms those exact staging counts, then reports
+its second-pass failure after 193 verified requests. Source/model preservation
+and actual Offline/cleanup are confirmed without a reported SDK fault. All 194
+focused checks pass, and the executable, browser and 106 deployed modules match.
+Normal upload still fails Program collection after 349 requests. A supported
+Program-mode import/reconnect passes across 188 requests with one expected
+logic/audit update. Both preserve original source and confirm actual
+Offline/cleanup without a reported SDK fault. The stopped original demo is
+restored afterward; complete transfers and Run-mode edits remain unfinished.
 
 Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception).
 An owning prepared client can open and fill another bounded buffer without

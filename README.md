@@ -15,6 +15,15 @@ It stages source-matched metadata values and private whole-table bytes, checks
 empty diagnostic updates and models Program coordination. Offline reconstruction
 models 309 of the observed 335 records, preserving the completed image and active
 project. The remaining 26 operations still block processing and completion.
+The native download trial confirms the same 309 modeled records, then reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified requests. It preserves source
+and active model, with actual Offline/cleanup and no reported SDK fault.
+All 194 focused checks pass; executable, browser and 106 deployed modules match.
+Normal upload retains its Program-collection failure after 349 verified requests.
+A supported Program-mode online import/reconnect passes across 188 requests
+with one expected logic/audit update. Both preserve the input and confirm actual
+Offline/cleanup without a reported SDK fault. The original stopped demo is
+restored after validation. Full transfers and Run-mode edits remain unfinished.
 
 Version `26.1023.093633` adds [additional download-batch reception](docs/download-image.md#additional-batch-reception).
 The owning client can send a bounded follow-on batch while its completed

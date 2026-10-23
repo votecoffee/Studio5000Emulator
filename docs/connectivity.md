@@ -317,7 +317,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | Models the first tested batch, retains source-checked catalogs and receives a bounded later batch for inspection | Later-batch effects, compiled definitions, initial values and atomic active-model replacement |
+| Native download | Models the first tested batch, retains source-checked catalogs and stages source-matched metadata and private table values from the later batch | Remaining attribute/router operations, proposal installation, compiled definitions and atomic active-model replacement |
 | Native online edits | Explicit supported Program-mode imports replace model logic; consecutive insertions/replacements and reconnects execute in the emulator | Studio GUI acceptance, broader operands, Test/Untest/Assemble, rollback and full native edit semantics |
 | Edited project persistence | `.92` SDK imports an edited L5X, saves/reopens a new ACD and reconnects it against the new source pair | General project coverage, Studio GUI acceptance and firmware transfer round trips |
 
