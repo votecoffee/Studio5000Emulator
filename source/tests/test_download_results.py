@@ -2,6 +2,7 @@
 from dataclasses import FrozenInstanceError,replace
 import hashlib
 import json
+import struct
 from types import MappingProxyType
 import unittest
 from unittest.mock import patch
@@ -15,6 +16,26 @@ from test_device_payload import fill,container,record
 from test_native_types import catalog,source_types
 import test_object_staging as objects
 import test_template_staging as templates
+
+
+class ExecutionStatusTests(unittest.TestCase):
+    def test_busy_progress_and_exact_completed_byte_coverage_share_the_observed_layout(self):
+        busy=dr.ExecutionStatus.decode(struct.pack('<BIH',6,17,0),37)
+        self.assertFalse(busy.complete);self.assertEqual(busy.processed_bytes,17)
+        complete=dr.ExecutionStatus(0,37)
+        self.assertEqual(complete.encode(37),bytes.fromhex('00250000000000'))
+        self.assertEqual(dr.ExecutionStatus.decode(complete.encode(37),37),complete)
+        self.assertTrue(complete.complete)
+
+    def test_unsupported_states_trailing_words_truncation_and_false_completion_remain_errors(self):
+        for raw,expected in ((b'',37),(bytes(6),37),(bytes(8),37),(bytearray(7),37),
+                             (struct.pack('<BIH',1,37,0),37),(struct.pack('<BIH',0,36,0),37),
+                             (struct.pack('<BIH',6,38,0),37),(struct.pack('<BIH',0,37,1),37),
+                             (struct.pack('<BIH',0,37,0),True),(struct.pack('<BIH',0,0,0),0)):
+            with self.subTest(raw=raw,expected=expected),self.assertRaises(dr.ResultError):
+                dr.ExecutionStatus.decode(raw,expected)
+        for state,count in ((False,37),(6,True),(0,-1),(256,37),(0,2**32)):
+            with self.assertRaises(dr.ResultError):dr.ExecutionStatus(state,count).encode(37)
 
 
 class DownloadResultTests(unittest.TestCase):
@@ -124,6 +145,31 @@ class DownloadResultTests(unittest.TestCase):
 class DownloadResultLifetimeTests(unittest.TestCase):
     setUp=images.TransportDownloadImageTests.setUp
     stage_image=images.TransportDownloadImageTests.stage_image
+
+    def test_completed_wire_status_requires_start_full_coverage_and_unchanged_actual_effects(self):
+        self.stage_image()
+        with self.assertRaises(TransportError):self.stage.execution_status(self.native)
+        self.stage.start_prepared_image()
+        raw,state=self.stage.execution_status(self.native)
+        expected=self.stage.inspection['expanded_bytes']
+        self.assertEqual(dr.ExecutionStatus.decode(raw,expected),dr.ExecutionStatus(0,expected))
+        self.assertFalse(state['commit']);self.assertEqual(state['records_prepared'],11)
+        self.assertEqual(self.stage.execution_status(self.native)[0],raw)
+        image=self.stage.download_image
+        region=image._regions[1]
+        image._regions=MappingProxyType({**image._regions,1:replace(region,data=b'\1'+region.data[1:])})
+        with self.assertRaises(TransportError) as error:self.stage.execution_status(self.native)
+        self.assertEqual(error.exception.reason,'device_image_result_effect_changed')
+
+    def test_completed_status_never_reuses_foreign_unstarted_expired_or_incomplete_byte_coverage(self):
+        self.stage_image();self.stage.start_prepared_image()
+        self.stage.inspection['expanded_bytes']+=1
+        with self.assertRaises(TransportError) as error:self.stage.execution_status(self.native)
+        self.assertEqual(error.exception.reason,'device_image_result_byte_coverage_mismatch')
+        self.stage.clear();self.stage_image();self.stage.start_prepared_image()
+        with self.assertRaises(TransportError):self.stage.execution_status(catalog(types=source_types()[:1]))
+        self.now+=ASSEMBLY_SECONDS
+        with self.assertRaises(TransportError):self.stage.execution_status(self.native)
 
     def test_start_repeat_and_cached_inspection_reuse_identical_results(self):
         self.stage_image();ledger=self.stage.download_image._results

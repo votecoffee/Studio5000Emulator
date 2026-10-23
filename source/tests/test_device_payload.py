@@ -226,7 +226,7 @@ class InspectionModelTests(unittest.TestCase):
 
 
 class InspectionSignedTests(unittest.TestCase):
-    def test_signed_table_identity_match_does_not_enable_result_encoding_or_source_values(self):
+    def test_signed_table_identity_match_enables_temporary_completion_but_not_source_values(self):
         from logixlab.native_tables import NativeTables
         self.object_source_fixture();primary=self.app.native_symbols
         self.app.native_tables=NativeTables(primary.source_acd_sha256,primary.source_l5x_sha256,
@@ -236,7 +236,7 @@ class InspectionSignedTests(unittest.TestCase):
         result=self.description()['source_object_verification']
         self.assertEqual((result['tables_matched'],result['tables_unresolved']),(1,0))
         self.assertTrue(result['table_identities_verified']);self.assertFalse(result['addresses_verified'])
-        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],0)
         self.app.native_tables=None
         self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
         self.assertEqual(self.app.engine.memory.values,before)
@@ -269,7 +269,7 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.send(INSPECT)[2],0)
         result=self.description()['source_type_verification'];self.assertTrue(result['template_identities_verified'])
         self.assertEqual(result['template_ids_matched'],1);self.assertEqual(result['template_ids_unresolved'],0)
-        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],0)
         self.app.native_types.type_ids['inner']=0x301
         self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
         self.assertEqual(self.send(INSPECT)[2],12)
@@ -292,11 +292,11 @@ class InspectionSignedTests(unittest.TestCase):
         report=self.description()['source_object_verification']
         self.assertEqual((report['status'],report['symbols_matched'],report['symbols_unresolved']),('partial',2,1))
         self.assertEqual(self.endpoint.counts['native_source_object_verification'],1)
-        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],0)
         self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
         self.send(transport.DELETE);self.assertEqual(self.description()['source_object_verification']['status'],'idle')
 
-    def test_signed_auxiliary_source_binding_resolves_identity_without_exposing_values_or_changing_result_encoding(self):
+    def test_signed_auxiliary_source_binding_resolves_identity_for_temporary_completion_without_exposing_values(self):
         from logixlab.native_auxiliary_symbols import NativeAuxiliarySymbols
         self.object_source_fixture(extra_symbol=True)
         primary=self.app.native_symbols
@@ -306,7 +306,7 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(self.send(INSPECT)[2],0)
         result=self.description()['source_object_verification']
         self.assertEqual((result['status'],result['symbols_matched'],result['auxiliary_symbols_matched'],result['symbols_unresolved']),('matched',3,1,0))
-        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],0)
         self.app.native_auxiliary_symbols=None
         self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],12)
         self.assertEqual(self.app.engine.memory.values,before)
@@ -407,7 +407,7 @@ class InspectionSignedTests(unittest.TestCase):
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
         self.assertEqual(self.app.native_project_identity.manifest(),identity)
 
-    def test_prepared_download_allocates_real_readback_and_identifies_missing_result_encoding(self):
+    def test_prepared_download_reports_exact_completed_bytes_without_committing_active_image(self):
         from test_download_image import batch
         from test_native_types import catalog,source_types
         self.stage(b''.join(record(row.request) for row in batch()))
@@ -420,10 +420,10 @@ class InspectionSignedTests(unittest.TestCase):
         self.assertEqual(image.read_symbol(0,1,0,4,image.source),bytes(4))
         self.assertEqual(self.send(INSPECT),bytes.fromhex('86000000'))
         self.assertIs(image,self.endpoint.programming_lease.transport.download_image)
-        self.assertEqual(self.send(bytes.fromhex('4d03210012042400'))[2],15)
+        expected=self.endpoint.programming_lease.transport.inspection['expanded_bytes']
+        self.assertEqual(self.send(bytes.fromhex('4d03210012042400')),b'\xcd\0\0\0'+struct.pack('<BIH',0,expected,0))
         self.assertEqual(self.endpoint.counts['native_download_result_query'],1)
-        self.assertTrue(any(r['reason']=='device_image_result_encoding_unavailable'
-                            for r in self.endpoint.state()['native_rejections']))
+        self.assertEqual(self.endpoint.counts['native_download_completed_status'],1)
         self.assertEqual(self.send(bytes.fromhex('4d03210012042400')+b'\0')[2],0x15)
         self.assertEqual(self.send(bytes.fromhex('4d03210012042401'))[2],5)
         state=self.description()['download_image']

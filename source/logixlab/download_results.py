@@ -1,7 +1,8 @@
-"""Immutable results for simulator preparation of native download records.
+"""Preparation results and the observed completed-batch execution-status profile.
 
-These are typed model outcomes, with no vendor status codes or wire encoding.
-They retain ordered request fingerprints and verify actual temporary resources.
+The private ledger retains typed model effects and ordered request fingerprints.
+Its per-operation outcomes have no native encoding. The separate seven-byte
+progress profile reports coverage of a completed temporary batch only.
 """
 from collections import Counter
 from dataclasses import dataclass
@@ -16,6 +17,34 @@ MAX_RESULTS=4096
 
 class ResultError(ValueError):
     def __init__(self,reason):self.reason=reason;super().__init__(reason)
+
+
+@dataclass(frozen=True)
+class ExecutionStatus:
+    """Observed seven-byte progress profile; trailing-word semantics stay opaque."""
+    state:int
+    processed_bytes:int
+
+    @property
+    def complete(self):return self.state==0
+
+    @classmethod
+    def decode(cls,data,expected_bytes):
+        if (type(expected_bytes) is not int or not 1<=expected_bytes<=0xFFFFFFFF
+                or not isinstance(data,bytes) or len(data)!=7):
+            raise ResultError('download_execution_status_layout')
+        state,processed,detail=struct.unpack('<BIH',data)
+        if state not in (0,6) or detail or processed>expected_bytes or state==0 and processed!=expected_bytes:
+            raise ResultError('download_execution_status_profile')
+        return cls(state,processed)
+
+    def encode(self,expected_bytes):
+        if (type(self.state) is not int or type(self.processed_bytes) is not int
+                or not 0<=self.state<=255 or not 0<=self.processed_bytes<=0xFFFFFFFF):
+            raise ResultError('download_execution_status_profile')
+        raw=struct.pack('<BIH',self.state,self.processed_bytes,0)
+        self.decode(raw,expected_bytes)
+        return raw
 
 
 @dataclass(frozen=True)

@@ -6,14 +6,21 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.075900` adds the observed seven-byte
+[completed-batch download status](download-image.md#completed-batch-execution-status).
+The source-bound temporary image must cover every decoded operation, retain
+its original bindings and pass actual resource-effect readback. Completion
+reports its own expanded byte count; it does not replay a captured controller
+response or commit an active project. Complete download remains a separate goal.
+
 Version `26.1023.073618` adds an explicit [new-project upload diagnostic](upload-merge-targets.md#new-project-upload)
 and [SDK FinalizeEdits imports in Program mode](supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
 The factory path keeps its output separate from merge inputs; deadlines retain
 native outcome uncertainty and do not imply confirmed SDK Offline. The stopped
 Program-mode finalization profile retains source preservation, exact logic
 readback and reconnect checks. Run-mode Test/Untest/Assemble and complete native
-Routine upload/download remain unfinished. The existing download result query
-still lacks a verified response format.
+Routine upload/download remain unfinished. At that release, the download result
+query still lacked a verified response format.
 
 Version `.162` adds [unassigned-main Program support](unassigned-main.md) for
 complete ordinary RLL source. Stored routines remain discoverable without being

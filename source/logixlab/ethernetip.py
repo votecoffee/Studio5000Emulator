@@ -418,11 +418,12 @@ class Router:
                         if native_types and (native_types.source_acd_sha256!=identity.source_acd_sha256
                                 or native_types.source_l5x_sha256!=self.app.engine.project.sha256):
                             return reject(0x0C,'native_type_source_mismatch')
-                        image=lease.transport.prepared_result_state(native_types,
+                        status,image=lease.transport.execution_status(native_types,
                             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
                             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
                         self.endpoint.record('native_download_result_query',**image)
-                        return reject(0x0F,'device_image_result_encoding_unavailable')
+                        self.endpoint.counts['native_download_completed_status']+=1
+                        return reply(inner[0],0,status)
                     if inner[0]==6:
                         exact(payload,0)
                         native_types=getattr(self.app,'native_types',None)

@@ -10,6 +10,7 @@ from .template_staging import TemplateStaging,TemplateError
 from .diagnostic_staging import DiagnosticStaging,DiagnosticError
 from .object_staging import ObjectStaging,ObjectError
 from .download_image import DownloadImage,ImageError,Source
+from .download_results import ExecutionStatus,ResultError
 from .native_types import verification
 from . import source_object_verification as object_verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
@@ -167,6 +168,23 @@ class ResilientTransport:
             raise TransportError(0x0C,'device_image_result_catalog_changed')
         self.require_object_bindings(native_symbols,native_routines,native_auxiliary_symbols,native_tables)
         return self.start_prepared_image()
+
+    def execution_status(self,native_types,**catalogs):
+        """Report completed temporary processing only after actual effect readback."""
+        state=self.prepared_result_state(native_types,**catalogs)
+        expected=struct.unpack_from('<I',self.setup,12)[0]
+        if self.inspection['expanded_bytes']!=expected or not expected:
+            raise TransportError(0x0C,'device_image_result_byte_coverage_mismatch')
+        image=self.download_image
+        try:
+            source=Source(native_types.source_acd_sha256,native_types.source_l5x_sha256)
+            for ordinal in range(image.records):
+                if not image.read_preparation_effect(ordinal,source).matches:
+                    raise TransportError(0x0C,'device_image_result_effect_changed')
+            payload=ExecutionStatus(0,expected).encode(expected)
+        except (ImageError,ResultError) as error:
+            raise TransportError(0x0C,error.reason) from error
+        return payload,state
 
     def expire(self):
         if self.fragments and self.clock()>=self.deadline:self.clear_fragments()

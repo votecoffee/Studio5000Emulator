@@ -6,11 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.073618`.** Versions use the release timestamp
+**Current app version: `26.1023.075900`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds an explicit [new-project upload diagnostic](docs/upload-merge-targets.md#new-project-upload)
+This revision adds a capture-informed [completed-batch download status](docs/download-image.md#completed-batch-execution-status).
+The signed result query now reports the exact expanded byte count only after
+source-bound temporary preparation and actual operation-effect readback succeed.
+It does not commit the active project or imply complete native download support.
+
+Version `26.1023.073618` adds an explicit [new-project upload diagnostic](docs/upload-merge-targets.md#new-project-upload)
 and [SDK FinalizeEdits imports in Program mode](docs/supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
 The new-project path uses a fresh output ACD rather than opening a merge
 baseline. Native deadlines retain an unknown outcome instead of reporting a

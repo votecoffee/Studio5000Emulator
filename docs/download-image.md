@@ -94,6 +94,35 @@ verified definition slices and the two retained coordination transitions. This
 is offline preparation evidence. It supplies real outcomes for a future result
 encoder without assigning a vendor status or guessing a wire layout.
 
+## Completed-batch execution status
+
+Version `26.1023.075900` implements the seven-byte result-query profile observed
+in a user-performed successful v35 download. Across 17 batches, all 204 replies
+have a one-byte state, a little-endian UDINT processed-byte count and a zero
+trailing UINT. State `6` precedes completion; state `0` completes every batch
+with a count equal to its announced expanded byte length. Counts stay bounded
+and monotonic within each batch. The trailing word's wider semantics and other
+state values remain unresolved. The capture's MACs have not been authenticated;
+native SDK acceptance is a separate validation step.
+
+The simulator prepares a supported temporary batch synchronously. Its signed
+`0x412/0x4D` query can therefore return state `0`, that batch's expanded byte count
+and the supported zero trailing word. It first rechecks the original lease,
+source/type/object bindings, started image, ordered result ledger and full byte
+coverage. Every retained operation effect must still match its actual temporary
+resource. An unstarted, expired, incomplete, rebound or changed image remains
+an error. Queries do not manufacture a processing delay or replay captured bytes.
+
+This completion applies to modeled temporary operations. The per-operation
+ledger remains a private typed interface, with no native per-record result
+encoding. Active-project commit, compiled execution and transfer of tag initial
+values are separate capabilities.
+
+The tests cover exact encoding/decoding, progress bounds, unsupported states and
+trailing words, false completion, source/expiry checks, changed resource readback
+and signed replies without active-image changes. The source capture, controller
+identities, project and decoded payloads remain outside public Git.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
@@ -102,7 +131,8 @@ transfer of initial values, successful Studio download or an active-project
 commit. The anonymous research endpoint now acknowledges service `0x06` on class
 `0x412` only after this temporary preparation transition succeeds. Incomplete
 coverage or a missing source binding remains an error. The later empty `0x4D`
-request still requires its own verified result contract and is rejected.
+request now uses the bounded completed-batch profile above; earlier releases
+rejected it while that contract was unresolved.
 
 In the `.78` native SDK test, preparation retained all 904 records, 242 Templates,
 136 diagnostics, one Program and two Routine identifiers. Sixteen temporary
