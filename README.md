@@ -14,6 +14,11 @@ This revision adds [source-checked Controller metadata writes](docs/download-ima
 after download configuration. The owning prepared client can retain original
 typed metadata values with private readback; active metadata and controller
 identity remain unchanged. Functional native upload/download remain unfinished.
+The native trial accepts the original serial-number metadata, then reaches an
+unstored `ProjectType` property and stops after 205 verified requests. Source
+and model are preserved, actual Offline/cleanup succeeds and no SDK fault is
+reported. Upload retains Program-collection failure after 349 requests. All
+290 affected checks pass; all 110 deployed modules and delivery versions match.
 
 Version `26.1023.170949` adds the three separate [Controller settings writes](docs/download-image.md#additional-controller-settings)
 following the base configuration: retain test edits and the two memory spare

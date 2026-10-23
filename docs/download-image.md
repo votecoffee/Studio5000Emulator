@@ -609,6 +609,14 @@ value exactly and has been staged/read back offline. Captured properties from
 other projects are not installed when their target or value does not match.
 Complete native transfer and active-project commit remain separate boundaries.
 
+The native `26.1023.172357` trial accepts the original `ControllerSerialNumber`
+property with checked private readback, then rejects a `ProjectType` property
+absent from the original comments catalog. Download reports
+`RxCsE_ASA_OBJECT_STATE_ERROR` after 205 verified requests. Upload retains its
+Program-collection failure after 349. Both preserve source/model, confirm actual
+Offline/cleanup and report no SDK fault. All 290 affected checks pass; all 110
+deployed modules and packaged/served versions match.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
