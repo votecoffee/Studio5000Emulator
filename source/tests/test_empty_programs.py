@@ -66,9 +66,13 @@ class EmptyProgramTests(unittest.TestCase):
                 self.assertFalse(engine.project.program_diagnostics.is_empty('MainProgram',source_sha256=engine.project.sha256))
                 self.assertEqual(engine.runtime_references.program_attributes(engine.project,'MainProgram'),{})
 
-    def test_no_main_with_existing_routines_and_no_scheduled_programs_remain_blocked(self):
-        engine=self.engine(mutate=lambda root:root.find('./Controller/Programs/Program').attrib.pop('MainRoutineName'))
+    def test_incomplete_no_main_declaration_and_no_scheduled_programs_remain_blocked(self):
+        def incomplete(root):
+            program=root.find('./Controller/Programs/Program');program.attrib.pop('MainRoutineName')
+            program.attrib.pop('TestEdits',None);program.attrib.pop('UseAsFolder',None)
+        engine=self.engine(mutate=incomplete)
         self.assertTrue(engine.blockers)
+        self.assertFalse(engine.project.program_diagnostics.has_no_main('MainProgram',source_sha256=engine.project.sha256))
         self.root=E.parse(runtime.SAMPLE).getroot()
         def unschedule(root):
             make_empty(root);root.find('./Controller/Tasks/Task/ScheduledPrograms').clear()

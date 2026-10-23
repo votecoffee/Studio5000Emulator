@@ -13,6 +13,12 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.161`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.162` adds source-checked [Programs without an assigned main Routine](docs/unassigned-main.md),
+including populated ordinary RLL catalogs. The scheduler runs no implicit main;
+prescan and other Programs retain their behavior. Null main references and
+stored Routine metadata require matching source and current interpreter objects.
+All 248 affected checks pass; native transfer acceptance is tracked separately.
+
 Version `.161` adds source-bound [Routine Name reads](docs/routine-names.md)
 for Program- and AOI-scoped Executable objects, plus bounded offline decoding.
 The read preserves source spelling and requires the original child/parent and

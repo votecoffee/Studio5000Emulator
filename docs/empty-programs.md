@@ -1,5 +1,9 @@
 # Scheduled empty Programs
 
+Version `.162` also supports [populated ordinary RLL Programs without an assigned
+main Routine](unassigned-main.md). The empty-catalog profile below remains a
+separate source proof and API count.
+
 Version `.136` supports an explicitly empty ordinary Program as a no-op in
 whole-project mode. Previously, a scheduled Program without a main Routine
 produced a missing-Routine blocker even when its complete source contained no

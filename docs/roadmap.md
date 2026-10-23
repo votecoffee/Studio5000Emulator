@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `.162` adds [unassigned-main Program support](unassigned-main.md) for
+complete ordinary RLL source. Stored routines remain discoverable without being
+chosen as implicit mains; existing prescan and mixed schedules are preserved.
+The API distinguishes populated unassigned Programs from empty catalogs, and
+native references remain backed by current objects and complete source. All 248
+affected checks pass. Native transfer acceptance remains a separate goal.
+
 Version `.161` adds source-bound [Routine Name reads](routine-names.md) for
 Program and AOI children, plus bounded offline collection decoding. It preserves
 source spelling and original parent/child identity while retaining source,

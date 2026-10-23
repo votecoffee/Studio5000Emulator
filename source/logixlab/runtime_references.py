@@ -76,14 +76,20 @@ class RuntimeReferences:
             return None
         return row[2] if self._current(project,*row[:2]) is row[2] else None
 
+    def _no_main_inventory(self,project,program):
+        names=project.executable_configuration.routine_names(program,source_sha256=project.sha256)
+        routines=[row for row in project.routines.values() if row.program.casefold()==program.casefold()]
+        return (project.program_diagnostics.has_no_main(program,source_sha256=project.sha256) and names is not None
+                and {name.casefold() for name in names}=={row.name.casefold() for row in routines}
+                and all(row.kind=='RLL' for row in routines))
+
     def program_attributes(self, project, program):
         """Router establishes complete source, native identity and edit guards."""
         if not isinstance(program,str):return {}
         target=self._current(project,'program',program.casefold())
         if target is None:return {}
         if not target.get('main'):
-            if (not project.program_diagnostics.is_empty(program,source_sha256=project.sha256)
-                    or any(row.program.casefold()==program.casefold() for row in project.routines.values())):return {}
+            if not self._no_main_inventory(project,program):return {}
             address=self.reference(project,'program',program)
             return {5:bytes(4),16:struct.pack('<I',address)} if address is not None else {}
         main=program.casefold()+'/'+target['main'].casefold()
@@ -125,10 +131,11 @@ class RuntimeReferences:
         if not isinstance(program,str) or not isinstance(routine,str):return {}
         parent=self._current(project,'program',program.casefold())
         key=(program+'/'+routine).casefold();target=self._current(project,'routine',key)
-        if parent is None or not parent.get('main') or target is None or target.kind!='RLL':return {}
+        if parent is None or target is None or target.kind!='RLL':return {}
+        if not parent.get('main') and not self._no_main_inventory(project,program):return {}
         address=self.reference(project,'routine',key)
         if address is None:return {}
-        return {8:struct.pack('<I',address),24:struct.pack('<I',0 if routine.casefold()==parent['main'].casefold() else 2)}
+        return {8:struct.pack('<I',address),24:struct.pack('<I',0 if routine.casefold()==parent.get('main','').casefold() else 2)}
 
     def symbol_addresses(self,project,catalog,row):
         if (project is not self._project or catalog.source_l5x_sha256!=project.sha256 or

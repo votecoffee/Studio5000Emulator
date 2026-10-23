@@ -50,6 +50,7 @@ class Engine:
         self._initial_prescan_pending = defer_prescan
         self.entries = []
         self._empty_programs = set()
+        self._no_main_programs = set()
         self.active = set()
         self.blockers = []
         self.addons = AddOns(self)
@@ -65,7 +66,7 @@ class Engine:
                 self.blockers.append(f"Prescan: {e}")
             self.trace=[]
         if self.mode=='project' and not self.blockers:
-            for name in self._empty_programs:self._program_timings[name]=ProgramTiming()
+            for name in self._no_main_programs:self._program_timings[name]=ProgramTiming()
             for entry in self.entries:
                 name=self.project.routines[entry].program
                 if self.project.program_configuration.type_attributes(name,source_sha256=project.sha256):
@@ -186,8 +187,9 @@ class Engine:
     def program_timing_description(self):
         return {'attributes':[2,3],'programs_available':len(self._program_timings),
                 'empty_programs_available':len(self._empty_programs) if not self.blockers else 0,
+                'unassigned_main_programs_available':len(self._no_main_programs) if not self.blockers else 0,
                 'successful_program_executions':sum(t.executions for t in self._program_timings.values()),
-                'measurement':'Host monotonic perf_counter_ns; completed main routine including nested calls; empty Programs retain zero without executing a main',
+                'measurement':'Host monotonic perf_counter_ns; completed main routine including nested calls; Programs without an assigned main retain zero',
                 'units':'Whole microseconds; initial counters are zero until a successful scan',
                 'failed_scans_update_counters':False,'prescan_included':False,'controller_performance_prediction':False}
 
@@ -244,15 +246,17 @@ class Engine:
                     elif program['use_as_folder']:
                         self.blockers.append(f"Program {name} is a folder and cannot be scheduled")
                     elif not program["disabled"]:
-                        if (not program['main'] and self.project.program_diagnostics.is_empty(
+                        if (not program['main'] and self.project.program_diagnostics.has_no_main(
                                 name,source_sha256=self.project.sha256)):
-                            self._empty_programs.add(name.casefold())
+                            self._no_main_programs.add(name.casefold())
+                            if self.project.program_diagnostics.is_empty(name,source_sha256=self.project.sha256):
+                                self._empty_programs.add(name.casefold())
                         else:self.entries.append(f"{name}/{program['main']}".lower())
                         # Program prescan includes all its routines, including routines not called.
                         self.active.update(k for k, r in self.project.routines.items() if r.program == name)
             for tag in self.project.tags.values():
                 if tag.problem: self.blockers.append(f"Tag {tag.key}: {tag.problem}")
-            if not self.entries and not self._empty_programs:self.blockers.append("No scheduled main routine")
+            if not self.entries and not self._no_main_programs:self.blockers.append("No scheduled main routine")
         else:
             self.blockers.append("Unknown execution mode")
             return
