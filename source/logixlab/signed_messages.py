@@ -20,6 +20,7 @@ MAX_BATCH_CHILDREN = 256  # Implementation limit, not an asserted protocol limit
 TRANSFER_CONTROL = 1  # Legacy single-inner 0x39 dialect; fragments use separate framing.
 TRANSFER_CONTROLS = (1, 8)  # Observed single-inner forms; control bits remain opaque.
 FRAGMENT_FORMATS = (0x101, 1, 0x201)  # First, continuation and final fragment.
+DEVICE_TRANSFER_HEADER = bytes.fromhex('5c032100120424000100000014000000')
 
 
 class EnvelopeError(ValueError):
@@ -54,6 +55,11 @@ class FragmentEnvelope:
     fragment: bytes
     container_format: int
     position: int  # First: payload size. Later: payload byte offset.
+
+
+@dataclass(frozen=True)
+class CompactTransferEnvelope(FragmentEnvelope):
+    """One complete device payload; position excludes its fixed device header."""
 
 
 @dataclass(frozen=True)
@@ -152,12 +158,26 @@ def _request_context(request):
 
 
 def _fragment_context(request):
+    if isinstance(request,CompactTransferEnvelope):
+        validate_compact_transfer(request)
+        return
     if (not isinstance(request,FragmentEnvelope) or type(request.service) is not int or request.service!=0x39
             or type(request.sequence) is not int or not 0<=request.sequence<=0xFFFFFFFF
             or type(request.container_format) is not int or request.container_format not in FRAGMENT_FORMATS
             or type(request.position) is not int or not 0<=request.position<=0xFFFFFFFF
             or not isinstance(request.fragment,bytes) or not 1<=len(request.fragment)<=MAX_MESSAGE-38):
         raise EnvelopeError('A supported parsed fragment request is required')
+
+
+def validate_compact_transfer(request):
+    if (not isinstance(request,CompactTransferEnvelope) or type(request.service) is not int or request.service!=0x39
+            or type(request.sequence) is not int or not 0<=request.sequence<=0xFFFFFFFF
+            or type(request.container_format) is not int or request.container_format!=CONTAINER_FORMAT
+            or type(request.position) is not int or request.position in TRANSFER_CONTROLS
+            or not isinstance(request.fragment,bytes) or not len(DEVICE_TRANSFER_HEADER)<len(request.fragment)<=MAX_MESSAGE-38
+            or not request.fragment.startswith(DEVICE_TRANSFER_HEADER)
+            or request.position!=len(request.fragment)-len(DEVICE_TRANSFER_HEADER)):
+        raise EnvelopeError('Invalid compact device transfer framing')
 
 
 def parse_request(raw):
@@ -183,7 +203,11 @@ def parse_request(raw):
     control=TRANSFER_CONTROL
     if service==0x39 and len(raw)>=14+TRAILER_BYTES:
         control=struct.unpack_from('<I',raw,10)[0]
-        if control not in TRANSFER_CONTROLS:raise EnvelopeError('Unsupported transfer container control')
+        if control not in TRANSFER_CONTROLS:
+            result=CompactTransferEnvelope(service,sequence,raw[14:-TRAILER_BYTES],
+                struct.unpack_from('<I',raw,6)[0],control)
+            validate_compact_transfer(result)
+            return result
     inner, format_word = _inner(raw[6:-TRAILER_BYTES], service,transfer_control=control)
     _check_inner_request(inner)
     kind = TransferEnvelope if service == 0x39 else Envelope

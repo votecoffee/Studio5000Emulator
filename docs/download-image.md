@@ -760,8 +760,8 @@ versions match. The original stopped demo is restored.
 
 The observed third payload fits one `0x39` request with container format `0x301`.
 Its count is the encoded payload length, excluding the 16-byte device header.
-The existing decoder supports fragmented transfers and separate legacy `0x39`
-control forms; it rejects this compact form as an unsupported control. That
+The `26.1023.181855` decoder supports fragmented transfers and separate legacy
+`0x39` control forms; it rejects this compact form as an unsupported control. That
 framing rejection closes the compatibility session, so later cleanup requests
 also fail at the wrapper. SDK Offline and endpoint cleanup are confirmed after
 disconnect; successful on-wire End Preparation is not claimed for this trial.
@@ -772,6 +772,35 @@ for two Routines. This establishes byte framing only. The request MAC has not
 been verified offline, and these records have not been accepted or executed.
 Next work needs bounded compact framing, its correct acknowledgment, and a later
 batch model that preserves the earlier retained image and update ledger.
+
+### Compact transport storage
+
+Version `26.1023.183656` recognizes a distinct complete `0x39` device-transfer
+container. Format `0x301` carries the exact encoded payload count, excluding its
+fixed 16-byte RTO device header. Existing legacy controls 1 and 8 retain their
+interpretation. A malformed count, different header, unsupported format or
+message exceeding the codec limit cannot become a complete transfer.
+
+The same session MAC and exact counter are verified before dispatch. Only the
+prepared download owner with matching source and open RTO setup can retain the
+payload. It must fit the negotiated buffer; partial or completed assemblies
+cannot be overwritten. Invalid storage clears temporary bytes while preserving
+setup for cleanup. Expiry, replay, source replacement and owner disconnection
+use the existing cleanup rules. Compact device transfers are not enabled for
+native edit preparations.
+
+A complete payload uses the shared signed empty transport acknowledgment. That
+confirms temporary storage, not acceptance or execution of the records. The
+retained payload has exact private readback; offline tracing identifies the
+compact form without exposing its bytes by default. The earlier image and
+incremental-update ledger remain separate. Later batch processing still needs
+its own source verification and completion model.
+
+The retained original compact frame parses with its payload count and bytes
+intact. A copy signed with the public synthetic test key verifies its MAC and
+counter and decodes to the same eight records, without executing them. The
+original captured request MAC is not claimed verified by that offline test.
+Native acceptance is assessed separately.
 
 ## Native boundary
 

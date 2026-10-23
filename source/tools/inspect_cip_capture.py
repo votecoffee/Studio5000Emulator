@@ -159,7 +159,9 @@ def envelope_description(envelope, include_payloads):
     elif isinstance(envelope,signed_messages.FragmentEnvelope):
         result.update(container_format=envelope.container_format,position=envelope.position,
                       fragment_bytes=len(envelope.fragment),fragment_sha256=hashlib.sha256(envelope.fragment).hexdigest())
-        if envelope.container_format==0x101:result['first_request']=describe(envelope.fragment,include_payloads,unwrap=False)
+        if isinstance(envelope,signed_messages.CompactTransferEnvelope):
+            result.update(compact_device_transfer=True,complete=True,payload_bytes=envelope.position)
+        if envelope.container_format in (0x101,0x301):result['first_request']=describe(envelope.fragment,include_payloads,unwrap=False)
         elif include_payloads:result['fragment_hex']=envelope.fragment.hex()
     elif isinstance(envelope,signed_messages.FragmentAck):
         result.update(container_format=0x301,container_control=0,acknowledgement=True)

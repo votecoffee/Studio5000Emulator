@@ -13,13 +13,14 @@ from .download_image import DownloadImage,ImageError,Source
 from .download_results import ExecutionStatus,ResultError
 from .native_types import verification
 from . import source_object_verification as object_verification
-from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
+from .signed_messages import (FragmentEnvelope,CompactTransferEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE,
+                              DEVICE_TRANSFER_HEADER,validate_compact_transfer,EnvelopeError)
 from .incremental_download import IncrementalDownload,record_digest
 
 MAX_BUFFER_BYTES = 262144
 MAX_FRAGMENTS = 128
 ASSEMBLY_SECONDS = 30
-DEVICE_HEADER = bytes.fromhex('5c032100120424000100000014000000')
+DEVICE_HEADER = DEVICE_TRANSFER_HEADER
 
 
 class TransportError(ValueError):
@@ -259,6 +260,15 @@ class ResilientTransport:
         self.expire()
         try:
             if self.setup is None:raise TransportError(0x0C,'transport_setup_required')
+            if isinstance(envelope,CompactTransferEnvelope):
+                try:validate_compact_transfer(envelope)
+                except EnvelopeError as error:raise TransportError(3,'invalid_compact_transport') from error
+                if self.fragments:raise TransportError(0x0C,'transport_assembly_conflict')
+                data=envelope.fragment[len(DEVICE_HEADER):]
+                if len(data)>self.buffer_bytes:raise TransportError(3,'transport_fragment_size')
+                self._data.extend(data);self.total_bytes=len(data);self.fragments=1;self.complete=True
+                self.deadline=self.clock()+ASSEMBLY_SECONDS
+                return
             if (not isinstance(envelope,FragmentEnvelope) or envelope.service!=0x39 or type(envelope.container_format) is not int
                     or envelope.container_format not in FRAGMENT_FORMATS or type(envelope.position) is not int
                     or not 0<=envelope.position<=0xFFFFFFFF or not isinstance(envelope.fragment,bytes)

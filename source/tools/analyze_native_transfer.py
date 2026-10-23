@@ -165,7 +165,7 @@ def analyze(before,after,operation,report=None):
     events,error=event_interval(before,after)
     if error:return {**base,'status':error,'analysis_complete':False,'requests_observed':0}
     failures=[];wrappers=[];tail=deque(maxlen=16);phases=[];objects=Counter();verifications=[]
-    matched=envelopes=fragments=fragment_bytes=unparsed=failed=wrapper_count=phase_count=0
+    matched=envelopes=fragments=fragment_bytes=compact_transfers=unparsed=failed=wrapper_count=phase_count=0
     verification_count=invalid_verifications=0
     collections=[];collection_count=collection_errors=0
     reads=[];read_count=read_bytes=0
@@ -214,6 +214,7 @@ def analyze(before,after,operation,report=None):
                     reads.append(row)
                 continue
             if isinstance(request,sm.FragmentEnvelope):
+                if isinstance(request,sm.CompactTransferEnvelope):compact_transfers+=1
                 fragments+=1;fragment_bytes+=len(request.fragment);continue
             children=(tuple(zip(request.children,reply.children)) if isinstance(request,sm.BatchEnvelope)
                       else ((request.inner,reply.inner),))
@@ -247,7 +248,7 @@ def analyze(before,after,operation,report=None):
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
         'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors or program_query_errors or metadata_query_errors),'signed_envelopes':envelopes,'requests_observed':matched,
-        'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'unparsed_events':unparsed,
+        'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'compact_device_transfers':compact_transfers,'unparsed_events':unparsed,
         'read_transport_frames':reads,'read_transport_frames_observed':read_count,'read_transport_bytes':read_bytes,
         'read_transport_frames_truncated':read_count>MAX_REPORT_ROWS,
         'request_limit_reached':limited,'failed_request_count':failed,'failed_requests':failures,

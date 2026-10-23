@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.181855`.** Versions use the release timestamp
+**Current app version: `26.1023.183656`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds the separate PLC-2 mapping write that follows the full setup
+This revision adds bounded [compact transport storage](docs/download-image.md#compact-transport-storage)
+for the third download batch. Its complete payload is retained privately with
+MAC/counter, owner, source and capacity checks. Storage acknowledgement does
+not execute its records or complete a download. Native routine processing and
+full upload/download remain unfinished.
+
+Version `26.1023.181855` adds the separate PLC-2 mapping write that follows the full setup
 list. It requires the original empty mapping and preserves the already retained
 mapping descriptor. Complete functional native transfers remain unfinished.
 

@@ -1680,6 +1680,8 @@ class Router:
                         lease=self.endpoint.programming_lease
                         try:
                             if lease.selector==1:
+                                if isinstance(envelope,signed_messages.CompactTransferEnvelope):
+                                    raise CIPError(0x0F,'Compact device transfer requires a prepared download')
                                 # Check ownership before any error can discard
                                 # this owner's assembly for a different client.
                                 lease.require_edit_owner(native,self.app.generation,self.app.engine.project.sha256)
