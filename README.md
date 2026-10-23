@@ -14,6 +14,12 @@ This revision adds source-backed [Local I/O Map metadata](docs/local-io-map.md).
 Link Port comes from the canonical Local-module source; Map Address resolves
 to the current interpreter object with source and lifetime checks. It also
 fixes stale registry bookkeeping after a replaced object's allocation fails.
+Native download accepts these fields and reaches its second transfer batch
+after 182 verified requests. That batch remains unsupported. Normal upload
+still fails Program collection after 348 requests; a supported Program-mode
+import/reconnect succeeds across 188 requests with one expected audit update.
+All three trials preserve the input and confirm actual Offline/cleanup without
+a reported SDK fault. All 106 affected checks pass.
 
 Version `26.1023.085003` adds capture-informed [temporary Program and Routine enumeration](docs/download-image.md#completed-program-and-routine-catalogs).
 The downloading client can enumerate headers backed by its own completed image,

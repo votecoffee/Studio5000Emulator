@@ -41,3 +41,13 @@ it does not supply the instance's Link Port.
 The implementation shares the interpreter object registry with Program,
 Routine and Task references. Its routing layer only reads those model values.
 Complete native download, upload and Run-mode edits remain separate milestones.
+
+## Native check
+
+On this version the SDK accepts the three-field response, including the
+interpreter-backed Map Address, then starts a second transport batch. The
+current single-batch guard rejects that setup. Download reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 182 verified requests; active model and
+original files are preserved, with actual Offline/cleanup and no reported SDK
+fault. The next implementation step is receiving that additional batch while
+retaining the completed temporary image.

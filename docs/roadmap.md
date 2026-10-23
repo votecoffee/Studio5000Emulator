@@ -12,6 +12,13 @@ canonical source and the map reference resolves a current interpreter object.
 Reload, source changes and object replacement revoke stale references. Failed
 replacement allocation also clears both registry indexes, preserving retry
 and revocation behavior without a dangling address.
+Native download accepts all three fields and reaches a second transfer setup,
+then receives the explicit single-batch rejection after 182 verified requests.
+Normal upload retains its Program-collection failure after 348 requests; a
+supported Program-mode import/reconnect succeeds across 188 requests with one
+expected audit update. Source preservation and actual Offline/cleanup are
+confirmed for all three trials, with no reported SDK fault. All 106 affected
+checks pass and the executable, browser and 105 deployed modules match.
 
 Version `26.1023.085003` adds [temporary Program and Routine enumeration](download-image.md#completed-program-and-routine-catalogs).
 The observed Routine attribute 8 and Program attribute 16 profiles return
