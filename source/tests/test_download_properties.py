@@ -1,0 +1,113 @@
+"""Controller metadata uses original typed values and a private owning namespace."""
+from dataclasses import replace
+import unittest
+from unittest.mock import patch
+from logixlab.download_image import ImageError,Source
+from logixlab.download_properties import DownloadProperties
+from logixlab.incremental_download import value_identity
+from test_download_namespace import NamespaceFixture,ENUM
+import test_native_metadata_values as original
+import test_download_metadata as packets
+import test_download_controller as controllers
+import test_programming_preparation as prep
+
+
+def catalog(source):
+    values=original.catalog(acd=source.acd_sha256,l5x=source.l5x_sha256)
+    number=values.rows[-1]
+    text=replace(number,definition=1,record_word=len(values.rows)+1,kind=1,
+        data='Original ÜTF-8 comment'.encode(),type_code=None,elements=0)
+    return replace(values,rows=(*values.rows,text)),number,text
+
+
+def request(rows,definition=None):
+    definition=rows[0].definition if definition is None else definition
+    return packets.request(0x349,definition,packets.packet(rows,definition)).request
+
+
+class PropertyModelTests(unittest.TestCase):
+    def setUp(self):
+        self.source=Source('a'*64,'b'*64);self.values,self.number,self.text=catalog(self.source)
+        self.stage=DownloadProperties()
+
+    def test_numeric_text_and_multifield_packets_have_exact_private_readback_and_idempotent_replay(self):
+        before=self.values.body('all-objects');body=packets.packet((self.number,))
+        self.stage.stage(body,self.number.definition,self.source,self.values)
+        self.assertEqual(value_identity(self.stage.read(0,self.source,self.values)),value_identity(self.number))
+        self.stage.stage(body,self.number.definition,self.source,self.values)
+        self.assertEqual(self.stage.description()['packets'],1)
+        self.stage.stage(packets.packet((self.number,self.text),0),0,self.source,self.values)
+        self.assertEqual(self.stage.description()['values'],2)
+        self.assertEqual(self.stage.read(1,self.source,self.values).data,self.text.data)
+        self.assertEqual(self.values.body('all-objects'),before)
+        self.assertFalse(self.stage.description()['identity_changed'] or self.stage.description()['commit'])
+        for index in (True,-1,2):
+            with self.assertRaises(ImageError):self.stage.read(index,self.source,self.values)
+
+    def test_truncation_unknown_targets_locales_and_values_never_publish_partial_properties(self):
+        raw=packets.packet((self.number,))
+        for n in range(len(raw)):
+            with self.subTest(size=n),self.assertRaises(ImageError):self.stage.stage(raw[:n],self.number.definition,self.source,self.values)
+        bad=(replace(self.number,data=bytes(4)),replace(self.number,locale_word=0x409),
+            replace(self.number,target=replace(self.number.target,selector_word=1)),self.values.rows[0])
+        for row in bad:
+            with self.assertRaises(ImageError):self.stage.stage(packets.packet((row,)),row.definition,self.source,self.values)
+        with self.assertRaises(ImageError):
+            self.stage.stage(packets.packet((self.number,replace(self.text,data=b'Changed')),0),0,self.source,self.values)
+        self.assertEqual(self.stage.description()['values'],0)
+        for definition in (True,-1,65536):
+            with self.assertRaises(ImageError):self.stage.stage(raw,definition,self.source,self.values)
+
+    def test_catalog_source_property_and_packet_ledger_changes_revoke_readback(self):
+        for case in ('source','catalog','properties','packets'):
+            with self.subTest(case=case):
+                self.setUp();self.stage.stage(packets.packet((self.number,)),self.number.definition,self.source,self.values)
+                source=self.source;values=self.values
+                if case=='source':source=Source('c'*64,'b'*64)
+                elif case=='catalog':object.__setattr__(values,'rows',values.rows[:-1])
+                elif case=='properties':self.stage._values={}
+                else:self.stage._packets=()
+                with self.assertRaises(ImageError):self.stage.read(0,source,values)
+
+    def test_storage_limits_leave_existing_properties_intact(self):
+        self.stage.stage(packets.packet((self.number,)),self.number.definition,self.source,self.values)
+        for name,limit in (('MAX_VALUES',1),('MAX_VALUE_BYTES',1),('MAX_PACKETS',1),('MAX_PACKET_BYTES',1)):
+            with patch('logixlab.download_properties.'+name,limit),self.assertRaises(ImageError):
+                self.stage.stage(packets.packet((self.number,self.text),0),0,self.source,self.values)
+            self.assertEqual(self.stage.description()['values'],1)
+
+
+class PropertySignedTests(NamespaceFixture,unittest.TestCase):
+    def setUp(self):
+        controllers.ControllerSignedTests.setUp(self)
+        self.values,self.number,self.text=catalog(self.namespace._source)
+        self.app.native_metadata_definitions=self.values.definitions;self.app.native_metadata_values=self.values
+    complete_tasks=controllers.ControllerSignedTests.complete_tasks
+
+    def configure(self):
+        self.complete_tasks()
+        self.assertEqual(self.send(bytes.fromhex('0402208e2401')+controllers.payload())[2],0)
+
+    def test_prepared_owner_retains_property_without_changing_source_identity_or_active_values(self):
+        raw=request((self.number,));before=self.values.body('all-objects')
+        self.assertNotEqual(self.send(raw)[2],0);self.configure()
+        self.assertEqual(self.send(raw),bytes.fromhex('cf000000'))
+        self.assertEqual(self.send(request((self.number,self.text),0))[2],0)
+        self.assertEqual(self.send(ENUM)[2],0)
+        self.assertEqual(self.namespace.properties.description()['values'],2)
+        self.assertIs(self.app.native_metadata_values,self.values);self.assertEqual(self.values.body('all-objects'),before)
+        self.assertEqual(self.app.engine.scan_count,0)
+        self.assertEqual(self.send(prep.END)[2],0);self.assertIsNone(self.endpoint.programming_lease.download_namespace)
+
+    def test_unsigned_foreign_run_mode_and_stale_source_cannot_write_properties(self):
+        self.configure();raw=request((self.number,))
+        self.assertNotEqual(self.cip(raw)[2],0)
+        first=self.client;second=self.second_client()
+        try:
+            self.client=second;self.assertEqual(self.signed(4,raw)[2],15)
+        finally:self.client=first;second.close()
+        with patch.object(self.app,'controller_state',return_value={'mode':'Run'}):self.assertEqual(self.send(raw)[2],12)
+        self.assertEqual(self.namespace.properties.description()['values'],0)
+        self.assertEqual(self.send(raw)[2],0)
+        self.app.native_metadata_values=original.catalog(acd='c'*64,l5x=self.app.engine.project.sha256)
+        self.assertEqual(self.send(ENUM)[2],12)

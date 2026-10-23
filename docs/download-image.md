@@ -582,6 +582,33 @@ with unchanged source/model, actual Offline/cleanup and no reported SDK fault.
 The original stopped demo is restored with zero scans, elapsed time, runtime
 revision and audit updates. SDK/Linx service processes remain unchanged.
 
+## Controller metadata properties
+
+Version `26.1023.172357` handles the observed Controller metadata service `0x4F`
+after base Controller configuration. The existing download decoder preserves
+the complete target, locale, definition and typed value. Every value must match
+the original ACD's bound Metadata Definition and Comments catalogs. Only root
+Controller instance 1 with zero context/selector words is supported. Unknown,
+changed, malformed, ambiguous or foreign-source properties remain errors.
+
+The prepared programming owner, current complete Tasks, retained download
+configuration and stopped Program mode are required. Numeric and UTF-8 values
+use the original typed metadata codec, independently of the earlier definition-
+only staging profile. Single-field and counted multi-field packets are atomic;
+exact replays are idempotent. Packet, value and encoded-storage limits apply.
+
+Values have private readback and a source/effect digest, including the packet
+ledger. Subsequent namespace operations recheck the stored properties and the
+current original catalogs. Ending preparation, disconnect, expiry or source
+replacement discards this layer. Active project metadata and the Identity
+object's serial number remain unchanged. Packet-local record ordinals confer
+no native object identity or project-signature authority.
+
+The demo's rejected `ControllerSerialNumber` packet matches its original ACD
+value exactly and has been staged/read back offline. Captured properties from
+other projects are not installed when their target or value does not match.
+Complete native transfer and active-project commit remain separate boundaries.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

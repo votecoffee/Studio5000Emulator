@@ -403,6 +403,16 @@ class Router:
                         self.endpoint.record('native_edit_metadata_retained',**stage.description()['routine_metadata'])
                         return reply(inner[0])
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    namespace=lease.download_namespace
+                    if (namespace is not None and namespace.controller.description()['configured']
+                            and payload[8:10]==b'\x8e\0'):
+                        self.require_download_namespace(lease,identity)
+                        namespace.tasks.require_configured(self.download_task_bindings(lease))
+                        if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                        source=Source(identity.source_acd_sha256,self.app.engine.project.sha256)
+                        namespace.properties.stage(payload,path.instance,source,getattr(self.app,'native_metadata_values',None))
+                        self.endpoint.record('native_download_controller_properties',**namespace.properties.description())
+                        return reply(inner[0])
                     lease.metadata.stage_values(payload,path.instance)
                     self.endpoint.counts['native_metadata_value_packets']+=1
                 return reply(inner[0])

@@ -12,6 +12,7 @@ from .download_image import MAX_READ_BYTES
 from . import source_object_verification
 from .download_tasks import DownloadTasks
 from .download_controller import DownloadController
+from .download_properties import DownloadProperties
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
@@ -58,6 +59,7 @@ class DownloadNamespace:
         self._incremental=None
         self.tasks=DownloadTasks()
         self.controller=DownloadController()
+        self.properties=DownloadProperties()
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -86,6 +88,7 @@ class DownloadNamespace:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
         self.tasks.validate(task_bindings)
         self.controller.validate(controller_bindings)
+        self.properties.validate(source,native_metadata_values)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
@@ -191,4 +194,5 @@ class DownloadNamespace:
             incremental_records=self._incremental.records if self._incremental is not None else 0,
             tasks=self.tasks.description(),
             controller_configuration=self.controller.description(),
+            controller_properties=self.properties.description(),
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)
