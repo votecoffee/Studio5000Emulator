@@ -420,6 +420,10 @@ class Router:
                             exact(payload,0)
                             inspection=lease.transport.inspect_incremental_payload()
                             self.endpoint.record('native_incremental_transport_inspection',**inspection)
+                            staged=lease.transport.prepare_incremental_payload(lease.download_namespace._image,
+                                Source(identity.source_acd_sha256,self.app.engine.project.sha256),
+                                getattr(self.app,'native_metadata_values',None))
+                            self.endpoint.record('native_incremental_download_staging',**staged)
                             return reject(0x0F,'incremental_download_processing_unimplemented')
                     if inner[0]==0x4D:
                         exact(payload,0)

@@ -257,6 +257,48 @@ download still reports `RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified request
 The active model and original files remain unchanged, actual Offline/cleanup
 is confirmed, and no SDK fault is reported. All 150 affected checks pass.
 
+## Isolated second-batch effects
+
+Version `26.1023.095449` builds a separate pending proposal for supported
+operations in the later batch. Unknown operations produce an explicit partial
+coverage report. A malformed known operation, foreign source, missing object,
+duplicate value/write or incomplete coordination discards the whole proposal.
+The completed base image remains unchanged in every case.
+
+Metadata `0x4F` packets use a shared bounded value decoder. A nonzero path
+instance supplies one definition; instance zero contains a counted list of
+locale/definition pairs for the same target. Strings, numeric data and named
+references use the existing upload value framing. Each target, locale,
+definition and complete typed value must exactly match the original ACD
+metadata catalog, bound to the same ACD/L5X pair. Source record words are not
+copied into invented controller identities. Stored target words and reference
+words remain metadata; this does not resolve them to executable objects.
+
+Only the observed complete whole-table `0x50` write profile is supported:
+zero offset, zero selector, an exact UINT byte count matching the retained
+table's full allocation, and exactly that many data bytes. The table must exist
+in the source-checked completed image. These writes produce independent private
+bytes. They do not change its base storage, active tags, native addresses or
+I/O configuration. Partial, scoped and repeated writes remain denied.
+
+Empty Diagnostic Message attribute lists require an existing retained message.
+Program coordination requires the exact existing Program parent, paired
+acquire/release and no outstanding reservation at the end. These model an empty
+update and local coordination transitions, respectively; they do not silently
+discard changes to diagnostic attributes.
+
+Offline reconstruction of the received batch models 309 of 335 records:
+167 metadata packets with 1,255 exact source value matches, four table writes
+containing 151 bytes, 136 empty diagnostic updates and two coordination records.
+The remaining records are 20 Symbol, two Routine, one Program and one I/O Map
+attribute update, plus two router operations. Source/type/object checks and
+all existing lease/assembly cleanup rules still apply. Readback rechecks the
+base image and current source metadata; summaries expose counts only.
+
+Start and execution-status still return an explicit processing rejection.
+Installing the proposal, implementing remaining operations and producing actual
+completed effects are separate required steps before native download succeeds.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -150,6 +150,47 @@ class _Reader:
         return Target(cls,instance,context,selector,self.take(size))
 
 
+def _value(reader,target,locale,definition,word):
+    if reader.take(12)!=bytes(12):raise ValueError('Unsupported metadata query reserved words')
+    kind,=reader.fields('<H');raw=b'';code=None;count=0;references=()
+    if kind==1:raw=reader.string()
+    elif kind==2:
+        code,count=reader.fields('<HH')
+        if code not in NUMERIC_WIDTHS or not count:raise ValueError('Unsupported metadata query numeric layout')
+        raw=reader.take(NUMERIC_WIDTHS[code]*count)
+    elif kind==3:
+        count,=reader.fields('<H')
+        if not 1<=count<=MAX_REFERENCES:raise ValueError('Metadata query reference count limit')
+        references=tuple(Reference(reader.string(),reader.target()) for _ in range(count))
+    elif kind!=4:raise ValueError('Unsupported metadata query value kind')
+    return Record(target,locale,definition,word,kind,raw,code,count,references)
+
+
+def download_records(payload,definition):
+    """Decode one complete 0x4F packet, without applying its values.
+
+    A nonzero path instance supplies the definition for one value. Instance
+    zero carries a bounded list of locale/definition pairs for the same target.
+    Record words are local ordinals, never native identities or returned IDs.
+    """
+    if (not isinstance(payload,bytes) or not 8<=len(payload)<=65519
+            or type(definition) is not int or not 0<=definition<=0xFFFF):
+        raise ValueError('Invalid download metadata packet')
+    fmt,size=struct.unpack_from('<II',payload)
+    if fmt!=0x301 or size!=len(payload)-8:raise ValueError('Invalid download metadata framing')
+    reader=_Reader(payload[8:]);target=reader.target()
+    count=1 if definition else reader.fields('<H')[0]
+    if not 1<=count<=64:raise ValueError('Download metadata field count limit')
+    result=[];seen=set()
+    for word in range(1,count+1):
+        locale,=reader.fields('<H')
+        field=definition or reader.fields('<H')[0]
+        if not field or (locale,field) in seen:raise ValueError('Invalid or duplicate download metadata field')
+        result.append(_value(reader,target,locale,field,word));seen.add((locale,field))
+    if reader.position!=len(reader.data):raise ValueError('Trailing download metadata bytes')
+    return tuple(result)
+
+
 def records(data,*,max_records=MAX_RECORDS):
     """Consume full records, preserving IDs and string blobs without interpretation.
 
@@ -164,19 +205,7 @@ def records(data,*,max_records=MAX_RECORDS):
         if len(result)>=max_records:raise ValueError('Metadata query record limit')
         target=reader.target();locale,definition,word=reader.fields('<HHI')
         if not definition or not word or word in seen:raise ValueError('Invalid or duplicate metadata record identity')
-        if reader.take(12)!=bytes(12):raise ValueError('Unsupported metadata query reserved words')
-        kind,=reader.fields('<H');raw=b'';code=None;count=0;references=()
-        if kind==1:raw=reader.string()
-        elif kind==2:
-            code,count=reader.fields('<HH')
-            if code not in NUMERIC_WIDTHS or not count:raise ValueError('Unsupported metadata query numeric layout')
-            raw=reader.take(NUMERIC_WIDTHS[code]*count)
-        elif kind==3:
-            count,=reader.fields('<H')
-            if not 1<=count<=MAX_REFERENCES:raise ValueError('Metadata query reference count limit')
-            references=tuple(Reference(reader.string(),reader.target()) for _ in range(count))
-        elif kind!=4:raise ValueError('Unsupported metadata query value kind')
-        result.append(Record(target,locale,definition,word,kind,raw,code,count,references));seen.add(word)
+        result.append(_value(reader,target,locale,definition,word));seen.add(word)
     return tuple(result)
 
 

@@ -8,6 +8,10 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects)
+for source-matched metadata, whole-table byte proposals, empty diagnostics and
+Program coordination. Partial coverage still denies processing and completion.
+
 Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception)
 while preserving the completed temporary namespace. Later records can be
 structurally inspected; their processing and completion remain denied.

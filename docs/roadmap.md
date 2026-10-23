@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects).
+Its pending proposal retains original-source metadata, private table bytes,
+validated empty diagnostic updates and paired Program coordination. Offline
+reconstruction models 309 of 335 observed records, including 1,255 matched
+metadata values and 151 table bytes. Twenty-six attribute/router operations
+remain unsupported. No proposal replaces the completed image or active model,
+and no incremental processing/completion success is returned.
+
 Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception).
 An owning prepared client can open and fill another bounded buffer without
 replacing its completed namespace. Source/catalog checks cover setup,

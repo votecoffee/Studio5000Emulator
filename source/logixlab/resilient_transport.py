@@ -14,6 +14,7 @@ from .download_results import ExecutionStatus,ResultError
 from .native_types import verification
 from . import source_object_verification as object_verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
+from .incremental_download import IncrementalDownload
 
 MAX_BUFFER_BYTES = 262144
 MAX_FRAGMENTS = 128
@@ -51,6 +52,7 @@ class ResilientTransport:
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
         self.incremental_inspection={**self.inspection,'operations':[]}
+        self._incremental_batch=();self.incremental=IncrementalDownload();self.incremental_error=None
 
     def inspect_incremental_payload(self):
         """Inspect a later batch without treating it as a complete source image.
@@ -68,10 +70,19 @@ class ResilientTransport:
         try:
             batch=device_payload.decode(bytes(self._data),expected)
             self.incremental_inspection=device_payload.summary(batch,expected)
+            self._incremental_batch=batch
         except device_payload.PayloadError as error:
             self.incremental_inspection={**self.incremental_inspection,'status':'invalid','reason':error.reason}
             raise TransportError(3,error.reason) from error
         return self.incremental_inspection
+
+    def prepare_incremental_payload(self,image,source,native_metadata_values=None):
+        self.inspect_incremental_payload()
+        self.incremental=IncrementalDownload();self.incremental_error=None
+        try:self.incremental=IncrementalDownload.prepare(self._incremental_batch,image,source,native_metadata_values)
+        except ImageError as error:
+            self.incremental_error=error.reason;raise
+        return self.incremental.description()
 
     def inspect_payload(self, native_types=None, *, native_symbols=None,native_routines=None,native_auxiliary_symbols=None,native_tables=None):
         self.expire()
@@ -265,6 +276,8 @@ class ResilientTransport:
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
                 'incremental_inspection':{**self.incremental_inspection,
                     'operations':[dict(row) for row in self.incremental_inspection['operations']]},
+                'incremental_staging':{**self.incremental.description(),
+                    **({'status':'invalid','reason':self.incremental_error} if self.incremental_error else {})},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},
                 'source_object_verification':{**self.source_object_verification,
