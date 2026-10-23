@@ -6,19 +6,25 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.160` demonstrates Go Online and
+**Status: experimental.** Native validation on `.161` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests and actual mode reads also pass on `.158`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
-validated on `.160`. Supported imports update the custom execution model while
+validated on `.161`. Supported imports update the custom execution model while
 preserving the original source files.
 
 Version `.161` adds source-bound [Routine Name reads](docs/routine-names.md)
 for Program- and AOI-scoped Executable objects, plus bounded offline decoding.
 The read preserves source spelling and requires the original child/parent and
 project bindings. Code/edit-state guards remain independent; writes stay denied.
-The one-NOP project also retains the separate Program upload failure before
-source retrieval. Full Routine upload and download remain unfinished.
+All 153 affected checks and live signed reads pass. SDK connection verifies 74
+requests; supported Program-mode import/reconnect verifies 188. Routine names
+remain readable after replacement while guarded code-state fields stay
+unavailable. Original files are preserved, Offline/cleanup is confirmed and no
+SDK fault is reported. The original zero-scan/audit demo is restored; webpage,
+executable and appliance versions match. The one-NOP comparison on `.160`
+retains the separate Program upload failure before source retrieval. Full
+Routine upload and download remain unfinished.
 
 Version `.160` adds an explicit [empty simulator component-tracking profile](docs/empty-component-tracking.md)
 for Controller fields 33/34. Its empty active/test groups return zero arrays;

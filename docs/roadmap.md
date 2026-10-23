@@ -13,6 +13,13 @@ protection, scope and write guards. The one-NOP upload comparison on `.160`
 retains the Program failure before source retrieval, with actual Offline/cleanup,
 source/model preservation and no reported SDK fault. This does not resolve
 native Routine upload, download result encoding or the complete edit lifecycle.
+All 153 affected checks and live signed Program Routine Name reads pass before
+and after supported replacement. SDK connection verifies 74 requests; supported
+Program-mode import/reconnect verifies 188 with one expected audit update.
+Original files are preserved, actual Offline/cleanup is confirmed and no SDK
+fault is reported. The original zero-scan/audit demo is restored. Webpage,
+executable and appliance versions match. AOI Name coverage remains software
+testing rather than native AOI transfer acceptance.
 
 Version `.160` adds an [empty simulator component-tracking profile](empty-component-tracking.md)
 for fields 33/34. Source absence selects emulator policy and never proves native

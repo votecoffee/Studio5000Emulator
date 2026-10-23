@@ -42,3 +42,14 @@ parent and source isolation, AOI protection, exact count/ASCII bounds, reply
 budgets, write denial and preservation of execution/audit state. Known names
 remain readable when code-state fields are withheld after a fault or logic
 revision. The previous milestone's full suite is not rerun for this addition.
+
+Live signed reads verify both demo Routine names before and after supported
+Program-mode replacement, including mixed/duplicate reads, denied writes and
+invalid scopes. Names remain available after the import while code-state fields
+remain guarded. AOI Name coverage is from software tests, without a native AOI
+transfer claim. SDK Go Online/Offline verifies 74 requests; supported import and
+reconnect verify 188 with one expected revision/audit update. Both native cases
+confirm Offline/cleanup, original-file preservation and no reported SDK fault.
+The original demo is restored to stopped Program mode with zero scan/revision/
+audit state. Source/build/appliance modules match, and browser, executable and
+appliance versions all report `.161`.
