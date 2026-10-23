@@ -1,17 +1,35 @@
-"""Generate Windows build metadata from the application's single version value."""
+"""Stamp release versions and generate matching Windows build metadata."""
+from datetime import datetime
 import re
 from pathlib import Path
 
 from . import __version__
 
 
-def write_windows_resource(path):
-    match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:-connectivity\.(\d+))?', __version__)
+def windows_version(version):
+    """Split YY.MMDD.HHmmss into four Windows WORDs: YY, MMDD, HHmm, ss."""
+    match = re.fullmatch(r'([0-9]{2})\.([0-9]{4})\.([0-9]{4})([0-9]{2})', version)
     if not match:
-        raise ValueError('Update the Windows version mapping for this version format')
-    numeric = tuple(int(value or 0) for value in match.groups())
-    if any(value > 65535 for value in numeric):
-        raise ValueError('Windows version components must fit in 16 bits')
+        raise ValueError('App version must use YY.MMDD.HHmmss')
+    datetime.strptime('20'+version, '%Y.%m%d.%H%M%S')
+    return tuple(int(value) for value in match.groups())
+
+
+def stamp_version():
+    """Save one workstation-local release timestamp; never change it at startup."""
+    version = datetime.now().strftime('%y.%m%d.%H%M%S')
+    path = Path(__file__).with_name('__init__.py')
+    content, count = re.subn(r'^__version__ = "[^"\r\n]+"$',
+                             f'__version__ = "{version}"', path.read_text(encoding='utf-8'),
+                             flags=re.MULTILINE)
+    if count != 1:
+        raise ValueError('Expected exactly one application version declaration')
+    path.write_text(content, encoding='utf-8')
+    return version
+
+
+def write_windows_resource(path):
+    numeric = windows_version(__version__)
     values = {'CompanyName': 'Studio5000Emulator contributors',
               'FileDescription': 'LogixLab experimental offline Logix emulator',
               'FileVersion': __version__, 'InternalName': 'LogixLab',
@@ -25,3 +43,11 @@ def write_windows_resource(path):
         VarFileInfo([VarStruct('Translation', [1033, 1200])])])
 '''
     Path(path).write_text(resource, encoding='utf-8')
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--stamp', action='store_true', help='Stamp a new revision before building all delivery targets')
+    args = parser.parse_args()
+    print(stamp_version() if args.stamp else __version__)

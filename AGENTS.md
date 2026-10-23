@@ -2,6 +2,9 @@
 
 - Read optional checkout-local instructions in `.local/AGENTS.md` when present.
 - Keep the root README current and follow the repository's Standard Readme structure.
+- Use `YY.MMDD.HHmmss` app versions. Before a new app revision, run
+  `py -3.13 -m logixlab.versioning --stamp` from `source/`, then rebuild all
+  delivery targets with that same version. Do not restamp at application startup.
 - Put shared technical documentation in `docs/`; keep personal notes, machine paths,
   private PLC projects, logs and generated validation reports in ignored `.local/` storage.
 - Application code, tests, public L5X fixtures and browser assets are under `source/`.

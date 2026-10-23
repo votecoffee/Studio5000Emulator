@@ -6,6 +6,10 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
+**Current app version: `26.1022.213142`.** Versions use the release timestamp
+`YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
+page header, Windows tray and executable properties share this version.
+
 **Status: experimental.** Native validation on `.162` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
 Remote Run/Program requests and actual mode reads also pass on `.162`.
@@ -403,7 +407,8 @@ For supported Studio edits, select **Connectivity → Allow supported Studio edi
 before connecting. This profile replaces an existing standard RLL routine in
 **Program** mode. Changes stay in memory; reload the original project to restore
 its logic. Native SDK import is tested; the Studio GUI edit workflow is unverified.
-The header shows the running app's full version and PLC endpoint IP. On Windows,
+The browser title and header show the running app's full timestamp version;
+the header also shows the PLC endpoint IP. On Windows,
 its tray icon offers
 **Open app** and **Quit LogixLab**; hover over it to see the version and session
 address. The icon may appear under the taskbar's hidden-icons arrow.

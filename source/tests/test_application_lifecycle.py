@@ -68,6 +68,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()
         self.assertIn(f'id="app-version">{__version__}<', html)
+        self.assertIn(f'<title>LogixLab {__version__} · Offline PLC lab</title>', html)
         self.assertNotIn('__LOGIXLAB_VERSION__', html)
         empty = self.post('settings', {'converter': ''})
         self.assertFalse(empty['loaded'])

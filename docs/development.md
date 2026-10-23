@@ -1213,6 +1213,22 @@ diagnostic.
 
 ## Executable build
 
+Before a new app revision, stamp one release version in the source directory:
+
+```powershell
+Push-Location source
+py -3.13 -m logixlab.versioning --stamp
+Pop-Location
+```
+
+Versions use `YY.MMDD.HHmmss` in the release workstation's local time. Commit the
+stamped `source/logixlab/__init__.py` and use that same version when building the
+executable and preparing the appliance. Builds and application startup preserve
+the stamp so all delivery targets agree. The initial browser title, page header,
+tray tooltip/menu and Windows executable display it. Windows numeric version
+fields split the time into `YY, MMDD, HHmm, ss` to fit their 16-bit limits; string
+properties retain the full `YY.MMDD.HHmmss` value.
+
 ```powershell
 py -3.13 -m pip install pyinstaller
 powershell -NoProfile -File source/build.ps1
