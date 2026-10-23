@@ -48,4 +48,28 @@ native Test/Untest/Assemble authority.
 All 248 affected checks pass, covering unused source, mixed schedules, prescan,
 explicit harness execution, zero main timings, invalid/incomplete source,
 reference lifetime and signed Program/Routine metadata. The full suite is not
-rerun for this addition. Native transfer acceptance is assessed separately.
+rerun for this addition.
+
+The rebuilt `.162` runtime passes seven live signed requests, including all 22
+stored-Routine fields, a null main reference, a backed Program reference and zero
+main timings. A native SDK Run/Program cycle verifies 108 requests and advances
+158 scans while leaving tags unchanged and main execution counters zero. Actual
+mode reads in both directions, return to stopped Program mode and six expected
+audit updates are confirmed.
+
+A native-saved one-NOP fixture is also compared using two upload input files:
+the matching project and its empty-Routine ancestor. Source catalogs, project
+lineage and tags are checked before comparison. Shared-ancestor Template
+definitions are revalidated against the descendant's identical type catalog;
+they are not a fresh native Template capture. Both uploads fail Program collection
+after 356 verified requests. All 22 Routine fields succeed with no observed
+endpoint attribute gaps, and neither attempt requests Routine source. The SDK's
+process-wide cache state remains unverified: absence of the Routine from an input
+file does not establish absence from the SDK process.
+
+Download of the populated no-main fixture verifies 175 requests and prepares
+909 temporary records, 243 Templates and 18 tables. It reaches the result query
+without committing an active image and reports the existing device-download
+failure. These transfer failures preserve the source and execution model, confirm
+actual Offline/cleanup and report no SDK fault. Complete native upload/download,
+a valid saved uploaded ACD and the full online-edit lifecycle remain unfinished.

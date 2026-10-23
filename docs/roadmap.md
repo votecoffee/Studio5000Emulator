@@ -11,7 +11,19 @@ complete ordinary RLL source. Stored routines remain discoverable without being
 chosen as implicit mains; existing prescan and mixed schedules are preserved.
 The API distinguishes populated unassigned Programs from empty catalogs, and
 native references remain backed by current objects and complete source. All 248
-affected checks pass. Native transfer acceptance remains a separate goal.
+affected checks and live signed metadata reads pass. A native Run/Program cycle
+verifies 108 requests and advances scans with unchanged tags and zero main
+executions. Matching-project and empty-ancestor upload inputs both fail Program
+collection after 356 verified requests, with all 22 Routine fields successful,
+no observed endpoint attribute gaps and no Routine source requests. Process-wide
+SDK cache absence is not established. Download verifies 175 requests and prepares
+909 temporary records before the result query, without an active image commit.
+Both transfer directions preserve the source/model and confirm Offline/cleanup
+without a reported SDK fault. Complete native transfers remain a separate goal.
+The demo connection verifies 74 requests; supported Program-mode import/reconnect
+verifies 190 with one audit update. All six native cases confirm Offline/cleanup,
+source preservation and no reported SDK fault. The original stopped zero-scan/
+audit demo is restored; webpage, executable and appliance versions match `.162`.
 
 Version `.161` adds source-bound [Routine Name reads](routine-names.md) for
 Program and AOI children, plus bounded offline collection decoding. It preserves

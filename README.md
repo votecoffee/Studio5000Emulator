@@ -6,18 +6,30 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Status: experimental.** Native validation on `.161` demonstrates Go Online and
+**Status: experimental.** Native validation on `.162` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
-Remote Run/Program requests and actual mode reads also pass on `.158`.
+Remote Run/Program requests and actual mode reads also pass on `.162`.
 Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
-validated on `.161`. Supported imports update the custom execution model while
+validated on `.162`. Supported imports update the custom execution model while
 preserving the original source files.
 
 Version `.162` adds source-checked [Programs without an assigned main Routine](docs/unassigned-main.md),
 including populated ordinary RLL catalogs. The scheduler runs no implicit main;
 prescan and other Programs retain their behavior. Null main references and
 stored Routine metadata require matching source and current interpreter objects.
-All 248 affected checks pass; native transfer acceptance is tracked separately.
+All 248 affected checks and live signed metadata reads pass. A native Run/Program
+cycle verifies 108 requests and advances scans without executing a main Routine
+or changing tag values. Two upload targets, one containing the stored Routine
+and one without it, both stop after 356 verified requests before source retrieval;
+all 22 Routine fields succeed with no observed endpoint attribute gaps. This
+comparison does not establish the SDK's process-wide cache state. Download verifies
+175 requests and prepares 909 temporary records, then stops at the result query
+without committing an active image. Full Routine transfers remain unfinished.
+The demo Go Online/Offline check verifies 74 requests; supported Program-mode
+import/reconnect verifies 190 with one expected audit update. All six native
+cases confirm Offline/cleanup and original-file preservation without a reported
+SDK fault. The original stopped demo is restored with zero scans and audit
+updates; webpage, executable and appliance versions match `.162`.
 
 Version `.161` adds source-bound [Routine Name reads](docs/routine-names.md)
 for Program- and AOI-scoped Executable objects, plus bounded offline decoding.
