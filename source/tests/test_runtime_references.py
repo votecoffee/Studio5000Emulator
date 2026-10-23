@@ -59,5 +59,16 @@ class RuntimeReferenceTests(unittest.TestCase):
             self.assertEqual(space.program_attributes(engine.project,'MainProgram'),{})
         self.assertEqual(space.description()['allocated_objects'],0)
 
+    def test_exhausted_replacement_revokes_both_indexes_and_can_allocate_after_recovery(self):
+        engine=self.engine(['NOP();']);project=engine.project;space=engine.runtime_references
+        old=int.from_bytes(space.program_attributes(project,'MainProgram')[5],'little')
+        project.routines['mainprogram/mainroutine']=copy.deepcopy(project.routines['mainprogram/mainroutine'])
+        with patch('logixlab.runtime_references._next_address',0x100000000):
+            self.assertEqual(space.program_attributes(project,'MainProgram'),{})
+        self.assertIsNone(space.resolve(project,old,'routine'))
+        fresh=int.from_bytes(space.program_attributes(project,'MainProgram')[5],'little')
+        self.assertNotEqual(fresh,old)
+        self.assertIs(space.resolve(project,fresh,'routine'),project.routines['mainprogram/mainroutine'])
+
 
 if __name__=='__main__':unittest.main()

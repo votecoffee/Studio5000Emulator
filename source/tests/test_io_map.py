@@ -4,6 +4,7 @@ import copy
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 from logixlab.io_map import IOMap
 from logixlab.ethernetip import Endpoint, Session
@@ -29,6 +30,7 @@ class IOMapTests(unittest.TestCase):
         root,controller,module,ports,port=self.local_route()
         catalog=IOMap.from_source(root,controller)
         self.assertTrue(catalog.empty);self.assertEqual(catalog.root_link_address,0)
+        self.assertEqual(catalog.root_link_port,1)
         self.assertTrue(catalog.description()['root_link_address_available'])
         self.assertIsNone(IOMap.from_source(*source()).root_link_address)
 
@@ -44,7 +46,61 @@ class IOMapTests(unittest.TestCase):
             elif kind=='nested-port':E.SubElement(port.find('Bus'),'Port',Id='1',Address='0')
             else:E.SubElement(module,'Ports')
             with self.subTest(kind=kind):
-                self.assertIsNone(IOMap.from_source(root,controller).root_link_address)
+                value=IOMap.from_source(root,controller)
+                self.assertIsNone(value.root_link_address);self.assertIsNone(value.root_link_port)
+
+    def test_local_map_address_resolves_actual_object_and_list_reads_preserve_widths_and_order(self):
+        import struct
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'});endpoint=Endpoint(app,0,True)
+            try:
+                root,controller,*_=self.local_route()
+                content=base64.b64encode(E.tostring(root)).decode()
+                app.command('load',{'name':'local.L5X','content':content});before=copy.deepcopy(app.engine.memory.values)
+                call=lambda raw:endpoint.router.handle(bytes.fromhex(raw),Session())
+                address=call('0e0320692401300d');self.assertEqual(address[:4],bytes.fromhex('8e000000'))
+                value=struct.unpack('<I',address[4:])[0];self.assertGreaterEqual(value,0x10000000);self.assertEqual(value%4,0)
+                project=app.engine.project;space=app.engine.runtime_references
+                self.assertIs(space.resolve(project,value,'io_map'),project.io_map)
+                self.assertIsNone(space.resolve(project,value,'program'))
+                self.assertIsNone(space.resolve(project,value+1,'io_map'))
+                expected=bytes.fromhex('830000000300')+struct.pack('<HHH',9,0,1)+struct.pack('<HHI',10,0,0)+struct.pack('<HHI',13,0,value)
+                self.assertEqual(call('030220692401030009000a000d00'),expected)
+                duplicate=bytes.fromhex('830000000300')+struct.pack('<HHI',13,0,value)+struct.pack('<HHH',9,0,1)+struct.pack('<HHI',13,0,value)
+                self.assertEqual(call('03022069240103000d0009000d00'),duplicate)
+                self.assertEqual(call('0e03206924013009'),bytes.fromhex('8e0000000100'))
+                self.assertEqual(call('0e03206924003009'),bytes.fromhex('8e0000000000'))
+                for attribute in (9,10,13):
+                    self.assertEqual(call('10032069240130'+f'{attribute:02x}'+'00000000')[2],8)
+                self.assertEqual(app.engine.memory.values,before);self.assertEqual(app.engine.scan_count,0)
+                app.command('load',{'name':'local.L5X','content':content})
+                fresh=call('0e0320692401300d');self.assertNotEqual(fresh,address)
+                self.assertIsNone(space.resolve(app.engine.project,value,'io_map'))
+                self.assertIsNone(app.engine.runtime_references.resolve(app.engine.project,value,'io_map'))
+            finally:app.close()
+
+    def test_map_references_revoke_on_object_or_source_change_and_never_use_null_on_exhaustion(self):
+        import struct
+        from dataclasses import replace
+        with tempfile.TemporaryDirectory() as folder:
+            app=Application(folder);app.command('demo',{'sample':'ConveyorDemo'})
+            try:
+                root,controller,*_=self.local_route()
+                app.command('load',{'name':'local.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+                project=app.engine.project;space=app.engine.runtime_references
+                address=struct.unpack('<I',space.io_map_attributes(project)[13])[0]
+                project.io_map=replace(project.io_map)
+                self.assertIsNone(space.resolve(project,address,'io_map'))
+                with patch('logixlab.runtime_references._next_address',0x100000000):
+                    self.assertEqual(space.io_map_attributes(project),{9:b'\1\0',10:bytes(4)})
+                newer=struct.unpack('<I',space.io_map_attributes(project)[13])[0];self.assertNotEqual(newer,address)
+                original=project.sha256;project.sha256='f'*64
+                self.assertEqual(space.io_map_attributes(project),{})
+                self.assertIsNone(space.resolve(project,newer,'io_map'))
+                project.sha256=original
+                for invalid in (IOMap(False,0,1),IOMap(True,0,None),IOMap(True,0,True),IOMap(True,1,1),IOMap(True,False,1)):
+                    project.io_map=invalid;self.assertEqual(space.io_map_attributes(project),{})
+            finally:app.close()
 
     def test_root_route_wire_widths_partial_lists_and_write_denials(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -6,11 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.085003`.** Versions use the release timestamp
+**Current app version: `26.1023.091827`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds capture-informed [temporary Program and Routine enumeration](docs/download-image.md#completed-program-and-routine-catalogs).
+This revision adds source-backed [Local I/O Map metadata](docs/local-io-map.md).
+Link Port comes from the canonical Local-module source; Map Address resolves
+to the current interpreter object with source and lifetime checks. It also
+fixes stale registry bookkeeping after a replaced object's allocation fails.
+
+Version `26.1023.085003` adds capture-informed [temporary Program and Routine enumeration](docs/download-image.md#completed-program-and-routine-catalogs).
 The downloading client can enumerate headers backed by its own completed image,
 with exact parent scope, bounded pages and original source/type/object checks.
 These handles do not install native code or replace the active project.

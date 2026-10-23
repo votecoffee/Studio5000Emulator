@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.091827` adds source-backed [Local I/O Map fields](local-io-map.md)
+9 (Link Port), 10 (Link Address) and 13 (Map Address). The port/slot come from
+canonical source and the map reference resolves a current interpreter object.
+Reload, source changes and object replacement revoke stale references. Failed
+replacement allocation also clears both registry indexes, preserving retry
+and revocation behavior without a dangling address.
+
 Version `26.1023.085003` adds [temporary Program and Routine enumeration](download-image.md#completed-program-and-routine-catalogs).
 The observed Routine attribute 8 and Program attribute 16 profiles return
 instance/header pairs backed by retained source-checked objects. Routine IDs

@@ -826,8 +826,10 @@ accepted. External modules, module-backed tags, missing/context/namespaced or
 opaque module declarations remain unavailable. The model reports no installed
 or enabled I/O forces and LED status `0`, whose no-module meaning is documented
 in Rockwell's [Controller Information and Status manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf).
-The class reports implementation revision 1. Module instances, connections,
-forces and programming services remain unsupported. `io_map` diagnostics identify
+The class reports implementation revision 1. The source-backed
+[Local I/O Map instance](local-io-map.md) separately exposes link metadata and
+a backed map reference. External module instances, connections, forces and
+programming services remain unsupported. `io_map` diagnostics identify
 this source check; it is not a live physical I/O health measurement.
 
 Local SDK diagnostics also tested Time Sync absence, a one-port clock response

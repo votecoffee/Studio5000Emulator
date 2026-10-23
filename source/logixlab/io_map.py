@@ -7,6 +7,7 @@ from .tag_catalog import complete_tag_source
 class IOMap:
     empty: bool = False
     root_link_address: int|None = None
+    root_link_port: int|None = None
 
     @classmethod
     def from_source(cls, root, controller):
@@ -31,7 +32,7 @@ class IOMap:
             if any(any(word in name.lower() for word in ('force', 'encoded', 'encrypted', 'protected'))
                    for name in node.attrib):
                 return cls()
-        root_link_address=None
+        root_link_address=None;root_link_port=None
         if modules:
             # A native full-controller export includes its own Local module.
             # It is not an I/O Map connection to an external module.
@@ -55,8 +56,8 @@ class IOMap:
                     and len([node for node in module.iter() if node.tag=='Port' and node.get('Id')=='1'])==1
                     and candidates[0].get('Type')=='ICP' and candidates[0].get('Upstream')=='false'
                     and module.get('ParentModPortId')=='1'):
-                root_link_address=0
-        return cls(True,root_link_address)
+                root_link_address=0;root_link_port=1
+        return cls(True,root_link_address,root_link_port)
 
     def attributes(self):
         # No installed/enabled I/O forces; LED 0 means no Module objects.
@@ -82,4 +83,6 @@ class IOMap:
                 'connection_class_parent':1 if self.empty else None,
                 'root_link_address':self.root_link_address,
                 'root_link_address_available':self.root_link_address is not None,
+                'root_link_port':self.root_link_port,
+                'root_link_port_available':self.root_link_port is not None,
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

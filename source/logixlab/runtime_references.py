@@ -26,6 +26,7 @@ class RuntimeReferences:
     """One Engine's object registry; allocations are never reused in-process."""
     def __init__(self, project):
         self._project = project
+        self._source_sha256 = getattr(project,'sha256',None)
         self._addresses = {}
         self._objects = {}
         self._reference_catalog = None
@@ -47,6 +48,13 @@ class RuntimeReferences:
             return next((row for row in project.tasks if row['name'].casefold()==key),None)
         if kind == 'symbol' and self._reference_catalog is not None and key.isdecimal():
             return self._reference_catalog.by_instance.get(int(key))
+        if (kind == 'io_map' and key=='local' and self._source_sha256 is not None
+                and getattr(project,'sha256',None)==self._source_sha256):
+            from .io_map import IOMap
+            target=getattr(project,'io_map',None)
+            if (isinstance(target,IOMap) and target.empty is True
+                    and type(target.root_link_port) is int and target.root_link_port==1
+                    and type(target.root_link_address) is int and target.root_link_address==0):return target
         return None
 
     def reference(self, project, kind, key):
@@ -61,6 +69,7 @@ class RuntimeReferences:
             return old
         if old is not None:
             del self._objects[old]
+            del self._addresses[(kind,key)]
         try:address=_allocate()
         except OverflowError:return None
         self._addresses[(kind,key)]=address
@@ -104,6 +113,15 @@ class RuntimeReferences:
 
     def bind_reference_catalog(self,catalog):
         self._reference_catalog=catalog
+
+    def io_map_attributes(self,project):
+        """Canonical Local link metadata and a backed software Map Address."""
+        target=self._current(project,'io_map','local')
+        if target is None:return {}
+        values={9:struct.pack('<H',target.root_link_port),10:struct.pack('<I',target.root_link_address)}
+        address=self.reference(project,'io_map','local')
+        if address is not None:values[13]=struct.pack('<I',address)
+        return values
 
     def task_attributes(self,project,task):
         """Router establishes the current complete single-Task model and source."""
@@ -150,10 +168,11 @@ class RuntimeReferences:
         return {'attributes':[5,16],'address_bits':32,'alignment':4,
                 'routine_attributes':[8,24],'routine_header_reference_backed':True,
                 'task_attributes':[11,16],'task_reference_backed':True,
+                'io_map_attributes':[9,10,13],'io_map_reference_backed':True,
                 'task_slots':len(self._task_slots),'task_slot_limit':32,'task_slot_bits':32,
                 'task_slot_backing':'Current interpreter registry in declaration order',
                 'logical_ids_used_as_slots':False,'physical_task_slots_imported':False,
-                'backing':'Live interpreter Program, Routine, Task and validated reference Symbol objects',
+                'backing':'Live interpreter Program, Routine, Task, canonical Local I/O Map and validated reference Symbol objects',
                 'scope':'Current Engine in this emulator process',
                 'allocated_objects':len(self._objects),'addresses_reused':False,
                 'logical_ids_used_as_addresses':False,'physical_addresses_imported':False,
