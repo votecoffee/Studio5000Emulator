@@ -16,6 +16,13 @@ configuration and owner-only readback use a backed local handle. The proposed
 download UID remains separate from the original source identifiers and active
 correlation. Final project installation remains unsupported.
 
+The native SDK accepts all three Change Log operations and reaches the final
+Controller installation service (`0x61`), which is explicitly rejected. Download
+ends after 281 verified requests; upload still fails during Program collection
+after 348. Both trials preserve source/model, confirm SDK Offline and cleanup,
+and report no SDK fault. All 115 deployed modules and delivery versions match;
+133 focused checks pass.
+
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
 monitoring remains unverified. Supported instructions have bounded software

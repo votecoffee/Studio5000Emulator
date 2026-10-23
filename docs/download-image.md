@@ -932,6 +932,16 @@ configured header. It revalidates preparation and returns the explicit
 `download_commit_unimplemented` rejection. This does not install the image,
 change active identifiers, execute compiled code or report a successful download.
 
+The native `26.1023.193356` trial accepts Create, seven-field configuration and
+exact private readback in sequence. Source copy/project/timeline anchors match
+the original ACD; the new caller download UID is retained privately. The SDK then
+reaches service `0x61` and receives the explicit commit rejection. It ends with
+`RxCsE_ASA_NO_PERMISSION` after 281 verified requests. Upload still fails Program
+collection after 348. Both trials preserve source/model, confirm SDK Offline and
+normal cleanup, and report no SDK fault. All 115 deployed modules and delivery
+versions match; 133 affected checks pass. This establishes native acceptance of
+the prepared header, with final installation still unfinished.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -10,6 +10,14 @@ identifies actual retained metadata; source anchors are preserved and the
 download UID is a caller proposal. Original active correlation stays unchanged.
 The final Controller commit remains explicitly unimplemented.
 
+The native SDK accepts creation, configuration and exact owned readback, then
+reaches Controller service `0x61`. Its explicit `download_commit_unimplemented`
+rejection ends download with `RxCsE_ASA_NO_PERMISSION` after 281 verified requests.
+Upload retains Program collection failure after 348. Both preserve source/model,
+confirm SDK Offline and cleanup, and report no SDK fault. The original stopped
+demo is restored; all 115 deployed modules and delivery versions match, and 133
+affected checks pass. Complete functional native transfers remain unfinished.
+
 Version `26.1023.191802` adds a private [prepared Map flag](download-image.md#prepared-map-flag)
 after all routine components have been retained. It requires the original
 prepared header, complete setup and unchanged source bindings, and has exact
