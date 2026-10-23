@@ -145,19 +145,21 @@ class MetadataEndpointTests(unittest.TestCase):
         self.app.command('load',{k:v for k,v in self.data.items() if k!='native_metadata_definitions'})
         self.assertIsNone(self.app.native_metadata_definitions);self.assertEqual(self.call(0x0e,7,attribute=1)[2],5)
 
-    def test_signed_tcp_exposes_names_but_keeps_writes_and_program_value_queries_denied(self):
+    def test_signed_tcp_exposes_names_with_writes_denied_and_unbound_program_queries_unavailable(self):
         self.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True);self.app.endpoint=self.endpoint;self.endpoint.start()
-        before=copy.deepcopy(self.app.state()['tags'])
+        before=copy.deepcopy(self.app.state())
         with AnonymousClient(self.endpoint) as client:
             client.bind()
             path=logical_path(0x349,7)
             self.assertEqual(client.request(b'\x0e'+bytes((len(path)//2+1,))+path+b'\x30\x01'),b'\x8e\0\0\0\x09\0PropertyA')
             self.assertNotEqual(client.request(b'\x04'+bytes((len(path)//2,))+path+bytes.fromhex('01000100010041'))[2],0)
             program=logical_path(0x68,1)
-            self.assertEqual(client.request(b'\x50'+bytes((len(program)//2,))+program+bytes.fromhex('01011f0000000000'))[2],15)
+            # Definition names do not supply the required native Program source catalog.
+            self.assertEqual(client.request(b'\x50'+bytes((len(program)//2,))+program+bytes.fromhex('01011f0000000000')),b'\xd0\0\x0c\0')
         state=self.endpoint.state()['metadata_definition'];self.assertEqual(state['instance_count'],2)
         self.assertTrue(state['native_source_bound']);self.assertFalse(state['metadata_values'])
-        self.assertEqual(self.app.state()['tags'],before)
+        after=self.app.state()
+        for key in ('tags','scan','ms','controller','routines','tasks'):self.assertEqual(after[key],before[key])
 
 
 if __name__=='__main__':unittest.main()

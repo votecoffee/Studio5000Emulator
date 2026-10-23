@@ -59,7 +59,9 @@ class PackedBitTests(unittest.TestCase):
         self.assertEqual(rows[:6], [(0, 0xC2, 0), (0, 0xC1, 0), (3, 0xC1, 0), (7, 0xC1, 0), (0, 0xC2, 1), (1, 0xC1, 1)])
         path = b'\x20\x6C' + logical(0x24, template.instance)
         raw = bytes((0x4C, len(path)//2)) + path + struct.pack('<IH', 0, 65535)
-        self.assertEqual(self.router.handle(raw, self.session)[4:], template.definition)
+        self.assertEqual(self.router.handle(raw, self.session), b'\xcc\0\0\0'+template.definition+bytes(3))
+        compact = bytes((0x4C, len(path)//2)) + path + struct.pack('<IH', 0, len(template.definition))
+        self.assertEqual(self.router.handle(compact, self.session), b'\xcc\0\0\0'+template.definition)
 
     def test_reads_pack_flags_nested_records_and_reserved_bits_exactly(self):
         self.assertEqual(self.read('Record')[8:], record_bytes(137))
