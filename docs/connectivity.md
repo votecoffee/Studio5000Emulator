@@ -8,6 +8,11 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.105500` adds [second-batch processing and completion](download-image.md#second-batch-completion).
+Only fully modeled, source-bound temporary effects can complete. They are
+retained separately from the original image and active runtime. Further batch
+sequences remain explicitly unsupported; complete download is still unfinished.
+
 Version `26.1023.102014` adds [typed later-batch header updates](download-image.md#typed-header-updates)
 with source/scope checks and references to real staged objects. The two remaining
 router operations still prevent processing and completion success.

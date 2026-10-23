@@ -14,7 +14,7 @@ from .download_results import ExecutionStatus,ResultError
 from .native_types import verification
 from . import source_object_verification as object_verification
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
-from .incremental_download import IncrementalDownload
+from .incremental_download import IncrementalDownload,record_digest
 
 MAX_BUFFER_BYTES = 262144
 MAX_FRAGMENTS = 128
@@ -53,6 +53,7 @@ class ResilientTransport:
                          'payloads_exposed':False,'signature_verified':False}
         self.incremental_inspection={**self.inspection,'operations':[]}
         self._incremental_batch=();self.incremental=IncrementalDownload();self.incremental_error=None
+        self.incremental_started=False;self.incremental_status_reported=False;self._incremental_start_binding=None
 
     def inspect_incremental_payload(self):
         """Inspect a later batch without treating it as a complete source image.
@@ -78,11 +79,40 @@ class ResilientTransport:
 
     def prepare_incremental_payload(self,image,source,native_metadata_values=None,header_bindings=None):
         self.inspect_incremental_payload()
-        self.incremental=IncrementalDownload();self.incremental_error=None
-        try:self.incremental=IncrementalDownload.prepare(self._incremental_batch,image,source,native_metadata_values,header_bindings)
+        if self.incremental_error:raise ImageError(self.incremental_error)
+        try:
+            if self.incremental._image is None:
+                self.incremental=IncrementalDownload.prepare(self._incremental_batch,image,source,native_metadata_values,header_bindings)
+            else:self.incremental.validate(image,source,native_metadata_values,header_bindings)
         except ImageError as error:
-            self.incremental_error=error.reason;raise
+            self.incremental_error=error.reason;self.incremental=IncrementalDownload();raise
         return self.incremental.description()
+
+    def start_incremental_payload(self,image,source,native_metadata_values=None,header_bindings=None):
+        self.prepare_incremental_payload(image,source,native_metadata_values,header_bindings)
+        stage=self.incremental
+        if stage.description()['unsupported_records']:
+            raise TransportError(0x0F,'incremental_download_processing_unimplemented')
+        if (stage.records!=self.incremental_inspection['record_count'] or not stage.records
+                or stage.record_sha256!=record_digest(self._incremental_batch)):
+            raise TransportError(0x0C,'incremental_record_binding_changed')
+        stage.verify_effects(image,source,native_metadata_values,header_bindings)
+        binding=(source,stage.records,stage.record_sha256)
+        if self.incremental_started and self._incremental_start_binding!=binding:
+            raise TransportError(0x0C,'incremental_start_binding_changed')
+        self._incremental_start_binding=binding;self.incremental_started=True
+        return {**stage.description(),'preparation_started':True,'effects_verified':stage.records}
+
+    def incremental_execution_status(self,image,source,native_metadata_values=None,header_bindings=None):
+        self.expire()
+        if not self.incremental_started:raise TransportError(0x0C,'incremental_preparation_required')
+        state=self.start_incremental_payload(image,source,native_metadata_values,header_bindings)
+        expected=struct.unpack_from('<I',self.setup,12)[0]
+        if self.incremental_inspection['expanded_bytes']!=expected or not expected:
+            raise TransportError(0x0C,'incremental_byte_coverage_changed')
+        payload=ExecutionStatus(0,expected).encode(expected)
+        self.incremental_status_reported=True
+        return payload,state
 
     def inspect_payload(self, native_types=None, *, native_symbols=None,native_routines=None,native_auxiliary_symbols=None,native_tables=None):
         self.expire()
@@ -277,6 +307,7 @@ class ResilientTransport:
                 'incremental_inspection':{**self.incremental_inspection,
                     'operations':[dict(row) for row in self.incremental_inspection['operations']]},
                 'incremental_staging':{**self.incremental.description(),
+                    'preparation_started':self.incremental_started,'status_reported':self.incremental_status_reported,
                     **({'status':'invalid','reason':self.incremental_error} if self.incremental_error else {})},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},

@@ -352,12 +352,50 @@ stops at the same two remaining operations. Download still reports
 active model with actual Offline/cleanup and no reported SDK fault. All 235
 affected checks pass, and all 107 deployed modules and delivery versions match.
 
-The unresolved operations use router `0x33` to Routine service `0x5C`, with
+At that release, the unresolved operations use router `0x33` to Routine service `0x5C`, with
 selector words `(1,9)` and a 13-byte body. Offline inspection of decoded batches
 from the saved successful-download reference finds the same body in 119 such
 transfers. That is framing evidence: the field's meaning, its required effect
 and its source relationship remain unresolved. The reference inspection does
 not verify capture MACs or turn those bodies into successful model operations.
+
+## Second-batch completion
+
+Version `26.1023.105500` implements temporary processing for completely modeled
+later-batch records. The two Routine transfers use an exact bounded Router
+envelope, Program/Routine path, selectors `(1,9)` and the observed 13-byte data
+profile. They store opaque component bytes for an original, retained, ordinary
+RLL Routine while its Program is reserved. Other data profiles, targets,
+selectors, truncated/trailing bytes and duplicate writes are rejected. The
+bytes' internal meaning remains unknown; they are not interpreted as code,
+motion/axis configuration, source or executable references.
+
+Every record has an ordered immutable result with its request fingerprint and
+expected storage effect. Actual readback covers metadata ranges, table bytes,
+header properties, Routine component bytes, empty diagnostics and historical
+Program coordination transitions. An unknown operation, missing result, changed
+stored value, record digest, source catalog, runtime revision or backed object
+reference prevents completion. This models temporary storage and coordination;
+it does not establish every vendor firmware side effect.
+
+Start must succeed before an execution-status query. Only complete record and
+expanded-byte coverage can return the observed seven-byte completed progress
+profile. Repeated queries recheck all effects and source bindings. A successful
+result query permits transport deletion to retain the completed update model.
+Deletion before that query discards the pending updates. The retained update
+model overlays table readback without modifying the first image or its original
+zero-allocation result ledger. Neither model writes active tags or installs
+logic. Current catalog changes revoke the retained updates, and preparation
+end, owner release/disconnect, expiry, reload and reset retain the established
+lease cleanup rules.
+
+Offline reconstruction now models and reads back all 335 records, including
+1,255 exact original-source metadata matches, four private table writes, all
+24 header updates and two opaque Routine records. The current implementation
+retains one incremental batch. A further batch can be received and inspected,
+but its Start/status remain explicitly unsupported and cannot overwrite the
+completed updates. Complete native download, upload and the full online-edit
+lifecycle still require separate acceptance.
 
 ## Native boundary
 

@@ -8,6 +8,7 @@ import struct
 from types import MappingProxyType
 
 from .download_image import ImageError
+from .download_image import MAX_READ_BYTES
 from . import source_object_verification
 
 SYMBOL_BASE=0x70000000
@@ -52,6 +53,7 @@ class DownloadNamespace:
         if transport.source_object_verification['status']!='matched':
             raise ImageError('download_namespace_source_identities_required')
         self._image=transport.download_image
+        self._incremental=None
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -74,7 +76,18 @@ class DownloadNamespace:
             for slot,instance in enumerate(sorted(self._image.programs)))
         self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
-    def validate(self,source,native_types,**catalogs):
+    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,**catalogs):
+        self.validate_base(source,native_types,**catalogs)
+        if self._incremental is not None:
+            self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
+
+    def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
+        if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
+        if not transport.incremental_status_reported:raise ImageError('incremental_result_query_required')
+        transport.incremental_execution_status(self._image,source,native_metadata_values,header_bindings)
+        self._incremental=transport.incremental
+
+    def validate_base(self,source,native_types,**catalogs):
         self._image.require_source(source)
         try:
             if native_types is not self._types or native_types.binding_stamp()!=self._type_stamp:
@@ -124,11 +137,15 @@ class DownloadNamespace:
         return self._image._tables[self._table_addresses[address].instance]
 
     def read_values(self,address,count):
-        if type(address) is not int or type(count) is not int or count<1:
+        if type(address) is not int or type(count) is not int or not 1<=count<=MAX_READ_BYTES:
             raise ImageError('invalid_download_value_range')
         for row in self._tables:
             region=self._image._regions[row.instance]
             if row.value_address<=address<row.value_address+len(region.data):
+                if self._incremental is not None and row.instance in self._incremental._tables:
+                    data=self._incremental._tables[row.instance].data;offset=address-row.value_address
+                    if offset+count>len(data):raise ImageError('download_table_read_range')
+                    return data[offset:offset+count]
                 return self._image.read_table(row.instance,address-row.value_address,count,self._source)
         raise ImageError('download_value_address_unavailable')
 
@@ -164,4 +181,6 @@ class DownloadNamespace:
     def description(self):
         return dict(status='retained',symbols=len(self._symbols),tables=len(self._tables),programs=len(self._programs),routines=len(self._routines),
             source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
+            incremental_batches_retained=int(self._incremental is not None),
+            incremental_records=self._incremental.records if self._incremental is not None else 0,
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)

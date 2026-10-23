@@ -58,7 +58,8 @@ class IncrementalSignedTests(NamespaceFixture,unittest.TestCase):
         self.retain();lease=self.endpoint.programming_lease;namespace=lease.download_namespace
         before=copy.deepcopy(self.app.state());catalog=self.send(ENUM)
         self.next_batch()
-        for query in (payloads.INSPECT,STATUS,payloads.INSPECT):self.assertEqual(self.send(query)[2],15)
+        for query,expected in ((payloads.INSPECT,15),(STATUS,12),(payloads.INSPECT,15)):
+            self.assertEqual(self.send(query)[2],expected)
         stage=self.description();summary=stage['incremental_inspection']
         self.assertEqual((summary['status'],summary['expanded_bytes'],summary['record_count']),('decoded',len(payloads.EXPANDED),2))
         self.assertEqual(stage['inspection']['status'],'idle')

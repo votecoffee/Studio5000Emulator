@@ -149,13 +149,13 @@ class IncrementalEffectsSignedTests(NamespaceFixture,unittest.TestCase):
         expanded=b''.join(payloads.record(row.request) for row in rows)
         IncrementalSignedTests.next_batch(self,expanded)
 
-    def test_owning_client_gets_real_staging_counts_but_no_completion_and_cleanup_drops_proposals(self):
+    def test_owning_client_stages_and_processes_known_effects_and_cleanup_retains_private_updates(self):
         self.retain();namespace=self.endpoint.programming_lease.download_namespace
         identity=self.app.native_project_identity
         self.app.native_metadata_values=original.catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256)
         row=self.app.native_metadata_values.rows[3]
         self.next_batch((metadata(row),table(),diagnostics.request(b'\0\0',service=4)))
-        for query in (payloads.INSPECT,STATUS):self.assertEqual(self.send(query)[2],15)
+        for query in (payloads.INSPECT,STATUS):self.assertEqual(self.send(query)[2],0)
         state=self.description()['incremental_staging']
         self.assertEqual((state['records_modeled'],state['metadata_packets'],state['table_writes']),(3,1,1))
         self.assertEqual(namespace._image.read_table(1,0,4,namespace._source),bytes(4))
@@ -164,6 +164,7 @@ class IncrementalEffectsSignedTests(NamespaceFixture,unittest.TestCase):
         self.send(transport.DELETE)
         self.assertEqual(self.description()['incremental_staging']['status'],'idle')
         self.assertIs(self.endpoint.programming_lease.download_namespace,namespace)
+        self.assertEqual(namespace.description()['incremental_records'],3)
 
     def test_late_invalid_known_operation_publishes_no_partial_proposal(self):
         self.retain();identity=self.app.native_project_identity
@@ -178,7 +179,7 @@ class IncrementalEffectsSignedTests(NamespaceFixture,unittest.TestCase):
         self.retain();identity=self.app.native_project_identity
         self.app.native_metadata_values=original.catalog(acd=identity.source_acd_sha256,l5x=self.app.engine.project.sha256)
         self.next_batch((metadata(self.app.native_metadata_values.rows[3]),table()))
-        self.assertEqual(self.send(payloads.INSPECT)[2],15)
+        self.assertEqual(self.send(payloads.INSPECT)[2],0)
         self.assertEqual(self.description()['incremental_staging']['table_writes'],1)
         self.app.native_metadata_values=original.catalog(acd='c'*64,l5x=self.app.engine.project.sha256)
         self.assertEqual(self.send(STATUS)[2],12)
@@ -192,7 +193,7 @@ class IncrementalEffectsSignedTests(NamespaceFixture,unittest.TestCase):
         for action in ('expiry','end','release','reset'):
             with self.subTest(action=action):
                 self.retain();self.next_batch((table(),))
-                self.assertEqual(self.send(payloads.INSPECT)[2],15)
+                self.assertEqual(self.send(payloads.INSPECT)[2],0)
                 self.assertEqual(self.description()['incremental_staging']['table_writes'],1)
                 if action=='expiry':self.endpoint.programming_lease.transport.deadline=0
                 elif action=='end':self.send(prep.END)

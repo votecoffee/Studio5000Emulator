@@ -421,13 +421,21 @@ class Router:
                             exact(payload,0)
                             inspection=lease.transport.inspect_incremental_payload()
                             self.endpoint.record('native_incremental_transport_inspection',**inspection)
-                            staged=lease.transport.prepare_incremental_payload(lease.download_namespace._image,
-                                Source(identity.source_acd_sha256,self.app.engine.project.sha256),
-                                getattr(self.app,'native_metadata_values',None),
-                                HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,
-                                    self.app.native_auxiliary_symbols,getattr(self.app,'native_tasks',None),self.app.native_tables))
+                            if lease.download_namespace._incremental is not None:
+                                return reject(0x0F,'incremental_batch_sequence_unimplemented')
+                            source=Source(identity.source_acd_sha256,self.app.engine.project.sha256)
+                            bindings=self.download_header_bindings(lease)
+                            values=getattr(self.app,'native_metadata_values',None)
+                            staged=lease.transport.prepare_incremental_payload(lease.download_namespace._image,source,values,bindings)
                             self.endpoint.record('native_incremental_download_staging',**staged)
-                            return reject(0x0F,'incremental_download_processing_unimplemented')
+                            if inner[0]==6:
+                                state=lease.transport.start_incremental_payload(lease.download_namespace._image,source,values,bindings)
+                                self.endpoint.record('native_incremental_download_preparation',**state)
+                                return reply(inner[0])
+                            status,state=lease.transport.incremental_execution_status(lease.download_namespace._image,source,values,bindings)
+                            self.endpoint.record('native_incremental_download_result',**state)
+                            self.endpoint.counts['native_incremental_completed_status']+=1
+                            return reply(inner[0],0,status)
                     if inner[0]==0x4D:
                         exact(payload,0)
                         native_types=getattr(self.app,'native_types',None)
@@ -479,6 +487,12 @@ class Router:
                                     native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
                                     native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
                                 self.endpoint.record('native_download_namespace_retained',**lease.download_namespace.description())
+                            elif lease.download_namespace is not None and lease.transport.incremental_status_reported:
+                                self.require_download_namespace(lease,identity)
+                                lease.download_namespace.retain_incremental(lease.transport,
+                                    Source(identity.source_acd_sha256,self.app.engine.project.sha256),
+                                    getattr(self.app,'native_metadata_values',None),self.download_header_bindings(lease))
+                                self.endpoint.record('native_incremental_namespace_retained',**lease.download_namespace.description())
                         finally:lease.transport.clear()
                     self.endpoint.counts['native_transport_'+('setup' if inner[0]==0x4B else 'delete')]+=1
                 return reply(inner[0])
@@ -1001,8 +1015,13 @@ class Router:
 
     def require_download_namespace(self,lease,identity):
         lease.download_namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
+            native_metadata_values=getattr(self.app,'native_metadata_values',None),header_bindings=self.download_header_bindings(lease),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
+
+    def download_header_bindings(self,lease):
+        return HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,
+            self.app.native_auxiliary_symbols,getattr(self.app,'native_tasks',None),self.app.native_tables)
 
     def source_bound_program(self,instance):
         identity=self.app.native_project_identity;symbols=self.app.native_symbols

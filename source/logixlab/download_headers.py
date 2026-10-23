@@ -183,7 +183,7 @@ class HeaderBindings:
 
     def stamp(self,image,source):
         if image is not self.namespace._image or source!=self.source:raise ImageError('download_header_image_mismatch')
-        self.namespace.validate(source,self.namespace._types,native_symbols=self.symbols,native_routines=self.routines,
+        self.namespace.validate_base(source,self.namespace._types,native_symbols=self.symbols,native_routines=self.routines,
             native_auxiliary_symbols=self.auxiliary,native_tables=self.tables)
         project=self._project();digest=hashlib.sha256()
         identities=[(0x6B,p,i) for p,i in image._symbols]+[(0x68,0,i) for i in image.programs]

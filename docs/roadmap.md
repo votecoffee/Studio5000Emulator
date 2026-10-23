@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.105500` adds [second-batch completion](download-image.md#second-batch-completion).
+The complete 335-record proposal now has an immutable effect ledger and actual
+storage readback, including two bounded opaque Routine data records. Processing
+and result queries recheck the original source, current catalogs, record digest,
+expanded byte coverage and stored effects. Completed updates survive transport
+deletion without changing the first image's allocation/effect ledger or active
+logic and values. A further batch sequence remains an explicit unsupported
+boundary. Full native transfers and Run-mode edits remain open.
+
 Version `26.1023.102014` adds [typed second-batch headers](download-image.md#typed-header-updates).
 Twenty-four updates cover 184 attributes across Symbol, Program, Routine and
 Local I/O Map objects. Scope, source metadata and temporary object references
