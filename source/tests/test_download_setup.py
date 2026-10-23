@@ -140,5 +140,20 @@ class SetupSignedTests(NamespaceFixture,unittest.TestCase):
             self.assertEqual(self.send(bytes((4,3,0x20,cls,0x24,1,0x30,1))+payload)[2],4)
         self.assertEqual(self.namespace.setup.description()['attributes'],0)
 
+    def test_separate_plc2_write_requires_base_and_preserves_mapping_descriptor(self):
+        self.ready_setup();raw=request(0x67,bytes.fromhex('010001000000'))
+        self.assertEqual(self.send(raw)[2],12)
+        self.assertEqual(self.send(request(0x67,self.payloads[0x67]))[2],0)
+        bindings=self.bindings();descriptor=self.namespace.setup.read(0x67,2,bindings)
+        for _ in range(2):self.assertEqual(self.send(raw),bytes.fromhex('84000000010001000000'))
+        self.assertEqual(self.namespace.setup.read(0x67,1,bindings),bytes(2))
+        self.assertEqual(self.namespace.setup.read(0x67,2,bindings),descriptor)
+        self.assertEqual(self.namespace.setup.description()['attributes'],2)
+        self.assertEqual(self.send(request(0x67,bytes.fromhex('010001000100')))[2],12)
+        self.assertEqual(self.send(request(0x67,bytes.fromhex('0100020000000000')))[2],12)
+        native=self.endpoint.programming_lease.owner
+        self.assertEqual(self.endpoint.router.native_read(raw,Session(),native,0,10,None,registration=False),
+                         bytes.fromhex('84000000010001000000'))
+
 
 if __name__=='__main__':unittest.main()

@@ -29,7 +29,7 @@ from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
 from .download_tasks import TaskBindings
 from .download_controller import ControllerBindings
-from .download_setup import SetupBindings,PROFILES as SETUP_PROFILES
+from .download_setup import SetupBindings,PROFILES as SETUP_PROFILES,write_profile as setup_write_profile
 from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
@@ -659,7 +659,7 @@ class Router:
                     if namespace is None:return reject(0x0C,'completed_download_namespace_required')
                     self.require_download_namespace(lease,identity)
                     if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
-                    if limit<6+4*len(SETUP_PROFILES[path.class_id]):return reject(0x1B,'download_setup_reply_budget')
+                    if limit<6+4*len(setup_write_profile(path.class_id,payload)):return reject(0x1B,'download_setup_reply_budget')
                     if path.class_id==0xF6:self.network_interface()
                     value=namespace.setup.stage(path.class_id,payload,self.download_setup_bindings(lease))
                     self.endpoint.record('native_download_setup_configured',class_id=path.class_id,**namespace.setup.description())

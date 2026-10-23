@@ -735,6 +735,18 @@ The original demo's five saved native setup requests match all 14 expected
 fields and their retained readback in the offline model. Native acceptance is
 assessed separately.
 
+The native `26.1023.181323` trial accepts all five full setup writes and retains
+all 14 fields, then reaches a separate PCCC Mapping attribute 1 write. It stops
+there with `RxCsE_ASA_OBJECT_STATE_ERROR` after 271 verified requests. Upload
+retains Program-collection failure after 347 requests. Both preserve source/model,
+confirm actual Offline cleanup and report no SDK fault. All 380 affected checks
+pass and all 112 deployed modules and delivery versions match.
+
+Version `26.1023.181855` adds that separate PLC-2 attribute 1 write only after the
+full PCCC mapping profile is staged. It requires the same source value and keeps
+the existing descriptor in attribute 2. Its shorter reply has its own checked
+budget. Other partial mapping writes remain unsupported.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

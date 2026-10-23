@@ -9,6 +9,10 @@ from .network_objects import InterfaceSnapshot
 PROFILES={0xF6:(9,),0x64:(1,2,3,6,7,8),0x67:(1,2),0x43:(16,17,1),0x8B:(4,2)}
 
 
+def write_profile(class_id,payload):
+    return (1,) if class_id==0x67 and type(payload) is bytes and payload[:2]==b'\1\0' else PROFILES[class_id]
+
+
 class SetupBindings:
     def __init__(self,project,namespace,identity,interface=None):
         self.project=project;self.namespace=namespace;self.identity=identity;self.interface=interface
@@ -64,11 +68,16 @@ class DownloadSetup:
             if dict(values)!=bindings.expected(class_id):raise ImageError('download_setup_effect_changed')
 
     def stage(self,class_id,payload,bindings):
-        self.validate(bindings);values=bindings.expected(class_id);stamp=bindings.stamp(class_id)
+        self.validate(bindings);expected=bindings.expected(class_id);stamp=bindings.stamp(class_id)
+        profile=write_profile(class_id,payload)
+        if class_id==0x67 and profile==(1,) and class_id not in self._values:
+            raise ImageError('download_setup_mapping_base_required')
+        values={n:expected[n] for n in profile}
         encoded=struct.pack('<H',len(values))+b''.join(struct.pack('<H',n)+v for n,v in values.items())
         if type(payload) is not bytes or payload!=encoded:raise ImageError('download_setup_values_mismatch')
         if bindings.stamp(class_id)!=stamp:raise ImageError('download_setup_source_changed')
-        self._values=MappingProxyType({**self._values,class_id:MappingProxyType(values)})
+        retained={**self._values.get(class_id,{}),**values}
+        self._values=MappingProxyType({**self._values,class_id:MappingProxyType(retained)})
         self._bindings=MappingProxyType({**self._bindings,class_id:stamp});self._digest=self._effect()
         return struct.pack('<H',len(values))+b''.join(struct.pack('<HH',n,0) for n in values)
 
