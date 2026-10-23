@@ -14,6 +14,14 @@ This revision adds capture-informed [temporary Program and Routine enumeration](
 The downloading client can enumerate headers backed by its own completed image,
 with exact parent scope, bounded pages and original source/type/object checks.
 These handles do not install native code or replace the active project.
+Native download accepts both Routine headers and the Program header, then
+reaches an I/O Map instance query with fields 9 and 13 unavailable. It verifies
+183 requests and preserves source/model with actual Offline/cleanup and no
+reported SDK fault. Normal upload retains its Program-collection failure after
+349 requests. A supported Program-mode import/reconnect succeeds across 190
+requests with one expected logic/audit update. All 117 affected checks pass;
+the app, executable, browser and appliance report this version. Full native
+transfers and Run-mode Test/Untest/Assemble remain unfinished.
 
 Version `26.1023.083349` adds capture-informed [temporary Data Table enumeration](docs/download-image.md#completed-download-symbol-catalog).
 Descriptor handles and value addresses resolve to the completed image's own

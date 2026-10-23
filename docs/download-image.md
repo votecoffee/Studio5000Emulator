@@ -194,6 +194,23 @@ Cleanup drops all four catalogs together. Other clients continue to use the
 active runtime catalog. No compiled code, initial values or active project are
 installed by these reads.
 
+The native `26.1023.085003` download accepts both Routine headers and the one
+Program header, then requests I/O Map instance 1 attributes 9, 10 and 13. The
+canonical Local route supplies field 10; fields 9 and 13 remain unavailable.
+The SDK reports `RxCsE_DOWNLOAD_OF_DEVICES_FAILED` at this later device-metadata
+query after 183 verified requests. This is beyond the earlier Routine
+enumeration rejection. The reference capture includes a successful reply for
+that query, but its remaining fields require source/schema backing before
+implementation; class-level force status is a separate contract.
+
+Original source and active model are preserved; actual SDK Offline and endpoint
+cleanup succeed without a reported SDK fault. Normal upload retains its
+Program collection failure after 349 requests. A supported Program-mode
+import/reconnect passes across 190 requests, with one expected logic/audit
+update. The original stopped zero-scan/audit demo is restored afterward. All
+117 affected checks pass, and all 105 deployed modules and delivery versions
+match. These trials do not establish complete native transfers.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

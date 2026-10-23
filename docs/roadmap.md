@@ -12,6 +12,14 @@ instance/header pairs backed by retained source-checked objects. Routine IDs
 remain scoped to their Program. Pagination, current binding checks and lease
 cleanup preserve separation from active catalogs and other clients. Native
 binary execution and active-project commit remain separate goals.
+Native download accepts both Routine headers and the Program header, then
+stops at the I/O Map instance query for fields 9, 10 and 13. Field 10 has a
+source-backed Local route; fields 9/13 are the next metadata gap. It verifies
+183 requests without changing the source/model and confirms Offline/cleanup
+without a reported SDK fault. Normal upload still fails Program collection
+after 349 requests. A supported Program-mode import/reconnect passes across
+190 with one expected revision/audit update. All 117 affected checks pass;
+executable, browser and all 105 deployed modules match the current version.
 
 Version `26.1023.083349` adds [temporary Data Table enumeration](download-image.md#completed-download-symbol-catalog),
 with descriptor handles and value addresses backed by retained typed objects
