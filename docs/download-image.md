@@ -511,6 +511,13 @@ to enable HTTP, unsigned/foreign callers and stale sources remain errors.
 The disabled value remains readable through the existing attributes 101/102;
 no new active project, tag, scheduler or audit change occurs.
 
+The native `26.1023.165303` download accepts the disable request and advances to
+a 14-field Controller Set Attribute List. That later write remains denied, with
+`RxCsE_ASA_NO_PERMISSION` after 200 verified requests. Upload retains its
+Program-collection failure after 349. Both preserve source/model and confirm
+actual Offline/cleanup without a reported SDK fault. All 195 affected checks
+pass; all 108 deployed modules, served assets and executable versions match.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

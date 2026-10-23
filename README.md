@@ -15,6 +15,11 @@ after download Task configuration. It retains the endpoint's existing disabled
 state under the prepared owner's source checks. The local browser UI remains
 available. Functional upload/download remain the priority, followed by online
 edits; complete native transfers are still unfinished.
+The native SDK accepts this request and reaches the 14-field Controller
+configuration write. Download stops there after 200 verified requests; upload
+retains its Program-collection failure after 349. Both preserve source/model,
+confirm actual Offline/cleanup and report no SDK fault. All 195 affected checks
+pass; the executable, webpage and 108 deployed modules match.
 
 Version `26.1023.123557` adds [Task Symbol links](docs/download-image.md#task-symbol-links)
 to the newly allocated download Task. The address and logical path must resolve
