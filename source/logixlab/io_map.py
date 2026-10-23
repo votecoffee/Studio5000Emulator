@@ -8,6 +8,7 @@ class IOMap:
     empty: bool = False
     root_link_address: int|None = None
     root_link_port: int|None = None
+    local_identity: tuple[int,int,int,int,int]|None = None
 
     @classmethod
     def from_source(cls, root, controller):
@@ -32,7 +33,7 @@ class IOMap:
             if any(any(word in name.lower() for word in ('force', 'encoded', 'encrypted', 'protected'))
                    for name in node.attrib):
                 return cls()
-        root_link_address=None;root_link_port=None
+        root_link_address=None;root_link_port=None;local_identity=None
         if modules:
             # A native full-controller export includes its own Local module.
             # It is not an I/O Map connection to an external module.
@@ -57,7 +58,16 @@ class IOMap:
                     and candidates[0].get('Type')=='ICP' and candidates[0].get('Upstream')=='false'
                     and module.get('ParentModPortId')=='1'):
                 root_link_address=0;root_link_port=1
-        return cls(True,root_link_address,root_link_port)
+                # Preserve explicit Local identity fields independently of its
+                # route. Missing or contradictory fields cannot become a key
+                # by borrowing values from a different software-device profile.
+                raw=tuple(module.get(name) for name in ('Vendor','ProductType','ProductCode','Major','Minor'))
+                revision=tuple(controller.get(name) for name in ('MajorRev','MinorRev'))
+                if all(value is not None and 1<=len(value)<=5 and value.isascii() and value.isdecimal() for value in (*raw,*revision)):
+                    key=tuple(map(int,raw))
+                    if (all(0<=value<=0xFFFF for value in key[:3]) and all(0<=value<=255 for value in key[3:])
+                            and key[3:]==tuple(map(int,revision))):local_identity=key
+        return cls(True,root_link_address,root_link_port,local_identity)
 
     def attributes(self):
         # No installed/enabled I/O forces; LED 0 means no Module objects.

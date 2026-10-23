@@ -114,11 +114,21 @@ class RuntimeReferences:
     def bind_reference_catalog(self,catalog):
         self._reference_catalog=catalog
 
-    def io_map_attributes(self,project):
+    def io_map_attributes(self,project,identity=None):
         """Canonical Local link metadata and a backed software Map Address."""
         target=self._current(project,'io_map','local')
         if target is None:return {}
         values={9:struct.pack('<H',target.root_link_port),10:struct.pack('<I',target.root_link_address)}
+        if identity is not None:
+            from .identity import Identity
+            from .model import ModelError
+            if isinstance(identity,Identity) and identity.profile=='logix-v35-l85e':
+                key=tuple(getattr(identity,name) for name in ('vendor','device_type','product_code','major','minor'))
+                try:expected=Identity.from_project(identity.profile,project)
+                except ModelError:expected=None
+                if (expected is not None and all(type(value) is int for value in key) and key==target.local_identity
+                        and key==tuple(getattr(expected,name) for name in ('vendor','device_type','product_code','major','minor'))):
+                    values[2]=struct.pack('<HHHBB',*key)
         address=self.reference(project,'io_map','local')
         if address is not None:values[13]=struct.pack('<I',address)
         return values
@@ -169,6 +179,7 @@ class RuntimeReferences:
                 'routine_attributes':[8,24],'routine_header_reference_backed':True,
                 'task_attributes':[11,16],'task_reference_backed':True,
                 'io_map_attributes':[9,10,13],'io_map_reference_backed':True,
+                'io_map_identity_attribute':2,'io_map_identity_requires_explicit_source':True,
                 'task_slots':len(self._task_slots),'task_slot_limit':32,'task_slot_bits':32,
                 'task_slot_backing':'Current interpreter registry in declaration order',
                 'logical_ids_used_as_slots':False,'physical_task_slots_imported':False,

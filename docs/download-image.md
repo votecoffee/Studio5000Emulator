@@ -850,6 +850,28 @@ no SDK fault. The original demo is restored in stopped Program mode with zero
 scans or audit updates. This confirms native acceptance of the routine storage
 stage while leaving complete transfer and installation unimplemented.
 
+### Local Map identity
+
+Version `26.1023.190840` adds read-only attribute 2 on Local I/O Map instance 1.
+Its eight-byte value contains the software device's vendor, type, product code
+and major/minor firmware revision. The supported successful reference response
+matches Identity attributes 1 through 4; acceptance of the emulator's response
+is tested separately from that structural observation.
+
+The source must contain a complete canonical controller-only Local module,
+including explicit Vendor, ProductType, ProductCode, Major and Minor fields.
+The module and Controller revisions must agree. Its route must be Local ICP
+port 1 at slot zero, and its identity must match the supported v35 L85E
+software-device profile. The current Engine, project hash and profile are
+rechecked on each read. Missing fields, contradictory revisions, a different
+product, external I/O or a research-profile identity cannot supply this value.
+
+Get Attribute List and Get Attribute Single share the same bytes. List order,
+duplicate requests, partial errors, unknown instances and write denials retain
+their existing behavior. Serial numbers and hardware revision are not part of
+this attribute. No captured physical identity is copied, and this read confers
+no I/O configuration or download-commit behavior.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

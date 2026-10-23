@@ -1837,7 +1837,7 @@ class Router:
                 raise CIPError(4,'I/O Map status requires a controller-scoped instance path')
             if service==0x4B:return self.instance_list(path,data,limit)
             if path.instance==1 and self.app.engine.project.io_map.root_link_address is not None:
-                return self.attribute_read(service,path,data,self.app.engine.runtime_references.io_map_attributes(self.app.engine.project))
+                return self.attribute_read(service,path,data,self.app.engine.runtime_references.io_map_attributes(self.app.engine.project,self.endpoint.identity))
             if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
             return self.attribute_read(service,path,data,self.app.engine.project.io_map.class_attributes())
         if path.class_id==0x7E:
