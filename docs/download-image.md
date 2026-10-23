@@ -149,6 +149,18 @@ are unavailable. The native SDK's preceding query establishes the requested
 fields; the successful reference capture independently contains 17 exchanges
 with this row layout. This adds no raw-memory wire service or tag-value writes.
 
+On `26.1023.083349`, native SDK download accepts 18 controller Symbols, all 16
+table rows and both Program-scoped Symbols. Its next request enumerates Routine
+attribute 8 within that Program (`0x6D`, service `0x55`); that operation remains
+unsupported. The SDK advances to `RxCsE_DOWNLOAD_OF_PROGRAMS_FAILED` after 179
+verified signed requests. The original source and active model are unchanged,
+SDK Offline and endpoint cleanup succeed, and no SDK fault is reported. Passing
+these descriptor queries does not establish transfer of initial values or code.
+The same build retains the normal upload boundary after 349 verified requests.
+Two Program-mode SDK FinalizeEdits imports and reconnects pass across 299
+requests, with one later model scan executing both changes. All 236 focused
+checks pass; source, executable, browser assets and all 105 guest modules match.
+
 The `26.1023.082234` native test accepts the complete set of 18 controller
 Symbols, then requests the Data Table fields above. It reaches 180 verified
 requests before `RxCsE_DOWNLOAD_OF_TAGS_FAILED`. Original source and active model

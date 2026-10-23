@@ -13,13 +13,18 @@ page header, Windows tray and executable properties share this version.
 This revision adds capture-informed [temporary Data Table enumeration](docs/download-image.md#completed-download-symbol-catalog).
 Descriptor handles and value addresses resolve to the completed image's own
 typed tables and bounded storage; they do not expose physical memory.
+Native SDK download accepts all 16 table rows and both Program-scoped Symbols,
+then advances to Program/Routine handle enumeration. It now reports
+`RxCsE_DOWNLOAD_OF_PROGRAMS_FAILED` after 179 verified requests, with source and
+active model preserved and actual Offline/cleanup confirmed without a reported
+SDK fault. Complete native download remains unfinished.
 Version `26.1023.082234` retains the complete temporary Symbol catalog after
 transport deletion, including internal Symbols and otherwise hidden tags.
 Native download accepts all 18 controller Symbols and advances to the Data
 Table query across 180 verified requests. It still reports tag download failure.
 
-On `26.1023.082234`, two SDK `FinalizeEdits` imports and reconnects pass across
-298 verified requests in stopped Program mode. Tag values remain unchanged
+On the current build, two SDK `FinalizeEdits` imports and reconnects pass across
+299 verified requests in stopped Program mode. Tag values remain unchanged
 until a model scan executes both edits. Normal upload still stops at Program
 collection after 349 verified requests. All three cases confirm source
 preservation, actual Offline/cleanup and no reported SDK fault. Complete native

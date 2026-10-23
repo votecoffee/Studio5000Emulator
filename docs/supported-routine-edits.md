@@ -108,6 +108,12 @@ mode. This probe requires Program mode and does not request that behavior,
 native Test or Untest. The option name alone does not establish the complete
 online-edit lifecycle.
 
+The `26.1023.083349` retest finalizes two edits in one SDK project and reconnects
+after each, across 299 verified requests. Tag values stay unchanged until a
+model scan executes both edits. Actual Offline/cleanup, original-file preservation
+and no reported SDK fault are confirmed. Reload restores the original stopped
+demo with zero scans, elapsed time, logic revisions and audit updates.
+
 On `26.1022.213142`, a native NOP finalization and reconnect pass across 187
 verified requests, with one expected logic revision and audit update. A second
 case finalizes `MOV(123,SpeedSetpoint);` and `MOV(456,Parts.PRE);` in the same open

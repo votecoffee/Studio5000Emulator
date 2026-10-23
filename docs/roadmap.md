@@ -8,7 +8,16 @@ native Studio connection and programming services remain unfinished.
 
 Version `26.1023.083349` adds [temporary Data Table enumeration](download-image.md#completed-download-symbol-catalog),
 with descriptor handles and value addresses backed by retained typed objects
-and bounded storage. It implements the next observed SDK download request.
+and bounded storage. Native download accepts all 16 table rows and both
+Program-scoped Symbols, then reaches the unsupported Routine attribute 8
+enumeration. It now reports Program download failure after 179 verified
+requests, with source/model preservation and actual Offline/cleanup confirmed
+without a reported SDK fault. All 236 focused checks pass; executable, webpage
+and all 105 appliance modules match this version.
+The same build's two Program-mode FinalizeEdits imports/reconnects pass across
+299 requests and execute on a later model scan. Normal upload retains its
+Program collection failure after 349 requests. Both cases confirm original
+source preservation, actual Offline/cleanup and no reported SDK fault.
 The prior release accepts all 18 controller Symbols and advances to this query
 across 180 verified requests, then reports tag download failure. Two stopped
 Program-mode FinalizeEdits imports/reconnects and actual custom-model execution
