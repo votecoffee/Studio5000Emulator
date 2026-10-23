@@ -15,6 +15,15 @@ The owning client can send a bounded follow-on batch while its completed
 temporary namespace remains available. Structural inspection reports record
 counts and operation classes; processing and completion remain denied until
 the additional records' effects are implemented.
+Native download receives all 335 records in the second batch and reaches its
+processing boundary after 193 verified requests. It still reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS`. Normal upload retains its Program-collection
+failure after 349 requests. Both preserve source/model and confirm actual
+Offline/cleanup without a reported SDK fault. All 150 affected checks pass.
+A supported Program-mode online import/reconnect passes across 187 requests
+with one expected logic/audit update, source preservation and confirmed
+Offline/cleanup without a reported SDK fault. The original stopped demo is
+restored after validation.
 
 Version `26.1023.091827` adds source-backed [Local I/O Map metadata](docs/local-io-map.md).
 Link Port comes from the canonical Local-module source; Map Address resolves

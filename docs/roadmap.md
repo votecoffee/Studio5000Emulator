@@ -12,6 +12,17 @@ replacing its completed namespace. Source/catalog checks cover setup,
 fragments and inspection; malformed buffers, expiry and transport deletion
 preserve the earlier image. Additional records are structurally inspected;
 processing, successful completion and active-project commit remain unfinished.
+The native trial receives all 335 later-batch records (190,318 expanded bytes)
+and reaches Start before the explicit processing rejection, across 193 verified
+requests. Download still reports its second-pass failure. Normal upload retains
+Program-collection failure after 349 requests. Both preserve source/model and
+confirm actual Offline/cleanup without a reported SDK fault. All 150 affected
+checks pass; the executable, browser and 105 deployed modules match.
+A supported Program-mode import/reconnect also passes across 187 requests,
+with one expected logic/audit update, original input preservation and actual
+Offline/cleanup without a reported SDK fault. Validation restores the original
+stopped zero-scan/audit demo afterward. Run-mode Test/Untest/Assemble remains
+unverified.
 
 Version `26.1023.091827` adds source-backed [Local I/O Map fields](local-io-map.md)
 9 (Link Port), 10 (Link Address) and 13 (Map Address). The port/slot come from

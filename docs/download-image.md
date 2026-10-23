@@ -235,6 +235,28 @@ End preparation, lease release/expiry, disconnect, bad authentication and
 project reset retain the existing whole-lease cleanup rules. Applying later
 records and reporting their actual effects remain required implementation work.
 
+The native SDK trial receives both complete batches: 371,787 expanded bytes
+with 904 records in the first, then 190,318 bytes with 335 records in the second.
+Its latter batch contains these structurally decoded operations:
+
+| Service | Class | Records |
+| --- | --- | --- |
+| Set Attribute List (`0x04`) | Program `0x68` | 1 |
+| Set Attribute List (`0x04`) | I/O Map `0x69` | 1 |
+| Set Attribute List (`0x04`) | Symbol `0x6B` | 20 |
+| Set Attribute List (`0x04`) | Routine `0x6D` | 2 |
+| Set Attribute List (`0x04`) | Diagnostic Message `0x3B2` | 136 |
+| `0x33` | Message Router `0x02` | 2 |
+| `0x4B` / `0x4C` | Program-scoped `0x74` | 1 each |
+| `0x4F` | Metadata `0x349` | 167 |
+| `0x50` | Data Table `0x6A` | 4 |
+
+These counts identify the work ahead; decoding their framing does not validate
+or apply the operations. Start receives the explicit processing rejection and
+download still reports `RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified requests.
+The active model and original files remain unchanged, actual Offline/cleanup
+is confirmed, and no SDK fault is reported. All 150 affected checks pass.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
