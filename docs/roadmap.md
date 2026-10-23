@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.175952` adds a private, source-checked
+[repository device record and identity link](download-image.md#repository-device-record)
+for the prepared download owner. It preserves active device properties and
+grants no operator authority. The preceding `26.1023.175203` native trial accepts
+the Ethernet interface label, advances to repository registration after 265
+verified requests, and preserves source/model with actual Offline cleanup and
+no reported SDK fault. Complete functional upload/download remain the priority;
+online-edit expansion follows them.
+
 Version `26.1023.170949` advances download beyond Task creation/linking, HTTP
 disable and the base plus three follow-up Controller settings writes. All 17
 Controller fields have checked private readback; active-project commit remains

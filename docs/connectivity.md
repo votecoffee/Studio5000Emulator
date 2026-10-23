@@ -8,6 +8,15 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.175952` adds a private, source-checked
+[repository device record and identity link](download-image.md#repository-device-record)
+for the prepared download owner. It preserves active device properties and
+grants no operator authority. The preceding `26.1023.175203` native trial accepts
+the Ethernet interface label, advances to repository registration after 265
+verified requests, and preserves source/model with actual Offline cleanup and
+no reported SDK fault. Complete functional upload/download remain the priority;
+online-edit expansion follows them.
+
 Version `26.1023.170949` accepts the prepared download owner's source-checked
 [Controller configuration and follow-up settings](download-image.md#controller-configuration).
 The native SDK gets past Task creation/linking, HTTP disable and all 17 staged
