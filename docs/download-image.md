@@ -638,6 +638,11 @@ later operations recheck its complete unedited source profile. It adds no row
 to the original metadata catalog and changes no active project or controller
 identity. Existing owner, Program-mode, atomicity and cleanup checks apply.
 
+The native `26.1023.173828` trial accepts the bounded `0x4C` property, then
+stops at the Ethernet Link attribute list because interface label 10 is missing.
+It records 206 verified requests with source/model preservation, actual
+Offline cleanup and no reported SDK fault.
+
 ### Ethernet interface label
 
 Version `26.1023.175203` supplies Ethernet Link class `0xF6`, instance 1,
@@ -651,6 +656,13 @@ Single and list reads are supported; the bounded offline collection decoder
 recognizes the same layout while omitting payloads by default. Unknown names
 remain unavailable, and network setters stay unsupported. All 317 affected
 checks pass, including malformed labels, truncation, list ordering and privacy.
+
+The native trial accepts the full requested Ethernet Link list, passes the
+following optional class discovery, and reaches Logix Repository class `0x378`,
+instance 1, service `0x4B`. It stops there with `RxCsE_ASA_NO_PERMISSION` after
+265 verified requests. Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after
+349 requests. Both preserve source/model, confirm actual Offline cleanup and
+report no SDK fault. The 110 deployed modules and delivery versions match.
 
 ## Native boundary
 
