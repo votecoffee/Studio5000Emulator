@@ -625,6 +625,26 @@ class Router:
                     value=namespace.controller.configure(payload,ControllerBindings(self.app.engine,namespace,identity))
                     self.endpoint.record('native_download_controller_configured',**namespace.controller.description())
                 return reply(inner[0],0,value)
+            if (inner[0],path.class_id) in ((0x4B,0x378),(4,0x64)):
+                if (path.instance!=1 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None
+                        for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_download_repository_scope')
+                identity=self.app.native_project_identity
+                if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    namespace=lease.download_namespace
+                    if namespace is None:return reject(0x0C,'completed_download_namespace_required')
+                    self.require_download_namespace(lease,identity)
+                    if not namespace.controller.description()['configured']:
+                        return reject(0x0C,'download_controller_configuration_required')
+                    if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    if limit<(8 if inner[0]==0x4B else 10):return reject(0x1B,'download_repository_reply_budget')
+                    operation=namespace.repository.register if inner[0]==0x4B else namespace.repository.link
+                    value=operation(payload,namespace._source,self.app.engine.project,self.endpoint.identity)
+                    self.endpoint.record('native_download_device_repository',**namespace.repository.description())
+                return reply(inner[0],0,value)
             if inner[0]==0x10 and path.class_id==0xF5:
                 if (path.instance!=0 or path.attribute!=101 or path.symbols or any(getattr(path,key) is not None
                         for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
@@ -1103,6 +1123,7 @@ class Router:
             native_metadata_values=getattr(self.app,'native_metadata_values',None),header_bindings=self.download_header_bindings(lease),
             task_bindings=self.download_task_bindings(lease),
             controller_bindings=ControllerBindings(self.app.engine,lease.download_namespace,identity),
+            device_identity=self.endpoint.identity,
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 

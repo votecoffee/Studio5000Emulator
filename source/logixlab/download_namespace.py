@@ -13,6 +13,7 @@ from . import source_object_verification
 from .download_tasks import DownloadTasks
 from .download_controller import DownloadController
 from .download_properties import DownloadProperties
+from .download_repository import DownloadRepository
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
@@ -60,6 +61,7 @@ class DownloadNamespace:
         self.tasks=DownloadTasks()
         self.controller=DownloadController()
         self.properties=DownloadProperties()
+        self.repository=DownloadRepository()
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -82,7 +84,7 @@ class DownloadNamespace:
             for slot,instance in enumerate(sorted(self._image.programs)))
         self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
-    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,**catalogs):
+    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,controller_bindings=None,device_identity=None,**catalogs):
         self.validate_base(source,native_types,**catalogs)
         if self._incremental is not None:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
@@ -90,6 +92,7 @@ class DownloadNamespace:
         self.controller.validate(controller_bindings)
         self.properties.validate(source,native_metadata_values,
             controller_bindings.engine.project if controller_bindings is not None else None)
+        self.repository.validate(source,controller_bindings.engine.project if controller_bindings is not None else None,device_identity)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
@@ -196,4 +199,5 @@ class DownloadNamespace:
             tasks=self.tasks.description(),
             controller_configuration=self.controller.description(),
             controller_properties=self.properties.description(),
+            device_repository=self.repository.description(),
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)

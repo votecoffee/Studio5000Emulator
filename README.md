@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.175203`.** Versions use the release timestamp
+**Current app version: `26.1023.175952`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds the read-only Ethernet Link interface label used by native
+This revision adds a [temporary repository device record](docs/download-image.md#repository-device-record)
+and its handle link for the prepared download owner. Fields must match the
+loaded v35 L85E project and current software-device identity. The record stays
+private and grants no operator authority. Complete native transfers remain
+unfinished.
+
+Version `26.1023.175203` adds the read-only Ethernet Link interface label used by native
 download setup. It returns the selected local OS interface name with the
 installed v35 byte-counted layout; unavailable names remain explicit errors.
 The native download now passes this read and advances to Logix Repository

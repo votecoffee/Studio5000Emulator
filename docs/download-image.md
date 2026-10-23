@@ -664,6 +664,29 @@ instance 1, service `0x4B`. It stops there with `RxCsE_ASA_NO_PERMISSION` after
 349 requests. Both preserve source/model, confirm actual Offline cleanup and
 report no SDK fault. The 110 deployed modules and delivery versions match.
 
+### Repository device record
+
+Version `26.1023.175952` handles the observed post-network Logix Repository
+class `0x378`, instance 1, service `0x4B` device record. Only the owning prepared
+download client in Program mode can register it, after source-checked Controller
+configuration. The exact bounded UTF-16 record must match the loaded project
+name, this emulator's current serial and its advertised product name. The
+source must match the complete unedited v35 L85E profile.
+
+The returned DWORD is a simulator-owned namespace handle. The following
+Extended Device class `0x64`, instance 1, Set Attribute List for attribute 8 can
+link only that exact handle. Both operations are idempotent. Changed source,
+device identity, registration content or retained effects revoke later namespace
+operations. Malformed records, other attribute writes and foreign handles fail
+without partial publication.
+
+This retains the requested System Operator Identity reference privately. It
+does not authorize an operator, create a trusted authority, alter active device
+attributes or reuse the captured reference handle. Ordinary attribute 8 reads
+retain the software-device default. Ending preparation or disconnecting the
+owner discards the temporary namespace with its registration and link. Native
+transfer completion and active-project commit remain separate requirements.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
