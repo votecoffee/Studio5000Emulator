@@ -6,11 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.105500`.** Versions use the release timestamp
+**Current app version: `26.1023.122010`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds [second-batch processing and completion](docs/download-image.md#second-batch-completion).
+This revision adds [temporary Task creation and configuration](docs/download-image.md#temporary-task-headers).
+The owning download can allocate a Task header and apply its nine source-checked
+configuration fields after both temporary batches complete. Returned addresses
+identify simulator objects; active scheduling and logic remain unchanged. All
+347 affected checks pass. Full native upload/download remain unfinished, and
+further online-edit work follows functional transfers.
+
+Version `26.1023.105500` adds [second-batch processing and completion](docs/download-image.md#second-batch-completion).
 All 335 observed records have private effect readback, including two bounded
 opaque Routine data writes. Completion requires Start, full record/byte coverage,
 current source bindings and an intact result ledger. Completed updates survive

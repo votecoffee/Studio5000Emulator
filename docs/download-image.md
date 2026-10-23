@@ -409,6 +409,43 @@ and 55 SDK-probe checks pass. The executable, browser assets and 107 deployed
 modules match this version. This advances the native boundary without claiming
 a complete download or activation of downloaded logic/values.
 
+## Temporary Task headers
+
+Version `26.1023.122010` implements the observed empty Task Create request
+(`0x70`, service `0x08`) for original ordinary Standard Tasks. The response
+contains the original instance ID and an owned temporary header handle, matching
+the captured two-DWORD layout. The address identifies a simulator object; it
+does not expose physical memory or imply a recovered firmware descriptor.
+Nonempty Create profiles, unknown/scoped identities and duplicate creation
+remain errors.
+
+The prepared programming owner must have completed and retained both temporary
+batches. The Task inventory must match the same original ACD/L5X pair and the
+complete source Task names. Creation requires the known Standard memory profile
+and full static configuration proof. Source formats unsupported by the original
+Task reader, safety/event Tasks and missing stored settings cannot create a
+guessed header. Existing lease/generation/owner and Program-mode checks apply.
+
+The captured nine-field Set Attribute List profile retains rate, empty trigger,
+Task kind, priority, watchdog, timeout, output-update flag, inhibit flag and the
+ordered Program list. All values must exactly match the original stored and L5X
+configuration; each scheduled Program must exist in the retained image. Source
+field widths, unique attribute IDs, counted-array bounds and payload extents are
+checked before publishing any property. Reply statuses preserve requested field
+order; missing, extra or malformed fields never get a partial success response.
+
+Every created header and configured property has private effect readback and a
+source binding. Later catalog operations recheck that binding, including current
+Task source models and their Program schedule. This also corrects catalog
+validation after a completed incremental batch: current metadata and header
+contexts are now supplied on that path. Preparation end, release/disconnect,
+source replacement and lease expiry clear these Task objects with the existing
+namespace. Active task scheduling, tag values, counters and logic are unchanged.
+
+The offline demo check matches all nine fields to its original ACD and L5X, and
+all 347 affected checks pass. This establishes model/protocol behavior; complete
+native download/upload remains a separate acceptance boundary.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -8,6 +8,11 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.122010` adds [temporary Task headers](download-image.md#temporary-task-headers).
+The prepared download owner can create an original Standard Task and retain its
+source-checked static settings. This uses simulator-owned handles and leaves the
+active scheduler unchanged. Full native transfers remain unfinished.
+
 Version `26.1023.105500` adds [second-batch processing and completion](download-image.md#second-batch-completion).
 Only fully modeled, source-bound temporary effects can complete. They are
 retained separately from the original image and active runtime. Further batch

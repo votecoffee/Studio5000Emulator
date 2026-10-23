@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.122010` adds [temporary Task creation/configuration](download-image.md#temporary-task-headers).
+After completing both temporary download batches, the owner can allocate an
+original Standard Task header and apply its nine exact source configuration
+fields. Task identity, original stored settings, live source and retained
+Program references are rechecked; no active scheduling changes. All 347 focused
+checks pass. Functional upload/download take priority over further online-edit
+work. Complete native transfers remain separate acceptance goals.
+
 Version `26.1023.105500` adds [second-batch completion](download-image.md#second-batch-completion).
 The complete 335-record proposal now has an immutable effect ledger and actual
 storage readback, including two bounded opaque Routine data records. Processing

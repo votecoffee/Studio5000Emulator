@@ -27,6 +27,7 @@ from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
 from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
+from .download_tasks import TaskBindings
 from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
@@ -557,6 +558,26 @@ class Router:
                 # Only the captured selector-token profile is implemented.
                 # The CRC protects these four payload bytes, not the Program.
                 return reply(inner[0],0,program_query.body(selector))
+            if inner[0] in (8,4) and path.class_id==0x70:
+                if (type(path.instance) is not int or not 1<=path.instance<=0xFFFF or path.attribute is not None or path.symbols
+                        or any(getattr(path,key) is not None for key in
+                               ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_download_task_scope')
+                if inner[0]==8:exact(payload,0)
+                identity=self.app.native_project_identity
+                if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if lease.download_namespace is None or lease.download_namespace._incremental is None:
+                        return reject(0x0C,'completed_incremental_download_required')
+                    self.require_download_namespace(lease,identity)
+                    if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    if limit<(12 if inner[0]==8 else 6+4*9):return reject(0x1B,'download_task_reply_budget')
+                    tasks=lease.download_namespace.tasks;bindings=self.download_task_bindings(lease)
+                    value=(tasks.create(path.instance,bindings) if inner[0]==8 else tasks.configure(path.instance,payload,bindings))
+                    self.endpoint.record('native_download_task_'+('created' if inner[0]==8 else 'configured'),**tasks.description())
+                    return reply(inner[0],0,value)
             if inner[0]==0x55 and path.class_id in (0x68,0x6A,0x6B,0x6D):
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
@@ -576,9 +597,7 @@ class Router:
                         identity=self.app.native_project_identity
                         if identity is None:return reject(0x0C,'source_correlation_unavailable')
                         namespace=lease.download_namespace
-                        namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
-                            native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
-                            native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
+                        self.require_download_namespace(lease,identity)
                         if path.class_id==0x6B:
                             partial,value=namespace.symbol_page(path.program_instance or 0,path.instance or 0,limit-4)
                             self.endpoint.counts['native_download_symbol_pages']+=1
@@ -1016,12 +1035,17 @@ class Router:
     def require_download_namespace(self,lease,identity):
         lease.download_namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
             native_metadata_values=getattr(self.app,'native_metadata_values',None),header_bindings=self.download_header_bindings(lease),
+            task_bindings=self.download_task_bindings(lease),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 
     def download_header_bindings(self,lease):
         return HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,
             self.app.native_auxiliary_symbols,getattr(self.app,'native_tasks',None),self.app.native_tables)
+
+    def download_task_bindings(self,lease):
+        return TaskBindings(self.app.engine,lease.download_namespace,getattr(self.app,'native_tasks',None),
+            self.app.native_project_identity,self.app.native_symbols)
 
     def source_bound_program(self,instance):
         identity=self.app.native_project_identity;symbols=self.app.native_symbols

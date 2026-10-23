@@ -10,6 +10,7 @@ from types import MappingProxyType
 from .download_image import ImageError
 from .download_image import MAX_READ_BYTES
 from . import source_object_verification
+from .download_tasks import DownloadTasks
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
@@ -54,6 +55,7 @@ class DownloadNamespace:
             raise ImageError('download_namespace_source_identities_required')
         self._image=transport.download_image
         self._incremental=None
+        self.tasks=DownloadTasks()
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -76,10 +78,11 @@ class DownloadNamespace:
             for slot,instance in enumerate(sorted(self._image.programs)))
         self._program_addresses=MappingProxyType({row.address:row for row in self._programs})
 
-    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,**catalogs):
+    def validate(self,source,native_types,*,native_metadata_values=None,header_bindings=None,task_bindings=None,**catalogs):
         self.validate_base(source,native_types,**catalogs)
         if self._incremental is not None:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
+        self.tasks.validate(task_bindings)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
@@ -183,4 +186,5 @@ class DownloadNamespace:
             source_bound=True,owner_only=True,modeled_handles=True,physical_addresses=False,
             incremental_batches_retained=int(self._incremental is not None),
             incremental_records=self._incremental.records if self._incremental is not None else 0,
+            tasks=self.tasks.description(),
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)
