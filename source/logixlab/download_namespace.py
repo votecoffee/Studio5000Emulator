@@ -69,6 +69,7 @@ class DownloadNamespace:
         self.setup=DownloadSetup()
         self.local_map=DownloadMap()
         self.change_log=DownloadChangelog()
+        self.initial_values=None
         self._source=self._image.source
         self._binding=(self._image.record_sha256,self._image.records)
         self._types=native_types;self._type_stamp=native_types.binding_stamp()
@@ -106,6 +107,7 @@ class DownloadNamespace:
             self._routine_batch.verify_effects(routine_bindings)
         self.local_map.validate(map_bindings)
         self.change_log.validate(changelog_bindings)
+        if self.initial_values is not None:self.initial_values.validate(header_bindings,native_types)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
@@ -225,4 +227,5 @@ class DownloadNamespace:
             setup_configuration=self.setup.description(),
             local_map=self.local_map.description(),
             change_log=self.change_log.description(),
+            initial_values=self.initial_values.description() if self.initial_values is not None else None,
             descriptor_memory_reads=False,active_catalog_replaced=False,commit=False)

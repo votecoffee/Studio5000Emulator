@@ -117,8 +117,8 @@ class ChangelogSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(COMMIT)[2],12);self.send(CREATE_REQUEST)
         self.assertEqual(self.send(COMMIT)[2],12);self.send(CONFIG_REQUEST+payload(self.proposal()))
         identity=self.app.native_project_identity;before=copy.deepcopy(self.app.engine.memory.values)
-        self.assertEqual(self.send(COMMIT)[2],15)
-        self.assertIn('download_commit_unimplemented',[r['reason'] for r in self.app.state()['connectivity']['native_rejections']])
+        self.assertEqual(self.send(COMMIT)[2],12)
+        self.assertIn('download_initial_complete_tag_source_required',[r['reason'] for r in self.app.state()['connectivity']['native_rejections']])
         self.assertIs(self.app.native_project_identity,identity);self.assertEqual(self.app.engine.memory.values,before)
         self.assertEqual(self.app.engine.scan_count,0);self.assertEqual(self.send(prep.END)[2],0)
 

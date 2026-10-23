@@ -942,6 +942,30 @@ normal cleanup, and report no SDK fault. All 115 deployed modules and delivery
 versions match; 133 affected checks pass. This establishes native acceptance of
 the prepared header, with final installation still unfinished.
 
+### Source-matched initial values
+
+Version `26.1023.195217` validates the initial values before the Controller
+installation boundary. Every source tag must have exactly one retained table;
+aliases, incomplete symbol coverage, unsupported types or dimensions, changed
+source values and unaccounted tables reject preparation as a whole.
+
+Supported scalar encodings and explicitly source-declared TIMER/COUNTER layouts
+are compared byte for byte with the saved source values. Builtin member offsets,
+flag bits and Template IDs must agree with the original type catalog. Local-port
+XML is checked against the original L5X's bounded ICP/Ethernet profile. The
+observed zero `__CONTAINER` DINT is retained as opaque auxiliary configuration;
+it does not become an application tag or native executable state.
+
+Preparation also builds a separate execution model, checks its complete initial
+memory and rejects execution blockers. Prescan is deferred until a future Run
+entry. Failure publishes no value preparation and never replaces the active
+model. The private preparation revalidates on subsequent namespace reads and is
+cleared with End Preparation or disconnection.
+
+Controller service `0x61` continues to return `download_commit_unimplemented`
+after successful preparation. This revision does not switch execution models,
+activate native compiled code, change active correlation or complete a download.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

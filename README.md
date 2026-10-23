@@ -6,22 +6,21 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.193356`.** Versions use the release timestamp
+**Current app version: `26.1023.195217`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds a private [prepared Change Log header](docs/download-image.md#prepared-change-log-header)
-after all three batches, setup and Map preparation have been verified. Creation,
-configuration and owner-only readback use a backed local handle. The proposed
-download UID remains separate from the original source identifiers and active
-correlation. Final project installation remains unsupported.
+This release adds [initial-value preparation](docs/download-image.md#source-matched-initial-values)
+after the three download batches, setup, Map and private Change Log header have
+been verified. It checks complete named-tag coverage and typed saved values,
+accounts for auxiliary tables, and validates a separate execution model.
+Final project installation remains unsupported.
 
 The native SDK accepts all three Change Log operations and reaches the final
 Controller installation service (`0x61`), which is explicitly rejected. Download
 ends after 281 verified requests; upload still fails during Program collection
 after 348. Both trials preserve source/model, confirm SDK Offline and cleanup,
-and report no SDK fault. All 115 deployed modules and delivery versions match;
-133 focused checks pass.
+and report no SDK fault. See the compatibility checkpoints for validation scope.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

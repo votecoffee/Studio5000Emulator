@@ -779,6 +779,12 @@ class Router:
                     self.require_download_namespace(lease,identity)
                     lease.download_namespace.change_log.require_configured(self.download_changelog_bindings(lease))
                     if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    from .download_values import PreparedValues
+                    bindings=self.download_header_bindings(lease)
+                    values=PreparedValues.prepare(bindings,self.app.native_types)
+                    values.new_engine(bindings,self.app.native_types)
+                    lease.download_namespace.initial_values=values
+                    self.endpoint.record('native_download_initial_values_prepared',**values.description(),detached_engine_validated=True)
                     self.endpoint.record('native_download_commit_boundary',**lease.download_namespace.description())
                     return reject(0x0F,'download_commit_unimplemented')
             if path.class_id==0x69 and path.instance==1 and inner[0] in (4,3,0x0E):

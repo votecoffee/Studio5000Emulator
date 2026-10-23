@@ -4,6 +4,12 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.195217` adds source-matched initial-value preparation after the
+configured Change Log header. It requires complete tag/table coverage, exact
+scalar or original TIMER/COUNTER layouts and saved value bytes, accounts for the
+Local-port XML and opaque container table, and validates a separate execution
+model. Active installation remains unfinished.
+
 Version `26.1023.193356` adds a separate prepared Change Log header with bounded
 Create, seven-field configuration and owned readback. A backed local handle
 identifies actual retained metadata; source anchors are preserved and the
