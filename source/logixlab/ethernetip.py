@@ -1767,6 +1767,11 @@ class Router:
                 attributes.update(self.app.engine.change_detection.attributes(self.app.engine.project.sha256))
                 if self.endpoint.native_read_only:
                     with self.endpoint.lock:
+                        identity=self.app.native_project_identity
+                        if identity is not None and identity.source_l5x_sha256==self.app.engine.project.sha256:
+                            attributes.update(self.app.engine.component_tracking_attributes(idle=
+                                not self.endpoint.programming_lease.scan_inhibited(
+                                    self.app.generation,self.app.engine.project.sha256)))
                         attributes[7]=struct.pack('<H',self.endpoint.programming_lease.inhibit(
                             self.app.generation,self.app.engine.project.sha256))
                         attributes[26]=struct.pack('<I',self.endpoint.programming_lease.preparation_status(
@@ -1974,6 +1979,11 @@ class Endpoint:
                     'task_measurements':self.app.engine.task_measurement_description() if self.enabled else None,
                     'task_execution_status':self.app.engine.task_status_description() if self.enabled else None,
                     'task_aoi_stack':self.app.engine.task_stack_description() if self.enabled else None,
+                    'controller_component_tracking':{**self.app.engine.project.component_tracking.description(),
+                        'reads_available':bool(self.native_read_only and self.app.native_project_identity is not None
+                            and self.app.native_project_identity.source_l5x_sha256==self.app.engine.project.sha256
+                            and self.app.engine.component_tracking_attributes(idle=not self.programming_lease.scan_inhibited(
+                                self.app.generation,self.app.engine.project.sha256)))} if self.enabled else None,
                     'executable_configuration':self.app.engine.project.executable_configuration.description() if self.enabled else None,
                     'routine_state':routine_state.description() if self.enabled else None,
                     'device_metadata':device_metadata.description() if self.enabled else None,

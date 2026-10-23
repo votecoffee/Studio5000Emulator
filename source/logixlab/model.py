@@ -322,6 +322,9 @@ class Project:
         self.program_diagnostics = ProgramDiagnostics.from_source(root,c,self.sha256,
             self.program_configuration,self.executable_configuration,self.io_map)
         self.controller_configuration = ControllerConfiguration.from_controller(c, root)
+        from .component_tracking import EmptyComponentTracking
+        self.component_tracking = EmptyComponentTracking.from_source(root,c,self.sha256,
+            aoi_empty=self.aoi_catalog.empty,io_empty=self.io_map.empty)
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))
         self.processor = c.get("ProcessorType", "unknown")

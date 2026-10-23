@@ -89,6 +89,11 @@ class Engine:
     def task_measurement_attributes(self,task,*,source_sha256):
         return self._task_measurements.attributes() if self._task_runtime_available(task,source_sha256) else {}
 
+    def component_tracking_attributes(self,*,idle):
+        if (self.mode!='project' or self.blockers or self.fault or self._native_fault_history_uncertain
+                or self.calls.stack or self.memory.frames):return {}
+        return self.project.component_tracking.attributes(self.project.sha256,idle=idle)
+
     def task_status_attributes(self,task,*,source_sha256):
         # This runner executes one complete Task serially. It has no EVENT or
         # timeout trigger and never dispatches a second overlapping execution.

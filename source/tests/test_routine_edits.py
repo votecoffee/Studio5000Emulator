@@ -92,6 +92,7 @@ class RoutineEditWireTests(unittest.TestCase):
         self.assertIsNone(old.runtime_references.resolve_task_slot(current.project,0))
         self.assertEqual(self.app.engine.memory.first_scan,old.memory.first_scan)
         self.assertEqual(after['routine_edits']['revision'],1);self.assertTrue(after['routine_edits']['modified'])
+        self.assertIs(current.project.component_tracking,old.project.component_tracking)
         self.assertEqual(after['routine_edits']['edited_routines'],['mainprogram/mainroutine'])
         with self.assertRaisesRegex(ModelError,'transaction'):self.app.command('export-edited-l5x',{})
         self.assertEqual(self.app.engine.project.instruction_counts['MOV'],1)

@@ -13,6 +13,12 @@ Supported [Program-mode routine imports](docs/supported-routine-edits.md) were
 validated on `.159`. Supported imports update the custom execution model while
 preserving the original source files.
 
+Version `.160` adds an explicit [empty simulator component-tracking profile](docs/empty-component-tracking.md)
+for Controller fields 33/34. Its empty active/test groups return zero arrays;
+native membership and signatures are not imported or verified. Explicit tracked
+or ambiguous source retains unavailable fields. All 187 affected checks pass;
+native transfer acceptance is tracked separately.
+
 Version `.159` adds [Controller spare-memory configuration](docs/controller-memory-padding.md)
 reads for fields 11/12. Explicit source percentages are preserved; complete
 source with disabled redundancy selects zero reservation for omitted settings.

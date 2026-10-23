@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `.160` adds an [empty simulator component-tracking profile](empty-component-tracking.md)
+for fields 33/34. Source absence selects emulator policy and never proves native
+ACD membership. Nonempty/ambiguous tracking remains unsupported. All 187 affected
+checks pass. Complete native transfers and the full edit lifecycle remain
+separate acceptance goals.
+
 Version `.159` adds [Controller spare-memory configuration](controller-memory-padding.md)
 reads for fields 11/12, preserving explicit source percentages and identifying
 the disabled-redundancy zero-reservation policy for omitted settings. All 181
