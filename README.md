@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.172357`.** Versions use the release timestamp
+**Current app version: `26.1023.173828`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds [source-checked Controller metadata writes](docs/download-image.md#controller-metadata-properties)
+This revision adds a bounded [Logix family marker](docs/download-image.md#logix-family-marker)
+for the post-configuration `ProjectType` metadata request. It requires a matching
+complete v35 Logix source and the original numeric metadata schema. Stored
+properties take precedence; active metadata and controller identity stay unchanged.
+Complete native upload/download remain unfinished.
+
+Version `26.1023.172357` adds [source-checked Controller metadata writes](docs/download-image.md#controller-metadata-properties)
 after download configuration. The owning prepared client can retain original
 typed metadata values with private readback; active metadata and controller
 identity remain unchanged. Functional native upload/download remain unfinished.

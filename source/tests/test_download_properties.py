@@ -5,6 +5,7 @@ from unittest.mock import patch
 from logixlab.download_image import ImageError,Source
 from logixlab.download_properties import DownloadProperties
 from logixlab.incremental_download import value_identity
+from logixlab.native_metadata_definitions import Definition
 from test_download_namespace import NamespaceFixture,ENUM
 import test_native_metadata_values as original
 import test_download_metadata as packets
@@ -17,7 +18,10 @@ def catalog(source):
     number=values.rows[-1]
     text=replace(number,definition=1,record_word=len(values.rows)+1,kind=1,
         data='Original ÜTF-8 comment'.encode(),type_code=None,elements=0)
-    return replace(values,rows=(*values.rows,text)),number,text
+    definitions=replace(values.definitions,rows=(*values.definitions.rows,Definition(36,'SystemNumeric')))
+    schema=replace(values.rows[2],record_word=len(values.rows)+2,
+        target=replace(values.rows[2].target,instance_word=36))
+    return replace(values,definitions=definitions,rows=(*values.rows,text,schema)),number,text
 
 
 def request(rows,definition=None):
@@ -111,3 +115,25 @@ class PropertySignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(raw)[2],0)
         self.app.native_metadata_values=original.catalog(acd='c'*64,l5x=self.app.engine.project.sha256)
         self.assertEqual(self.send(ENUM)[2],12)
+
+    def test_unstored_logix_marker_uses_matching_complete_project_and_rechecks_its_profile(self):
+        self.configure();project=self.app.engine.project
+        marker=replace(self.number,definition=36,target=replace(self.number.target,qualifier=b'ProjectType'),data=b'L\0\0\0')
+        self.assertEqual(self.send(request((marker,)))[2],0)
+        self.assertTrue(self.namespace.properties.description()['logix_family_marker'])
+        self.assertEqual(self.send(ENUM)[2],0)
+        self.assertEqual(self.namespace.properties.read(0,self.namespace._source,self.values,project).data,b'L\0\0\0')
+        with self.assertRaises(ImageError):self.namespace.properties.read(0,self.namespace._source,self.values)
+        project.version='34';self.assertEqual(self.send(ENUM)[2],12)
+
+    def test_wrong_family_marker_or_an_existing_conflicting_source_value_cannot_use_fallback(self):
+        self.configure();project=self.app.engine.project
+        marker=replace(self.number,definition=36,target=replace(self.number.target,qualifier=b'ProjectType'),data=b'L\0\0\0')
+        wrong=replace(marker,data=b'X\0\0\0',record_word=len(self.values.rows)+1)
+        self.assertEqual(self.send(request((wrong,)))[2],12)
+        project.version='34';self.assertEqual(self.send(request((marker,)))[2],12);project.version='35'
+        self.app.native_metadata_values=replace(self.values,rows=(*self.values.rows,wrong))
+        self.assertEqual(self.send(request((marker,)))[2],12)
+        self.assertEqual(self.namespace.properties.description()['values'],0)
+        self.assertEqual(self.send(request((wrong,)))[2],0)
+        self.assertFalse(self.namespace.properties.description()['logix_family_marker'])

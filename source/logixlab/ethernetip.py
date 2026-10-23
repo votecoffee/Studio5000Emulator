@@ -410,7 +410,7 @@ class Router:
                         namespace.tasks.require_configured(self.download_task_bindings(lease))
                         if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
                         source=Source(identity.source_acd_sha256,self.app.engine.project.sha256)
-                        namespace.properties.stage(payload,path.instance,source,getattr(self.app,'native_metadata_values',None))
+                        namespace.properties.stage(payload,path.instance,source,getattr(self.app,'native_metadata_values',None),self.app.engine.project)
                         self.endpoint.record('native_download_controller_properties',**namespace.properties.description())
                         return reply(inner[0])
                     lease.metadata.stage_values(payload,path.instance)

@@ -88,7 +88,8 @@ class DownloadNamespace:
             self._incremental.verify_effects(self._image,source,native_metadata_values,header_bindings)
         self.tasks.validate(task_bindings)
         self.controller.validate(controller_bindings)
-        self.properties.validate(source,native_metadata_values)
+        self.properties.validate(source,native_metadata_values,
+            controller_bindings.engine.project if controller_bindings is not None else None)
 
     def retain_incremental(self,transport,source,native_metadata_values=None,header_bindings=None):
         if self._incremental is not None:raise ImageError('incremental_batch_sequence_unimplemented')
