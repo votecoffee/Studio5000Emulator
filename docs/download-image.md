@@ -477,7 +477,7 @@ Symbol update is enabled.
 
 The link/clear layer has its own effect digest and source checks. It leaves
 the first image and the second batch's original header/result ledger intact,
-while later reads and writes recheck the current Task/alias binding. These are
+while later catalog reads and Task updates recheck the current Task/alias binding. These are
 private reference properties, with no active tag or scheduler mutation. The
 same lease, source, generation, Program-mode and owner checks still apply.
 
@@ -485,6 +485,15 @@ An offline reconstruction verifies creation, linking, all nine configuration
 fields, detachment and preservation of all 335 earlier effects using the
 original demo catalogs. Native Task configuration and complete transfers still
 require live acceptance.
+
+The native `26.1023.123557` trial accepts Task Create, the Task Symbol update and
+all nine Task configuration fields. It then rejects a separate Set Attribute
+Single on TCP/IP class instance zero, attribute 101, containing one zero byte.
+Download reports `RxCsE_ASA_NO_PERMISSION` after 199 verified requests. Upload
+retains its Program-collection failure after 348 verified requests. Both
+preserve source/model, confirm actual Offline/cleanup and report no SDK fault.
+All 352 affected checks pass; the executable, webpage and 108 deployed modules
+match. Full transfer acceptance remains incomplete.
 
 ## Native boundary
 

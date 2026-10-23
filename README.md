@@ -15,6 +15,12 @@ to the newly allocated download Task. The address and logical path must resolve
 to that exact owned Task and original source alias. A bounded clear operation
 supports cleanup without changing active tags or scheduling. Functional native
 upload/download remain the priority; full transfers are still unfinished.
+The native trial accepts creation, the Task Symbol link and all nine Task
+configuration fields. Download advances to the TCP/IP class's HTTP-disable
+request and reports `RxCsE_ASA_NO_PERMISSION` after 199 verified requests.
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 348 verified requests.
+Both preserve source/model and confirm actual Offline/cleanup without an SDK
+fault. All 352 affected checks pass, and all 108 deployed modules match.
 
 Version `26.1023.122010` adds [temporary Task creation and configuration](docs/download-image.md#temporary-task-headers).
 The owning download can allocate a Task header and apply its nine source-checked

@@ -223,4 +223,3 @@ class TaskLinkSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(bytes.fromhex('040420682402206b2404')+LINK)[2],4)
         self.app.native_auxiliary_symbols=None
         self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],12)
-
