@@ -5,6 +5,7 @@ import json
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from logixlab.download_image import ImageError
 from logixlab.download_tasks import DownloadTasks,TaskBindings,TASK_BASE,attributes
@@ -28,6 +29,7 @@ import test_programming_lease as leases
 CREATE=bytes.fromhex('080220702401')
 LINK=struct.pack('<HHIH',2,3,TASK_BASE,13)+bytes.fromhex('0220702401')
 CLEAR=bytes.fromhex('01000d0000')
+HTTP_DISABLE=bytes.fromhex('100320f52400306500')
 
 
 def configuration(values=None):
@@ -223,3 +225,48 @@ class TaskLinkSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(bytes.fromhex('040420682402206b2404')+LINK)[2],4)
         self.app.native_auxiliary_symbols=None
         self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],12)
+
+    def complete_tasks(self):
+        self.assertEqual(self.send(CREATE)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('040220702401')+configuration())[2],0)
+
+    def test_download_retains_disabled_embedded_http_after_task_configuration(self):
+        before=copy.deepcopy(self.app.engine.memory.values)
+        self.assertEqual(self.send(HTTP_DISABLE)[2],12)
+        self.assertEqual(self.send(CREATE)[2],0)
+        self.assertEqual(self.send(HTTP_DISABLE)[2],12)
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('040220702401')+configuration())[2],0)
+        with patch('logixlab.ethernetip.interface_snapshot',side_effect=AssertionError('Unneeded network query')):
+            self.assertEqual(self.send(HTTP_DISABLE),bytes.fromhex('90000000'))
+            self.assertEqual(self.send(HTTP_DISABLE),bytes.fromhex('90000000'))
+            self.assertEqual(self.send(bytes.fromhex('0e0320f524003065')),bytes.fromhex('8e00000000'))
+        self.assertEqual(self.app.engine.memory.values,before);self.assertEqual(self.app.engine.scan_count,0)
+        self.assertEqual(getattr(self.app.engine.project,'runtime_revision',0),0)
+        self.assertEqual(self.send(prep.END)[2],0)
+        self.assertEqual(self.send(HTTP_DISABLE)[2],12)
+
+    def test_http_disable_rejects_enable_wrong_scope_and_malformed_payloads(self):
+        self.complete_tasks()
+        for raw in (HTTP_DISABLE[:-1],HTTP_DISABLE+b'\0',HTTP_DISABLE[:-1]+b'\1',
+                    bytes.fromhex('100320f52400306600'),bytes.fromhex('100320f52401306500'),
+                    bytes.fromhex('10052068240220f52400306500')):
+            with self.subTest(raw=raw.hex()):self.assertNotEqual(self.send(raw)[2],0)
+        self.assertEqual(self.cip(HTTP_DISABLE)[2],8)
+        self.assertEqual(self.send(HTTP_DISABLE)[2],0)
+
+    def test_http_disable_rechecks_owner_mode_source_and_stored_task_effects(self):
+        self.complete_tasks();first=self.client;second=self.second_client()
+        try:
+            self.client=second
+            self.assertEqual(self.signed(4,HTTP_DISABLE)[2],15)
+        finally:self.client=first;second.close()
+        with patch.object(self.app,'controller_state',return_value={'mode':'Run'}):
+            self.assertEqual(self.send(HTTP_DISABLE)[2],12)
+        self.assertEqual(self.send(HTTP_DISABLE)[2],0)
+        catalog=self.app.native_tasks;self.app.native_tasks=None
+        self.assertEqual(self.send(HTTP_DISABLE)[2],12)
+        self.app.native_tasks=catalog
+        self.namespace.tasks._attributes={}
+        self.assertEqual(self.send(HTTP_DISABLE)[2],12)

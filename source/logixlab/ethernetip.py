@@ -595,6 +595,25 @@ class Router:
                     value=(tasks.create(path.instance,bindings) if inner[0]==8 else tasks.configure(path.instance,payload,bindings))
                     self.endpoint.record('native_download_task_'+('created' if inner[0]==8 else 'configured'),**tasks.description())
                     return reply(inner[0],0,value)
+            if inner[0]==0x10 and path.class_id==0xF5:
+                if (path.instance!=0 or path.attribute!=101 or path.symbols or any(getattr(path,key) is not None
+                        for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_download_http_scope')
+                exact(payload,1)
+                if payload!=b'\0':return reject(0x0F,'embedded_http_enable_unsupported')
+                identity=self.app.native_project_identity
+                if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if lease.download_namespace is None:return reject(0x0C,'completed_download_namespace_required')
+                    self.require_download_namespace(lease,identity)
+                    lease.download_namespace.tasks.require_configured(self.download_task_bindings(lease))
+                    if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    # This endpoint has no embedded HTTP service. Retaining its
+                    # existing disabled value does not touch the management UI.
+                    self.endpoint.record('native_download_http_disabled',embedded_http_enabled=False)
+                return reply(inner[0])
             if inner[0]==0x55 and path.class_id in (0x68,0x6A,0x6B,0x6D):
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease

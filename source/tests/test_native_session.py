@@ -154,12 +154,15 @@ class NativeSessionTests(unittest.TestCase):
                 returned.extend(row['attribute'] for row in decoded['attributes'])
                 pending=tuple(decoded['remaining_attributes'])
             self.assertEqual(returned,list(order))
-        raw=batch((query(order),bytes.fromhex('0e03200124013001')),sequence=sequence)
+        # The full inventory can fit, depending on the description lengths.
+        # Repeated variable-length descriptions force a bounded partial reply.
+        batch_order=(103,)*32
+        raw=batch((query(batch_order),bytes.fromhex('0e03200124013001')),sequence=sequence)
         raw=raw[:-20]+hmac.digest(KEY,raw[:-20],'sha1')
         response=self.cip(raw);self.assertLessEqual(len(response),480)
         children=signed_messages.verify_response(response,KEY,request=signed_messages.parse_request(raw)).children
         self.assertEqual(children[1],bytes.fromhex('8e0000000100'))
-        prefix=decode_attribute_list(children[0],order)
+        prefix=decode_attribute_list(children[0],batch_order)
         self.assertTrue(prefix['partial']);self.assertTrue(prefix['attributes'])
         self.assertEqual(self.app.engine.memory.values,before)
         self.assertEqual(self.app.engine.scan_count,0)

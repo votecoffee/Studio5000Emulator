@@ -167,6 +167,11 @@ class DownloadTasks:
         self.validate(bindings)
         return struct.pack('<H',len(values))+b''.join(struct.pack('<HH',n,0) for n in values)
 
+    def require_configured(self,bindings):
+        self.validate(bindings)
+        if not self._headers or bindings is None or set(self._attributes)!=set(bindings.tasks.task_ids):
+            raise ImageError('complete_download_task_configuration_required')
+
     def link_symbol(self,instance,payload,bindings):
         self.validate(bindings);target=bindings.symbol_target(instance)
         header=next((h for h in self._headers if h.instance==target),None)

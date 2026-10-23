@@ -495,6 +495,22 @@ preserve source/model, confirm actual Offline/cleanup and report no SDK fault.
 All 352 affected checks pass; the executable, webpage and 108 deployed modules
 match. Full transfer acceptance remains incomplete.
 
+## Embedded HTTP disable
+
+Version `26.1023.165303` accepts the observed one-byte zero Set Attribute Single
+on TCP/IP class `0xF5`, instance zero, attribute 101. The saved successful
+download contains the same request and an empty success reply. Its capture MAC
+has not been verified. This profile retains the endpoint's existing disabled
+embedded HTTP value; it does not change interface configuration or the separate
+local management UI.
+
+The signed session must own a prepared download with current source/catalog
+bindings, intact retained image/effects and all original ordinary Tasks fully
+configured. Program mode is required. Wrong scopes, malformed values, attempts
+to enable HTTP, unsigned/foreign callers and stale sources remain errors.
+The disabled value remains readable through the existing attributes 101/102;
+no new active project, tag, scheduler or audit change occurs.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
