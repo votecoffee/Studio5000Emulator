@@ -15,6 +15,15 @@ following the base configuration: retain test edits and the two memory spare
 percentages. Each requires the original source value and preserves all earlier
 staged properties. Functional native transfers remain unfinished; online-edit
 work follows upload/download.
+The native SDK accepts the base write and all three follow-up writes, retaining
+all 17 checked fields. Download advances to a later Controller metadata write
+and stops after 204 verified requests. The source/model are preserved, actual
+Offline/cleanup succeeds, and no SDK fault is reported. All 222 affected checks
+pass; the executable, webpage and 109 deployed modules match.
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 verified requests,
+with source/model preservation, actual Offline/cleanup and no reported SDK
+fault. Validation restores the original demo, stopped with zero scans/audit
+updates and unchanged SDK/Linx service processes.
 
 Version `26.1023.170237` stages the observed [Controller download configuration](docs/download-image.md#controller-configuration)
 after Task configuration. All 14 fields have checked private readback. Explicit

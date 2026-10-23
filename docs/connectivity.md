@@ -8,6 +8,13 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.170949` accepts the prepared download owner's source-checked
+[Controller configuration and follow-up settings](download-image.md#controller-configuration).
+The native SDK gets past Task creation/linking, HTTP disable and all 17 staged
+Controller fields, then rejects a later Controller metadata write. These are
+private download properties; the active project and complete transfer commit
+remain unchanged or unfinished.
+
 Version `26.1023.123557` adds [Task Symbol links](download-image.md#task-symbol-links)
 and their bounded clear operation. Both check the original Task alias and the
 current owned Task header while preserving the earlier batch ledger.

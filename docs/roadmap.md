@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.170949` advances download beyond Task creation/linking, HTTP
+disable and the base plus three follow-up Controller settings writes. All 17
+Controller fields have checked private readback; active-project commit remains
+unfinished. The native SDK accepts those stages, then rejects a later
+`ControllerSerialNumber` metadata write after 204 verified requests. Functional
+upload/download remain the priority, followed by further online-edit work.
+See the current [download boundary](download-image.md#additional-controller-settings).
+
 Version `26.1023.123557` adds [Task Symbol links and cleanup](download-image.md#task-symbol-links).
 The post-creation Data Address/logical-path update requires the original Task
 alias, its validated initial Symbol properties and the newly allocated Task

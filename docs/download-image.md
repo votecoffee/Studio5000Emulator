@@ -569,6 +569,19 @@ fields when the base packet repeats. Invalid requests never publish partial
 properties. Source/effect checks and cleanup apply to all 17 retained fields;
 the active configuration, scheduler and audit value remain unchanged.
 
+The native `26.1023.170949` download accepts the base packet and all three
+follow-up writes. Private configuration effect events progress through 14, 15,
+16 and 17 checked fields. The next denied request is metadata service `0x4F`,
+class `0x349`, instance 36, for `ControllerSerialNumber`. Download reports
+`RxCsE_ASA_NO_PERMISSION` after 204 verified requests; complete transfer and
+activation remain unfinished. Source/model preservation, actual Offline/cleanup
+and no reported SDK fault are confirmed. All 222 affected checks pass; the
+executable, browser and 109 deployed modules match.
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 verified requests,
+with unchanged source/model, actual Offline/cleanup and no reported SDK fault.
+The original stopped demo is restored with zero scans, elapsed time, runtime
+revision and audit updates. SDK/Linx service processes remain unchanged.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
