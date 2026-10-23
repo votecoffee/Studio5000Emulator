@@ -811,13 +811,13 @@ preserved source and model, confirmed SDK Offline and reported no SDK fault.
 
 ### Source-matched routine batch
 
-Version `26.1023.185026` adds a separate third-batch model. It requires the
+Version `26.1023.185759` adds a separate third-batch model. It requires the
 retained first image, completed incremental updates and all five source-checked
 setup profiles. The prepared owner must remain in Program mode with the same
 original v35 L85E project and native catalogs. The earlier image and update
 ledger remain intact and are revalidated before each namespace operation.
 
-Only balanced Program reservations and wrapped Routine component writes are
+Only balanced mode-0 Program reservations and wrapped Routine component writes are
 supported. Every original Routine must have exactly one code, source and
 attachment component in that order. Container sizes, markers, target scopes,
 component bounds and aggregate storage are checked. Decoded source names and

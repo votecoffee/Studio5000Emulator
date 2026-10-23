@@ -79,7 +79,7 @@ class RoutineBatch:
                 program=row.scopes[0].instance;before=program in held
                 if program not in image.programs:raise ImageError('download_routine_program_missing')
                 if row.service==0x4B:
-                    if body!=b'\1' or before:raise ImageError('download_routine_acquire_invalid')
+                    if body!=b'\0' or before:raise ImageError('download_routine_acquire_invalid')
                     held.add(program)
                 else:
                     if body or not before:raise ImageError('download_routine_release_invalid')

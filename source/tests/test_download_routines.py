@@ -50,7 +50,9 @@ def routine(instance=1,name='MainRoutine',text='NOP();',marker=100):
 
 
 def batch():
-    return (objects.coordinate(),*routine(),*routine(2,'Reporting',marker=101),objects.coordinate(acquire=False))
+    acquire=objects.coordinate()
+    acquire=replace(acquire,request=acquire.request[:-1]+b'\0')
+    return (acquire,*routine(),*routine(2,'Reporting',marker=101),objects.coordinate(acquire=False))
 
 
 class RoutineTests(unittest.TestCase):
@@ -82,6 +84,7 @@ class RoutineTests(unittest.TestCase):
     def test_missing_duplicate_out_of_order_unreserved_and_foreign_components_are_atomic(self):
         rows=batch()
         cases=(rows[1:],rows[:-1],rows[:4]+rows[-1:],rows[:2]+rows[3:4]+rows[2:3]+rows[4:],
+               (objects.coordinate(),)+rows[1:],
                rows[:4]+rows[1:4]+rows[4:],rows[:1]+routine(99)+rows[4:],rows[:1]+routine(text='XIC(Missing)NOP();')+rows[4:],
                rows[:1]+routine(name='Other')+rows[4:],rows[:1]+routine(text='NOP();NOP();')+rows[4:])
         for value in cases:
