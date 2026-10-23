@@ -906,6 +906,32 @@ Create (`0x08`), which remains unsupported. It ends with
 preserve source/model, confirm SDK Offline and normal cleanup, and report no
 SDK fault.
 
+### Prepared Change Log header
+
+Version `26.1023.193356` supports the observed Change Log instance 1 creation
+profile after the prepared Map flag. The exact creation parameter is attribute
+6 value 1000; its units remain uninterpreted. The returned handle identifies an
+actual private header in the owning namespace. It is not a physical address or
+an allocation of native Change Log records.
+
+The seven-field configuration profile accepts a proposed download UID while
+requiring the original copy, project and timeline anchors and the existing
+source-backed header scalars. The proposal is pinned after configuration.
+Malformed, duplicate, partial or foreign-source fields cannot publish a header.
+The original ACD correlation object remains immutable, and the proposed UID
+does not authenticate or authorize a controller operation.
+
+Create/configure require the prepared owner in Program mode and adequate reply
+space. All earlier batches, source catalogs, routine effects, setup and Map
+state are rechecked. Single, List and All reads return the owned private header;
+ordinary unsigned reads retain the active original correlation. End Preparation
+and disconnection clear the proposal. No history is fabricated or imported.
+
+Controller service `0x61` now diagnoses the next boundary after a fully
+configured header. It revalidates preparation and returns the explicit
+`download_commit_unimplemented` rejection. This does not install the image,
+change active identifiers, execute compiled code or report a successful download.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

@@ -4,6 +4,12 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.193356` adds a separate prepared Change Log header with bounded
+Create, seven-field configuration and owned readback. A backed local handle
+identifies actual retained metadata; source anchors are preserved and the
+download UID is a caller proposal. Original active correlation stays unchanged.
+The final Controller commit remains explicitly unimplemented.
+
 Version `26.1023.191802` adds a private [prepared Map flag](download-image.md#prepared-map-flag)
 after all routine components have been retained. It requires the original
 prepared header, complete setup and unchanged source bindings, and has exact
