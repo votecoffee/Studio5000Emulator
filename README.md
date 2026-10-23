@@ -16,6 +16,10 @@ configuration fields after both temporary batches complete. Returned addresses
 identify simulator objects; active scheduling and logic remain unchanged. All
 347 affected checks pass. Full native upload/download remain unfinished, and
 further online-edit work follows functional transfers.
+The native trial accepts Task Create, then stops at the Task Symbol reference
+update. Download reports `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 199 verified
+requests. Source/model and actual Offline/cleanup are preserved without a
+reported SDK fault; the executable, webpage and 108 deployed modules match.
 
 Version `26.1023.105500` adds [second-batch processing and completion](docs/download-image.md#second-batch-completion).
 All 335 observed records have private effect readback, including two bounded

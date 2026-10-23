@@ -446,6 +446,14 @@ The offline demo check matches all nine fields to its original ACD and L5X, and
 all 347 affected checks pass. This establishes model/protocol behavior; complete
 native download/upload remains a separate acceptance boundary.
 
+The native `26.1023.122010` trial accepts Task Create and its two-DWORD response.
+The next rejected request sets the existing Task Symbol's Data Address and
+logical path to that newly allocated header. A cleanup request then clears its
+logical path. Task configuration is not reached yet. Download retains
+`RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 199 verified requests, with unchanged
+source/model, actual Offline/cleanup and no reported SDK fault. This locates a
+separate reference-link step between Task creation and configuration.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
