@@ -896,6 +896,16 @@ End Preparation and disconnection clear it with the temporary namespace.
 This is prepared-state storage, not I/O activation, native code execution or an
 active-project commit. A complete download remains a separate acceptance step.
 
+The `26.1023.191802` native SDK trial accepts the Local Map identity read and
+the prepared flag write with the expected attribute-list acknowledgment. The
+private effect is retained while active I/O, project state and audit values
+remain unchanged. Download then reaches Change Log class `0xAC`, instance 1,
+Create (`0x08`), which remains unsupported. It ends with
+`RxCsE_ASA_NO_PERMISSION` after 280 verified requests. Upload still reports
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` during Program collection after 348. Both
+preserve source/model, confirm SDK Offline and normal cleanup, and report no
+SDK fault.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

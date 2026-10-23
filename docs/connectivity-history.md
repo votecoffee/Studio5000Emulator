@@ -4,6 +4,480 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.191802` adds a private [prepared Map flag](download-image.md#prepared-map-flag)
+after all routine components have been retained. It requires the original
+prepared header, complete setup and unchanged source bindings, and has exact
+owner-only readback. It does not activate I/O or commit the downloaded project.
+
+The native SDK accepts the Local Map identity and prepared flag write, then
+stops at Change Log creation after 280 verified requests. Upload retains Program
+collection failure after 348. Both preserve source/model, confirm SDK Offline
+and cleanup, and report no SDK fault. All 114 deployed modules and delivery
+versions match; 106 affected checks pass.
+
+Version `26.1023.190840` adds a source-checked [Local Map identity read](download-image.md#local-map-identity)
+for download preparation. Its vendor, device type, product code and firmware
+revision must match both the explicit Local module metadata and the current
+software-device profile. Missing or conflicting source keeps the attribute
+unavailable. The read neither changes I/O nor completes a transfer.
+
+The native SDK accepts this identity response, then reaches the Map flag write.
+That version ends download with `RxCsE_ASA_NO_PERMISSION` after 279 verified
+requests, preserving source/model, confirming SDK Offline and cleanup, and
+reporting no SDK fault. Full native transfers remain unfinished.
+
+Version `26.1023.185759` adds a separate [routine download stage](download-image.md#source-matched-routine-batch)
+after the first image and incremental batch. It checks each downloaded ladder
+source against the loaded project, retains all three components per routine,
+and reports completion only after private readback. Compiled code remains
+opaque; full upload/download and active-project installation remain unfinished.
+
+The emulator verifies all eight routine records and 10 source-matched rungs;
+the native SDK accepts the third batch's Start/result/Delete sequence. Download advances
+to unsupported I/O Map instance 1 attribute 2 and reports
+`RxCsE_ASA_ATTRIBUTE_LIST_ERROR` after 277 verified requests. Upload still reports
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349. Both preserve source/model, confirm
+SDK Offline and normal cleanup, and report no SDK fault. The original demo is
+restored stopped. All 113 deployed modules, webpage assets and executable
+versions match; the latest correction passes 11 focused checks.
+
+Version `26.1023.183656` added bounded [compact transport storage](download-image.md#compact-transport-storage).
+The native SDK accepted its storage acknowledgment and normal on-wire cleanup,
+then stopped at the later-batch processing guard after 275 verified requests.
+Upload retained Program-collection failure after 349. Both preserved source/model,
+confirmed SDK Offline and reported no SDK fault.
+
+Version `26.1023.181855` adds the separate PLC-2 mapping write that follows the full setup
+list. It requires the original empty mapping and preserves the already retained
+mapping descriptor. Complete functional native transfers remain unfinished.
+
+In version `26.1023.181855`, the native SDK accepted all five setup profiles and the separate PLC-2 write,
+then reaches the third transport batch. Its compact single-message container
+is not supported yet. Download reports `RxCsE_ASA_NO_PERMISSION` after 270
+verified requests; upload retains Program-collection failure after 349. Both
+preserve source/model, confirm SDK Offline and disconnect cleanup, and report
+no SDK fault. All 381 focused checks pass; all 112 deployed modules and delivery
+versions match. The original demo is restored stopped with zero scans and
+audit changes.
+
+Version `26.1023.181323` adds [post-registration download settings](download-image.md#post-registration-setup)
+for Ethernet administrative state, combined device properties, PCCC mapping,
+Time Sync and legacy wall-clock settings. All 14 fields have checked private
+readback; host network, clock and active controller settings stay unchanged.
+Complete functional native upload/download remain unfinished.
+
+Version `26.1023.175952` adds a [temporary repository device record](download-image.md#repository-device-record)
+and its handle link for the prepared download owner. Fields must match the
+loaded v35 L85E project and current software-device identity. The record stays
+private and grants no operator authority. Complete native transfers remain
+unfinished.
+
+The native SDK accepts both registration and link, then stops at the following
+setup writes after 269 verified requests: Ethernet administrative state,
+combined Extended Device settings, PCCC mapping, Time Sync and wall-clock
+settings. Upload retains Program-collection failure after 349 requests. Both
+preserve source/model, confirm actual Offline cleanup and report no SDK fault.
+All 346 affected checks pass; all 111 deployed modules and delivery versions
+match. The original demo is restored stopped with zero scans and audit updates.
+
+Version `26.1023.175203` adds the read-only Ethernet Link interface label used by native
+download setup. It returns the selected local OS interface name with the
+installed v35 byte-counted layout; unavailable names remain explicit errors.
+The native download now passes this read and advances to Logix Repository
+registration after 265 verified requests. Upload retains the Program-collection
+failure after 349 requests. Both preserve source/model, confirm actual Offline
+cleanup and report no SDK fault. All 317 affected checks pass; all 110 deployed
+modules and delivery versions match. Complete native transfers remain unfinished.
+
+Version `26.1023.173828` adds a bounded [controller profile marker](download-image.md#controller-profile-marker)
+for the post-configuration `ProjectType` metadata request. It requires a matching
+complete v35 L85E source and the original numeric metadata schema. Stored
+properties take precedence; active metadata and controller identity stay unchanged.
+Complete native upload/download remain unfinished.
+
+Version `26.1023.172357` adds [source-checked Controller metadata writes](download-image.md#controller-metadata-properties)
+after download configuration. The owning prepared client can retain original
+typed metadata values with private readback; active metadata and controller
+identity remain unchanged. Functional native upload/download remain unfinished.
+The native trial accepts the original serial-number metadata, then reaches an
+unstored `ProjectType` property and stops after 205 verified requests. Source
+and model are preserved, actual Offline/cleanup succeeds and no SDK fault is
+reported. Upload retains Program-collection failure after 349 requests. All
+290 affected checks pass; all 110 deployed modules and delivery versions match.
+
+Version `26.1023.170949` adds the three separate [Controller settings writes](download-image.md#additional-controller-settings)
+following the base configuration: retain test edits and the two memory spare
+percentages. Each requires the original source value and preserves all earlier
+staged properties. Functional native transfers remain unfinished; online-edit
+work follows upload/download.
+The native SDK accepts the base write and all three follow-up writes, retaining
+all 17 checked fields. Download advances to a later Controller metadata write
+and stops after 204 verified requests. The source/model are preserved, actual
+Offline/cleanup succeeds, and no SDK fault is reported. All 222 affected checks
+pass; the executable, webpage and 109 deployed modules match.
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 verified requests,
+with source/model preservation, actual Offline/cleanup and no reported SDK
+fault. Validation restores the original demo, stopped with zero scans/audit
+updates and unchanged SDK/Linx service processes.
+
+Version `26.1023.170237` stages the observed [Controller download configuration](download-image.md#controller-configuration)
+after Task configuration. All 14 fields have checked private readback. Explicit
+source settings must match; omitted legacy slice settings use the observed zero
+download profile, and zero signature-reset operands remain separate from signature
+verification. Active configuration and scheduling remain unchanged until the
+unfinished transfer commit is implemented.
+The native SDK accepts all 14 fields and advances to three separate Controller
+settings writes. Download stops there after 203 verified requests; upload still
+fails Program collection after 349. Both preserve source/model and complete
+actual Offline/cleanup without a reported SDK fault. All 221 affected checks
+pass; all 109 deployed modules, executable and browser versions match.
+
+Version `26.1023.165303` handles the observed [embedded HTTP disable request](download-image.md#embedded-http-disable)
+after download Task configuration. It retains the endpoint's existing disabled
+state under the prepared owner's source checks. The local browser UI remains
+available. Functional upload/download remain the priority, followed by online
+edits; complete native transfers are still unfinished.
+The native SDK accepts this request and reaches the 14-field Controller
+configuration write. Download stops there after 200 verified requests; upload
+retains its Program-collection failure after 349. Both preserve source/model,
+confirm actual Offline/cleanup and report no SDK fault. All 195 affected checks
+pass; the executable, webpage and 108 deployed modules match.
+
+Version `26.1023.123557` adds [Task Symbol links](download-image.md#task-symbol-links)
+to the newly allocated download Task. The address and logical path must resolve
+to that exact owned Task and original source alias. A bounded clear operation
+supports cleanup without changing active tags or scheduling. Functional native
+upload/download remain the priority; full transfers are still unfinished.
+The native trial accepts creation, the Task Symbol link and all nine Task
+configuration fields. Download advances to the TCP/IP class's HTTP-disable
+request and reports `RxCsE_ASA_NO_PERMISSION` after 199 verified requests.
+Upload retains `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 348 verified requests.
+Both preserve source/model and confirm actual Offline/cleanup without an SDK
+fault. All 352 affected checks pass, and all 108 deployed modules match.
+
+Version `26.1023.122010` adds [temporary Task creation and configuration](download-image.md#temporary-task-headers).
+The owning download can allocate a Task header and apply its nine source-checked
+configuration fields after both temporary batches complete. Returned addresses
+identify simulator objects; active scheduling and logic remain unchanged. All
+347 affected checks pass. Full native upload/download remain unfinished, and
+further online-edit work follows functional transfers.
+The native trial accepts Task Create, then stops at the Task Symbol reference
+update. Download reports `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 199 verified
+requests. Source/model and actual Offline/cleanup are preserved without a
+reported SDK fault; the executable, webpage and 108 deployed modules match.
+
+Version `26.1023.105500` adds [second-batch processing and completion](download-image.md#second-batch-completion).
+All 335 observed records have private effect readback, including two bounded
+opaque Routine data writes. Completion requires Start, full record/byte coverage,
+current source bindings and an intact result ledger. Completed updates survive
+transport deletion separately from the original image. Active tags and logic
+remain unchanged; complete transfers and Run-mode edits remain unfinished.
+The native SDK download accepts both completed batches and advances to Task
+creation, reporting `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 198 verified requests.
+All 335 second-batch effects are checked in the native trace, then retained
+separately from the first image. Actual Offline/cleanup succeeds, source/model
+are preserved, and no SDK fault is reported. All 244 affected checks and 55 SDK
+probe checks pass; the executable, webpage and 107 deployed modules match.
+Upload retains its Program-collection failure after 349 verified requests.
+The supported Program-mode import/reconnect passes across 192 requests with
+one expected logic/audit update. Both preserve source and complete actual
+Offline/cleanup without a reported SDK fault. Validation restores the original
+demo afterward, stopped with zero scans and audit updates; SDK and Linx service
+processes remain unchanged.
+
+Version `26.1023.102014` adds [typed second-batch header updates](download-image.md#typed-header-updates).
+It stages Symbol, Program, Routine and Local I/O Map properties with source-name,
+scope and backed-reference checks. Original Routine source-key metadata is
+preserved without interpretation. Offline reconstruction now models 333 of 335
+records; two inline router operations still prevent completion. All 235 affected
+checks pass. Full native transfers and Run-mode edits remain unfinished.
+The native SDK download confirms the same 333 modeled records and all 24
+header updates, then reports `RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified
+requests. Source/model preservation and actual Offline/cleanup are confirmed
+without a reported SDK fault. Executable, browser and 107 deployed modules match.
+Normal upload still fails Program collection after 349 verified requests.
+A supported Program-mode online import/reconnect passes across 188 requests
+with one expected logic/audit update. Both preserve the input and confirm actual
+Offline/cleanup without a reported SDK fault. Validation restores the original
+stopped zero-scan/audit demo afterward.
+
+Version `26.1023.095449` adds [isolated second-batch effects](download-image.md#isolated-second-batch-effects).
+It stages source-matched metadata values and private whole-table bytes, checks
+empty diagnostic updates and models Program coordination. Offline reconstruction
+models 309 of the observed 335 records, preserving the completed image and active
+project. The remaining 26 operations still block processing and completion.
+The native download trial confirms the same 309 modeled records, then reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS` after 193 verified requests. It preserves source
+and active model, with actual Offline/cleanup and no reported SDK fault.
+All 194 focused checks pass; executable, browser and 106 deployed modules match.
+Normal upload retains its Program-collection failure after 349 verified requests.
+A supported Program-mode online import/reconnect passes across 188 requests
+with one expected logic/audit update. Both preserve the input and confirm actual
+Offline/cleanup without a reported SDK fault. The original stopped demo is
+restored after validation. Full transfers and Run-mode edits remain unfinished.
+
+Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception).
+The owning client can send a bounded follow-on batch while its completed
+temporary namespace remains available. Structural inspection reports record
+counts and operation classes; processing and completion remain denied until
+the additional records' effects are implemented.
+Native download receives all 335 records in the second batch and reaches its
+processing boundary after 193 verified requests. It still reports
+`RxCsE_DOWNLOAD_2ND_PASS_AXIS`. Normal upload retains its Program-collection
+failure after 349 requests. Both preserve source/model and confirm actual
+Offline/cleanup without a reported SDK fault. All 150 affected checks pass.
+A supported Program-mode online import/reconnect passes across 187 requests
+with one expected logic/audit update, source preservation and confirmed
+Offline/cleanup without a reported SDK fault. The original stopped demo is
+restored after validation.
+
+Version `26.1023.091827` adds source-backed [Local I/O Map metadata](local-io-map.md).
+Link Port comes from the canonical Local-module source; Map Address resolves
+to the current interpreter object with source and lifetime checks. It also
+fixes stale registry bookkeeping after a replaced object's allocation fails.
+Native download accepts these fields and reaches its second transfer batch
+after 182 verified requests. That batch remains unsupported. Normal upload
+still fails Program collection after 348 requests; a supported Program-mode
+import/reconnect succeeds across 188 requests with one expected audit update.
+All three trials preserve the input and confirm actual Offline/cleanup without
+a reported SDK fault. All 106 affected checks pass.
+
+Version `26.1023.085003` adds capture-informed [temporary Program and Routine enumeration](download-image.md#completed-program-and-routine-catalogs).
+The downloading client can enumerate headers backed by its own completed image,
+with exact parent scope, bounded pages and original source/type/object checks.
+These handles do not install native code or replace the active project.
+Native download accepts both Routine headers and the Program header, then
+reaches an I/O Map instance query with fields 9 and 13 unavailable. It verifies
+183 requests and preserves source/model with actual Offline/cleanup and no
+reported SDK fault. Normal upload retains its Program-collection failure after
+349 requests. A supported Program-mode import/reconnect succeeds across 190
+requests with one expected logic/audit update. All 117 affected checks pass;
+the app, executable, browser and appliance report this version. Full native
+transfers and Run-mode Test/Untest/Assemble remain unfinished.
+
+Version `26.1023.083349` adds capture-informed [temporary Data Table enumeration](download-image.md#completed-download-symbol-catalog).
+Descriptor handles and value addresses resolve to the completed image's own
+typed tables and bounded storage; they do not expose physical memory.
+Native SDK download accepts all 16 table rows and both Program-scoped Symbols,
+then advances to Program/Routine handle enumeration. It now reports
+`RxCsE_DOWNLOAD_OF_PROGRAMS_FAILED` after 179 verified requests, with source and
+active model preserved and actual Offline/cleanup confirmed without a reported
+SDK fault. Complete native download remains unfinished.
+Version `26.1023.082234` retains the complete temporary Symbol catalog after
+transport deletion, including internal Symbols and otherwise hidden tags.
+Native download accepts all 18 controller Symbols and advances to the Data
+Table query across 180 verified requests. It still reports tag download failure.
+
+On `26.1023.083349`, two SDK `FinalizeEdits` imports and reconnects pass across
+299 verified requests in stopped Program mode. Tag values remain unchanged
+until a model scan executes both edits. Normal upload still stops at Program
+collection after 349 verified requests. All three cases confirm source
+preservation, actual Offline/cleanup and no reported SDK fault. Complete native
+transfers and Run-mode Test/Untest/Assemble remain unfinished.
+
+The preceding `26.1023.075900` release adds capture-informed [completed-batch download status](download-image.md#completed-batch-execution-status).
+Native download accepts this result and advances from device failure to tag
+failure, across 176 verified requests, with the active model and original files
+preserved. Complete native download support remains unfinished.
+
+Version `26.1023.073618` adds an explicit [new-project upload diagnostic](upload-merge-targets.md#new-project-upload)
+and [SDK FinalizeEdits imports in Program mode](supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
+The new-project path uses a fresh output ACD rather than opening a merge
+baseline. Native deadlines retain an unknown outcome instead of reporting a
+confirmed SDK failure or Offline state. Program-mode finalization is separate
+from Run-mode Test/Untest/Assemble; complete native transfers remain unfinished.
+
+**Status: experimental.** Native validation on `.162` demonstrates Go Online and
+Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.
+Remote Run/Program requests and actual mode reads also pass on `.162`.
+Supported [Program-mode routine imports](supported-routine-edits.md) were
+validated on `.162`. Supported imports update the custom execution model while
+preserving the original source files.
+
+Version `.162` adds source-checked [Programs without an assigned main Routine](unassigned-main.md),
+including populated ordinary RLL catalogs. The scheduler runs no implicit main;
+prescan and other Programs retain their behavior. Null main references and
+stored Routine metadata require matching source and current interpreter objects.
+All 248 affected checks and live signed metadata reads pass. A native Run/Program
+cycle verifies 108 requests and advances scans without executing a main Routine
+or changing tag values. Two upload targets, one containing the stored Routine
+and one without it, both stop after 356 verified requests before source retrieval;
+all 22 Routine fields succeed with no observed endpoint attribute gaps. This
+comparison does not establish the SDK's process-wide cache state. Download verifies
+175 requests and prepares 909 temporary records, then stops at the result query
+without committing an active image. Full Routine transfers remain unfinished.
+The demo Go Online/Offline check verifies 74 requests; supported Program-mode
+import/reconnect verifies 190 with one expected audit update. All six native
+cases confirm Offline/cleanup and original-file preservation without a reported
+SDK fault. The original stopped demo is restored with zero scans and audit
+updates; webpage, executable and appliance versions match `.162`.
+
+Version `.161` adds source-bound [Routine Name reads](routine-names.md)
+for Program- and AOI-scoped Executable objects, plus bounded offline decoding.
+The read preserves source spelling and requires the original child/parent and
+project bindings. Code/edit-state guards remain independent; writes stay denied.
+All 153 affected checks and live signed reads pass. SDK connection verifies 74
+requests; supported Program-mode import/reconnect verifies 188. Routine names
+remain readable after replacement while guarded code-state fields stay
+unavailable. Original files are preserved, Offline/cleanup is confirmed and no
+SDK fault is reported. The original zero-scan/audit demo is restored; webpage,
+executable and appliance versions match. The one-NOP comparison on `.160`
+retains the separate Program upload failure before source retrieval. Full
+Routine upload and download remain unfinished.
+
+Version `.160` adds an explicit [empty simulator component-tracking profile](empty-component-tracking.md)
+for Controller fields 33/34. Its empty active/test groups return zero arrays;
+native membership and signatures are not imported or verified. Explicit tracked
+or ambiguous source retains unavailable fields. All 187 affected checks and
+live signed reads pass. Native SDK `UploadAsync` now completes on an owned
+same-project fixture with an empty Routine catalog, across 971 verified
+requests. Actual Offline/cleanup, source/model preservation and no reported
+SDK fault are confirmed. This does not prove a valid saved uploaded ACD or
+normal projects containing routines. Full download and the complete online-edit
+lifecycle remain unfinished.
+
+The normal demo still fails Program/Routine upload after 348 requests. Download
+verifies 175 requests and prepares 904 temporary records before its result-query
+failure, without committing an active image. Supported Program-mode import and
+reconnect verify 188 requests, retain the tracking policy and record one expected
+audit update. All five native cases confirm Offline/cleanup and original-file
+preservation without a reported SDK fault. The original stopped Program-mode
+demo is restored with zero scan/audit state; webpage/executable/appliance
+versions match.
+
+The milestone regression runs 1,832 tests: 1,830 pass and two Linux-only listener
+checks are skipped on Windows. Two older assertions were updated for the
+established Program source-binding guard and aligned Template read extent.
+
+Version `.159` adds [Controller spare-memory configuration](controller-memory-padding.md)
+reads for fields 11/12. Explicit source percentages are preserved; complete
+source with disabled redundancy selects zero reservation for omitted settings.
+The API reports that policy separately from saved properties and live RAM.
+All 181 affected checks and live signed reads pass. SDK Go Online/Offline
+verifies 74 requests, and the supported Program-mode routine import/reconnect
+verifies 192 with one audit update. The empty-routine upload accepts both new
+fields after 361 requests; its remaining Controller gaps are State Detection
+signatures 33/34. The normal demo retains its Program/Routine upload failure
+after 349 requests. Download verifies 175 requests and prepares 904 temporary
+records, then stops at the result query without committing an active image.
+All five cases confirm Offline/cleanup, original-file preservation and no
+reported SDK fault. The original stopped Program-mode demo is restored with
+zero scan/audit state. Webpage/executable/appliance versions match. Complete
+native transfers and the full Test/Untest/Assemble lifecycle remain unfinished.
+
+Version `.158` adds [initialized Task metadata](task-initial-state.md): zero Start Time before
+any successful scan and zero pending/active AOI stack allocation only for a
+complete source project with no AOI declarations. The API distinguishes an
+initialized timestamp from a measured execution. Unknown or populated AOI
+source retains its stack gaps. All 177 affected checks and live signed reads
+pass. SDK connection verifies 74 requests; bidirectional Run/Program verifies
+107, including real scans and timestamp reset on reload. Normal upload retains
+its Program/Routine failure after 349 requests. The empty-routine fixture now
+passes all 22 Task fields, Security Authority and trend discovery, then stops
+at a later Controller list with fields 11/12/33/34 unavailable after 361
+requests. All four cases confirm actual Offline/cleanup without a reported SDK
+fault. Original files are preserved; the original zero-scan demo is restored.
+Webpage/executable/appliance versions match. Full native transfers and a valid
+saved uploaded ACD remain unfinished.
+
+Version `.157` adds source-bound [empty PLC file-mapping discovery](empty-plc-file-mapping.md)
+for the catalog request reached by the empty-routine upload fixture. Unknown
+or configured mappings remain unavailable, and writes remain denied.
+All 252 focused checks and live signed clock/catalog reads pass. SDK Go Online/
+Offline verifies 74 requests. Normal upload verifies 349 requests and retains
+its Program/Routine failure. The empty-routine fixture now passes PLC file-
+mapping discovery and reaches Task collection after 358 requests, with Task
+fields 13/22/23 unavailable. All three native cases confirm Offline/cleanup,
+source/model preservation and no reported SDK fault. Webpage, executable and
+appliance versions match; the original demo is restored to stopped Program
+mode with zero scan/audit state. Full native transfers remain unfinished.
+
+Version `.156` adds [software Wall Clock policy](wall-clock-policy.md):
+UTC time-zone/DST reads and a CST offset derived from a real monotonic
+application counter. This fills the remaining four clock fields for the
+accepted source UTC profile. The API identifies the settings as emulator
+policy; saved extended DST/time-zone settings are not inferred or imported.
+All 218 focused checks and live signed reads pass. SDK Go Online/Offline
+verifies 75 requests; Run/Program verifies 108, including continued clock
+progress across modes and reload. Normal upload verifies 349 requests, passes
+both clock collections and reaches Program/Routine metadata before reporting
+Program upload failure. An empty-routine fixture gets past Programs and stops
+at PLC file-mapping discovery after 355 requests. No SDK fault is reported;
+the original demo is restored. Full native transfers remain unfinished.
+
+Version `.155` adds size-bounded [inactive Time Sync reads](inactive-clock-dataset.md)
+for complete source projects that explicitly disable PTP. The 32-field clock
+collection includes initialized, unmeasured offsets, empty master/port state
+and the application's software identity. Oversized lists return a whole-record
+prefix for a suffix request. Enabled or unknown PTP source retains
+its unsupported fields. All 204 focused checks pass, and webpage/executable/
+appliance versions match. SDK Go Online/Offline passes across 74 verified
+requests with source/model preservation and no reported fault.
+The supported Program-mode routine import verifies 189 requests and one audit
+update; the original demo is restored afterward to stopped Program mode with
+zero scans and zero audit updates. This does not complete the Test/Untest/
+Assemble lifecycle.
+Native upload verifies 189 requests, returns all 32 Time Sync fields successfully
+and proceeds to the Wall Clock collection, whose CST offset, time zone and DST
+fields remain unavailable. Upload still reports Controller collection failure;
+Offline/cleanup and source/model preservation are confirmed without an SDK
+fault. Complete native upload/download remains unfinished.
+
+Version `.153` aligns native [Controller and Time Sync schema selection](controller-schema-discovery.md#native-controller-and-time-sync-layout-selection)
+with the observed v35 revisions, 15 and 5. The research profile retains revision
+1, and the established 16-byte Controller aggregate is preserved. Schema
+selection leaves unavailable instance fields and complete native transfers unfinished.
+All 151 affected checks pass. The rebuilt app passes live signed schema reads
+and SDK Go Online/Offline across 74 verified requests, with source/model
+preservation, confirmed Offline/cleanup and no reported fault. Webpage,
+executable and appliance versions match.
+The mode case verifies 108 requests, both control directions, scan start/stop,
+prescan behavior and six expected audit updates. The original demo is then
+restored to stopped Program mode with zero scans.
+Upload verifies 189 requests and receives the selected revisions, but still
+fails Controller collection after the partial Time Sync list and successful
+legacy aggregate. Offline/cleanup and source/model preservation are confirmed
+without a reported SDK fault. Full upload/download remains unfinished.
+
+Version `.152` adds a [local software-clock identity](software-clock-identity.md)
+for native inventory reads. Its Local Clock Information and Clock User Description
+share one application-lifetime identity, with unknown accuracy and no asserted
+PTP master, hardware OUI or clock discipline. Full native transfers remain unfinished.
+All 195 affected checks and live identity/inventory reads pass. The rebuilt
+SDK Go Online/Offline case verifies 74 requests with unchanged source/model,
+confirmed Offline/cleanup and no reported fault. Webpage, executable and
+appliance versions match.
+Native upload returns both new fields successfully across 191 verified requests
+and proceeds to Controller Get All before reporting its collection failure.
+Offline/cleanup and original source/model preservation are confirmed, with no
+reported SDK fault. Complete native upload remains unfinished.
+
+Version `.151` adds source-backed [empty Change Log lookups](native-change-log.md)
+for the v35 upload cursors, preserving the requested position and original
+source. A private minimal fixture now completes SDK `UploadAsync`; its temporary
+Controller/clock/Task responses remain unshipped. Normal application upload
+still stops earlier at Controller collection.
+The optional native probe also supports `--save-uploaded-acd` to save a
+successful upload to a new ACD, reopen it Offline and export an L5X for comparison.
+The private fixture's save trial faults the SDK before creating a file, so a
+valid reconstructed upload remains unproved.
+All 222 affected checks pass. The rebuilt application passes live cursor and
+Program selector reads and SDK Go Online/Offline across 74 verified requests,
+with unchanged source/model state, confirmed Offline/cleanup and no reported
+fault in that connection check. Webpage, executable and appliance versions match.
+Normal upload verifies 188 requests, then retains the Controller collection
+failure with Offline/cleanup and no reported SDK fault.
+
+Version `.150` adds CRC-checked [Program selector reads](program-upload-query.md).
+All 60 saved reference replies match the calculated checksum of their returned
+selector. The signed response requires a matching source Program and leaves
+execution and programming authority unchanged. All 153 affected checks pass.
+The rebuilt app passes SDK Go Online/Offline across 74 verified requests, with
+source/model preservation and no reported SDK fault. All three new selector
+replies pass live signed checks; webpage, executable and appliance versions
+match. Upload still fails at the earlier Controller collection stage, with
+Offline and cleanup confirmed. Full upload/download remain unfinished.
+
 Version `.149` adds [source-bound original metadata values](native-metadata-values.md)
 from supported `Comments.Dat` records. Stored ValueType declarations drive the
 string, numeric and reference readers, including ten observed locale profiles.
