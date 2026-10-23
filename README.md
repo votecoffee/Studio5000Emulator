@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.175952`.** Versions use the release timestamp
+**Current app version: `26.1023.181323`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds a [temporary repository device record](docs/download-image.md#repository-device-record)
+This revision adds [post-registration download settings](docs/download-image.md#post-registration-setup)
+for Ethernet administrative state, combined device properties, PCCC mapping,
+Time Sync and legacy wall-clock settings. All 14 fields have checked private
+readback; host network, clock and active controller settings stay unchanged.
+Complete functional native upload/download remain unfinished.
+
+Version `26.1023.175952` adds a [temporary repository device record](docs/download-image.md#repository-device-record)
 and its handle link for the prepared download owner. Fields must match the
 loaded v35 L85E project and current software-device identity. The record stays
 private and grants no operator authority. Complete native transfers remain

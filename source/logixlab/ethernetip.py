@@ -29,6 +29,7 @@ from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
 from .download_tasks import TaskBindings
 from .download_controller import ControllerBindings
+from .download_setup import SetupBindings,PROFILES as SETUP_PROFILES
 from .download_image import ImageError,Source
 from . import metadata_query
 from . import program_query
@@ -625,7 +626,7 @@ class Router:
                     value=namespace.controller.configure(payload,ControllerBindings(self.app.engine,namespace,identity))
                     self.endpoint.record('native_download_controller_configured',**namespace.controller.description())
                 return reply(inner[0],0,value)
-            if (inner[0],path.class_id) in ((0x4B,0x378),(4,0x64)):
+            if (inner[0],path.class_id)==(0x4B,0x378) or (inner[0],path.class_id)==(4,0x64) and payload[:2]==b'\1\0':
                 if (path.instance!=1 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None
                         for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
                     return reject(4,'invalid_download_repository_scope')
@@ -644,6 +645,24 @@ class Router:
                     operation=namespace.repository.register if inner[0]==0x4B else namespace.repository.link
                     value=operation(payload,namespace._source,self.app.engine.project,self.endpoint.identity)
                     self.endpoint.record('native_download_device_repository',**namespace.repository.description())
+                return reply(inner[0],0,value)
+            if inner[0]==4 and path.class_id in SETUP_PROFILES:
+                if (path.instance!=1 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None
+                        for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                    return reject(4,'invalid_download_setup_scope')
+                identity=self.app.native_project_identity
+                if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease
+                    lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    namespace=lease.download_namespace
+                    if namespace is None:return reject(0x0C,'completed_download_namespace_required')
+                    self.require_download_namespace(lease,identity)
+                    if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                    if limit<6+4*len(SETUP_PROFILES[path.class_id]):return reject(0x1B,'download_setup_reply_budget')
+                    if path.class_id==0xF6:self.network_interface()
+                    value=namespace.setup.stage(path.class_id,payload,self.download_setup_bindings(lease))
+                    self.endpoint.record('native_download_setup_configured',class_id=path.class_id,**namespace.setup.description())
                 return reply(inner[0],0,value)
             if inner[0]==0x10 and path.class_id==0xF5:
                 if (path.instance!=0 or path.attribute!=101 or path.symbols or any(getattr(path,key) is not None
@@ -1124,8 +1143,12 @@ class Router:
             task_bindings=self.download_task_bindings(lease),
             controller_bindings=ControllerBindings(self.app.engine,lease.download_namespace,identity),
             device_identity=self.endpoint.identity,
+            setup_bindings=self.download_setup_bindings(lease),
             native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
             native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
+
+    def download_setup_bindings(self,lease):
+        return SetupBindings(self.app.engine.project,lease.download_namespace,self.endpoint.identity,self.endpoint.interface)
 
     def download_header_bindings(self,lease):
         return HeaderBindings(self.app.engine,lease.download_namespace,self.app.native_symbols,self.app.native_routines,

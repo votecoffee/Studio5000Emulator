@@ -702,6 +702,39 @@ all 111 deployed modules and delivery versions match. The original demo is
 restored stopped with zero scans, elapsed time, runtime revision and audit
 updates; SDK/Linx service processes remain unchanged.
 
+### Post-registration setup
+
+Version `26.1023.181323` retains five observed Set Attribute List profiles in
+the prepared download owner's private namespace. Source configuration must be
+complete, unedited and match the v35 L85E controller profile. Repository device
+registration and its handle link must already be complete; writes require
+Program mode.
+
+| Object | Attributes | Accepted values |
+| --- | --- | --- |
+| Ethernet Link `0xF6` | 9 | Current administrative state from the cached selected OS interface; no adapter setter |
+| Extended Device `0x64` | 1, 2, 3, 6, 7, 8 | Source project name/description, empty location and trusted slots, the observed private unset-locale marker, and the existing repository handle |
+| PCCC Mapping `0x67` | 1, 2 | Proven empty source mapping |
+| Time Sync `0x43` | 16, 17, 1 | Source priorities and PTP-enable setting |
+| Wall Clock `0x8B` | 4, 2 | Explicit source legacy UTC adjustments |
+
+Each profile requires its exact field order, lengths and values. A mismatch or
+truncation rejects the whole write without partial publication. Retained values
+have actual private readback, idempotent replay and source/device/effect binding.
+Subsequent namespace operations recheck those bindings. Unknown mappings,
+incomplete clock settings, unavailable interface state, foreign clients and
+other property writes stay unsupported.
+
+These are staged download properties. The empty locale marker does not replace
+the management UI's English locale; the repository reference grants no operator
+authority. No adapter, clock, active PTP configuration or source catalog is
+changed. Ending preparation or disconnecting discards the staged setup. A
+successful download and active-project commit remain separate requirements.
+
+The original demo's five saved native setup requests match all 14 expected
+fields and their retained readback in the offline model. Native acceptance is
+assessed separately.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

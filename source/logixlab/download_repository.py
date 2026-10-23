@@ -64,3 +64,8 @@ class DownloadRepository:
         return dict(registered=self._binding is not None,linked=self._linked,owner_only=True,
             modeled_handle=True,source_bound=self._binding is not None,active_device_changed=False,
             operator_authorization=False,commit=False,payloads_exposed=False)
+
+    def identity_reference(self,source,project,identity):
+        self.validate(source,project,identity)
+        if not self._linked:raise ImageError('download_repository_link_required')
+        return struct.pack('<I',HANDLE)
