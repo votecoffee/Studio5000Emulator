@@ -397,6 +397,18 @@ but its Start/status remain explicitly unsupported and cannot overwrite the
 completed updates. Complete native download, upload and the full online-edit
 lifecycle still require separate acceptance.
 
+The native SDK trial accepts Start and the completed progress response for
+this second batch, then deletes the transport while retaining all 335 update
+records. The trace confirms actual effect readback and the completed result
+count of 190,318 expanded bytes. The next rejected request is empty Task Create
+(`0x70`, instance 1, service `0x08`), which has no temporary Task implementation
+yet. Download reports `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 198 verified
+requests. Source and active model remain unchanged; actual SDK Offline and
+endpoint cleanup succeed without a reported SDK fault. All 244 affected checks
+and 55 SDK-probe checks pass. The executable, browser assets and 107 deployed
+modules match this version. This advances the native boundary without claiming
+a complete download or activation of downloaded logic/values.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

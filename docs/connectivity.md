@@ -12,6 +12,14 @@ Version `26.1023.105500` adds [second-batch processing and completion](download-
 Only fully modeled, source-bound temporary effects can complete. They are
 retained separately from the original image and active runtime. Further batch
 sequences remain explicitly unsupported; complete download is still unfinished.
+The native trial accepts both completed batches and advances to Task creation
+before reporting `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 198 verified requests.
+All 335 second-batch effects are checked, with source/model preservation,
+actual Offline/cleanup and no reported SDK fault.
+Normal upload still fails Program collection after 349 verified requests. The
+supported Program-mode import/reconnect succeeds across 192 requests with one
+expected logic/audit update. Both confirm source preservation, actual
+Offline/cleanup and no reported SDK fault. Run-mode edits remain unverified.
 
 Version `26.1023.102014` adds [typed later-batch header updates](download-image.md#typed-header-updates)
 with source/scope checks and references to real staged objects. The two remaining

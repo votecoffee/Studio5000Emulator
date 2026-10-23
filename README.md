@@ -16,6 +16,18 @@ opaque Routine data writes. Completion requires Start, full record/byte coverage
 current source bindings and an intact result ledger. Completed updates survive
 transport deletion separately from the original image. Active tags and logic
 remain unchanged; complete transfers and Run-mode edits remain unfinished.
+The native SDK download accepts both completed batches and advances to Task
+creation, reporting `RxCsE_DOWNLOAD_OF_TASKS_FAILED` after 198 verified requests.
+All 335 second-batch effects are checked in the native trace, then retained
+separately from the first image. Actual Offline/cleanup succeeds, source/model
+are preserved, and no SDK fault is reported. All 244 affected checks and 55 SDK
+probe checks pass; the executable, webpage and 107 deployed modules match.
+Upload retains its Program-collection failure after 349 verified requests.
+The supported Program-mode import/reconnect passes across 192 requests with
+one expected logic/audit update. Both preserve source and complete actual
+Offline/cleanup without a reported SDK fault. Validation restores the original
+demo afterward, stopped with zero scans and audit updates; SDK and Linx service
+processes remain unchanged.
 
 Version `26.1023.102014` adds [typed second-batch header updates](docs/download-image.md#typed-header-updates).
 It stages Symbol, Program, Routine and Local I/O Map properties with source-name,

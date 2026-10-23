@@ -14,6 +14,17 @@ expanded byte coverage and stored effects. Completed updates survive transport
 deletion without changing the first image's allocation/effect ledger or active
 logic and values. A further batch sequence remains an explicit unsupported
 boundary. Full native transfers and Run-mode edits remain open.
+Native download confirms completion/readback of all 335 second-batch records
+and retains the update model after transport deletion. It advances to Task
+creation (`0x70` service `0x08`) and reports `RxCsE_DOWNLOAD_OF_TASKS_FAILED`
+after 198 verified requests. Source and active model are preserved with actual
+Offline/cleanup and no reported SDK fault. All 244 affected checks and 55 SDK
+probe checks pass, and the executable, web assets and 107 deployed modules match.
+Upload retains its Program-collection failure after 349 verified requests.
+The supported Program-mode import/reconnect passes across 192 requests with one
+expected logic/audit update. Both preserve source and complete actual
+Offline/cleanup without a reported SDK fault. The original stopped demo is
+restored with zero scan/audit counters and unchanged SDK/Linx service processes.
 
 Version `26.1023.102014` adds [typed second-batch headers](download-image.md#typed-header-updates).
 Twenty-four updates cover 184 attributes across Symbol, Program, Routine and
