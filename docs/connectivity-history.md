@@ -10,6 +10,13 @@ scalar or original TIMER/COUNTER layouts and saved value bytes, accounts for the
 Local-port XML and opaque container table, and validates a separate execution
 model. Active installation remains unfinished.
 
+The native SDK download validates 14 tag values (45 bytes) and both auxiliary
+tables, then builds the separate execution model and stops at the explicit
+`download_commit_unimplemented` rejection. Download retains 281 verified
+requests; upload retains Program collection failure after 349. Both preserve
+source/model, confirm SDK Offline and cleanup, and report no SDK fault. All 116
+deployed modules and delivery versions match; 140 affected checks pass.
+
 Version `26.1023.193356` adds a separate prepared Change Log header with bounded
 Create, seven-field configuration and owned readback. A backed local handle
 identifies actual retained metadata; source anchors are preserved and the

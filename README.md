@@ -16,11 +16,13 @@ been verified. It checks complete named-tag coverage and typed saved values,
 accounts for auxiliary tables, and validates a separate execution model.
 Final project installation remains unsupported.
 
-The native SDK accepts all three Change Log operations and reaches the final
-Controller installation service (`0x61`), which is explicitly rejected. Download
-ends after 281 verified requests; upload still fails during Program collection
-after 348. Both trials preserve source/model, confirm SDK Offline and cleanup,
-and report no SDK fault. See the compatibility checkpoints for validation scope.
+The native SDK download validates all 14 demo tag values, accounts for both
+auxiliary tables and builds a separate execution model. It reaches the final
+Controller installation service (`0x61`), which is explicitly rejected, ending
+after 281 verified requests. Upload still fails during Program collection after
+349. Both trials preserve source/model, confirm SDK Offline and cleanup, and
+report no SDK fault. All 116 deployed modules and delivery versions match;
+140 focused checks pass.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
@@ -247,7 +249,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
-| Download preparation | Three source-checked batches, task/controller/setup metadata, Local Map identity, private Map flag and proposed Change Log header; active-project installation remains unsupported |
+| Download preparation | Three source-checked batches, task/controller/setup metadata, Local Map identity, private Map flag, proposed Change Log header and source-matched scalar/TIMER/COUNTER initial values; active-project installation remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |

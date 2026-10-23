@@ -966,6 +966,13 @@ Controller service `0x61` continues to return `download_commit_unimplemented`
 after successful preparation. This revision does not switch execution models,
 activate native compiled code, change active correlation or complete a download.
 
+The live SDK download validates all 14 demo tags (45 value bytes), accounts for
+the two auxiliary tables and successfully constructs the separate execution
+model. It still ends at the explicit installation rejection after 281 verified
+requests. Source and active model stay unchanged, SDK Offline and cleanup are
+confirmed, and no SDK fault is reported. All 116 deployed modules and delivery
+versions match; 140 affected checks pass.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
