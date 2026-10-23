@@ -50,6 +50,28 @@ class ResilientTransport:
         self.inspection={'status':'idle','expanded_bytes':0,'record_count':0,'scoped_records':0,
                          'operations':[],'execution_supported':False,'records_executed':0,
                          'payloads_exposed':False,'signature_verified':False}
+        self.incremental_inspection={**self.inspection,'operations':[]}
+
+    def inspect_incremental_payload(self):
+        """Inspect a later batch without treating it as a complete source image.
+
+        The owning prepared lease checks its retained namespace before calling
+        this method. Decoding never applies records or supplies execution status.
+        Keep this cache separate from the first batch's source-verifying path.
+        """
+        self.expire()
+        if not self.complete:raise TransportError(0x0C,'transport_complete_payload_required')
+        if self.incremental_inspection['status']=='invalid':
+            raise TransportError(3,self.incremental_inspection['reason'])
+        if self.incremental_inspection['status']=='decoded':return self.incremental_inspection
+        expected=struct.unpack_from('<I',self.setup,12)[0]
+        try:
+            batch=device_payload.decode(bytes(self._data),expected)
+            self.incremental_inspection=device_payload.summary(batch,expected)
+        except device_payload.PayloadError as error:
+            self.incremental_inspection={**self.incremental_inspection,'status':'invalid','reason':error.reason}
+            raise TransportError(3,error.reason) from error
+        return self.incremental_inspection
 
     def inspect_payload(self, native_types=None, *, native_symbols=None,native_routines=None,native_auxiliary_symbols=None,native_tables=None):
         self.expire()
@@ -241,6 +263,8 @@ class ResilientTransport:
                 'complete':self.complete,'max_fragments':MAX_FRAGMENTS,'assembly_timeout_seconds':ASSEMBLY_SECONDS,
                 'payload_transfer':False,'commit':False,
                 'inspection':{**self.inspection,'operations':[dict(row) for row in self.inspection['operations']]},
+                'incremental_inspection':{**self.incremental_inspection,
+                    'operations':[dict(row) for row in self.incremental_inspection['operations']]},
                 'source_type_verification':{**self.source_type_verification,
                     'errors':[dict(e) for e in self.source_type_verification['errors']]},
                 'source_object_verification':{**self.source_object_verification,

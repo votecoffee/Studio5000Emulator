@@ -2,8 +2,15 @@
 
 The endpoint is an experimental explicit-message target backed by the loaded
 project's modeled memory. The native v35 SDK can connect to the tested demo in
-anonymous compatibility mode with bounded Run/Program control. Studio GUI monitoring, upload/download, online edits
-and native debugger services remain unimplemented or unverified.
+anonymous compatibility mode with bounded Run/Program control. Supported
+Program-mode routine imports and reconnects are demonstrated within the
+[supported edit profile](supported-routine-edits.md). Complete upload/download,
+Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
+services remain unfinished or unverified.
+
+Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception)
+while preserving the completed temporary namespace. Later records can be
+structurally inspected; their processing and completion remain denied.
 
 Version `.75` adds [transactional Run-entry initialization](run-entry.md),
 including first-scan rearming and idempotent Run requests. The rebuilt runtime
@@ -306,7 +313,7 @@ These are separate native acceptance stages:
 | SDK Go Online / Go Offline | Demo connects and reports Online/Program | Broader project coverage and Studio GUI verification |
 | Native tag/rung monitoring | Tag reads fail `RxDA_E_NO_ONLINE_ADDRESS` | Compiled address discovery and debugger services |
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
-| Native download | `.73` models all records in the tested batch and validates references/scoped coordination; execution and library-data writes remain denied | Compiled definitions, device-operation contract and further transport requests/stages, atomic model replacement |
+| Native download | Models the first tested batch, retains source-checked catalogs and receives a bounded later batch for inspection | Later-batch effects, compiled definitions, initial values and atomic active-model replacement |
 | Native online edits | Explicit supported Program-mode imports replace model logic; consecutive insertions/replacements and reconnects execute in the emulator | Studio GUI acceptance, broader operands, Test/Untest/Assemble, rollback and full native edit semantics |
 | Edited project persistence | `.92` SDK imports an edited L5X, saves/reopens a new ACD and reconnects it against the new source pair | General project coverage, Studio GUI acceptance and firmware transfer round trips |
 

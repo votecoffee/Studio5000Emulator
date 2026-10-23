@@ -211,6 +211,30 @@ update. The original stopped zero-scan/audit demo is restored afterward. All
 117 affected checks pass, and all 105 deployed modules and delivery versions
 match. These trials do not establish complete native transfers.
 
+## Additional batch reception
+
+Version `26.1023.093633` accepts another Resilient Transport setup after the
+owning client has completed and deleted its first transport. Its retained
+namespace must still validate against the current source, type catalog,
+object catalogs and original operation effects. The same checks precede each
+follow-on fragment and inspection. Normal lease preparation, authenticated
+message counters, contiguous offsets, finite buffer/fragment limits and
+assembly deadlines still apply.
+
+The new compressed batch has its own structural inspection cache. Inspection
+decodes bounded records and reports aggregate service/class counts without
+exposing their contents or bypassing the first batch's source-verifying
+model builders. Both Start and execution-status queries explicitly reject
+`incremental_download_processing_unimplemented` after successful structural
+inspection. Invalid or incomplete input remains an error. Neither query starts
+an image, marks results complete, executes records or changes the active model.
+
+Transport deletion, invalid fragments and assembly expiry clear the new buffer
+while retaining the previously completed namespace and its stable handles.
+End preparation, lease release/expiry, disconnect, bad authentication and
+project reset retain the existing whole-lease cleanup rules. Applying later
+records and reporting their actual effects remain required implementation work.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

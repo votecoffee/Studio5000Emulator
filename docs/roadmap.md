@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.093633` adds [additional download-batch reception](download-image.md#additional-batch-reception).
+An owning prepared client can open and fill another bounded buffer without
+replacing its completed namespace. Source/catalog checks cover setup,
+fragments and inspection; malformed buffers, expiry and transport deletion
+preserve the earlier image. Additional records are structurally inspected;
+processing, successful completion and active-project commit remain unfinished.
+
 Version `26.1023.091827` adds source-backed [Local I/O Map fields](local-io-map.md)
 9 (Link Port), 10 (Link Address) and 13 (Map Address). The port/slot come from
 canonical source and the map reference resolves a current interpreter object.

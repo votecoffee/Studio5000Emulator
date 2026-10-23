@@ -124,7 +124,7 @@ class NamespaceTests(unittest.TestCase):
         self.assertEqual(namespace.routine_page(4,0,8),(False,struct.pack('<II',1,ROUTINE_BASE+64)))
 
 
-class NamespaceSignedTests(unittest.TestCase):
+class NamespaceFixture:
     setUp=payloads.InspectionSignedTests.setUp
     tearDown=payloads.InspectionSignedTests.tearDown
     cip=payloads.InspectionSignedTests.cip
@@ -146,6 +146,8 @@ class NamespaceSignedTests(unittest.TestCase):
         self.assertEqual(self.send(STATUS)[2],0);self.assertEqual(self.send(transport.DELETE)[2],0)
         self.assertIsNotNone(self.endpoint.programming_lease.download_namespace)
 
+
+class NamespaceSignedTests(NamespaceFixture,unittest.TestCase):
     def test_completed_namespace_survives_delete_only_for_owner_and_does_not_change_model(self):
         self.retain();before=copy.deepcopy(self.app.state())
         self.assertEqual(self.send(ENUM),bytes.fromhex('d5000000')+struct.pack('<II',1,SYMBOL_BASE))
@@ -155,7 +157,7 @@ class NamespaceSignedTests(unittest.TestCase):
             result=self.signed(4,ENUM)
             self.assertNotEqual(result[4:],struct.pack('<II',1,SYMBOL_BASE))
         finally:self.client=first;second.close()
-        self.assertEqual(self.send(transport.SETUP)[2],15)
+        self.assertEqual(self.send(transport.SETUP)[2],0)
         self.assertEqual(self.send(ENUM[:-2]+b'\x0c\0')[2],0x14)
         for field in ('tags','scan','ms','mode','changes'):self.assertEqual(self.app.state()[field],before[field])
 

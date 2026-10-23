@@ -414,6 +414,13 @@ class Router:
                 with self.endpoint.lock:
                     lease=self.endpoint.programming_lease
                     lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                    if lease.download_namespace is not None and inner[0] in (0x4B,6,0x4D):
+                        self.require_download_namespace(lease,identity)
+                        if inner[0] in (6,0x4D):
+                            exact(payload,0)
+                            inspection=lease.transport.inspect_incremental_payload()
+                            self.endpoint.record('native_incremental_transport_inspection',**inspection)
+                            return reject(0x0F,'incremental_download_processing_unimplemented')
                     if inner[0]==0x4D:
                         exact(payload,0)
                         native_types=getattr(self.app,'native_types',None)
@@ -455,12 +462,11 @@ class Router:
                         self.endpoint.record('native_download_image_preparation',**image)
                         return reply(inner[0])
                     if inner[0]==0x4B:
-                        if lease.download_namespace is not None:return reject(0x0F,'multiple_download_batches_unimplemented')
                         lease.transport.open(payload)
                     else:
                         exact(payload,0)
                         try:
-                            if (lease.transport.execution_status_reported
+                            if (lease.download_namespace is None and lease.transport.execution_status_reported
                                     and lease.transport.source_object_verification['status']=='matched'):
                                 lease.download_namespace=DownloadNamespace(lease.transport,self.app.native_types,
                                     native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
@@ -985,6 +991,11 @@ class Router:
                 project.routines[(program['name']+'/'+row['name']).casefold()].kind!='RLL' for row in routines)):
             return {}
         return engine.runtime_references.program_attributes(project,program['name'])
+
+    def require_download_namespace(self,lease,identity):
+        lease.download_namespace.validate(Source(identity.source_acd_sha256,self.app.engine.project.sha256),self.app.native_types,
+            native_symbols=self.app.native_symbols,native_routines=self.app.native_routines,
+            native_auxiliary_symbols=self.app.native_auxiliary_symbols,native_tables=self.app.native_tables)
 
     def source_bound_program(self,instance):
         identity=self.app.native_project_identity;symbols=self.app.native_symbols
@@ -1520,6 +1531,7 @@ class Router:
                                 # it never becomes an attachable/active edit.
                             else:
                                 lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                                if lease.download_namespace is not None:self.require_download_namespace(lease,identity)
                                 lease.transport.accept(envelope)
                                 stage=lease.transport.description()
                                 self.endpoint.record('native_transport_fragment',container_format=envelope.container_format,
@@ -1527,6 +1539,7 @@ class Router:
                                     fragments=stage['fragments'],complete=stage['complete'])
                         except (programming_lease.LeaseError,resilient_transport.TransportError,edit_transfer.EditTransferError) as error:
                             raise CIPError(error.status,error.reason) from error
+                        except ImageError as error:raise CIPError(0x0C,error.reason) from error
                     encoded=signed_messages.encode_fragment_ack(envelope,native.key)
                 elif isinstance(envelope,signed_messages.BatchEnvelope):
                     count=len(envelope.children);available=limit-30-2*count

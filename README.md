@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.091827`.** Versions use the release timestamp
+**Current app version: `26.1023.093633`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds source-backed [Local I/O Map metadata](docs/local-io-map.md).
+This revision adds [additional download-batch reception](docs/download-image.md#additional-batch-reception).
+The owning client can send a bounded follow-on batch while its completed
+temporary namespace remains available. Structural inspection reports record
+counts and operation classes; processing and completion remain denied until
+the additional records' effects are implemented.
+
+Version `26.1023.091827` adds source-backed [Local I/O Map metadata](docs/local-io-map.md).
 Link Port comes from the canonical Local-module source; Map Address resolves
 to the current interpreter object with source and lifetime checks. It also
 fixes stale registry bookkeeping after a replaced object's allocation fails.
