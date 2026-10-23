@@ -558,6 +558,23 @@ class Router:
                 # Only the captured selector-token profile is implemented.
                 # The CRC protects these four payload bytes, not the Program.
                 return reply(inner[0],0,program_query.body(selector))
+            if inner[0]==4 and path.class_id==0x6B:
+                with self.endpoint.lock:
+                    lease=self.endpoint.programming_lease;namespace=lease.download_namespace
+                    if namespace is not None and namespace.tasks.description()['created']:
+                        lease.require_prepared(native,self.app.generation,self.app.engine.project.sha256)
+                        if (type(path.instance) is not int or not 1<=path.instance<=0xFFFF or path.attribute is not None or path.symbols
+                                or any(getattr(path,key) is not None for key in
+                                       ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+                            return reject(4,'invalid_download_task_symbol_scope')
+                        identity=self.app.native_project_identity
+                        if identity is None:return reject(0x0C,'source_correlation_unavailable')
+                        self.require_download_namespace(lease,identity)
+                        if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
+                        if limit<14:return reject(0x1B,'download_task_symbol_reply_budget')
+                        value=namespace.tasks.link_symbol(path.instance,payload,self.download_task_bindings(lease))
+                        self.endpoint.record('native_download_task_symbol_updated',**namespace.tasks.description())
+                        return reply(inner[0],0,value)
             if inner[0] in (8,4) and path.class_id==0x70:
                 if (type(path.instance) is not int or not 1<=path.instance<=0xFFFF or path.attribute is not None or path.symbols
                         or any(getattr(path,key) is not None for key in
@@ -1045,7 +1062,7 @@ class Router:
 
     def download_task_bindings(self,lease):
         return TaskBindings(self.app.engine,lease.download_namespace,getattr(self.app,'native_tasks',None),
-            self.app.native_project_identity,self.app.native_symbols)
+            self.app.native_project_identity,self.app.native_symbols,self.app.native_auxiliary_symbols)
 
     def source_bound_program(self,instance):
         identity=self.app.native_project_identity;symbols=self.app.native_symbols

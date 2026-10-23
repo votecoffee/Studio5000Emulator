@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.123557` adds [Task Symbol links and cleanup](download-image.md#task-symbol-links).
+The post-creation Data Address/logical-path update requires the original Task
+alias, its validated initial Symbol properties and the newly allocated Task
+handle. Clearing the logical path retains the explicitly unchanged scalar
+address until lease cleanup. Previous batch effects and active scheduling stay
+unchanged. Functional upload/download remain ahead of further online-edit work.
+
 Version `26.1023.122010` adds [temporary Task creation/configuration](download-image.md#temporary-task-headers).
 After completing both temporary download batches, the owner can allocate an
 original Standard Task header and apply its nine exact source configuration

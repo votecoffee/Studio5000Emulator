@@ -13,6 +13,9 @@ from logixlab.native_tasks import NativeTasks
 from logixlab.native_task_configuration import StoredTaskConfiguration
 from logixlab.native_symbols import NativeSymbols
 from logixlab.native_routines import NativeRoutines
+from logixlab.incremental_download import IncrementalDownload
+from logixlab.ethernetip import Endpoint
+from test_ethernetip import Client
 from test_download_namespace import NamespaceFixture,STATUS,ENUM
 import test_download_headers as headers
 import test_incremental_completion as updates
@@ -23,6 +26,8 @@ import test_programming_preparation as prep
 import test_programming_lease as leases
 
 CREATE=bytes.fromhex('080220702401')
+LINK=struct.pack('<HHIH',2,3,TASK_BASE,13)+bytes.fromhex('0220702401')
+CLEAR=bytes.fromhex('01000d0000')
 
 
 def configuration(values=None):
@@ -93,6 +98,42 @@ class TaskModelTests(unittest.TestCase):
                 else:self.stage._attributes={}
                 with self.assertRaises(ImageError):self.stage.validate(self.bindings)
 
+    def link_ready(self):
+        self.bindings.auxiliary=self.app.native_auxiliary_symbols
+        case=headers.HeaderTests();case.app=self.app
+        hb=headers.HeaderBindings(self.app.engine,self.namespace,self.app.native_symbols,self.app.native_routines,
+            self.app.native_auxiliary_symbols,self.app.native_tasks)
+        case.bindings=hb
+        self.namespace._incremental=IncrementalDownload.prepare(case.batch(),self.namespace._image,self.namespace._source,header_bindings=hb)
+        self.stage.create(1,self.bindings)
+
+    def test_task_symbol_link_and_clear_use_owned_header_and_preserve_initial_batch_ledger(self):
+        self.link_ready();original=self.namespace._incremental._headers
+        self.assertEqual(self.stage.link_symbol(4,LINK,self.bindings),bytes.fromhex('0200030000000d000000'))
+        self.assertEqual((self.stage._symbols[4].address,self.stage._symbols[4].logical_path),(TASK_BASE,bytes.fromhex('0220702401')))
+        self.assertEqual(self.stage.description()['symbol_links'],1)
+        self.assertEqual(self.stage.link_symbol(4,CLEAR,self.bindings),bytes.fromhex('01000d000000'))
+        self.assertEqual((self.stage._symbols[4].address,self.stage._symbols[4].logical_path),(TASK_BASE,b'\0'))
+        self.assertEqual(self.stage.description()['symbol_links'],0);self.assertIs(self.namespace._incremental._headers,original)
+        self.assertEqual(dict(original[0x6B,0,4])[3],bytes(4))
+
+    def test_foreign_address_wrong_task_unrelated_symbol_and_bad_frames_have_no_partial_effect(self):
+        self.link_ready()
+        bad=[LINK[:-1],LINK+b'X',LINK[:4]+struct.pack('<I',TASK_BASE+32)+LINK[8:],LINK[:-1]+b'\2',
+            LINK[:2]+b'\x0c\0'+LINK[4:],bytes.fromhex('0100030000000075'),CLEAR+b'X']
+        for raw in bad:
+            with self.subTest(raw=raw.hex()),self.assertRaises(ImageError):self.stage.link_symbol(4,raw,self.bindings)
+            self.assertFalse(self.stage._symbols)
+        for instance in (True,1,3,99):
+            with self.subTest(instance=instance),self.assertRaises(ImageError):self.stage.link_symbol(instance,LINK,self.bindings)
+
+    def test_equivalent_logical_widths_are_retained_and_link_effect_corruption_revokes(self):
+        self.link_ready();raw=LINK[:-5]+bytes.fromhex('042100700025000100')
+        self.stage.link_symbol(4,raw,self.bindings)
+        self.assertEqual(self.stage._symbols[4].logical_path,bytes.fromhex('042100700025000100'))
+        self.stage._symbols={4:replace(self.stage._symbols[4],address=TASK_BASE+1)}
+        with self.assertRaises(ImageError):self.stage.validate(self.bindings)
+
 
 class TaskSignedTests(NamespaceFixture,unittest.TestCase):
     def ready_tasks(self,complete=True):
@@ -125,6 +166,7 @@ class TaskSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(prep.END)[2],0)
         self.assertIsNone(self.endpoint.programming_lease.download_namespace)
 
+
     def test_requires_completed_updates_exact_scope_empty_create_and_current_source(self):
         namespace=self.ready_tasks(complete=False)
         self.assertEqual(self.send(CREATE)[2],12);self.assertEqual(namespace.tasks.description()['created'],0)
@@ -149,3 +191,36 @@ class TaskSignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.send(ENUM)[2],12)
         self.assertEqual(self.send(leases.RELEASE)[2],0)
         self.assertIsNone(self.endpoint.programming_lease.download_namespace)
+
+
+class TaskLinkSignedTests(NamespaceFixture,unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.app=headers.Application(self.tmp.name)
+        self.namespace,self.hb=headers.fixture(self.app);task_catalog(self.app)
+        self.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True).start();self.app.endpoint=self.endpoint
+        self.client=Client(self.endpoint.port);self.client.register()
+        self.ready();self.endpoint.programming_lease.download_namespace=self.namespace
+        case=headers.HeaderTests();case.app=self.app;case.bindings=self.hb
+        updates.CompletionSignedTests.next_batch(self,case.batch())
+        self.assertEqual(self.send(payloads.INSPECT)[2],0);self.assertEqual(self.send(STATUS)[2],0)
+        self.assertEqual(self.send(transport.DELETE)[2],0)
+
+    def test_link_configuration_clear_and_end_preserve_active_tasks_and_original_effects(self):
+        before=copy.deepcopy(self.app.engine.project.tasks)
+        self.assertEqual(self.send(CREATE)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK),bytes.fromhex('840000000200030000000d000000'))
+        self.assertEqual(self.send(bytes.fromhex('040220702401')+configuration())[2],0)
+        self.assertEqual(self.send(ENUM)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+CLEAR)[2],0)
+        self.assertEqual(self.namespace.tasks.description()['symbol_links'],0)
+        self.assertEqual(self.app.engine.project.tasks,before)
+        self.assertEqual(self.send(prep.END)[2],0);self.assertIsNone(self.endpoint.programming_lease.download_namespace)
+
+    def test_link_requires_task_creation_owned_scope_and_matching_source_symbol(self):
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],15)
+        self.assertEqual(self.send(CREATE)[2],0)
+        self.assertEqual(self.send(bytes.fromhex('0402206b2403')+LINK)[2],12)
+        self.assertEqual(self.send(bytes.fromhex('040420682402206b2404')+LINK)[2],4)
+        self.app.native_auxiliary_symbols=None
+        self.assertEqual(self.send(bytes.fromhex('0402206b2404')+LINK)[2],12)
+

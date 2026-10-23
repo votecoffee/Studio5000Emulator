@@ -454,6 +454,38 @@ logical path. Task configuration is not reached yet. Download retains
 source/model, actual Offline/cleanup and no reported SDK fault. This locates a
 separate reference-link step between Task creation and configuration.
 
+## Task Symbol links
+
+Version `26.1023.123557` implements the observed Set Attribute List update for
+the original root Task Symbol after Task Create. The original auxiliary Symbol
+catalog must supply the explicit `Task:` data name, and the completed second
+batch must retain that same name, Task type word and initial null Data Address
+and path. An unrelated Symbol, missing source alias or foreign source pair
+cannot gain reference-write authority.
+
+The two-field update contains Data Address (3) and logical path (13). The address
+must identify the exact created Task header; the logical path must identify
+that original Task instance in class `0x70`. Equivalent logical-segment widths
+are accepted and their bytes retained. Field order may vary. Unknown, repeated,
+missing, truncated or trailing fields are rejected before publication.
+
+The separate one-field clear profile sets path 13 to its explicit empty value.
+It changes only that property; the existing scalar address remains retained
+until the owning namespace is discarded. Clearing an already empty, validated
+source reference is idempotent. No arbitrary scalar/address write or generic
+Symbol update is enabled.
+
+The link/clear layer has its own effect digest and source checks. It leaves
+the first image and the second batch's original header/result ledger intact,
+while later reads and writes recheck the current Task/alias binding. These are
+private reference properties, with no active tag or scheduler mutation. The
+same lease, source, generation, Program-mode and owner checks still apply.
+
+An offline reconstruction verifies creation, linking, all nine configuration
+fields, detachment and preservation of all 335 earlier effects using the
+original demo catalogs. Native Task configuration and complete transfers still
+require live acceptance.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

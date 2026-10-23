@@ -8,6 +8,10 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1023.123557` adds [Task Symbol links](download-image.md#task-symbol-links)
+and their bounded clear operation. Both check the original Task alias and the
+current owned Task header while preserving the earlier batch ledger.
+
 Version `26.1023.122010` adds [temporary Task headers](download-image.md#temporary-task-headers).
 The prepared download owner can create an original Standard Task and retain its
 source-checked static settings. This uses simulator-owned handles and leaves the

@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.122010`.** Versions use the release timestamp
+**Current app version: `26.1023.123557`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This revision adds [temporary Task creation and configuration](docs/download-image.md#temporary-task-headers).
+This revision adds [Task Symbol links](docs/download-image.md#task-symbol-links)
+to the newly allocated download Task. The address and logical path must resolve
+to that exact owned Task and original source alias. A bounded clear operation
+supports cleanup without changing active tags or scheduling. Functional native
+upload/download remain the priority; full transfers are still unfinished.
+
+Version `26.1023.122010` adds [temporary Task creation and configuration](docs/download-image.md#temporary-task-headers).
 The owning download can allocate a Task header and apply its nine source-checked
 configuration fields after both temporary batches complete. Returned addresses
 identify simulator objects; active scheduling and logic remain unchanged. All
