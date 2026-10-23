@@ -48,3 +48,34 @@ MSG service is implemented. Attribute writes remain denied.
 All 187 affected checks pass, including mixed/duplicate signed reads, policy and
 binding guards, fault/reset behavior, write denial and Routine replacement
 preservation. Native upload acceptance is assessed separately from these checks.
+
+The milestone regression runs 1,832 tests: 1,830 pass, with two Linux-only
+listener checks skipped on Windows. Two older assertions were updated to check
+the established Program source-binding guard and aligned Template read extent.
+
+Live signed reads on the rebuilt `.160` appliance return all 21 fields of the
+tested Controller list successfully, including both empty tracking values.
+Single, duplicate and mixed reads and write denials preserve source, execution
+and audit state. Source, executable, served browser assets and appliance module
+hashes match; all three application surfaces report `.160`.
+
+Native SDK Go Online/Offline succeeds across 74 verified requests. An owned
+same-project fixture with an empty Routine catalog now completes `UploadAsync`
+across 971 verified requests on the unmodified public runtime. Its source/model
+are preserved, actual Offline/cleanup is confirmed, and no SDK fault is reported.
+The saved trace does not retain the full successful transfer checkpoint, so
+complete transfer framing analysis is unavailable for that case. This proves
+the tested API operation only: it does not establish reconstruction into a new
+project, a valid saved uploaded ACD, or normal Routine upload. No upload save
+was attempted.
+
+The normal demo still reports Program/Routine upload failure after 348 verified
+requests, with no endpoint attribute gaps in that transfer interval. Download
+verifies 175 requests and prepares 904 temporary records, retaining 242 Templates
+and allocating 16 tables, then fails at the result query without an active image
+commit. Supported Program-mode Routine import and reconnect succeed across 188
+requests, preserve the empty tracking policy and record one expected revision/
+audit update. These cases also confirm actual Offline/cleanup, original-file
+preservation and no reported SDK fault. The original demo is restored afterward
+to stopped Program mode with zero scan, revision and audit state. The full
+Test/Untest/Assemble lifecycle remains unfinished.

@@ -9,8 +9,26 @@ native Studio connection and programming services remain unfinished.
 Version `.160` adds an [empty simulator component-tracking profile](empty-component-tracking.md)
 for fields 33/34. Source absence selects emulator policy and never proves native
 ACD membership. Nonempty/ambiguous tracking remains unsupported. All 187 affected
-checks pass. Complete native transfers and the full edit lifecycle remain
-separate acceptance goals.
+checks and live signed reads pass. SDK connection verifies 74 requests. An owned
+same-project fixture with an empty Routine catalog completes native
+`UploadAsync` on the public runtime across 971 verified requests, with confirmed
+Offline/cleanup, source/model preservation and no reported SDK fault. The full
+successful transfer checkpoint was not retained. Reconstruction into a new
+project, a valid saved uploaded ACD, normal Routine upload, full download and
+the full edit lifecycle remain separate acceptance goals.
+
+The normal demo retains its Program/Routine upload failure after 348 requests,
+with no endpoint attribute gaps in the interval. Download verifies 175 requests
+and prepares 904 temporary records before the result-query failure; no active
+image is committed. Supported Program-mode import/reconnect verifies 188
+requests, preserves the tracking policy and records one audit update. All five
+native cases confirm Offline/cleanup and original-file preservation without a
+reported SDK fault. The original zero-scan/audit demo is restored, and webpage,
+executable and appliance versions match.
+
+The milestone regression runs 1,832 tests: 1,830 pass, with two Linux-only
+listener checks skipped on Windows. Two older assertions now check the
+established Program source-binding guard and aligned Template read extent.
 
 Version `.159` adds [Controller spare-memory configuration](controller-memory-padding.md)
 reads for fields 11/12, preserving explicit source percentages and identifying
