@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.073618` adds an explicit [new-project upload diagnostic](upload-merge-targets.md#new-project-upload)
+and [SDK FinalizeEdits imports in Program mode](supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
+The factory path keeps its output separate from merge inputs; deadlines retain
+native outcome uncertainty and do not imply confirmed SDK Offline. The stopped
+Program-mode finalization profile retains source preservation, exact logic
+readback and reconnect checks. Run-mode Test/Untest/Assemble and complete native
+Routine upload/download remain unfinished. The existing download result query
+still lacks a verified response format.
+
 Version `.162` adds [unassigned-main Program support](unassigned-main.md) for
 complete ordinary RLL source. Stored routines remain discoverable without being
 chosen as implicit mains; existing prescan and mixed schedules are preserved.

@@ -28,11 +28,13 @@ if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operatio
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
+if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
-    if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits") ||
+    if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits" or "FinalizeEdits") ||
+        edit.ImportOption == "FinalizeEdits" && !options.ApplySupportedEdits ||
         !options.ApplySupportedEdits && (edit.InsertPosition != 0 || edit.ReplaceCount != 0) ||
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(edit.File))).ToLowerInvariant() != edit.Sha256 ||
-        options.ApplySupportedEdits && (edit.ImportOption != "AcceptEdits" || edit.BaseRevision is null or < 0 ||
+        options.ApplySupportedEdits && (edit.ImportOption is not ("AcceptEdits" or "FinalizeEdits") || edit.BaseRevision is null or < 0 ||
             edit.BeforeRungs?.ValueKind != JsonValueKind.Array || edit.ExpectedRungs?.ValueKind != JsonValueKind.Array)) return 2;
 var steps = new List<object>();
 var logger = new Capture();
@@ -53,6 +55,9 @@ http.DefaultRequestHeaders.ConnectionClose = true;
 var backendReadRecoveries = new List<object>();
 object? savedEditedProject = null;
 object? savedUploadedProject = null;
+bool newUploadCompleted = false;
+string newUploadPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "uploaded.ACD");
+if (options.UploadNewProject && File.Exists(newUploadPath)) return 2;
 async Task<T> BackendRead<T>(string operation, Func<Task<T>> read)
 {
     for (int attempt = 1; ; attempt++)
@@ -276,6 +281,8 @@ async Task Step(string name, Func<Task<object?>> action)
 }
 try
 {
+    if (!options.UploadNewProject)
+    {
     await Step("OpenLogixProjectAsync", async () => {
         project = await LogixProject.OpenLogixProjectAsync(options.Project, logger); return true;
     });
@@ -283,12 +290,19 @@ try
         await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
     });
     await Step("ReadConnectedStateAsync:initial", async () => (await project!.ReadConnectedStateAsync()).ToString());
+    }
     if (options.Operation is "upload" or "download")
     {
         await CaptureProtocolTrace("before-transfer-trace.json", options.Operation);
         try
         {
-            if (options.Operation == "upload")
+            if (options.UploadNewProject)
+                await Step("UploadToNewProjectAsync", async () => {
+                    project = await LogixProject.UploadToNewProjectAsync(newUploadPath, options.CommunicationsPath, logger);
+                    newUploadCompleted = true;
+                    return true;
+                });
+            else if (options.Operation == "upload")
                 await Step("UploadAsync", async () => { await project!.UploadAsync(); return true; });
             else
                 await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
@@ -331,7 +345,11 @@ try
                 try
                 {
                     await Step("PartialImportRungsFromXmlFileAsync:" + edit.ImportOption + (editIndex == 1 ? "" : ":2"), async () => {
-                        var option = edit.ImportOption == "LeaveEdits" ? LogixProject.PartialImportOption.LeaveEdits : LogixProject.PartialImportOption.AcceptEdits;
+                        var option = edit.ImportOption switch {
+                            "LeaveEdits" => LogixProject.PartialImportOption.LeaveEdits,
+                            "FinalizeEdits" => LogixProject.PartialImportOption.FinalizeEdits,
+                            _ => LogixProject.PartialImportOption.AcceptEdits
+                        };
                         await project!.PartialImportRungsFromXmlFileAsync(edit.XPath, edit.InsertPosition, edit.ReplaceCount, edit.File, option);
                         return new { importOption = edit.ImportOption, activeControllerEdits = "NOT ASSESSED" };
                     });
@@ -482,12 +500,27 @@ catch (UnauthorizedAccessException) { }
 var unchanged = workingHash == options.SourceSha256;
 // Upload merges into the private working file. Its original baseline and the
 // emulator's bound source are preserved and independently rechecked by Python.
-passed &= workingHash is not null && (unchanged || options.Operation == "upload");
+passed &= workingHash is not null && (unchanged || options.Operation == "upload" && !options.UploadNewProject);
+object? newProjectUpload = null;
+if (options.UploadNewProject)
+{
+    string? createdHash = null;
+    try {
+        if (File.Exists(newUploadPath) && new FileInfo(newUploadPath).Length is >= 8 and <= 100_000_000)
+            createdHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(newUploadPath))).ToLowerInvariant();
+    }
+    catch (IOException) { }
+    catch (UnauthorizedAccessException) { }
+    newProjectUpload = new { factoryCompleted = newUploadCompleted, fileCreated = createdHash is not null,
+        acdSha256 = createdHash, nativeAcdReopened = false, nativeValidity = "NOT ASSESSED" };
+    passed &= newUploadCompleted && createdHash is not null && sdkOfflineConfirmed;
+}
 await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
     backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject,
+    uploadNewProject = options.UploadNewProject, newProjectUpload,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;
@@ -497,7 +530,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
-                      bool SaveUploadedAcd = false)
+                      bool SaveUploadedAcd = false, bool UploadNewProject = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

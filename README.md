@@ -6,9 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1022.213142`.** Versions use the release timestamp
+**Current app version: `26.1023.073618`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+This revision adds an explicit [new-project upload diagnostic](docs/upload-merge-targets.md#new-project-upload)
+and [SDK FinalizeEdits imports in Program mode](docs/supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
+The new-project path uses a fresh output ACD rather than opening a merge
+baseline. Native deadlines retain an unknown outcome instead of reporting a
+confirmed SDK failure or Offline state. Program-mode finalization is separate
+from Run-mode Test/Untest/Assemble; complete native transfers remain unfinished.
 
 **Status: experimental.** Native validation on `.162` demonstrates Go Online and
 Go Offline to the tested demo with the v35 SDK in anonymous compatibility mode.

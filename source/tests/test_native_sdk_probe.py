@@ -15,6 +15,68 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_new_project_upload_is_explicit_and_cannot_open_a_merge_target_or_save_again(self):
+        from tools.probe_native_sdk import validate_new_upload
+        validate_new_upload('upload',True)
+        for operation in ('connection','download','modes','edits'):
+            validate_new_upload(operation,False)
+            with self.assertRaises(ValueError):validate_new_upload(operation,True)
+        for value in (1,None,'true'):
+            with self.assertRaises(ValueError):validate_new_upload('upload',value)
+        for target,save in (('baseline.ACD',False),(None,True)):
+            with self.assertRaises(ValueError):validate_new_upload('upload',True,target,save)
+
+    def test_new_upload_artifact_needs_success_and_exact_retained_file_but_does_not_prove_validity(self):
+        from tools.probe_native_sdk import new_upload_artifact,digest
+        with tempfile.TemporaryDirectory() as folder:
+            output=Path(folder);file=output/'uploaded.ACD';file.write_bytes(b'private-new-acd-bytes')
+            receipt=dict(factoryCompleted=True,fileCreated=True,acdSha256=digest(file))
+            self.assertTrue(new_upload_artifact(output,receipt))
+            for field,value in (('factoryCompleted',False),('fileCreated',False),('acdSha256','a'*64)):
+                self.assertFalse(new_upload_artifact(output,{**receipt,field:value}))
+            file.write_bytes(b'partial')
+            self.assertFalse(new_upload_artifact(output,receipt))
+            file.unlink()
+            self.assertFalse(new_upload_artifact(output,receipt))
+            self.assertFalse(new_upload_artifact(output,None))
+
+    def test_failed_factory_without_a_project_handle_still_cleans_endpoint_and_preserves_offline_uncertainty(self):
+        from tools.probe_native_sdk import digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+            output=root/'report';state=self.state()
+            state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='upload',tag=[],
+                output=str(output),sdk_feed=None,upload_new_project=True)
+            trace={'events':[],'counts':{'native_verified':0}};native_calls=[]
+            def process(command,**kwargs):
+                if command[0]=='dotnet':
+                    (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                    return subprocess.CompletedProcess(command,0)
+                native_calls.append(command)
+                self.assertTrue(json.loads(Path(command[1]).read_text())['UploadNewProject'])
+                Path(command[2]).write_text(json.dumps({'status':'failed','steps':[
+                    {'method':'UploadToNewProjectAsync','status':'failed','errors':[{'message':'native failure'}]}],
+                    'uploadNewProject':True,'newProjectUpload':None,
+                    'serverFaulted':False,'sdkOfflineConfirmed':False}))
+                return subprocess.CompletedProcess(command,1)
+            with patch('tools.probe_native_sdk.sys.platform','win32'), \
+                    patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                    patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state),patch('builtins.print'):
+                self.assertEqual(run(args),1)
+            result=json.loads((output/'summary.json').read_text())
+            self.assertEqual(len(native_calls),1)
+            self.assertTrue(result['cleanup_confirmed'])
+            self.assertTrue(result['source_unchanged'])
+            self.assertFalse(result['native_sdk_offline_confirmed'])
+            self.assertFalse(result['new_project_artifact_matches_receipt'])
+            self.assertFalse(result['new_project_native_reopen_verified'])
+
     def test_saving_uploaded_results_is_explicit_and_upload_only(self):
         from tools.probe_native_sdk import validate_upload_save
         validate_upload_save('upload',True);validate_upload_save('upload',False)
@@ -23,6 +85,81 @@ class NativeSdkProbeTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_upload_save(operation,True)
         for value in (1,None,'true',[]):
             with self.assertRaises(ValueError):validate_upload_save('upload',value)
+
+    def test_native_deadline_preserves_unknown_outcome_instead_of_fabricating_sdk_failure_or_offline(self):
+        from tools.probe_native_sdk import digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+            output=root/'report';state=self.state()
+            state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='upload',tag=[],
+                output=str(output),sdk_feed=None,upload_new_project=True)
+            trace={'events':[],'counts':{'native_verified':0}};calls=[]
+            def process(command,**kwargs):
+                if command[0]=='dotnet':
+                    (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                    return subprocess.CompletedProcess(command,0)
+                calls.append(command)
+                raise subprocess.TimeoutExpired(command,120)
+            with patch('tools.probe_native_sdk.sys.platform','win32'),patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                    patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state),patch('builtins.print'):
+                self.assertEqual(run(args),1)
+            result=json.loads((output/'summary.json').read_text())
+            self.assertEqual(len(calls),1);self.assertEqual(result['status'],'incomplete')
+            self.assertTrue(result['native_process_timed_out'] and result['cleanup_confirmed'] and result['source_unchanged'])
+            self.assertEqual(result['native_call_outcome'],'unknown')
+            self.assertIsNone(result['native_sdk_offline_confirmed'])
+            self.assertIsNone(result['sdk_server_faulted'])
+
+    def test_factory_receipt_does_not_allow_changes_to_its_unused_merge_copy_or_claim_native_reopen(self):
+        from tools.probe_native_sdk import digest
+        for change_input in (False,True):
+            with self.subTest(change_input=change_input),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);source=root/'original.ACD';source.write_bytes(b'owned-acd-source')
+                output=root/'report';state=self.state()
+                state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+                state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+                args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                    path=r'TestDriver\192.0.2.8\Backplane\0',operation='upload',tag=[],
+                    output=str(output),sdk_feed=None,upload_new_project=True)
+                trace={'events':[],'counts':{'native_verified':0}}
+                def process(command,**kwargs):
+                    if command[0]=='dotnet':
+                        (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                        return subprocess.CompletedProcess(command,0)
+                    if change_input:(output/'input.ACD').write_bytes(b'unexpected-change')
+                    (output/'uploaded.ACD').write_bytes(b'unvalidated-native-output')
+                    Path(command[2]).write_text(json.dumps(dict(status='succeeded',steps=[],uploadNewProject=True,
+                        workingProjectSha256=digest(output/'input.ACD'),controllerSourceSha256=digest(source),
+                        sdkOfflineConfirmed=True,serverFaulted=False,newProjectUpload=dict(factoryCompleted=True,
+                            fileCreated=True,acdSha256=digest(output/'uploaded.ACD')))))
+                    return subprocess.CompletedProcess(command,0)
+                with patch('tools.probe_native_sdk.sys.platform','win32'),patch('tools.probe_native_sdk.require_sdk_service'), \
+                        patch('tools.probe_native_sdk.background_options',return_value={}), \
+                        patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                        patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                        patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state),patch('builtins.print'):
+                    self.assertEqual(run(args),1 if change_input else 0)
+                result=json.loads((output/'summary.json').read_text())
+                self.assertTrue(result['new_project_artifact_matches_receipt'])
+                self.assertFalse(result['working_copy_changes_permitted'])
+                self.assertFalse(result['new_project_native_reopen_verified'])
+
+    def test_finalize_option_requires_supported_application_and_stopped_program_mode(self):
+        state=self.edit_state()
+        with self.assertRaises(ValueError):edit_request(state,'MainProgram','MainRoutine','FinalizeEdits')
+        state['connectivity']['native_programming_lease'].update(online_edits=True,online_edit_scope='standard_rll_program_mode')
+        state['routine_edits']={'enabled':True,'revision':0}
+        payload,config=edit_request(state,'MainProgram','MainRoutine','FinalizeEdits',apply=True)
+        self.assertEqual(config['ImportOption'],'FinalizeEdits')
+        self.assertEqual(ET.fromstring(payload).findtext('.//Text'),'NOP();')
+        state['controller'].update(mode='Run',running=True)
+        with self.assertRaises(ValueError):edit_request(state,'MainProgram','MainRoutine','FinalizeEdits',apply=True)
 
     def test_uploaded_save_receipt_checks_artifact_hashes_flags_and_xml_not_logic_equivalence(self):
         from tools.probe_native_sdk import saved_uploaded_acd_effect,digest

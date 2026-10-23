@@ -14,7 +14,8 @@ disabled online edits. --apply-supported-edits instead requires explicitly
 enabled Program-mode RLL replacement and verifies the exact resulting insert.
 An optional second insert and Offline/Online cycle use the same open SDK project;
 each step must preserve the preceding edit and all non-logic model state.
-It never requests native Test, Untest, FinalizeEdits or Assemble.
+Explicit FinalizeEdits imports are limited to stopped Program mode. Native Test,
+Untest and Run-mode assembly are not requested.
 Windows services are never managed.
 """
 from __future__ import annotations
@@ -54,6 +55,24 @@ def upload_input(source,operation,target=None):
     if not target.is_file() or target.suffix.lower()!='.acd' or not 8<=target.stat().st_size<=100_000_000:
         raise ValueError('Upload target must be an ACD file of 8..100000000 bytes')
     return target
+
+
+def validate_new_upload(operation, enabled, target=None, save_uploaded=False):
+    if type(enabled) is not bool:
+        raise ValueError('New-project upload must be an explicit boolean')
+    if enabled and (operation!='upload' or target is not None or save_uploaded):
+        raise ValueError('--upload-new-project requires upload without --upload-target or --save-uploaded-acd')
+
+
+def new_upload_artifact(output, receipt):
+    """Check retained factory output bytes, without asserting ACD validity."""
+    if not isinstance(receipt,dict) or receipt.get('factoryCompleted') is not True or receipt.get('fileCreated') is not True:
+        return False
+    path=Path(output)/'uploaded.ACD'
+    try:
+        return path.is_file() and 8<=path.stat().st_size<=100_000_000 and digest(path)==receipt.get('acdSha256')
+    except OSError:
+        return False
 
 
 def input_evidence(source,source_hash,baseline,baseline_hash,copied,operation):
@@ -209,8 +228,8 @@ def saved_uploaded_acd_effect(folder,receipt):
 
 def edit_request(state, program, routine, option, *, code='NOP();',apply=False,position=0,replace=0):
     """Create one checked rung insert for an ordinary RLL routine, never arbitrary XML."""
-    if option not in ('LeaveEdits', 'AcceptEdits'):
-        raise ValueError('Edit diagnostics allow LeaveEdits or AcceptEdits; never FinalizeEdits')
+    if option not in ('LeaveEdits', 'AcceptEdits', 'FinalizeEdits') or option=='FinalizeEdits' and not apply:
+        raise ValueError('FinalizeEdits requires explicit supported Program-mode edit application')
     names = (state.get('name'), program, routine)
     if any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,39}', name)
            for name in names):
@@ -226,7 +245,7 @@ def edit_request(state, program, routine, option, *, code='NOP();',apply=False,p
     lease=state.get('connectivity', {}).get('native_programming_lease', {})
     if lease.get('online_edits') is not apply:
         raise ValueError('Edit access must match the explicit supported-edit option')
-    if apply and (option!='AcceptEdits' or lease.get('online_edit_scope')!='standard_rll_program_mode'
+    if apply and (option not in ('AcceptEdits','FinalizeEdits') or lease.get('online_edit_scope')!='standard_rll_program_mode'
             or state.get('routine_edits',{}).get('enabled') is not True):
         raise ValueError('Active edit requires enabled supported Program-mode RLL replacement')
     count=len(candidates[0]['rungs'])
@@ -628,6 +647,8 @@ def run(args):
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
     save_upload=getattr(args,'save_uploaded_acd',False);validate_upload_save(args.operation,save_upload)
+    upload_new=getattr(args,'upload_new_project',False)
+    validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
     baseline_hash=digest(baseline)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
@@ -679,6 +700,7 @@ def run(args):
     config['ReconnectEdits']=reconnect
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
     config['SaveUploadedAcd']=save_upload
+    config['UploadNewProject']=upload_new
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
         edit_file=output/('nop-rung.L5X' if index==0 else 'second-rung.L5X')
@@ -721,12 +743,14 @@ def run(args):
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
                    status='incomplete', cleanup_confirmed=False,
                    native_controller_equivalence='NOT ASSESSED')
+    if upload_new:summary.update(upload_new_project_requested=True,new_project_native_reopen_verified=False)
     if args.operation == 'edits':
         summary['edit_diagnostic'] = dict(import_option=config['Edit']['ImportOption'],
             xpath=config['Edit']['XPath'], insert_position=config['Edit']['InsertPosition'], replace_count=config['Edit']['ReplaceCount'],
             rung_sha256=config['Edit']['Sha256'], code=edit_code, active_edits_authorized=apply_edits,
             second_code=second_code,second_xpath=config.get('SecondEdit',{}).get('XPath'),
-            second_range=ranges[1] if len(ranges)>1 else None,reconnect_after_each=reconnect,finalize_edits=False, assembly=False)
+            second_range=ranges[1] if len(ranges)>1 else None,reconnect_after_each=reconnect,
+            finalize_edits=config['Edit']['ImportOption']=='FinalizeEdits', assembly=False)
         summary['post_edit_tag_reads']=dict(type='DINT',tags=edit_tags)
         summary['save_edited_acd_requested']=save_acd
     model_fields = ('tags', 'scan', 'ms', 'changes', 'mode')
@@ -745,8 +769,13 @@ def run(args):
         summary.update(sdk_server_faulted=report.get('serverFaulted'),
                        native_sdk_offline_confirmed=report.get('sdkOfflineConfirmed'),
                        native_sdk_diagnostic_codes=sdk_diagnostic_codes(report))
+    except subprocess.TimeoutExpired:
+        summary.update(status='incomplete',native_process_timed_out=True,
+                       native_call_outcome='unknown',native_sdk_offline_confirmed=None,
+                       sdk_server_faulted=None)
     finally:
         summary.update(input_evidence(source,source_hash,baseline,baseline_hash,copied,args.operation))
+        if upload_new:summary['working_copy_changes_permitted']=False
         summary['sdk_working_copy_sha256']=(report or {}).get('workingProjectSha256')
         summary['working_copy_matches_sdk']=(summary['working_copy_sha256']==summary['sdk_working_copy_sha256']
                                             if summary['sdk_working_copy_sha256'] is not None else None)
@@ -808,7 +837,11 @@ def run(args):
             summary['uploaded_logic_equivalence']='NOT ASSESSED'
             summary['upload_result_persistence']='saved_and_reopened' if summary['saved_uploaded_acd_verified'] else 'failed'
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
+        if upload_new:
+            summary['new_project_artifact_matches_receipt']=new_upload_artifact(output,(report or {}).get('newProjectUpload'))
         if (not summary['source_unchanged'] or not summary['working_copy_present'] or not model_ok or summary.get('edit_payload_unchanged') is False
+                or upload_new and summary.get('working_copy_unchanged') is not True
+                or upload_new and report is not None and not summary.get('new_project_artifact_matches_receipt')
                 or save_acd and not summary.get('saved_edited_acd_verified')
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
@@ -824,14 +857,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
+    parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')
     parser.add_argument('--operation', choices=('connection', 'upload', 'download', 'modes', 'edits'), default='connection',
                         help='modes cycles Run/Program; edits defaults to a NOP diagnostic with editing disabled')
     parser.add_argument('--edit-program', help='edits only: loaded program; default MainProgram')
     parser.add_argument('--edit-routine', help='edits only: loaded RLL routine; default MainRoutine')
-    parser.add_argument('--edit-import-option', choices=('LeaveEdits', 'AcceptEdits'),
-                        help='edits only: defaults to AcceptEdits to test the controller request; LeaveEdits is a local pending-edit comparison')
+    parser.add_argument('--edit-import-option', choices=('LeaveEdits', 'AcceptEdits', 'FinalizeEdits'),
+                        help='edits only: defaults to AcceptEdits; LeaveEdits is a local pending-edit comparison; FinalizeEdits requires explicit supported Program-mode application')
     parser.add_argument('--apply-supported-edits',action='store_true',help='Require enabled Program-mode RLL replacement and verify the applied routine')
     parser.add_argument('--edit-code',help='One neutral-text rung for an explicit supported-edit case; default NOP();')
     parser.add_argument('--second-edit-code',help='Explicit supported edits only: insert a second rung using the same SDK project')

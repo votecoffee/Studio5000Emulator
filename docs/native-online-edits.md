@@ -43,7 +43,8 @@ For an independent comparison on a fresh private copy, repeat with
 offline pending changes, even when the project is online. A successful call with
 that option establishes a local pending import; it does not establish that the
 controller accepted an edit. Each invocation uses a separate output directory
-and ACD copy. `FinalizeEdits` is deliberately unavailable.
+and ACD copy. `FinalizeEdits` now requires explicit supported-edit application
+in stopped Program mode; see the [Program-mode profile](supported-routine-edits.md#sdk-finalizeedits-in-program-mode).
 
 Before the native call, the probe validates the selected ordinary RLL routine,
 source hashes, emulator instance, disabled edit authority and empty programming

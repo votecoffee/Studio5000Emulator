@@ -19,6 +19,15 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_new_project_factory_correlates_the_own_sdk_step_without_assuming_saved_file_acceptance(self):
+        report=tool.analyze({'events':[]},{'events':[]},'upload',dict(uploadNewProject=True,
+            steps=[dict(method='UploadToNewProjectAsync',status='failed')]))
+        self.assertEqual(report['sdk_method'],'UploadToNewProjectAsync')
+        self.assertEqual(report['sdk_status'],'failed')
+        self.assertEqual(report['failure_cause'],'NOT INFERRED')
+        self.assertEqual(report['mac_verification'],'NOT PERFORMED')
+        self.assertNotIn('saved_acd_verified',report)
+
     def test_unknown_live_scopes_remain_visible_as_offline_rejected_requests(self):
         from logixlab.ethernetip import CIPError,decode_path
         child=bytes.fromhex('4b0620682500d801210039032400')

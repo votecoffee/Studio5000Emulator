@@ -91,6 +91,32 @@ An earlier private empty-success `0x59` hypothesis completed the SDK import
 without changing model logic. That diagnostic is not activation evidence; the
 result above verifies the actual routine replacement and its execution.
 
+### SDK FinalizeEdits in Program mode
+
+The native probe accepts `--edit-import-option FinalizeEdits` together with
+`--apply-supported-edits`. It retains the existing stopped Program-mode,
+source/instance, ordinary RLL and explicit write-access requirements. The default
+remains `AcceptEdits`; disabled-edit diagnostics do not enable finalization.
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation edits --apply-supported-edits --edit-import-option FinalizeEdits --edit-code 'NOP();' --reconnect-edits
+```
+
+Use the actual owned emulator address and loaded Program/Routine names. The
+installed SDK describes additional assembly behavior for finalization in Run
+mode. This probe requires Program mode and does not request that behavior,
+native Test or Untest. The option name alone does not establish the complete
+online-edit lifecycle.
+
+On `26.1022.213142`, a native NOP finalization and reconnect pass across 187
+verified requests, with one expected logic revision and audit update. A second
+case finalizes `MOV(123,SpeedSetpoint);` and `MOV(456,Parts.PRE);` in the same open
+SDK project, reconnecting after each import. Both pass across 298 requests and
+advance the revision/audit twice without changing tag values or scanning during
+the imports. One subsequent simulator scan applies the setpoint and counter
+preset. Actual Offline/cleanup, preserved originals and no reported SDK fault
+are confirmed. The original stopped zero-scan/audit demo is restored.
+
 ### Consecutive edits and reconnect
 
 Version `.90` tests two inserts using the same open SDK project. One isolated

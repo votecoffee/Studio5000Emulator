@@ -159,6 +159,7 @@ def analyze(before,after,operation,report=None):
     base=dict(operation=operation,correlation='saved_emulator_trace_checkpoints',
         mac_verification='NOT PERFORMED',failure_cause='NOT INFERRED',payloads_exposed=False)
     method=operation.capitalize()+'Async'
+    if operation=='upload' and (report or {}).get('uploadNewProject') is True:method='UploadToNewProjectAsync'
     steps=[row for row in (report or {}).get('steps',[]) if row.get('method')==method]
     if len(steps)==1:base.update(sdk_method=method,sdk_status=steps[0].get('status'))
     events,error=event_interval(before,after)

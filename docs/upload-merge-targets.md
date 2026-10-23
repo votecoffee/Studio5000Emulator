@@ -27,6 +27,41 @@ SDK writes. Omitting the option retains the original baseline selection.
 
 ## Independent source and file checks
 
+### New-project upload
+
+The native probe can instead call the SDK's `UploadToNewProjectAsync` factory:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation upload --upload-new-project
+```
+
+This explicit option does not open the copied `input.ACD` in the SDK. The original
+ACD still pins the owned emulator's source. The factory receives a new
+`uploaded.ACD` path inside the new private output directory. Existing outputs
+are rejected. `--upload-target` and `--save-uploaded-acd` cannot be combined with
+this option; the factory creates its output as part of its own operation.
+
+Reports distinguish factory completion, retained output bytes and their hash,
+SDK Offline confirmation, endpoint cleanup and native ACD reopen verification.
+A matching output hash does not prove ACD validity or reconstructed logic.
+The unused `input.ACD` must remain unchanged. The default upload continues to
+use `UploadAsync` and its private merge copy.
+
+The SDK process has a bounded deadline. A timeout records an unknown native
+outcome, with SDK fault and Offline status left unconfirmed. Endpoint cleanup
+is checked independently; no SDK operation is automatically repeated and no
+Windows service is controlled. Trace analysis selects the actual factory method
+when a completed SDK report is available.
+
+On `26.1022.213142`, the first factory trial times out after 120 seconds, with no
+observed CIP requests and no output ACD. Source/model preservation and endpoint
+cleanup are confirmed. There is no completed native SDK report, so the factory
+outcome remains unknown. The subsequent established Go Online/Offline comparison
+passes across 74 verified requests without a reported fault. This trial does not
+resolve Routine source retrieval or prove a valid new uploaded project.
+
+### Merge-target preservation
+
 Before and after the native call, the probe checks the emulator's instance,
 source ACD/L5X hashes, address, mode, idle lease and disabled write policies.
 The native helper receives a separate controller-source hash; its backend and
