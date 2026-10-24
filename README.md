@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.091940`.** Versions use the release timestamp
+**Current app version: `26.1024.094038`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -21,6 +21,11 @@ Routine data before exposing a further Label-discovery gap.
 Program/Routine/Label path and returns an empty catalog only for complete,
 unchanged source without `LBL` or `JMP` instructions. Nonempty Label inventories
 remain unsupported.
+
+[Downloaded Routine reads](docs/downloaded-routine-read.md) now support the
+observed empty `(1, 4)` component for source-checked, unprotected Standard RLL
+routines. The previous native upload reaches routine building, where it requests
+this component; full routine-containing upload remains under test.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -115,7 +120,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 251 affected checks and 357 Python syntax checks.
+This iteration passes 253 affected checks and 357 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

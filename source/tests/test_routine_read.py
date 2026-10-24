@@ -110,11 +110,35 @@ class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
     def test_wrong_selectors_writes_unknown_targets_and_missing_installation_never_return_source(self):
         self.assertEqual(self.read()[1][2],12)
         self.installed()
-        for raw in (inner(selector=4),inner(selector=0),inner(program=3),inner(routine=3),
+        for raw in (inner(selector=5),inner(selector=0),inner(program=3),inner(routine=3),
                     bytes.fromhex('5d02206d2401')+struct.pack('<II',1,3),
                     bytes.fromhex('4d03206b24013001')+struct.pack('<II',1,3)):
             self.assertNotEqual(self.read(request_inner=raw)[1][2],0)
         self.assertEqual(self.read()[1][2],0)
+
+    def test_selector_four_is_one_empty_signed_stream_then_source_read_can_follow(self):
+        self.installed();before=copy.deepcopy(self.app.state())
+        request,raw=self.read(request_inner=inner(selector=4))
+        self.assertEqual(len(raw),36)
+        response=rt.verify_response(raw,KEY,request=request);assembly=rt.Assembly()
+        assembly.accept(request,response)
+        self.assertTrue(assembly.complete);self.assertEqual(assembly.value(),b'')
+        self.assertFalse(any(s.read_stream is not None for s in self.endpoint.native_sessions.values()))
+        request,raw=self.read()
+        self.assertEqual(rt.verify_response(raw,KEY,request=request).data,
+                         routine_read.source(self.app,2,1)[:444])
+        for key in ('tags','scan','ms','routines','controller','routine_edits'):
+            self.assertEqual(self.app.state()[key],before[key])
+
+    def test_selector_four_revalidates_retained_source_and_requires_original_unprotected_profile(self):
+        self.installed();original=self.app.native_routines
+        from logixlab.native_routines import NativeRoutines
+        rows=[row.manifest() for row in original.rows];rows[0]['type_word']=0
+        self.app.native_routines=NativeRoutines(original.source_acd_sha256,original.source_l5x_sha256,rows)
+        self.assertNotEqual(self.read(request_inner=inner(selector=4))[1][2],0)
+        self.app.native_routines=original
+        self.app.engine.project.runtime_revision=1
+        self.assertEqual(self.read(request_inner=inner(selector=4))[1][2],12)
 
     def test_opaque_component_read_returns_stored_bytes_and_changed_effects_revoke_continuation(self):
         self.installed();ns=self.app.engine.installed_download.namespace

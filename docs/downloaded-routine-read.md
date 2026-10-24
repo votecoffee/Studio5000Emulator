@@ -1,9 +1,17 @@
 # Downloaded Routine source readback
 
+Version `26.1024.094038` adds selector `(1, 4)` for an unchanged, installed
+Standard RLL routine with its original unprotected Type `0x07FF` and source-key
+metadata. The saved successful v35 upload returns an empty signed stream in all
+708 Program-scoped requests for this selector. Its semantic name is unproven;
+the emulator does not substitute compiled code or source for those zero bytes.
+Unknown types, protected or missing source and edited models remain denied.
+
+
 Version `26.1023.211522` also returns the opaque Routine component for selector
 DWORDs `(1, 9)`. These thirteen bytes come from the validated incremental
 download ledger. Each chunk rechecks that ledger and the original source;
-the component is not interpreted or executed. Selector `(1, 4)` remains unavailable.
+the component is not interpreted or executed.
 
 Version `26.1023.205529` serves the observed Message Router `0x3A` read stream
 for a Program-scoped Routine `0x5D` request with selector DWORDs `(1, 3)`.
@@ -41,7 +49,7 @@ The final reply uses the observed complete/final framing.
 Missing starts, gaps, overlaps, second starts and excessive frame counts fail.
 The stored download component limit bounds source storage, and the shared read
 codec bounds frame counts. A small reply budget cannot leave a partial stream.
-Selectors other than `(1, 3)` and `(1, 9)`, AOI paths, unknown routines and write
+Selectors other than `(1, 3)`, `(1, 4)` and `(1, 9)`, AOI paths, unknown routines and write
 operations stay denied.
 Default object representations and aggregate trace events omit source bytes.
 Explicit private protocol traces retain their existing bounded payload policy.
@@ -50,8 +58,8 @@ Explicit private protocol traces retain their existing bounded payload policy.
 
 This returns retained downloaded source bytes. It does not reconstruct a new
 ACD, translate an edited routine back into native source, provide arbitrary
-memory reads or complete native upload. The SDK's current Program-collection
-failure occurs before its first Routine source request. A working read service
+memory reads or complete native upload. The SDK now reads both Routine data components, completes Label discovery and
+reaches routine building. The next observed request is selector `(1, 4)`. A working read service
 does not establish that the SDK accepted or reconstructed that source.
 
 Focused tests cover exact and fragmented TCP readback, source/model preservation,
@@ -62,5 +70,5 @@ recorded in the [connectivity history](connectivity-history.md).
 An independent client reads both routines from the deployed ConveyorDemo model:
 1,140 bytes over four signed frames, matching the SDK's downloaded source
 containers byte for byte. Response MACs and all ten source rungs are checked;
-model values, scans and audit state remain unchanged. The SDK itself still
-fails before requesting this service, so complete upload remains unfinished.
+model values, scans and audit state remain unchanged. Complete routine-containing native upload remains unfinished; later checkpoints
+record each observed SDK request separately from this independent-client check.

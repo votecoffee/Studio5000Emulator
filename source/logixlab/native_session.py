@@ -121,7 +121,7 @@ def description(enabled):
             'signed_transfer_container':enabled,
             'signed_fragment_staging':enabled,
             'signed_routine_source_readback':enabled,
-            'routine_read_selectors':[3,9] if enabled else [],
+            'routine_read_selectors':[3,4,9] if enabled else [],
             'routine_source_read_scope':'Unedited source-equivalent installed downloads only',
             'timeline_acknowledgement':'Existing nonzero source UID retained',
             'timeline_initialization':False, 'timeline_replacement':False,

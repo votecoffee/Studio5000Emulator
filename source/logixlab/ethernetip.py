@@ -1886,7 +1886,7 @@ class Router:
                                         or target.attribute is not None or target.symbols or target.io_map_instance is not None
                                         or target.controller_instance is not None or target.aoi_instance is not None):
                                     raise CIPError(0x0F,'Only scoped downloaded Routine source reads are supported')
-                                if inner[n:] not in (struct.pack('<II',1,3),struct.pack('<II',1,9)):
+                                if inner[n:] not in tuple(struct.pack('<II',1,s) for s in (3,4,9)):
                                     raise CIPError(0x0F,'Unsupported Routine read selector')
                                 selector=struct.unpack_from('<I',inner,n+4)[0]
                                 stream=routine_read.Stream.begin(self.app,target.program_instance,target.instance,selector)

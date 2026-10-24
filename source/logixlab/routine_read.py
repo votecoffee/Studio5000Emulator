@@ -13,7 +13,7 @@ from . import read_transport as rt
 
 
 def source(app,program,routine,selector=3):
-    if type(selector) is not int or selector not in (3,9):raise ImageError('routine_read_selector_unsupported')
+    if type(selector) is not int or selector not in (3,4,9):raise ImageError('routine_read_selector_unsupported')
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if installed is None:raise ImageError('routine_read_installed_download_required')
     installed.check(app.native_project_identity,project)
@@ -31,6 +31,15 @@ def source(app,program,routine,selector=3):
     # These are the caller's exact native source bytes, without its write prefix.
     bindings.source((program,routine),raw[8:])
     if selector==3:return raw[8:]
+    if selector==4:
+        # All 708 Program/Routine reads in the successful v35 upload reference
+        # return an empty stream for this selector. Its semantic name is not
+        # established; do not substitute the downloaded compiled-code bytes.
+        row=headers._routine(program,routine)
+        if (row.type_word!=0x7FF or row.source_key is None
+                or project.programs[row.program]['class']!='Standard'):
+            raise ImageError('routine_read_empty_component_profile_required')
+        return b''
     incremental=ns._incremental
     if incremental is None:raise ImageError('routine_read_component_required')
     incremental.verify_effects(ns._image,ns._source,app.native_metadata_values,headers)
