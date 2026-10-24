@@ -1,6 +1,6 @@
 """Source-equivalent initial-value preparation, without active installation.
 
-Native table bytes are compared with explicit scalar/builtin/atomic-array layouts.
+Native table bytes are compared with explicit scalar, structure and array layouts.
 Auxiliary container and Local port data remain private configuration records.
 """
 from dataclasses import dataclass
@@ -14,6 +14,7 @@ from .model import ModelError
 from .runtime import Engine
 from .templates import ATOMS
 from .object_staging import MAX_ELEMENTS,MAX_STORAGE_BYTES
+from . import download_structures
 
 
 def encode_value(dtype,value,native_types):
@@ -28,7 +29,7 @@ def encode_value(dtype,value,native_types):
         try:return code,struct.pack('<'+fmt,value)
         except (OverflowError,struct.error):raise ImageError('download_initial_scalar_range') from None
     flags={'TIMER':('EN','TT','DN'),'COUNTER':('CU','CD','DN','OV','UN')}.get(dtype)
-    if flags is None:raise ImageError('download_initial_type_unimplemented')
+    if flags is None:return download_structures.encode(dtype,value,native_types,encode_value)
     expected=[('Control','DINT',0,None,(),True),('PRE','DINT',4,None,(),False),('ACC','DINT',8,None,(),False)]
     expected += [(name,'BOOL',0,31-i,(),False) for i,name in enumerate(flags)]
     row=native_types.types.get(dtype.casefold());instance=native_types.type_ids.get(dtype.casefold())
@@ -45,18 +46,18 @@ def encode_value(dtype,value,native_types):
 
 
 def encode_initial(dtype,value,native_types):
-    """Exact root Table layout; numeric arrays use last-index-fast storage.
+    """Exact root Table layout; arrays use last-index-fast storage.
 
     Complete rectangular values already belong to the imported source model.
-    BOOL packing and structure-array strides are deliberately not inferred.
+    Structure strides come from the source ACD; root BOOL packing is unsupported.
     """
     if type(value) is not list:
         code,data=encode_value(dtype,value,native_types)
         return code,(0,0,0),1,data
-    if dtype not in ATOMS:raise ImageError('download_initial_array_type_unimplemented')
-    payload=bytearray();elements=0
+    if dtype=='BOOL':raise ImageError('download_initial_array_type_unimplemented')
+    payload=bytearray();elements=0;base_code=None
     def walk(node,depth):
-        nonlocal elements
+        nonlocal elements,base_code
         if type(node) is list:
             if depth>=3 or not node or len(node)>MAX_ELEMENTS:
                 raise ImageError('download_initial_array_extent')
@@ -68,11 +69,14 @@ def encode_initial(dtype,value,native_types):
             return (len(node),*shape)
         elements+=1
         if elements>MAX_ELEMENTS:raise ImageError('download_initial_array_extent')
-        _,raw=encode_value(dtype,node,native_types);payload.extend(raw)
+        code,raw=encode_value(dtype,node,native_types)
+        if base_code is None:base_code=code
+        elif code!=base_code:raise ImageError('download_initial_array_type_changed')
+        payload.extend(raw)
         if len(payload)>MAX_STORAGE_BYTES:raise ImageError('download_initial_array_storage_limit')
         return ()
     shape=walk(value,0)
-    return ATOMS[dtype][0]|(len(shape)<<13),shape+(0,)*(3-len(shape)),elements,bytes(payload)
+    return base_code|(len(shape)<<13),shape+(0,)*(3-len(shape)),elements,bytes(payload)
 
 
 def _tree(node,depth=0):
@@ -178,4 +182,5 @@ class PreparedValues:
             auxiliary_tables=len(self.auxiliary),all_tables_accounted=True,source_values_matched=True,
             scalar_and_builtin_layouts=True,
             atomic_arrays=True,array_rank_limit=3,array_element_limit=MAX_ELEMENTS,
+            source_structures=True,structure_arrays=True,structure_padding='zero_required',
             active_values_changed=False,compiled_code_executed=False,commit=False,payloads_exposed=False)

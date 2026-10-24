@@ -6,16 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.230357`.** Versions use the release timestamp
+**Current app version: `26.1023.233219`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds [numeric-array initial values](docs/download-image.md#source-matched-initial-values)
-to source-equivalent downloads. One-, two- and three-dimensional arrays must
-match the saved source's shape, type, element count and complete bytes.
-Packed BOOL arrays and structure arrays remain unsupported for installation.
-The native array fixture passes download/save/reopen/Go Online across 432
-verified requests; independent CIP reads confirm all 60 array-value bytes.
+This release adds [source-defined structure values](docs/download-image.md#source-matched-initial-values)
+to source-equivalent downloads, including nested structures, packed scalar BOOL
+members and arrays of structures or TIMER/COUNTER values. Member locations and
+element strides come from the original ACD. Complete values, zero padding and
+unused zero bits must match; ambiguous overlaps and packed BOOL arrays reject
+the download. Rectangular numeric arrays remain supported.
 
 Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's
@@ -43,7 +43,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 148 affected checks and 352 Python syntax checks. The
+This iteration passes 196 affected checks and 354 Python syntax checks. The
 preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
@@ -234,7 +234,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for an empty Program; routine-containing uploads and saved uploaded ACDs remain unfinished |
-| Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, exact saved values and bounded installation of source-equivalent scalar/TIMER/COUNTER projects; general project replacement remains unsupported |
+| Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |

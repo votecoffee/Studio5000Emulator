@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.233219` extends source-equivalent downloads to supported nested
+structure values and structure/TIMER/COUNTER arrays. It requires complete saved
+members at their original ACD offsets and exact canonical reserved bytes.
+Routine upload remains the first unresolved native transfer priority, followed
+by broader project replacement and the remaining online-edit lifecycle.
+
 Version `26.1023.230357` installs source-matched numeric-array initial values in
 the existing download profile. Native SDK download/save/reopen/Online and exact
 CIP array readback pass for one-, two- and three-dimensional examples. Routine

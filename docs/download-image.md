@@ -976,10 +976,26 @@ all three dimension words, element count, type and saved bytes must agree.
 Multidimensional data uses last-index-fast, little-endian storage, matching the
 existing [array Data Table layout](atomic-array-storage.md). The bound is three
 dimensions and 65,536 elements within the existing staging storage budget.
-Empty or ragged arrays, missing elements, nonfinite REALs, scalar/type overflow,
-packed BOOL arrays and structure arrays reject preparation as a whole. Matching
+Empty or ragged arrays, missing elements, nonfinite REALs, scalar/type overflow
+and packed BOOL arrays reject preparation as a whole. Matching
 dimensions and byte counts cannot excuse a different saved element. This keeps
 the source-equivalent installation contract and existing commit/rollback rules.
+
+Version `26.1023.233219` also accepts complete structure values at the original
+ACD's explicit member offsets, using its original Template IDs and structure
+sizes. Supported members include numeric scalars, scalar BOOLs with explicit
+bit locations, nested structures and one-dimensional member arrays. Hidden
+scalar SINT hosts are accepted only for declared packed BOOL members. Other
+hidden fields, overlapping values, unsupported member types and incomplete
+fields reject the entire preparation. Every padding byte and unused host bit
+must be zero in the received table; their contents are never ignored.
+
+Root arrays of these structures, TIMERs and COUNTERs use the same bounded
+one-to-three-dimensional profile above. Structure strides come from the source
+size, including padding. The structure encoder permits at most eight nested
+levels. Member-array BOOL packing and multidimensional member arrays remain
+unsupported. Existing template/source verification and detached commit rules
+continue to apply; no native field location is guessed from member order.
 
 Preparation also builds a separate execution model, checks its complete initial
 memory and rejects execution blockers. Prescan is deferred until a future Run
