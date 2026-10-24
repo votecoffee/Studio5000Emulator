@@ -55,6 +55,53 @@ def batch():
     return (acquire,*routine(),*routine(2,'Reporting',marker=101),objects.coordinate(acquire=False))
 
 
+def empty_route(self):
+    root,controller,*rest=nop_route(self)
+    controller.find('./Programs/Program/Routines/Routine[@Name="MainRoutine"]/RLLContent').clear()
+    return root,controller,*rest
+
+
+def empty_routine(instance=1,name='MainRoutine'):
+    root=sources.xml_source(name);root.remove(root[0])
+    source=struct.pack('<II',1,3)+sources.container(E.tostring(root))
+    return component(instance,source,len(source)-8),component(instance,struct.pack('<4I',2,5,0,0),4)
+
+
+def empty_batch():
+    rows=batch()
+    return rows[:1]+empty_routine()+rows[4:]
+
+
+class EmptyRoutineTests(unittest.TestCase):
+    def setUp(self):
+        folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
+        self.app=headers.Application(folder.name);self.addCleanup(self.app.close)
+        with patch.object(headers.io_tests.IOMapTests,'local_route',empty_route):
+            self.namespace,self.hb=headers.fixture(self.app)
+        self.bindings=RoutineBindings(self.hb,self.app.native_types)
+
+    def test_empty_download_has_exact_source_zero_count_attachment_and_no_code_effect(self):
+        engine=self.app.engine;before=copy.deepcopy(engine.memory.values);rows=empty_batch()
+        stage=RoutineBatch.prepare(rows,self.bindings);stage.verify_effects(self.bindings)
+        self.assertEqual((stage.records,stage.description()['empty_routines'],stage.description()['source_rungs']),(7,1,1))
+        self.assertEqual([r.kind for r in stage._effects],['coordination','source','attachment','code','source','attachment','coordination'])
+        raw=stage.read(2,1,'source',self.bindings)
+        self.assertEqual(self.bindings.source((2,1),raw[8:]).rungs,())
+        self.assertEqual(stage.read(2,1,'attachment',self.bindings),struct.pack('<4I',2,5,0,0))
+        self.assertEqual(raw,rows[1].request[2+2*rows[1].request[1]+8+2+8:])
+        with self.assertRaisesRegex(ImageError,'code_unavailable'):stage.read(2,1,'code',self.bindings)
+        self.assertIs(self.app.engine,engine);self.assertEqual(engine.memory.values,before)
+        self.assertEqual((engine.scan_count,engine.time_ms),(0,0));self.assertFalse(engine.project.routines['mainprogram/mainroutine'].rungs)
+
+    def test_empty_and_nonempty_profiles_cannot_replace_each_other_or_fabricate_code(self):
+        rows=empty_batch()
+        cases=(batch(),rows[:1]+(routine()[0],)+rows[1:],rows[:2]+(routine()[2],)+rows[3:],
+               rows[:3]+empty_routine(2,'Reporting')+rows[-1:],rows[:2]+rows[1:2]+rows[2:],rows[:2]+rows[3:])
+        for value in cases:
+            with self.subTest(count=len(value)),self.assertRaises(ImageError):RoutineBatch.prepare(value,self.bindings)
+        self.assertIsNone(self.namespace._routine_batch)
+
+
 class RoutineTests(unittest.TestCase):
     def setUp(self):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)

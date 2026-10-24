@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 from logixlab import read_transport as rt,routine_read
 from logixlab.ethernetip import logical
 from logixlab.routine_source import decode
+from logixlab.download_image import ImageError
 import test_download_installation as installation
 import test_download_changelog as logs
 import test_programming_lease as leases
@@ -16,11 +17,49 @@ import test_download_headers as headers
 import test_incremental_completion as components
 from test_signed_messages import KEY
 from test_routine_source import container,xml_source
+import test_download_routines as routine_components
 
 
 def inner(program=2,routine=1,selector=3):
     path=logical(0x20,0x68)+logical(0x24,program)+logical(0x20,0x6D)+logical(0x24,routine)
     return bytes((0x5D,len(path)//2))+path+struct.pack('<II',1,selector)
+
+
+class EmptyRoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
+    complete_tasks=installation.InstallationSignedTests.complete_tasks
+    configure=installation.InstallationSignedTests.configure
+    ready_setup=installation.InstallationSignedTests.ready_setup
+    ready_routines=installation.InstallationSignedTests.ready_routines
+    ready_map=installation.InstallationSignedTests.ready_map
+    ready_log=installation.InstallationSignedTests.ready_log
+    proposal=installation.InstallationSignedTests.proposal
+    ready_install=installation.InstallationSignedTests.ready_install
+
+    def setUp(self):
+        route=logs.maps.map_route
+        def empty(test):
+            result=route(test)
+            result[1].find('./Programs/Program/Routines/Routine[@Name="MainRoutine"]/RLLContent').clear()
+            return result
+        with patch.object(logs.maps,'map_route',empty):RoutineReadWireTests.setUp(self)
+
+    def next_routines(self):
+        return components.CompletionSignedTests.next_batch(self,routine_components.empty_batch())
+
+    def test_committed_empty_source_is_read_byte_for_byte_and_bound_to_empty_runtime(self):
+        self.ready_install();self.assertEqual(self.send(logs.COMMIT)[2],0)
+        self.send(logs.prep.END);self.send(leases.RELEASE)
+        engine=self.app.engine;batch=engine.installed_download.namespace._routine_batch
+        expected=batch._values[2,1].source[8:];before=copy.deepcopy(engine.memory.values)
+        self.assertEqual(routine_read.source(self.app,2,1),expected)
+        request=rt.ReadRequest(self.sequence,0x101,0,inner());self.sequence+=1
+        raw=self.cip(rt.encode_request(request,KEY));assembly=rt.Assembly()
+        assembly.accept(request,rt.verify_response(raw,KEY,request=request))
+        self.assertTrue(assembly.complete);self.assertEqual(assembly.value(),expected)
+        self.assertEqual(engine.memory.values,before);self.assertEqual(engine.scan_count,0)
+        self.assertFalse(engine.project.routines['mainprogram/mainroutine'].rungs)
+        engine.project.routines['mainprogram/mainroutine'].problems.append('RLL content is missing or protected')
+        with self.assertRaises(ImageError):routine_read.source(self.app,2,1)
 
 
 class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):

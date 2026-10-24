@@ -31,10 +31,10 @@ class RoutineBindings:
     def source(self,target,blob):
         row=self.headers._routine(*target);project=self.headers.engine.project
         try:
-            decoded=routine_source.decode(blob)
+            active=project.routines[(row.program+'/'+row.name).casefold()]
+            decoded=routine_source.decode_download(blob,empty=not active.rungs and not active.problems)
             if decoded.name.casefold()!=row.name.casefold():raise ImageError('download_routine_source_target_mismatch')
             neutral=routine_source.resolve(decoded,project,self.headers.symbols,self.headers.routines,self.types,row.program)
-            active=project.routines[(row.program+'/'+row.name).casefold()]
             if len(neutral)!=len(active.rungs) or any(parse_rung(text)!=rung['nodes'] for text,rung in zip(neutral,active.rungs,strict=True)):
                 raise ImageError('download_routine_source_logic_mismatch')
             routine_source.validate_plan(decoded,neutral,project,row.program)
@@ -107,11 +107,25 @@ class RoutineBatch:
                             or code[20:24]!=b'\x7fELF'):raise ImageError('download_routine_code_container')
                     entry['marker']=struct.unpack_from('<I',data,8)[0];kind='code'
                 elif data[:8]==struct.pack('<II',1,3):
-                    if set(entry)!={'marker','code'} or size!=len(data)-8:raise ImageError('download_routine_source_sequence')
-                    decoded=bindings.source(key,data[8:]);entry['source_rungs']=len(decoded.rungs);kind='source'
+                    if size!=len(data)-8:raise ImageError('download_routine_source_sequence')
+                    decoded=bindings.source(key,data[8:])
+                    if decoded.rungs:
+                        if set(entry)!={'marker','code'}:raise ImageError('download_routine_source_sequence')
+                    else:
+                        if entry:raise ImageError('download_routine_empty_code_unexpected')
+                        # This native empty target has no code component. Keep
+                        # absence explicit; never fabricate an ELF or a NOP.
+                        entry.update(marker=0,code=b'')
+                    entry['source_rungs']=len(decoded.rungs);kind='source'
                 else:
-                    if (set(entry)!={'marker','code','source','source_rungs'} or size!=8 or len(data)!=20
-                            or data[:16]!=struct.pack('<4I',2,5,0,1) or struct.unpack_from('<I',data,16)[0]!=entry['marker']):
+                    if set(entry)!={'marker','code','source','source_rungs'}:
+                        raise ImageError('download_routine_attachment_profile')
+                    if entry['source_rungs']==0:
+                        valid=size==4 and data==struct.pack('<4I',2,5,0,0)
+                    else:
+                        valid=(size==8 and len(data)==20 and data[:16]==struct.pack('<4I',2,5,0,1)
+                               and struct.unpack_from('<I',data,16)[0]==entry['marker'])
+                    if not valid:
                         raise ImageError('download_routine_attachment_profile')
                     kind='attachment'
                 entry[kind]=data;value=data;storage+=len(data)
@@ -142,10 +156,13 @@ class RoutineBatch:
         self.verify_effects(bindings)
         if (type(program) is not int or type(routine) is not int or (program,routine) not in self._values
                 or kind not in ('code','source','attachment')):raise ImageError('download_routine_read_unavailable')
-        return getattr(self._values[program,routine],kind)
+        value=getattr(self._values[program,routine],kind)
+        if kind=='code' and not value:raise ImageError('download_routine_code_unavailable')
+        return value
 
     def description(self):
         return dict(records=self.records,routines=len(self._values),source_rungs=sum(v.source_rungs for v in self._values.values()),
+            empty_routines=sum(v.source_rungs==0 for v in self._values.values()),
             storage_bytes=sum(len(v.code)+len(v.source)+len(v.attachment) for v in self._values.values()),
             source_logic_matched=self._binding is not None,compiled_code_verified=False,compiled_code_executed=False,
             active_project_changed=False,commit=False,payloads_exposed=False)

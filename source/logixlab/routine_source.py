@@ -85,6 +85,20 @@ def _container(data):
 
 
 def decode(data):
+    return _decode(data)
+
+
+def decode_download(data,*,empty=False):
+    """Accept omitted native content only for an independently empty target.
+
+    The ordinary edit/import decoder still requires actual RLLContent and rungs.
+    The caller must bind this download to its explicit, unprotected source.
+    """
+    if type(empty) is not bool:raise SourceError('routine_source_empty_target_required')
+    return _decode(data,empty_download=empty)
+
+
+def _decode(data,*,empty_download=False):
     xml,auxiliary=_container(data)
     try:
         # This observed stream declares UTF-16 but carries UTF-8 text. Decode
@@ -100,9 +114,13 @@ def decode(data):
             or root.get('ContainsContext')!='false' or not NAME.fullmatch(root.get('TargetName',''))
             or set(root.attrib)-{'SchemaRevision','SoftwareRevision','TargetName','TargetType','TargetSubType',
                                       'ContainsContext','ExportDate','ExportOptions'}
-            or len(root)!=1 or root[0].tag!='RLLContent'
-            or root[0].attrib!={'Use':'Create','OnlineEditType':'Original'}):
+            or not (empty_download and len(root)==0 or len(root)==1 and root[0].tag=='RLLContent'
+                    and root[0].attrib=={'Use':'Create','OnlineEditType':'Original'})):
         raise SourceError('routine_source_xml_profile')
+    if not len(root):
+        if (root.text or '').strip():raise SourceError('routine_source_extra_text')
+        return RoutineSource(root.get('TargetName'),(),len(xml),hashlib.sha256(xml).hexdigest(),
+                             len(auxiliary),hashlib.sha256(auxiliary).hexdigest())
     content=root[0]
     if (root.text or '').strip() or (content.text or '').strip() or (content.tail or '').strip():
         raise SourceError('routine_source_extra_text')

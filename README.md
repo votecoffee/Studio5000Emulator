@@ -6,9 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.005421`.** Versions use the release timestamp
+**Current app version: `26.1024.013050`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Empty ladder routine downloads](docs/empty-routine-download.md) retain the
+native source and zero-count attachment without inventing compiled code or a
+NOP. This requires an explicitly empty original source routine. Missing or
+protected source declarations remain blocked.
+The owned empty-routine fixture completes native SDK download/save/reopen/Go
+Online across 433 verified requests, with a complete retained trace and actual
+Offline cleanup. Source/model preservation passes without an SDK fault.
 
 Saved-download imports recognize the checked [Program Routine headers](docs/routine-types.md)
 and named Controller numeric [metadata qualifiers](docs/native-metadata-values.md).

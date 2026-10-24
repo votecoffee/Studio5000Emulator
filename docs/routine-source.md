@@ -28,6 +28,11 @@ protected/extra nodes, DTDs, entities, unexpected text, invalid targets and
 excessive rung/source sizes are rejected. The auxiliary data and region-ID
 lifecycle remain uninterpreted. A source target must match the reserved Routine.
 
+The [empty-routine download profile](empty-routine-download.md) has a separate
+decoder entry point, bound to an explicitly empty source target. Its native XML
+omits content and its batch has no code component. This does not relax the
+ordinary edit/import profile described here.
+
 ## Translating supported references
 
 `TextIOI` identifies objects numerically. Supported six-word paths resolve

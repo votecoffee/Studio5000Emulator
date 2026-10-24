@@ -5,7 +5,7 @@ import unittest
 import zlib
 from xml.etree import ElementTree as ET
 
-from logixlab.routine_source import decode,SourceError,MAX_EXPANDED,MAX_AUXILIARY,aligned
+from logixlab.routine_source import decode,decode_download,SourceError,MAX_EXPANDED,MAX_AUXILIARY,aligned
 
 
 def xml_source(name='MainRoutine',text='NOP();'):
@@ -27,6 +27,21 @@ def container(xml=None,auxiliary=b'opaque-reference-data'):
 
 
 class RoutineSourceTests(unittest.TestCase):
+    def test_omitted_download_content_requires_explicit_empty_target_and_never_becomes_edit_source(self):
+        root=xml_source();root.remove(root[0]);xml=ET.tostring(root);blob=container(xml)
+        decoded=decode_download(blob,empty=True)
+        self.assertEqual(decoded.rungs,());self.assertEqual(decoded.xml_sha256,hashlib.sha256(xml).hexdigest())
+        self.assertEqual(decoded.description()['rungs'],0)
+        for call in (decode,decode_download,lambda b:decode_download(b,empty=1)):
+            with self.assertRaises(SourceError):call(blob)
+        for kind in ('protected','text','child','empty-content'):
+            changed=ET.fromstring(xml)
+            if kind=='protected':changed.set('Protected','true')
+            elif kind=='text':changed.text='hidden source'
+            elif kind=='child':ET.SubElement(changed,'EncryptedContent')
+            else:ET.SubElement(changed,'RLLContent',Use='Create',OnlineEditType='Original')
+            with self.subTest(kind=kind),self.assertRaises(SourceError):decode_download(container(ET.tostring(changed)),empty=True)
+
     def test_decodes_bounded_source_and_auxiliary_but_retains_opaque_ioi_and_region_identity(self):
         root=xml_source(text='XIC(@107 3 0 0 0 0@)OTE(@107 4 0 0 0 0@);')
         xml=b'<?xml version="1.0" encoding="UTF-16"?>'+ET.tostring(root)
