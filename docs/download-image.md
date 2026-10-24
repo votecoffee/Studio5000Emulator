@@ -970,6 +970,17 @@ XML is checked against the original L5X's bounded ICP/Ethernet profile. The
 observed zero `__CONTAINER` DINT is retained as opaque auxiliary configuration;
 it does not become an application tag or native executable state.
 
+Version `26.1023.230357` also accepts rectangular arrays of supported numeric
+atoms. Complete source values establish the dimensions; the received rank bits,
+all three dimension words, element count, type and saved bytes must agree.
+Multidimensional data uses last-index-fast, little-endian storage, matching the
+existing [array Data Table layout](atomic-array-storage.md). The bound is three
+dimensions and 65,536 elements within the existing staging storage budget.
+Empty or ragged arrays, missing elements, nonfinite REALs, scalar/type overflow,
+packed BOOL arrays and structure arrays reject preparation as a whole. Matching
+dimensions and byte counts cannot excuse a different saved element. This keeps
+the source-equivalent installation contract and existing commit/rollback rules.
+
 Preparation also builds a separate execution model, checks its complete initial
 memory and rejects execution blockers. Prescan is deferred until a future Run
 entry. Failure publishes no value preparation and never replaces the active

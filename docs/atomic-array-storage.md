@@ -44,6 +44,12 @@ Writes through Data Table services remain denied.
 
 ## Native validation
 
+Version `26.1023.230357` adds the separate
+[source-equivalent download installation profile](download-image.md#source-matched-initial-values)
+for rectangular numeric arrays. It checks complete saved values and the exact
+rank, dimensions and type before committing an execution model. It does not
+enable writes through the read-only Data Table services described above.
+
 An unchanged four-element DINT demo supplies the comparison. Before this change,
 native upload receives partial attribute status for its array Data Table and
 fails after 167 verified signed requests. With array storage, the same metadata

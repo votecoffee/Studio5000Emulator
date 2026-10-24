@@ -6,14 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.223022`.** Versions use the release timestamp
+**Current app version: `26.1023.230357`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds optional [compressed transfer recording](docs/transfer-trace-recording.md)
-to retain complete native upload/download traces beyond the diagnostic ring's
-capacity. Cursor gaps and interrupted recordings remain explicit. The app's
-trace memory limit and PLC execution behavior are unchanged.
+This release adds [numeric-array initial values](docs/download-image.md#source-matched-initial-values)
+to source-equivalent downloads. One-, two- and three-dimensional arrays must
+match the saved source's shape, type, element count and complete bytes.
+Packed BOOL arrays and structure arrays remain unsupported for installation.
+
+Optional [compressed transfer recording](docs/transfer-trace-recording.md)
+retains complete native upload/download traces beyond the diagnostic ring's
+capacity, with gaps and interrupted recordings reported explicitly.
 The empty-Program SDK upload regression succeeds across 970 verified requests,
 with all 3,446 diagnostic events retained. Uploads containing routines remain
 unfinished.
@@ -37,7 +41,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 140 affected checks and 352 Python syntax checks. The
+This iteration passes 148 affected checks and 352 Python syntax checks. The
 preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete

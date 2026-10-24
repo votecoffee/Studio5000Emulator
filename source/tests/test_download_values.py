@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from logixlab.download_image import ImageError,Region
-from logixlab.download_values import PreparedValues,encode_value,_local_ports
+from logixlab.download_values import PreparedValues,encode_value,encode_initial,_local_ports
 from logixlab.native_types import NativeTypes,Type,Member
 from logixlab.native_symbols import Symbol
 import test_download_changelog as logs
@@ -25,6 +25,43 @@ def builtins(dtype='TIMER'):
 
 
 class ValueTests(unittest.TestCase):
+    def test_numeric_array_rank_dimensions_and_last_index_fast_saved_bytes(self):
+        for dtype,value,code,dimensions,fmt,flat in (
+                ('DINT',[-3,0,2147483647],0x20C4,(3,0,0),'3i',[-3,0,2147483647]),
+                ('INT',[[-32768,32767],[1,-1]],0x40C3,(2,2,0),'4h',[-32768,32767,1,-1]),
+                ('REAL',[[[.25,-2.5]],[[8.0,0.0]]],0x60CA,(2,1,2),'4f',[.25,-2.5,8.0,0.0]),
+                ('USINT',[0,255],0x20C6,(2,0,0),'2B',[0,255]),
+                ('LINT',[-2**63,2**63-1],0x20C5,(2,0,0),'2q',[-2**63,2**63-1])):
+            with self.subTest(dtype=dtype):
+                original=copy.deepcopy(value)
+                self.assertEqual(encode_initial(dtype,value,None),(code,dimensions,len(flat),struct.pack('<'+fmt,*flat)))
+                self.assertEqual(value,original)
+        self.assertEqual(encode_initial('DINT',50,None),(0xC4,(0,0,0),1,struct.pack('<i',50)))
+
+    def test_array_shape_rank_leaf_types_ranges_and_extent_are_not_guessed(self):
+        for dtype,value in (('DINT',[]),('DINT',[[1],[2,3]]),('DINT',[1,[2]]),
+                ('DINT',[[[[1]]]]),('DINT',[True]),('DINT',[2**31]),('DINT',[(1,2)]),
+                ('REAL',[float('nan')]),('REAL',[float('inf')]),('REAL',[1]),
+                ('BOOL',[True,False]),('TIMER',[{}]),('Unknown',[1]),('DINT',[0]*65537)):
+            with self.subTest(dtype=dtype,shape=type(value)),self.assertRaises(ImageError):
+                encode_initial(dtype,value,builtins())
+        self.assertEqual(encode_initial('SINT',[0]*65536,None)[:3],(0x20C2,(65536,0,0),65536))
+
+    def test_array_preparation_requires_exact_declared_shape_type_and_every_saved_element(self):
+        headers,project=self.fixture();project.initial['x']=[[1,2,3],[4,5,6]]
+        data=struct.pack('<6i',1,2,3,4,5,6);region=Region(1,0x40C4,(2,3,0),6,data)
+        headers.namespace._image._regions[1]=region
+        original=copy.deepcopy(project.initial);plan=PreparedValues.prepare(headers,None)
+        self.assertEqual(plan.values,(('x',1,0x40C4,data),));self.assertTrue(plan.description()['atomic_arrays'])
+        self.assertEqual(project.initial,original)
+        for bad in (replace(region,dimensions=(3,2,0)),replace(region,type_code=0x20C4),
+                    replace(region,elements=5),replace(region,data=data[:-1]),
+                    replace(region,data=struct.pack('<6i',1,2,3,4,5,7))):
+            headers.namespace._incremental._tables[1]=bad
+            with self.assertRaises(ImageError):PreparedValues.prepare(headers,None)
+        headers.namespace._incremental._tables.clear();project.initial['x'][1][2]=7
+        with self.assertRaises(ImageError):plan.validate(headers,None)
+
     def test_explicit_scalars_and_original_builtin_offsets_bits_and_template_id(self):
         for dtype,value,code,data in (('BOOL',True,0xC1,b'\1'),('DINT',-123,0xC4,struct.pack('<i',-123)),
                                       ('REAL',1.25,0xCA,struct.pack('<f',1.25))):

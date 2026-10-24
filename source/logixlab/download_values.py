@@ -1,6 +1,6 @@
 """Source-equivalent initial-value preparation, without active installation.
 
-Native table bytes are compared with explicit scalar/builtin source layouts.
+Native table bytes are compared with explicit scalar/builtin/atomic-array layouts.
 Auxiliary container and Local port data remain private configuration records.
 """
 from dataclasses import dataclass
@@ -13,6 +13,7 @@ from .download_image import ImageError
 from .model import ModelError
 from .runtime import Engine
 from .templates import ATOMS
+from .object_staging import MAX_ELEMENTS,MAX_STORAGE_BYTES
 
 
 def encode_value(dtype,value,native_types):
@@ -41,6 +42,37 @@ def encode_value(dtype,value,native_types):
     control=sum(int(value[n])<<(31-i) for i,n in enumerate(flags))
     try:return 0x8000|instance,struct.pack('<Iii',control,value['PRE'],value['ACC'])
     except struct.error:raise ImageError('download_initial_scalar_range') from None
+
+
+def encode_initial(dtype,value,native_types):
+    """Exact root Table layout; numeric arrays use last-index-fast storage.
+
+    Complete rectangular values already belong to the imported source model.
+    BOOL packing and structure-array strides are deliberately not inferred.
+    """
+    if type(value) is not list:
+        code,data=encode_value(dtype,value,native_types)
+        return code,(0,0,0),1,data
+    if dtype not in ATOMS:raise ImageError('download_initial_array_type_unimplemented')
+    payload=bytearray();elements=0
+    def walk(node,depth):
+        nonlocal elements
+        if type(node) is list:
+            if depth>=3 or not node or len(node)>MAX_ELEMENTS:
+                raise ImageError('download_initial_array_extent')
+            shape=None
+            for item in node:
+                child=walk(item,depth+1)
+                if shape is None:shape=child
+                elif child!=shape:raise ImageError('download_initial_array_shape')
+            return (len(node),*shape)
+        elements+=1
+        if elements>MAX_ELEMENTS:raise ImageError('download_initial_array_extent')
+        _,raw=encode_value(dtype,node,native_types);payload.extend(raw)
+        if len(payload)>MAX_STORAGE_BYTES:raise ImageError('download_initial_array_storage_limit')
+        return ()
+    shape=walk(value,0)
+    return ATOMS[dtype][0]|(len(shape)<<13),shape+(0,)*(3-len(shape)),elements,bytes(payload)
 
 
 def _tree(node,depth=0):
@@ -109,8 +141,8 @@ class PreparedValues:
             if table is None or table not in image._regions or table in tables:
                 raise ImageError('download_initial_tag_table_required')
             region=ns._incremental._tables.get(table,image._regions[table])
-            code,data=encode_value(tag.dtype.upper(),project.initial[key],native_types)
-            if region.dimensions!=(0,0,0) or region.elements!=1 or region.type_code!=code or region.data!=data:
+            code,dimensions,elements,data=encode_initial(tag.dtype.upper(),project.initial[key],native_types)
+            if region.dimensions!=dimensions or region.elements!=elements or region.type_code!=code or region.data!=data:
                 raise ImageError('download_initial_source_value_mismatch')
             tables[table]=key;values.append((key,table,code,data))
         for table,original in sorted(image._regions.items()):
@@ -145,4 +177,5 @@ class PreparedValues:
         return dict(prepared=True,tags=len(self.values),tag_bytes=sum(len(r[3]) for r in self.values),
             auxiliary_tables=len(self.auxiliary),all_tables_accounted=True,source_values_matched=True,
             scalar_and_builtin_layouts=True,
+            atomic_arrays=True,array_rank_limit=3,array_element_limit=MAX_ELEMENTS,
             active_values_changed=False,compiled_code_executed=False,commit=False,payloads_exposed=False)
