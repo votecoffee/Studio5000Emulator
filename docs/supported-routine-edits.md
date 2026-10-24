@@ -6,6 +6,15 @@ an existing Standard RLL routine, with the controller stopped in Program mode.
 Native Test, Untest, Assemble, Run-mode edits, native binary execution and full
 firmware edit semantics remain unsupported. Studio GUI editing is unverified.
 
+Version `26.1023.203747` preserves a preceding download's committed controller
+header when an edit installs a new interpreter Engine. The original ACD catalogs
+and historical native transfer remain separate from the changed runtime logic.
+The endpoint reports its routine revision and clears the `source_equivalent`
+claim after editing. A native SDK diagnostic completes source-equivalent
+download, Program-mode NOP rung import and Offline/Online reconnection across
+547 verified requests, with exact logic checks, unchanged originals, normal
+Offline cleanup and no reported SDK fault.
+
 ## Usage
 
 Load the ACD-backed complete v35 project and select whole-project execution.

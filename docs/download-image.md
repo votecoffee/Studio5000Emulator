@@ -1014,7 +1014,8 @@ Opening a fresh original ACD after download fails Go Online with
 `RxCL_E_CANNOT_UPLOAD_PHYS_ADDR`; its trace stops before descriptor requests.
 The [saved-download workflow](development.md#saved-download-reconnection) retains
 the downloaded SDK project's updated identity in a new ACD, closes/reopens it
-and verifies Online. The emulator model still lasts only until reset/reload or
+and verifies Online across 432 signed requests. A separate native process opens
+the saved ACD and verifies Online across 74 requests. The emulator model still lasts only until reset/reload or
 restart. Upload fails Program collection both standalone and after a download
 within the same SDK project. These results do not establish general upload,
 GUI monitoring or arbitrary project replacement.

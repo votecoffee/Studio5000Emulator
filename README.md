@@ -12,8 +12,9 @@ page header, Windows tray and executable properties share this version.
 
 This release adds a [saved-download workflow](docs/development.md#saved-download-reconnection):
 after a source-equivalent download, save a new ACD, close it, reopen it and verify
-Go Online. A native SDK trial completes that sequence and confirms Online,
-then Offline cleanup, with original ACD bytes preserved and no SDK fault.
+Go Online. The native SDK completes that sequence across 432 verified requests;
+a separate SDK process reopens the saved ACD and goes Online across 74.
+Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
 The saved ACD retains the new download identity; the emulator installation
 remains memory-only. Resetting or reloading it revokes that correlation.
 

@@ -10,6 +10,12 @@ it and verify Online. The saved file retains the changed download UID while
 the original source anchors remain unchanged. The emulator's installed model
 is still memory-only; reset/reload or restart clears that correlation.
 
+The public saved-download probe completes 432 verified requests. Its new ACD
+has the changed download UID and unchanged original correlation anchors.
+A separate native process opens that saved file and verifies Online across
+74 requests. Both confirm SDK Offline and endpoint cleanup without changing
+original ACD bytes or faulting the service.
+
 Supported Program-mode RLL replacement now retains the committed controller
 header through each detached candidate. Status reports the routine revision
 and no longer calls edited logic source-equivalent. A native diagnostic
