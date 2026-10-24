@@ -255,7 +255,7 @@ class InventoryTcpTests(unittest.TestCase):
         before=copy.deepcopy(self.app.engine.memory.values)
         report=collect_inventory(self.endpoint,read_values=False)
         self.assertEqual(report['task_catalog']['instances'],[7,256])
-        self.assertEqual(values(report['task_catalog']['metadata']),{1:2,2:256,3:2})
+        self.assertEqual(values(report['task_catalog']['metadata']),{1:7,2:256,3:2})
         tasks={row['instance']:row for row in report['tasks']}
         self.assertEqual(values(tasks[256]['metadata']),{1:[70000,3],2:2500,6:10,12:500000,18:1,19:0})
         self.assertEqual(tasks[256]['schedule']['program_instances'],[70000,3])

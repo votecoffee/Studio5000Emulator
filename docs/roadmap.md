@@ -6,6 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.214154` aligns seven existing native catalog class revisions
+with their v35 field layouts, while preserving source availability, counts and
+write permissions. Functional upload and download remain the transfer priority;
+class metadata alone does not establish native transfer acceptance.
+
 Version `26.1023.212737` aligns the Executable class revision with the supported
 v35 RLL instance layout when complete original typed and unprotected bindings
 are present. Generic and incomplete profiles retain the legacy layout. Upload

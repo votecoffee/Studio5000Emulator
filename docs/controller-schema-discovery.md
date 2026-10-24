@@ -83,6 +83,35 @@ resolve the collection failure. No failure cause or cached-client behavior is
 inferred. Native Offline/cleanup and source/model preservation are confirmed,
 with no SDK fault and no upload-save trial.
 
+## Native catalog layout selection
+
+Version `26.1023.214154` extends explicit native layout selection to these
+existing metadata handlers. Successful v35 reference class reads establish the
+two-byte revisions independently of stored ACD component formats.
+
+| Object | Class | Native revision | Research profile revision |
+| --- | --- | --- | --- |
+| Extended Device | `0x64` | 6 | 1 |
+| Program | `0x68` | 9 | 1 |
+| I/O Map | `0x69` | 17 | 1 |
+| Data Table | `0x6A` | 6 | 1 |
+| Symbol | `0x6B` | 7 | 1 |
+| Template | `0x6C` | 5 | 1 |
+| Task | `0x70` | 7 | 2 |
+
+The native endpoint selects these schemas before collecting an inventory.
+Missing source bindings still withhold counts and instances; a known layout
+does not turn an unavailable inventory into an empty one. Program-scoped Symbol
+and Data Table classes use the same layouts and preserve their own backed
+counts. The Data Table API revision matches its wire revision.
+
+Unknown fields, malformed reads, insufficient reply budgets and writes retain
+their errors. Class selection does not add native compiler addresses, transfer
+authority or complete support for that schema. The separately guarded
+[Routine class revision](routine-types.md) retains its original source checks.
+Native SDK transfer results are recorded separately in the
+[connectivity history](connectivity-history.md).
+
 ## Read-only Wall Clock Time
 
 Wall Clock Time class `0x8B` is available in both endpoint profiles. Its class

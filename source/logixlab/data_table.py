@@ -6,6 +6,7 @@ They are not native compiled Data Table IDs or physical controller addresses.
 import struct
 from dataclasses import dataclass
 from .model import ModelError
+from . import controller_schemas
 
 MAX_SCALARS = 4096
 MAX_ARRAY_BYTES = 32768
@@ -161,8 +162,9 @@ def attributes(symbol, storage=None):
     return result
 
 
-def description():
-    return {'object_revision':1,'instance_list':True,'read_attributes':[1,2,8],
+def description(*,native_compatibility=False):
+    return {'object_revision':controller_schemas.object_revision(0x6A,native_compatibility=native_compatibility),
+            'instance_list':True,'read_attributes':[1,2,8],
             'scalar_attributes':[3,6,7,9],'scalar_value_service':'0x4F',
             'scalar_storage':'Nonconstant base atoms and supported explicit user structures; zero data-use flags',
             'scalar_storage_limit':MAX_SCALARS,'modeled_addresses':True,

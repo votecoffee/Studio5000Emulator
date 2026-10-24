@@ -6,20 +6,19 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.212737`.** Versions use the release timestamp
+**Current app version: `26.1023.214154`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release aligns Routine class revision with the supported v35 RLL metadata
-layout when complete original typed, unprotected Routine bindings are available.
-It also keeps accepted Controller metadata available after a completed
-source-equivalent download, while preserving the original ACD catalog. It also
-extends [signed Routine readback](docs/downloaded-routine-read.md) to the opaque
-component retained during download. Reads check the source, session counters
-and MACs; changed logic or catalogs revoke the read. The preceding revision's
-independent signed readback verified both routines and all 1,671 metadata
-records. SDK upload still stops during Program collection before requesting
-routine source.
+This release aligns seven [native catalog layout revisions](docs/controller-schema-discovery.md#native-catalog-layout-selection)
+with their observed v35 schemas, including Program, Task, Symbol and Data Table.
+Layout selection preserves source-bound field availability, real catalog counts
+and existing write permissions. Complete native upload remains unfinished.
+
+Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
+retain the exact accepted download values and source/component bytes. Earlier
+independent readback verified both routines and all 1,671 metadata records.
+Changed source, logic or catalogs revoke the corresponding reads.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
@@ -35,8 +34,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 Upload still fails during Program collection.
 
-This iteration passes 193 focused checks and 349 Python syntax checks. The
-preceding metadata/readback revision passed 253 focused checks. The
+This iteration passes 255 focused checks and 350 Python syntax checks. The
 preceding Windows milestone suite passed 2,003 checks with two platform skips.
 
 **Native upload, replacement with another project, SDK tag-address discovery and the complete

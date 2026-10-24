@@ -1027,7 +1027,7 @@ class Router:
         if path.instance is None:raise CIPError(4,'Template path requires an instance')
         templates=self.exposed_templates()
         if path.instance==0:
-            return self.attribute_read(service,path,data,self.catalog_class_attributes(templates))
+            return self.attribute_read(service,path,data,self.catalog_class_attributes(templates,0x6C))
         template=templates.get(path.instance)
         if template is None:raise CIPError(5,'Unknown or unexposed template instance')
         if service in (3,0x0E):return self.attribute_read(service,path,data,template.attributes())
@@ -1184,8 +1184,9 @@ class Router:
             raise CIPError(4,'Program metadata requires a controller-scoped instance path')
         if service==0x4B:return self.instance_list(path,data,limit)
         if path.instance==0:
-            attributes={1:struct.pack('<H',1)}
-            try:attributes=self.catalog_class_attributes([p['id'] for p in self.programs()])
+            revision=controller_schemas.object_revision(0x68,native_compatibility=self.endpoint.native_read_only)
+            attributes={1:struct.pack('<H',revision)}
+            try:attributes=self.catalog_class_attributes([p['id'] for p in self.programs()],0x68)
             except CIPError as error:
                 if error.status!=0x0C:raise
             attributes.update(self.app.engine.project.program_forces.attributes())
@@ -1467,9 +1468,10 @@ class Router:
             raise CIPError(4,'Task metadata requires a controller-scoped instance path')
         if service==0x4B:return self.instance_list(path,data,limit)
         if path.instance==0:
-            # This partial model supports the revision-2 configuration layout.
+            # Layout selection is independent of partial field availability.
             # Counts describe only source-bound, exposed ordinary tasks.
-            attributes={1:struct.pack('<H',2)}
+            revision=controller_schemas.object_revision(0x70,native_compatibility=self.endpoint.native_read_only,legacy_revision=2)
+            attributes={1:struct.pack('<H',revision)}
             try:
                 rows=self.tasks()
                 attributes.update({2:struct.pack('<I',max((row['id'] for row in rows),default=0)),
@@ -1539,11 +1541,11 @@ class Router:
         return {**result,'instance_list':True,'instance_count':len(rows),
                 'identity_binding_available':getattr(self.app,'native_aois',None) is not None}
 
-    @staticmethod
-    def catalog_class_attributes(instances):
-        # Model revision 1, sparse maximum ID and visible instance count.
-        # These are catalog metadata, never native compiler signatures.
-        return {1:struct.pack('<H',1),2:struct.pack('<I',max(instances,default=0)),
+    def catalog_class_attributes(self,instances,class_id=None):
+        # The generic model keeps revision 1. Native layout selection never
+        # changes these backed IDs/counts or supplies compiler signatures.
+        revision=1 if class_id is None else controller_schemas.object_revision(class_id,native_compatibility=self.endpoint.native_read_only)
+        return {1:struct.pack('<H',revision),2:struct.pack('<I',max(instances,default=0)),
                 3:struct.pack('<I',len(instances))}
 
     def exposed_templates(self):
@@ -1563,7 +1565,7 @@ class Router:
         if path.instance is None:raise CIPError(4,'Data Table path requires an instance')
         tables=self.data_tables(scope)
         if path.instance==0:
-            attributes=self.catalog_class_attributes([s['id'] for s in tables])
+            attributes=self.catalog_class_attributes([s['id'] for s in tables],0x6A)
         else:
             table=next((s for s in tables if s['id']==path.instance),None)
             if table is None:raise CIPError(5,'Unknown modeled Data Table instance')
@@ -1996,7 +1998,9 @@ class Router:
             if path.instance==1 and self.app.engine.project.io_map.root_link_address is not None:
                 return self.attribute_read(service,path,data,self.app.engine.runtime_references.io_map_attributes(self.app.engine.project,self.endpoint.identity))
             if path.instance!=0:raise CIPError(5,'I/O Map module instances are not implemented')
-            return self.attribute_read(service,path,data,self.app.engine.project.io_map.class_attributes())
+            attributes=self.app.engine.project.io_map.class_attributes()
+            attributes[1]=struct.pack('<H',controller_schemas.object_revision(0x69,native_compatibility=self.endpoint.native_read_only))
+            return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x7E:
             if path.symbols or path.program_instance is not None or path.instance is None:
                 raise CIPError(4,'I/O Connection metadata requires a nested class path')
@@ -2228,7 +2232,7 @@ class Router:
             if len(name)>255:raise CIPError(0x1B,'Controller project name exceeds supported size')
             return 0,struct.pack('<H',len(name))+name
         if path.class_id==0x64 and path.instance==0 and not path.symbols:
-            return self.attribute_read(service,path,data,{1:b'\1\0'})
+            return self.attribute_read(service,path,data,{1:struct.pack('<H',controller_schemas.object_revision(0x64,native_compatibility=self.endpoint.native_read_only))})
         if path.class_id==0x64 and path.instance==1 and not path.symbols and service in (3,0x0E):
             attributes={**device_metadata.attributes(),**self.app.engine.project.controller_configuration.extended_device_attributes()}
             return self.attribute_read(service,path,data,attributes)
@@ -2258,7 +2262,7 @@ class Router:
             if path.instance is None:raise CIPError(4,'Symbol path requires an instance')
             symbols=self.symbols(scope)
             if path.instance==0:
-                return self.attribute_read(service,path,data,self.catalog_class_attributes([s['id'] for s in symbols]))
+                return self.attribute_read(service,path,data,self.catalog_class_attributes([s['id'] for s in symbols],0x6B))
             symbol=next((s for s in symbols if s['id']==path.instance),None)
             if symbol is None:raise CIPError(5,'Unknown symbol instance')
             return self.attribute_read(service,path,data,self.symbol_attributes(symbol))
@@ -2408,7 +2412,7 @@ class Endpoint:
                         'metadata_services':getattr(self.app,'native_metadata_values',None) is not None} if getattr(self.app,'native_metadata_definitions',None)
                         else controller_configuration.metadata_description()) if self.enabled else None,
                     'metadata_values':self.app.native_metadata_values.description() if self.enabled and getattr(self.app,'native_metadata_values',None) else None,
-                    'data_table':data_table.description() if self.enabled else None,
+                    'data_table':data_table.description(native_compatibility=self.native_read_only) if self.enabled else None,
                     'symbol_metadata':symbol_metadata.description() if self.enabled else None,
                     'motion_catalog':self.app.engine.project.motion_catalog.description() if self.enabled else None,
                     'alarm_catalog':self.app.engine.project.alarm_catalog.description() if self.enabled else None,

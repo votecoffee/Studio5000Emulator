@@ -97,7 +97,8 @@ class ControllerSchemaTests(unittest.TestCase):
         info=self.endpoint.state()['controller_schemas']
         self.assertEqual([(row['class_id'],row['schema_revision']) for row in info['classes']],[(0x66,3),(0x72,5)])
         self.assertIsNone(info['classes'][0]['name'])
-        self.assertEqual([(row['class_id'],row['schema_revision']) for row in info['compatibility_classes']],[(0x43,5),(0x8e,15)])
+        self.assertEqual([(row['class_id'],row['schema_revision']) for row in info['compatibility_classes']],
+            [(0x43,5),(0x64,6),(0x68,9),(0x69,17),(0x6A,6),(0x6B,7),(0x6C,5),(0x70,7),(0x8E,15)])
         self.assertFalse(info['complete_instance_support'])
         self.assertEqual(self.endpoint.state()['controller_configuration']['object_revision'],15)
         self.assertEqual(self.endpoint.state()['time_sync']['object_revision'],5)
