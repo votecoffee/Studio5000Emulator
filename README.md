@@ -16,6 +16,9 @@ SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
 overlap, reserved-bit and member-access checks remain in place.
 Downloads can also omit a routine-data batch when the complete original source
 and prepared image both establish that there are no routines.
+The owned empty-Program fixture completes SDK download/save/reopen/Online across
+425 verified requests. Complete symbolic and Data Table reads match 100 UDT
+value bytes; the SDK also reads those bytes before its upload fails Energy discovery.
 
 [Source-defined structure downloads](docs/download-image.md#source-matched-initial-values)
 support nested UDTs, numeric arrays and UDT/TIMER/COUNTER arrays, checking complete

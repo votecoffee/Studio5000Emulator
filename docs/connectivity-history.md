@@ -4,6 +4,23 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.235144` accepts explicitly named hidden SINT hosts with checked
+BIT targets and source-bound native templates. Symbolic and Data Table reads
+of three owned scalar/nested/array UDT tags match all 100 source-value bytes,
+including padding, source handles and array strides. Direct hidden-host access
+is denied and model/audit state is unchanged. The SDK itself also reads those
+same three complete tables before upload later fails Energy discovery.
+
+Empty-Program download now permits Studio's omitted routine-data batch only
+when complete source, original identities and the prepared image all establish
+zero routines. The earlier build rejects that fixture's Map write after 272
+requests. This version completes download, save, reopen and Online across 425.
+Its nested-UDT upload fails `RxCsE_UPLOAD_OF_TAGS_FAILED` after 179 requests at
+the unavailable Energy list. Both native cases preserve originals/model,
+confirm actual Offline/cleanup and report no SDK fault. Complete recordings
+replay identically. The 213 affected checks pass; all 119 modules/assets and
+displayed versions match. General routine upload remains unfinished.
+
 Version `26.1023.233219` adds exact source-defined structure initial values to
 [download installation](download-image.md#source-matched-initial-values).
 Native ACD member locations and sizes govern nested values and array strides.
