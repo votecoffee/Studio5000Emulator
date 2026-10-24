@@ -4,6 +4,26 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.212737` aligns the supported native v35 RLL Executable class
+layout with revision 11, separately from the original instance Type words.
+It requires complete, unchanged, typed and unprotected original Routine
+bindings; other profiles retain the legacy layout. Global discovery continues
+to withhold flattened instance counts.
+
+Live global and Program-scoped reads return revision 11 without changing
+source, model or audit state. The SDK upload receives that corrected revision.
+Download/save/reopen/Online succeeds across 432 verified requests; upload still
+fails `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349, before Routine source reads.
+Both preserve originals, confirm SDK Offline/cleanup and report no SDK fault.
+A separate SDK process reopens the saved ACD and verifies Online across 74
+requests, with the same preservation and cleanup checks.
+The layout correction alone does not resolve Program collection.
+
+All 118 deployed modules, browser assets and displayed versions match. The
+193 affected checks and 349 Python AST checks pass. The full suite was not
+repeated; the preceding metadata revision's 253 focused checks remain recorded
+below.
+
 Version `26.1023.211522` publishes a separate committed metadata view after a
 source-equivalent download. It preserves the original catalog, merges accepted
 Controller properties and invalidates cursors from a previous view. It also
