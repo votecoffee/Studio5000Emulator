@@ -4,6 +4,28 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.233219` adds exact source-defined structure initial values to
+[download installation](download-image.md#source-matched-initial-values).
+Native ACD member locations and sizes govern nested values and array strides.
+Missing fields, ambiguous overlap, unsupported hidden fields and nonzero
+reserved bytes reject preparation. Root TIMER/COUNTER arrays are also supported.
+
+An owned fixture completes SDK download/save/reopen/Go Online across 434 verified
+requests. Its five added tags contain scalar/nested UDTs, packed BOOL members,
+UDT arrays and TIMER/COUNTER arrays. Independent CIP atomic reads match all 61
+supplied value fields and 124 value bytes; scans and audit state remain unchanged.
+The complete 1,755-event transfer recording has an identical offline replay.
+Original files/model are preserved, SDK Offline and cleanup are confirmed, and
+no SDK fault is reported. This iteration does not retest or resolve the previously
+recorded routine-upload failure.
+
+The normal demo is then restored by download/save/reopen/Online across 432
+verified requests. A separate SDK process opens that saved ACD and verifies
+Online across 74. Both confirm Offline/cleanup and report no SDK fault.
+
+All 119 deployed modules, browser assets and versions match. The 196 affected
+checks and 354 Python syntax checks pass; the full suite was not rerun.
+
 Version `26.1023.230357` adds exact numeric-array initial-value validation to
 [source-equivalent download installation](download-image.md#source-matched-initial-values).
 Rank bits, dimensions, element count, type and all saved bytes must match the

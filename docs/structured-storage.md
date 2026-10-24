@@ -24,6 +24,16 @@ array shapes reject the complete read. Data Table setters remain denied.
 
 ## Validation and native boundary
 
+Version `26.1023.233219` adds a separate
+[source-equivalent download profile](download-image.md#source-matched-initial-values)
+using original ACD member locations and structure sizes. It does not change
+the software storage layouts described above; a structure accepted by download
+can still fall outside the existing aggregate-read profile. A native fixture with nested
+structures, packed BOOL members, UDT arrays and TIMER/COUNTER arrays completes
+download/save/reopen/Online across 434 verified requests. Independent symbolic
+atomic-member reads match all 61 supplied value fields. This establishes the
+bounded download and value-read paths; general routine upload remains unresolved.
+
 Focused tests cover nested structures, multidimensional root arrays, packed
 bits, equal IDs in different scopes, current values, cached-layout permission
 changes, allocation bounds and unchanged state after rejected writes.

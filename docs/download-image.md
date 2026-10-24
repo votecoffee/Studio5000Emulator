@@ -1017,6 +1017,16 @@ versions match; 140 affected checks pass.
 
 ### Source-equivalent installation
 
+Version `26.1023.233219` completes SDK download, SaveAs, close/reopen and Go
+Online for an owned fixture containing a scalar UDT, nested UDT/member arrays,
+a root UDT array and TIMER/COUNTER arrays. The sequence succeeds across 434
+verified requests. Separate ordinary CIP reads verify all 61 supplied atomic
+fields (124 value bytes) across the five added tags, including signed limits,
+packed BOOLs and nested values. These leaf reads do not compare padding or claim
+a native structure-memory read. SDK Offline/cleanup and source/model preservation
+are confirmed, with no reported SDK fault. The full 1,755-event recording is
+retained and its offline transfer summary replays identically.
+
 Version `26.1023.230357` extends this profile to numeric-array initial values.
 An owned v35 fixture containing DINT `[4]`, INT `[2,3]`, REAL `[2,1,2]` and LINT
 `[2]` arrays completes SDK download, SaveAs, close/reopen and Go Online across

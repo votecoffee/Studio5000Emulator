@@ -9,6 +9,8 @@ native Studio connection and programming services remain unfinished.
 Version `26.1023.233219` extends source-equivalent downloads to supported nested
 structure values and structure/TIMER/COUNTER arrays. It requires complete saved
 members at their original ACD offsets and exact canonical reserved bytes.
+An owned native fixture completes download/save/reopen/Online across 434 verified
+requests; independent CIP reads match all 61 supplied atomic value fields.
 Routine upload remains the first unresolved native transfer priority, followed
 by broader project replacement and the remaining online-edit lifecycle.
 

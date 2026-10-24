@@ -16,6 +16,9 @@ members and arrays of structures or TIMER/COUNTER values. Member locations and
 element strides come from the original ACD. Complete values, zero padding and
 unused zero bits must match; ambiguous overlaps and packed BOOL arrays reject
 the download. Rectangular numeric arrays remain supported.
+The native structure fixture completes SDK download/save/reopen/Go Online
+across 434 verified requests. Independent CIP reads match all 61 supplied
+atomic value fields across its five added tags, without advancing the scan.
 
 Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's
@@ -31,7 +34,7 @@ Changed source, logic or catalogs revoke the corresponding reads.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
-Go Online. The native SDK completes that sequence across 433 verified requests;
+Go Online. The native SDK completes that sequence across 432 verified requests;
 a separate SDK process reopens the saved ACD and goes Online across 74.
 Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
 The saved ACD retains the new download identity; the emulator installation
