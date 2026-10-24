@@ -16,6 +16,13 @@ A separate native process opens that saved file and verifies Online across
 74 requests. Both confirm SDK Offline and endpoint cleanup without changing
 original ACD bytes or faulting the service.
 
+Upload using the preserved post-download ACD as its offline merge baseline
+still fails `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 348 requests. Its original
+baseline and loaded source/model remain unchanged, SDK Offline and cleanup are
+confirmed, no SDK fault is reported, and the installed download survives.
+Saving the matching ACD resolves the demonstrated reconnection case; it does
+not resolve Program collection during upload.
+
 Supported Program-mode RLL replacement now retains the committed controller
 header through each detached candidate. Status reports the routine revision
 and no longer calls edited logic source-equivalent. A native diagnostic
