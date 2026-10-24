@@ -34,6 +34,13 @@ The journal is limited to 32,768 events and 64 MiB of expanded JSON; compression
 reduces disk usage. A gap, replaced endpoint, storage limit or collection error
 marks the recording incomplete. A slow recorder cannot recover evicted data.
 
+Diagnostic reads retry a transport `TimeoutError` at most twice, using the same
+cursor. Event ordering and endpoint checks still apply to the returned page.
+Other read errors, gaps and identity changes stop recording immediately. This
+read-only retry cannot relaunch or repeat the native SDK operation. The receipt
+records timeout/retry counts and the collector exception class, omitting private
+exception messages. Exhausted retries leave an incomplete recording.
+
 ## Evidence and replay
 
 The probe writes `transfer-events.jsonl.gz`, a recording receipt and the existing

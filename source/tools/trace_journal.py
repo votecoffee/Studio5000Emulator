@@ -13,6 +13,7 @@ import time
 MAX_EVENTS=32768
 MAX_BYTES=64*1024*1024
 MAX_LINE=1024*1024
+READ_ATTEMPTS=3
 FORMAT='logixlab-trace-journal-v1'
 
 
@@ -20,9 +21,10 @@ class TraceJournal:
     def __init__(self,path,read_page,instance,source):
         self.path=Path(path);self.read_page=read_page;self.instance=instance;self.source=source
         self.cursor=None;self.trace_id=None;self.events=0;self.bytes=0;self.error=None;self.caught_up=False
+        self.read_timeouts=0;self.read_retries=0;self.collection_error_type=None
         self.stream=gzip.open(self.path,'xb')
         try:
-            page=self.read_page({});self._identity(page)
+            page=self._page({});self._identity(page)
             self.trace_id=page['trace_id'];self.cursor=page['next_event']
             if (page['events'] or type(self.cursor) is not int or self.cursor<0
                     or self.cursor!=page['last_event'] or page['missing_events'] or page['has_more']):
@@ -39,6 +41,17 @@ class TraceJournal:
                 or self.trace_id is not None and page['trace_id']!=self.trace_id):
             raise ValueError('Trace endpoint identity changed')
 
+    def _page(self,request):
+        # The cursor action is read-only. Retry only a transport timeout, using
+        # the exact same cursor; native calls and malformed/gapped pages never
+        # pass through this retry path.
+        for attempt in range(READ_ATTEMPTS):
+            try:return self.read_page(request)
+            except TimeoutError:
+                self.read_timeouts+=1
+                if attempt+1==READ_ATTEMPTS:raise
+                self.read_retries+=1
+
     def _write(self,row):
         data=(json.dumps(row,separators=(',',':'))+'\n').encode('utf8')
         if len(data)>MAX_LINE or self.bytes+len(data)>MAX_BYTES:raise ValueError('Trace journal storage limit')
@@ -48,7 +61,7 @@ class TraceJournal:
         if self.error:return
         try:
             for _ in range(8):
-                page=self.read_page(dict(trace_id=self.trace_id,after_event=self.cursor,limit=256));self._identity(page)
+                page=self._page(dict(trace_id=self.trace_id,after_event=self.cursor,limit=256));self._identity(page)
                 events=page['events'];last=page['last_event'];next_event=page['next_event']
                 if (page['after_event']!=self.cursor or type(last) is not int or last<self.cursor
                         or type(next_event) is not int or type(page['missing_events']) is not int
@@ -63,8 +76,8 @@ class TraceJournal:
                     raise ValueError('Trace page extent mismatch')
                 self.caught_up=not page['has_more']
                 if self.caught_up:break
-        except Exception:
-            self.error='trace_collection_failed';self.caught_up=False
+        except Exception as error:
+            self.error='trace_collection_failed';self.caught_up=False;self.collection_error_type=type(error).__name__
 
     def close(self):
         self.drain()
@@ -74,7 +87,8 @@ class TraceJournal:
         except (OSError,ValueError):complete=False;footer['complete']=False;footer['error']='trace_storage_failed'
         finally:self.stream.close()
         return dict(**footer,path=self.path.name,sha256=hashlib.sha256(self.path.read_bytes()).hexdigest(),
-                    expanded_bytes=self.bytes)
+                    expanded_bytes=self.bytes,diagnostic_read_timeouts=self.read_timeouts,
+                    diagnostic_read_retries=self.read_retries,collection_error_type=self.collection_error_type)
 
 
 def run_recorded(command,*,journal,stdout,timeout,background):

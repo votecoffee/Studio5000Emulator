@@ -47,6 +47,58 @@ class TraceJournalTests(unittest.TestCase):
         rows=tool.read_interval(self.path,before,after)
         self.assertEqual([row['kind'] for row in rows],['during'])
 
+    def test_one_read_timeout_reuses_exact_cursor_and_retains_each_event_once(self):
+        calls=[];timed_out=False
+        def read(body):
+            nonlocal timed_out
+            calls.append(dict(body))
+            if body and not timed_out:
+                timed_out=True;raise TimeoutError('private timeout detail')
+            return self.endpoint.trace_page(**body)
+        writer=self.writer(read);before=self.endpoint.state(True)
+        self.endpoint.record('first');self.endpoint.record('second');after=self.endpoint.state(True)
+        receipt=writer.close();self.assertTrue(receipt['complete'])
+        self.assertEqual(calls[1],calls[2]);self.assertEqual(receipt['events'],2)
+        self.assertEqual((receipt['diagnostic_read_timeouts'],receipt['diagnostic_read_retries']),(1,1))
+        self.assertEqual([row['kind'] for row in tool.read_interval(self.path,before,after)],['first','second'])
+        self.assertNotIn('private timeout detail',str(receipt))
+
+    def test_exhausted_timeouts_are_bounded_and_leave_recording_incomplete(self):
+        writer=self.writer();before=self.endpoint.state(True);self.endpoint.record('held')
+        calls=[]
+        def read(body):calls.append(dict(body));raise TimeoutError('unavailable')
+        writer.read_page=read;receipt=writer.close()
+        self.assertEqual(len(calls),3);self.assertTrue(all(x==calls[0] for x in calls))
+        self.assertFalse(receipt['complete']);self.assertEqual(receipt['collection_error_type'],'TimeoutError')
+        self.assertEqual((receipt['diagnostic_read_timeouts'],receipt['diagnostic_read_retries']),(3,2))
+        self.assertEqual(analyze(before,self.endpoint.state(True),'upload',journal=self.path)['status'],'journal_incomplete')
+
+    def test_timeout_does_not_allow_replaced_identity_and_other_errors_are_not_retried(self):
+        for wrong in ('identity','gap','read'):
+            with self.subTest(wrong=wrong):
+                self.path=self.root/(wrong+'.gz');writer=self.writer();self.endpoint.record('event');calls=[]
+                def read(body):
+                    calls.append(dict(body))
+                    if len(calls)==1:raise TimeoutError('temporary')
+                    page=self.endpoint.trace_page(**body)
+                    if wrong=='identity':page['instance_id']='foreign'
+                    elif wrong=='gap':page['missing_events']=1
+                    else:raise OSError('not a timeout')
+                    return page
+                writer.read_page=read;receipt=writer.close()
+                self.assertFalse(receipt['complete']);self.assertEqual(len(calls),2)
+                self.assertEqual(receipt['diagnostic_read_retries'],1)
+
+    def test_diagnostic_timeouts_never_relaunch_the_owned_native_process(self):
+        from unittest.mock import MagicMock
+        process=MagicMock();process.__enter__.return_value=process
+        process.wait.side_effect=(subprocess.TimeoutExpired(['owned'],.25),0)
+        writer=self.writer();writer.read_page=lambda data:(_ for _ in ()).throw(TimeoutError())
+        with patch.object(tool.subprocess,'Popen',return_value=process) as launch:
+            result=tool.run_recorded(['owned'],journal=writer,stdout=None,timeout=30,background={})
+        self.assertEqual(result.returncode,0);launch.assert_called_once();process.kill.assert_not_called()
+        self.assertEqual(writer.close()['diagnostic_read_retries'],2)
+
     def test_ring_gap_and_replaced_identity_stop_recording_without_silent_recovery(self):
         for replacement in (False,True):
             with self.subTest(replacement=replacement):
