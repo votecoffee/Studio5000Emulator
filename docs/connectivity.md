@@ -8,6 +8,15 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1024.021104` adds
+[source-matched packed BOOL-array downloads](bool-array-download.md). Native SDK
+download/save/reopen/Online succeeds for BOOL[64], followed by exact independent
+reads of all 64 values. The appliance manager keeps the VM running during
+temporary webpage poll failures and checks explicit instance-bound shutdown
+intent separately. Routine-containing upload remains blocked at the first
+metadata reply; the latest narrowly filtered packet capture shows no alternate
+UDP or other PLC port request.
+
 Version `26.1024.013050` supports the observed
 [empty RLL routine download](empty-routine-download.md): an explicitly empty
 source target receives no compiled-code component and has a zero-count

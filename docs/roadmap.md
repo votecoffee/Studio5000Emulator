@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1024.021104` extends downloads to the observed one-dimensional packed
+BOOL-array profile. A native BOOL[64] round trip succeeds, and independent CIP
+reads check every saved bit. The appliance also survives temporary webpage poll
+failures while retaining explicit, instance-bound shutdown. Passive packet
+capture confirms the unresolved Routine upload boundary has no observed
+alternate UDP channel; Routine upload remains the first transfer priority.
+
 Version `26.1024.013050` adds source-bound empty RLL routine downloads without
 inventing code. A mixed empty/nonempty fixture completes native
 download/save/reopen/Online and a separate saved connection, while its upload

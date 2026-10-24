@@ -4,6 +4,43 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.021104` adds source-matched packed BOOL-array downloads and
+removes automatic VM poweroff after two failed webpage polls. An explicit guest
+shutdown marker binds **End session** to its application instance and version.
+Two injected manager poll timeouts recover against the live guest without a
+shutdown. An explicit web shutdown is separately checked through its marker,
+manager exit and completed VM poweroff. The first power-state check races the
+hypervisor teardown; a later read-only check confirms completion without
+repeating quit or poweroff.
+
+The owned BOOL[64] fixture completes native SDK download/save/reopen/Online
+across 433 verified requests. Independent ordinary CIP reads match all 64 saved
+bits, including both sides of the storage-word boundary. The complete
+1,751-event journal replays identically offline. Source/model preservation,
+actual Offline cleanup and no SDK fault are confirmed. All 176 affected checks
+and 354 Python syntax checks pass; the full suite was not rerun. Source, EXE,
+web assets and all 119 appliance modules match the version.
+
+A narrowly filtered passive capture of a routine-containing upload retains
+20,014 emulator-address packets with zero reported drops. The complete 263-byte
+Routine reply appears on TCP 44818 without retransmission or reset. The only
+other observed endpoint port is the SSH management tunnel; no alternate UDP
+channel appears. The upload still fails after 349 requests, with source/model/
+installation preserved and actual Offline cleanup, without an SDK fault. The
+capture and complete diagnostic journal identify no additional source-read
+request. This does not establish response MAC validity or the rejection cause.
+
+All 809 saved successful reference Routine replies use the same `0x36` wrapper
+and 263-byte extent. Those framing observations do not authenticate the saved
+capture or associate its opaque source-key bytes with a loaded project.
+
+After the explicit shutdown test, the normal demo is restored by source load
+and a native download/save/reopen/Online across 432 requests. Its current
+routine-containing upload still fails after 348 requests with all 22 fields
+succeeding and no source read. Both complete journals replay identically.
+The failed upload preserves the installation and model with actual Offline
+cleanup and no SDK fault.
+
 Version `26.1024.013050` adds the observed
 [empty-routine download profile](empty-routine-download.md), bound to an
 explicitly empty source declaration. Its native batch omits compiled code and
