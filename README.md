@@ -10,28 +10,23 @@ and executable use the name **LogixLab**.
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release binds the downloaded `ControllerSerialNumber` metadata to the
-emulator endpoint's actual Identity. Studio can supply that serial when a saved
-ACD contains zero. The original catalog stays immutable; the committed download
-view records the accepted serial. Other metadata replacements remain checked
-against their source values.
+Saved-download imports recognize the checked [Program Routine headers](docs/routine-types.md)
+and named Controller numeric [metadata qualifiers](docs/native-metadata-values.md).
+During download, Studio may update `ControllerSerialNumber` to the endpoint's
+actual Identity. The original catalog stays immutable, and the committed view
+retains that serial. Other metadata replacements stay checked against source.
 
-The preceding revision reads the saved download's named Controller numeric
-[metadata qualifiers](docs/native-metadata-values.md) after checking their
-source-declared type, complete framing and exact Controller scope. The preceding
-revision recognizes the [Program Routine headers](docs/routine-types.md)
-in an ACD saved after a successful native download. Original parent paths,
-Routine IDs, Type words and opaque source keys remain source-bound. Unknown
-storage layouts and duplicate active records are rejected. The owned saved
-download also passes an Offline save/reopen/L5X export with both routines'
-parsed logic and all 14 tags' saved values preserved.
+An owned saved ACD completes Offline save/reopen/L5X export, preserving both
+routines' parsed logic and all 14 tags' saved values. Reimporting it and performing
+another download, save, reopen and Go Online succeeds across 414 verified requests.
+Routine upload still fails before source retrieval, after 349 verified requests.
 
-The preceding release validates Studio's nested UDT dependency lists when checking
+Studio's nested UDT dependency lists are validated when checking
 whether an ordinary source project has no Energy objects. Every declared
 dependency must match a nested member type; opaque, incomplete or foreign
 dependency graphs remain unavailable.
 
-Earlier work accepts explicitly named packed-bit hosts in the
+The app accepts explicitly named packed-bit hosts in the
 [UDT wire catalog](docs/native-template-snapshots.md). A declared hidden scalar
 SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
 overlap, reserved-bit and member-access checks remain in place.
@@ -73,7 +68,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 156 affected checks and 354 Python syntax checks.
+This iteration passes 179 affected checks and 354 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

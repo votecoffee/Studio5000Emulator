@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1024.005421` completes an owned saved-download reimport and second
+download/save/reopen/Online sequence across 414 verified requests. It reads
+the saved Routine headers and named numeric metadata, then binds the downloaded
+Controller serial property to the actual endpoint Identity. Source catalogs and
+saved tag values remain preserved. Routine upload still fails before source
+retrieval; the failure also occurs with a single NOP rung. Resolving that
+boundary remains the priority, followed by broader replacement and online edits.
+
 Version `26.1024.000616` validates exported nested UDT dependencies against the
 ordinary source member graph before permitting empty Energy discovery. This
 resolves the observed tag-collection boundary for the owned nested-UDT fixture:

@@ -4,6 +4,33 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Versions `26.1024.003512` through `26.1024.005421` extend the saved-download
+round trip. The reader recognizes checked Program component-type-259 Routine
+headers and format-12 named Controller numeric properties. Download staging
+can bind an existing `ControllerSerialNumber` property to the actual emulator
+endpoint Identity, while preserving the original catalog and other value checks.
+
+An owned saved download passes Offline save/reopen/L5X export with both
+routines' parsed logic and all 14 saved tag values preserved. Reimporting that
+project and downloading, saving, reopening and going Online succeeds across
+414 verified requests. The earlier attempt reaches 186 requests and rejects a
+zero-to-endpoint serial update. Both preserve original files/model and confirm
+Offline cleanup without an SDK fault. The successful transfer's optional journal
+stops early; retained checkpoints independently cover all 1,379 transfer events
+without gaps. The incomplete recorder receipt is retained separately.
+
+The reimported routine-containing upload still fails Program collection after
+349 verified requests, before source retrieval. Its complete recording replays
+identically and confirms all 22 fields in the first Routine bulk reply succeed.
+An independent one-rung NOP control also downloads/save/reopens/Online across
+434 requests and fails upload at the same boundary after 349. This reproduces
+the boundary with minimal ladder logic; it does not prove the underlying cause.
+
+All 179 affected checks and 354 Python syntax checks pass. The full behavioral
+suite was not rerun. All 119 deployed modules, browser assets and displayed
+versions match `26.1024.005421`. General routine upload, unrelated project
+replacement and the complete online-edit lifecycle remain unfinished.
+
 Version `26.1024.000616` validates Studio's exported UDT dependencies against
 the complete ordinary member-type graph, retaining repeated nested references.
 Unknown families, extra/missing entries, namespaces and opaque content remain
