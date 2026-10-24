@@ -13,7 +13,8 @@ page header, Windows tray and executable properties share this version.
 This release aligns seven [native catalog layout revisions](docs/controller-schema-discovery.md#native-catalog-layout-selection)
 with their observed v35 schemas, including Program, Task, Symbol and Data Table.
 Layout selection preserves source-bound field availability, real catalog counts
-and existing write permissions. Complete native upload remains unfinished.
+and existing write permissions. The existing empty-Program SDK upload case
+passes a fresh regression; uploads containing routines remain unfinished.
 
 Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
 retain the exact accepted download values and source/component bytes. Earlier
@@ -32,12 +33,12 @@ Program-mode routine replacement now retains the committed download identity
 while reporting the changed runtime logic separately. A native SDK test
 completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
-Upload still fails during Program collection.
+The routine-containing demo upload still fails during Program collection.
 
 This iteration passes 255 focused checks and 350 Python syntax checks. The
-preceding Windows milestone suite passed 2,003 checks with two platform skips.
+Windows milestone suite passes 2,023 tests, with two platform checks skipped.
 
-**Native upload, replacement with another project, SDK tag-address discovery and the complete
+**Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
 monitoring remains unverified. Supported instructions have bounded software
 models; this project does not establish native controller equivalence.
@@ -164,8 +165,8 @@ Full native upload/download and online tag monitoring remain unfinished.
 The 1,002-test suite passes on Windows and Linux with expected platform skips.
 The rebuilt `.75` runtime passes 291 protocol checks and a 17-step native mode
 probe covering repeated Run-entry initialization and bidirectional mode readback.
-Current SDK upload, tag-read and download probes still fail their native
-acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
+At those earlier releases, SDK upload, tag-read and download probes still failed
+their native acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
 for the mode probe and its limits.
 
 ## Usage
@@ -261,7 +262,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
+| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for an empty Program; routine-containing uploads and saved uploaded ACDs remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, exact saved values and bounded installation of source-equivalent scalar/TIMER/COUNTER projects; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |

@@ -4,6 +4,31 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.214154` selects observed v35 layouts for Program, Task, I/O Map,
+Extended Device, Symbol, Data Table and Template class metadata. Source-bound
+counts and field availability are preserved. Live single/duplicate-list reads
+verify all seven selections, scoped Symbol/Table layouts and the Data Table API.
+The SDK upload receives the corrected revisions.
+
+The same-project empty-Program `UploadAsync` regression succeeds across 970
+verified requests, with source/model/audit preservation, confirmed Offline and
+cleanup, and no SDK fault. This retains the narrow capability previously recorded
+on `.160`; it does not prove that the revision changes caused success. Saving
+and reopening an uploaded ACD and uploads containing routines remain unverified.
+The successful transfer exceeds the bounded trace ring, so its complete starting
+checkpoint is not retained; SDK method receipts and request counters are retained.
+
+The normal demo's saved-baseline upload still fails Program collection after
+349 requests, before Routine source retrieval. Source-equivalent
+download/save/reopen/Online succeeds across 433 requests; a repeated restoration
+of the demo succeeds across 432, followed by separate-process Online across 74.
+All native cases confirm cleanup and original-file preservation without an SDK
+fault. The stopped demo is restored after the empty-Program trial.
+
+All 118 deployed modules, browser assets and displayed versions match. The
+255 focused checks and 350 Python AST checks pass. The Windows milestone suite
+runs 2,025 tests: 2,023 pass and two platform checks are skipped.
+
 Version `26.1023.212737` aligns the supported native v35 RLL Executable class
 layout with revision 11, separately from the original instance Type words.
 It requires complete, unchanged, typed and unprotected original Routine
