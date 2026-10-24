@@ -73,6 +73,13 @@ application type names in polling state.
 
 ## Validation and limits
 
+Version `26.1023.235144` binds the original definitions of an owned nested UDT
+fixture with an ordinary packed-host name. Complete symbolic and Data Table
+reads match 100 source-value bytes across scalar, nested and array UDT tags.
+The SDK also receives those exact three tables before its upload stops at
+unavailable Energy discovery. This verifies type/value reads without establishing
+complete native upload or saved uploaded ACD acceptance.
+
 A completed reference upload supplied 830 contiguous Template definitions.
 All 830 parsed structurally. Across 42 type names also present in an owned demo
 download, handles, member counts, sizes, families, reconstruction metadata and

@@ -723,6 +723,15 @@ and eight nested user types. Existing AOI/external-module restrictions remain.
 This check establishes absence of Energy objects in the software model; member
 wire layouts and tag values use their separate existing checks.
 
+Version `26.1024.000616` recognizes Studio's optional `Dependencies` section
+inside an ordinary user DataType. Each entry must be a canonical `DataType`
+dependency, and the complete list must match the nested member-type references,
+including a repeated dependency for each member using that type. Unknown fields,
+object families, extra/missing entries, namespaces and opaque content keep
+Energy discovery unavailable. The existing bounded graph still resolves every
+referenced type; dependency metadata cannot declare an otherwise unknown type
+ordinary. This does not add Energy measurements or control services.
+
 A completed successful v35 reference upload contains 44 empty successful replies
 to service `0x3B` at Base Energy (`0x4E`) or Electrical Energy (`0x4F`), instance
 zero: four global replies and forty replies under twenty Program scopes. The

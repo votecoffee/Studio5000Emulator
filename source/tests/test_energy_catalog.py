@@ -103,6 +103,27 @@ class EnergyCatalogTests(unittest.TestCase):
                 else:member.set('DataType','BIT')
                 self.assertFalse(self.catalog(candidate).empty)
 
+    def test_exported_nested_type_dependencies_match_each_declared_member(self):
+        self.add_udt(self.root, 'Reading')
+        outer, member = self.add_udt(self.root, 'Device', 'Reading')
+        E.SubElement(outer.find('Members'), 'Member', Name='History', DataType='Reading', Dimension='2')
+        dependencies = E.SubElement(outer, 'Dependencies')
+        for _ in range(2):E.SubElement(dependencies, 'Dependency', Type='DataType', Name='Reading')
+        self.assertTrue(self.catalog(self.root).empty)
+        for change in ('missing', 'extra', 'unknown', 'family', 'attribute', 'namespace', 'opaque', 'text', 'duplicate'):
+            root = copy.deepcopy(self.root);node = root.find('./Controller/DataTypes/DataType[@Name="Device"]')
+            group = node.find('Dependencies');item = group[0]
+            if change == 'missing':group.remove(item)
+            elif change == 'extra':E.SubElement(group, 'Dependency', Type='DataType', Name='Reading')
+            elif change == 'unknown':item.set('Name', 'Other')
+            elif change == 'family':item.set('Type', 'Energy')
+            elif change == 'attribute':group.set('Use', 'Context')
+            elif change == 'namespace':item.tag = '{urn:unknown}Dependency'
+            elif change == 'opaque':E.SubElement(item, 'EncodedData')
+            elif change == 'text':item.text = 'opaque'
+            else:node.append(copy.deepcopy(group))
+            with self.subTest(change=change):self.assertFalse(self.catalog(root).empty)
+
     def test_deep_cached_graphs_and_type_budgets_remain_bounded(self):
         for index in range(9):self.add_udt(self.root,'T'+str(index),'DINT' if index==0 else 'T'+str(index-1))
         self.assertFalse(self.catalog(self.root).empty)

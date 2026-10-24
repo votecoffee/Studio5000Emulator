@@ -6,11 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.235144`.** Versions use the release timestamp
+**Current app version: `26.1024.000616`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release accepts explicitly named packed-bit hosts in the
+This release validates Studio's nested UDT dependency lists when checking
+whether an ordinary source project has no Energy objects. Every declared
+dependency must match a nested member type; opaque, incomplete or foreign
+dependency graphs remain unavailable.
+
+The preceding revision accepts explicitly named packed-bit hosts in the
 [UDT wire catalog](docs/native-template-snapshots.md). A declared hidden scalar
 SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
 overlap, reserved-bit and member-access checks remain in place.
@@ -50,7 +55,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 213 affected checks and 354 Python syntax checks. The
+This iteration passes 130 affected checks and 354 Python syntax checks. The
 preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete

@@ -5,6 +5,7 @@ only for complete ordinary-tag projects with checked ordinary user types,
 no AOIs or external modules. Unknown source configurations remain unavailable; no readings are
 substituted for unsupported energy objects.
 """
+from collections import Counter
 from dataclasses import dataclass
 import re
 from .tag_catalog import complete_tag_source
@@ -41,7 +42,8 @@ def ordinary_user_types(controller):
                 node.attrib.keys()-{'Name', 'Class', 'Family', 'Use'} or
                 node.get('Class') != 'User' or node.get('Family') != 'NoFamily' or node.get('Use') not in (None, 'Target') or
                 len(node.findall('Members')) != 1 or len(node.findall('Description')) > 1 or
-                any(n.tag not in ('Members', 'Description') for n in node)):
+                len(node.findall('Dependencies')) > 1 or
+                any(n.tag not in ('Members', 'Description', 'Dependencies') for n in node)):
             return None
         members = node.find('Members')
         if members.attrib or not 1 <= len(members) <= 256:return None
@@ -68,6 +70,21 @@ def ordinary_user_types(controller):
             names.add(member_name.casefold()); targets.append(dtype.casefold())
         total += len(members)
         if total > 65536:return None
+        dependencies = node.find('Dependencies')
+        if dependencies is not None:
+            if dependencies.attrib or len(dependencies) > len(members) or (dependencies.text or '').strip():return None
+            references = []
+            for dependency in dependencies:
+                if (dependency.tag != 'Dependency' or set(dependency.attrib) != {'Type', 'Name'}
+                        or dependency.get('Type') != 'DataType' or not valid_name(dependency.get('Name'))
+                        or len(dependency) or (dependency.text or '').strip() or (dependency.tail or '').strip()):
+                    return None
+                references.append(dependency.get('Name').casefold())
+            # Studio's export repeats a nested DataType dependency for each
+            # member that uses it. Verify that redundant graph, never ignore
+            # unknown object families or opaque dependency declarations.
+            expected = [target for target in targets if target.upper() not in ORDINARY_TYPES and target != 'bit']
+            if Counter(references) != Counter(expected):return None
         types[name.casefold()] = targets
     for node in (n for t in declarations for n in t.iter() if n.tag == 'Description'):
         if node.attrib or len(node):return None

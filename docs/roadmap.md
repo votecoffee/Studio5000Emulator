@@ -6,6 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1024.000616` validates exported nested UDT dependencies against the
+ordinary source member graph before permitting empty Energy discovery. This
+targets the tag-collection failure observed after successful nested UDT reads.
+Routine upload remains a separate unresolved transfer boundary.
+
 Version `26.1023.235144` accepts explicitly mapped packed-bit host names in
 source-checked UDT catalogs. It also permits the missing routine-data batch
 only for a complete source and prepared image with zero routines. Native
