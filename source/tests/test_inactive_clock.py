@@ -39,7 +39,11 @@ class InactiveClockTests(unittest.TestCase):
 
     def test_partial_reply_returns_only_whole_prefix_records_and_followup_completes(self):
         self.disable();order=(*range(1,29),102,103,104,105)
-        for limit in (452,480,508):
+        with patch('logixlab.software_clock.time.time_ns',return_value=1_700_000_000_123_456_789):
+            complete_size=len(self.listing(order,2048))
+        # Software identity strings include the release version. Test the real
+        # boundary rather than assuming a particular identification length.
+        for limit in (complete_size-1,complete_size,complete_size+28):
             with self.subTest(limit=limit):
                 pending=order;returned=[];requests=0
                 while pending:
@@ -52,7 +56,7 @@ class InactiveClockTests(unittest.TestCase):
                     pending=tuple(decoded['remaining_attributes']);requests+=1
                     self.assertLessEqual(requests,3)
                 self.assertEqual(returned,list(order))
-                self.assertEqual(requests,2 if limit==452 else 1)
+                self.assertEqual(requests,2 if limit<complete_size else 1)
 
     def test_partial_counts_errors_duplicates_and_exact_size_boundary(self):
         self.disable();order=(5,999,5)
