@@ -4,6 +4,26 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.205529` adds signed readback of exact Routine source retained
+by a completed source-equivalent download. The observed `0x3A` stream accepts
+only Program/Routine `0x5D` selector `(1, 3)`, checks the current source and
+catalogs, and returns bounded raw chunks with verified session counters/MACs.
+Changed logic, stale or foreign streams and unsupported operations fail.
+
+An independent client reads both ConveyorDemo routines from the deployed
+appliance: 1,140 bytes in four signed frames, exactly matching the new SDK
+download's source containers. The ten source rungs decode against the original
+project. Response MACs, unchanged source/model/audit and cleanup are verified.
+This is protocol readback evidence, not SDK upload acceptance.
+
+The SDK download/save/reopen/Online workflow still succeeds after 432 requests.
+Upload using that saved ACD as its preserved merge baseline still fails
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 348 requests, before Routine source
+retrieval. Both preserve originals, confirm SDK Offline/cleanup and report no
+SDK fault. All 118 deployed modules, assets and displayed versions match;
+222 focused checks and 349 Python AST checks pass. The full suite was not
+repeated for this iteration.
+
 Version `26.1023.203747` adds the public `--save-downloaded-acd` probe option:
 save a successful source-equivalent download to a new ACD, close it, reopen
 it and verify Online. The saved file retains the changed download UID while

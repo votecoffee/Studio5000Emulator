@@ -52,3 +52,9 @@ Focused tests cover exact and fragmented TCP readback, source/model preservation
 foreign contexts, bad MACs, missing or stale offsets, catalog changes, edits,
 programming reservations and reply budgets. Native acceptance checkpoints are
 recorded in the [connectivity history](connectivity-history.md).
+
+An independent client reads both routines from the deployed ConveyorDemo model:
+1,140 bytes over four signed frames, matching the SDK's downloaded source
+containers byte for byte. Response MACs and all ten source rungs are checked;
+model values, scans and audit state remain unchanged. The SDK itself still
+fails before requesting this service, so complete upload remains unfinished.
