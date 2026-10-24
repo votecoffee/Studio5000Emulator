@@ -6,16 +6,23 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.000616`.** Versions use the release timestamp
+**Current app version: `26.1024.003512`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release validates Studio's nested UDT dependency lists when checking
+This release recognizes the [Program Routine headers](docs/routine-types.md)
+in an ACD saved after a successful native download. Original parent paths,
+Routine IDs, Type words and opaque source keys remain source-bound. Unknown
+storage layouts and duplicate active records are rejected. The owned saved
+download also passes an Offline save/reopen/L5X export with both routines'
+parsed logic and all 14 tags' saved values preserved.
+
+The preceding release validates Studio's nested UDT dependency lists when checking
 whether an ordinary source project has no Energy objects. Every declared
 dependency must match a nested member type; opaque, incomplete or foreign
 dependency graphs remain unavailable.
 
-The preceding revision accepts explicitly named packed-bit hosts in the
+Earlier work accepts explicitly named packed-bit hosts in the
 [UDT wire catalog](docs/native-template-snapshots.md). A declared hidden scalar
 SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
 overlap, reserved-bit and member-access checks remain in place.
@@ -57,8 +64,8 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 130 affected checks and 354 Python syntax checks. The
-Windows milestone suite passes 2,052 tests, with two platform checks skipped.
+The preceding milestone passes 2,052 Windows tests, with two platform checks
+skipped. Small revisions use affected checks.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

@@ -1,5 +1,18 @@
 # Original Routine Type words
 
+Version `26.1024.003512` also reads the Program-scoped component-type-259
+headers produced when the native SDK saves a successful download. This profile
+requires header version 0, body format 54, the complete 371-byte ordinary RLL
+storage layout, original Type `0x07FF` and the counted opaque source-key field.
+Unknown profiles remain unavailable. Parent paths still distinguish Programs
+(`0x68`) from AOIs (`0x338`); a shared component type never flattens scopes.
+Duplicate active records across either Program storage type reject the inventory.
+
+An owned saved download was reopened, saved separately, reopened again and
+exported to L5X while Offline. Both routines' parsed logic and all 14 tags'
+saved values matched the original project. This establishes that example's
+offline round trip, separately from upload or native machine-code equivalence.
+
 Version `26.1023.212737` reports Executable class revision 11 for the native v35
 L85E profile with a complete, unchanged ordinary RLL inventory, original Type
 words and unprotected source keys. Both global and Program-scoped class reads
@@ -19,8 +32,8 @@ The bounded native Routine reader already correlates original Program or AOI
 parents, child IDs and readable names. It now retains the two-byte word at
 offset 90 for the unprotected format-54, 371-byte body profile, after checking
 its fixed storage headers. Other body layouts may still supply identities but
-withhold Type. Program component type 256 and AOI component type 259 remain
-separate namespaces.
+withhold Type. Program component type 256, the checked saved Program type-259
+profile and AOI component type 259 retain their exact logical parent namespaces.
 
 The immutable Routine manifest adds an optional `type_word`. An absent field
 remains unavailable, including in older manifests; no default is applied.

@@ -2,7 +2,8 @@
 
 AOI and Program parents use separate namespaces even when their numeric IDs
 coincide. The shared bounded Comps.Dat parser accepts only component type 259,
-header version 0 and body format 54 for AOI parents (Program uses type 256).
+header version 0 and body format 54 for AOI parents. Program records use type
+256 or the separately checked ordinary saved-download type-259 profile.
 """
 from dataclasses import dataclass,field
 import gzip

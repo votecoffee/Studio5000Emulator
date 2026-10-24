@@ -1,7 +1,9 @@
 """Original ACD identities for the observed Program-scoped Executable format.
 
-The owned v35 source establishes component type 256, header version 0 and
-body format 54. Its six UINT16 logical words describe Program 0x68 parent
+The owned v35 source establishes component types 256 and 259, header version 0
+and body format 54. Type 259 Program records additionally require the complete
+ordinary unprotected RLL storage profile seen in saved downloads. Six UINT16
+logical words describe Program 0x68 parent
 and Executable 0x6D child IDs. Nothing here reads compiled code or addresses,
 generates IDs from source order, or grants native edit/execution authority.
 The unprotected 371-byte body profile also retains its original Type word;
@@ -99,7 +101,8 @@ def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
         used=struct.unpack_from('<I',record)[0]
         if not 148<=used<=len(record) or struct.unpack_from('<I',record,12)[0]!=0:
             raise ModelError('Unsupported native routine component header layout')
-        if struct.unpack_from('<H',record,10)[0]!={0x68:256,0x338:259}[parent_class]:continue
+        component_type=struct.unpack_from('<H',record,10)[0]
+        if component_type not in {0x68:(256,259),0x338:(259,)}[parent_class]:continue
         raw_name=bytes(record[24:148])
         stop=next((index for index in range(0,124,2) if raw_name[index:index+2]==b'\0\0'),None)
         if stop is None:raise ModelError('Unterminated native routine component name')
@@ -127,6 +130,8 @@ def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
         if (len(body)==371 and struct.unpack_from('<4I',body,74)==(297,9,1,189)):
             type_word=struct.unpack_from('<H',body,90)[0]
             if body[156:160]==b'\x42\0\0\x08':source_key=bytes(body[158:224])
+        if parent_class==0x68 and component_type==259 and (type_word!=0x7FF or source_key is None):
+            raise ModelError('Unsupported saved Program routine storage profile')
         found[key]=(*pair,type_word,source_key);instances.add(pair)
     if found.keys()!=expected.keys():raise ModelError('Incomplete native routine inventory')
     return [dict(expected[key],program_instance=found[key][0],instance=found[key][1],
@@ -229,7 +234,7 @@ class NativeRoutines:
 
     def description(self):
         return dict(bound=True,complete=True,routines=len(self.rows),programs=len({row.program_instance for row in self.rows}),
-                    source='ACD Comps.Dat Executable format 54 and complete source routine names',
+                    source='ACD Comps.Dat Program Executable types 256/259, format 54 and complete source routine names',
                     source_acd_sha256=self.source_acd_sha256,source_l5x_sha256=self.source_l5x_sha256,
                     type_words_available=sum(row.type_word is not None for row in self.rows),
                     source_key_metadata_available=sum(row.source_key is not None for row in self.rows),

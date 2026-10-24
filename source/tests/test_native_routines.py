@@ -46,7 +46,50 @@ def row(program='ProgramA',name='Run',parent=11,instance=7):
     return dict(program=program,name=name,program_instance=parent,instance=instance)
 
 
+def saved_record(*,logical=(0x68,11,0x6D,7,0,0),component_type=259,offset=None,value=None):
+    """Canonical native storage example, retaining exact opaque source bytes."""
+    original=record(logical=logical,component_type=component_type)
+    data=bytearray(original[6:]+bytes(371-22))
+    struct.pack_into('<I',data,0,len(data))
+    struct.pack_into('<4I',data,148+74,297,9,1,189)
+    struct.pack_into('<H',data,148+90,0x7FF)
+    key=b'\0\x08'+bytes(range(64));data[148+156:148+224]=struct.pack('<H',66)+key
+    if offset is not None:data[148+offset:148+offset+len(value)]=value
+    return struct.pack('<HI',0xFAFA,len(data)+6)+data
+
+
 class NativeRoutineTests(unittest.TestCase):
+    def test_saved_download_program_headers_preserve_original_id_type_and_opaque_key(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'saved.ACD';original=container(database(saved_record()));path.write_bytes(original)
+            digest=hashlib.sha256(original).hexdigest()
+            symbols=NativeSymbols(digest,'b'*64,[],[{'name':'ProgramA','instance':11}])
+            catalog=NativeRoutines.from_acd(path,'b'*64,EXPECTED,symbols)
+            self.assertEqual(catalog.rows[0].manifest(),dict(row(),type_word=0x7FF,
+                source_key_hex=(b'\0\x08'+bytes(range(64))).hex()))
+            self.assertEqual(path.read_bytes(),original)
+            self.assertEqual(NativeRoutines.from_manifest(catalog.manifest(),'b'*64).manifest(),catalog.manifest())
+
+    def test_saved_program_and_aoi_headers_share_component_type_but_keep_exact_parent_scope(self):
+        data=database(saved_record(),saved_record(logical=(0x338,11,0x6D,7,0,0)))
+        program=native_routines.routine_paths(data,EXPECTED,PROGRAMS)
+        aoi=native_routines.routine_paths(data,EXPECTED,PROGRAMS,parent_class=0x338)
+        self.assertEqual(program,aoi)  # Each separate query resolves its own exact scoped record.
+        for logical in ((0x338,11,0x6D,7,0,0),(0x68,22,0x6D,7,0,0),(0x6D,7,0,0,0,0)):
+            with self.subTest(logical=logical),self.assertRaises(ModelError):
+                native_routines.routine_paths(database(saved_record(logical=logical)),EXPECTED,PROGRAMS)
+
+    def test_unknown_saved_program_storage_and_mixed_active_duplicates_are_rejected(self):
+        invalid=[record(component_type=259),saved_record(offset=74,value=bytes(4)),
+            saved_record(offset=90,value=b'\xfc\x07'),saved_record(offset=156,value=b'\x41\0'),
+            saved_record(offset=158,value=b'\0\x09'),saved_record(logical=(0x68,11,0x6D,7,1,0))]
+        for value in invalid:
+            with self.subTest(profile=value[148:170]),self.assertRaises(ModelError):
+                native_routines.routine_paths(database(value),EXPECTED,PROGRAMS)
+        for values in ((record(),saved_record()),(saved_record(),record()),(saved_record(),saved_record())):
+            with self.subTest(records=len(values)),self.assertRaises(ModelError):
+                native_routines.routine_paths(database(*values),EXPECTED,PROGRAMS)
+
     def test_expected_names_bind_only_exact_program_scoped_paths_and_allow_reused_ids_across_programs(self):
         expected=[*EXPECTED,{'program':'ProgramB','name':'Run'},{'program':'ProgramA','name':'Other'}]
         data=database(record(),record(parent=22),record(name='Other',instance=50000),record(name='Historical',instance=8),
