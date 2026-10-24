@@ -20,11 +20,12 @@ class NativeRejections:
                   getattr(path,'io_map_instance',None),
                   getattr(path,'controller_instance',None),
                   getattr(path,'aoi_instance',None),
+                  getattr(path,'routine_instance',None),
                   bool(getattr(path,'symbols',())))
         key = (generation,service,*fields,status,reason)
         previous = self.rows.pop(key,None)
         self.rows[key] = {'generation':generation, 'service':service,
-                         **dict(zip(('class_id','instance','attribute','program_instance','io_map_instance','controller_instance','aoi_instance','symbolic'),fields)),
+                         **dict(zip(('class_id','instance','attribute','program_instance','io_map_instance','controller_instance','aoi_instance','routine_instance','symbolic'),fields)),
                          'status':status, 'reason':reason,
                          'count':previous['count']+1 if previous else 1, 'last_seen':time.time()}
         while len(self.rows) > MAX_REJECTIONS:

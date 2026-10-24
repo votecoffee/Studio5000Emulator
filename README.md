@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.085425`.** Versions use the release timestamp
+**Current app version: `26.1024.091940`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -14,7 +14,13 @@ page header, Windows tray and executable properties share this version.
 the original `Routine:<name>` identities under each Program. Their backed
 references match the corresponding Routine headers and remain separate from
 tag values and Data Tables. This closes a source-backed upload discovery gap;
-native upload acceptance is checked separately.
+native upload acceptance is checked separately. The first native trial reads
+Routine data before exposing a further Label-discovery gap.
+
+[Routine Label discovery](docs/routine-label-discovery.md) now preserves the
+Program/Routine/Label path and returns an empty catalog only for complete,
+unchanged source without `LBL` or `JMP` instructions. Nonempty Label inventories
+remain unsupported.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -46,8 +52,9 @@ protected source declarations remain blocked.
 Both mixed and single-empty-routine fixtures complete native SDK
 download/save/reopen/Go Online across 433 verified requests each, with complete
 retained traces and actual Offline cleanup. Source/model preservation passes
-without an SDK fault. Upload still fails at the first Routine metadata reply,
-including for the single empty routine.
+without an SDK fault. Those earlier upload trials failed at the first Routine
+metadata reply, including for the single empty routine. The newer scoped
+reference work reaches Routine-data retrieval.
 
 Saved-download imports recognize the checked [Program Routine headers](docs/routine-types.md)
 and named Controller numeric [metadata qualifiers](docs/native-metadata-values.md).
@@ -58,7 +65,8 @@ retains that serial. Other metadata replacements stay checked against source.
 An owned saved ACD completes Offline save/reopen/L5X export, preserving both
 routines' parsed logic and all 14 tags' saved values. Reimporting it and performing
 another download, save, reopen and Go Online succeeds across 414 verified requests.
-Routine upload still fails before source retrieval, after 349 verified requests.
+The earlier routine-upload trial failed before data retrieval after 349 verified
+requests; newer upload progress is described above.
 
 Studio's nested UDT dependency lists are validated when checking
 whether an ordinary source project has no Energy objects. Every declared
@@ -107,7 +115,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 185 affected checks and 356 Python syntax checks.
+This iteration passes 251 affected checks and 357 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

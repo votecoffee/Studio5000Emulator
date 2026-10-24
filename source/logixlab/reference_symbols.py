@@ -147,14 +147,12 @@ class RoutineReferenceSymbols:
     source_l5x_sha256: str
     rows: tuple[RoutineReferenceSymbol,...]
     by_scope: object
-    _project: object
     _bindings: tuple
 
     def __init__(self,project,identity,symbols,routines,auxiliary,rows):
         object.__setattr__(self,'source_l5x_sha256',project.sha256)
         object.__setattr__(self,'rows',tuple(sorted(rows,key=lambda row:(row.program_instance,row.instance))))
         object.__setattr__(self,'by_scope',MappingProxyType({(row.program_instance,row.instance):row for row in rows}))
-        object.__setattr__(self,'_project',project)
         object.__setattr__(self,'_bindings',(identity,symbols,routines,auxiliary))
 
     @classmethod
@@ -201,7 +199,7 @@ class RoutineReferenceSymbols:
         return cls(project,identity,symbols,routines,auxiliary,rows)
 
     def current(self,project,identity,symbols,routines,auxiliary):
-        if (project is not self._project or project.sha256!=self.source_l5x_sha256
+        if (project.sha256!=self.source_l5x_sha256
                 or any(old is not new for old,new in zip(self._bindings,(identity,symbols,routines,auxiliary)))
                 or any(binding is None or (binding.source_l5x_sha256,binding.source_acd_sha256)!=(project.sha256,identity.source_acd_sha256)
                        for binding in (identity,symbols,routines,auxiliary))

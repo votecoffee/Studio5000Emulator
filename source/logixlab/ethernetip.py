@@ -18,7 +18,7 @@ import threading
 import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from .model import ModelError
+from .model import ModelError,operations
 from .identity import Identity
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
@@ -93,6 +93,7 @@ class Path:
     io_map_instance:int|None=None
     controller_instance:int|None=None
     aoi_instance:int|None=None
+    routine_instance:int|None=None
 
     def reference(self,base=''):
         result=base;indices=[]
@@ -127,6 +128,12 @@ def decode_path(raw):
             if kind==0x28:p.symbols.append(value)
             else:
                 attr={0x20:'class_id',0x24:'instance',0x30:'attribute'}[kind]
+                if (attr=='class_id' and p.class_id==0x6D and value==0x8C and p.instance
+                        and p.program_instance is not None and p.routine_instance is None
+                        and p.aoi_instance is None and p.io_map_instance is None and p.controller_instance is None
+                        and p.attribute is None and not p.symbols):
+                    p.routine_instance=p.instance;p.class_id=value;p.instance=None
+                    continue
                 # These child classes have two logical object pairs. Keep the
                 # parent scope; never flatten a child into a global object.
                 scope = ('program_instance' if p.class_id==0x68 and value in (*energy_catalog.CLASSES,*alarm_catalog.PROGRAM_CLASSES,0x6A,0x6B,0x6D,0x74,0x8D,0x36E)
@@ -146,6 +153,7 @@ def decode_path(raw):
     if p.io_map_instance is not None and p.instance is None:raise CIPError(4,'I/O Map object requires a child instance')
     if p.controller_instance is not None and p.instance is None:raise CIPError(4,'Controller object requires a child instance')
     if p.aoi_instance is not None and p.instance is None:raise CIPError(4,'AOI object requires a child instance')
+    if p.routine_instance is not None and p.instance is None:raise CIPError(4,'Routine object requires a child instance')
     return p
 
 
@@ -826,6 +834,7 @@ class Router:
                 inner[0] in (0x4C,0x52) and path.class_id in (None,0x6B) or
                 inner[0]==0x55 and path.class_id==0x6B or inner[0]==0x4C and path.class_id==0x6C or
                 inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x6E,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36A,0x36E,0x3B0,0x3B1,0x3B2) or
+                inner[0]==0x4B and path.class_id==0x8C and path.routine_instance is not None or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
                 return self.handle(inner,session,depth+1,limit,budget)
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
@@ -1476,6 +1485,34 @@ class Router:
                     attributes[22]=struct.pack('<H',len(routine['source_key']))+routine['source_key']
         return self.attribute_read(service,path,data,attributes)
 
+    def routine_labels_service(self,service,path,data):
+        if (self.endpoint.native_read_only and path.program_instance is None and path.routine_instance is None
+                and path.instance==0 and not path.symbols and path.aoi_instance is None
+                and path.io_map_instance is None and path.controller_instance is None
+                and service in (3,0x0E) and self.app.engine.project.version=='35'
+                and self.app.engine.project.processor=='1756-L85E'):
+            return self.attribute_read(service,path,data,{1:struct.pack('<H',1)})
+        if (not self.endpoint.native_read_only or path.program_instance is None or path.routine_instance is None
+                or path.symbols or path.attribute is not None or path.aoi_instance is not None
+                or path.io_map_instance is not None or path.controller_instance is not None):
+            raise CIPError(4,'Label discovery requires a numeric Program/Routine parent')
+        if service!=0x4B:raise CIPError(8,'Only empty Label discovery is supported')
+        exact(data,0)
+        if path.instance!=0:raise CIPError(5,'No Label instance is exposed')
+        row=next((row for row in self.routines(path.program_instance) if row['id']==path.routine_instance),None)
+        if row is None:raise CIPError(5,'Unknown Routine for Label discovery')
+        engine=self.app.engine;source=engine.project.sha256
+        identity=self.routine_identity_attributes(self.app.native_routines,row['type_word'],row['id'],row['name'])
+        idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,path.program_instance)
+        state=routine_state.attributes(engine,row['program'],row['name'],source_sha256=source,idle=idle,
+            type_bound=row['type_word']==0x7FF)
+        key=(row['program']+'/'+row['name']).casefold()
+        target=engine.project.routines.get(key)
+        if (not identity or not state or target is None or
+                any(op.name in ('LBL','JMP') for rung in target.rungs for op in operations(rung['nodes']))):
+            raise CIPError(0x0C,'Complete unchanged source without LBL instructions is required')
+        return 0,b''
+
     def task_service(self,service,path,data,limit):
         if path.symbols or path.program_instance is not None or path.instance is None:
             raise CIPError(4,'Task metadata requires a controller-scoped instance path')
@@ -1810,6 +1847,8 @@ class Router:
         if depth>4:raise CIPError(8,'Nested message depth limit')
         need(raw,2);service=raw[0];end=2+raw[1]*2;need(raw,end)
         path=decode_path(raw[2:end]);data=raw[end:]
+        if path.routine_instance is not None or path.class_id==0x8C:
+            return self.routine_labels_service(service,path,data)
         if path.class_id==0x64 and (path.symbols or path.program_instance is not None):
             raise CIPError(4,'Extended Device paths must be controller scoped')
         if self.endpoint.native_read_only:

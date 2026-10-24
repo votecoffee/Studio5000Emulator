@@ -123,5 +123,12 @@ class RoutineReferenceTests(unittest.TestCase):
         self.assertNotEqual(old,new)
         self.assertIsNone(self.app.engine.runtime_references.resolve(self.app.engine.project,int.from_bytes(old,'little'),'scoped_symbol'))
 
+    def test_same_source_project_copy_keeps_bindings_but_a_foreign_source_is_revoked(self):
+        catalog=self.app.native_routine_reference_symbols;project=copy.copy(self.app.engine.project)
+        bindings=(self.app.native_project_identity,self.app.native_symbols,self.app.native_routines,self.app.native_auxiliary_symbols)
+        self.assertTrue(catalog.current(project,*bindings))
+        project.sha256='0'*64
+        self.assertFalse(catalog.current(project,*bindings))
+
 
 if __name__=='__main__':unittest.main()

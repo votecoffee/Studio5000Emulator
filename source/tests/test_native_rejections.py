@@ -9,6 +9,12 @@ from test_signed_messages import request
 
 
 class NativeRejectionCollectorTests(unittest.TestCase):
+    def test_routine_parents_keep_distinct_nested_rejections(self):
+        collector=NativeRejections()
+        for routine in (40,41):
+            collector.record(0,0x4B,Path(class_id=0x8C,instance=0,program_instance=123,routine_instance=routine),12,'invalid_request')
+        self.assertEqual([row['routine_instance'] for row in collector.snapshot(0)],[41,40])
+
     def test_structural_grouping_counts_order_and_copies(self):
         collector=NativeRejections();path=Path(class_id=0xAC,instance=1)
         collector.record(0,4,path,15,'read_only_policy')
