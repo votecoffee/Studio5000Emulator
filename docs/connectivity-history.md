@@ -12,6 +12,22 @@ The completion status is zero after synchronous publication. General project
 replacement, compiled-code execution and complete native transfers remain
 separate compatibility boundaries.
 
+The native SDK completes the original ConveyorDemo download after 361 verified
+requests. Committed header readback, zero completion status and a new audit
+epoch are verified. A private same-project Download → Go Online diagnostic also
+succeeds, verifies Online, and returns Offline normally after 433 requests.
+Original ACD bytes are preserved and neither case faults the SDK.
+
+Upload retains Program collection failure after 349 requests, including on the
+installed model. A separate download-then-upload test in the same SDK project
+retains that failure. A fresh original ACD fails post-download Go Online with
+`RxCL_E_CANNOT_UPLOAD_PHYS_ADDR` after 70 requests, before descriptor retrieval.
+Saved/downloaded project-state persistence and full upload remain unfinished.
+All cases confirm SDK Offline and cleanup without an SDK fault. All 117 deployed
+modules and delivery versions match; 206 focused checks pass. The 2,003-check
+Windows milestone suite passes with two platform skips after a fixed-length
+clock-pagination test was changed to exercise the actual software identity size.
+
 Version `26.1023.195217` adds source-matched initial-value preparation after the
 configured Change Log header. It requires complete tag/table coverage, exact
 scalar or original TIMER/COUNTER layouts and saved value bytes, accounts for the

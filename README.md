@@ -17,7 +17,17 @@ fresh scan state and audit epoch, preserving original ACD catalogs and keeping
 committed runtime correlation separate. General project replacement remains
 unsupported; native acceptance is recorded in the compatibility checkpoints.
 
-**Full native upload/download, SDK tag-address discovery and the complete
+The native SDK completes a ConveyorDemo download (361 verified requests) and
+Download → Go Online in the same SDK project (433). Committed header readback,
+SDK Offline and cleanup are verified, with original ACD bytes preserved and no
+SDK fault. Upload still fails during Program collection. A fresh original ACD
+also fails post-download Go Online at physical-address discovery; persistence
+of the downloaded project's connection state remains unfinished.
+
+All 117 deployed modules and displayed versions match. The Windows milestone
+suite passes 2,003 checks with two platform skips; 206 focused checks also pass.
+
+**Native upload, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
 monitoring remains unverified. Supported instructions have bounded software
 models; this project does not establish native controller equivalence.

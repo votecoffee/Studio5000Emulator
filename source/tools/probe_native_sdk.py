@@ -1,7 +1,9 @@
 """Native SDK acceptance against an already running LogixLab research endpoint.
 
-The optional installed SDK runs on a private ACD copy. Download attempts require
-disabled project transfer; temporary programming coordination is permitted.
+The optional installed SDK runs on a private ACD copy. Download attempts use the
+bounded source-equivalent installation profile; they can reset runtime values,
+execution state and correlation while preserving the original ACD. General
+project replacement remains disabled.
 Reports contain private project metadata and default to ignored .local storage.
 An upload may select a separate preserved offline merge baseline with
 --upload-target; the emulator remains pinned to --project. Only the new private

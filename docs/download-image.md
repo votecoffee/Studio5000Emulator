@@ -1003,6 +1003,23 @@ epoch independently of the monitored event mask, following the download rule in
 This does not reproduce Rockwell's audit-value generator or native Change Log
 history. Native transfer completion remains a separately measured outcome.
 
+The native SDK completes `DownloadAsync` for the original ConveyorDemo after
+361 verified requests. Its committed download UID and original source anchors
+have exact independent wire readback, and completion status is zero. A separate
+private diagnostic completes Download → Go Online in the same SDK project and
+verifies the SDK's Online state after 433 requests. Both confirm SDK Offline and
+normal cleanup, preserve original ACD bytes, and report no SDK fault.
+
+Opening a fresh original ACD after download fails Go Online with
+`RxCL_E_CANNOT_UPLOAD_PHYS_ADDR`; its trace stops before descriptor requests.
+Retaining/saving the downloaded SDK project's connection state has not been
+implemented as a public workflow. Upload still fails Program collection both
+standalone and after a download within the same SDK project. These results do
+not establish general upload, GUI monitoring or arbitrary project replacement.
+
+All 117 deployed modules and delivery versions match. The Windows milestone
+suite passes 2,003 checks with two platform skips; 206 focused checks pass.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not
