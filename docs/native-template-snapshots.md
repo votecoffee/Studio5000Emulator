@@ -29,8 +29,10 @@ ignored `.local/` storage. Captures and vendor definitions are not bundled.
 
 The application service accepts the JSON as the optional `native_templates`
 field of an L5X `load` request, alongside the matching `native_types` manifest
-and existing project/symbol bindings. No snapshot is inferred when that field
-is absent. A mismatched source pair, unsupported software layout, changed
+and existing project/symbol bindings. A completed source-equivalent download
+can supply its already validated definitions in native compatibility mode.
+Otherwise no snapshot is inferred when that field is absent.
+A mismatched source pair, unsupported software layout, changed
 member access, unknown nested type or inconsistent allocation rejects the load
 before replacing the active engine. Reset preserves the loaded binding;
 loading another project without a snapshot clears it.
@@ -108,6 +110,8 @@ a reported fatal SDK fault. Complete project upload remains unfinished.
 
 Snapshots are bounded to 1,024 definitions, 65,536 bytes per definition and
 1 MiB total. Exposed software definitions also retain the 32,768-byte model
-bound. Only existing supported numeric, nested and packed-bit user layouts can
-bind. Built-in/native-only types, compiled addresses, signature validation and
-the complete upload/download/edit lifecycle remain unfinished.
+bound. Existing supported numeric, nested and packed-bit user layouts can
+bind. Version `26.1024.111516` also binds the exact source-checked
+[TIMER/COUNTER layouts](builtin-template-reads.md). Other built-in/native-only
+types, compiled addresses, signature validation and the complete
+upload/download/edit lifecycle remain unfinished.

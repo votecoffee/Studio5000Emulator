@@ -193,6 +193,18 @@ class Router:
     def templates(self):
         project=self.app.engine.project
         snapshot=getattr(self.app,'native_templates',None) if self.endpoint.native_read_only else None
+        installed=getattr(self.app.engine,'installed_download',None) if self.endpoint.native_read_only else None
+        if installed is not None:
+            try:installed.check(self.app.native_project_identity,project)
+            except ImageError as error:raise CIPError(0x0C,error.reason) from error
+            definitions=installed.namespace._image.templates
+            if getattr(self,'_template_installation',None) is not installed:
+                from .native_templates import NativeTemplates
+                self._installed_templates=NativeTemplates(self.app.native_types,definitions) if definitions else None
+                self._template_installation=installed
+            snapshot=self._installed_templates
+            if snapshot is not None and snapshot._templates!=definitions:
+                raise CIPError(0x0C,'Installed Template definitions changed')
         if snapshot:snapshot.check_source(project,self.app.native_types)
         if self._catalog is None or self._catalog.project is not project or getattr(self,'_catalog_snapshot',None) is not snapshot:
             self._catalog=snapshot.bind(project,self.app.native_types) if snapshot else Catalog(project)
@@ -1187,11 +1199,11 @@ class Router:
         storage=self.scalar_storage().by_ref.get(symbol['ref'].lower())
         attributes=symbol_metadata.attributes(symbol,tag.constant,storage)
         if storage is not None:
-            control=self.installed_symbol_control(symbol)
+            control=self.installed_symbol_control(symbol,storage)
             if control is not None:attributes[6]=control
         return attributes
 
-    def installed_symbol_control(self,symbol):
+    def installed_symbol_control(self,symbol,storage=None):
         """Read an original opaque control word from a committed source view.
 
         The download already retained this field without interpreting its bits.
@@ -1211,7 +1223,10 @@ class Router:
             bindings=HeaderBindings(engine,ns,catalog,self.app.native_routines,self.app.native_auxiliary_symbols,
                 self.app.native_tasks,self.app.native_tables)
             expected=bindings.expected(0x6B,row.program_instance,row.instance)
-            if expected[2]!=struct.pack('<H',symbol['type']):raise ImageError('installed_symbol_type_changed')
+            if storage is None:storage=self.scalar_storage().by_ref.get(symbol['ref'].casefold())
+            if (storage is None or storage.code!=symbol['type']
+                    or expected[2]!=struct.pack('<H',storage.table_code)):
+                raise ImageError('installed_symbol_type_changed')
             incremental.verify_effects(ns._image,ns._source,self.app.native_metadata_values,bindings)
             value=incremental.read_attribute(0x6B,row.program_instance,row.instance,6,
                 ns._image,ns._source,self.app.native_metadata_values,bindings)

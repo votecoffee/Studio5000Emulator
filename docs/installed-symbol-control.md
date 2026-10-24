@@ -18,6 +18,11 @@ the complete unchanged incremental effect ledger. Each read checks the current
 header bindings and retained effects. Contradicted or altered records fail
 rather than supplying a guessed control value.
 
+Version `26.1024.111516` compares native header Type with the backed Table
+layout. For packed BOOL arrays the public Symbol remains `0x20C1` with logical
+bit dimensions, while the downloaded header/Table uses `0x20D3` with word
+dimensions. Both must still refer to the same current storage cell.
+
 Before installation, outside native compatibility, or after routine editing,
 the existing model descriptor behavior remains in use. Supported value writes
 do not change source declarations or the retained control word.
@@ -35,3 +40,10 @@ values and links, later value writes, modified effects, changed source/Type and
 edited-project fallback. Native upload acceptance is assessed separately from
 these software checks; the [routine-upload checkpoint](routine-upload.md)
 records the current reconstruction boundary.
+
+With these original controls, the owned one-rung, two-BOOL `XIC`/`OTE` fixture
+completes native SDK `UploadAsync` on `26.1024.104524` across 936 verified
+requests. The complete source contains two IOI operands. Download, save,
+reopen and Go Online also succeed; upload preserves source/model/audit state
+and confirms Offline cleanup without an SDK fault. Saving an uploaded ACD
+remains unverified.

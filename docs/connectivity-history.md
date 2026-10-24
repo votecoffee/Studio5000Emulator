@@ -4,6 +4,22 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.111516` completes the two-routine conveyor demo's existing-project
+SDK upload across 981 verified requests, including both source streams, ten
+rungs and 30 IOI operands. Exact source-checked TIMER/COUNTER definitions expose
+the two previously omitted tags. Download/save/reopen/Online succeeds across
+430 requests, and independent symbolic/Table reads match all 24 built-in value
+bytes. The complete 1,739/3,488-event journals replay identically offline.
+Source/model/audit preservation, actual Offline cleanup and no SDK fault pass.
+Saving/reopening an uploaded ACD and GUI upload remain unverified.
+
+The preceding `26.1024.104524` serves original Symbol Control bytes from the
+committed incremental headers. The one-rung two-BOOL XIC/OTE fixture then
+completes SDK upload across 936 verified requests, with a complete 460-byte
+source read and two IOI operands. Its download/save/reopen/Online succeeds
+across 430 requests. The demo still fails reconstruction across 366 requests
+until the built-in catalog gap above is addressed.
+
 Version `26.1024.095632` reaches the first routine-containing native SDK upload
 success: a one-rung NOP control completes `UploadAsync` across 973 verified
 requests, including its actual 440-byte source read. Its download/save/reopen/

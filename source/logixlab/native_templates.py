@@ -13,7 +13,7 @@ from .model import ModelError
 from .native_types import NativeTypes
 from .template_layout import decode
 from .template_staging import Attributes, Template as SavedTemplate, MAX_TEMPLATES, MAX_TOTAL_BYTES, MAX_DEFINITION_BYTES
-from .templates import Catalog, Template, MAX_BYTES
+from .templates import Catalog, Template, Member as WireMember, MAX_BYTES
 
 
 @dataclass(frozen=True)
@@ -87,6 +87,25 @@ class NativeTemplates:
                 if not member.hidden and node.get('ExternalAccess', 'Read/Write') != original.access:
                     raise ModelError('Native Template snapshot differs from software member access')
             ids[key] = saved.instance
+        # These two predefined interpreter structures already have an exact
+        # download encoder. Reuse its source-layout check rather than accepting
+        # arbitrary built-in families or guessing a firmware definition.
+        for dtype in ('TIMER','COUNTER'):
+            key=dtype.casefold();saved=self._by_name.get(key)
+            if saved is None:continue
+            from .download_values import encode_value
+            from .download_image import ImageError
+            try:encode_value(dtype,project.default(dtype),self._source)
+            except ImageError as error:raise ModelError(str(error)) from error
+            source=self._source.types[key]
+            if any(m.access!='Read/Write' for m in source.members):
+                raise ModelError('Native builtin member access differs from the interpreter')
+            members=tuple(WireMember(m.name,m.dtype,1,False,m.offset+(m.bit//8 if m.bit is not None else 0),
+                0xC1 if m.dtype=='BOOL' else 0xC4,1 if m.dtype=='BOOL' else 4,
+                m.bit%8 if m.bit is not None else None,m.hidden) for m in source.members)
+            catalog.types[key]=Template(saved.instance,dtype,members,source.size,saved.definition,
+                saved.attributes.handle,1,4,saved.attributes.family)
+            ids[key]=saved.instance
         if len(set(ids.values())) != len(ids):
             raise ModelError('Native Template snapshot has colliding software identities')
         bound = {}
@@ -138,6 +157,6 @@ class NativeTemplates:
                 'source_acd_sha256': self._source.source_acd_sha256, 'source_l5x_sha256': self._source.source_l5x_sha256,
                 'templates': len(self._templates), 'definition_bytes': self.definition_bytes,
                 'definition_sha256': self._definition_sha256,
-                'visibility': 'Existing public software UDT closure in native compatibility mode only',
+                'visibility': 'Public software UDT and source-checked TIMER/COUNTER closure in native compatibility mode only',
                 'headers_and_trailers': 'opaque', 'multiply_code_reference': 'null_uint32',
                 'native_code_installed': False, 'signature_verified': False, 'native_execution': False}

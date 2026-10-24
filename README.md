@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.104524`.** Versions use the release timestamp
+**Current app version: `26.1024.111516`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -14,6 +14,11 @@ page header, Windows tray and executable properties share this version.
 the original opaque control word from validated committed download headers.
 Source or effect changes revoke this view; the bits do not change simulator
 flags or permissions. Native tag-operand upload is checked separately.
+
+[TIMER/COUNTER reads](docs/builtin-template-reads.md) now use exact source-checked
+definitions retained by a committed download. Discovery, structured reads and
+Data Tables share current PRE, ACC and status-bit values. Packed BOOL control
+readback also preserves the distinction between logical bits and storage words.
 
 [Scoped Routine reference Symbols](docs/routine-reference-symbols.md) now expose
 the original `Routine:<name>` identities under each Program. Their backed
@@ -32,11 +37,12 @@ observed empty `(1, 4)` component for source-checked, unprotected Standard RLL
 routines. The source view adds the observed `TargetClass` field while retaining
 the original rung XML and compressed auxiliary bytes.
 
-**[Native SDK upload now succeeds for a one-rung NOP routine](docs/routine-upload.md)**
-across 973 verified requests. Download/save/reopen/Go Online also succeeds.
-The minimal two-BOOL `XIC`/`OTE` fixture and full conveyor demo still report
-`RxE_CORRUPT_RECON_DATA` after source retrieval. Tag-operand reconstruction is
-the next investigation; uploaded ACD saving remains unverified.
+**[Native SDK upload succeeds for the two-routine conveyor demo](docs/routine-upload.md)**
+across **981 verified requests**, reading all ten rungs and 30 IOI operands.
+Download/save/reopen/Go Online also succeeds. Original Symbol Control metadata
+clears the two-BOOL XIC/OTE fixture's reconstruction failure; source-checked
+TIMER/COUNTER definitions close the demo's remaining tag-discovery gap.
+Saving an uploaded ACD remains unverified.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -109,8 +115,8 @@ Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's
 capacity, with gaps and interrupted recordings reported explicitly.
 The nested-UDT empty-Program upload retains all 3,466 diagnostic events and an
-identical offline transfer replay. Uploads containing routines remain
-unfinished.
+identical offline transfer replay. Current bounded Routine upload acceptance
+is described above; arbitrary projects remain unfinished.
 
 Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
 retain the exact accepted download values and source/component bytes. Earlier
@@ -129,11 +135,11 @@ Program-mode routine replacement now retains the committed download identity
 while reporting the changed runtime logic separately. A native SDK test
 completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
-The routine-containing demo upload now retrieves the first routine source,
-then reports a reconstruction-format error. The NOP-only upload control succeeds.
+The routine-containing demo now completes existing-project SDK upload with
+both Routine source streams. Uploaded ACD saving remains unverified.
 
-This iteration passes 181 affected checks and 358 Python syntax checks.
-The routine-upload milestone passes 2,101 Windows tests, with two platform checks
+This iteration passes 238 affected checks and 359 Python syntax checks.
+The routine-upload milestone passes 2,110 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
 **General routine-containing upload, replacement with another project, SDK tag-address discovery and the complete

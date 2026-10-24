@@ -1,31 +1,32 @@
 # Native Routine upload checkpoint
 
-Version `26.1024.095632` completes an existing-project native SDK upload with
-one ordinary RLL routine containing one `NOP` rung. The SDK reads the actual
-Routine source stream and finishes `UploadAsync` across 973 verified requests.
-Download, save, close, reopen and Go Online also succeed across 430 requests.
-Source/model preservation, actual Offline cleanup and no SDK fault are confirmed.
+Version `26.1024.111516` completes existing-project native SDK upload of the
+two-routine conveyor demo across **981 verified requests**. Both complete
+Routine source streams are read: 688 and 476 bytes, containing ten rungs and
+30 IOI operands. Download, save, close, reopen and Go Online also succeed
+across 430 requests. Actual Offline cleanup and no SDK fault are confirmed.
 
-## Current boundary
+## Demonstrated profiles
 
-| Owned fixture | Routine source read | Native SDK upload |
+| Owned fixture | App version | Native SDK upload |
 | --- | --- | --- |
-| One NOP rung | One complete 440-byte source container; no tag operands | Succeeds, 973 verified requests |
-| One `XIC`/`OTE` rung, two BOOL tags | One complete 460-byte source container; two IOI operands | Fails reconstruction, 333 verified requests |
-| Two-routine conveyor demo | First complete 688-byte source container; nine rungs and 27 IOI operands | Fails reconstruction, 367 verified requests |
+| One NOP rung | `26.1024.095632` | Succeeds, 973 verified requests |
+| One `XIC`/`OTE` rung, two BOOL tags | `26.1024.104524` | Succeeds, 936 verified requests |
+| Two-routine conveyor demo, including TIMER and COUNTER | `26.1024.111516` | Succeeds, 981 verified requests |
 
-Both failures report `RxE_CORRUPT_RECON_DATA` while building the first routine.
-The minimal BOOL fixture completes download/save/reopen/Online across 431
-requests; the demo completes that sequence across 429. These results focus the
-next investigation on tag-operand reconstruction. They do not prove a particular
-descriptor, address, instruction or auxiliary field is the cause.
+The two-BOOL fixture previously failed `RxE_CORRUPT_RECON_DATA` after reading
+its 460-byte source. Returning the original [Symbol Control words](installed-symbol-control.md)
+from committed headers clears that failure. The demo still failed while its
+TIMER/COUNTER tags were omitted from discovery. Binding their exact
+[source-checked definitions and current values](builtin-template-reads.md)
+allows the demo upload to finish.
 
-All three transfer journals are complete and replay identically offline.
-Their download/upload event counts are 1,739/3,451 for NOP, 1,738/1,360 for the
-minimal BOOL fixture and 1,735/1,496 for the demo. Offline replay does not
-independently reauthenticate MACs. Native inputs, loaded values, logic and audit
-state are preserved by upload, and every SDK session confirms Offline cleanup
-without a reported SDK fault.
+The complete demo download/upload journals contain 1,739/3,488 events and
+replay identically offline. Offline replay does not independently
+reauthenticate MACs. Upload preserves the original input, loaded values,
+logic, installed correlation and audit state. Independent CIP reads verify
+the two original control words, Template IDs and all 24 TIMER/COUNTER bytes
+through both symbolic and Data Table paths.
 
 ## Implemented source path
 
@@ -38,18 +39,15 @@ compressed auxiliary bytes are preserved, and no native machine code executes.
 
 The emulator must first receive an unchanged source-equivalent download.
 Resetting, reloading or restarting clears that memory-only installation.
-This checkpoint uses existing matching ACD targets; uploaded ACD saving,
-new-project reconstruction, general ladder upload and Studio GUI acceptance
-remain unverified or unfinished.
+These checkpoints use matching existing ACD targets. Saving/reopening an
+uploaded ACD, new-project reconstruction, arbitrary ladder projects and
+Studio 5000 GUI upload acceptance remain unverified or unfinished.
 
 ## Validation
 
-At this milestone, 2,101 Windows software tests pass with two platform checks
-skipped, and all 357 Python files parse. Source, EXE, served browser assets and
-119 appliance modules match the app version. Software checks and SDK acceptance
-remain separate from native controller equivalence.
-
-The original demo is restored with a new source-equivalent download across 430
-verified requests. A separate SDK process reopens the saved ACD and goes Online
-across 73, then confirms Offline cleanup. Original source and model remain
-unchanged, with no SDK fault. The installation remains memory-only.
+This revision passes 238 affected software checks and 359 Python syntax
+checks. Source, EXE, served browser assets and 119 appliance modules match the
+app version. Software checks and SDK acceptance remain separate from native
+controller equivalence. This milestone passes 2,110 Windows
+tests with two platform checks skipped; milestone checks are recorded
+separately from small iterations.
