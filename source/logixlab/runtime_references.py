@@ -31,6 +31,7 @@ class RuntimeReferences:
         self._addresses = {}
         self._objects = {}
         self._reference_catalog = None
+        self._scoped_reference_catalog = None
         # Slots are owned by this interpreter registry, independently of CIP
         # identities and DWORD references. Replacing/reordering Tasks revokes
         # this registration; a new Engine creates its own registry.
@@ -49,6 +50,10 @@ class RuntimeReferences:
             return next((row for row in project.tasks if row['name'].casefold()==key),None)
         if kind == 'symbol' and self._reference_catalog is not None and key.isdecimal():
             return self._reference_catalog.by_instance.get(int(key))
+        if kind=='scoped_symbol' and self._scoped_reference_catalog is not None:
+            parts=key.split(':')
+            if len(parts)==2 and all(part.isdecimal() for part in parts):
+                return self._scoped_reference_catalog.by_scope.get(tuple(map(int,parts)))
         if (kind == 'io_map' and key=='local' and self._source_sha256 is not None
                 and getattr(project,'sha256',None)==self._source_sha256):
             from .io_map import IOMap
@@ -115,6 +120,9 @@ class RuntimeReferences:
     def bind_reference_catalog(self,catalog):
         self._reference_catalog=catalog
 
+    def bind_scoped_reference_catalog(self,catalog):
+        self._scoped_reference_catalog=catalog
+
     def io_map_attributes(self,project,identity=None):
         """Canonical Local link metadata and a backed software Map Address."""
         target=self._current(project,'io_map','local')
@@ -167,12 +175,15 @@ class RuntimeReferences:
         return {8:struct.pack('<I',address),24:struct.pack('<I',0 if routine.casefold()==parent.get('main','').casefold() else 2)}
 
     def symbol_addresses(self,project,catalog,row):
+        parent=getattr(row,'program_instance',0)
+        bound=catalog.by_scope.get((parent,row.instance)) if parent else catalog.by_instance.get(row.instance)
         if (project is not self._project or catalog.source_l5x_sha256!=project.sha256 or
-                catalog.by_instance.get(row.instance) is not row or
+                bound is not row or
                 self._current(project,row.kind,row.target.casefold()) is None):return None
-        self.bind_reference_catalog(catalog)
+        if parent:self.bind_scoped_reference_catalog(catalog)
+        else:self.bind_reference_catalog(catalog)
         value=self.reference(project,row.kind,row.target)
-        header=self.reference(project,'symbol',str(row.instance))
+        header=self.reference(project,'scoped_symbol' if parent else 'symbol',f'{parent}:{row.instance}' if parent else str(row.instance))
         return (value,header) if value is not None and header is not None else None
 
     def description(self):

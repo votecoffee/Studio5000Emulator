@@ -900,13 +900,23 @@ class Router:
                                'dimensions':(dims+[0,0,0])[:3],'external_access':access})
             except ModelError:continue
             except CIPError:continue
-        if not scope:
-            for row in self.reference_symbols():
-                result.append({'id':row.instance,'name':row.name,'type':row.type_code,'dimensions':(0,0,0),
-                               'external_access':0,'object_reference':row})
+        for row in self.reference_symbols(scope):
+            result.append({'id':row.instance,'name':row.name,'type':row.type_code,'dimensions':(0,0,0),
+                           'external_access':0,'object_reference':row})
         return sorted(result,key=lambda item:item['id'])
 
-    def reference_symbols(self):
+    def reference_symbols(self,scope=''):
+        if scope:
+            catalog=getattr(self.app,'native_routine_reference_symbols',None);engine=self.app.engine
+            if catalog is None:
+                engine.runtime_references.bind_scoped_reference_catalog(None)
+                return ()
+            if not catalog.current(engine.project,self.app.native_project_identity,self.app.native_symbols,
+                    self.app.native_routines,self.app.native_auxiliary_symbols):
+                engine.runtime_references.bind_scoped_reference_catalog(None)
+                raise CIPError(0x0C,'Scoped Routine reference Symbol source binding changed')
+            engine.runtime_references.bind_scoped_reference_catalog(catalog)
+            return tuple(row for row in catalog.rows if row.program.casefold()==scope.casefold())
         catalog=getattr(self.app,'native_reference_symbols',None);engine=self.app.engine
         if catalog is None:
             engine.runtime_references.bind_reference_catalog(None)
@@ -1158,8 +1168,9 @@ class Router:
     def symbol_attributes(self,symbol):
         row=symbol.get('object_reference')
         if row is not None:
-            catalog=getattr(self.app,'native_reference_symbols',None)
-            if row not in self.reference_symbols():raise CIPError(0x0C,'Reference Symbol is no longer current')
+            scope=getattr(row,'program','')
+            catalog=getattr(self.app,'native_routine_reference_symbols' if scope else 'native_reference_symbols',None)
+            if row not in self.reference_symbols(scope):raise CIPError(0x0C,'Reference Symbol is no longer current')
             addresses=self.app.engine.runtime_references.symbol_addresses(self.app.engine.project,catalog,row)
             if addresses is None:raise CIPError(0x0C,'Reference Symbol backing is unavailable')
             return row.attributes(*addresses)
@@ -2476,6 +2487,7 @@ class Endpoint:
                     'native_security_bindings':self.app.native_security_bindings.description() if self.enabled and getattr(self.app,'native_security_bindings',None) else None,
                     'native_auxiliary_symbols':self.app.native_auxiliary_symbols.description() if self.enabled and getattr(self.app,'native_auxiliary_symbols',None) else None,
                     'native_reference_symbols':self.app.native_reference_symbols.description() if self.enabled and getattr(self.app,'native_reference_symbols',None) else None,
+                    'native_routine_reference_symbols':self.app.native_routine_reference_symbols.description() if self.enabled and getattr(self.app,'native_routine_reference_symbols',None) else None,
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
                     'native_aoi_routines':self.app.native_aoi_routines.description() if self.enabled and getattr(self.app,'native_aoi_routines',None) else None,
                     'locator':self.locator_state(),

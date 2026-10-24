@@ -22,8 +22,10 @@ manifests without explicit data names retain their previous behavior.
 Version `26.1023.102014` also retains explicit `Routine:<name>` data names from
 Program-scoped components for [temporary download header checks](download-image.md#typed-header-updates).
 The source count, terminator, identifier and numeric Program parent must match
-the supported component layout. These scoped records are excluded from the
-root reference catalog and do not create runtime tags or aliases.
+the supported component layout. Version `26.1024.085425` also promotes eligible
+ordinary RLL records into the separate
+[scoped Routine reference catalog](routine-reference-symbols.md). They remain
+excluded from the root catalog and create no runtime tag values or aliases.
 
 The reference catalog and its descriptors are immutable. Discovery checks
 current source bindings, original IDs and target kinds. Stale or replaced

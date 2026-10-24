@@ -6,9 +6,15 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.023810`.** Versions use the release timestamp
+**Current app version: `26.1024.085425`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Scoped Routine reference Symbols](docs/routine-reference-symbols.md) now expose
+the original `Routine:<name>` identities under each Program. Their backed
+references match the corresponding Routine headers and remain separate from
+tag values and Data Tables. This closes a source-backed upload discovery gap;
+native upload acceptance is checked separately.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -101,7 +107,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 226 affected checks and 355 Python syntax checks.
+This iteration passes 185 affected checks and 356 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
