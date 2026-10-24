@@ -891,7 +891,8 @@ class Router:
                 dims=[]
                 while isinstance(value,list):dims.append(len(value));value=value[0] if value else None
                 template=self.templates().for_type(dtype) if dtype not in TYPES else None
-                if dtype not in TYPES and template is None or dtype=='BOOL' and dims or len(dims)>3:continue
+                if dtype not in TYPES and template is None or len(dims)>3:continue
+                if dtype=='BOOL' and dims and (len(dims)!=1 or not 32<=dims[0]<=65536 or dims[0]%32):continue
                 try:self.access(tag.key,True);access=0
                 except (CIPError,ModelError):access=2
                 code=(0x8000|template.instance) if template else TYPES[dtype][0]

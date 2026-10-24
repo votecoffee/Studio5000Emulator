@@ -30,17 +30,39 @@ class StructureLayout:
 
 
 @dataclass(frozen=True)
+class PackedBoolLayout:
+    """Complete logical BOOL bits stored as little-endian 32-bit words."""
+    bits: int
+
+    def encode(self, value):
+        if (type(value) is not list or len(value)!=self.bits
+                or any(type(bit) is not bool for bit in value)):
+            raise ModelError('Packed BOOL array shape or value changed')
+        return b''.join(struct.pack('<I',sum(int(bit)<<i for i,bit in enumerate(value[start:start+32])))
+                        for start in range(0,self.bits,32))
+
+
+@dataclass(frozen=True)
 class Cell:
     ref: str
     instance: int
     code: int
-    fmt: str | StructureLayout
+    fmt: str | StructureLayout | PackedBoolLayout
     slot: int
     dimensions: tuple = (0,0,0)
     array_offset: int = 0
 
     @property
-    def element_size(self): return self.fmt.size if isinstance(self.fmt,StructureLayout) else struct.calcsize(self.fmt)
+    def element_size(self):
+        if isinstance(self.fmt,PackedBoolLayout):return 4
+        return self.fmt.size if isinstance(self.fmt,StructureLayout) else struct.calcsize(self.fmt)
+
+    @property
+    def storage_dimensions(self):
+        return (self.fmt.bits//32,0,0) if isinstance(self.fmt,PackedBoolLayout) else self.dimensions
+
+    @property
+    def table_code(self):return 0x20D3 if isinstance(self.fmt,PackedBoolLayout) else self.code
 
     @property
     def aggregate(self): return isinstance(self.fmt,StructureLayout) or any(self.dimensions)
@@ -48,7 +70,7 @@ class Cell:
     @property
     def size(self):
         result=self.element_size
-        for dimension in self.dimensions:
+        for dimension in self.storage_dimensions:
             if dimension:result*=dimension
         return result
 
@@ -64,7 +86,7 @@ class Cell:
 
     def header(self):
         # This is this model's descriptor layout, not a vendor firmware header.
-        return struct.pack('<3IHHIIH6x', *self.dimensions, self.code, 0,
+        return struct.pack('<3IHHIIH6x', *self.storage_dimensions, self.table_code, 0,
                            self.instance, self.value_address, 0)
 
     def symbol_header(self):
@@ -75,6 +97,7 @@ class Cell:
 
     def value(self, read):
         value = read(self.ref)
+        if isinstance(self.fmt,PackedBoolLayout):return self.fmt.encode(value)
         structured=isinstance(self.fmt,StructureLayout)
         if value is None: raise ModelError('Unknown Data Table value')
         if any(self.dimensions):
@@ -118,9 +141,14 @@ class AddressSpace:
                     or dimensions!=tuple(sorted(dimensions,key=lambda d:d==0))
                     or (symbol['type']>>13)&3!=sum(d>0 for d in dimensions)):
                 raise ModelError('Invalid Data Table array dimensions')
+            if symbol['type']&0x1FFF==0xC1 and any(dimensions):
+                # The source Symbol counts logical bits; the Table counts
+                # storage words. Other BOOL shapes keep storage unavailable.
+                if (symbol['type']!=0x20C1 or fmt!='<B' or dimensions[1:]!=(0,0)
+                        or not 32<=dimensions[0]<=65536 or dimensions[0]%32):continue
+                fmt=PackedBoolLayout(dimensions[0])
             cell=Cell(symbol['ref'],symbol['id'],symbol['type'],fmt,slot,dimensions,array_bytes)
             if cell.aggregate:
-                if symbol['type']&0x1FFF==0xC1:continue  # Packed BOOL arrays remain unsupported.
                 size=(cell.size+7)//8*8
                 if cell.size>MAX_ARRAY_BYTES or array_bytes+size>MAX_ARRAY_STORAGE_BYTES:continue
                 array_bytes+=size
@@ -154,8 +182,8 @@ class AddressSpace:
 
 
 def attributes(symbol, storage=None):
-    result = {1:struct.pack('<III',*symbol['dimensions']),
-              2:struct.pack('<H',symbol['type']),8:struct.pack('<I',symbol['id'])}
+    result = {1:struct.pack('<III',*(storage.storage_dimensions if storage is not None else symbol['dimensions'])),
+              2:struct.pack('<H',storage.table_code if storage is not None else symbol['type']),8:struct.pack('<I',symbol['id'])}
     if storage is not None:
         result.update({3:struct.pack('<I',storage.address),6:bytes(2),
                        7:struct.pack('<I',storage.value_address),9:bytes(2)})
@@ -169,6 +197,7 @@ def description(*,native_compatibility=False):
             'scalar_storage':'Nonconstant base atoms and supported explicit user structures; zero data-use flags',
             'scalar_storage_limit':MAX_SCALARS,'modeled_addresses':True,
             'atomic_arrays':True,'array_byte_limit':MAX_ARRAY_BYTES,'array_storage_byte_limit':MAX_ARRAY_STORAGE_BYTES,
+            'packed_bool_arrays':'Rank one, complete groups of 32 logical bits; Table type 0x20D3',
             'explicit_user_structures':True,'aggregate_byte_limit':MAX_ARRAY_BYTES,
             'aggregate_storage_byte_limit':MAX_ARRAY_STORAGE_BYTES,'shared_symbolic_layouts':True,
             'id_policy':'Model IDs reuse Symbol IDs within each program scope',

@@ -24,6 +24,29 @@ array layouts retain their existing checks. The new download layout does not
 add whole-array symbolic wire reads/writes or packed BOOL member-array support.
 Individual BOOL element reads remain available through the existing interface.
 
+## Packed table readback
+
+Version `26.1024.023810` exposes the same complete rank-one BOOL-array profile
+through Symbol discovery, Data Table metadata, full-table reads and bounded
+model-address reads. The Symbol keeps type `0x20C1` and the logical bit count;
+the linked Table uses type `0x20D3` and the number of 32-bit storage words.
+Both descriptors refer to the same live packed value bytes. No native process
+memory is exposed.
+
+Reading BOOL[64] returns eight bytes, with bit zero in the least significant
+bit of the first little-endian word. Changes to individual modeled bits appear
+in subsequent table reads without scanning or reallocating the storage.
+The reader rejects changed shapes, non-Boolean leaves, crossed cell boundaries
+and incorrect full-table lengths. Partial words, multiple dimensions, constants
+and aliases do not gain writable table storage. Whole-array symbolic reads and
+writes and packed BOOL member arrays remain outside this profile.
+
+The preceding native SDK upload reported success for a routine-free fixture
+while its retained trace contained zero requests for the omitted BOOL table.
+An SDK success status alone therefore does not establish complete value
+transfer. Native acceptance of this new profile is checked separately against
+the actual requested table and its exact packed response bytes.
+
 ## Native source checkpoint
 
 The owned fixture passes Offline import, ACD save, close, reopen and L5X export.

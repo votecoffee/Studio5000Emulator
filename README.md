@@ -6,9 +6,15 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.021104`.** Versions use the release timestamp
+**Current app version: `26.1024.023810`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
+keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
+storage words. Supported arrays now appear in discovery and expose their current
+packed values through read-only table services. Individual symbolic bit access
+retains its existing behavior.
 
 The [appliance manager](docs/vmware-appliance.md#stop-restart-and-update) keeps
 the PLC running through temporary webpage poll failures. It powers off only
@@ -89,7 +95,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 176 affected checks and 354 Python syntax checks.
+This iteration passes 226 affected checks and 355 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
