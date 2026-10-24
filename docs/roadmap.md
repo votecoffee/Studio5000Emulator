@@ -8,7 +8,11 @@ native Studio connection and programming services remain unfinished.
 
 Version `26.1024.000616` validates exported nested UDT dependencies against the
 ordinary source member graph before permitting empty Energy discovery. This
-targets the tag-collection failure observed after successful nested UDT reads.
+resolves the observed tag-collection boundary for the owned nested-UDT fixture:
+SDK existing-project empty-Program upload succeeds across 975 requests, and
+download/save/reopen/Online across 425. The complete native recordings and all
+100 UDT value bytes are independently checked. Saving/reopening an uploaded ACD
+remains unverified.
 Routine upload remains a separate unresolved transfer boundary.
 
 Version `26.1023.235144` accepts explicitly mapped packed-bit host names in

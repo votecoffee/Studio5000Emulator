@@ -23,7 +23,9 @@ Downloads can also omit a routine-data batch when the complete original source
 and prepared image both establish that there are no routines.
 The owned empty-Program fixture completes SDK download/save/reopen/Online across
 425 verified requests. Complete symbolic and Data Table reads match 100 UDT
-value bytes; the SDK also reads those bytes before its upload fails Energy discovery.
+value bytes. With the dependency check, SDK `UploadAsync` also completes across
+975 verified requests and reads those same three UDT tables. This profile has
+no routines; saving and reopening an uploaded ACD remains unverified.
 
 [Source-defined structure downloads](docs/download-image.md#source-matched-initial-values)
 support nested UDTs, numeric arrays and UDT/TIMER/COUNTER arrays, checking complete
@@ -32,8 +34,8 @@ saved values and explicit source layouts before committing a separate model.
 Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's
 capacity, with gaps and interrupted recordings reported explicitly.
-The empty-Program SDK upload regression succeeds across 970 verified requests,
-with all 3,446 diagnostic events retained. Uploads containing routines remain
+The nested-UDT empty-Program upload retains all 3,466 diagnostic events and an
+identical offline transfer replay. Uploads containing routines remain
 unfinished.
 
 Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
@@ -56,7 +58,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
 This iteration passes 130 affected checks and 354 Python syntax checks. The
-preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
+Windows milestone suite passes 2,052 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
@@ -245,7 +247,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for an empty Program; routine-containing uploads and saved uploaded ACDs remain unfinished |
+| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for an empty Program with nested and packed-bit UDTs; routine-containing uploads and saved uploaded ACDs remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |

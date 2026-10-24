@@ -80,6 +80,13 @@ The SDK also receives those exact three tables before its upload stops at
 unavailable Energy discovery. This verifies type/value reads without establishing
 complete native upload or saved uploaded ACD acceptance.
 
+With the exported dependency check in `26.1024.000616`, SDK existing-project
+upload of the same nested-UDT empty-Program fixture succeeds across 975 verified
+requests. The three complete UDT table responses again match all 100 source
+value bytes. The full 3,466-event recording has an identical offline replay.
+This verifies that bounded SDK upload profile; routine-containing uploads and
+saved uploaded ACDs remain unfinished.
+
 A completed reference upload supplied 830 contiguous Template definitions.
 All 830 parsed structurally. Across 42 type names also present in an owned demo
 download, handles, member counts, sizes, families, reconstruction metadata and

@@ -4,6 +4,28 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.000616` validates Studio's exported UDT dependencies against
+the complete ordinary member-type graph, retaining repeated nested references.
+Unknown families, extra/missing entries, namespaces and opaque content remain
+unavailable. With the same source-bound nested-UDT empty-Program fixture, SDK
+upload now succeeds across 975 verified requests. Its six Base/Electrical
+Energy probes receive checked empty replies, and all three SDK UDT table reads
+match the independently verified 100 source-value bytes.
+
+Download/save/reopen/Online succeeds across 425 requests for that fixture.
+Both native cases preserve original files and model/audit state, confirm actual
+SDK Offline/cleanup and report no fault. Complete 1,720-event download and
+3,466-event upload recordings replay identically. Uploaded-ACD saving/reopening
+and routine-containing uploads remain unfinished. The 130 affected checks and
+354 syntax checks pass; the Windows milestone runs 2,054 tests with 2,052 passes
+and two platform skips. All 119 modules, assets and displayed versions match.
+
+The normal routine-containing demo completes download/save/reopen/Online across
+432 requests, and a separate SDK process reopens its saved ACD and goes Online
+across 74. Its saved-baseline upload still fails Program collection after 348
+requests, before any signed source-read request. The installed download and
+audit state are preserved; actual Offline/cleanup succeed with no SDK fault.
+
 Version `26.1023.235144` accepts explicitly named hidden SINT hosts with checked
 BIT targets and source-bound native templates. Symbolic and Data Table reads
 of three owned scalar/nested/array UDT tags match all 100 source-value bytes,
