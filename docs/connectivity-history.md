@@ -4,6 +4,29 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.211522` publishes a separate committed metadata view after a
+source-equivalent download. It preserves the original catalog, merges accepted
+Controller properties and invalidates cursors from a previous view. It also
+serves Routine selector `(1, 9)` from the actual incremental download ledger;
+its opaque component is never interpreted or executed.
+
+Independent signed readback verifies all 1,671 merged metadata records across
+505 chunks, both Controller records and the exact empty attribute-26 profile.
+Routine selectors `(1, 3)` and `(1, 9)` return 1,166 bytes over six frames for two
+routines; all ten original rung ASTs match. Response MACs, source/model/audit
+preservation and cleanup pass.
+
+SDK download/save/reopen/Online succeeds across 434 verified requests. A separate
+SDK process opens the new saved ACD and goes Online across 74. Upload still
+fails `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 348, before requesting Routine
+source. Its trace now includes the Controller property accepted during download;
+that consistency fix alone does not resolve Program collection. All three
+probes preserve originals, confirm Offline/cleanup and report no SDK fault.
+
+All 118 deployed modules, browser assets and displayed versions match. The
+253 focused checks and 349 Python AST checks pass; the full suite was not
+repeated for this iteration.
+
 Version `26.1023.205529` adds signed readback of exact Routine source retained
 by a completed source-equivalent download. The observed `0x3A` stream accepts
 only Program/Routine `0x5D` selector `(1, 3)`, checks the current source and

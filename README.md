@@ -14,12 +14,13 @@ This release keeps accepted Controller metadata available after a completed
 source-equivalent download, while preserving the original ACD catalog. It also
 extends [signed Routine readback](docs/downloaded-routine-read.md) to the opaque
 component retained during download. Reads check the source, session counters
-and MACs; changed logic or catalogs revoke the read. Complete SDK upload remains
-unfinished.
+and MACs; changed logic or catalogs revoke the read. Independent signed readback
+verifies both routines and all 1,671 metadata records. SDK upload still stops
+during Program collection before requesting routine source.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
-Go Online. The native SDK completes that sequence across 432 verified requests;
+Go Online. The native SDK completes that sequence across 434 verified requests;
 a separate SDK process reopens the saved ACD and goes Online across 74.
 Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
 The saved ACD retains the new download identity; the emulator installation
