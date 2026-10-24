@@ -4,6 +4,21 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.095632` reaches the first routine-containing native SDK upload
+success: a one-rung NOP control completes `UploadAsync` across 973 verified
+requests, including its actual 440-byte source read. Its download/save/reopen/
+Online sequence succeeds across 430. A minimal two-BOOL `XIC`/`OTE` routine
+still fails `RxE_CORRUPT_RECON_DATA` after its 460-byte source read, across 333
+verified requests; its download/save/reopen/Online succeeds across 431.
+The conveyor demo likewise fails reconstruction after its first nine-rung,
+688-byte source read, across 367 requests, with download success across 429.
+[Detailed scope and complete journal counts](routine-upload.md) remain separate
+from general ladder support, uploaded ACD saving and GUI acceptance.
+
+All source/model preservation, actual Offline cleanup and no-SDK-fault checks
+pass. The milestone suite passes 2,101 Windows tests with two skips, plus 357
+Python syntax checks. Source, EXE, web assets and 119 guest modules match.
+
 Version `26.1024.023810` exposes eligible packed BOOL arrays through Symbol
 discovery and backed Data Table reads. Symbol type `0x20C1` retains logical bit
 dimensions; Table type `0x20D3` uses 32-bit storage-word dimensions. Current

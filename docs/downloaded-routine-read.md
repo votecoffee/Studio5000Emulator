@@ -91,3 +91,8 @@ An independent client reads both routines from the deployed ConveyorDemo model:
 containers byte for byte. Response MACs and all ten source rungs are checked;
 model values, scans and audit state remain unchanged. Complete routine-containing native upload remains unfinished; later checkpoints
 record each observed SDK request separately from this independent-client check.
+
+The subsequent [native checkpoint](routine-upload.md) completes NOP-only SDK
+upload across 973 verified requests. A two-BOOL operand routine and the full
+demo still fail reconstruction after successful source retrieval. Serving a
+valid container does not establish general tag-operand reconstruction.

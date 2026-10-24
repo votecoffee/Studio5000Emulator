@@ -1,9 +1,11 @@
 # Routine upload source inspection
 
 The separate [downloaded source readback service](downloaded-routine-read.md)
-now returns exact retained source from an unedited installed download. It does
-not convert downloaded source into the upload XML profiles described here or
-establish SDK reconstruction. The inspection decoder remains read-only.
+returns source from an unedited installed download. Its current Standard RLL
+view adds the explicit upload class while preserving the remaining XML and
+compressed auxiliary bytes. The [native upload checkpoint](routine-upload.md)
+records NOP acceptance and the remaining tag-operand reconstruction failure.
+The inspection decoder remains read-only.
 
 Version `.133` adds a read-only decoder for the Routine source streams carried
 by the observed [signed read transport](read-transport.md). It preserves the
@@ -66,8 +68,9 @@ unscoped objects, attribute paths and write requests are rejected.
 Alternatively, `upload_routine_source.decode(data)` inspects an already assembled
 container without assigning it a request scope. Neither API authenticates a MAC
 or binds the source to an emulator project. The caller owns session separation,
-integrity checks and any later source association. The live endpoint still
-rejects `0x3A`; this API adds no native read/write service.
+integrity checks and any later source association. This inspection API adds no
+native read/write service; the separate installed-download readback service
+supplies the current bounded `0x3A` endpoint.
 
 ## Validation and remaining work
 

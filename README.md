@@ -24,9 +24,14 @@ remain unsupported.
 
 [Downloaded Routine reads](docs/downloaded-routine-read.md) now support the
 observed empty `(1, 4)` component for source-checked, unprotected Standard RLL
-routines. Native upload now retrieves the first routine source. The served
-source view adds the observed `TargetClass` field while retaining the original
-rung XML and compressed auxiliary bytes; full upload remains under test.
+routines. The source view adds the observed `TargetClass` field while retaining
+the original rung XML and compressed auxiliary bytes.
+
+**[Native SDK upload now succeeds for a one-rung NOP routine](docs/routine-upload.md)**
+across 973 verified requests. Download/save/reopen/Go Online also succeeds.
+The minimal two-BOOL `XIC`/`OTE` fixture and full conveyor demo still report
+`RxE_CORRUPT_RECON_DATA` after source retrieval. Tag-operand reconstruction is
+the next investigation; uploaded ACD saving remains unverified.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -120,13 +125,13 @@ while reporting the changed runtime logic separately. A native SDK test
 completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload now retrieves the first routine source,
-then reports a reconstruction-format error. Full upload remains unfinished.
+then reports a reconstruction-format error. The NOP-only upload control succeeds.
 
 This iteration passes 269 affected checks and 357 Python syntax checks.
-The preceding milestone passes 2,052 Windows tests, with two platform checks
+The routine-upload milestone passes 2,101 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
-**Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
+**General routine-containing upload, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
 monitoring remains unverified. Supported instructions have bounded software
 models; this project does not establish native controller equivalence.
@@ -313,7 +318,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for an empty Program with nested and packed-bit UDTs; routine-containing uploads and saved uploaded ACDs remain unfinished |
+| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for a NOP routine and for empty Programs with nested and packed-bit UDTs; tag-operand reconstruction and saved uploaded ACDs remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |
