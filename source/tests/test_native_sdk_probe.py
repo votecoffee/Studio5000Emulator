@@ -15,6 +15,46 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_recorded_transfer_keeps_native_result_and_correlates_private_cursor_journal(self):
+        from tools.probe_native_sdk import digest
+        from test_native_project import container
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'original.ACD';source.write_bytes(container());output=root/'report'
+            state=self.state();state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+            state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            token='a'*32;trace={'events':[],'counts':{},'trace_capture':{'trace_id':token,'last_event':0}}
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                path=r'TestDriver\192.0.2.8\Backplane\0',operation='download',tag=[],
+                output=str(output),sdk_feed=None,retain_transfer_trace=True)
+            def api(url,action,body=None):
+                if action=='state':return state
+                if action=='connectivity-trace':return trace
+                self.assertEqual(action,'connectivity-trace-read')
+                return dict(instance_id=state['instance_id'],source_l5x_sha256=state['connectivity']['source_l5x_sha256'],
+                    trace_id=token,after_event=0,next_event=0,last_event=0,missing_events=0,has_more=False,events=[])
+            def build(command,**kwargs):
+                self.assertEqual(command[0],'dotnet');(output/'bin').mkdir()
+                (output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                return subprocess.CompletedProcess(command,0)
+            def native(command,**kwargs):
+                Path(command[2]).write_text(json.dumps(dict(status='succeeded',steps=[dict(method='DownloadAsync',status='succeeded')],
+                    serverFaulted=False,sdkOfflineConfirmed=True)))
+                for name in ('before','after'):(output/(name+'-transfer-trace.json')).write_text(json.dumps(trace))
+                return subprocess.CompletedProcess(command,0)
+            with patch('tools.probe_native_sdk.sys.platform','win32'),patch('tools.probe_native_sdk.require_sdk_service'), \
+                    patch('tools.probe_native_sdk.background_options',return_value={}), \
+                    patch('tools.probe_native_sdk.subprocess.run',side_effect=build), \
+                    patch('tools.trace_journal.run_recorded',side_effect=native) as call, \
+                    patch('tools.probe_native_sdk.api',side_effect=api), \
+                    patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state) as cleanup,patch('builtins.print'):
+                self.assertEqual(run(args),0)
+            call.assert_called_once();cleanup.assert_called_once()
+            report=json.loads((output/'summary.json').read_text())
+            self.assertTrue(report['trace_recording']['complete']);self.assertTrue(report['transfer_trace']['analysis_complete'])
+            self.assertEqual(report['transfer_trace']['sdk_status'],'succeeded')
+            self.assertEqual(report['transfer_trace']['correlation'],'saved_emulator_trace_journal')
+            self.assertTrue(report['source_unchanged']);self.assertTrue(report['cleanup_confirmed'])
+
     def test_download_save_requires_an_explicit_download_and_saved_native_reopen_evidence(self):
         from tools.probe_native_sdk import validate_download_save,saved_downloaded_acd_effect,digest
         from test_native_project import container,FIELDS

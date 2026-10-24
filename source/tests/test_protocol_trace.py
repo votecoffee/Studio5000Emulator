@@ -7,6 +7,7 @@ from logixlab.server import Application
 from test_signed_messages import KEY
 from test_transport_fragments import message
 from tools.analyze_native_transfer import analyze
+from logixlab.model import ModelError
 
 
 class ProtocolTraceTests(unittest.TestCase):
@@ -72,6 +73,34 @@ class ProtocolTraceTests(unittest.TestCase):
         for _ in range(eip.TRACE_EVENT_LIMIT+1):self.endpoint.record('later')
         result=analyze(before,self.endpoint.state(True),'download')
         self.assertEqual(result['status'],'checkpoint_not_retained');self.assertFalse(result['analysis_complete'])
+
+    def test_cursor_pages_are_ordered_bounded_and_do_not_change_model_or_counters(self):
+        self.app.endpoint=self.endpoint
+        before=self.app.state();start=self.app.command('connectivity-trace-read',{})
+        self.assertEqual(start['events'],[]);self.assertEqual(start['next_event'],0)
+        for i in range(300):self.endpoint.record('progress',ordinal=i)
+        page=self.app.command('connectivity-trace-read',dict(after_event=0,trace_id=start['trace_id']))
+        self.assertEqual(len(page['events']),256);self.assertTrue(page['has_more'])
+        self.assertEqual([row['event_id'] for row in page['events']],list(range(1,257)))
+        tail=self.endpoint.trace_page(page['next_event'],start['trace_id'])
+        self.assertEqual(len(tail['events']),44);self.assertFalse(tail['has_more'])
+        self.assertEqual(tail['missing_events'],0);self.assertEqual(tail['next_event'],300)
+        self.assertEqual(self.endpoint.counts['progress'],300)
+        self.assertEqual(self.app.state()['tags'],before['tags']);self.assertEqual(self.app.state()['scan'],before['scan'])
+        self.assertNotIn('native_correlation',page)
+
+    def test_cursor_eviction_and_endpoint_replacement_cannot_look_contiguous(self):
+        start=self.endpoint.trace_page()
+        for _ in range(eip.TRACE_EVENT_LIMIT+5):self.endpoint.record('progress')
+        page=self.endpoint.trace_page(0,start['trace_id'],1)
+        self.assertEqual(page['missing_events'],5);self.assertEqual(page['events'][0]['event_id'],6)
+        other=eip.Endpoint(self.app,0,False)
+        with self.assertRaises(ModelError):other.trace_page(0,start['trace_id'])
+        for after,token,limit in ((-1,start['trace_id'],1),(True,start['trace_id'],1),(99999,start['trace_id'],1),
+                (0,None,1),(None,start['trace_id'],1),(0,start['trace_id'],257),(0,start['trace_id'],False)):
+            with self.assertRaises(ModelError):self.endpoint.trace_page(after,token,limit)
+        self.app.endpoint=self.endpoint
+        with self.assertRaises(ModelError):self.app.command('connectivity-trace-read',{'unknown':1})
 
 
 if __name__=='__main__':unittest.main()

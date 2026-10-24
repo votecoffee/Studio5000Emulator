@@ -674,6 +674,9 @@ def run(args):
     if source.suffix.lower() != '.acd' or not 8 <= source.stat().st_size <= 100_000_000:
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
+    retain_trace=getattr(args,'retain_transfer_trace',False)
+    if type(retain_trace) is not bool or retain_trace and args.operation not in ('upload','download'):
+        raise ValueError('--retain-transfer-trace requires upload or download')
     save_upload=getattr(args,'save_uploaded_acd',False);validate_upload_save(args.operation,save_upload)
     save_download=getattr(args,'save_downloaded_acd',False);validate_download_save(args.operation,save_download)
     upload_new=getattr(args,'upload_new_project',False)
@@ -788,11 +791,20 @@ def run(args):
     elif args.operation in ('upload','download'):
         model_fields+=tuple(key for key in ('routines','tasks','entry_routines','controller') if key in state)
     summary['model_fields_checked']=list(model_fields)
-    report = None;final=None
+    report = None;final=None;journal=None;journal_path=None
     try:
+        if retain_trace:
+            from tools.trace_journal import TraceJournal
+            journal_path=output/'transfer-events.jsonl.gz'
+            journal=TraceJournal(journal_path,lambda body:api(url,'connectivity-trace-read',body),instance,l5x_hash)
         with (output / 'sdk.log').open('wb') as log:
-            result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
-                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd or save_upload or save_download else 120, **background_options())
+            command=[str(executable),str(output/'request.json'),str(output/'sdk-result.json')]
+            timeout=300 if save_acd or save_upload or save_download else 120
+            if journal is None:
+                result=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,**background_options())
+            else:
+                from tools.trace_journal import run_recorded
+                result=run_recorded(command,journal=journal,stdout=log,timeout=timeout,background=background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
         summary['tag_read_type']=tag_read_type
@@ -804,6 +816,9 @@ def run(args):
                        native_call_outcome='unknown',native_sdk_offline_confirmed=None,
                        sdk_server_faulted=None)
     finally:
+        if journal is not None:
+            try:summary['trace_recording']=journal.close()
+            except Exception:summary['trace_recording']={'complete':False,'error':'trace_close_failed'}
         summary.update(input_evidence(source,source_hash,baseline,baseline_hash,copied,args.operation))
         if upload_new:summary['working_copy_changes_permitted']=False
         summary['sdk_working_copy_sha256']=(report or {}).get('workingProjectSha256')
@@ -833,7 +848,7 @@ def run(args):
                     checkpoints={name:read_json(output/(name+'-transfer-trace.json'))
                                  for name in ('before','after') if (output/(name+'-transfer-trace.json')).is_file()}
                     if len(checkpoints)==2:
-                        summary['transfer_trace']=analyze(checkpoints['before'],checkpoints['after'],args.operation,report)
+                        summary['transfer_trace']=analyze(checkpoints['before'],checkpoints['after'],args.operation,report,journal=journal_path)
                     else:summary['transfer_trace']={'status':'checkpoints_unavailable','analysis_complete':False}
                 except (OSError,ValueError,TypeError,KeyError):
                     # Diagnostic decoding must never suppress endpoint cleanup.
@@ -894,6 +909,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
+    parser.add_argument('--retain-transfer-trace',action='store_true',help='Upload/download only: record bounded compressed cursor pages privately while the single native call runs')
     parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')
     parser.add_argument('--path', required=True, help=r'Linx driver\IPv4\Backplane\0, matching the emulator')

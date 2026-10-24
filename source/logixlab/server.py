@@ -257,6 +257,10 @@ class Application:
                     self.stop_connectivity()
                     with self.lock:return self.state()
                 if action=='connectivity-trace':return self.connectivity(True)
+                if action=='connectivity-trace-read':
+                    if self.endpoint is None:raise ModelError('Start connectivity before reading a trace cursor')
+                    if data.keys()-{'after_event','trace_id','limit'}:raise ModelError('Unknown trace cursor fields')
+                    return self.endpoint.trace_page(**data)
                 if action=='connectivity-start':
                     from .ethernetip import Endpoint
                     with self.lock:

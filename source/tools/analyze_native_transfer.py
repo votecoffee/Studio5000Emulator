@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 import struct
 import sys
+import zlib
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from logixlab import signed_messages as sm
@@ -154,7 +155,7 @@ def gap_delta(before,after):
     return rows[:MAX_REPORT_ROWS],len(rows)>MAX_REPORT_ROWS
 
 
-def analyze(before,after,operation,report=None):
+def analyze(before,after,operation,report=None,*,journal=None):
     if operation not in ('upload','download'):raise ValueError('Expected upload or download')
     base=dict(operation=operation,correlation='saved_emulator_trace_checkpoints',
         mac_verification='NOT PERFORMED',failure_cause='NOT INFERRED',payloads_exposed=False)
@@ -162,7 +163,12 @@ def analyze(before,after,operation,report=None):
     if operation=='upload' and (report or {}).get('uploadNewProject') is True:method='UploadToNewProjectAsync'
     steps=[row for row in (report or {}).get('steps',[]) if row.get('method')==method]
     if len(steps)==1:base.update(sdk_method=method,sdk_status=steps[0].get('status'))
-    events,error=event_interval(before,after)
+    if journal is None:events,error=event_interval(before,after)
+    else:
+        from tools.trace_journal import read_interval
+        base['correlation']='saved_emulator_trace_journal'
+        try:events,error=read_interval(journal,before,after),None
+        except (OSError,ValueError,TypeError,KeyError,EOFError,zlib.error):events,error=[],'journal_incomplete'
     if error:return {**base,'status':error,'analysis_complete':False,'requests_observed':0}
     failures=[];wrappers=[];tail=deque(maxlen=16);phases=[];objects=Counter();verifications=[]
     matched=envelopes=fragments=fragment_bytes=compact_transfers=unparsed=failed=wrapper_count=phase_count=0
@@ -281,9 +287,10 @@ def main():
     p.add_argument('--before',required=True);p.add_argument('--after',required=True)
     p.add_argument('--operation',required=True,choices=('upload','download'))
     p.add_argument('--sdk-result');p.add_argument('--output',required=True)
+    p.add_argument('--journal',help='Private compressed cursor journal for a transfer exceeding the endpoint ring')
     args=p.parse_args()
     result=analyze(read_json(args.before),read_json(args.after),args.operation,
-                   read_json(args.sdk_result) if args.sdk_result else None)
+                   read_json(args.sdk_result) if args.sdk_result else None,journal=args.journal)
     with Path(args.output).open('x',encoding='utf-8') as stream:json.dump(result,stream,indent=2)
     print(json.dumps({k:result.get(k) for k in ('operation','status','analysis_complete','requests_observed','failed_request_count')},indent=2))
 

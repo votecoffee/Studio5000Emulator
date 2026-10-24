@@ -6,14 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.220638`.** Versions use the release timestamp
+**Current app version: `26.1023.223022`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release aligns [emulator object references](docs/runtime-object-references.md)
-to eight-byte boundaries while retaining their four-byte wire encoding and
-current-object backing. The [native catalog layouts](docs/controller-schema-discovery.md#native-catalog-layout-selection)
-preserve source-bound field availability, real counts and existing permissions.
+This release adds optional [compressed transfer recording](docs/transfer-trace-recording.md)
+to retain complete native upload/download traces beyond the diagnostic ring's
+capacity. Cursor gaps and interrupted recordings remain explicit. The app's
+trace memory limit and PLC execution behavior are unchanged.
 The empty-Program SDK upload case passes its latest regression; uploads
 containing routines remain unfinished.
 
@@ -36,7 +36,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 163 affected checks and 350 Python syntax checks. The
+This iteration passes 140 affected checks and 352 Python syntax checks. The
 preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete

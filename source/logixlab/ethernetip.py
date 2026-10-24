@@ -2330,6 +2330,7 @@ class Endpoint:
         self.source_sha256=app.engine.project.sha256
         self.lock=threading.RLock();self.events=deque(maxlen=TRACE_EVENT_LIMIT);self.counts=Counter();self.unsupported=Counter()
         self.trace_payload_bytes=0;self.trace_dropped_events=0
+        self.trace_id=secrets.token_hex(16);self.trace_sequence=0
         self.attribute_gaps=attribute_gaps.AttributeGaps()
         self.native_rejections=native_rejections.NativeRejections()
         self.ethernet_counters=ethernet_counters.CounterCache()
@@ -2373,10 +2374,34 @@ class Endpoint:
                 old=self.events.popleft()
                 self.trace_payload_bytes-=(len(old['request_hex'])+len(old['response_hex']))//2
                 self.trace_dropped_events+=1
-            self.events.append({'time':time.time(),'kind':kind,**fields,'request_hex':captured_request.hex(),
+            self.trace_sequence+=1
+            self.events.append({'time':time.time(),'kind':kind,**fields,'event_id':self.trace_sequence,'request_hex':captured_request.hex(),
                                 'response_hex':captured_response.hex(),'request_bytes':len(request),'response_bytes':len(response),
                                 'truncated':len(request)>TRACE_PACKET_LIMIT or len(response)>TRACE_PACKET_LIMIT})
             self.trace_payload_bytes+=size
+
+    def trace_page(self,after_event=None,trace_id=None,limit=256):
+        """Read a bounded suffix without copying the full controller status."""
+        if type(limit) is not int or not 1<=limit<=256:
+            raise ModelError('Trace page limit must be 1..256')
+        with self.lock:
+            if after_event is None:
+                if trace_id is not None:raise ModelError('Initial trace cursor must omit the trace identity')
+                after_event=self.trace_sequence
+            elif (type(after_event) is not int or not 0<=after_event<=self.trace_sequence
+                    or trace_id!=self.trace_id):
+                raise ModelError('Trace cursor does not belong to the current endpoint')
+            oldest=self.events[0]['event_id'] if self.events else self.trace_sequence+1
+            events=[]
+            for row in self.events:
+                if row['event_id']>after_event:
+                    events.append(dict(row))
+                    if len(events)==limit:break
+            next_event=events[-1]['event_id'] if events else after_event
+            return dict(trace_id=self.trace_id,instance_id=self.app.instance_id,
+                source_l5x_sha256=self.source_sha256,after_event=after_event,next_event=next_event,
+                last_event=self.trace_sequence,oldest_event=oldest,
+                missing_events=max(0,oldest-after_event-1),has_more=next_event<self.trace_sequence,events=events)
 
     def state(self,trace=False):
         with self.lock:
@@ -2462,6 +2487,7 @@ class Endpoint:
                     'native_rejections':self.native_rejections.snapshot(self.app.generation),
                     'studio_go_online':'EXPERIMENTAL NATIVE SDK CONNECTION; GUI MONITORING UNVERIFIED' if self.native_read_only else 'NOT IMPLEMENTED OR VERIFIED','trace_events':len(self.events),
                     'trace_capture':{'event_limit':TRACE_EVENT_LIMIT,'packet_byte_limit':TRACE_PACKET_LIMIT,
+                        'trace_id':self.trace_id,'last_event':self.trace_sequence,
                         'retained_byte_limit':TRACE_BYTE_LIMIT,'retained_bytes':self.trace_payload_bytes,
                         'dropped_events':self.trace_dropped_events}}
             if trace:result['events']=list(self.events)
