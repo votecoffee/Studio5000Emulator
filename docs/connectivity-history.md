@@ -13,6 +13,13 @@ bytes. The complete 1,739/3,488-event journals replay identically offline.
 Source/model/audit preservation, actual Offline cleanup and no SDK fault pass.
 Saving/reopening an uploaded ACD and GUI upload remain unverified.
 
+A second demo upload succeeds across 982 requests with nine temporary writes
+across five tags. Actual native Table replies match all 33 changed current-value
+bytes, including timer/counter flags. Values are restored exactly afterward.
+The milestone suite runs 2,110 tests with two platform skips. The final demo
+download/save/reopen/Online passes across 432 requests, followed by a separate
+saved-ACD Online/Offline session across 73 without an SDK fault.
+
 The preceding `26.1024.104524` serves original Symbol Control bytes from the
 committed incremental headers. The one-rung two-BOOL XIC/OTE fixture then
 completes SDK upload across 936 verified requests, with a complete 460-byte

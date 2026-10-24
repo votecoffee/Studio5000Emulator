@@ -13,6 +13,7 @@ across 430 requests. Actual Offline cleanup and no SDK fault are confirmed.
 | One NOP rung | `26.1024.095632` | Succeeds, 973 verified requests |
 | One `XIC`/`OTE` rung, two BOOL tags | `26.1024.104524` | Succeeds, 936 verified requests |
 | Two-routine conveyor demo, including TIMER and COUNTER | `26.1024.111516` | Succeeds, 981 verified requests |
+| Routine-free BOOL[64] regression profile | `26.1024.111516` | Succeeds, 968 verified requests; all eight packed value bytes match |
 
 The two-BOOL fixture previously failed `RxE_CORRUPT_RECON_DATA` after reading
 its 460-byte source. Returning the original [Symbol Control words](installed-symbol-control.md)
@@ -27,6 +28,14 @@ reauthenticate MACs. Upload preserves the original input, loaded values,
 logic, installed correlation and audit state. Independent CIP reads verify
 the two original control words, Template IDs and all 24 TIMER/COUNTER bytes
 through both symbolic and Data Table paths.
+
+A second demo upload succeeds across 982 verified requests after nine
+temporary value changes across five tags. Its actual Table responses match
+all 33 current-value bytes for BOOL, DINT, TIMER and COUNTER tags, including
+timer/counter status bits. All five values differ from the saved initial
+source. The complete 3,488-event recording replays identically offline;
+source/model/audit preservation, actual Offline cleanup and no SDK fault pass.
+Every temporary value is then restored exactly without scanning the model.
 
 ## Implemented source path
 
@@ -51,3 +60,11 @@ app version. Software checks and SDK acceptance remain separate from native
 controller equivalence. This milestone passes 2,110 Windows
 tests with two platform checks skipped; milestone checks are recorded
 separately from small iterations.
+
+The original demo is restored with a fresh source-equivalent download across
+432 verified requests. A separate SDK process reopens that saved ACD and goes
+Online across 73, then confirms Offline cleanup. Its complete controller
+header matches independent CIP readback. The final model is stopped in
+Program with original values, zero scans and no active programming lease.
+Routine editing is enabled again; external network tag writes stay disabled.
+The installation remains memory-only.

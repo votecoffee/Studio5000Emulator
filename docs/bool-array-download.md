@@ -59,6 +59,17 @@ replay identically offline; this checks framing without reauthenticating MACs.
 An uploaded ACD save/reopen is not attempted, and routine-containing upload
 remains unfinished.
 
+Version `26.1024.111516` rechecks this profile with the original
+[Symbol Control](installed-symbol-control.md) view and source-checked built-ins.
+The header type check uses packed storage type `0x20D3`, while discovery keeps
+the logical Symbol type `0x20C1`. Native download/save/reopen/Online succeeds
+across 424 verified requests and upload across 968. The actual native packed
+table read matches all eight bytes; independent CIP reads verify all 64 bits
+and the original control word. Complete 1,717/3,431-event journals replay
+identically offline, with actual Offline cleanup and no SDK fault. The
+[conveyor Routine upload](routine-upload.md) also succeeds on this version;
+uploaded ACD saving remains unverified.
+
 ## Native source checkpoint
 
 The owned fixture passes Offline import, ACD save, close, reopen and L5X export.

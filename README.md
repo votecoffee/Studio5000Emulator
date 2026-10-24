@@ -42,7 +42,9 @@ across **981 verified requests**, reading all ten rungs and 30 IOI operands.
 Download/save/reopen/Go Online also succeeds. Original Symbol Control metadata
 clears the two-BOOL XIC/OTE fixture's reconstruction failure; source-checked
 TIMER/COUNTER definitions close the demo's remaining tag-discovery gap.
-Saving an uploaded ACD remains unverified.
+A second upload verifies all 33 current-value bytes across five deliberately
+changed tags; those temporary values are restored afterward. Saving an
+uploaded ACD remains unverified.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -51,7 +53,8 @@ packed values through read-only table services. Individual symbolic bit access
 retains its existing behavior.
 
 For the owned routine-free BOOL[64] fixture, native SDK download/save/reopen/Go
-Online completes across 425 verified requests and `UploadAsync` across 965.
+Online completes across 424 verified requests and `UploadAsync` across 968
+on the current version.
 The upload trace includes the packed table read, whose eight bytes match every
 saved bit. Independent CIP checks verify all 64 bits and the linked descriptors.
 Saving and reopening an uploaded ACD remains unverified.

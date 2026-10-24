@@ -42,3 +42,9 @@ Download/save/reopen/Go Online succeeds across 430. Independent CIP checks
 match the saved source's original controls, type identities and all 24 value
 bytes through both symbolic and Table reads. No SDK fault is reported, and
 actual Offline cleanup passes. Uploaded ACD saving remains unverified.
+
+A second demo upload succeeds across 982 verified requests with nonzero live
+values. Its actual TIMER/COUNTER Table replies match all 24 current bytes,
+including status flags, within 33 verified bytes across five changed tags.
+The nine temporary writes are restored exactly after the trial; no scan,
+source change, audit update or SDK fault occurs.
