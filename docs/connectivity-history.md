@@ -4,6 +4,24 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.220638` aligns backed interpreter object references to eight
+bytes while retaining their DWORD encoding. Padding is not an object, allocation
+never wraps, and ownership, invalidation and write boundaries remain intact.
+Live Program, Routine, Task and Map reads verify the alignment and shared main
+Routine reference without changing source, model or audit state.
+
+Native download/save/reopen/Online succeeds across 432 verified requests, and a
+separate process opens the saved ACD and verifies Online across 74. The SDK
+upload receives the aligned Routine header but still fails
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349 requests, before source retrieval.
+Alignment alone does not resolve that failure. All probes preserve originals,
+confirm Offline/cleanup and report no SDK fault.
+
+All 118 deployed modules, browser assets and displayed versions match. The
+163 affected checks and 350 Python AST checks pass. The full suite was not
+repeated after this allocator change; the preceding 2,023-pass milestone and
+two platform skips remain recorded below.
+
 Version `26.1023.214154` selects observed v35 layouts for Program, Task, I/O Map,
 Extended Device, Symbol, Data Table and Template class metadata. Source-bound
 counts and field availability are preserved. Live single/duplicate-list reads
