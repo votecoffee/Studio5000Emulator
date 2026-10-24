@@ -1,7 +1,7 @@
 """Session-owned readback of exact source retained by an installed download.
 
-Only the observed Routine source selector is implemented. No source is invented,
-no opaque code executes, and edits revoke the original downloaded source view.
+The source and opaque component selectors use retained download bytes. No source
+is invented, no opaque code executes, and edits revoke the downloaded view.
 """
 from dataclasses import dataclass,field
 import struct
@@ -12,7 +12,8 @@ from .download_routines import RoutineBindings
 from . import read_transport as rt
 
 
-def source(app,program,routine):
+def source(app,program,routine,selector=3):
+    if type(selector) is not int or selector not in (3,9):raise ImageError('routine_read_selector_unsupported')
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if installed is None:raise ImageError('routine_read_installed_download_required')
     installed.check(app.native_project_identity,project)
@@ -29,7 +30,11 @@ def source(app,program,routine):
     # Revalidate the retained TextIOI against the current interpreter routine.
     # These are the caller's exact native source bytes, without its write prefix.
     bindings.source((program,routine),raw[8:])
-    return raw[8:]
+    if selector==3:return raw[8:]
+    incremental=ns._incremental
+    if incremental is None:raise ImageError('routine_read_component_required')
+    incremental.verify_effects(ns._image,ns._source,app.native_metadata_values,headers)
+    return incremental.read_routine_data(program,routine,ns._image,ns._source,headers,app.native_metadata_values)
 
 
 @dataclass
@@ -39,14 +44,15 @@ class Stream:
     generation:int
     program:int
     routine:int
+    selector:int
     data:bytes=field(repr=False)
     position:int=0
     frames:int=0
 
     @classmethod
-    def begin(cls,app,program,routine):
-        data=source(app,program,routine)
-        return cls(app.engine,app.engine.installed_download,app.generation,program,routine,data)
+    def begin(cls,app,program,routine,selector=3):
+        data=source(app,program,routine,selector)
+        return cls(app.engine,app.engine.installed_download,app.generation,program,routine,selector,data)
 
     def reply(self,app,request,key,limit):
         if (app.engine is not self.engine or app.generation!=self.generation
@@ -54,7 +60,7 @@ class Stream:
             raise ImageError('routine_read_model_changed')
         # Checking each chunk also revokes a stream if a catalog, source body or
         # native binding changes without an Engine replacement.
-        if source(app,self.program,self.routine)!=self.data:raise ImageError('routine_read_source_changed')
+        if source(app,self.program,self.routine,self.selector)!=self.data:raise ImageError('routine_read_source_changed')
         if request.position!=self.position or (request.container_format==0x101)!=(self.position==0):
             raise ImageError('routine_read_position_mismatch')
         if self.frames>=rt.MAX_FRAMES:raise ImageError('routine_read_frame_limit')

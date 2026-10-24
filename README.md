@@ -6,15 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.205529`.** Versions use the release timestamp
+**Current app version: `26.1023.211522`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds [signed Routine source readback](docs/downloaded-routine-read.md)
-from a completed source-equivalent download. Reads return the exact retained
-source container in bounded chunks, with session MAC/counter checks and source
-validation. Changed logic or catalogs revoke the read. This implements a source
-read service; SDK upload still stops earlier during Program collection.
+This release keeps accepted Controller metadata available after a completed
+source-equivalent download, while preserving the original ACD catalog. It also
+extends [signed Routine readback](docs/downloaded-routine-read.md) to the opaque
+component retained during download. Reads check the source, session counters
+and MACs; changed logic or catalogs revoke the read. Complete SDK upload remains
+unfinished.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
@@ -30,7 +31,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 Upload still fails during Program collection.
 
-This iteration passes 222 focused checks and 349 Python syntax checks. The
+This iteration passes 253 focused checks and 349 Python syntax checks. The
 preceding Windows milestone suite passed 2,003 checks with two platform skips.
 
 **Native upload, replacement with another project, SDK tag-address discovery and the complete

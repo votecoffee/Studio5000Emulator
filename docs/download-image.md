@@ -584,6 +584,20 @@ revision and audit updates. SDK/Linx service processes remain unchanged.
 
 ## Controller metadata properties
 
+Version `26.1023.211522` installs a separate immutable metadata view when the
+source-equivalent download commits. It merges the original typed records with
+accepted Controller properties, including the bounded `ProjectType` profile
+below. Packet-local record numbers are reassigned within the merged stream;
+targets, locales, definitions, types and values remain intact. Original ACD
+catalogs and controller hardware identity are preserved.
+
+Uncommitted properties stay private. Controller/all-object metadata reads use
+the committed snapshot after installation, and any partial metadata cursor
+started before commit becomes invalid. Source/schema changes revoke readback.
+Reset, reload and restart clear this memory-only view. Metadata for edited
+runtime logic remains unavailable, except the existing empty attribute-26 query.
+These reads do not establish that native upload succeeds.
+
 Version `26.1023.172357` handles the observed Controller metadata service `0x4F`
 after base Controller configuration. The existing download decoder preserves
 the complete target, locale, definition and typed value. Every value must match

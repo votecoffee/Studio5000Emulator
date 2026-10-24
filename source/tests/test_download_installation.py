@@ -11,6 +11,8 @@ from logixlab.model import ModelError
 import test_download_values as values
 import test_download_changelog as logs
 import test_programming_lease as leases
+import test_download_properties as properties
+import test_native_metadata_values as metadata
 
 
 class InstallationSignedTests(logs.NamespaceFixture,unittest.TestCase):
@@ -147,6 +149,92 @@ class InstallationSignedTests(logs.NamespaceFixture,unittest.TestCase):
             prepare(engine,source,('NOP();',),'MainProgram',0)
         self.assertIs(self.app.engine,engine);self.assertEqual(engine.memory.values,values)
         self.assertEqual(getattr(engine.project,'runtime_revision',0),0)
+
+
+class CommittedMetadataTests(logs.NamespaceFixture,unittest.TestCase):
+    complete_tasks=InstallationSignedTests.complete_tasks
+    configure=InstallationSignedTests.configure
+    ready_setup=InstallationSignedTests.ready_setup
+    ready_routines=InstallationSignedTests.ready_routines
+    next_routines=InstallationSignedTests.next_routines
+    ready_map=InstallationSignedTests.ready_map
+    ready_log=InstallationSignedTests.ready_log
+    proposal=InstallationSignedTests.proposal
+    ready_install=InstallationSignedTests.ready_install
+
+    def setUp(self):
+        InstallationSignedTests.setUp(self)
+        self.catalog,self.number,self.text=properties.catalog(self.namespace._source)
+        self.app.native_metadata_definitions=self.catalog.definitions;self.app.native_metadata_values=self.catalog
+        self.marker=replace(self.number,definition=36,target=replace(self.number.target,qualifier=b'ProjectType'),data=b'L\0\0\0')
+
+    def stage(self):
+        self.ready_install()
+        self.assertEqual(self.send(properties.request((self.number,)))[2],0)
+        self.assertEqual(self.send(properties.request((self.marker,)))[2],0)
+
+    def read(self,selection='controller-all',position=0,native=None,limit=480):
+        from logixlab.native_session import NativeSession
+        native=NativeSession() if native is None else native
+        return self.endpoint.router.read_metadata_values(metadata.query(selection,position)[8:],native,limit)
+
+    def test_commit_exposes_accepted_properties_without_mutating_original_catalog_or_identity(self):
+        self.stage();before=self.catalog.body('all-objects');identity=self.app.native_project_identity
+        self.assertEqual(metadata.frame(metadata.query('controller-all'),self.read())[1].data,self.catalog.body('controller-all'))
+        self.assertEqual(self.send(logs.COMMIT)[2],0)
+        self.send(logs.prep.END);self.send(leases.RELEASE)
+        installed=self.app.engine.installed_download
+        self.assertTrue(installed.description()['committed_metadata'])
+        self.assertEqual(installed.description()['added_controller_properties'],1)
+        for selection in ('all-objects','controller-all','controller-attribute-26'):
+            assembly=metadata.wire.Assembly();position=0
+            while not assembly.complete:
+                raw=metadata.query(selection,position);response=self.send(raw)
+                query,chunk,status=metadata.frame(raw,response)
+                self.assertEqual(status,0);assembly.accept(query,chunk);position+=len(chunk.data)
+            rows=metadata.wire.records(assembly.data()) if assembly.data() else ()
+            if selection=='controller-attribute-26':self.assertEqual(rows,())
+            else:
+                self.assertEqual(sum(r.target.qualifier==b'ProjectType' for r in rows),1)
+                serial=next(r for r in rows if r.target.qualifier==self.number.target.qualifier)
+                self.assertEqual(properties.value_identity(serial),properties.value_identity(self.number))
+            if selection=='all-objects':
+                self.assertEqual([r.record_word for r in rows],list(range(1,len(rows)+1)))
+        self.assertIs(self.app.native_metadata_values,self.catalog);self.assertEqual(self.catalog.body('all-objects'),before)
+        self.assertIs(self.app.native_project_identity,identity);self.assertEqual(self.app.engine.scan_count,0)
+
+    def test_commit_invalidates_existing_cursor_and_snapshot_is_detached_from_staging(self):
+        from logixlab.native_session import NativeSession
+        from logixlab.ethernetip import CIPError
+        self.stage();native=NativeSession();generation=self.app.generation
+        first=metadata.frame(metadata.query(),self.read('all-objects',native=native,limit=50))[1]
+        self.assertIsNotNone(native.metadata_query)
+        self.assertEqual(self.send(logs.COMMIT)[2],0);self.assertEqual(self.app.generation,generation)
+        with self.assertRaises(CIPError):self.read('all-objects',len(first.data),native)
+        self.assertIsNone(native.metadata_query)
+        before=self.read();self.namespace.properties._values={};self.namespace.properties._packets=()
+        self.assertEqual(self.read(),before)
+        self.app.native_metadata_values=replace(self.catalog)
+        with self.assertRaises(CIPError):self.read()
+
+    def test_failed_publication_does_not_expose_properties_and_reset_discards_committed_view(self):
+        self.stage();original=self.read()
+        with patch.object(self.app,'default_scan_interval',side_effect=ModelError('failed publication')):
+            self.assertEqual(self.send(logs.COMMIT)[2],12)
+        self.assertEqual(self.read(),original);self.assertIsNone(getattr(self.app.engine,'installed_download',None))
+        self.assertEqual(self.send(logs.COMMIT)[2],0);self.assertNotEqual(self.read(),original)
+        self.send(logs.prep.END);self.send(leases.RELEASE);self.app.command('reset',{})
+        self.assertEqual(self.read(),original)
+
+    def test_source_rows_or_definitions_changed_after_commit_revoke_metadata_readback(self):
+        from logixlab.ethernetip import CIPError
+        self.stage();self.assertEqual(self.send(logs.COMMIT)[2],0)
+        rows=self.catalog.rows
+        object.__setattr__(self.catalog,'rows',rows[:-1])
+        with self.assertRaises(CIPError):self.read()
+        object.__setattr__(self.catalog,'rows',rows)
+        object.__setattr__(self.catalog.definitions,'rows',self.catalog.definitions.rows[:-1])
+        with self.assertRaises(CIPError):self.read()
 
 
 class DownloadAuditTests(unittest.TestCase):

@@ -1,5 +1,10 @@
 # Downloaded Routine source readback
 
+Version `26.1023.211522` also returns the opaque Routine component for selector
+DWORDs `(1, 9)`. These thirteen bytes come from the validated incremental
+download ledger. Each chunk rechecks that ledger and the original source;
+the component is not interpreted or executed. Selector `(1, 4)` remains unavailable.
+
 Version `26.1023.205529` serves the observed Message Router `0x3A` read stream
 for a Program-scoped Routine `0x5D` request with selector DWORDs `(1, 3)`.
 It returns the exact source container retained from a successful
@@ -36,7 +41,8 @@ The final reply uses the observed complete/final framing.
 Missing starts, gaps, overlaps, second starts and excessive frame counts fail.
 The stored download component limit bounds source storage, and the shared read
 codec bounds frame counts. A small reply budget cannot leave a partial stream.
-Other selectors, AOI paths, unknown routines and write operations stay denied.
+Selectors other than `(1, 3)` and `(1, 9)`, AOI paths, unknown routines and write
+operations stay denied.
 Default object representations and aggregate trace events omit source bytes.
 Explicit private protocol traces retain their existing bounded payload policy.
 

@@ -1646,8 +1646,15 @@ class Router:
         if getattr(self.app.engine.project,'runtime_revision',0) and query.selection!='controller-attribute-26':
             native.metadata_query=None
             raise CIPError(0x0C,'Original metadata values do not describe edited runtime logic')
-        data=catalog.body(query.selection);cursor=native.metadata_query
-        if query.format==1 and (cursor is None or cursor[0] is not catalog or cursor[1]!=self.app.generation
+        installed=getattr(self.app.engine,'installed_download',None);provider=installed or catalog
+        try:
+            data=(catalog.body(query.selection) if installed is None else
+                installed.metadata_body(self.app.native_project_identity,self.app.engine.project,catalog,query.selection))
+        except ImageError as error:
+            native.metadata_query=None
+            raise CIPError(0x0C,error.reason) from error
+        cursor=native.metadata_query
+        if query.format==1 and (cursor is None or cursor[0] is not provider or cursor[1]!=self.app.generation
                 or cursor[2:]!=(query.selection,query.position)):
             native.metadata_query=None
             raise CIPError(0x0C,'Metadata value cursor does not match this session and source')
@@ -1655,7 +1662,7 @@ class Router:
         if available<0 or (query.position<len(data) and available==0):raise CIPError(0x1B,'Metadata value reply cannot fit')
         chunk=data[query.position:query.position+available];position=query.position+len(chunk);final=position==len(data)
         fmt=(0x301 if final else 0x101) if query.format==0x101 else (0x201 if final else 1)
-        native.metadata_query=None if final else (catalog,self.app.generation,query.selection,position)
+        native.metadata_query=None if final else (provider,self.app.generation,query.selection,position)
         self.endpoint.counts['native_metadata_value_chunks']+=1
         return reply(0x53,0,struct.pack('<II',fmt,query.position)+chunk)
 
@@ -1802,15 +1809,17 @@ class Router:
                                         or target.attribute is not None or target.symbols or target.io_map_instance is not None
                                         or target.controller_instance is not None or target.aoi_instance is not None):
                                     raise CIPError(0x0F,'Only scoped downloaded Routine source reads are supported')
-                                if inner[n:]!=struct.pack('<II',1,3):raise CIPError(0x0F,'Unsupported Routine source read selector')
-                                stream=routine_read.Stream.begin(self.app,target.program_instance,target.instance)
+                                if inner[n:] not in (struct.pack('<II',1,3),struct.pack('<II',1,9)):
+                                    raise CIPError(0x0F,'Unsupported Routine read selector')
+                                selector=struct.unpack_from('<I',inner,n+4)[0]
+                                stream=routine_read.Stream.begin(self.app,target.program_instance,target.instance,selector)
                             else:
                                 stream=native.read_stream
                                 if stream is None:raise CIPError(0x0C,'Routine source read start required')
                             encoded,complete=stream.reply(self.app,envelope,native.key,limit)
                             native.read_stream=None if complete else stream
                             self.endpoint.record('native_routine_source_read',bytes_returned=len(encoded)-36,
-                                total_bytes=len(stream.data),complete=complete,frames=stream.frames)
+                                selector=stream.selector,total_bytes=len(stream.data),complete=complete,frames=stream.frames)
                     except ImageError as error:
                         native.read_stream=None
                         raise CIPError(0x1B if error.reason=='routine_read_reply_budget' else 0x0C,error.reason) from error

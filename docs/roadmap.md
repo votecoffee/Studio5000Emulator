@@ -6,6 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.211522` retains accepted Controller metadata in the installed
+download view, preserving the original catalog and invalidating stale cursors.
+It also adds signed readback of the opaque Routine component already stored
+during download. Native upload remains the transfer priority.
+
 Version `26.1023.205529` implements [signed downloaded Routine source readback](downloaded-routine-read.md)
 with exact retained bytes, source checks and bounded session-owned streams.
 The SDK's earlier Program-collection failure still needs resolution before it

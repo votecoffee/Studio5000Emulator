@@ -1,5 +1,6 @@
 """Original Controller metadata and a bounded, source-bound v35 L85E controller-profile marker."""
 import hashlib
+from dataclasses import dataclass,field,replace
 from types import MappingProxyType
 from .download_image import ImageError
 from .incremental_download import metadata_stamp,value_identity
@@ -35,6 +36,44 @@ def profile_marker(row,values):
         and any(r.target.class_id==0x349 and r.target.instance_word==row.definition and not r.target.context_word
             and not r.target.selector_word and not r.target.qualifier and r.definition==17 and r.locale_word==0x7F
             and r.kind==2 and r.type_code==0xC2 and r.elements==1 and r.data==b'\1' for r in values.rows))
+
+
+@dataclass(frozen=True)
+class CommittedProperties:
+    """Detached metadata read view; the original ACD catalog remains unchanged."""
+    catalog:object=field(repr=False)
+    source:object=field(repr=False)
+    binding:str
+    rows:tuple=field(repr=False)
+    additions:int
+    _all:bytes=field(repr=False)
+    _controller:bytes=field(repr=False)
+
+    @classmethod
+    def prepare(cls,stage,source,values,project):
+        stage.validate(source,values,project)
+        if values is None:return None
+        stamp=metadata_stamp(values,source)
+        proposal={key(row):row for row in values.rows}
+        before=len(proposal)
+        proposal.update(stage._values)
+        # Each download packet numbers its own records. The committed stream
+        # needs one set of ordinals while retaining typed values and targets.
+        rows=tuple(replace(row,record_word=n) for n,row in enumerate(proposal.values(),1))
+        controller=tuple(row for row in rows if row.target.class_id==0x8E and row.target.instance_word==1
+            and not row.target.context_word and not row.target.selector_word)
+        result=cls(values,source,stamp,rows,len(rows)-before,encode_records(rows),encode_records(controller))
+        stage.validate(source,values,project)
+        result.body(values,'all-objects')
+        return result
+
+    def body(self,values,selection):
+        if values is not self.catalog or metadata_stamp(values,self.source)!=self.binding:
+            raise ImageError('installed_metadata_source_changed')
+        if selection=='controller-attribute-26':return b''
+        if selection=='all-objects':return self._all
+        if selection=='controller-all':return self._controller
+        raise ImageError('installed_metadata_selection_unsupported')
 
 
 class DownloadProperties:

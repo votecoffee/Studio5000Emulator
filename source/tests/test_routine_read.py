@@ -12,6 +12,8 @@ from logixlab.routine_source import decode
 import test_download_installation as installation
 import test_download_changelog as logs
 import test_programming_lease as leases
+import test_download_headers as headers
+import test_incremental_completion as components
 from test_signed_messages import KEY
 from test_routine_source import container,xml_source
 
@@ -22,7 +24,12 @@ def inner(program=2,routine=1,selector=3):
 
 
 class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
-    setUp=installation.InstallationSignedTests.setUp
+    def setUp(self):
+        original=headers.HeaderTests.batch
+        def batch(case):
+            rows=list(original(case));rows[10:10]=[components.component(),components.component(instance=2)]
+            return tuple(rows)
+        with patch.object(headers.HeaderTests,'batch',batch):installation.InstallationSignedTests.setUp(self)
     complete_tasks=installation.InstallationSignedTests.complete_tasks
     configure=installation.InstallationSignedTests.configure
     ready_setup=installation.InstallationSignedTests.ready_setup
@@ -64,11 +71,28 @@ class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
     def test_wrong_selectors_writes_unknown_targets_and_missing_installation_never_return_source(self):
         self.assertEqual(self.read()[1][2],12)
         self.installed()
-        for raw in (inner(selector=9),inner(selector=4),inner(program=3),inner(routine=3),
+        for raw in (inner(selector=4),inner(selector=0),inner(program=3),inner(routine=3),
                     bytes.fromhex('5d02206d2401')+struct.pack('<II',1,3),
                     bytes.fromhex('4d03206b24013001')+struct.pack('<II',1,3)):
             self.assertNotEqual(self.read(request_inner=raw)[1][2],0)
         self.assertEqual(self.read()[1][2],0)
+
+    def test_opaque_component_read_returns_stored_bytes_and_changed_effects_revoke_continuation(self):
+        self.installed();ns=self.app.engine.installed_download.namespace
+        expected=ns._incremental._routine_data[(2,1)];self.assertEqual(len(expected),13)
+        original=self.endpoint.router.dispatch
+        def limited(raw,session,depth=0,limit=480,budget=None):return original(raw,session,depth,40 if raw[0]==0x3A else limit,budget)
+        with patch.object(self.endpoint.router,'dispatch',side_effect=limited):
+            assembly=rt.Assembly();position=0
+            while not assembly.complete:
+                request,raw=self.read(position,inner(selector=9));response=rt.verify_response(raw,KEY,request=request)
+                assembly.accept(request,response);position+=len(response.data)
+            self.assertEqual(assembly.value(),expected);self.assertEqual(assembly.frames,4)
+            request,raw=self.read(request_inner=inner(selector=9));position=len(rt.verify_response(raw,KEY,request=request).data)
+            ns._incremental._routine_data={(2,1):b'X'*13}
+            self.assertEqual(self.read(position)[1][2],12)
+            self.assertEqual(self.read(position)[1][2],12)
+        self.assertEqual(self.app.engine.scan_count,0)
 
     def test_foreign_context_missing_start_bad_offset_and_new_start_cannot_steal_a_stream(self):
         self.installed();original=self.endpoint.router.dispatch
