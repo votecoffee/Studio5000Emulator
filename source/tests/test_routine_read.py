@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
-from logixlab import read_transport as rt,routine_read
+from logixlab import read_transport as rt,routine_read,upload_routine_source
 from logixlab.ethernetip import logical
 from logixlab.routine_source import decode
 from logixlab.download_image import ImageError
@@ -89,9 +89,11 @@ class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
         self.sequence+=1;raw=rt.encode_request(request,KEY)
         return request,self.cip(raw)
 
-    def test_full_and_fragmented_reads_return_exact_retained_container_without_changing_model(self):
+    def test_full_and_fragmented_reads_return_upload_view_without_changing_retained_source_or_model(self):
         self.installed();before=copy.deepcopy(self.app.state());expected=routine_read.source(self.app,2,1)
-        self.assertEqual(decode(expected).rungs[0].text_ioi,'NOP();')
+        self.assertEqual(upload_routine_source.decode(expected).records[0].text_ioi,'NOP();')
+        retained=self.app.engine.installed_download.namespace._routine_batch._values[2,1].source
+        self.assertEqual(decode(retained[8:]).rungs[0].text_ioi,'NOP();')
         for maximum in (480,88):
             original=self.endpoint.router.dispatch
             def limited(raw,session,depth=0,limit=480,budget=None):return original(raw,session,depth,min(limit,maximum) if raw[0]==0x3A else limit,budget)
@@ -105,6 +107,7 @@ class RoutineReadWireTests(logs.NamespaceFixture,unittest.TestCase):
             if maximum==88:self.assertGreater(assembly.frames,1)
         for key in ('tags','scan','ms','routines','controller','routine_edits'):
             self.assertEqual(self.app.state()[key],before[key])
+        self.assertEqual(self.app.engine.installed_download.namespace._routine_batch._values[2,1].source,retained)
         self.assertFalse(self.endpoint.programming_lease.description(self.app.generation,self.app.engine.project.sha256)['owned'])
 
     def test_wrong_selectors_writes_unknown_targets_and_missing_installation_never_return_source(self):

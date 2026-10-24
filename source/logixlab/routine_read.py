@@ -9,7 +9,7 @@ import struct
 from .download_headers import HeaderBindings
 from .download_image import ImageError
 from .download_routines import RoutineBindings
-from . import read_transport as rt
+from . import read_transport as rt,upload_routine_source
 
 
 def source(app,program,routine,selector=3):
@@ -28,17 +28,22 @@ def source(app,program,routine,selector=3):
     raw=batch.read(program,routine,'source',bindings)
     if raw[:8]!=struct.pack('<II',1,3):raise ImageError('routine_read_source_profile_changed')
     # Revalidate the retained TextIOI against the current interpreter routine.
-    # These are the caller's exact native source bytes, without its write prefix.
-    bindings.source((program,routine),raw[8:])
-    if selector==3:return raw[8:]
+    # Native upload requires TargetClass, which the download XML omits. Keep
+    # the retained download unchanged and convert only the served source view.
+    decoded=bindings.source((program,routine),raw[8:])
+    if selector==3 and not decoded.rungs:return raw[8:]
+    if selector in (3,4):
+        row=headers._routine(program,routine)
+        if (row.type_word!=0x7FF or row.source_key is None
+                or project.programs[headers._program(program)]['class']!='Standard'):
+            raise ImageError('routine_read_unprotected_standard_profile_required')
+    if selector==3:
+        try:return upload_routine_source.from_download(raw[8:],target_class='Standard')
+        except upload_routine_source.Error as error:raise ImageError(str(error)) from error
     if selector==4:
         # All 708 Program/Routine reads in the successful v35 upload reference
         # return an empty stream for this selector. Its semantic name is not
         # established; do not substitute the downloaded compiled-code bytes.
-        row=headers._routine(program,routine)
-        if (row.type_word!=0x7FF or row.source_key is None
-                or project.programs[row.program]['class']!='Standard'):
-            raise ImageError('routine_read_empty_component_profile_required')
         return b''
     incremental=ns._incremental
     if incremental is None:raise ImageError('routine_read_component_required')

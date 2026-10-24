@@ -47,3 +47,12 @@ The new profile implements the source-checked empty case. Software checks cover
 class revision, all three scopes, actual labels, unscheduled routines, stale
 or modified source, rejected payloads/services and signed TCP requests. Native
 upload acceptance is verified separately from these software checks.
+
+The Label-aware `26.1024.091940` trial completes both Routine-data reads and
+Label discovery, uploads Tasks and Data Logs, and reaches building the first
+routine. It fails on the next signed Routine selector `(1, 4)` with access
+status `0x0F` after 365 verified requests. Source, model, installation and audit
+remain unchanged, with actual Offline cleanup and no SDK fault. Its complete
+1,489-event journal replays identically offline without independent MAC
+authentication. [Downloaded Routine reads](downloaded-routine-read.md) records
+the following selector implementation.

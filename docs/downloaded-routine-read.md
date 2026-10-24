@@ -1,5 +1,23 @@
 # Downloaded Routine source readback
 
+Version `26.1024.095302` adds the observed `TargetClass="Standard"` root
+attribute to the served nonempty Routine source view. The retained download
+container is unchanged. Conversion preserves every other XML byte, including
+CDATA, declaration, TextIOI and RegionIds, and copies the original compressed
+auxiliary block and padding exactly. Only the source compression block and its
+header offsets are rebuilt. Every chunk revalidates the original source, native
+bindings and installed model. Other classes and edited or protected profiles
+remain unavailable. Empty downloads retain their existing byte-exact readback;
+that profile has no demonstrated complete native upload.
+
+The preceding native trial accepts selector `(1, 4)`, then reads all 676 source
+bytes for the first routine before reporting `RxE_CORRUPT_RECON_DATA` after
+367 verified requests. Its downloaded XML lacks `TargetClass`, which is present
+in the saved successful upload profile. The new conversion addresses that
+observed difference; only a subsequent native trial can establish acceptance.
+Both source/model preservation and actual Offline cleanup are confirmed, with
+no SDK fault and an identical replay of the complete 1,496-event journal.
+
 Version `26.1024.094038` adds selector `(1, 4)` for an unchanged, installed
 Standard RLL routine with its original unprotected Type `0x07FF` and source-key
 metadata. The saved successful v35 upload returns an empty signed stream in all
@@ -17,8 +35,9 @@ Version `26.1023.205529` serves the observed Message Router `0x3A` read stream
 for a Program-scoped Routine `0x5D` request with selector DWORDs `(1, 3)`.
 It returns the exact source container retained from a successful
 [source-equivalent download](download-image.md#source-equivalent-installation).
-The download write prefix is removed; the container, TextIOI, RegionIds and
-auxiliary bytes are preserved. Native compiled code is neither returned by
+The download write prefix is removed. This historical version preserves the
+container byte for byte; the later upload view above adds its explicit class
+while preserving TextIOI, RegionIds and auxiliary bytes. Native compiled code is neither returned by
 this selector nor executed.
 
 ## Source and session checks

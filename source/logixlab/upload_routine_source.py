@@ -9,6 +9,7 @@ from dataclasses import dataclass,field
 import hashlib
 import re
 import struct
+import zlib
 from xml.etree import ElementTree as ET
 
 from . import routine_source as source
@@ -16,6 +17,34 @@ from . import routine_source as source
 MAX_CONTAINER=4*1024*1024
 Error=source.SourceError
 PROFILES={('Standard','Original'),('Safety','Original'),('Standard','TestEdits')}
+
+
+def from_download(data,*,target_class):
+    """Add the observed upload class to validated ordinary download source.
+
+    Only the root attribute and compression framing change. Preserve all XML
+    bytes otherwise, including CDATA, TextIOI, native RegionIds and declaration,
+    and copy the original compressed auxiliary block and padding exactly.
+    """
+    if target_class!='Standard':raise Error('upload_source_conversion_class_unsupported')
+    original=source.decode(data)
+    xml,_=source._container(data)
+    start=re.match(rb'(?:\xef\xbb\xbf)?\s*(?:<\?xml\b[^?]*\?>\s*)?<RSLogix5000Content(?=\s)',xml)
+    if start is None:raise Error('upload_source_conversion_root_profile')
+    position=start.end();xml=xml[:position]+b' TargetClass="Standard"'+xml[position:]
+    if len(xml)>source.MAX_EXPANDED:raise Error('upload_source_expanded_limit')
+    compressed=zlib.compress(xml)
+    block=struct.pack('<II',0x40000000|len(compressed),len(xml))+compressed
+    block+=bytes(source.aligned(len(block))-len(block))
+    _,aux_offset,aux_size=source.source_header(data,len(data))
+    length=28+len(block)+source.aligned(aux_size)
+    converted=struct.pack('<8I',length,28,len(block),28+len(block),aux_size,0,length,0)+block+data[aux_offset:]
+    result=decode(converted)
+    if (result.name!=original.name or result.edit_type!='Original'
+            or tuple((r.region_id,r.text_ioi) for r in result.records)!=tuple((r.region_id,r.text_ioi) for r in original.rungs)
+            or result.auxiliary_sha256!=original.auxiliary_sha256):
+        raise Error('upload_source_conversion_changed_source')
+    return converted
 
 
 @dataclass(frozen=True)

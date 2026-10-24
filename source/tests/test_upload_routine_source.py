@@ -37,6 +37,28 @@ def assembled(blob,inner=None,split=None):
 
 
 class UploadRoutineSourceTests(unittest.TestCase):
+    def test_download_conversion_adds_only_target_class_and_retains_auxiliary_block(self):
+        xml=b'<?xml version="1.0" encoding="UTF-16"?>'+ET.tostring(xml_source(),encoding='utf-8')
+        xml=xml.replace(b'<TextIOI>NOP();</TextIOI>',b'<TextIOI><![CDATA[NOP();]]></TextIOI>')
+        original=container(xml);saved=bytes(original)
+        converted=upload.from_download(original,target_class='Standard');result=upload.decode(converted)
+        converted_xml,_=edits._container(converted)
+        self.assertEqual(converted_xml.replace(b' TargetClass="Standard"',b'',1),xml)
+        old_aux=edits.source_header(original,len(original))[1];new_aux=edits.source_header(converted,len(converted))[1]
+        self.assertEqual(converted[new_aux:],original[old_aux:])
+        self.assertEqual(result.records[0].text_ioi,'NOP();');self.assertEqual(original,saved)
+        with self.assertRaises(edits.SourceError):edits.decode(converted)
+
+    def test_conversion_rejects_unknown_classes_empty_or_protected_source_and_upload_input(self):
+        for target_class in ('Safety','standard','',None):
+            with self.subTest(target_class=target_class),self.assertRaisesRegex(upload.Error,'class_unsupported'):
+                upload.from_download(container(),target_class=target_class)
+        root=xml_source();root.remove(root[0])
+        for blob in (container(ET.tostring(root)),source_blob()[0],container(b'not XML')):
+            with self.assertRaises(upload.Error):upload.from_download(blob,target_class='Standard')
+        root=xml_source();root.set('Protected','true')
+        with self.assertRaises(upload.Error):upload.from_download(container(ET.tostring(root)),target_class='Standard')
+
     def test_source_records_preserve_ioi_regions_and_hashes_without_exposing_text(self):
         blob,xml=source_blob();value=upload.decode(blob);state=value.description()
         self.assertEqual(value.name,'PrivateRoutine');self.assertEqual(value.records[0].region_id,1)
