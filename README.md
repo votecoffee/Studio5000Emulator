@@ -6,11 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.211522`.** Versions use the release timestamp
+**Current app version: `26.1023.212737`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release keeps accepted Controller metadata available after a completed
+This release aligns Routine class revision with the supported v35 RLL metadata
+layout when complete original typed, unprotected Routine bindings are available.
+It also keeps accepted Controller metadata available after a completed
 source-equivalent download, while preserving the original ACD catalog. It also
 extends [signed Routine readback](docs/downloaded-routine-read.md) to the opaque
 component retained during download. Reads check the source, session counters
@@ -32,7 +34,8 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 Upload still fails during Program collection.
 
-This iteration passes 253 focused checks and 349 Python syntax checks. The
+This iteration passes 193 focused checks and 349 Python syntax checks. The
+preceding metadata/readback revision passed 253 focused checks. The
 preceding Windows milestone suite passed 2,003 checks with two platform skips.
 
 **Native upload, replacement with another project, SDK tag-address discovery and the complete

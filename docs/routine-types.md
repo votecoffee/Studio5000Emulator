@@ -1,5 +1,13 @@
 # Original Routine Type words
 
+Version `26.1023.212737` reports Executable class revision 11 for the native v35
+L85E profile with a complete, unchanged ordinary RLL inventory, original Type
+words and unprotected source keys. Both global and Program-scoped class reads
+use that layout revision; global reads still withhold flattened instance counts.
+Generic, partial, stale, edited and other source profiles keep the legacy
+revision-1 layout. This class field is separate from instance attribute 1 (Type)
+and does not grant programming authority or establish complete upload support.
+
 Version `.129` exposes source-bound Executable (`0x6D`) instance attribute 1,
 Type. The value comes from the original ACD. It is not generated from the
 Routine's RLL, ST, FBD or SFC language name, and an L5X-only import does not

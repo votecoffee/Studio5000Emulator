@@ -6,6 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.212737` aligns the Executable class revision with the supported
+v35 RLL instance layout when complete original typed and unprotected bindings
+are present. Generic and incomplete profiles retain the legacy layout. Upload
+acceptance is tested separately from this schema correction.
+
 Version `26.1023.211522` retains accepted Controller metadata in the installed
 download view, preserving the original catalog and invalidating stale cursors.
 It also adds signed readback of the opaque Routine component already stored

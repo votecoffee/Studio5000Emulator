@@ -151,6 +151,41 @@ class InstallationSignedTests(logs.NamespaceFixture,unittest.TestCase):
         self.assertEqual(getattr(engine.project,'runtime_revision',0),0)
 
 
+class RoutineClassRevisionTests(logs.NamespaceFixture,unittest.TestCase):
+    setUp=InstallationSignedTests.setUp
+
+    def revision(self,scoped=False):
+        return self.send(bytes.fromhex('0e0520682402206d24003001' if scoped else '0e03206d24003001'))
+
+    def test_native_v35_typed_unprotected_rll_class_uses_revision_11_without_flattening_instances(self):
+        before=copy.deepcopy(self.app.state())
+        self.assertEqual(self.revision(),bytes.fromhex('8e0000000b00'))
+        self.assertEqual(self.revision(True),bytes.fromhex('8e0000000b00'))
+        self.assertEqual(self.send(bytes.fromhex('0302206d24000300010002000300'))[2],10)
+        self.assertEqual(self.send(bytes.fromhex('0e0520682402206d24003003')),bytes.fromhex('8e00000002000000'))
+        for key in ('tags','scan','ms','controller','routines'):self.assertEqual(self.app.state()[key],before[key])
+
+    def test_partial_stale_edited_and_non_native_layouts_keep_the_legacy_revision(self):
+        identity=self.app.native_project_identity;binding=self.app.native_routines;project=self.app.engine.project
+        for case in ('identity','catalog','key','type','version','processor','edited','generic'):
+            with self.subTest(case=case):
+                if case=='identity':self.app.native_project_identity=replace(identity,source_acd_sha256='c'*64)
+                elif case=='catalog':self.app.native_routines=None
+                elif case in ('key','type'):
+                    rows=[{**row.manifest(),**({'type_word':0x7FC} if case=='type' else {})} for row in binding.rows]
+                    if case=='key':
+                        for row in rows:row.pop('source_key_hex',None)
+                    self.app.native_routines=type(binding)(binding.source_acd_sha256,binding.source_l5x_sha256,rows)
+                elif case=='version':project.version='34'
+                elif case=='processor':project.processor='1756-L85ES'
+                elif case=='edited':project.runtime_revision=1
+                else:self.endpoint.native_read_only=False
+                self.assertEqual(self.endpoint.router.routine_class_revision(),1)
+                self.app.native_project_identity=identity;self.app.native_routines=binding
+                project.version='35';project.processor='1756-L85E';project.runtime_revision=0;self.endpoint.native_read_only=True
+        self.assertEqual(self.revision(),bytes.fromhex('8e0000000b00'))
+
+
 class CommittedMetadataTests(logs.NamespaceFixture,unittest.TestCase):
     complete_tasks=InstallationSignedTests.complete_tasks
     configure=InstallationSignedTests.configure

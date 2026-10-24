@@ -1400,6 +1400,27 @@ class Router:
             raw=name.encode('ascii');attributes[25]=struct.pack('<I',len(raw))+raw
         return attributes
 
+    def routine_class_revision(self):
+        project=self.app.engine.project
+        if (not self.endpoint.native_read_only or project.version!='35' or project.processor!='1756-L85E'
+                or not project.executable_configuration.source_complete or project.aois
+                or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
+            return 1
+        # The v35 RLL instance schema is paired with Executable class revision
+        # 11 in the observed upload. Keep the legacy profile when the complete
+        # original typed, unprotected Routine inventory cannot be established.
+        found=False
+        try:
+            for program in self.programs():
+                for row in self.routines(program['id']):
+                    target=project.routines[(row['program']+'/'+row['name']).casefold()]
+                    if (target.kind!='RLL' or row['type_word']!=0x7FF or row['source_key'] is None or
+                            not self.routine_identity_attributes(self.app.native_routines,row['type_word'],row['id'],row['name'])):
+                        return 1
+                    found=True
+        except CIPError:return 1
+        return 11 if found else 1
+
     def routine_service(self,service,path,data,limit):
         if path.symbols or path.instance is None or path.io_map_instance is not None or path.controller_instance is not None:
             raise CIPError(4,'Executable metadata requires a numeric instance path')
@@ -1415,13 +1436,15 @@ class Router:
             return self.attribute_read(service,path,data,attributes)
         if path.program_instance is None:
             if path.instance==0 and service in (3,0x0E):
-                # Partial legacy layout revision only; never flatten Programs.
-                return self.attribute_read(service,path,data,{1:struct.pack('<H',1)})
+                # Class revision describes the selected schema, never a Routine
+                # instance Type word. Global discovery does not flatten Programs.
+                return self.attribute_read(service,path,data,{1:struct.pack('<H',self.routine_class_revision())})
             raise CIPError(4,'Executable inventory and instance reads require a parent Program')
         if service==0x4B:return self.instance_list(path,data,limit)
         rows=self.routines(path.program_instance)
         if path.instance==0:
             attributes=self.catalog_class_attributes([row['id'] for row in rows])
+            attributes[1]=struct.pack('<H',self.routine_class_revision())
         else:
             routine=next((row for row in rows if row['id']==path.instance),None)
             if routine is None:raise CIPError(5,'Unknown Executable instance in the selected Program')
