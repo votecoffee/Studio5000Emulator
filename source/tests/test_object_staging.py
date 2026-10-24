@@ -103,6 +103,13 @@ class ObjectModelTests(unittest.TestCase):
                         (table(symbol=os.NULL_REFERENCE),),(table(use=7),)):
             with self.assertRaises(os.ObjectError):os.ObjectStaging.from_batch(records)
 
+    def test_packed_bool_descriptor_uses_storage_words_and_retains_reciprocal_source_identity(self):
+        row=os.ObjectStaging.from_batch((symbol(),table(code=0x20D3,dims=(2,0,0)))).tables[0]
+        self.assertEqual((row.type_code,row.dimensions,row.elements,row.storage_bytes),(0x20D3,(2,0,0),2,8))
+        for code,dims in ((0xD3,(0,0,0)),(0x40D3,(2,2,0)),(0x60D3,(2,2,2)),(0x20D3,(0,0,0))):
+            with self.subTest(code=code),self.assertRaises(os.ObjectError):os.ObjectStaging.from_batch((symbol(),table(code=code,dims=dims)))
+        with self.assertRaises(os.ObjectError):os.ObjectStaging.from_batch((table(code=0x20D3,dims=(2,0,0),use=4,symbol=os.NULL_REFERENCE),))
+
     def test_exact_aggregate_storage_capacity_and_excess(self):
         def rows(count):return tuple(r for i in range(1,count+1) for r in (symbol(i,i),table(i,i,0x20C5,(os.MAX_ELEMENTS,0,0))))
         self.assertEqual(os.ObjectStaging.from_batch(rows(2)).description()['storage_bytes'],os.MAX_STORAGE_BYTES)

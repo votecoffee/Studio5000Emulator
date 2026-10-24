@@ -15,6 +15,12 @@ the PLC running through temporary webpage poll failures. It powers off only
 for an explicit, instance-bound shutdown request. Unexpected tunnel loss leaves
 the guest running so the launcher can reconnect.
 
+[Packed BOOL-array downloads](docs/bool-array-download.md) now accept the
+source-checked one-dimensional storage profile. The owned BOOL[64] fixture
+completes native SDK download/save/reopen/Go Online across 433 verified requests;
+independent CIP reads match every saved bit. Whole-array symbolic wire operations
+remain outside this profile.
+
 [Empty ladder routine downloads](docs/empty-routine-download.md) retain the
 native source and zero-count attachment without inventing compiled code or a
 NOP. This requires an explicitly empty original source routine. Missing or
@@ -83,7 +89,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 179 affected checks and 354 Python syntax checks.
+This iteration passes 176 affected checks and 354 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

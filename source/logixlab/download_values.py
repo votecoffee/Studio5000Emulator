@@ -49,12 +49,19 @@ def encode_initial(dtype,value,native_types):
     """Exact root Table layout; arrays use last-index-fast storage.
 
     Complete rectangular values already belong to the imported source model.
-    Structure strides come from the source ACD; root BOOL packing is unsupported.
+    Structure strides come from the source ACD. The observed root BOOL profile
+    has one dimension, in complete 32-bit storage words.
     """
     if type(value) is not list:
         code,data=encode_value(dtype,value,native_types)
         return code,(0,0,0),1,data
-    if dtype=='BOOL':raise ImageError('download_initial_array_type_unimplemented')
+    if dtype=='BOOL':
+        if (not 32<=len(value)<=MAX_ELEMENTS or len(value)%32 or any(type(bit) is not bool for bit in value)):
+            raise ImageError('download_initial_bool_array_profile')
+        words=len(value)//32
+        data=b''.join(struct.pack('<I',sum(int(bit)<<i for i,bit in enumerate(value[start:start+32])))
+                      for start in range(0,len(value),32))
+        return 0x20D3,(words,0,0),words,data
     payload=bytearray();elements=0;base_code=None
     def walk(node,depth):
         nonlocal elements,base_code
@@ -182,5 +189,6 @@ class PreparedValues:
             auxiliary_tables=len(self.auxiliary),all_tables_accounted=True,source_values_matched=True,
             scalar_and_builtin_layouts=True,
             atomic_arrays=True,array_rank_limit=3,array_element_limit=MAX_ELEMENTS,
+            packed_bool_arrays=True,bool_array_rank_limit=1,bool_storage_word_bits=32,
             source_structures=True,structure_arrays=True,structure_padding='zero_required',
             active_values_changed=False,compiled_code_executed=False,commit=False,payloads_exposed=False)

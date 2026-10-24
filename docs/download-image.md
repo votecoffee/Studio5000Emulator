@@ -985,10 +985,18 @@ all three dimension words, element count, type and saved bytes must agree.
 Multidimensional data uses last-index-fast, little-endian storage, matching the
 existing [array Data Table layout](atomic-array-storage.md). The bound is three
 dimensions and 65,536 elements within the existing staging storage budget.
-Empty or ragged arrays, missing elements, nonfinite REALs, scalar/type overflow
-and packed BOOL arrays reject preparation as a whole. Matching
+Empty or ragged arrays, missing elements, nonfinite REALs and scalar/type overflow
+reject preparation as a whole. Matching
 dimensions and byte counts cannot excuse a different saved element. This keeps
 the source-equivalent installation contract and existing commit/rollback rules.
+
+Version `26.1024.021104` also accepts the observed
+[one-dimensional root BOOL-array profile](bool-array-download.md). Complete
+source values in groups of 32 are compared with the exact packed words, word
+dimensions and element count. Multidimensional BOOL arrays and packed BOOL
+member arrays remain unavailable. The owned BOOL[64] fixture completes native
+download/save/reopen/Online, and all 64 individual values pass independent CIP
+readback with zero scans.
 
 Version `26.1023.233219` also accepts complete structure values at the original
 ACD's explicit member offsets, using its original Template IDs and structure

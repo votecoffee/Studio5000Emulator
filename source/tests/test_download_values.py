@@ -25,6 +25,29 @@ def builtins(dtype='TIMER'):
 
 
 class ValueTests(unittest.TestCase):
+    def test_root_bool_array_packs_bit_zero_first_across_word_boundaries_without_changing_values(self):
+        values=[i in (0,7,15,31,32,47,63) for i in range(64)];original=list(values)
+        expected=struct.pack('<II',0x80008081,0x80008001)
+        self.assertEqual(encode_initial('BOOL',values,None),(0x20D3,(2,0,0),2,expected))
+        self.assertEqual(values,original)
+        self.assertEqual(encode_initial('BOOL',[False]*32,None),(0x20D3,(1,0,0),1,bytes(4)))
+        for bad in ([],[True],[False]*31,[True]*33,[False]*65568,[1]*32,[[False]*32],
+                    [False]*31+[None],[False]*31+['false']):
+            with self.subTest(size=len(bad)),self.assertRaises(ImageError):encode_initial('BOOL',bad,None)
+
+    def test_bool_initial_preparation_compares_complete_packed_bytes_and_word_dimensions(self):
+        headers,project=self.fixture();project.tags['x'].dtype='BOOL'
+        project.initial['x']=[i in (0,31,32,63) for i in range(64)]
+        data=struct.pack('<II',0x80000001,0x80000001);region=Region(1,0x20D3,(2,0,0),2,data)
+        headers.namespace._image._regions[1]=region
+        plan=PreparedValues.prepare(headers,None);self.assertEqual(plan.values,(('x',1,0x20D3,data),))
+        for bad in (replace(region,dimensions=(64,0,0)),replace(region,elements=64),replace(region,type_code=0x20C1),
+                    replace(region,data=data[:-1]),replace(region,data=struct.pack('<II',0x80000000,0x80000001))):
+            headers.namespace._incremental._tables[1]=bad
+            with self.subTest(region=bad),self.assertRaises(ImageError):PreparedValues.prepare(headers,None)
+        headers.namespace._incremental._tables.clear();project.initial['x'][31]=False
+        with self.assertRaises(ImageError):plan.validate(headers,None)
+
     def test_numeric_array_rank_dimensions_and_last_index_fast_saved_bytes(self):
         for dtype,value,code,dimensions,fmt,flat in (
                 ('DINT',[-3,0,2147483647],0x20C4,(3,0,0),'3i',[-3,0,2147483647]),

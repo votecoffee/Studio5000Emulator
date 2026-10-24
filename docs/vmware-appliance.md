@@ -137,7 +137,7 @@ requirements.
 
 **End session** stops the guest app; its Windows manager then powers off the VM.
 The Windows tray's **Quit LogixLab** also shuts it down. Closing the browser
-leaves the appliance running. CLI shutdown:
+leaves the appliance running.
 
 Temporary webpage poll failures do not shut down the guest. The manager keeps
 polling and, after failed polls, checks a small guest-side shutdown marker over
@@ -149,6 +149,8 @@ and the explicit launcher/tray stop retain their shutdown behavior.
 Unexpected SSH tunnel loss or a replaced application instance closes only the
 owned manager connection and leaves the VM running. Starting the launcher again
 can reconnect to that guest. A webpage timeout is not treated as a PLC stop.
+
+CLI shutdown:
 
 ```powershell
 py -3.13 -X utf8 source/tools/vmware_appliance.py stop

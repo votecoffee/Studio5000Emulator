@@ -80,7 +80,12 @@ def table(instance,payload,templates):
         if target is None:raise ObjectError('table_template_reference_required')
         width=target.attributes.structure_bytes
     else:
-        width=ATOM_BYTES.get(code&0xFFF)
+        if code&0xFFF==0xD3:
+            # Observed root BOOL arrays are a one-dimensional array of
+            # 32-bit packed words, with a reciprocal ordinary Symbol.
+            if code!=0x20D3 or use!=0x6A:raise ObjectError('unsupported_packed_bool_table_profile')
+            width=4
+        else:width=ATOM_BYTES.get(code&0xFFF)
         if width is None:raise ObjectError('unsupported_table_type')
     size=width*elements
     if size>MAX_STORAGE_BYTES:raise ObjectError('object_storage_limit')
