@@ -37,15 +37,27 @@ Reading BOOL[64] returns eight bytes, with bit zero in the least significant
 bit of the first little-endian word. Changes to individual modeled bits appear
 in subsequent table reads without scanning or reallocating the storage.
 The reader rejects changed shapes, non-Boolean leaves, crossed cell boundaries
-and incorrect full-table lengths. Partial words, multiple dimensions, constants
-and aliases do not gain writable table storage. Whole-array symbolic reads and
-writes and packed BOOL member arrays remain outside this profile.
+and incorrect full-table lengths. Only eligible nonconstant base arrays receive
+backed storage. Partial words and multiple dimensions remain unavailable.
+Whole-array symbolic reads and writes and packed BOOL member arrays remain
+outside this profile. These table services remain read-only.
 
 The preceding native SDK upload reported success for a routine-free fixture
 while its retained trace contained zero requests for the omitted BOOL table.
 An SDK success status alone therefore does not establish complete value
 transfer. Native acceptance of this new profile is checked separately against
 the actual requested table and its exact packed response bytes.
+
+The updated runtime completes native SDK download/save/reopen/Go Online across
+425 verified requests and `UploadAsync` across 965 for that routine-free
+BOOL[64] fixture. Its complete upload recording contains the actual packed
+table read: all eight response bytes match the 64 saved values. Independent CIP
+checks verify every logical bit, both descriptor types and their different
+dimensions. Source/model preservation, actual Offline cleanup and no SDK fault
+are confirmed. The complete 1,720-event download and 3,426-event upload journals
+replay identically offline; this checks framing without reauthenticating MACs.
+An uploaded ACD save/reopen is not attempted, and routine-containing upload
+remains unfinished.
 
 ## Native source checkpoint
 

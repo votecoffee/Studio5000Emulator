@@ -4,6 +4,38 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.023810` exposes eligible packed BOOL arrays through Symbol
+discovery and backed Data Table reads. Symbol type `0x20C1` retains logical bit
+dimensions; Table type `0x20D3` uses 32-bit storage-word dimensions. Current
+modeled values supply the packed bytes. Incomplete words, multiple dimensions,
+changed shapes, non-Boolean leaves and crossed storage boundaries remain
+unavailable or rejected.
+
+The preceding build completes SDK upload of the owned routine-free BOOL[64]
+fixture across 962 verified requests while omitting its BOOL table: the complete
+trace contains zero requests for that table. The updated build completes upload
+across 965, with one actual full-table value read matching all eight packed bytes.
+Independent CIP checks verify all 64 bits and both descriptors. Native
+download/save/reopen/Go Online also succeeds across 425 requests. Actual Offline
+cleanup, source/model preservation and no SDK fault are confirmed. The complete
+1,720-event download and 3,426-event upload journals replay identically offline;
+MACs are not independently reauthenticated. An uploaded ACD save/reopen is not
+attempted. Routine-containing upload remains unfinished.
+
+All 226 affected checks and 355 Python syntax checks pass. The full suite was
+not rerun. Source, EXE, served browser assets and all 119 appliance modules match
+the version. The original demo is restored for continued use.
+
+The restored routine-containing demo completes SDK download/save/reopen/Online
+across 433 requests. Its upload still fails Program collection across 348:
+all 22 first-Routine fields succeed, with no source-read request afterward.
+The model, audit and installed download remain unchanged. Its complete
+1,423-event failure journal replays identically, and actual Offline cleanup
+completes without an SDK fault. This separate failure does not change the
+routine-free BOOL-array result.
+A separate SDK process reopens the restored saved ACD and completes Go Online
+across 74 verified requests, with actual Offline cleanup and no SDK fault.
+
 Version `26.1024.021104` adds source-matched packed BOOL-array downloads and
 removes automatic VM poweroff after two failed webpage polls. An explicit guest
 shutdown marker binds **End session** to its application instance and version.

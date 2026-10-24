@@ -8,6 +8,14 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1024.023810` adds [packed BOOL table readback](bool-array-download.md#packed-table-readback)
+and discovery. Symbol dimensions count bits; Data Table dimensions count 32-bit
+words. The routine-free BOOL[64] fixture completes SDK download/save/reopen/Online
+across 425 requests and upload across 965. The upload actually reads the packed
+table and receives all eight expected bytes. Independent CIP checks verify all
+64 values and both descriptors, with no scans or model changes. Saving an
+uploaded ACD and uploads containing routines remain unfinished.
+
 Version `26.1024.021104` adds
 [source-matched packed BOOL-array downloads](bool-array-download.md). Native SDK
 download/save/reopen/Online succeeds for BOOL[64], followed by exact independent

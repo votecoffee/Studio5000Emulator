@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1024.023810` adds packed BOOL-array discovery and Data Table reads.
+The routine-free BOOL[64] fixture completes native upload across 965 requests,
+including an actual read of its exact eight packed value bytes, and
+download/save/reopen/Online across 425. Independent CIP checks verify all 64
+bits. Saving/reopening an uploaded ACD remains unverified; Routine upload stays
+the first transfer priority, followed by broader replacement and online edits.
+
 Version `26.1024.021104` extends downloads to the observed one-dimensional packed
 BOOL-array profile. A native BOOL[64] round trip succeeds, and independent CIP
 reads check every saved bit. The appliance also survives temporary webpage poll

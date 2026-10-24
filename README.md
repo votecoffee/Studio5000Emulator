@@ -16,6 +16,12 @@ storage words. Supported arrays now appear in discovery and expose their current
 packed values through read-only table services. Individual symbolic bit access
 retains its existing behavior.
 
+For the owned routine-free BOOL[64] fixture, native SDK download/save/reopen/Go
+Online completes across 425 verified requests and `UploadAsync` across 965.
+The upload trace includes the packed table read, whose eight bytes match every
+saved bit. Independent CIP checks verify all 64 bits and the linked descriptors.
+Saving and reopening an uploaded ACD remains unverified.
+
 The [appliance manager](docs/vmware-appliance.md#stop-restart-and-update) keeps
 the PLC running through temporary webpage poll failures. It powers off only
 for an explicit, instance-bound shutdown request. Unexpected tunnel loss leaves
@@ -83,7 +89,7 @@ Changed source, logic or catalogs revoke the corresponding reads.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
-Go Online. The native SDK completes that sequence across 432 verified requests;
+Go Online. The native SDK completes that sequence across 433 verified requests;
 a separate SDK process reopens the saved ACD and goes Online across 74.
 Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
 The saved ACD retains the new download identity; the emulator installation
