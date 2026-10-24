@@ -101,6 +101,26 @@ class Application:
                 return self.endpoint.programming_lease.scan_inhibited(self.generation,self.engine.project.sha256)
         return False
 
+    def install_native_download(self,candidate,installed,expected_engine,lease):
+        """Publish one prepared source-equivalent model; caller owns app.lock."""
+        if (self.engine is not expected_engine or self.busy or self.running
+                or self.controller_state()['mode']!='Program' or not lease.prepared
+                or lease.download_namespace is not installed.namespace or lease.download_committed
+                or candidate.project is not expected_engine.project or candidate.installed_download is not installed
+                or candidate.blockers or candidate.fault or candidate.scan_count or candidate.prescan_count
+                or candidate.memory.values!=candidate.project.initial):
+            raise ModelError('Native download installation candidate changed')
+        installed.check(self.native_project_identity,candidate.project)
+        interval=self.default_scan_interval()
+        # Native contexts keep their generation to finish the same programming
+        # session. Cancel queued external writes and rotate their token at the
+        # installation boundary, even though the source tag schema is unchanged.
+        self.device_io.bind(self.generation)
+        installed.namespace.initial_values=installed.values
+        self.engine=candidate;self._io_dirty=True;self._scan_epoch+=1
+        self.scan_interval_ms=interval
+        lease.download_committed=True
+
     def controller_state(self):
         fault = bool(self.engine and self.engine.fault)
         return {'mode':'Faulted' if fault else 'Run' if self.running else 'Program',

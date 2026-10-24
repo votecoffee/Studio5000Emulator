@@ -45,6 +45,14 @@ class ChangeDetection:
         # Withhold the audit value rather than classifying them as event 15.
         self._invalidated=True
 
+    def prepare_download_epoch(self,previous):
+        """A download starts a distinct epoch independently of monitored bits."""
+        if (not isinstance(previous,ChangeDetection) or self is previous or self._updates
+                or self._invalidated or self._source_sha256!=previous._source_sha256 or self._mask!=previous._mask):
+            raise ValueError('Download audit epoch requires a fresh source-equivalent model')
+        if self._value is not None and self._value==previous._value:
+            self._value=(self._value+1)&UINT64_MAX
+
     def description(self):
         return dict(audit_value_available=self._value is not None and not self._invalidated,
             origin='simulator_execution_model_epoch',persistence='memory_only',updates=self._updates,

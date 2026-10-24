@@ -779,14 +779,21 @@ class Router:
                     self.require_download_namespace(lease,identity)
                     lease.download_namespace.change_log.require_configured(self.download_changelog_bindings(lease))
                     if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
-                    from .download_values import PreparedValues
-                    bindings=self.download_header_bindings(lease)
-                    values=PreparedValues.prepare(bindings,self.app.native_types)
-                    values.new_engine(bindings,self.app.native_types)
-                    lease.download_namespace.initial_values=values
-                    self.endpoint.record('native_download_initial_values_prepared',**values.description(),detached_engine_validated=True)
-                    self.endpoint.record('native_download_commit_boundary',**lease.download_namespace.description())
-                    return reject(0x0F,'download_commit_unimplemented')
+                    if limit<4:return reject(0x1B,'download_installation_reply_budget')
+                    if lease.download_committed:
+                        installed=getattr(self.app.engine,'installed_download',None)
+                        if installed is None or installed.namespace is not lease.download_namespace:
+                            return reject(0x0C,'installed_download_binding_changed')
+                        installed.check(identity,self.app.engine.project)
+                        return reply(inner[0])
+                    from .download_installation import prepare
+                    old=self.app.engine
+                    candidate,installed=prepare(self.app,self.download_changelog_bindings(lease),self.app.native_types)
+                    try:self.app.install_native_download(candidate,installed,old,lease)
+                    except ModelError:return reject(0x0C,'download_installation_candidate_changed')
+                    self._catalog=None;self._storage=None;self._storage_key=None
+                    self.endpoint.record('native_download_installed',**installed.description())
+                    return reply(inner[0])
             if path.class_id==0x69 and path.instance==1 and inner[0] in (4,3,0x0E):
                 lease=self.endpoint.programming_lease
                 configured=lease.download_namespace is not None and lease.download_namespace.local_map.description()['configured']
@@ -2135,9 +2142,14 @@ class Router:
                 revision=CatalogRevision.from_source(self.app.engine.project.sha256)
                 attributes=revision.compatibility_attributes() if self.endpoint.native_read_only else revision.attributes()
                 native_identity=getattr(self.app,'native_project_identity',None)
+                installed=getattr(self.app.engine,'installed_download',None)
+                if self.endpoint.native_read_only and installed is not None:
+                    try:attributes=installed.attributes(native_identity,self.app.engine.project)
+                    except ImageError:raise CIPError(0x0C,'Installed download source changed') from None
+                    native_identity=installed.identity
                 if self.endpoint.native_read_only and native_identity is not None:
                     if native_identity.source_l5x_sha256!=self.app.engine.project.sha256:raise CIPError(0x0C,'Native correlation source changed')
-                    attributes=native_identity.attributes()
+                    if installed is None:attributes=native_identity.attributes()
                 if self.endpoint.native_read_only and service==0x4F:
                     if path.attribute is not None:raise CIPError(4,'Change Log search requires an instance path')
                     exact(data,4)
@@ -2359,6 +2371,7 @@ class Endpoint:
                         'online_edits':self.app.allow_routine_edits,'online_edit_scope':'standard_rll_program_mode',
                         'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,
                     'native_correlation':self.app.native_project_identity.description() if self.enabled and self.app.native_project_identity else None,
+                    'native_download':self.app.engine.installed_download.description() if self.enabled and getattr(self.app.engine,'installed_download',None) else None,
                     'native_symbols':self.app.native_symbols.description() if self.enabled and self.app.native_symbols else None,
                     'native_types':self.app.native_types.description() if self.enabled and getattr(self.app,'native_types',None) else None,
                     'native_templates':self.app.native_templates.description() if self.enabled and getattr(self.app,'native_templates',None) else None,

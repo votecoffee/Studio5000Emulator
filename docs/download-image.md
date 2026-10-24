@@ -973,6 +973,36 @@ requests. Source and active model stay unchanged, SDK Offline and cleanup are
 confirmed, and no SDK fault is reported. All 116 deployed modules and delivery
 versions match; 140 affected checks pass.
 
+### Source-equivalent installation
+
+Version `26.1023.200635` adds a bounded installation service for the fully
+validated v35 L85E profile. The downloaded routines, configuration, catalogs
+and supported initial values must match the loaded original source. It cannot
+replace the controller with an unrelated project or execute native ELF code.
+
+Controller service `0x61` builds a separate interpreter model and publishes it
+only after preparation and execution validation finish. Saved values replace
+current tag values; scan counters, timing and instruction state restart, and
+prescan is deferred to Run entry. Backed project-object references remain valid
+through the owning session's completion and cleanup. Queued external inputs are
+rejected and their write token rotates at publication.
+
+The original ACD correlation and catalogs stay immutable. The new Engine retains
+the installed header and caller download UID separately; native Change Log reads
+use this committed runtime view. End Preparation, lease release and disconnection
+clear temporary ownership while preserving the installed model. A local project
+reset, reconfiguration or reload replaces that model and clears the runtime view.
+Repeated commit requests from the same prepared owner do not install twice.
+
+Installation is synchronous, so Controller status attribute 26 is zero once the
+new model has been published. A saved successful native exchange shows status 4
+during processing followed by zero; this interpreter has no outstanding native
+compilation work after publication. The model receives a fresh simulator audit
+epoch independently of the monitored event mask, following the download rule in
+[Rockwell's change-detection documentation](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf#page=49).
+This does not reproduce Rockwell's audit-value generator or native Change Log
+history. Native transfer completion remains a separately measured outcome.
+
 ## Native boundary
 
 Preparing and reading this image establishes simulator state only. It does not

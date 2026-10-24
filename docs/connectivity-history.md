@@ -4,6 +4,14 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.200635` adds atomic source-equivalent installation of the fully
+prepared v35 L85E model. Original ACD catalogs remain intact; a separate runtime
+header supplies committed correlation. Saved values and execution state reset,
+the audit epoch changes, and repeated commits do not reapply installation.
+The completion status is zero after synchronous publication. General project
+replacement, compiled-code execution and complete native transfers remain
+separate compatibility boundaries.
+
 Version `26.1023.195217` adds source-matched initial-value preparation after the
 configured Change Log header. It requires complete tag/table coverage, exact
 scalar or original TIMER/COUNTER layouts and saved value bytes, accounts for the

@@ -6,23 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.195217`.** Versions use the release timestamp
+**Current app version: `26.1023.200635`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds [initial-value preparation](docs/download-image.md#source-matched-initial-values)
-after the three download batches, setup, Map and private Change Log header have
-been verified. It checks complete named-tag coverage and typed saved values,
-accounts for auxiliary tables, and validates a separate execution model.
-Final project installation remains unsupported.
-
-The native SDK download validates all 14 demo tag values, accounts for both
-auxiliary tables and builds a separate execution model. It reaches the final
-Controller installation service (`0x61`), which is explicitly rejected, ending
-after 281 verified requests. Upload still fails during Program collection after
-349. Both trials preserve source/model, confirm SDK Offline and cleanup, and
-report no SDK fault. All 116 deployed modules and delivery versions match;
-140 focused checks pass.
+This release adds [source-equivalent installation](docs/download-image.md#source-equivalent-installation)
+after the three download batches, setup, Map, Change Log header and saved values
+have been verified. It installs a new interpreter model with saved tag values,
+fresh scan state and audit epoch, preserving original ACD catalogs and keeping
+committed runtime correlation separate. General project replacement remains
+unsupported; native acceptance is recorded in the compatibility checkpoints.
 
 **Full native upload/download, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
@@ -249,7 +242,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
 | Upload discovery | Source-bound Program discovery, scoped Data Tables, backed atomic/explicit UDT values and Symbol descriptors, class metadata, bounded empty catalogs, controller settings and Linux Ethernet status/counters; native project transfer remains unfinished |
-| Download preparation | Three source-checked batches, task/controller/setup metadata, Local Map identity, private Map flag, proposed Change Log header and source-matched scalar/TIMER/COUNTER initial values; active-project installation remains unsupported |
+| Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, exact saved values and bounded installation of source-equivalent scalar/TIMER/COUNTER projects; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |
 | Native status | Source-checked empty I/O force/LED and SFC force status; module connections, SFC forcing and force writes remain unsupported |

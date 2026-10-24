@@ -104,12 +104,17 @@ class ValuesSignedTests(logs.NamespaceFixture,unittest.TestCase):
                     for node in tag.findall('Data[@Format="L5K"]'):node.text='0'
             return result
         with patch.object(logs.maps,'map_route',complete_route):logs.ChangelogSignedTests.setUp(self)
+        # The shared protocol fixture adds controller configuration after load.
+        # Match the epoch to that final source configuration before installation.
+        from logixlab.change_detection import ChangeDetection
+        project=self.app.engine.project
+        self.app.engine.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
 
-    def test_prepare_from_signed_commit_request_has_private_readback_and_detached_engine_only(self):
+    def test_prepare_and_install_from_signed_commit_request_has_exact_saved_values(self):
         self.ready_log();self.send(logs.CREATE_REQUEST);self.send(logs.CONFIG_REQUEST+logs.payload(self.proposal()))
         engine=self.app.engine;before=copy.deepcopy(engine.memory.values)
-        self.assertEqual(self.send(logs.COMMIT)[2],15)
-        self.assertIs(self.app.engine,engine);self.assertEqual(engine.memory.values,before)
+        self.assertEqual(self.send(logs.COMMIT)[2],0)
+        self.assertIsNot(self.app.engine,engine);self.assertEqual(engine.memory.values,before)
         prepared=self.namespace.initial_values;self.assertEqual(len(prepared.values),1)
         headers=self.endpoint.router.download_header_bindings(self.endpoint.programming_lease)
         candidate=prepared.new_engine(headers,self.app.native_types)

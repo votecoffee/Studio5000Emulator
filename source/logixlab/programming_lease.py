@@ -36,6 +36,7 @@ class ProgrammingLease:
     def clear_staging(self):
         self.libraries.clear();self.metadata.clear();self.transport.clear()
         self.download_namespace=None
+        self.download_committed=False
         self.program_reservations=set()
         self.edit_phase_open=False;self.program_stack_preparations={}
         self.edit_transfer.clear()
@@ -157,9 +158,10 @@ class ProgrammingLease:
             raise LeaseError(0x0C,'programming_preparation_required')
 
     def preparation_status(self, generation, source_sha256):
-        # The tested v35 SDK advances from preparation when attribute 26 is 2.
-        # This software state grants no library-data transfer or commit.
-        return 2 if self.live(generation,source_sha256) and self.prepared else 0
+        # Source-equivalent installation is synchronous: once published it is
+        # complete (0). Native captures show 4 while firmware is still working;
+        # this interpreter has no outstanding native compilation job to poll.
+        return 2 if self.live(generation,source_sha256) and self.prepared and not self.download_committed else 0
 
     def description(self, generation, source_sha256):
         owned=self.live(generation,source_sha256)
@@ -176,8 +178,8 @@ class ProgrammingLease:
                 'edit_transfer':self.edit_transfer.description(),
                 'applied_routine_edit':self.applied_edit,
                 'run_mode_inhibit':self.run_inhibit if owned else 0,'scan_inhibited':self.scan_inhibited(generation,source_sha256),
-                'preparation_state':'ready' if owned and self.prepared else 'idle',
-                'preparation_status':2 if owned and self.prepared else 0,
+                'preparation_state':('installed' if self.download_committed else 'ready') if owned and self.prepared else 'idle',
+                'preparation_status':self.preparation_status(generation,source_sha256),
                 'library_staging':self.libraries.description(),
                 'metadata_staging':self.metadata.description(),
                 'resilient_transport':self.transport.description(),
