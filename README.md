@@ -6,9 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.095632`.** Versions use the release timestamp
+**Current app version: `26.1024.104524`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
+the original opaque control word from validated committed download headers.
+Source or effect changes revoke this view; the bits do not change simulator
+flags or permissions. Native tag-operand upload is checked separately.
 
 [Scoped Routine reference Symbols](docs/routine-reference-symbols.md) now expose
 the original `Routine:<name>` identities under each Program. Their backed
@@ -127,7 +132,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload now retrieves the first routine source,
 then reports a reconstruction-format error. The NOP-only upload control succeeds.
 
-This iteration passes 269 affected checks and 357 Python syntax checks.
+This iteration passes 181 affected checks and 358 Python syntax checks.
 The routine-upload milestone passes 2,101 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

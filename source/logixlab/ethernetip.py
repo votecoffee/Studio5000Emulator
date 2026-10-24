@@ -1185,7 +1185,39 @@ class Router:
             return row.attributes(*addresses)
         tag=self.app.engine.project.tags[symbol['ref'].lower()]
         storage=self.scalar_storage().by_ref.get(symbol['ref'].lower())
-        return symbol_metadata.attributes(symbol,tag.constant,storage)
+        attributes=symbol_metadata.attributes(symbol,tag.constant,storage)
+        if storage is not None:
+            control=self.installed_symbol_control(symbol)
+            if control is not None:attributes[6]=control
+        return attributes
+
+    def installed_symbol_control(self,symbol):
+        """Read an original opaque control word from a committed source view.
+
+        The download already retained this field without interpreting its bits.
+        Do not turn it into a model flag or alter the backed value/header links.
+        """
+        engine=self.app.engine;project=engine.project
+        installed=getattr(engine,'installed_download',None)
+        if (not self.endpoint.native_read_only or installed is None
+                or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
+            return None
+        try:
+            installed.check(self.app.native_project_identity,project)
+            catalog=self.app.native_symbols;row=catalog.by_key.get(symbol['ref'].casefold()) if catalog else None
+            if row is None or row.instance!=symbol['id']:raise ImageError('installed_symbol_identity_changed')
+            ns=installed.namespace;incremental=ns._incremental
+            if incremental is None:raise ImageError('installed_symbol_header_required')
+            bindings=HeaderBindings(engine,ns,catalog,self.app.native_routines,self.app.native_auxiliary_symbols,
+                self.app.native_tasks,self.app.native_tables)
+            expected=bindings.expected(0x6B,row.program_instance,row.instance)
+            if expected[2]!=struct.pack('<H',symbol['type']):raise ImageError('installed_symbol_type_changed')
+            incremental.verify_effects(ns._image,ns._source,self.app.native_metadata_values,bindings)
+            value=incremental.read_attribute(0x6B,row.program_instance,row.instance,6,
+                ns._image,ns._source,self.app.native_metadata_values,bindings)
+            if not isinstance(value,bytes) or len(value)!=4:raise ImageError('installed_symbol_control_invalid')
+            return value
+        except ImageError as error:raise CIPError(0x0C,error.reason) from error
 
     def programs(self):
         native=getattr(self.app,'native_symbols',None)
