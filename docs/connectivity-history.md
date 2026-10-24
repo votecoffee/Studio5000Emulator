@@ -4,6 +4,27 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.223022` adds optional [compressed transfer recording](transfer-trace-recording.md).
+Endpoint identities and increasing event IDs support bounded cursor pages;
+the app's existing trace memory limits remain unchanged. The private recorder
+rejects gaps, endpoint replacement and incomplete or damaged recordings. It
+does not retry native operations or manage Windows services.
+
+The existing empty-Program SDK `UploadAsync` regression succeeds across 970
+verified requests. All 3,446 diagnostic events are retained, and offline replay
+reproduces the exact transfer summary, including 970 signed envelopes and 980
+inner requests. This closes the earlier trace-retention gap; it does not add
+routine upload or saved uploaded ACD acceptance.
+
+Demo download/save/reopen/Online succeeds across 433 verified requests. Its
+saved-baseline upload still fails `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after 349,
+before any signed source-read request. Both transfers also retain complete
+recordings and reproducible offline summaries. These cases preserve original
+files and model state, confirm Offline/cleanup and report no SDK fault.
+
+The 140 focused checks and 352 Python AST checks pass. All 118 deployed modules,
+browser assets and displayed versions match; the full suite was not rerun.
+
 Version `26.1023.220638` aligns backed interpreter object references to eight
 bytes while retaining their DWORD encoding. Padding is not an object, allocation
 never wraps, and ownership, invalidation and write boundaries remain intact.

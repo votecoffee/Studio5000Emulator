@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.223022` retains complete native transfer traces through optional
+[compressed cursor recording](transfer-trace-recording.md), without enlarging
+the app's memory ring. The successful empty-Program upload can now be correlated
+across its complete SDK interval. Resolving routine upload remains the next
+functional priority, followed by broader download and online-edit support.
+
 Version `26.1023.220638` aligns the interpreter's backed object references to
 eight bytes, retaining their DWORD encoding, process-local scope and existing
 read/write boundaries. Native transfer acceptance is checked independently.

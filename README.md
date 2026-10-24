@@ -14,8 +14,9 @@ This release adds optional [compressed transfer recording](docs/transfer-trace-r
 to retain complete native upload/download traces beyond the diagnostic ring's
 capacity. Cursor gaps and interrupted recordings remain explicit. The app's
 trace memory limit and PLC execution behavior are unchanged.
-The empty-Program SDK upload case passes its latest regression; uploads
-containing routines remain unfinished.
+The empty-Program SDK upload regression succeeds across 970 verified requests,
+with all 3,446 diagnostic events retained. Uploads containing routines remain
+unfinished.
 
 Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
 retain the exact accepted download values and source/component bytes. Earlier
@@ -24,7 +25,7 @@ Changed source, logic or catalogs revoke the corresponding reads.
 
 The [saved-download workflow](docs/development.md#saved-download-reconnection) can
 save a new ACD after a source-equivalent download, close it, reopen it and verify
-Go Online. The native SDK completes that sequence across 432 verified requests;
+Go Online. The native SDK completes that sequence across 433 verified requests;
 a separate SDK process reopens the saved ACD and goes Online across 74.
 Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
 The saved ACD retains the new download identity; the emulator installation
