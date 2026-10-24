@@ -14,9 +14,11 @@ page header, Windows tray and executable properties share this version.
 native source and zero-count attachment without inventing compiled code or a
 NOP. This requires an explicitly empty original source routine. Missing or
 protected source declarations remain blocked.
-The owned empty-routine fixture completes native SDK download/save/reopen/Go
-Online across 433 verified requests, with a complete retained trace and actual
-Offline cleanup. Source/model preservation passes without an SDK fault.
+Both mixed and single-empty-routine fixtures complete native SDK
+download/save/reopen/Go Online across 433 verified requests each, with complete
+retained traces and actual Offline cleanup. Source/model preservation passes
+without an SDK fault. Upload still fails at the first Routine metadata reply,
+including for the single empty routine.
 
 Saved-download imports recognize the checked [Program Routine headers](docs/routine-types.md)
 and named Controller numeric [metadata qualifiers](docs/native-metadata-values.md).

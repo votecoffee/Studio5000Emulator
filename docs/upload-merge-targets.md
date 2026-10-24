@@ -121,3 +121,14 @@ original source, runtime tags, routines, tasks, mode and edit settings remain
 preserved. No fatal SDK fault is reported. All 12 deployment checks pass;
 all 94 deployed app modules, served assets and executable resources match the
 build, and the webpage and executable report `.135`.
+
+The later `26.1024.005421` controls use a saved matching download as their common
+source. An unrelated routine-free baseline is rejected as incompatible after
+87 requests, before Routine upload. A compatible copy retains Project UID,
+Routine paths and source-key bytes while replacing MainRoutine Offline with one
+NOP and preserving Reporting and all 14 saved tag values. Upload into that copy
+still fails Program collection after 348 verified requests. Its complete
+recording confirms the first Routine's 22 fields succeed and no source read
+follows. Both controls preserve originals/model/installation, confirm actual
+Offline cleanup and report no SDK fault. Neither establishes a source-key cache
+miss or identifies the underlying failure cause.

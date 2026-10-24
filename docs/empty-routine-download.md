@@ -49,3 +49,20 @@ framing and does not reverify message authentication.
 The preceding runtime rejects the same fixture after 277 verified requests at
 the source-component sequence. Its complete retained batch establishes the
 omitted code, omitted XML content and zero-count attachment handled here.
+
+A separate SDK process reopens the saved ACD and goes Online across 74 verified
+requests. Upload into that saved baseline still fails Program collection after
+348 requests. The first bulk reply describes the nonempty Reporting routine:
+all 22 fields succeed, with no subsequent source-read request. These outcomes
+preserve source/model and installation, confirm Offline cleanup and report no
+SDK fault. They do not establish general Routine upload support.
+
+A second fixture contains only the explicit empty Main routine and preserves
+the same 14 saved tag values. Native download/save/reopen/Online succeeds across
+433 requests with a complete 1,751-event recording. Upload into its saved ACD
+fails after 349 requests at that empty routine's first bulk reply: all 22 fields
+succeed, but source retrieval is not requested. Its complete 1,427-event
+recording replays identically offline. This reproduces the unresolved metadata
+boundary without a nonempty routine preceding it; it does not identify the
+native client's rejection cause. Source/model/installation and Offline cleanup
+remain checked, with no reported SDK fault.

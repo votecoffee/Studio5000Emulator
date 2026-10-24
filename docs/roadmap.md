@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1024.013050` adds source-bound empty RLL routine downloads without
+inventing code. A mixed empty/nonempty fixture completes native
+download/save/reopen/Online and a separate saved connection, while its upload
+retains the Routine collection boundary. Routine-containing upload remains the
+priority, followed by broader project replacement and the online-edit lifecycle.
+
 Version `26.1024.005421` completes an owned saved-download reimport and second
 download/save/reopen/Online sequence across 414 verified requests. It reads
 the saved Routine headers and named numeric metadata, then binds the downloaded

@@ -8,6 +8,16 @@ Program-mode routine imports and reconnects are demonstrated within the
 Run-mode Test/Untest/Assemble, Studio GUI monitoring and native debugger
 services remain unfinished or unverified.
 
+Version `26.1024.013050` supports the observed
+[empty RLL routine download](empty-routine-download.md): an explicitly empty
+source target receives no compiled-code component and has a zero-count
+attachment. The owned mixed empty/nonempty fixture completes SDK
+download/save/reopen/Online across 433 requests and a separate saved connection
+across 74. Upload still fails Program collection after 348 requests, before
+source retrieval. All cases confirm source/model preservation, actual Offline
+cleanup and no SDK fault. The ordinary edit and upload decoders keep their
+existing source checks.
+
 Version `26.1023.181855` accepts the five
 [post-registration setup profiles](download-image.md#post-registration-setup)
 and the later separate PLC-2 mapping write. The native SDK reaches a compact

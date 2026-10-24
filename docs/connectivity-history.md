@@ -4,6 +4,37 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1024.013050` adds the observed
+[empty-routine download profile](empty-routine-download.md), bound to an
+explicitly empty source declaration. Its native batch omits compiled code and
+uses a zero-count attachment. Missing/protected original content remains
+blocked, and ordinary edit/import and upload parsing are unchanged.
+
+The owned mixed empty/nonempty fixture completes native SDK
+download/save/reopen/Online across 433 verified requests. Its complete
+1,748-event journal replays identically offline. A separate saved connection
+succeeds across 74 requests. Upload fails Program collection after 348 requests,
+with all 22 first-Routine fields succeeding and no source read. Originals/model
+and cleanup remain checked with no SDK fault. All 179 affected checks and 354
+Python syntax checks pass; the full suite was not rerun. The source, EXE,
+webpage and all 119 deployed modules match this version.
+
+A second source contains only an explicit empty Main routine. It completes
+download/save/reopen/Online across 433 requests with a complete 1,751-event
+journal. Upload still fails after 349 requests, with all 22 empty-Routine fields
+succeeding and no source read. The 1,427-event upload journal replays identically.
+Both preserve source/model, confirm actual Offline cleanup and report no SDK
+fault. This removes a preceding nonempty routine from the comparison without
+establishing the underlying metadata rejection cause.
+
+The original demo is restored by a source reload and native
+download/save/reopen/Online across 432 verified requests. Its complete
+1,747-event journal replays identically. Installation remains memory-only;
+source reload, reset or restart still revokes its downloaded identity.
+A separate process reopens its saved ACD and goes Online across 74 requests.
+The final demo remains stopped in Program with zero scans/edits and unchanged
+SDK/Linx services.
+
 Versions `26.1024.003512` through `26.1024.005421` extend the saved-download
 round trip. The reader recognizes checked Program component-type-259 Routine
 headers and format-12 named Controller numeric properties. Download staging
