@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import test_runtime as fixtures
 from logixlab.runtime import Engine
+from logixlab import runtime_references
 
 
 class RuntimeReferenceTests(unittest.TestCase):
@@ -18,7 +19,7 @@ class RuntimeReferenceTests(unittest.TestCase):
         values=space.program_attributes(project,'MAINPROGRAM')
         main,address=(struct.unpack('<I',values[n])[0] for n in (5,16))
         self.assertGreaterEqual(main,0x10000000);self.assertNotEqual(main,address)
-        self.assertEqual(main%4,0);self.assertEqual(address%4,0)
+        self.assertEqual(main%8,0);self.assertEqual(address%8,0)
         self.assertIs(space.resolve(project,main,'routine'),project.routines['mainprogram/mainroutine'])
         self.assertIs(space.resolve(project,address,'program'),project.programs['MainProgram'])
         self.assertIsNone(space.resolve(project,main,'program'))
@@ -33,6 +34,29 @@ class RuntimeReferenceTests(unittest.TestCase):
         self.assertFalse(set(a.values())&set(b.values()))
         for number,kind in ((5,'routine'),(16,'program')):
             self.assertIsNone(fresh.runtime_references.resolve(fresh.project,int.from_bytes(a[number],'little'),kind))
+
+    def test_references_are_dwords_with_eight_byte_spacing_and_padding_is_not_an_object(self):
+        engine=self.engine(['NOP();']);project=engine.project;space=engine.runtime_references
+        with patch('logixlab.runtime_references._next_address',0x10000004):
+            routine=space.reference(project,'routine','MainProgram/MainRoutine')
+            program=space.reference(project,'program','MainProgram')
+            self.assertEqual((routine,program),(0x10000008,0x10000010))
+            self.assertEqual(runtime_references._next_address,0x10000018)
+        self.assertEqual(len(struct.pack('<I',routine)),4)
+        self.assertEqual(space.description()['alignment'],8)
+        for address,kind in ((routine,'routine'),(program,'program')):
+            self.assertIsNotNone(space.resolve(project,address,kind))
+            self.assertIsNone(space.resolve(project,address+4,kind))
+
+    def test_last_aligned_dword_slot_is_usable_without_wrap_and_unaligned_tail_is_exhausted(self):
+        with patch('logixlab.runtime_references._next_address',0xFFFFFFF4):
+            self.assertEqual(runtime_references._allocate(),0xFFFFFFF8)
+            self.assertEqual(runtime_references._next_address,0x100000000)
+            with self.assertRaises(OverflowError):runtime_references._allocate()
+        engine=self.engine(['NOP();'])
+        with patch('logixlab.runtime_references._next_address',0xFFFFFFFC):
+            self.assertEqual(engine.runtime_references.program_attributes(engine.project,'MainProgram'),{})
+            self.assertEqual(engine.runtime_references.description()['allocated_objects'],0)
 
     def test_replacing_a_target_revokes_old_reference_without_reusing_its_address(self):
         engine=self.engine(['NOP();']);project=engine.project;space=engine.runtime_references

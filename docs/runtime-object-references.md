@@ -1,5 +1,16 @@
 # Runtime object references
 
+Version `26.1023.220638` aligns every allocated reference to eight bytes while
+keeping its DWORD wire encoding. The registry rounds an unaligned next slot up,
+never allocates padding as an object, and withholds references at exhaustion
+without wrapping. Program, Routine, Task, Map and Symbol descriptors share this
+allocator and retain their existing ownership and invalidation checks.
+
+All 809 Routine header references in the saved successful v35 upload are
+eight-byte aligned; some emulator references were only four-byte aligned.
+This corrects that observed layout difference using emulator-owned values.
+It does not establish a native ABI requirement or prove an upload failure cause.
+
 Version `.122` supplies two Program `0x68` reads from a small interpreter object
 address space. They are opaque, aligned DWORD references in the emulator process:
 

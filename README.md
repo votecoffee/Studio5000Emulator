@@ -6,15 +6,16 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.214154`.** Versions use the release timestamp
+**Current app version: `26.1023.220638`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release aligns seven [native catalog layout revisions](docs/controller-schema-discovery.md#native-catalog-layout-selection)
-with their observed v35 schemas, including Program, Task, Symbol and Data Table.
-Layout selection preserves source-bound field availability, real catalog counts
-and existing write permissions. The existing empty-Program SDK upload case
-passes a fresh regression; uploads containing routines remain unfinished.
+This release aligns [emulator object references](docs/runtime-object-references.md)
+to eight-byte boundaries while retaining their four-byte wire encoding and
+current-object backing. The [native catalog layouts](docs/controller-schema-discovery.md#native-catalog-layout-selection)
+preserve source-bound field availability, real counts and existing permissions.
+The empty-Program SDK upload case passes its latest regression; uploads
+containing routines remain unfinished.
 
 Committed Controller metadata and [signed Routine readback](docs/downloaded-routine-read.md)
 retain the exact accepted download values and source/component bytes. Earlier
@@ -35,8 +36,8 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 255 focused checks and 350 Python syntax checks. The
-Windows milestone suite passes 2,023 tests, with two platform checks skipped.
+This iteration passes 163 affected checks and 350 Python syntax checks. The
+preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
@@ -120,54 +121,17 @@ include acknowledgements that retain an existing source Timeline UID.
 [Nested I/O Connection discovery](docs/io-connection-discovery.md) preserves
 parent scope, and [native coordination](docs/programming-coordination.md)
 provides an exclusive session lease and a source-backed Local link-address read.
-Version `.63` adds a public SDK download-preparation probe and checks that
-its TCP clients, lease and scan inhibit clear after cleanup. The actual native
-programming service remains unfinished.
-Version `.64` adds [owner-scoped download preparation](docs/programming-preparation.md)
-and an acknowledgement that retains disabled redundancy from source. The SDK
-reached library-object creation in that revision.
-Version `.65` adds [temporary library descriptors and signed transfer envelopes](docs/library-staging.md).
-The SDK reached Metadata Definition creation in that revision.
-Version `.66` adds [temporary metadata definitions](docs/metadata-staging.md).
-The SDK reached a metadata-value write in that revision.
-Version `.67` adds [typed values for staged definitions](docs/metadata-values.md).
-The SDK reached Resilient Transport setup in that revision.
-Version `.68` adds [temporary Resilient Transport setup and cleanup](docs/resilient-transport.md).
-The SDK reached segmented device-data transport in that revision.
-Version `.69` adds [bounded temporary device-transfer fragments](docs/transport-fragments.md).
-The normal-source SDK attempt stages a complete device payload and reaches a
-denied device-operation request (`0x06`). Active values, library-data writes and
-project commit remain unsupported.
-Version `.70` adds [structural inspection of compressed device batches](docs/device-payload-inspection.md).
-The SDK's staged payload decodes into request records with parent scopes preserved;
-batch execution and project commit remain unsupported.
-Version `.71` adds [temporary native Template models](docs/template-staging.md).
-The SDK batch's 242 Templates pass descriptor and contiguous-write validation;
-definitions remain opaque and the remaining batch operations are unsupported.
-Version `.72` adds [temporary Diagnostics Message models](docs/diagnostic-staging.md).
-Together with Templates, these model 863 of 904 records in the tested download
-batch. The remaining 41 records and complete batch execution are unsupported.
-Version `.73` adds [temporary object graphs and reference checks](docs/object-staging.md).
-All 904 records in the tested batch now have bounded temporary models. Compiled
-definitions, device processing and active-project commit remain unfinished.
-Version `.74` adds [shared Remote Run/Program control](docs/controller-mode.md).
-Native requests start/stop actual scans, and local controls report back through
-the native identity. Closing the browser or going offline leaves Run active.
-Version `.75` adds [Run-entry initialization](docs/run-entry.md), rearming
-`S:FS` and applying bounded prescan rules once per transition. Initialization
-failures restore prior values and leave the controller faulted and stopped.
-Version `.62` adds [software clock descriptions](docs/clock-descriptions.md),
-including the actual app version in native Time Sync inventory reads.
-Version `.61` adds [Run Mode Inhibit](docs/run-mode-inhibit.md), with an owning
-session's temporary scan guard and cleanup. Its then-current download boundary
-was Controller service `0x60`, extended by `.64`.
-Full native upload/download and online tag monitoring remain unfinished.
-The 1,002-test suite passes on Windows and Linux with expected platform skips.
-The rebuilt `.75` runtime passes 291 protocol checks and a 17-step native mode
-probe covering repeated Run-entry initialization and bidirectional mode readback.
-At those earlier releases, SDK upload, tag-read and download probes still failed
-their native acceptance steps. See [Remote Run/Program validation](docs/controller-mode.md#validation-and-limits)
-for the mode probe and its limits.
+
+[Source-equivalent download](docs/download-image.md#source-equivalent-installation)
+validates the prepared object graph, typed values, settings and routine source
+before replacing the loaded demo's interpreter state. Native compiled code stays
+opaque. General replacement with another project remains unsupported.
+
+[Remote Run/Program control](docs/controller-mode.md) starts and stops actual
+scans, and local controls report the same state through the native endpoint.
+[Run-entry initialization](docs/run-entry.md) rearms `S:FS` and performs bounded
+prescan once per transition. Historical transfer checkpoints and their limits
+are kept in the [connectivity history](docs/connectivity-history.md).
 
 ## Usage
 

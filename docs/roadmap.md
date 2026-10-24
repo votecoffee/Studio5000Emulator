@@ -6,6 +6,10 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.220638` aligns the interpreter's backed object references to
+eight bytes, retaining their DWORD encoding, process-local scope and existing
+read/write boundaries. Native transfer acceptance is checked independently.
+
 Version `26.1023.214154` aligns seven existing native catalog class revisions
 with their v35 field layouts, while preserving source availability, counts and
 write permissions. Functional upload and download remain the transfer priority;

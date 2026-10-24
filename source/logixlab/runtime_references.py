@@ -10,15 +10,16 @@ import threading
 
 _lock = threading.Lock()
 _next_address = 0x10000000
+ALIGNMENT = 8
 
 
 def _allocate():
     global _next_address
     with _lock:
-        if _next_address > 0xFFFFFFFC:
+        address = (_next_address + ALIGNMENT - 1) & -ALIGNMENT
+        if address > 0xFFFFFFFF - (ALIGNMENT - 1):
             raise OverflowError('Emulator object address space exhausted')
-        address = _next_address
-        _next_address += 4
+        _next_address = address + ALIGNMENT
     return address
 
 
@@ -175,7 +176,7 @@ class RuntimeReferences:
         return (value,header) if value is not None and header is not None else None
 
     def description(self):
-        return {'attributes':[5,16],'address_bits':32,'alignment':4,
+        return {'attributes':[5,16],'address_bits':32,'alignment':ALIGNMENT,
                 'routine_attributes':[8,24],'routine_header_reference_backed':True,
                 'task_attributes':[11,16],'task_reference_backed':True,
                 'io_map_attributes':[9,10,13],'io_map_reference_backed':True,
