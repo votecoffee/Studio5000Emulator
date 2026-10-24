@@ -572,6 +572,16 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
     if eip_port is not None:app.command('connectivity-start',{'port':eip_port,'allow_writes':eip_writes,'profile':eip_profile,'bind_address':eip_bind,'native_read_only':eip_native_read_only})
     token = secrets.token_urlsafe(32)
 
+    def mark_shutdown(reason):
+        # A missing HTTP reply is not a request to power off an appliance.
+        # Its manager can independently check this explicit, instance-bound
+        # intent through SSH after the browser listener has closed.
+        with app.lock:
+            marker=app.data_dir/'shutdown-request.json'
+            pending=marker.with_suffix('.tmp')
+            pending.write_text(json.dumps(dict(instance_id=app.instance_id,app_version=__version__,reason=reason)),encoding='utf-8')
+            pending.replace(marker)
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args): pass
 
@@ -633,6 +643,7 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
                 data = json.loads(self.rfile.read(size))
                 action = urlsplit(self.path).path.removeprefix("/api/")
                 if action == 'quit':
+                    mark_shutdown('api')
                     self.send(200, {'closed': True})
                     threading.Thread(target=self.server.shutdown, daemon=True).start()
                     return
@@ -648,16 +659,17 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
         if tray:
             from .desktop import TrayIcon
             def quit_from_tray():
+                mark_shutdown('tray')
                 threading.Thread(target=server.shutdown, daemon=True).start()
             tray_icon = TrayIcon(url, quit_from_tray)
             tray_icon.start()
             app.desktop = {'tray_available': tray_icon.available, 'tray_error': tray_icon.error}
         (app.data_dir / "last-session.json").write_text(json.dumps({"url": url, "pid": os.getpid(),
-            'app_version': __version__, **app.desktop}), encoding="utf-8")
+            'app_version': __version__, 'instance_id':app.instance_id, **app.desktop}), encoding="utf-8")
         if sys.stdout: print(f"LogixLab {__version__}: {url}", flush=True)
         if open_browser: webbrowser.open(url)
         server.serve_forever()
-    except KeyboardInterrupt: pass
+    except KeyboardInterrupt:mark_shutdown('interrupt')
     finally:
         app.close()
         if tray_icon: tray_icon.stop()

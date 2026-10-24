@@ -70,6 +70,65 @@ class ApplianceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'No package provides'):
             vm.resolve_packages(records, ['missing'])
 
+    def manager_fixture(self,directory):
+        config={'vmx':str(directory/'LogixLab.vmx'),'subnet':'192.0.2.0/24',
+                'host_ip':'192.0.2.1','app_version':vm.__version__}
+        (directory/'appliance.json').write_text(json.dumps(config))
+        (directory/'host-key.pub').write_text('ssh-ed25519 example-key')
+        state={'app_version':vm.__version__,'instance_id':'owned-instance',
+               'connectivity':{'address':'192.0.2.9:44818'}}
+        return config,state
+
+    def test_poll_timeouts_recover_without_shutting_down_or_restarting_guest(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory=Path(folder);config,state=self.manager_fixture(directory)
+            tunnel=Mock(pid=123,poll=Mock(side_effect=[None,None,None,None,1]))
+            with patch.object(vm.subprocess,'Popen',return_value=tunnel),patch.object(vm,'vmrun',return_value='vmrun'), \
+                    patch.object(vm,'run',side_effect=[config['vmx'],'192.0.2.9']) as command, \
+                    patch.object(vm,'api',side_effect=[state,TimeoutError(),TimeoutError(),state]), \
+                    patch.object(vm,'shutdown_requested',return_value=False) as intent,patch.object(vm.time,'sleep'):
+                vm.start(directory,open_browser=False,tray=False)
+            self.assertEqual(command.call_count,2)
+            self.assertFalse(any('poweroff' in call.args[0] for call in command.call_args_list))
+            intent.assert_called_once_with(directory,'192.0.2.9','owned-instance')
+            self.assertEqual(json.loads((directory/'last-state.json').read_text()),state)
+
+    def test_guest_shutdown_requires_matching_explicit_intent_after_failed_polls(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory=Path(folder);config,state=self.manager_fixture(directory);tunnel=Mock(pid=123,poll=Mock(return_value=None))
+            with patch.object(vm.subprocess,'Popen',return_value=tunnel),patch.object(vm,'vmrun',return_value='vmrun'), \
+                    patch.object(vm,'run',side_effect=[config['vmx'],'192.0.2.9','']) as command, \
+                    patch.object(vm,'api',side_effect=[state,TimeoutError(),TimeoutError()]), \
+                    patch.object(vm,'shutdown_requested',return_value=True) as intent,patch.object(vm.time,'sleep'):
+                vm.start(directory,open_browser=False,tray=False)
+            intent.assert_called_once_with(directory,'192.0.2.9','owned-instance')
+            self.assertEqual(command.call_args.args[0][-1],'poweroff')
+
+    def test_changed_guest_instance_does_not_power_off_replacement(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory=Path(folder);config,state=self.manager_fixture(directory);tunnel=Mock(pid=123,poll=Mock(return_value=None))
+            with patch.object(vm.subprocess,'Popen',return_value=tunnel),patch.object(vm,'vmrun',return_value='vmrun'), \
+                    patch.object(vm,'run',side_effect=[config['vmx'],'192.0.2.9']) as command, \
+                    patch.object(vm,'api',side_effect=[state,dict(state,instance_id='replacement')]),patch.object(vm.time,'sleep'):
+                with self.assertRaisesRegex(ValueError,'different process'):vm.start(directory,open_browser=False,tray=False)
+            self.assertEqual(command.call_count,2)
+            self.assertFalse(any('poweroff' in call.args[0] for call in command.call_args_list))
+
+    def test_shutdown_marker_rejects_stale_unknown_malformed_and_unavailable_intent(self):
+        good=dict(instance_id='owned',app_version=vm.__version__,reason='api')
+        for marker in (dict(good,instance_id='other'),dict(good,app_version='old'),dict(good,reason='crash'),
+                       dict(good,extra=True),[],None,{'instance_id':'owned'}):
+            with self.subTest(marker=marker),patch.object(vm,'ssh_args',return_value=['ssh']),patch.object(vm,'run',return_value=json.dumps(marker)):
+                self.assertFalse(vm.shutdown_requested(Path('unused'),'192.0.2.9','owned'))
+        for value in ('not-json',''):
+            with patch.object(vm,'ssh_args',return_value=['ssh']),patch.object(vm,'run',return_value=value):
+                self.assertFalse(vm.shutdown_requested(Path('unused'),'192.0.2.9','owned'))
+        for error in (OSError(),RuntimeError(),subprocess.TimeoutExpired('ssh',8)):
+            with patch.object(vm,'ssh_args',return_value=['ssh']),patch.object(vm,'run',side_effect=error):
+                self.assertFalse(vm.shutdown_requested(Path('unused'),'192.0.2.9','owned'))
+        with patch.object(vm,'ssh_args',return_value=['ssh']),patch.object(vm,'run',return_value=json.dumps(good)):
+            self.assertTrue(vm.shutdown_requested(Path('unused'),'192.0.2.9','owned'))
+
     def test_signed_index_archive_is_parsed_without_extracting_paths(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'index.tar.gz'

@@ -86,6 +86,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
         http_port = int(self.url.split(':')[-1])
         self.assertEqual(self.post('quit', {}), {'closed': True})
         self.assertEqual(self.process.wait(timeout=5), 0)
+        marker=json.loads((Path(self.tmp.name)/'shutdown-request.json').read_text())
+        self.assertEqual(marker,dict(instance_id=self.session['instance_id'],app_version=__version__,reason='api'))
         for port in (protocol_port, http_port):
             with self.assertRaises(OSError):
                 socket.create_connection(('127.0.0.1', port), timeout=0.2)

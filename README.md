@@ -6,9 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.013050`.** Versions use the release timestamp
+**Current app version: `26.1024.021104`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+The [appliance manager](docs/vmware-appliance.md#stop-restart-and-update) keeps
+the PLC running through temporary webpage poll failures. It powers off only
+for an explicit, instance-bound shutdown request. Unexpected tunnel loss leaves
+the guest running so the launcher can reconnect.
 
 [Empty ladder routine downloads](docs/empty-routine-download.md) retain the
 native source and zero-count attachment without inventing compiled code or a

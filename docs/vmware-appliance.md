@@ -139,6 +139,17 @@ requirements.
 The Windows tray's **Quit LogixLab** also shuts it down. Closing the browser
 leaves the appliance running. CLI shutdown:
 
+Temporary webpage poll failures do not shut down the guest. The manager keeps
+polling and, after failed polls, checks a small guest-side shutdown marker over
+SSH. The authenticated **End session** action records its application instance,
+version and explicit shutdown reason before closing the listener. Stale,
+malformed or mismatched markers cannot authorize poweroff. Console interruption
+and the explicit launcher/tray stop retain their shutdown behavior.
+
+Unexpected SSH tunnel loss or a replaced application instance closes only the
+owned manager connection and leaves the VM running. Starting the launcher again
+can reconnect to that guest. A webpage timeout is not treated as a PLC stop.
+
 ```powershell
 py -3.13 -X utf8 source/tools/vmware_appliance.py stop
 ```
@@ -164,6 +175,8 @@ change; check `status` before updating a saved Linx browse entry.
 
 Private files include `serial.log`, `vmware.log`, `ssh.log`, `appliance.json`,
 `session.json`, `last-state.json`, and any captured import/snapshot receipts.
+The guest's `shutdown-request.json` is generated only by an explicit application
+shutdown action and is bound to that application instance and version.
 `appliance.json` identifies the exact VM; the manager refuses manifests pointing
 at another VM. Application instance IDs prevent a reused UI port from directing
 imports or quit requests to a different app session.

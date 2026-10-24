@@ -448,6 +448,18 @@ def stop(directory):
         run([vmrun(), '-T', 'ws', 'stop', config['vmx'], 'soft'], timeout=20)
 
 
+def shutdown_requested(directory,ip,instance):
+    """Read explicit guest intent, never treating transport loss as shutdown."""
+    if not isinstance(instance,str) or not instance:return False
+    try:
+        raw=run(ssh_args(directory,ip)+['cat /var/lib/logixlab/shutdown-request.json'],timeout=8)
+        marker=json.loads(raw)
+    except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired):return False
+    return (isinstance(marker,dict) and set(marker)=={'instance_id','app_version','reason'}
+            and marker['instance_id']==instance and marker['app_version']==__version__
+            and marker['reason'] in ('api','tray','interrupt'))
+
+
 def start(directory, open_browser=True, tray=True):
     config = load_config(directory)
     if config['app_version'] != __version__:
@@ -501,6 +513,7 @@ def start(directory, open_browser=True, tray=True):
         f'127.0.0.1:{UI_PORT}:127.0.0.1:{UI_PORT}', command[-1]]
     tunnel = None
     icon = None
+    poweroff_requested=False
     url = f'http://127.0.0.1:{UI_PORT}'
     try:
         with (directory / 'ssh.log').open('a', encoding='utf-8') as log:
@@ -532,23 +545,27 @@ def start(directory, open_browser=True, tray=True):
         print(json.dumps(session, indent=2), flush=True)
         if open_browser:
             webbrowser.open(url)
-        failures = 0
+        failures = 0;next_shutdown_check=0;instance=state['instance_id']
         while tunnel.poll() is None:
             time.sleep(2)
             try:
                 state = api(url, 'state')
+                if state.get('instance_id')!=instance:
+                    raise ValueError('Appliance session changed; refusing to control a different process')
                 (directory / 'last-state.json').write_text(json.dumps(state), encoding='utf-8')
                 failures = 0
             except OSError:
                 failures += 1
-                if failures >= 2:
-                    break
+                if failures>=2 and time.monotonic()>=next_shutdown_check:
+                    next_shutdown_check=time.monotonic()+10
+                    if shutdown_requested(directory,ip,instance):
+                        poweroff_requested=True;break
     except KeyboardInterrupt:
-        pass
+        poweroff_requested=True
     finally:
         if icon:
             icon.stop()
-        if ip:
+        if ip and poweroff_requested:
             run(ssh_args(directory, ip) + ['poweroff'], check=False, timeout=8)
         if tunnel:
             tunnel.terminate()
