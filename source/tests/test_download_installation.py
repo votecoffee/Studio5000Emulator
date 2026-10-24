@@ -4,6 +4,7 @@ from dataclasses import replace
 import struct
 import unittest
 from unittest.mock import patch
+from xml.etree import ElementTree as ET
 
 from logixlab.change_detection import ChangeDetection
 from logixlab.model import ModelError
@@ -103,6 +104,49 @@ class InstallationSignedTests(logs.NamespaceFixture,unittest.TestCase):
         original=self.app.native_project_identity
         self.app.native_project_identity=replace(original,copy_uid=original.copy_uid+1)
         self.assertEqual(self.cip(bytes.fromhex('0e0320ac24013003'))[2],12)
+
+    def test_detached_routine_edits_keep_committed_header_without_claiming_unchanged_source(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        self.ready_install();self.send(logs.COMMIT);self.send(logs.prep.END);self.send(leases.RELEASE)
+        original=self.app.native_project_identity;old=self.app.engine
+        old.memory.write('SpeedSetpoint',77);old.scan_count=3
+        header=old.installed_download.attributes(original,old.project)
+        source=decode(container(ET.tostring(xml_source(text='NOP();'))))
+        first,receipt=prepare(old,source,('NOP();',),'MainProgram',0)
+        self.assertIs(self.app.engine,old);self.assertEqual(receipt['revision'],1)
+        self.assertEqual(first.installed_download.attributes(original,first.project),header)
+        self.assertIs(first.installed_download.namespace,old.installed_download.namespace)
+        self.assertIs(first.installed_download.values,old.installed_download.values)
+        self.assertFalse(first.installed_download.description()['source_equivalent'])
+        self.assertEqual(first.installed_download.description()['routine_revision'],1)
+        self.assertTrue(old.installed_download.description()['source_equivalent'])
+        self.assertEqual(first.memory.values,old.memory.values);self.assertEqual(first.scan_count,3)
+        self.assertEqual(first.change_detection.attributes(first.project.sha256),old.change_detection.attributes(old.project.sha256))
+        self.app.engine=first
+        self.assertEqual(self.cip(bytes.fromhex('0e0320ac24013003')),b'\x8e\0\0\0'+header[3])
+        second,_=prepare(first,source,('NOP();',),'MainProgram',1)
+        self.assertEqual(second.installed_download.attributes(original,second.project),header)
+        self.assertEqual(second.installed_download.description()['routine_revision'],2)
+        self.assertEqual(first.installed_download.description()['routine_revision'],1)
+        from logixlab.download_image import ImageError
+        with self.assertRaises(ImageError):old.installed_download.attributes(original,first.project)
+        with self.assertRaises(ImageError):first.installed_download.attributes(replace(original,copy_uid=original.copy_uid+1),first.project)
+
+    def test_stale_download_binding_blocks_detached_edit_without_changing_active_model(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        self.ready_install();self.send(logs.COMMIT);self.send(logs.prep.END);self.send(leases.RELEASE)
+        engine=self.app.engine;installed=engine.installed_download
+        engine.installed_download=replace(installed,project=copy.copy(engine.project))
+        source=decode(container(ET.tostring(xml_source())))
+        values=copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'installed_download_source_changed'):
+            prepare(engine,source,('NOP();',),'MainProgram',0)
+        self.assertIs(self.app.engine,engine);self.assertEqual(engine.memory.values,values)
+        self.assertEqual(getattr(engine.project,'runtime_revision',0),0)
 
 
 class DownloadAuditTests(unittest.TestCase):

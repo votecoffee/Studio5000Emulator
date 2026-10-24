@@ -6,26 +6,25 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.200635`.** Versions use the release timestamp
+**Current app version: `26.1023.203747`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds [source-equivalent installation](docs/download-image.md#source-equivalent-installation)
-after the three download batches, setup, Map, Change Log header and saved values
-have been verified. It installs a new interpreter model with saved tag values,
-fresh scan state and audit epoch, preserving original ACD catalogs and keeping
-committed runtime correlation separate. General project replacement remains
-unsupported; native acceptance is recorded in the compatibility checkpoints.
+This release adds a [saved-download workflow](docs/development.md#saved-download-reconnection):
+after a source-equivalent download, save a new ACD, close it, reopen it and verify
+Go Online. A native SDK trial completes that sequence and confirms Online,
+then Offline cleanup, with original ACD bytes preserved and no SDK fault.
+The saved ACD retains the new download identity; the emulator installation
+remains memory-only. Resetting or reloading it revokes that correlation.
 
-The native SDK completes a ConveyorDemo download (361 verified requests) and
-Download → Go Online in the same SDK project (433). Committed header readback,
-SDK Offline and cleanup are verified, with original ACD bytes preserved and no
-SDK fault. Upload still fails during Program collection. A fresh original ACD
-also fails post-download Go Online at physical-address discovery; persistence
-of the downloaded project's connection state remains unfinished.
+Program-mode routine replacement now retains the committed download identity
+while reporting the changed runtime logic separately. A native SDK test
+completes download, Program-mode rung import and Offline/Online reconnection
+across 547 verified requests. General project replacement remains unsupported.
+Upload still fails during Program collection.
 
-All 117 deployed modules and displayed versions match. The Windows milestone
-suite passes 2,003 checks with two platform skips; 206 focused checks also pass.
+This iteration passes 116 focused checks and 347 Python syntax checks. The
+preceding Windows milestone suite passed 2,003 checks with two platform skips.
 
 **Native upload, replacement with another project, SDK tag-address discovery and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

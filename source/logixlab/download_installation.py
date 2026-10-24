@@ -28,8 +28,24 @@ class InstalledDownload:
         self.check(original,project)
         return dict(self.header)
 
+    def after_routine_edit(self,previous,project):
+        """Keep committed correlation through a validated detached logic edit.
+
+        The original transfer remains a historical snapshot. This only binds
+        its controller header to the new interpreter Project; it does not make
+        the staged native code or original Routine metadata current again.
+        """
+        self.check(self.original,previous)
+        if (project is previous or project.sha256!=previous.sha256
+                or project.tags is not previous.tags or project.initial is not previous.initial
+                or project.programs is not previous.programs or project.tasks is not previous.tasks
+                or getattr(project,'runtime_revision',0)!=getattr(previous,'runtime_revision',0)+1):
+            raise ImageError('installed_download_edit_source_changed')
+        return replace(self,project=project)
+
     def description(self):
-        return dict(installed=True,source_equivalent=True,tags=len(self.values.values),
+        revision=getattr(self.project,'runtime_revision',0)
+        return dict(installed=True,source_equivalent=revision==0,routine_revision=revision,tags=len(self.values.values),
             auxiliary_tables=len(self.values.auxiliary),original_catalogs_preserved=True,
             runtime_correlation=True,saved_values_installed=True,prescan_deferred=True,
             audit_epoch_replaced=True,compiled_code_executed=False,persistent=False,

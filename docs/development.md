@@ -54,6 +54,32 @@ collections, source validation and unchanged public/model Table catalogs.
 
 ## Native SDK acceptance probe
 
+### Saved download reconnection
+
+Version `26.1023.203747` adds `--save-downloaded-acd`. Following a successful
+source-equivalent download, the probe saves a new `downloaded.ACD`, closes the
+SDK project, reopens that file and verifies Go Online. Cleanup returns Offline.
+The original ACD and the probe's input copy remain unchanged. Use a new private
+output directory for every attempt:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation download --save-downloaded-acd --output .local/native-probes/download-save
+```
+
+Use the current emulator's driver and address. The flag is download-only and
+does not enable general project replacement. The receipt independently checks
+the saved file hash, its changed download UID, preserved source-correlation
+anchors and the SDK's successful reopen/Online result. It reports failed save
+or reconnection outcomes without repeating the native operation.
+
+The saved file represents that specific installed model. The emulator's
+installation remains memory-only: reset, reconfiguration, reload or restart
+clears it. The original pre-download ACD can fail Go Online because its download
+identity is stale. This workflow does not establish full upload, Studio GUI
+monitoring or persistence of the emulator model across restarts.
+
+### Other probe options
+
 Version `.151` adds `--save-uploaded-acd` for an upload case. After `UploadAsync`
 succeeds, the helper goes Offline, saves a new `uploaded.ACD`, closes and reopens
 it through the SDK, verifies Offline again and exports `uploaded.L5X`. Both

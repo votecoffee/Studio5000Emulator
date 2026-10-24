@@ -15,6 +15,70 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_download_save_requires_an_explicit_download_and_saved_native_reopen_evidence(self):
+        from tools.probe_native_sdk import validate_download_save,saved_downloaded_acd_effect,digest
+        from test_native_project import container,FIELDS
+        validate_download_save('download',True)
+        for operation in ('connection','upload','modes','edits'):
+            validate_download_save(operation,False)
+            with self.assertRaises(ValueError):validate_download_save(operation,True)
+        for value in (None,1,'true'):
+            with self.assertRaises(ValueError):validate_download_save('download',value)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'original.ACD';source.write_bytes(container())
+            saved=root/'downloaded.ACD';saved.write_bytes(container({**FIELDS,10:FIELDS[10]+1}))
+            state={'connectivity':{'source_l5x_sha256':'a'*64,'native_download':{'source_equivalent':True}}}
+            receipt=dict(acdSha256=digest(saved),nativeAcdReopened=True,reopenedOnline=True,
+                downloadResultSaved=True,emulatorPersistence='memory_only')
+            self.assertTrue(saved_downloaded_acd_effect(state,source,root,receipt))
+            for key in ('nativeAcdReopened','reopenedOnline','downloadResultSaved','emulatorPersistence','acdSha256'):
+                other={k:v for k,v in receipt.items() if k!=key}
+                self.assertFalse(saved_downloaded_acd_effect(state,source,root,other))
+            for field in (3,8,9,11,12):
+                saved.write_bytes(container({**FIELDS,10:FIELDS[10]+1,field:FIELDS[field]+1}))
+                self.assertFalse(saved_downloaded_acd_effect(state,source,root,{**receipt,'acdSha256':digest(saved)}))
+            saved.write_bytes(source.read_bytes())
+            self.assertFalse(saved_downloaded_acd_effect(state,source,root,{**receipt,'acdSha256':digest(saved)}))
+            saved.write_bytes(b'invalid but hashed ACD')
+            self.assertFalse(saved_downloaded_acd_effect(state,source,root,{**receipt,'acdSha256':digest(saved)}))
+
+    def test_download_save_summary_requires_valid_artifact_and_still_checks_cleanup(self):
+        from tools.probe_native_sdk import digest
+        from test_native_project import container,FIELDS
+        for valid in (True,False):
+            with self.subTest(valid=valid),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);source=root/'original.ACD';source.write_bytes(container())
+                output=root/'report';state=self.state()
+                state.update(app_version='test',tags=[],scan=0,ms=0,changes=[],mode='test')
+                state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+                state['connectivity']['native_download']={'source_equivalent':True}
+                args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',
+                    path=r'TestDriver\192.0.2.8\Backplane\0',operation='download',tag=[],
+                    output=str(output),sdk_feed=None,save_downloaded_acd=True)
+                trace={'events':[],'counts':{'native_verified':0}};calls=[]
+                def process(command,**kwargs):
+                    if command[0]=='dotnet':
+                        (output/'bin').mkdir();(output/'bin/NativeSdkProbe.exe').write_bytes(b'fake-apphost')
+                        return subprocess.CompletedProcess(command,0)
+                    calls.append(command);self.assertEqual(kwargs['timeout'],300)
+                    self.assertTrue(json.loads(Path(command[1]).read_text())['SaveDownloadedAcd'])
+                    saved=output/'downloaded.ACD';saved.write_bytes(container({**FIELDS,10:FIELDS[10]+1,8:FIELDS[8]+(not valid)}))
+                    Path(command[2]).write_text(json.dumps(dict(status='succeeded',steps=[],serverFaulted=False,
+                        sdkOfflineConfirmed=True,savedDownloadedProject=dict(acdSha256=digest(saved),
+                            nativeAcdReopened=True,reopenedOnline=True,downloadResultSaved=True,emulatorPersistence='memory_only'))))
+                    return subprocess.CompletedProcess(command,0)
+                with patch('tools.probe_native_sdk.sys.platform','win32'),patch('tools.probe_native_sdk.require_sdk_service'), \
+                        patch('tools.probe_native_sdk.background_options',return_value={}), \
+                        patch('tools.probe_native_sdk.subprocess.run',side_effect=process), \
+                        patch('tools.probe_native_sdk.api',side_effect=(state,state,trace,state,trace)), \
+                        patch('tools.probe_native_sdk.wait_for_cleanup',return_value=state) as cleanup,patch('builtins.print'):
+                    self.assertEqual(run(args),0 if valid else 1)
+                cleanup.assert_called_once();self.assertEqual(len(calls),1)
+                report=json.loads((output/'summary.json').read_text())
+                self.assertTrue(report['source_unchanged'] and report['cleanup_confirmed'])
+                self.assertEqual(report['saved_downloaded_acd_verified'],valid)
+                self.assertEqual(report['emulator_installation_persistence'],'memory_only')
+
     def test_new_project_upload_is_explicit_and_cannot_open_a_merge_target_or_save_again(self):
         from tools.probe_native_sdk import validate_new_upload
         validate_new_upload('upload',True)

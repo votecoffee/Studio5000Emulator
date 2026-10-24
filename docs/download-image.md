@@ -1012,10 +1012,18 @@ normal cleanup, preserve original ACD bytes, and report no SDK fault.
 
 Opening a fresh original ACD after download fails Go Online with
 `RxCL_E_CANNOT_UPLOAD_PHYS_ADDR`; its trace stops before descriptor requests.
-Retaining/saving the downloaded SDK project's connection state has not been
-implemented as a public workflow. Upload still fails Program collection both
-standalone and after a download within the same SDK project. These results do
-not establish general upload, GUI monitoring or arbitrary project replacement.
+The [saved-download workflow](development.md#saved-download-reconnection) retains
+the downloaded SDK project's updated identity in a new ACD, closes/reopens it
+and verifies Online. The emulator model still lasts only until reset/reload or
+restart. Upload fails Program collection both standalone and after a download
+within the same SDK project. These results do not establish general upload,
+GUI monitoring or arbitrary project replacement.
+
+Program-mode routine replacement preserves the committed controller header
+through each validated detached candidate. The new Engine retains the download
+UID and original source anchors while its routine revision increases. Status
+reports `source_equivalent: false` once the logic changes; the retained native
+transfer is a historical snapshot, not newly compiled executable code.
 
 All 117 deployed modules and delivery versions match. The Windows milestone
 suite passes 2,003 checks with two platform skips; 206 focused checks pass.

@@ -4,6 +4,9 @@ The optional installed SDK runs on a private ACD copy. Download attempts use the
 bounded source-equivalent installation profile; they can reset runtime values,
 execution state and correlation while preserving the original ACD. General
 project replacement remains disabled.
+--save-downloaded-acd saves a successful source-equivalent download to a new
+downloaded.ACD, reopens it and verifies Go Online. The emulator installation
+remains memory-only; resetting or reloading it revokes that saved correlation.
 Reports contain private project metadata and default to ignored .local storage.
 An upload may select a separate preserved offline merge baseline with
 --upload-target; the emulator remains pinned to --project. Only the new private
@@ -208,6 +211,29 @@ def saved_acd_effect(state,folder,receipt):
 def validate_upload_save(operation,save):
     if type(save) is not bool or save and operation!='upload':
         raise ValueError('Saving an uploaded ACD requires an upload operation and a boolean option')
+
+
+def validate_download_save(operation,save):
+    if type(save) is not bool or save and operation!='download':
+        raise ValueError('Saving a downloaded ACD requires a download operation and a boolean option')
+
+
+def saved_downloaded_acd_effect(state,source,folder,receipt):
+    """Check saved correlation and native reopen evidence, separately from upload."""
+    from logixlab.native_project import NativeProjectIdentity
+    from logixlab.model import ModelError
+    try:
+        if (not isinstance(receipt,dict) or any(receipt.get(key) is not True for key in
+                ('nativeAcdReopened','reopenedOnline','downloadResultSaved'))
+                or receipt.get('emulatorPersistence')!='memory_only'
+                or (state['connectivity'].get('native_download') or {}).get('source_equivalent') is not True):return False
+        path=Path(folder)/'downloaded.ACD'
+        if path.is_symlink() or not path.is_file() or not 8<=path.stat().st_size<=100_000_000 or digest(path)!=receipt.get('acdSha256'):return False
+        binding=state['connectivity']['source_l5x_sha256']
+        original=NativeProjectIdentity.from_acd(source,binding);saved=NativeProjectIdentity.from_acd(path,binding)
+        return (saved.download_uid!=original.download_uid and all(getattr(saved,key)==getattr(original,key) for key in
+            ('online_index','online_generation','copy_uid','project_uid','timeline_uid','empty_change_log')))
+    except (OSError,ValueError,KeyError,TypeError,ModelError):return False
 
 
 def saved_uploaded_acd_effect(folder,receipt):
@@ -649,6 +675,7 @@ def run(args):
         raise ValueError('Select an ACD file of 8..100000000 bytes')
     validate_operation(args.operation, args.tag)
     save_upload=getattr(args,'save_uploaded_acd',False);validate_upload_save(args.operation,save_upload)
+    save_download=getattr(args,'save_downloaded_acd',False);validate_download_save(args.operation,save_download)
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
@@ -702,6 +729,7 @@ def run(args):
     config['ReconnectEdits']=reconnect
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
     config['SaveUploadedAcd']=save_upload
+    config['SaveDownloadedAcd']=save_download
     config['UploadNewProject']=upload_new
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
@@ -764,7 +792,7 @@ def run(args):
     try:
         with (output / 'sdk.log').open('wb') as log:
             result = subprocess.run([str(executable), str(output / 'request.json'), str(output / 'sdk-result.json')],
-                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd or save_upload else 120, **background_options())
+                                    stdout=log, stderr=subprocess.STDOUT, timeout=300 if save_acd or save_upload or save_download else 120, **background_options())
         report = json.loads((output / 'sdk-result.json').read_text(encoding='utf-8'))
         summary.update(status=report['status'], process_exit_code=result.returncode)
         summary['tag_read_type']=tag_read_type
@@ -838,6 +866,12 @@ def run(args):
             summary['saved_uploaded_project']=report.get('savedUploadedProject') if report else None
             summary['uploaded_logic_equivalence']='NOT ASSESSED'
             summary['upload_result_persistence']='saved_and_reopened' if summary['saved_uploaded_acd_verified'] else 'failed'
+        if save_download:
+            summary['save_downloaded_acd_requested']=True
+            summary['saved_downloaded_acd_verified']=saved_downloaded_acd_effect(final,source,output,(report or {}).get('savedDownloadedProject'))
+            summary['saved_downloaded_project']=(report or {}).get('savedDownloadedProject')
+            summary['download_result_persistence']='saved_and_reopened_online' if summary['saved_downloaded_acd_verified'] else 'failed'
+            summary['emulator_installation_persistence']='memory_only'
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
         if upload_new:
             summary['new_project_artifact_matches_receipt']=new_upload_artifact(output,(report or {}).get('newProjectUpload'))
@@ -845,6 +879,7 @@ def run(args):
                 or upload_new and summary.get('working_copy_unchanged') is not True
                 or upload_new and report is not None and not summary.get('new_project_artifact_matches_receipt')
                 or save_acd and not summary.get('saved_edited_acd_verified')
+                or save_download and not summary.get('saved_downloaded_acd_verified')
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
         if args.operation=='upload' and summary['status']=='succeeded' and (
@@ -881,6 +916,7 @@ def main():
     parser.add_argument('--post-edit-tag',action='append',default=[],help='Explicit supported edits only: diagnose a DINT SDK read after the imports, before Offline; may repeat up to eight times')
     parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
     parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
+    parser.add_argument('--save-downloaded-acd',action='store_true',help='Successful source-equivalent download only: save a new downloaded.ACD, reopen it and verify Go Online; emulator installation remains memory-only')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')

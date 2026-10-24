@@ -4,6 +4,25 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.203747` adds the public `--save-downloaded-acd` probe option:
+save a successful source-equivalent download to a new ACD, close it, reopen
+it and verify Online. The saved file retains the changed download UID while
+the original source anchors remain unchanged. The emulator's installed model
+is still memory-only; reset/reload or restart clears that correlation.
+
+Supported Program-mode RLL replacement now retains the committed controller
+header through each detached candidate. Status reports the routine revision
+and no longer calls edited logic source-equivalent. A native diagnostic
+completes Download → Online → AcceptEdits rung import → Offline/Online after
+547 verified requests. The exact NOP insert and retained runtime correlation
+are checked, actual SDK Offline and cleanup are confirmed, originals remain
+unchanged, and no SDK fault is reported. This does not implement Run-mode
+Test/Untest/Assemble or general project replacement.
+
+All 117 deployed modules, web assets and executable versions match. This
+iteration passes 116 focused checks and 347 Python AST checks; the preceding
+2,003-check Windows milestone suite was not repeated.
+
 Version `26.1023.200635` adds atomic source-equivalent installation of the fully
 prepared v35 L85E model. Original ACD catalogs remain intact; a separate runtime
 header supplies committed correlation. Saved values and execution state reset,

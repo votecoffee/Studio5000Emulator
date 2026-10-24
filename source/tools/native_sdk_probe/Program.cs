@@ -28,6 +28,7 @@ if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operatio
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
+if (options.SaveDownloadedAcd && options.Operation != "download") return 2;
 if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
     if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits" or "FinalizeEdits") ||
@@ -55,6 +56,7 @@ http.DefaultRequestHeaders.ConnectionClose = true;
 var backendReadRecoveries = new List<object>();
 object? savedEditedProject = null;
 object? savedUploadedProject = null;
+object? savedDownloadedProject = null;
 bool newUploadCompleted = false;
 string newUploadPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "uploaded.ACD");
 if (options.UploadNewProject && File.Exists(newUploadPath)) return 2;
@@ -182,6 +184,43 @@ async Task SaveEditedAcd()
     savedEditedProject = new { inputL5xSha256 = xmlHash, acdSha256 = HashFile(acdPath),
         reopenedL5xSha256 = HashFile(reopenedPath), nativeAcdReopened = true, offlineOnly = true };
 }
+async Task SaveDownloadedAcd()
+{
+    var acdPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "downloaded.ACD");
+    if (File.Exists(acdPath)) throw new InvalidOperationException("Downloaded-project output must be a new file");
+    var before = await Backend();
+    if (before.GetProperty("connectivity").GetProperty("native_download").ValueKind != JsonValueKind.Object ||
+        !before.GetProperty("connectivity").GetProperty("native_download").GetProperty("source_equivalent").GetBoolean())
+        throw new InvalidOperationException("Source-equivalent installation must finish before saving");
+    await Step("ReadConnectedStateAsync:before-download-save", async () => {
+        var state = await project!.ReadConnectedStateAsync();
+        if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required before saving");
+        return state.ToString();
+    });
+    await Step("SaveAsAsync:downloaded.ACD", async () => { await project!.SaveAsAsync(acdPath, false); return true; });
+    await Step("Close downloaded SDK project", () => {
+        var closing = project!; project = null; closing.Dispose(); return Task.FromResult<object?>(true);
+    });
+    await Step("OpenLogixProjectAsync:downloaded.ACD", async () => {
+        project = await LogixProject.OpenLogixProjectAsync(acdPath, logger); return true;
+    });
+    await Step("SetCommunicationsPathAsync:downloaded.ACD", async () => {
+        await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
+    });
+    await Step("GoOnlineAsync:downloaded.ACD", async () => { await project!.GoOnlineAsync(); return true; });
+    await Step("ReadConnectedStateAsync:downloaded.ACD", async () => {
+        var state = await project!.ReadConnectedStateAsync();
+        if (state != LogixProject.ConnectedState.Online) throw new InvalidOperationException("Reopened downloaded ACD is not Online");
+        return state.ToString();
+    });
+    CheckPreserved(before, await Backend(), true);
+    savedDownloadedProject = new {
+        acdSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(acdPath))).ToLowerInvariant(),
+        nativeAcdReopened = true, reopenedOnline = true, downloadResultSaved = true,
+        emulatorPersistence = "memory_only", nativeControllerEquivalence = "NOT ASSESSED"
+    };
+}
+
 async Task SaveUploadedAcd()
 {
     var directory = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
@@ -309,6 +348,7 @@ try
         }
         finally { await CaptureProtocolTrace("after-transfer-trace.json", options.Operation); }
         if (options.SaveUploadedAcd) await SaveUploadedAcd();
+        if (options.SaveDownloadedAcd) await SaveDownloadedAcd();
     }
     else
     {
@@ -519,7 +559,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject,
     uploadNewProject = options.UploadNewProject, newProjectUpload,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -530,7 +570,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
-                      bool SaveUploadedAcd = false, bool UploadNewProject = false)
+                      bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

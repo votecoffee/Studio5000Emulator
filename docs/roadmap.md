@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.203747` adds a [saved-download reconnection probe](development.md#saved-download-reconnection)
+and preserves committed download correlation through supported Program-mode
+routine replacement. A saved post-download ACD can be closed, reopened and
+verified Online through the SDK. Emulator restart/reset persistence, full
+upload and general project replacement remain separate work; upload's Program
+collection failure retains priority over further edit-lifecycle expansion.
+
 Version `26.1023.181855` accepts the five
 [post-registration setup profiles](download-image.md#post-registration-setup)
 and the later separate PLC-2 mapping write. The native SDK reaches a compact

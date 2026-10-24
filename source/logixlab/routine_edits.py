@@ -39,6 +39,11 @@ def prepare(engine,source,neutral,program,base_revision):
     project.runtime_edited_routines=tuple(sorted(set(getattr(engine.project,'runtime_edited_routines',()))|{key}))
     content=[(key,r.kind,[x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
     project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
+    installed=getattr(engine,'installed_download',None)
+    if installed is not None:
+        from .download_image import ImageError
+        try:candidate.installed_download=installed.after_routine_edit(engine.project,project)
+        except ImageError as error:raise ModelError(str(error)) from error
     return candidate,{'applied':True,'revision':project.runtime_revision,'logic_sha256':project.runtime_logic_sha256,
                       'rung_count':len(neutral),'native_code_executed':False,'file_written':False}
 
