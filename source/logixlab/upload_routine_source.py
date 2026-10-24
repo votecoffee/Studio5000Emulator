@@ -41,7 +41,10 @@ def from_download(data,*,target_class):
     converted=struct.pack('<8I',length,28,len(block),28+len(block),aux_size,0,length,0)+block+data[aux_offset:]
     result=decode(converted)
     if (result.name!=original.name or result.edit_type!='Original'
-            or tuple((r.region_id,r.text_ioi) for r in result.records)!=tuple((r.region_id,r.text_ioi) for r in original.rungs)
+            # The download decoder trims surrounding whitespace for binding;
+            # the upload decoder deliberately retains it. Compare that same
+            # normalized view here without changing the served XML bytes.
+            or tuple((r.region_id,r.text_ioi.strip()) for r in result.records)!=tuple((r.region_id,r.text_ioi) for r in original.rungs)
             or result.auxiliary_sha256!=original.auxiliary_sha256):
         raise Error('upload_source_conversion_changed_source')
     return converted

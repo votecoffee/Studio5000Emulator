@@ -39,14 +39,14 @@ def assembled(blob,inner=None,split=None):
 class UploadRoutineSourceTests(unittest.TestCase):
     def test_download_conversion_adds_only_target_class_and_retains_auxiliary_block(self):
         xml=b'<?xml version="1.0" encoding="UTF-16"?>'+ET.tostring(xml_source(),encoding='utf-8')
-        xml=xml.replace(b'<TextIOI>NOP();</TextIOI>',b'<TextIOI><![CDATA[NOP();]]></TextIOI>')
+        xml=xml.replace(b'<TextIOI>NOP();</TextIOI>',b'<TextIOI><![CDATA[\nNOP();\n]]></TextIOI>')
         original=container(xml);saved=bytes(original)
         converted=upload.from_download(original,target_class='Standard');result=upload.decode(converted)
         converted_xml,_=edits._container(converted)
         self.assertEqual(converted_xml.replace(b' TargetClass="Standard"',b'',1),xml)
         old_aux=edits.source_header(original,len(original))[1];new_aux=edits.source_header(converted,len(converted))[1]
         self.assertEqual(converted[new_aux:],original[old_aux:])
-        self.assertEqual(result.records[0].text_ioi,'NOP();');self.assertEqual(original,saved)
+        self.assertEqual(result.records[0].text_ioi,'\nNOP();\n');self.assertEqual(original,saved)
         with self.assertRaises(edits.SourceError):edits.decode(converted)
 
     def test_conversion_rejects_unknown_classes_empty_or_protected_source_and_upload_input(self):
