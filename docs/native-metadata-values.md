@@ -1,5 +1,18 @@
 # Original ACD metadata values
 
+Version `26.1024.004541` additionally reads stored format-12 qualified Controller
+numeric properties in saved downloads. They require the exact Controller
+instance, an ordinary property name, invariant locale, a source-declared
+`SystemNumeric` definition and one DINT value. The reader retains the stored
+value, including values other than the known `ProjectType` marker. It grants
+no property-write or execution authority. Other targets, kinds, types, names,
+locales and malformed extents remain unavailable.
+
+The owned saved-download example now supplies all 1,689 original metadata
+records, including its named Controller property, together with the two
+source-bound saved Routine headers. Preparing these catalogs is checked
+separately from native transfer acceptance.
+
 Version `.149` reads the supported original v35 `Comments.Dat` records and
 serves their immutable metadata through signed class `0x349`, service `0x53`.
 The source catalog includes definition properties, localized diagnostic text,

@@ -69,6 +69,36 @@ def query(selection='all-objects',position=0):
 
 
 class StoredMetadataTests(unittest.TestCase):
+    def test_saved_controller_numeric_qualifier_retains_exact_source_value_and_roundtrips(self):
+        d=NativeMetadataDefinitions('a'*64,'b'*64,(*definitions().rows,Definition(36,'SystemNumeric')))
+        declaration=record(numeric(b'\1'),17,path=(0x349,36,0,0,0,0))
+        value=record(numeric(struct.pack('<I',0x4C),0xC4),36,path=(0x8E,1,0,0,0,0),qualifier='ProjectType',**{'6':b'\x0c\0'})
+        raw=database(*schema(),declaration,value)
+        c=values.NativeMetadataValues('a'*64,'b'*64,d,values.stored_records(raw,d))
+        item=c.rows[-1]
+        self.assertEqual((item.target, item.definition,item.locale_word,item.kind,item.type_code,item.elements,item.data),
+            (wire.Target(0x8E,1,0,0,b'ProjectType'),36,0x7F,2,0xC4,1,struct.pack('<I',0x4C)))
+        self.assertEqual(wire.records(c.body('controller-all')),(item,))
+        self.assertEqual(values.NativeMetadataValues.from_manifest(c.manifest(),'b'*64,d),c)
+        # Stored values are preserved even when they are not the known marker.
+        other=record(numeric(struct.pack('<I',17),0xC4),36,path=(0x8E,1,0,0,0,0),qualifier='OtherProperty',**{'6':b'\x0c\0'})
+        rows=values.stored_records(database(*schema(),declaration,other),d)
+        self.assertEqual(rows[-1].data,struct.pack('<I',17))
+
+    def test_saved_qualifier_form_rejects_unestablished_targets_types_locales_and_names(self):
+        d=NativeMetadataDefinitions('a'*64,'b'*64,(*definitions().rows,Definition(36,'SystemNumeric')))
+        declaration=record(numeric(b'\1'),17,path=(0x349,36,0,0,0,0))
+        base=dict(definition=36,path=(0x8E,1,0,0,0,0),qualifier='ProjectType',**{'6':b'\x0c\0'})
+        cases=[dict(path=(0x68,1,0,0,0,0)),dict(path=(0x8E,2,0,0,0,0)),dict(path=(0x8E,1,1,0,0,0)),
+            dict(path=(0x8E,1,0,0,0,1)),dict(definition=17),dict(locale=(7,1)),dict(qualifier='Bad.Name'),
+            dict(qualifier=''),{'6':b'\x0d\0'},{'26':b'\1'},{'22':bytes(4)}]
+        for changed in cases:
+            with self.subTest(changed=changed),self.assertRaises(ModelError):
+                values.stored_records(database(*schema(),declaration,record(numeric(bytes(4),0xC4),**(base|changed))),d)
+        for payload in (text(),numeric(b'\1'),numeric(bytes(2),0xC3),numeric(bytes(8),0xC4)):
+            with self.subTest(payload=payload),self.assertRaises(ModelError):
+                values.stored_records(database(*schema(),declaration,record(payload,**base)),d)
+
     def test_original_layout_retains_scopes_locales_numeric_arrays_and_reference_targets(self):
         c=catalog();self.assertEqual(len(c.rows),7)
         first=c.rows[3];self.assertEqual(first.data,b'Private text');self.assertEqual(first.locale_word,0x7F)

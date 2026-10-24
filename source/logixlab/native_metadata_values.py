@@ -74,7 +74,7 @@ def stored_records(data,definitions):
         if kind!=0xFAFA:continue
         if len(record)<32:raise ModelError('Truncated stored metadata header')
         used,reserved,fmt,value_bytes=struct.unpack_from('<IHHH',record)
-        if reserved or not 32<=used+4<=len(record) or fmt not in (1,23) or record[26]:
+        if reserved or not 32<=used+4<=len(record) or fmt not in (1,12,23) or record[26]:
             raise ModelError('Unsupported stored metadata header profile')
         record=record[:used+4];offset=32;qualifier=b''
         if fmt==1:
@@ -92,13 +92,13 @@ def stored_records(data,definitions):
         target=_target(record[10:22],qualifier);definition=record[27]
         locale=LOCALES.get(tuple(record[28:30]))
         if not definition or locale is None:raise ModelError('Unsupported stored metadata definition or locale')
-        raw=record[offset:];pending.append((target,definition,locale,raw))
+        raw=record[offset:];pending.append((target,definition,locale,raw,fmt))
         if target.class_id==0x349 and definition==17:
             if len(raw)!=15 or raw[:14]!=b'\xC2\0'+bytes(12):raise ModelError('Unsupported metadata type declaration')
             bootstrap.append(wire.Record(target,locale,definition,len(pending),2,raw[14:],0xC2,1))
         if len(pending)>wire.MAX_RECORDS:raise ModelError('Stored metadata value count limit')
     types=_types(tuple(bootstrap),definitions);rows=[]
-    for target,definition,locale,raw in pending:
+    for target,definition,locale,raw,fmt in pending:
         value_type=types.get(definition);blob=b'';code=None;elements=0;references=()
         if value_type==1:
             if raw[:12]!=bytes(12):raise ModelError('Unsupported stored metadata string header')
@@ -119,6 +119,15 @@ def stored_records(data,definitions):
                 found.append(wire.Reference(name[:stop],_target(raw[offset+41:offset+53])))
             references=tuple(found);elements=len(references)
         else:raise ModelError('Unknown stored metadata value type')
+        if fmt==12:
+            # Saved downloads use this qualifier form for named Controller
+            # SystemNumeric properties. Retain their source values verbatim;
+            # do not extend it to other targets, kinds, types or locales.
+            if (target.class_id!=0x8E or target.instance_word!=1 or target.context_word or target.selector_word
+                    or not REFERENCE_NAME.fullmatch(target.qualifier) or locale!=0x7F
+                    or next((d.name for d in definitions.rows if d.instance==definition),None)!='SystemNumeric'
+                    or value_type!=2 or code!=0xC4 or elements!=1):
+                raise ModelError('Unsupported saved Controller metadata profile')
         rows.append(wire.Record(target,locale,definition,len(rows)+1,value_type,blob,code,elements,references))
     return tuple(rows)
 

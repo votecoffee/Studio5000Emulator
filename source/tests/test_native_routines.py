@@ -71,10 +71,11 @@ class NativeRoutineTests(unittest.TestCase):
             self.assertEqual(NativeRoutines.from_manifest(catalog.manifest(),'b'*64).manifest(),catalog.manifest())
 
     def test_saved_program_and_aoi_headers_share_component_type_but_keep_exact_parent_scope(self):
-        data=database(saved_record(),saved_record(logical=(0x338,11,0x6D,7,0,0)))
+        data=database(saved_record(),saved_record(logical=(0x338,11,0x6D,7,0,0),offset=160,value=b'\xff'))
         program=native_routines.routine_paths(data,EXPECTED,PROGRAMS)
         aoi=native_routines.routine_paths(data,EXPECTED,PROGRAMS,parent_class=0x338)
-        self.assertEqual(program,aoi)  # Each separate query resolves its own exact scoped record.
+        self.assertEqual(program[0]['source_key_hex'],(b'\0\x08'+bytes(range(64))).hex())
+        self.assertEqual(aoi[0]['source_key_hex'],(b'\0\x08\xff'+bytes(range(1,64))).hex())
         for logical in ((0x338,11,0x6D,7,0,0),(0x68,22,0x6D,7,0,0),(0x6D,7,0,0,0,0)):
             with self.subTest(logical=logical),self.assertRaises(ModelError):
                 native_routines.routine_paths(database(saved_record(logical=logical)),EXPECTED,PROGRAMS)
