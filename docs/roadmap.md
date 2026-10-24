@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.230357` installs source-matched numeric-array initial values in
+the existing download profile. Native SDK download/save/reopen/Online and exact
+CIP array readback pass for one-, two- and three-dimensional examples. Routine
+upload and broader project replacement remain unfinished; upload takes priority
+over further online-edit expansion.
+
 Version `26.1023.223022` retains complete native transfer traces through optional
 [compressed cursor recording](transfer-trace-recording.md), without enlarging
 the app's memory ring. The successful empty-Program upload can now be correlated

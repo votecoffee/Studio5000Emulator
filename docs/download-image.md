@@ -987,9 +987,10 @@ entry. Failure publishes no value preparation and never replaces the active
 model. The private preparation revalidates on subsequent namespace reads and is
 cleared with End Preparation or disconnection.
 
-Controller service `0x61` continues to return `download_commit_unimplemented`
-after successful preparation. This revision does not switch execution models,
-activate native compiled code, change active correlation or complete a download.
+At the preparation-only `26.1023.195217` checkpoint, Controller service `0x61`
+still returned `download_commit_unimplemented`. Active publication is provided
+by the later [source-equivalent installation](#source-equivalent-installation)
+profile below. Native compiled code is never executed.
 
 The live SDK download validates all 14 demo tags (45 value bytes), accounts for
 the two auxiliary tables and successfully constructs the separate execution
@@ -999,6 +1000,15 @@ confirmed, and no SDK fault is reported. All 116 deployed modules and delivery
 versions match; 140 affected checks pass.
 
 ### Source-equivalent installation
+
+Version `26.1023.230357` extends this profile to numeric-array initial values.
+An owned v35 fixture containing DINT `[4]`, INT `[2,3]`, REAL `[2,1,2]` and LINT
+`[2]` arrays completes SDK download, SaveAs, close/reopen and Go Online across
+432 verified requests. Separate ordinary CIP reads verify every array's exact
+saved bytes: 16 elements and 60 bytes, including signed integer limits and
+multidimensional ordering. Source/model/audit preservation, actual Offline and
+cleanup are verified, with no SDK fault. The same fixture's upload still fails
+Program collection after 360 requests, before signed source retrieval.
 
 Version `26.1023.200635` adds a bounded installation service for the fully
 validated v35 L85E profile. The downloaded routines, configuration, catalogs

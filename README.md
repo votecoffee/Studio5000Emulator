@@ -14,6 +14,8 @@ This release adds [numeric-array initial values](docs/download-image.md#source-m
 to source-equivalent downloads. One-, two- and three-dimensional arrays must
 match the saved source's shape, type, element count and complete bytes.
 Packed BOOL arrays and structure arrays remain unsupported for installation.
+The native array fixture passes download/save/reopen/Go Online across 432
+verified requests; independent CIP reads confirm all 60 array-value bytes.
 
 Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's

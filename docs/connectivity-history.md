@@ -4,6 +4,28 @@ These entries retain the validation scope at each revision. They describe
 historical experiments and do not extend the current compatibility claims.
 See the [README](../README.md) for current status and usage.
 
+Version `26.1023.230357` adds exact numeric-array initial-value validation to
+[source-equivalent download installation](download-image.md#source-matched-initial-values).
+Rank bits, dimensions, element count, type and all saved bytes must match the
+source. Rectangular numeric arrays support up to three dimensions; unsupported
+packing, structures, ragged values and mismatches reject the whole preparation.
+
+An owned DINT/INT/REAL/LINT array fixture passes SDK download, save, close/reopen
+and Go Online across 432 verified requests. Independent CIP reads verify all
+16 elements and 60 bytes, including signed limits and multidimensional order.
+Its saved-baseline upload still fails `RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after
+360 requests, before signed source retrieval. Both native cases confirm original
+preservation, actual Offline/cleanup and no SDK fault.
+
+Separate private comparisons on the preceding build test an empty source-key
+field and Executable revision 10 against the normal metadata. All three still
+fail Program collection before source retrieval. Neither substitute ships;
+the original guarded key bytes and observed native layout remain in place.
+These comparisons do not establish the cause of the upload failure.
+
+The 148 affected checks and 352 Python AST checks pass. All 118 deployed modules,
+browser assets and displayed versions match; the full suite was not rerun.
+
 Version `26.1023.223022` adds optional [compressed transfer recording](transfer-trace-recording.md).
 Endpoint identities and increasing event IDs support bounded cursor pages;
 the app's existing trace memory limits remain unchanged. The private recorder
