@@ -3,9 +3,11 @@ from dataclasses import replace
 import unittest
 from unittest.mock import patch
 from logixlab.download_image import ImageError,Source
-from logixlab.download_properties import DownloadProperties
+from logixlab.download_properties import DownloadProperties,CommittedProperties
 from logixlab.incremental_download import value_identity
 from logixlab.native_metadata_definitions import Definition
+from logixlab.identity import Identity
+from logixlab.metadata_query import records as metadata_records
 from test_download_namespace import NamespaceFixture,ENUM
 import test_native_metadata_values as original
 import test_download_metadata as packets
@@ -137,3 +139,42 @@ class PropertySignedTests(NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.namespace.properties.description()['values'],0)
         self.assertEqual(self.send(request((wrong,)))[2],0)
         self.assertFalse(self.namespace.properties.description()['controller_profile_marker'])
+
+    def serial_source(self):
+        row=replace(self.number,definition=36,record_word=len(self.values.rows)+1,data=bytes(4))
+        self.values=replace(self.values,rows=(*self.values.rows,row))
+        self.app.native_metadata_values=self.values
+        return row
+
+    def test_download_serial_tracks_actual_endpoint_identity_without_changing_original_catalog(self):
+        self.configure();stored=self.serial_source();original=self.values.body('all-objects')
+        identity=self.endpoint.identity
+        row=replace(stored,data=identity.serial.to_bytes(4,'little'))
+        self.assertEqual(self.send(request((row,)))[2],0)
+        stage=self.namespace.properties
+        self.assertTrue(stage.description()['controller_serial_bound'])
+        self.assertEqual(stage.read(0,self.namespace._source,self.values,self.app.engine.project).data,row.data)
+        self.assertEqual(self.values.body('all-objects'),original)
+        self.assertEqual(self.values.rows[-1].data,bytes(4))
+        committed=CommittedProperties.prepare(stage,self.namespace._source,self.values,self.app.engine.project)
+        self.assertEqual(metadata_records(committed.body(self.values,'controller-all'))[-1].data,row.data)
+        self.assertEqual(self.values.body('all-objects'),original)
+        self.assertEqual(committed.additions,0)
+        self.assertEqual(self.send(request((row,)))[2],0)
+        self.assertEqual(self.send(ENUM)[2],0)
+        stage._serial_identity=replace(identity,serial=identity.serial+1)
+        self.assertEqual(self.send(ENUM)[2],12)
+
+    def test_serial_requires_stored_key_correct_profile_scope_type_and_exact_endpoint_value(self):
+        self.configure();stored=self.serial_source();identity=self.endpoint.identity
+        row=replace(stored,data=identity.serial.to_bytes(4,'little'))
+        for value in (replace(row,data=(identity.serial+1).to_bytes(4,'little')),replace(row,definition=17),
+                replace(row,target=replace(row.target,qualifier=b'OtherSerialNumber')),replace(row,locale_word=0x409)):
+            with self.subTest(value=value):self.assertEqual(self.send(request((value,)))[2],12)
+        stage=self.namespace.properties;payload=packets.packet((row,));source=self.namespace._source;project=self.app.engine.project
+        for wrong in (None,replace(identity,profile='research'),replace(identity,product_code=1),replace(identity,serial=True)):
+            with self.subTest(identity=wrong),self.assertRaises(ImageError):
+                stage.stage(payload,row.definition,source,self.values,project,identity=wrong)
+        self.assertEqual(stage.description()['values'],0)
+        self.app.native_metadata_values=replace(self.values,rows=self.values.rows[:-1])
+        self.assertEqual(self.send(request((row,)))[2],12)

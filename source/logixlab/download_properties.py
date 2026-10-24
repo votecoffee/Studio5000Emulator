@@ -6,7 +6,8 @@ from .download_image import ImageError
 from .incremental_download import metadata_stamp,value_identity
 from .metadata_query import download_records
 from .native_metadata_values import encode_records
-from .model import Project
+from .model import Project,ModelError
+from .identity import Identity
 
 MAX_PACKET_BYTES=16384
 MAX_VALUES=4096
@@ -32,6 +33,19 @@ def profile_marker(row,values):
     return (row.target.class_id==0x8E and row.target.instance_word==1 and not row.target.context_word and not row.target.selector_word
         and row.target.qualifier==b'ProjectType' and row.locale_word==0x7F and row.kind==2
         and row.type_code==0xC4 and row.elements==1 and row.data==(0x4C).to_bytes(4,'little')
+        and any(d.instance==row.definition and d.name=='SystemNumeric' for d in values.definitions.rows)
+        and any(r.target.class_id==0x349 and r.target.instance_word==row.definition and not r.target.context_word
+            and not r.target.selector_word and not r.target.qualifier and r.definition==17 and r.locale_word==0x7F
+            and r.kind==2 and r.type_code==0xC2 and r.elements==1 and r.data==b'\1' for r in values.rows))
+
+
+def serial_property(row,values,identity):
+    """Only an actual endpoint Identity supplies the downloaded serial value."""
+    if (not isinstance(identity,Identity) or identity.profile!='logix-v35-l85e'
+            or type(identity.serial) is not int or not 0<=identity.serial<=0xFFFFFFFF):return False
+    return (row.target.class_id==0x8E and row.target.instance_word==1 and not row.target.context_word and not row.target.selector_word
+        and row.target.qualifier==b'ControllerSerialNumber' and row.locale_word==0x7F and row.kind==2
+        and row.type_code==0xC4 and row.elements==1 and row.data==identity.serial.to_bytes(4,'little')
         and any(d.instance==row.definition and d.name=='SystemNumeric' for d in values.definitions.rows)
         and any(r.target.class_id==0x349 and r.target.instance_word==row.definition and not r.target.context_word
             and not r.target.selector_word and not r.target.qualifier and r.definition==17 and r.locale_word==0x7F
@@ -79,14 +93,16 @@ class CommittedProperties:
 class DownloadProperties:
     def __init__(self):
         self._values=MappingProxyType({});self._packets=();self._source=None;self._binding=None;self._effect=None;self._profile=None
+        self._serial_identity=None
 
     def _digest(self):
         rows=tuple(sorted(self._values.items(),key=lambda pair:repr(pair[0])))
-        return hashlib.sha256(repr((rows,self._packets,self._profile)).encode()).hexdigest()
+        return hashlib.sha256(repr((rows,self._packets,self._profile,self._serial_identity)).encode()).hexdigest()
 
     def validate(self,source,values,project=None):
         if self._binding is None:
-            if self._values or self._packets or self._source is not None or self._effect is not None or self._profile is not None:
+            if (self._values or self._packets or self._source is not None or self._effect is not None
+                    or self._profile is not None or self._serial_identity is not None):
                 raise ImageError('download_property_effect_changed')
             return
         if source!=self._source or metadata_stamp(values,source)!=self._binding:
@@ -96,13 +112,19 @@ class DownloadProperties:
             raise ImageError('download_property_controller_profile_changed')
         original={value_identity(row) for row in values.rows}
         original_keys={key(row) for row in values.rows}
+        if self._serial_identity is not None and self._profile is None:
+            raise ImageError('download_property_identity_binding_changed')
         if any(key(row)!=target or (value_identity(row) not in original and
-                not (self._profile is not None and target not in original_keys and profile_marker(row,values)))
+                not (self._profile is not None and
+                     (target not in original_keys and profile_marker(row,values)
+                      or target in original_keys and serial_property(row,values,self._serial_identity))))
                 for target,row in self._values.items()):
             raise ImageError('download_property_effect_changed')
 
-    def stage(self,payload,definition,source,values,project=None):
+    def stage(self,payload,definition,source,values,project=None,*,identity=None):
         self.validate(source,values,project);stamp=metadata_stamp(values,source)
+        if self._serial_identity is not None and identity is not None and identity!=self._serial_identity:
+            raise ImageError('download_property_identity_binding_changed')
         if not isinstance(payload,bytes) or len(payload)>MAX_PACKET_BYTES:
             raise ImageError('download_property_packet_limit')
         try:rows=download_records(payload,definition)
@@ -113,13 +135,20 @@ class DownloadProperties:
             if target in original and value_identity(original[target])!=value_identity(row):
                 raise ImageError('download_property_source_ambiguous')
             original[target]=row
-        proposal=dict(self._values);profile=self._profile
+        proposal=dict(self._values);profile=self._profile;serial_identity=self._serial_identity
         for row in rows:
             target=row.target;stored=original.get(key(row))
             if target.class_id!=0x8E or target.instance_word!=1 or target.context_word or target.selector_word:
                 raise ImageError('download_property_source_value_required')
             if stored is None and profile_marker(row,values):
                 profile=controller_profile(project,source)
+            elif stored is not None and value_identity(row)!=value_identity(stored) and serial_property(row,values,identity):
+                profile=controller_profile(project,source)
+                try:expected=Identity.from_project(identity.profile,project)
+                except ModelError as error:raise ImageError('download_property_endpoint_profile_required') from error
+                if any(getattr(identity,name)!=getattr(expected,name) for name in ('vendor','device_type','product_code','major','minor','product_name')):
+                    raise ImageError('download_property_endpoint_profile_required')
+                serial_identity=identity
             elif stored is None or value_identity(row)!=value_identity(stored):
                 raise ImageError('download_property_source_value_required')
             # Packet ordinals are local framing; the actual property key and
@@ -133,7 +162,7 @@ class DownloadProperties:
         if metadata_stamp(values,source)!=stamp:raise ImageError('download_property_source_changed')
         if profile is not None and controller_profile(project,source)!=profile:raise ImageError('download_property_controller_profile_changed')
         self._values=MappingProxyType(proposal);self._packets=packets;self._source=source;self._binding=stamp
-        self._profile=profile;self._effect=self._digest();self.validate(source,values,project)
+        self._profile=profile;self._serial_identity=serial_identity;self._effect=self._digest();self.validate(source,values,project)
 
     def read(self,ordinal,source,values,project=None):
         self.validate(source,values,project)
@@ -142,5 +171,8 @@ class DownloadProperties:
 
     def description(self):
         return dict(packets=len(self._packets),values=len(self._values),source_bound=self._binding is not None,
-            controller_profile_marker=self._profile is not None,
+            controller_profile_marker=self._profile is not None and any(
+                row.target.qualifier==b'ProjectType' and row.data==b'L\0\0\0' for row in self._values.values()),
+            controller_profile_bound=self._profile is not None,
+            controller_serial_bound=self._serial_identity is not None,
             active_metadata_changed=False,identity_changed=False,commit=False,payloads_exposed=False)

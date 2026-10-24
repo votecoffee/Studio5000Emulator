@@ -1,5 +1,17 @@
 # Original ACD metadata values
 
+Version `26.1024.005421` permits the download owner to update an existing
+`ControllerSerialNumber` property to the actual emulator endpoint serial. The
+packet must use the checked Controller scope, invariant locale, declared
+`SystemNumeric` definition and one DINT. The source project must match the v35
+L85E endpoint profile. An absent endpoint Identity, different serial, unknown
+property or mismatched profile rejects the packet. The retained identity and
+source binding are rechecked with the staged property ledger.
+
+The original catalog remains immutable. Only the committed download metadata
+view contains that accepted runtime serial. It cannot set the endpoint serial,
+modify tag values or authorize general Controller-property writes.
+
 Version `26.1024.004541` additionally reads stored format-12 qualified Controller
 numeric properties in saved downloads. They require the exact Controller
 instance, an ordinary property name, invariant locale, a source-declared

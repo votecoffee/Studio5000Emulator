@@ -6,11 +6,17 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.004541`.** Versions use the release timestamp
+**Current app version: `26.1024.005421`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release reads the saved download's named Controller numeric
+This release binds the downloaded `ControllerSerialNumber` metadata to the
+emulator endpoint's actual Identity. Studio can supply that serial when a saved
+ACD contains zero. The original catalog stays immutable; the committed download
+view records the accepted serial. Other metadata replacements remain checked
+against their source values.
+
+The preceding revision reads the saved download's named Controller numeric
 [metadata qualifiers](docs/native-metadata-values.md) after checking their
 source-declared type, complete framing and exact Controller scope. The preceding
 revision recognizes the [Program Routine headers](docs/routine-types.md)
@@ -67,7 +73,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 154 affected checks and 354 Python syntax checks.
+This iteration passes 156 affected checks and 354 Python syntax checks.
 The preceding milestone passes 2,052 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
