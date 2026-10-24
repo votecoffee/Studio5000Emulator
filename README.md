@@ -6,19 +6,20 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.233219`.** Versions use the release timestamp
+**Current app version: `26.1023.235144`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds [source-defined structure values](docs/download-image.md#source-matched-initial-values)
-to source-equivalent downloads, including nested structures, packed scalar BOOL
-members and arrays of structures or TIMER/COUNTER values. Member locations and
-element strides come from the original ACD. Complete values, zero padding and
-unused zero bits must match; ambiguous overlaps and packed BOOL arrays reject
-the download. Rectangular numeric arrays remain supported.
-The native structure fixture completes SDK download/save/reopen/Go Online
-across 434 verified requests. Independent CIP reads match all 61 supplied
-atomic value fields across its five added tags, without advancing the scan.
+This release accepts explicitly named packed-bit hosts in the
+[UDT wire catalog](docs/native-template-snapshots.md). A declared hidden scalar
+SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
+overlap, reserved-bit and member-access checks remain in place.
+Downloads can also omit a routine-data batch when the complete original source
+and prepared image both establish that there are no routines.
+
+[Source-defined structure downloads](docs/download-image.md#source-matched-initial-values)
+support nested UDTs, numeric arrays and UDT/TIMER/COUNTER arrays, checking complete
+saved values and explicit source layouts before committing a separate model.
 
 Optional [compressed transfer recording](docs/transfer-trace-recording.md)
 retains complete native upload/download traces beyond the diagnostic ring's
@@ -46,7 +47,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo upload still fails during Program collection.
 
-This iteration passes 196 affected checks and 354 Python syntax checks. The
+This iteration passes 213 affected checks and 354 Python syntax checks. The
 preceding Windows milestone suite passed 2,023 tests, with two platform checks skipped.
 
 **Native upload of programs containing routines, replacement with another project, SDK tag-address discovery and the complete

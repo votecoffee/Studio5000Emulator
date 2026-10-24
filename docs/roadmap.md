@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.235144` accepts explicitly mapped packed-bit host names in
+source-checked UDT catalogs. It also permits the missing routine-data batch
+only for a complete source and prepared image with zero routines. Native
+structure upload and empty-Program download are tested independently; the
+routine-containing upload blocker remains the leading transfer priority.
+
 Version `26.1023.233219` extends source-equivalent downloads to supported nested
 structure values and structure/TIMER/COUNTER arrays. It requires complete saved
 members at their original ACD offsets and exact canonical reserved bytes.

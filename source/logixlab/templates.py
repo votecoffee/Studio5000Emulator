@@ -105,8 +105,8 @@ class Catalog:
             if len(candidates) != 1: raise ModelError('BIT requires a preceding hidden SINT host')
             host = candidates[0]
             if (host.get('DataType') != 'SINT' or host.get('Hidden', 'false').lower() != 'true'
-                    or not target.startswith('ZZZZZZZZZZ') or dimensions(host.get('Dimension', '0'))):
-                raise ModelError('BIT host must be a scalar hidden SINT with a storage name')
+                    or dimensions(host.get('Dimension', '0'))):
+                raise ModelError('BIT host must be a scalar hidden SINT')
             bit_text = node.get('BitNumber', '')
             if not re.fullmatch('[0-7]', bit_text) or dimensions(node.get('Dimension', '0')):
                 raise ModelError('BIT requires one scalar bit in the range 0..7')

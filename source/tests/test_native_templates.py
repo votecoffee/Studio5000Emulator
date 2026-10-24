@@ -92,6 +92,28 @@ class NativeTemplateTests(unittest.TestCase):
         self.endpoint.native_read_only = False
         self.assertEqual(self.router.templates().for_type('AxisState').instance, 0x100)
 
+    def test_named_packed_hosts_bind_exact_source_metadata_without_application_values(self):
+        self.app.command('demo', {'sample': 'FlagLab'})
+        project = self.app.engine.project
+        for schema in project.udts.values():
+            nodes = schema.findall('./Members/Member')
+            names = {n.get('Name'): 'Packed' + str(i) for i, n in enumerate(nodes)
+                     if n.get('Hidden') == 'true'}
+            for node in nodes:
+                if node.get('Name') in names: node.set('Name', names[node.get('Name')])
+                if node.get('Target') in names: node.set('Target', names[node.get('Target')])
+        native, rows = saved(project)
+        self.assertEqual(len(rows), 2)
+        snapshot = NativeTemplates(native, rows)
+        bound = snapshot.bind(project, native)
+        model = bound.for_type('FlagRecord')
+        original = next(row for row in rows if row.instance == model.instance)
+        self.assertEqual(model.definition_storage, original.definition)
+        self.assertEqual([m.offset for m in model.members[:6]], [0, 0, 0, 0, 1, 1])
+        raw = bound.encode(model, 'Record', self.app.engine.memory.read)
+        self.assertEqual(raw[:8], struct.pack('<BB2xi', 0x89, 2, 1370))
+        self.assertNotIn('Packed0', self.app.engine.memory.values['record'])
+
     def test_manifest_roundtrip_and_description_keep_definition_bytes_private(self):
         self.load_saved()
         restored = NativeTemplates.from_manifest(self.snapshot.manifest(), self.native)

@@ -898,10 +898,19 @@ in a separate private header. Its earlier incremental header value `5` remains
 intact. The bit meanings are not interpreted, and the active Map is unchanged.
 
 Only the prepared download owner in Program mode may write the exact one-field
-attribute list. All three earlier batches, complete setup, the original header,
-source-equivalent Routine components and explicit Local identity must still
+attribute list. Routine-bearing projects require all three earlier batches,
+complete setup, the original header, source-equivalent Routine components and explicit Local identity to
 validate. The proposal is checked before publication; a malformed request,
 changed binding or insufficient reply budget cannot publish a partial flag.
+
+Version `26.1023.235144` also accepts Studio's omitted routine-data batch when
+there are no routines. The original native inventory, prepared image and
+complete readable source must all be empty of routines. Every source Program
+must explicitly establish empty, untested logic and no assigned main routine.
+The incremental batch, complete setup, type/source binding and earlier effects
+still validate on each access. An absent or unreadable source declaration,
+staged or runtime routine, or changed catalog rejects the flag. No synthetic
+routine batch or source bytes are created for the empty case.
 
 Private readback rechecks the same source/effects and supports the owner's
 Get Attribute Single or List, including lists mixed with public Map fields.

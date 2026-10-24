@@ -3,10 +3,15 @@ import copy
 from dataclasses import replace
 import struct
 import unittest
+from pathlib import Path
+import tempfile
+from types import SimpleNamespace as NS
 from unittest.mock import patch
+from xml.etree import ElementTree as E
 
 from logixlab.download_image import ImageError
-from logixlab.download_map import DownloadMap
+from logixlab.download_map import DownloadMap,MapBindings
+from logixlab.model import Project
 import test_download_routines as routines
 import test_download_setup as setup
 import test_device_payload as payloads
@@ -19,6 +24,50 @@ WRITE=bytes.fromhex('040220692401010007000100')
 READ=bytes.fromhex('0e03206924013007')
 LIST=bytes.fromhex('030220692401020002000700')
 PAYLOAD=struct.pack('<HHH',1,7,1)
+
+
+class EmptyRoutineMapTests(unittest.TestCase):
+    def source(self,change=None):
+        root=E.parse(Path(__file__).resolve().parents[1]/'samples/ConveyorDemo.L5X').getroot()
+        program=root.find('./Controller/Programs/Program')
+        program.attrib.pop('MainRoutineName',None);program.attrib.pop('FaultRoutineName',None)
+        program.set('TestEdits','false');program.set('UseAsFolder','false')
+        program.find('Routines').clear()
+        if change:change(program)
+        folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
+        path=Path(folder.name)/'source.L5X';E.ElementTree(root).write(path,encoding='utf-8')
+        project=Project(path)
+        ns=NS(_routine_batch=None,_image=NS(routines=()),_source=NS(l5x_sha256=project.sha256))
+        headers=NS(namespace=ns,engine=NS(project=project),routines=NS(rows=()))
+        return MapBindings(headers,None,None,None,None),project,ns
+
+    def test_complete_source_empty_image_and_original_inventory_can_omit_the_batch(self):
+        bindings,project,ns=self.source()
+        self.assertFalse(project.routines)
+        with patch('logixlab.download_map.RoutineBindings.stamp',return_value='source-bound'):
+            self.assertEqual(bindings._routine_stamp(),('empty_source','source-bound'))
+        self.assertIsNone(ns._routine_batch)
+
+    def test_absent_batch_cannot_hide_declared_runtime_staged_or_original_routines(self):
+        changes=(lambda p:E.SubElement(p.find('Routines'),'Routine',Name='HiddenLogic',Type='RLL'),
+                 lambda p:p.remove(p.find('Routines')),
+                 lambda p:p.set('MainRoutineName','Missing'),
+                 lambda p:p.set('Class','Safety'))
+        for change in changes:
+            bindings,_,_=self.source(change)
+            with self.subTest(change=change),self.assertRaises(ImageError):bindings._routine_stamp()
+        for kind in ('runtime','image','original','stale-source'):
+            bindings,project,ns=self.source()
+            if kind=='runtime':project.routines['MainProgram/Unexpected']=object()
+            elif kind=='image':ns._image.routines=(object(),)
+            elif kind=='original':bindings.headers.routines.rows=(object(),)
+            else:ns._source.l5x_sha256='b'*64
+            with self.subTest(kind=kind),self.assertRaises(ImageError):bindings._routine_stamp()
+
+    def test_empty_source_still_propagates_type_and_header_binding_failure(self):
+        bindings,_,_=self.source()
+        with patch('logixlab.download_map.RoutineBindings.stamp',side_effect=ImageError('source_changed')):
+            with self.assertRaisesRegex(ImageError,'source_changed'):bindings._routine_stamp()
 
 
 def map_route(self):

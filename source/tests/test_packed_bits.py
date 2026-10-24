@@ -153,6 +153,35 @@ class PackedBitTests(unittest.TestCase):
         self.assertEqual(self.read(ref)[2], 0x0F)
         self.assert_rejected(lambda: self.packet(0x4D, ref, struct.pack('<HHb', 0xC2, 1, 0)), 0x0F)
 
+    def test_explicit_host_names_do_not_change_nested_bytes_or_visibility(self):
+        project = self.app.engine.project
+        for schema in project.udts.values():
+            nodes = schema.findall('./Members/Member')
+            renamed = {n.get('Name'): 'Packed' + str(i) for i, n in enumerate(nodes)
+                       if n.get('Hidden') == 'true'}
+            for node in nodes:
+                if node.get('Name') in renamed: node.set('Name', renamed[node.get('Name')])
+                if node.get('Target') in renamed: node.set('Target', renamed[node.get('Target')])
+        self.router._catalog = None
+        self.assertEqual(self.read('Record')[8:], record_bytes(137))
+        self.assertEqual(self.read('Records[3].Group')[8:], group_bytes(3))
+        self.assertEqual(self.read('Records[0].Packed0')[2], 0x0F)
+        self.assert_rejected(lambda: self.packet(0x4D, 'Records[0].Packed0', struct.pack('<HHb', 0xC2, 1, 0)), 0x0F)
+        self.assertNotIn('Packed0', self.app.engine.memory.values['records'][0])
+        self.assertEqual(self.write('Records[0]', record_bytes(137))[2], 0)
+        self.assertEqual(self.read('Records[0]')[8:], record_bytes(137))
+
+    def test_named_hosts_retain_unused_bit_and_member_access_write_guards(self):
+        nodes = self.app.engine.project.udts['flagrecord'].findall('./Members/Member')
+        nodes[0].set('Name', 'Packed')
+        for node in nodes:
+            if node.get('Target') == 'ZZZZZZZZZZState': node.set('Target', 'Packed')
+        self.router._catalog = None
+        self.assert_rejected(lambda: self.write('Records[0]', b'\x02', offset=0), 9)
+        next(n for n in nodes if n.get('Name') == 'Fault').set('ExternalAccess', 'Read Only')
+        self.assert_rejected(lambda: self.write('Records[0]', b'\x01', offset=0), 0x0F)
+        self.assertEqual(self.read('Records[0]')[8:], record_bytes(0))
+
     def test_network_root_alias_and_constant_permissions_are_enforced(self):
         self.assert_rejected(lambda: self.write('Record', record_bytes(0)), 0x0F)
         self.endpoint.allow_writes = False

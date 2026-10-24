@@ -37,6 +37,14 @@ loading another project without a snapshot clears it.
 
 ## Read behavior
 
+Version `26.1023.235144` accepts ordinary identifiers for hidden packed-bit
+hosts. A BIT still requires an explicit target naming a preceding scalar
+hidden SINT, with a unique bit in the range 0–7. Generated `ZZZZ…` names are
+accepted through the same checks. Host bytes have no independent application
+value and cannot be read or written directly. Snapshot binding still compares
+the original member names, offsets, bits, type IDs and access permissions;
+accepting a host name does not relax those source checks.
+
 The snapshot applies only in native compatibility mode. The public tag and
 nested-type visibility rules still select which definitions can be browsed;
 private and unsupported types do not become public merely because their bytes
