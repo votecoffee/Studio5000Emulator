@@ -1,5 +1,10 @@
 # Routine upload source inspection
 
+The separate [downloaded source readback service](downloaded-routine-read.md)
+now returns exact retained source from an unedited installed download. It does
+not convert downloaded source into the upload XML profiles described here or
+establish SDK reconstruction. The inspection decoder remains read-only.
+
 Version `.133` adds a read-only decoder for the Routine source streams carried
 by the observed [signed read transport](read-transport.md). It preserves the
 source class and edit state instead of treating every returned rung as ordinary

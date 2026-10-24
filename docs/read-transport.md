@@ -1,5 +1,11 @@
 # Signed read streams
 
+Version `26.1023.205529` adds a bounded live route for
+[installed Routine source readback](downloaded-routine-read.md). The framing
+codec below remains passive; live dispatch separately checks the native session,
+installed source, catalogs, target and stream ownership. Other read selectors
+and arbitrary operations remain unsupported.
+
 Version `.132` decodes the observed Message Router `0x3A` read transport. The
 successful saved upload uses it after Routine metadata. It carries an initial
 CIP request followed by raw stream chunks. The chunks are not embedded CIP

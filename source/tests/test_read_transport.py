@@ -105,7 +105,7 @@ class ReadTransportTests(unittest.TestCase):
         extended=summarize([packet(1,raw),packet(2,reply,1)],include_payloads=True)
         self.assertIn('chunk_hex',extended['exchanges'][0]['response']['signed_envelope'])
 
-    def test_detached_codec_adds_no_live_route_or_sequence_consumption(self):
+    def test_uninstalled_source_and_write_selectors_are_denied_after_mac_verification(self):
         from logixlab.ethernetip import Endpoint,Session
         from logixlab.native_session import NativeSession
         from logixlab.server import Application
@@ -114,14 +114,15 @@ class ReadTransportTests(unittest.TestCase):
             source=(Path(__file__).resolve().parents[1]/'samples/ConveyorDemo.L5X').read_bytes()
             app.command('load',dict(name='demo.L5X',content=base64.b64encode(source).decode()))
             endpoint=Endpoint(app,0,False,'logix-v35-l85e',native_read_only=True)
-            session=Session();session.handle=1;session.native=NativeSession()
+            session=Session(handle=1,generation=app.generation);session.native=NativeSession()
             session.native.key=KEY;session.native.sequence=1;session.native.stage='bound';session.native.deadline=time.monotonic()+300
             before=app.state()
             try:
-                for inner in (INNER,bytes.fromhex('4d039105537065656400c400010001000000')):
-                    request=rt.ReadRequest(1,0x101,0,inner)
+                for sequence,inner in enumerate((INNER,INNER[:-4]+struct.pack('<I',3),bytes.fromhex('4d039105537065656400c400010001000000')),1):
+                    request=rt.ReadRequest(sequence,0x101,0,inner)
                     reply=endpoint.router.handle(rt.encode_request(request,KEY),session)
-                    self.assertNotEqual(reply[2],0);self.assertEqual(session.native.sequence,1)
+                    self.assertNotEqual(reply[2],0);self.assertEqual(session.native.sequence,sequence+1)
+                    self.assertIsNone(session.native.read_stream)
                 for key in ('tags','scan','ms','routines','controller'):self.assertEqual(app.state()[key],before[key])
             finally:app.close()
 

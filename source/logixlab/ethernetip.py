@@ -25,6 +25,7 @@ from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
+from . import read_transport,routine_read
 from .download_namespace import DownloadNamespace
 from .download_headers import HeaderBindings
 from .download_routines import RoutineBindings
@@ -1779,7 +1780,7 @@ class Router:
                     if not getattr(session,'native',None):raise CIPError(0x0F,'Native challenge required')
                     return 0,session.native.acknowledge(data)
                 except (native_session.NativeError,key_exchange.OfferError) as error:raise CIPError(error.status,str(error)) from error
-            if path.class_id==2 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x36,0x37,0x38,0x39):
+            if path.class_id==2 and path.instance==1 and not path.symbols and path.attribute is None and service in (0x36,0x37,0x38,0x39,0x3A):
                 native=getattr(session,'native',None)
                 if native is None:raise CIPError(0x0F,'Native compatibility session required')
                 try:envelope=native.consume(raw)
@@ -1787,7 +1788,35 @@ class Router:
                     with self.endpoint.lock:self.endpoint.programming_lease.discard(native)
                     raise CIPError(error.status,str(error)) from error
                 self.endpoint.record('native_verified',sequence=envelope.sequence,stage=native.stage)
-                if isinstance(envelope,signed_messages.FragmentEnvelope):
+                if isinstance(envelope,read_transport.ReadRequest):
+                    try:
+                        if native.stage!='bound':raise CIPError(0x0F,'Bound native context required')
+                        with self.endpoint.lock:
+                            lease=self.endpoint.programming_lease
+                            if lease.live(self.app.generation,self.app.engine.project.sha256):
+                                raise CIPError(0x0C,'Finish programming before reading installed Routine source')
+                            if envelope.container_format==0x101:
+                                if native.read_stream is not None:raise CIPError(0x0C,'Routine source read already pending')
+                                inner=envelope.inner;n=2+2*inner[1];target=decode_path(inner[2:n])
+                                if (inner[0]!=0x5D or target.class_id!=0x6D or not target.program_instance or not target.instance
+                                        or target.attribute is not None or target.symbols or target.io_map_instance is not None
+                                        or target.controller_instance is not None or target.aoi_instance is not None):
+                                    raise CIPError(0x0F,'Only scoped downloaded Routine source reads are supported')
+                                if inner[n:]!=struct.pack('<II',1,3):raise CIPError(0x0F,'Unsupported Routine source read selector')
+                                stream=routine_read.Stream.begin(self.app,target.program_instance,target.instance)
+                            else:
+                                stream=native.read_stream
+                                if stream is None:raise CIPError(0x0C,'Routine source read start required')
+                            encoded,complete=stream.reply(self.app,envelope,native.key,limit)
+                            native.read_stream=None if complete else stream
+                            self.endpoint.record('native_routine_source_read',bytes_returned=len(encoded)-36,
+                                total_bytes=len(stream.data),complete=complete,frames=stream.frames)
+                    except ImageError as error:
+                        native.read_stream=None
+                        raise CIPError(0x1B if error.reason=='routine_read_reply_budget' else 0x0C,error.reason) from error
+                    except CIPError:
+                        native.read_stream=None;raise
+                elif isinstance(envelope,signed_messages.FragmentEnvelope):
                     if limit<36:raise CIPError(0x1B,'Fragment acknowledgement exceeds negotiated size')
                     if native.stage!='bound':raise CIPError(0x0F,'Bound native context required')
                     identity=self.app.native_project_identity

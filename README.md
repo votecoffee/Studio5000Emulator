@@ -6,12 +6,18 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1023.203747`.** Versions use the release timestamp
+**Current app version: `26.1023.205529`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-This release adds a [saved-download workflow](docs/development.md#saved-download-reconnection):
-after a source-equivalent download, save a new ACD, close it, reopen it and verify
+This release adds [signed Routine source readback](docs/downloaded-routine-read.md)
+from a completed source-equivalent download. Reads return the exact retained
+source container in bounded chunks, with session MAC/counter checks and source
+validation. Changed logic or catalogs revoke the read. This implements a source
+read service; SDK upload still stops earlier during Program collection.
+
+The [saved-download workflow](docs/development.md#saved-download-reconnection) can
+save a new ACD after a source-equivalent download, close it, reopen it and verify
 Go Online. The native SDK completes that sequence across 432 verified requests;
 a separate SDK process reopens the saved ACD and goes Online across 74.
 Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
@@ -24,7 +30,7 @@ completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 Upload still fails during Program collection.
 
-This iteration passes 116 focused checks and 347 Python syntax checks. The
+This iteration passes 222 focused checks and 349 Python syntax checks. The
 preceding Windows milestone suite passed 2,003 checks with two platform skips.
 
 **Native upload, replacement with another project, SDK tag-address discovery and the complete

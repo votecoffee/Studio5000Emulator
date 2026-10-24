@@ -30,6 +30,7 @@ class NativeSession:
         self.operator_digest = None
         self.deadline = 0
         self.metadata_query = None
+        self.read_stream = None
 
     def begin(self, offer, *, nonce=None):
         self.close()
@@ -119,6 +120,8 @@ def description(enabled):
             'operator_authorization': False, 'signed_batches': enabled,
             'signed_transfer_container':enabled,
             'signed_fragment_staging':enabled,
+            'signed_routine_source_readback':enabled,
+            'routine_source_read_scope':'Unedited source-equivalent installed downloads only',
             'timeline_acknowledgement':'Existing nonzero source UID retained',
             'timeline_initialization':False, 'timeline_replacement':False,
             'controller_mode': 'Program' if enabled else None,

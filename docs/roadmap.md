@@ -6,6 +6,11 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1023.205529` implements [signed downloaded Routine source readback](downloaded-routine-read.md)
+with exact retained bytes, source checks and bounded session-owned streams.
+The SDK's earlier Program-collection failure still needs resolution before it
+can exercise that service. Full upload remains the next transfer priority.
+
 Version `26.1023.203747` adds a [saved-download reconnection probe](development.md#saved-download-reconnection)
 and preserves committed download correlation through supported Program-mode
 routine replacement. A saved post-download ACD can be closed, reopened and
