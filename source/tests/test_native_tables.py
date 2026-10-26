@@ -27,7 +27,7 @@ def collection(parent=0):
         logical=(0x68,parent,0x6A,0,0,0) if parent else (0x6A,0,0,0,0,0))
 
 
-def row(instance=1,name='$0123abcd$',body_bytes=420):return dict(instance=instance,name=name,body_bytes=body_bytes)
+def row(instance=1,name='$0123abcd$',body_bytes=420,**kwargs):return dict(instance=instance,name=name,body_bytes=body_bytes,**kwargs)
 
 
 class NativeTableIdentityTests(unittest.TestCase):
@@ -37,6 +37,27 @@ class NativeTableIdentityTests(unittest.TestCase):
         self.assertEqual(nt.table_paths(data),[row(),row(2,'$Other$',539)])
         self.assertEqual(nt.table_paths(database(collection())),[])
         self.assertEqual(nt.table_paths(database(collection(),record(body_bytes=417))),[row(body_bytes=417)])
+
+    def test_scoped_tables_keep_repeated_ids_and_names_in_separate_programs(self):
+        scoped=lambda parent:record(logical=(0x68,parent,0x6A,1,0,0))
+        rows=nt.table_paths(database(collection(),collection(2),collection(3),record(),scoped(2),scoped(3)))
+        self.assertEqual(rows,[row(),row(program_instance=2),row(program_instance=3)])
+        binding=nt.NativeTables('a'*64,'b'*64,rows)
+        self.assertEqual(set(binding.by_instance),{1,(2,1),(3,1)})
+        self.assertEqual(nt.NativeTables.from_manifest(binding.manifest(),'b'*64),binding)
+        self.assertEqual(binding.description()['scoped_tables'],2)
+        for data in (database(collection(),scoped(2)),database(collection(),collection(2),scoped(2),scoped(2)),
+                     database(collection(),collection(2),record(logical=(0x68,2,0x6A,1,1,0)))):
+            with self.assertRaises(ModelError):nt.table_paths(data)
+
+    def test_scoped_bindings_require_source_matched_programs(self):
+        symbols,_=auxiliary.bindings();binding=nt.NativeTables('a'*64,'b'*64,[row(program_instance=2)])
+        binding.require_parents(symbols)
+        for parent in (0xFFFF,True,-1):
+            with self.assertRaises(ModelError):nt.NativeTables('a'*64,'b'*64,[row(program_instance=parent)])
+        for candidate in (None,auxiliary.NativeSymbols('c'*64,'b'*64,[],programs=[dict(name='ProgramA',instance=2)]),
+                          auxiliary.NativeSymbols('a'*64,'b'*64,[],programs=[dict(name='Other',instance=3)])):
+            with self.assertRaises(ModelError):binding.require_parents(candidate)
 
     def test_ambiguous_history_unknown_formats_scopes_and_truncated_records_withhold_binding(self):
         cases=(database(),database(record()),database(collection(),collection()),database(collection(),record(),record()),

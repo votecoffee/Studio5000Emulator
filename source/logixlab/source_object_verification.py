@@ -49,7 +49,7 @@ def verify(objects,source,symbols=None,routines=None,auxiliary=None,tables=None)
             or (value.source_acd_sha256,value.source_l5x_sha256)!=(source.acd_sha256,source.l5x_sha256))
            for value,kind in ((symbols,NativeSymbols),(routines,NativeRoutines),(auxiliary,NativeAuxiliarySymbols),(tables,NativeTables))):
         return summary('mismatch',errors=('native_object_source_mismatch',))
-    staged_tables={r.instance for r in objects.tables}
+    staged_tables={r.key for r in objects.tables}
     table_ids=set(tables.by_instance) if tables is not None else set()
     table_errors=['native_table_identity_mismatch'] if tables is not None and staged_tables!=table_ids else []
     table_counts=dict(tables=len(staged_tables&table_ids),table_unresolved=len(staged_tables-table_ids))
@@ -57,6 +57,9 @@ def verify(objects,source,symbols=None,routines=None,auxiliary=None,tables=None)
         return summary('mismatch' if table_errors else 'unavailable',unresolved=len(objects.symbols),errors=table_errors,**table_counts)
     if symbols.program_inventory_error is not None:
         return summary('mismatch' if table_errors else 'unavailable',unresolved=len(objects.symbols),errors=table_errors,**table_counts)
+    if tables is not None:
+        try:tables.require_parents(symbols)
+        except ModelError:return summary('mismatch',errors=('native_table_parent_mismatch',))
     expected_programs=set(symbols.program_ids)
     if (set(symbols.programs.values())!=expected_programs
             or any(symbols.program_ids.get(instance)!=name for name,instance in symbols.programs.items())

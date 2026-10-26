@@ -15,6 +15,7 @@ from . import metadata_query
 from .native_metadata_values import NativeMetadataValues,encode_records
 from .download_headers import WIDTHS,path_key
 from . import device_payload
+from .object_staging import table_key,valid_table_key
 
 MAX_METADATA_VALUES=4096
 ROUTINE_DATA=b'\1'+struct.pack('<III',13,13,0)
@@ -138,7 +139,12 @@ class IncrementalDownload:
                 coordination.append((program,before,program in held))
                 effect(row,'coordination',(len(coordination)-1,),coordination[-1])
             else:
-                if len(row.scopes)!=1:raise ImageError('incremental_global_scope_required')
+                program=0
+                if len(row.scopes)==2 and row.scopes[0].class_id==0x68 and leaf.class_id==0x6A:
+                    program=row.scopes[0].instance
+                    if program not in image.programs or program not in held:
+                        raise ImageError('incremental_table_program_reservation_required')
+                elif len(row.scopes)!=1:raise ImageError('incremental_global_scope_required')
                 if leaf.class_id==0x3B2:
                     if payload!=b'\0\0':raise ImageError('incremental_diagnostic_attributes_unsupported')
                     if not any(d.instance==leaf.instance for d in image.diagnostics):
@@ -146,16 +152,16 @@ class IncrementalDownload:
                     diagnostics.append(leaf.instance)
                     effect(row,'diagnostic',(len(diagnostics)-1,),leaf.instance)
                 elif leaf.class_id==0x6A:
-                    region=image._regions.get(leaf.instance)
+                    key=table_key(program,leaf.instance);region=image._regions.get(key)
                     if region is None:raise ImageError('incremental_table_missing')
                     if len(payload)<7:raise ImageError('incremental_table_write_extent')
                     offset,selector,size=struct.unpack_from('<IBH',payload)
                     if offset or selector:raise ImageError('incremental_table_write_profile')
                     if not size or size!=len(region.data) or len(payload)!=size+7:
                         raise ImageError('incremental_table_write_extent')
-                    if leaf.instance in tables:raise ImageError('incremental_duplicate_table_write')
-                    tables[leaf.instance]=replace(region,data=payload[7:])
-                    effect(row,'table',(leaf.instance,),payload[7:])
+                    if key in tables:raise ImageError('incremental_duplicate_table_write')
+                    tables[key]=replace(region,data=payload[7:])
+                    effect(row,'table',(key,),payload[7:])
                 else:
                     if original is None:
                         stamp=metadata_stamp(native_metadata_values,source)
@@ -231,7 +237,7 @@ class IncrementalDownload:
 
     def read_table(self,instance,image,source,native_metadata_values=None,header_bindings=None):
         self.validate(image,source,native_metadata_values,header_bindings)
-        if type(instance) is not int or instance not in self._tables:raise ImageError('incremental_table_read_unavailable')
+        if not valid_table_key(instance) or instance not in self._tables:raise ImageError('incremental_table_read_unavailable')
         return self._tables[instance].data
 
     def read_attribute(self,class_id,program,instance,number,image,source,native_metadata_values=None,header_bindings=None):

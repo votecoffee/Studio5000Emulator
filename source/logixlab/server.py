@@ -399,6 +399,7 @@ class Application:
                     table_manifest=data['native_tables']
                 native_tables=NativeTables.from_manifest(table_manifest,project.sha256) if table_manifest is not None else None
                 if native_tables:
+                    native_tables.require_parents(native_symbols)
                     if any(binding and binding.source_acd_sha256!=native_tables.source_acd_sha256
                            for binding in (native_identity,native_symbols,native_types,native_tasks,native_routines,native_aois,native_aoi_routines,native_auxiliary_symbols)):
                         raise ModelError('Data Table and project manifests refer to different ACD files')

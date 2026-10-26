@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.121058` adds [Program-scoped transfer tables](scoped-download-tables.md).
+Source inventory, reciprocal Symbol links, preparation effects, handles and
+incremental value storage retain the original Program parent. Repeated IDs in
+other Programs cannot satisfy those bindings. The complete recorded 924-record
+preparation batch passes offline validation; native acceptance remains separate.
+
 Version `26.1026.112241` adds native Online scalar BOOL word reads, verified
 for both values with normal Offline cleanup. The snapshot verifier now checks
 BOOLs and DINTs Online. The upload snapshot also passes for a routine-free

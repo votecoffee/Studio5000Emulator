@@ -733,7 +733,7 @@ class Router:
                         if (path.attribute is not None or path.symbols or any(getattr(path,key) is not None
                                 for key in ('io_map_instance','controller_instance','aoi_instance'))):
                             return reject(4,'invalid_download_catalog_scope')
-                        if path.class_id in (0x68,0x6A) and path.program_instance is not None:
+                        if path.class_id==0x68 and path.program_instance is not None:
                             return reject(4,'invalid_download_catalog_scope')
                         if path.class_id==0x6D and path.program_instance is None:
                             return reject(4,'download_routine_program_required')
@@ -748,7 +748,7 @@ class Router:
                             partial,value=namespace.symbol_page(path.program_instance or 0,path.instance or 0,limit-4)
                             self.endpoint.counts['native_download_symbol_pages']+=1
                         elif path.class_id==0x6A:
-                            partial,value=namespace.table_page(path.instance or 0,limit-4)
+                            partial,value=namespace.table_page(path.instance or 0,limit-4,path.program_instance or 0)
                             self.endpoint.counts['native_download_table_pages']+=1
                         elif path.class_id==0x6D:
                             partial,value=namespace.routine_page(path.program_instance,path.instance or 0,limit-4)

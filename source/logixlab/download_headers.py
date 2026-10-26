@@ -148,9 +148,9 @@ class HeaderBindings:
             access=constant=0;logical=();address=0
             if table!=NULL_REFERENCE:
                 descriptor=image._tables[table];code=descriptor.type_code
-                handle=next(t for t in self.namespace._tables if t.instance==table)
+                handle=next(t for t in self.namespace._tables if t.key==table)
                 self.namespace.resolve_table(handle.address);address=handle.value_address
-                logical=((0x6A,table),)
+                logical=(((0x68,descriptor.program),) if descriptor.program else ())+((0x6A,descriptor.instance),)
                 tag=next((t for t in project.tags.values() if t.name==name and t.scope.casefold()==(self._program(program).casefold() if program else '')),None)
                 if tag is not None:
                     access={'Read/Write':0,'Read Only':1,'None':2}.get(tag.external_access)

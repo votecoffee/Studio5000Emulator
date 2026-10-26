@@ -39,6 +39,22 @@ def reference(value):
     return value
 
 
+def table_key(program,instance):
+    """Controller keys stay numeric; Program keys retain their original parent."""
+    return (program,instance) if program and instance!=NULL_REFERENCE else instance
+
+
+def table_instance(key):return key[1] if isinstance(key,tuple) else key
+
+
+def table_order(key):return key if isinstance(key,tuple) else (0,key)
+
+
+def valid_table_key(key):
+    return (type(key) is int and 1<=key<=MAX_INSTANCE or type(key) is tuple and len(key)==2
+            and all(type(value) is int and 1<=value<=MAX_INSTANCE for value in key))
+
+
 @dataclass(frozen=True)
 class Symbol:
     program:int
@@ -55,6 +71,10 @@ class Table:
     symbol:int
     elements:int
     storage_bytes:int
+    program:int=0
+
+    @property
+    def key(self):return table_key(self.program,self.instance)
 
 
 @dataclass(frozen=True)
@@ -64,7 +84,7 @@ class Routine:
     create_word:int=0
 
 
-def table(instance,payload,templates):
+def table(instance,payload,templates,program=0):
     values=attributes(payload,{6:2,2:2,1:12,8:4,9:2})
     use=int.from_bytes(values[6],'little');code=int.from_bytes(values[2],'little')
     dims=struct.unpack('<III',values[1]);symbol=reference(int.from_bytes(values[8],'little'))
@@ -89,7 +109,8 @@ def table(instance,payload,templates):
         if width is None:raise ObjectError('unsupported_table_type')
     size=width*elements
     if size>MAX_STORAGE_BYTES:raise ObjectError('object_storage_limit')
-    return Table(instance,use,code,dims,symbol,elements,size)
+    if program and use!=0x6A:raise ObjectError('unsupported_scoped_internal_table')
+    return Table(instance,use,code,dims,symbol,elements,size,program)
 
 
 class ObjectStaging:
@@ -107,7 +128,7 @@ class ObjectStaging:
             if any(s.attribute is not None or s.symbolic or not 1<=s.instance<=MAX_INSTANCE for s in record.scopes):
                 raise ObjectError('unsupported_object_path')
             program=0
-            if len(record.scopes)==2 and record.scopes[0].class_id==0x68 and leaf.class_id in (0x6B,0x6D,0x74):
+            if len(record.scopes)==2 and record.scopes[0].class_id==0x68 and leaf.class_id in (0x6A,0x6B,0x6D,0x74):
                 program=record.scopes[0].instance
                 if program not in programs:raise ObjectError('object_program_required')
             elif len(record.scopes)!=1 or leaf.class_id in (0x6D,0x74):raise ObjectError('unsupported_object_scope')
@@ -131,17 +152,19 @@ class ObjectStaging:
             elif leaf.class_id==0x6B:
                 if program and program not in held:raise ObjectError('program_coordination_required')
                 values=attributes(payload,{12:4,9:1});ref=reference(int.from_bytes(values[12],'little'))
-                if values[9]!=b'\0' or program and ref!=NULL_REFERENCE:raise ObjectError('unsupported_symbol_profile')
+                if values[9]!=b'\0':raise ObjectError('unsupported_symbol_profile')
                 key=(program,instance)
                 if key in symbols:raise ObjectError('duplicate_symbol_create')
                 if len(symbols)>=MAX_SYMBOLS:raise ObjectError('object_stage_full')
                 symbols[key]=Symbol(program,instance,ref)
             elif leaf.class_id==0x6A:
-                if instance in tables:raise ObjectError('duplicate_table_create')
+                if program and program not in held:raise ObjectError('program_coordination_required')
+                key=table_key(program,instance)
+                if key in tables:raise ObjectError('duplicate_table_create')
                 if len(tables)>=MAX_TABLES:raise ObjectError('object_stage_full')
-                row=table(instance,payload,types);storage+=row.storage_bytes
+                row=table(instance,payload,types,program);storage+=row.storage_bytes
                 if storage>MAX_STORAGE_BYTES:raise ObjectError('object_storage_limit')
-                tables[instance]=row
+                tables[key]=row
             else:
                 if program not in held:raise ObjectError('program_coordination_required')
                 if payload!=b'\0\0':raise ObjectError('unsupported_routine_create')
@@ -152,10 +175,11 @@ class ObjectStaging:
             modeled+=1
         if held:raise ObjectError('incomplete_program_coordination')
         for row in symbols.values():
-            if row.table!=NULL_REFERENCE and (row.table not in tables or tables[row.table].symbol!=row.instance):
+            key=table_key(row.program,row.table)
+            if row.table!=NULL_REFERENCE and (key not in tables or tables[key].symbol!=row.instance):
                 raise ObjectError('symbol_table_reference_mismatch')
         for row in tables.values():
-            if row.symbol!=NULL_REFERENCE and ((0,row.symbol) not in symbols or symbols[0,row.symbol].table!=row.instance):
+            if row.symbol!=NULL_REFERENCE and ((row.program,row.symbol) not in symbols or symbols[row.program,row.symbol].table!=row.instance):
                 raise ObjectError('table_symbol_reference_mismatch')
         return cls(symbols.values(),tables.values(),sorted(programs),routines.values(),coordination,modeled)
 

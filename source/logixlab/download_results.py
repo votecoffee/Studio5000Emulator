@@ -76,7 +76,7 @@ class DiagnosticCreate:
 
 @dataclass(frozen=True)
 class SymbolCreate:
-    table:int
+    table:int|tuple
     safety:int=0
 
 
@@ -152,6 +152,8 @@ def _diagnostic(image,instance):
 
 def _table(image,instance):
     row=image._tables[instance];region=image._regions[instance]
+    if row.key!=instance or (row.program,row.instance)!=(region.program,region.instance):
+        raise ResultError('download_result_table_scope_mismatch')
     return TableCreate(row.data_use,row.type_code,row.dimensions,row.symbol,row.elements,
                        len(region.data),_hash(region.data))
 
@@ -167,7 +169,7 @@ def _observed(image,result):
         return TemplateWrite(effect.offset,len(data),_hash(data))
     if isinstance(effect,DiagnosticCreate):return _diagnostic(image,instance)
     if isinstance(effect,SymbolCreate):return SymbolCreate(image._symbols[program,instance])
-    if isinstance(effect,TableCreate):return _table(image,instance)
+    if isinstance(effect,TableCreate):return _table(image,object_staging.table_key(program,instance))
     if isinstance(effect,ProgramCreate):return ProgramCreate(instance in image.programs)
     if isinstance(effect,RoutineCreate):
         row=next((r for r in image.routines if (r.program,r.instance)==(program,instance)),None)
@@ -215,13 +217,14 @@ class ResultLedger:
                     effect=_diagnostic(image,instance)
                 elif cls_id==0x6B and service==8:
                     fields=object_staging.attributes(payload,{12:4,9:1})
-                    table=image._symbols[program,instance]
-                    if fields[12]!=struct.pack('<I',table) or fields[9]!=b'\0':raise ResultError('download_result_effect_mismatch')
+                    table=object_staging.table_key(program,int.from_bytes(fields[12],'little'))
+                    if image._symbols[program,instance]!=table or fields[9]!=b'\0':raise ResultError('download_result_effect_mismatch')
                     effect=SymbolCreate(table)
                 elif cls_id==0x6A and service==8:
-                    expected=object_staging.table(instance,payload,{t.instance:t for t in image.templates})
-                    if expected!=image._tables[instance]:raise ResultError('download_result_effect_mismatch')
-                    effect=_table(image,instance)
+                    expected=object_staging.table(instance,payload,{t.instance:t for t in image.templates},program)
+                    key=object_staging.table_key(program,instance)
+                    if expected!=image._tables[key]:raise ResultError('download_result_effect_mismatch')
+                    effect=_table(image,key)
                     if effect.storage_bytes!=expected.storage_bytes:raise ResultError('download_result_effect_mismatch')
                 elif cls_id==0x68 and service==8:
                     if payload or instance not in image.programs:raise ResultError('download_result_effect_mismatch')

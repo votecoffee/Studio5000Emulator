@@ -13,7 +13,7 @@ from .download_image import ImageError
 from .model import ModelError
 from .runtime import Engine
 from .templates import ATOMS
-from .object_staging import MAX_ELEMENTS,MAX_STORAGE_BYTES
+from .object_staging import MAX_ELEMENTS,MAX_STORAGE_BYTES,table_order
 from . import download_structures
 
 
@@ -156,7 +156,7 @@ class PreparedValues:
             if region.dimensions!=dimensions or region.elements!=elements or region.type_code!=code or region.data!=data:
                 raise ImageError('download_initial_source_value_mismatch')
             tables[table]=key;values.append((key,table,code,data))
-        for table,original in sorted(image._regions.items()):
+        for table,original in sorted(image._regions.items(),key=lambda row:table_order(row[0])):
             if table in tables:continue
             region=ns._incremental._tables.get(table,original)
             targets=[target for target,t in image._symbols.items() if t==table]

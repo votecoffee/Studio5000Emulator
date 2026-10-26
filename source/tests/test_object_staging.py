@@ -20,10 +20,10 @@ def symbol(instance=1,table=1,program=0,order=(12,9),safety=0):
     return request(0x6B,instance,data,program=program)
 
 
-def table(instance=1,symbol=1,code=0xC4,dims=(0,0,0),use=0x6A,extended=0,order=(6,2,1,8,9)):
+def table(instance=1,symbol=1,code=0xC4,dims=(0,0,0),use=0x6A,extended=0,order=(6,2,1,8,9),program=0):
     values={6:struct.pack('<H',use),2:struct.pack('<H',code),1:struct.pack('<III',*dims),8:struct.pack('<I',symbol),9:struct.pack('<H',extended)}
     data=struct.pack('<H',len(order))+b''.join(struct.pack('<H',a)+values[a] for a in order)
-    return request(0x6A,instance,data)
+    return request(0x6A,instance,data,program=program)
 
 
 def coordinate(program=2,acquire=True):return request(0x74,1,b'\1' if acquire else b'',0x4B if acquire else 0x4C,program)
@@ -64,6 +64,17 @@ class ObjectModelTests(unittest.TestCase):
         for records in ((symbol(table=os.NULL_REFERENCE,program=2),),
                         (request(0x68,2),symbol(table=os.NULL_REFERENCE,program=2)),
                         (request(0x68,2),coordinate(),symbol(program=2),coordinate(acquire=False))):
+            with self.assertRaises(os.ObjectError):os.ObjectStaging.from_batch(records)
+
+    def test_scoped_tables_link_only_symbols_in_the_same_held_program(self):
+        rows=batch()[:2]+tuple(r for p in (2,3) for r in (request(0x68,p),coordinate(p),
+            symbol(program=p),table(program=p),coordinate(p,False)))
+        stage=os.ObjectStaging.from_batch(rows)
+        self.assertEqual({t.key for t in stage.tables},{1,(2,1),(3,1)})
+        for records in ((request(0x68,2),table(program=2)),
+                        (request(0x68,2),coordinate(),symbol(program=2),table(),coordinate(acquire=False)),
+                        (request(0x68,2),coordinate(),symbol(program=2),table(program=2,symbol=2),coordinate(acquire=False)),
+                        (request(0x68,2),coordinate(),table(program=2,use=4,symbol=os.NULL_REFERENCE),coordinate(acquire=False))):
             with self.assertRaises(os.ObjectError):os.ObjectStaging.from_batch(records)
 
     def test_coordination_requires_exact_balanced_acquire_release_and_routine_payloads(self):

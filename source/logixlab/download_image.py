@@ -10,7 +10,7 @@ import re
 import struct
 from types import MappingProxyType
 
-from .object_staging import NULL_REFERENCE, MAX_STORAGE_BYTES
+from .object_staging import NULL_REFERENCE, MAX_STORAGE_BYTES,table_key,table_instance,valid_table_key
 from .download_results import ResultLedger,ResultError
 
 MAX_READ_BYTES = 16384
@@ -41,6 +41,7 @@ class Region:
     dimensions:tuple
     elements:int
     data:bytes
+    program:int=0
 
 
 class DownloadImage:
@@ -58,11 +59,11 @@ class DownloadImage:
         self._coordination_records=objects.coordination if objects is not None else 0
         self._results=ResultLedger()
         self.records=records;self.record_sha256=record_sha256;self.reason=reason
-        self._tables=MappingProxyType({t.instance:t for t in objects.tables} if objects is not None else {})
-        self._regions=MappingProxyType({t.instance:Region(t.instance,t.type_code,t.dimensions,t.elements,
-                                                        bytes(t.storage_bytes))
+        self._tables=MappingProxyType({t.key:t for t in objects.tables} if objects is not None else {})
+        self._regions=MappingProxyType({t.key:Region(t.instance,t.type_code,t.dimensions,t.elements,
+                                                        bytes(t.storage_bytes),t.program)
                                        for t in objects.tables} if objects is not None else {})
-        self._symbols=MappingProxyType({(s.program,s.instance):s.table for s in objects.symbols}
+        self._symbols=MappingProxyType({(s.program,s.instance):table_key(s.program,s.table) for s in objects.symbols}
                                       if objects is not None else {})
 
     @classmethod
@@ -100,7 +101,7 @@ class DownloadImage:
 
     def read_table(self,instance,offset,count,source):
         self.require_source(source)
-        if type(instance) is not int or instance not in self._regions:
+        if not valid_table_key(instance) or instance not in self._regions:
             raise ImageError('download_table_unavailable')
         row=self._regions[instance]
         if (type(offset) is not int or type(count) is not int or offset<0
@@ -154,9 +155,9 @@ class DownloadImage:
             raise ImageError('invalid_download_attribute')
         if class_id==0x6B:
             if (program,instance) not in self._symbols:raise ImageError('download_symbol_unavailable')
-            attrs={9:b'\0',12:struct.pack('<I',self._symbols[program,instance])}
-        elif class_id==0x6A and program==0:
-            row=self._tables.get(instance)
+            attrs={9:b'\0',12:struct.pack('<I',table_instance(self._symbols[program,instance]))}
+        elif class_id==0x6A:
+            row=self._tables.get(table_key(program,instance))
             if row is None:raise ImageError('download_table_unavailable')
             attrs={1:struct.pack('<III',*row.dimensions),2:struct.pack('<H',row.type_code),
                    6:struct.pack('<H',row.data_use),8:struct.pack('<I',row.symbol),9:b'\0\0'}

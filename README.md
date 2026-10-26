@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.112241`.** Versions use the release timestamp
+**Current app version: `26.1026.121058`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -22,6 +22,11 @@ native SDK while Online. Separate BOOL sessions verify `true` and `false`,
 with Offline cleanup and no fault. The signed UserMemory request resolves to
 an exact installed scalar value in current interpreter memory. General memory
 and member/array monitoring remain unavailable through this native profile.
+
+[Program-scoped transfer storage](docs/scoped-download-tables.md) now preserves
+separate Data Table identities, handles and values when Programs reuse numeric
+IDs. Scoped source binding and all 924 records in a saved preparation batch
+pass offline checks; complete native transfer acceptance is checked separately.
 
 [Uploaded-content validation](docs/upload-content-validation.md) now verifies
 all 14 offline tag values and both routines in the SDK's reconstructed demo.
@@ -171,7 +176,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-This revision passes 194 affected checks and 365 Python syntax checks.
+This revision passes 317 affected checks and 366 Python syntax checks.
 The last full milestone passes 2,130 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

@@ -32,7 +32,7 @@ def read_scalar(app,router,address,words):
     installed.values.validate(headers,app.native_types)
     handles=[row for row in ns._tables if row.value_address==address]
     if len(handles)!=1:raise ImageError('installed_memory_value_address_unavailable')
-    rows=[row for row in installed.values.values if row[1]==handles[0].instance]
+    rows=[row for row in installed.values.values if row[1]==handles[0].key]
     if len(rows)!=1:raise ImageError('installed_memory_ordinary_tag_required')
     key,table,code,initial=rows[0];tag=project.tags.get(key)
     if (tag is None or tag.constant or tag.alias or tag.problem or tag.tag_class!='Standard'):

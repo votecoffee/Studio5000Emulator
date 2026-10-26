@@ -17,6 +17,7 @@ from .download_repository import DownloadRepository
 from .download_setup import DownloadSetup
 from .download_map import DownloadMap
 from .download_changelog import DownloadChangelog
+from .object_staging import table_key,table_order
 
 SYMBOL_BASE=0x70000000
 SYMBOL_STRIDE=32
@@ -39,6 +40,10 @@ class TableHandle:
     address:int
     value_address:int
     instance:int
+    program:int=0
+
+    @property
+    def key(self):return table_key(self.program,self.instance)
 
 
 @dataclass(frozen=True)
@@ -80,9 +85,10 @@ class DownloadNamespace:
             for slot,((program,instance),table) in enumerate(sorted(self._image._symbols.items())))
         self._by_address=MappingProxyType({row.address:row for row in self._symbols})
         tables=[];offset=0
-        for slot,instance in enumerate(sorted(self._image._tables)):
-            tables.append(TableHandle(TABLE_BASE+slot*32,VALUE_BASE+offset,instance))
-            offset+=(len(self._image._regions[instance].data)+7)//8*8
+        for slot,key in enumerate(sorted(self._image._tables,key=table_order)):
+            row=self._image._tables[key]
+            tables.append(TableHandle(TABLE_BASE+slot*32,VALUE_BASE+offset,row.instance,row.program))
+            offset+=(len(self._image._regions[key].data)+7)//8*8
         self._tables=tuple(tables)
         self._table_addresses=MappingProxyType({row.address:row for row in self._tables})
         self._routines=tuple(RoutineHandle(ROUTINE_BASE+slot*32,row.program,row.instance)
@@ -158,11 +164,12 @@ class DownloadNamespace:
             raise ImageError('download_symbol_address_unavailable')
         return self._by_address[address]
 
-    def table_page(self,start,budget):
-        if (type(start) is not int or not 0<=start<=0xFFFFFFFF
+    def table_page(self,start,budget,program=0):
+        if (type(program) is not int or not 0<=program<=0xFFFFFFFF or type(start) is not int or not 0<=start<=0xFFFFFFFF
                 or type(budget) is not int or budget<0):
             raise ImageError('invalid_download_table_page')
-        rows=[row for row in self._tables if row.instance>=start]
+        if program and program not in self._image.programs:raise ImageError('download_table_program_unavailable')
+        rows=[row for row in self._tables if row.program==program and row.instance>=start]
         count=min(len(rows),budget//12)
         if rows and not count:raise ImageError('download_table_reply_budget')
         return count<len(rows),b''.join(struct.pack('<III',row.instance,row.address,row.value_address) for row in rows[:count])
@@ -170,19 +177,19 @@ class DownloadNamespace:
     def resolve_table(self,address):
         if type(address) is not int or address not in self._table_addresses:
             raise ImageError('download_table_address_unavailable')
-        return self._image._tables[self._table_addresses[address].instance]
+        return self._image._tables[self._table_addresses[address].key]
 
     def read_values(self,address,count):
         if type(address) is not int or type(count) is not int or not 1<=count<=MAX_READ_BYTES:
             raise ImageError('invalid_download_value_range')
         for row in self._tables:
-            region=self._image._regions[row.instance]
+            region=self._image._regions[row.key]
             if row.value_address<=address<row.value_address+len(region.data):
-                if self._incremental is not None and row.instance in self._incremental._tables:
-                    data=self._incremental._tables[row.instance].data;offset=address-row.value_address
+                if self._incremental is not None and row.key in self._incremental._tables:
+                    data=self._incremental._tables[row.key].data;offset=address-row.value_address
                     if offset+count>len(data):raise ImageError('download_table_read_range')
                     return data[offset:offset+count]
-                return self._image.read_table(row.instance,address-row.value_address,count,self._source)
+                return self._image.read_table(row.key,address-row.value_address,count,self._source)
         raise ImageError('download_value_address_unavailable')
 
     def routine_page(self,program,start,budget):
