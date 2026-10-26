@@ -34,9 +34,9 @@ binding, storage type and full byte count before comparing every current byte
 with its source value. This supports different scalar widths without treating
 them as four-byte UserMemory words.
 
-Constants retain their flags and write restrictions. UserMemory constant reads,
-constant structures, aliases, arbitrary ranges and host memory remain outside
-this profile. Whole roots must fit the negotiated Table reply budget; oversized
+Constants retain their flags and write restrictions. At that checkpoint,
+UserMemory constant reads, constant structures, aliases, arbitrary ranges and
+host memory remain outside the profile. Whole roots must fit the negotiated Table reply budget; oversized
 responses fail rather than returning partial values. Generic uninstalled
 constant storage remains unavailable.
 
@@ -70,6 +70,27 @@ offline. Replay does not independently reauthenticate MACs. The snapshot still
 requires an unchanged source-equivalent installation and matching saved baseline;
 general Studio GUI upload/save remains unfinished. The revision passes 343
 affected software checks and 367 Python syntax checks.
+
+## Constant structure checkpoint: `26.1026.131441`
+
+The expanded two-Program profile adds a nested UDT and a UDT array, with three
+constant roots occupying 100 bytes. It completes download/save/reopen/Online
+across 435 verified requests and upload snapshot/save/reopen/Online across
+1,221. All 29 roots (202 bytes), four routines and thirteen rungs match the
+uploaded SDK values, native Program packages and saved full L5X. The installed
+download binds its actual Template definitions against the original sources.
+
+Independent recorded-response checks verify all ten constant descriptors and
+135 value bytes, including 16/52/32-byte structured roots. All constant flags
+and values survive saving; packed bits, member arrays and reserved padding
+match the source encodings. Five mutable local changes are captured separately,
+then restored without scanning. Eleven BOOL and five DINT Online getters pass.
+Native Offline cleanup and no SDK fault are confirmed.
+
+Complete 1,755/4,550-event download/snapshot recordings replay identically
+offline, without independent MAC reauthentication. The revision passes 374
+affected checks and 367 Python syntax checks. General GUI upload/save and
+unbound project reconstruction remain unfinished.
 
 The SDK's typed online tag request uses class `0x72`, instance `0`, service
 `0x4C`, with a little-endian 32-bit address and a 16-bit count of `1`. This

@@ -14,7 +14,7 @@ page header, Windows tray and executable properties share this version.
 and reopen a current-value ACD that goes Online.** The native probe completes
 the demo sequence across 1,139 verified requests, preserving all 14 tag values,
 ten rungs and the installed correlation. A two-Program profile now passes
-across 1,206 requests, preserving 26 roots, seven constants, arrays and 13 rungs.
+across 1,221 requests, preserving 29 roots, ten constants, arrays and 13 rungs.
 This requires unchanged source and
 a matching saved-download baseline; direct general Studio upload-save remains
 unfinished.
@@ -31,6 +31,9 @@ IDs. Native download/save/reopen/Online and upload snapshot/save/reopen/Online
 now pass for a two-Program profile, including current local values and
 read-only BOOL, INT, DINT, REAL, LINT and array constants. General project
 replacement remains unsupported.
+
+Nested UDT constants and arrays of UDTs also preserve their complete source
+values, packed bits and padding through native upload snapshot/save/reopen.
 
 [Uploaded-content validation](docs/upload-content-validation.md) now verifies
 all 14 offline tag values and both routines in the SDK's reconstructed demo.

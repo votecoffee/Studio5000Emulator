@@ -117,3 +117,10 @@ storage, while independently changed mutable local values are captured. All
 thirteen rungs and both Program packages verify with normal Offline cleanup
 and no SDK fault. See the
 [constant upload checkpoint](installed-memory-reads.md#constant-upload-checkpoint-261026124956).
+
+Version `26.1026.131441` also preserves nested UDT constants and UDT arrays.
+The expanded profile verifies all 29 roots (202 bytes), ten constants and
+thirteen rungs through download/save/reopen/Online (435 requests) and snapshot
+upload/save/reopen/Online (1,221). Complete structure bytes and saved flags
+match, with actual Offline cleanup, restored mutable values and no SDK fault.
+See the [constant structure checkpoint](installed-memory-reads.md#constant-structure-checkpoint-261026131441).

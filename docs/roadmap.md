@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.131441` adds explicit UDT constants and UDT arrays to the
+source-bound snapshot profile. Native download/save/reopen/Online (435 requests)
+and upload snapshot/save/reopen/Online (1,221) preserve all 29 roots, ten
+constants and thirteen rungs. Source Template layouts, 135 constant bytes,
+saved flags and changed mutable values verify; Offline cleanup and no fault
+pass. Member access remains checked; unknown layouts and writes remain blocked.
+
 Version `26.1026.124956` broadens constant upload to verified BOOL/numeric
 roots and arrays. The two-Program native profile now preserves 26 roots,
 seven constants and thirteen rungs through download/save/reopen/Online (436
