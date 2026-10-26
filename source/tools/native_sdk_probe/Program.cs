@@ -3,14 +3,18 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Net.Http;
+using System.Xml;
+using System.Xml.Linq;
 using RockwellAutomation.LogixDesigner;
 using RockwellAutomation.LogixDesigner.Logging;
 
 // Only the public SDK is used. Inputs and reports belong in private storage.
-if (args.Length != 2) return 2;
+bool validateRequestOnly = args.Length == 3 && args[2] == "--validate-request";
+if (args.Length != 2 && !validateRequestOnly) return 2;
 var options = JsonSerializer.Deserialize<Options>(File.ReadAllText(args[0]))!;
 if (options.Operation is not ("connection" or "upload" or "download" or "modes" or "edits") || options.Tags.Length > 32 ||
     options.Operation != "connection" && options.Tags.Length != 0 ||
@@ -30,6 +34,10 @@ if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
 if (options.SaveDownloadedAcd && options.Operation != "download") return 2;
 if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
+if (options.UploadContent is not null && (options.Operation != "upload" || options.UploadNewProject ||
+    options.UploadContent.Tags is null || options.UploadContent.Routines is null || options.UploadContent.SourceL5xSha256 is null ||
+    options.UploadContent.Tags.Length is < 1 or > 32 || options.UploadContent.Routines.Length > 32 ||
+    !Regex.IsMatch(options.UploadContent.SourceL5xSha256, "^[0-9a-f]{64}$"))) return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
     if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits" or "FinalizeEdits") ||
         edit.ImportOption == "FinalizeEdits" && !options.ApplySupportedEdits ||
@@ -37,6 +45,12 @@ foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptio
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(edit.File))).ToLowerInvariant() != edit.Sha256 ||
         options.ApplySupportedEdits && (edit.ImportOption is not ("AcceptEdits" or "FinalizeEdits") || edit.BaseRevision is null or < 0 ||
             edit.BeforeRungs?.ValueKind != JsonValueKind.Array || edit.ExpectedRungs?.ValueKind != JsonValueKind.Array)) return 2;
+if (validateRequestOnly)
+{
+    Console.WriteLine(JsonSerializer.Serialize(new { requestValidated = true, nativeProjectCalls = 0,
+        uploadTags = options.UploadContent?.Tags.Length ?? 0, uploadRoutines = options.UploadContent?.Routines.Length ?? 0 }));
+    return 0;
+}
 var steps = new List<object>();
 var logger = new Capture();
 LogixProject? project = null;
@@ -57,6 +71,7 @@ var backendReadRecoveries = new List<object>();
 object? savedEditedProject = null;
 object? savedUploadedProject = null;
 object? savedDownloadedProject = null;
+object? uploadedContent = null;
 bool newUploadCompleted = false;
 string newUploadPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "uploaded.ACD");
 if (options.UploadNewProject && File.Exists(newUploadPath)) return 2;
@@ -256,6 +271,90 @@ async Task SaveUploadedAcd()
     savedUploadedProject = new { acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
         nativeAcdReopened = true, offlineOnly = true, uploadResultSaved = true };
 }
+string CanonicalRung(string text)
+{
+    // Neutral source may differ in whitespace outside literal operands. Keep
+    // every literal character; Python separately parses the exported rungs.
+    var output = new StringBuilder(); char quote = '\0'; bool escape = false;
+    foreach (char c in text)
+    {
+        if (quote != '\0')
+        {
+            output.Append(c);
+            if (escape) escape = false;
+            else if (c == '\\') escape = true;
+            else if (c == quote) quote = '\0';
+        }
+        else if (c is '\'' or '"') { quote = c; output.Append(c); }
+        else if (!char.IsWhiteSpace(c)) output.Append(c);
+    }
+    if (quote != '\0') throw new InvalidOperationException("Unterminated exported rung literal");
+    return output.ToString().TrimEnd(';');
+}
+async Task VerifyUploadedContent()
+{
+    var expected = options.UploadContent!; var before = await Backend();
+    if (before.GetProperty("connectivity").GetProperty("source_l5x_sha256").GetString() != expected.SourceL5xSha256)
+        throw new InvalidOperationException("Uploaded-content source binding changed");
+    await Step("Verify uploaded content is Offline", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+            throw new InvalidOperationException("Uploaded-content reads require Offline");
+        return true;
+    });
+    var tags = new List<object>(); var routines = new List<object>();
+    // Retain partial evidence if a later read/export fails. Completeness and
+    // actual contents are independently checked by the Python receipt reader.
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines };
+    foreach (var tag in expected.Tags)
+    {
+        if (!Regex.IsMatch(tag.ExpectedHex, "^(?:[0-9a-f]{2}){1,32768}$") ||
+            !Regex.IsMatch(tag.XPath, @"^Controller/(?:Programs/Program\[@Name='[A-Za-z_][A-Za-z_0-9]{0,39}'\]/)?Tags/Tag\[@Name='[A-Za-z_][A-Za-z_0-9]{0,39}'\]$"))
+            throw new InvalidOperationException("Invalid uploaded-content tag plan");
+        await Step("Uploaded offline tag:" + tag.Name, async () => {
+            var value = await project!.GetTagValueAsync(tag.XPath, LogixProject.OperationMode.Offline, LogixProject.DataType.BYTE_ARRAY);
+            string actual = Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();
+            tags.Add(new { name = tag.Name, xpath = tag.XPath, actualHex = actual });
+            if (actual != tag.ExpectedHex) throw new InvalidOperationException("Uploaded offline tag differs from current emulator value: " + tag.Name);
+            return new { bytes = value.Length, matchesCurrentModel = true };
+        });
+    }
+    var directory = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+    foreach (var routine in expected.Routines)
+    {
+        string path = Path.Combine(directory, routine.FileName);
+        string xpath = $"Controller/Programs/Program[@Name='{routine.Program}']/Routines/Routine[@Name='{routine.Name}']";
+        if (!Regex.IsMatch(routine.FileName, "^uploaded-routine-[0-9]{4}\\.L5X$") || File.Exists(path) ||
+            !Regex.IsMatch(routine.Program, "^[A-Za-z_][A-Za-z_0-9]{0,39}$") ||
+            !Regex.IsMatch(routine.Name, "^[A-Za-z_][A-Za-z_0-9]{0,39}$") || routine.XPath != xpath ||
+            routine.ExpectedRungs.Length > 10000 || routine.ExpectedRungs.Any(text => text.Length > 65536))
+            throw new InvalidOperationException("Invalid uploaded-content routine plan");
+        await Step("PartialExportToXmlFileAsync:uploaded:" + routine.Program + "/" + routine.Name, async () => {
+            await project!.PartialExportToXmlFileAsync(xpath, path);
+            if (new FileInfo(path).Length is < 8 or > 16000000) throw new InvalidOperationException("Native routine export outside bounds");
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 16000000 };
+            using var reader = XmlReader.Create(path, settings); var xml = XDocument.Load(reader);
+            var root = xml.Root!;
+            if (root.Name != "RSLogix5000Content" || (string?)root.Attribute("TargetType") != "Routine" ||
+                (string?)root.Attribute("TargetName") != routine.Name) throw new InvalidOperationException("Native routine export target differs");
+            var program = root.Elements("Controller").Single().Element("Programs")!.Elements("Program")
+                .Single(node => (string?)node.Attribute("Name") == routine.Program);
+            var target = program.Element("Routines")!.Elements("Routine").Single(node => (string?)node.Attribute("Name") == routine.Name);
+            if ((string?)target.Attribute("Type") != "RLL") throw new InvalidOperationException("Native routine export is not RLL");
+            var rungs = target.Elements("RLLContent").Single().Elements().Select(node => {
+                if (node.Name != "Rung") throw new InvalidOperationException("Unexpected native RLL content");
+                return CanonicalRung(node.Elements("Text").Single().Value);
+            }).ToArray();
+            if (!rungs.SequenceEqual(routine.ExpectedRungs.Select(CanonicalRung)))
+                throw new InvalidOperationException("Native uploaded routine differs from source logic");
+            routines.Add(new { fileName = routine.FileName, sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() });
+            return new { rungs = rungs.Length, matchesSource = true };
+        });
+    }
+    if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+        throw new InvalidOperationException("Uploaded-content export unexpectedly connected");
+    CheckPreserved(before, await Backend(), true);
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines };
+}
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
     Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), state.GetRawText());
@@ -347,6 +446,7 @@ try
                 await Step("DownloadAsync", async () => { await project!.DownloadAsync(); return true; });
         }
         finally { await CaptureProtocolTrace("after-transfer-trace.json", options.Operation); }
+        if (options.UploadContent is not null) await VerifyUploadedContent();
         if (options.SaveUploadedAcd) await SaveUploadedAcd();
         if (options.SaveDownloadedAcd) await SaveDownloadedAcd();
     }
@@ -559,7 +659,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent,
     uploadNewProject = options.UploadNewProject, newProjectUpload,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -570,10 +670,18 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       string TagReadType = "BYTE_ARRAY", bool ApplySupportedEdits = false,
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
-                      bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false)
+                      bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
+                      UploadContentOptions? UploadContent = null)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }
+sealed record UploadContentOptions([property: JsonPropertyName("sourceL5xSha256")] string SourceL5xSha256,
+    [property: JsonPropertyName("tags")] UploadTag[] Tags, [property: JsonPropertyName("routines")] UploadRoutine[] Routines);
+sealed record UploadTag([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
+    [property: JsonPropertyName("expectedHex")] string ExpectedHex);
+sealed record UploadRoutine([property: JsonPropertyName("program")] string Program, [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("xpath")] string XPath, [property: JsonPropertyName("fileName")] string FileName,
+    [property: JsonPropertyName("expectedRungs")] string[] ExpectedRungs);
 sealed record EditOptions(string File, string Sha256, string XPath, uint InsertPosition, uint ReplaceCount, string ImportOption,
                           long? BaseRevision = null, JsonElement? BeforeRungs = null, JsonElement? ExpectedRungs = null);
 sealed class Capture : IOperationEvent

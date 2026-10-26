@@ -681,6 +681,9 @@ def run(args):
     save_download=getattr(args,'save_downloaded_acd',False);validate_download_save(args.operation,save_download)
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
+    content_source=getattr(args,'verify_uploaded_content',None)
+    if content_source is not None and (args.operation!='upload' or upload_new):
+        raise ValueError('--verify-uploaded-content requires an existing-project upload')
     baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
     baseline_hash=digest(baseline)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
@@ -710,6 +713,8 @@ def run(args):
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
     validate_idle(initial,allow_supported_edits=apply_edits)
+    from tools import upload_content
+    content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial)
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
     if args.operation == 'edits':
@@ -734,6 +739,7 @@ def run(args):
     config['SaveUploadedAcd']=save_upload
     config['SaveDownloadedAcd']=save_download
     config['UploadNewProject']=upload_new
+    if content_plan is not None:config['UploadContent']=content_plan
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
         edit_file=output/('nop-rung.L5X' if index==0 else 'second-rung.L5X')
@@ -755,6 +761,8 @@ def run(args):
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
     validate_idle(state,allow_supported_edits=apply_edits)
+    if content_plan is not None and upload_content.prepare(args.operation,upload_new,content_source,source,state)!=content_plan:
+        raise ValueError('Uploaded-content source or current values changed before the native call')
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
@@ -764,6 +772,16 @@ def run(args):
             raise ValueError('Edit target or generated rung changed before the native call')
     if digest(source) != source_hash or digest(baseline)!=baseline_hash or digest(copied) != baseline_hash:
         raise ValueError('Source changed before the native call')
+    if content_plan is not None:
+        # Check the actual managed request decoder without opening an SDK
+        # project. Python-only receipt tests cannot prove cross-language DTOs.
+        check=subprocess.run([str(output/'bin/NativeSdkProbe.exe'),str(output/'request.json'),
+            str(output/'unused-validation-report.json'),'--validate-request'],capture_output=True,text=True,
+            check=True,timeout=15,**background_options())
+        decoded=json.loads(check.stdout)
+        if decoded!=dict(requestValidated=True,nativeProjectCalls=0,uploadTags=len(content_plan['tags']),uploadRoutines=len(content_plan['routines'])):
+            raise ValueError('Managed uploaded-content request differs from the generated plan')
+        (output/'request-validation.json').write_text(json.dumps(decoded,indent=2),encoding='utf8')
     before = api(url, 'connectivity-trace', {})
     (output / 'before-state.json').write_text(json.dumps(state, indent=2), encoding='utf-8')
     (output / 'before-trace.json').write_text(json.dumps(before, indent=2), encoding='utf-8')
@@ -881,6 +899,15 @@ def run(args):
             summary['saved_uploaded_project']=report.get('savedUploadedProject') if report else None
             summary['uploaded_logic_equivalence']='NOT ASSESSED'
             summary['upload_result_persistence']='saved_and_reopened' if summary['saved_uploaded_acd_verified'] else 'failed'
+        if content_plan is not None:
+            summary['uploaded_content_requested']=True
+            summary['uploaded_content_verification']=upload_content.verify(output,content_plan,(report or {}).get('uploadedContent'))
+            if save_upload:
+                from logixlab.native_types import NativeTypes
+                try:verification=upload_content.verify_saved(output,content_plan,NativeTypes.from_acd(source,l5x_hash),(report or {}).get('savedUploadedProject'))
+                except Exception:verification={'verified':False,'serialized_values_verified':False,'serialized_logic_verified':False}
+                summary['serialized_uploaded_content_verification']=verification
+                summary['uploaded_logic_equivalence']='verified' if verification['verified'] else 'failed'
         if save_download:
             summary['save_downloaded_acd_requested']=True
             summary['saved_downloaded_acd_verified']=saved_downloaded_acd_effect(final,source,output,(report or {}).get('savedDownloadedProject'))
@@ -895,6 +922,8 @@ def run(args):
                 or upload_new and report is not None and not summary.get('new_project_artifact_matches_receipt')
                 or save_acd and not summary.get('saved_edited_acd_verified')
                 or save_download and not summary.get('saved_downloaded_acd_verified')
+                or content_plan is not None and not summary['uploaded_content_verification']['verified']
+                or content_plan is not None and save_upload and not summary['serialized_uploaded_content_verification']['verified']
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
         if args.operation=='upload' and summary['status']=='succeeded' and (
@@ -932,6 +961,7 @@ def main():
     parser.add_argument('--post-edit-tag',action='append',default=[],help='Explicit supported edits only: diagnose a DINT SDK read after the imports, before Offline; may repeat up to eight times')
     parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
     parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
+    parser.add_argument('--verify-uploaded-content',metavar='SOURCE.L5X',help='Existing-project upload only: compare native offline tag bytes and independently exported routines with this exact source and current emulator values')
     parser.add_argument('--save-downloaded-acd',action='store_true',help='Successful source-equivalent download only: save a new downloaded.ACD, reopen it and verify Go Online; emulator installation remains memory-only')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',

@@ -1,0 +1,161 @@
+"""Compare native uploaded offline values/routine exports with a pinned model.
+
+This optional diagnostic neither saves an ACD nor substitutes source files for
+native exports. Its plan and artifacts contain private engineering content.
+"""
+import hashlib
+from pathlib import Path
+import re
+import xml.etree.ElementTree as ET
+
+from logixlab.download_values import encode_initial
+from logixlab.model import Project,Memory,ModelError,parse_rung
+from logixlab.native_types import NativeTypes
+from logixlab.server import serialize_nodes
+
+MAX_TAGS=32
+MAX_ROUTINES=32
+MAX_BYTES=1024*1024
+MAX_XML=16_000_000
+NAME=re.compile(r'[A-Za-z_][A-Za-z_0-9]{0,39}\Z')
+
+
+def plan(project,native_types,state):
+    """Complete bounded roots and unchanged Standard RLL routines, not a sample."""
+    if (project.sha256!=state.get('connectivity',{}).get('source_l5x_sha256')
+            or state.get('routine_edits',{}).get('revision')!=0
+            or state.get('controller',{}).get('mode')!='Program'
+            or state.get('controller',{}).get('running') is not False or project.aois
+            or not NAME.fullmatch(project.name)):
+        raise ValueError('Uploaded-content check requires unchanged ordinary source in stopped Program mode')
+    memory=Memory(project);leaves=memory.leaves();current=state.get('tags',[])
+    if len(leaves)!=len(current) or len({r['name'].casefold() for r in current})!=len(current):
+        raise ValueError('Uploaded-content leaf coverage changed')
+    by_name={row['name'].casefold():row for row in current}
+    for original in leaves:
+        row=by_name.get(original['name'].casefold())
+        if (row is None or row.get('type')!=original['type'] or row.get('unknown') or row.get('problem')
+                or row.get('aoi_local') or original.get('alias') or original.get('problem')
+                or row.get('kind')!=original.get('kind')
+                or row.get('alias')!=original.get('alias') or row.get('constant')!=original.get('constant')):
+            raise ValueError('Uploaded-content source fields or values unavailable')
+        # Constants are source values and cannot be assigned through Memory.
+        if original['constant']:
+            if row['value']!=original['value']:raise ValueError('Uploaded-content constant changed')
+        else:memory.write(original['name'],row['value'])
+    tags=[];total=0
+    if not 1<=len(project.tags)<=MAX_TAGS:raise ValueError('Uploaded-content root count outside bound')
+    for key,tag in sorted(project.tags.items()):
+        if (tag.alias or tag.problem or tag.tag_class!='Standard' or not NAME.fullmatch(tag.name)
+                or tag.scope and not NAME.fullmatch(tag.scope)):
+            raise ValueError('Uploaded-content ordinary root required')
+        code,dimensions,elements,data=encode_initial(tag.dtype.upper(),memory.values[key],native_types)
+        total+=len(data)
+        if not 1<=len(data)<=32768 or total>MAX_BYTES:raise ValueError('Uploaded-content value extent outside bound')
+        prefix=f"Controller/Programs/Program[@Name='{tag.scope}']/" if tag.scope else 'Controller/'
+        tags.append(dict(name=tag.key,xpath=prefix+f"Tags/Tag[@Name='{tag.name}']",typeCode=code,
+            dimensions=dimensions,dtype=tag.dtype,constant=tag.constant,expectedHex=data.hex()))
+    routines=[];actual={row['key'].casefold():row for row in state.get('routines',[])}
+    if len(actual)!=len(state.get('routines',[])) or set(actual)!=set(project.routines) or len(actual)>MAX_ROUTINES:
+        raise ValueError('Uploaded-content routine coverage changed')
+    for key,routine in sorted(project.routines.items()):
+        row=actual[key]
+        if (routine.kind!='RLL' or routine.problems or not NAME.fullmatch(routine.name)
+                or not NAME.fullmatch(routine.program) or project.programs[routine.program]['class']!='Standard'
+                or row['kind']!='RLL' or [r['nodes'] for r in row['rungs']]!=[serialize_nodes(r['nodes']) for r in routine.rungs]):
+            raise ValueError('Uploaded-content complete unchanged Standard RLL source required')
+        routines.append(dict(program=routine.program,name=routine.name,
+            xpath=f"Controller/Programs/Program[@Name='{routine.program}']/Routines/Routine[@Name='{routine.name}']",
+            fileName=f'uploaded-routine-{len(routines):04d}.L5X',expectedRungs=[r['text'] for r in routine.rungs]))
+    if (any(len(r['expectedRungs'])>10000 or any(len(text)>65536 for text in r['expectedRungs']) for r in routines)
+            or sum(len(text) for r in routines for text in r['expectedRungs'])>2*MAX_BYTES):
+        raise ValueError('Uploaded-content routine source extent outside bound')
+    return dict(sourceL5xSha256=project.sha256,controller=project.name,processor=project.processor,version=project.version,
+        entryRoutines=state['entry_routines'],taskNames=list(project.task_configuration.names),tags=tags,routines=routines)
+
+
+def prepare(operation,new_project,l5x,acd,state):
+    if l5x is None:return None
+    if operation!='upload' or new_project:raise ValueError('Uploaded-content check requires existing-project upload')
+    source=Path(l5x).resolve(strict=True)
+    if source.suffix.lower()!='.l5x' or source.stat().st_size>MAX_XML:
+        raise ValueError('Uploaded-content source must be a bounded complete L5X')
+    project=Project(source)
+    return plan(project,NativeTypes.from_acd(acd,project.sha256),state)
+
+
+def verify(folder,expected,receipt):
+    """Require exact SDK value receipts and independently parse native exports."""
+    result=dict(verified=False,offline_values_verified=False,routine_exports_verified=False)
+    try:
+        if (not isinstance(receipt,dict) or receipt.get('offlineOnly') is not True
+                or receipt.get('sourceL5xSha256')!=expected['sourceL5xSha256']):return result
+        values=receipt.get('tags');exports=receipt.get('routines')
+        if (not isinstance(values,list) or len(values)!=len(expected['tags'])
+                or not isinstance(exports,list) or len(exports)!=len(expected['routines'])):return result
+        for entry,tag in zip(values,expected['tags'],strict=True):
+            if (entry.get('name')!=tag['name'] or entry.get('xpath')!=tag['xpath']
+                    or entry.get('actualHex')!=tag['expectedHex']):return result
+        result['offline_values_verified']=True
+        for entry,routine in zip(exports,expected['routines'],strict=True):
+            path=Path(folder)/routine['fileName']
+            if (entry.get('fileName')!=routine['fileName'] or path.is_symlink()
+                    or not path.is_file() or not 8<=path.stat().st_size<=MAX_XML):return result
+            raw=path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=entry.get('sha256'):return result
+            text=raw.decode('utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else 'utf-8-sig')
+            if '\0' in text or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():return result
+            root=ET.fromstring(text)
+            if root.tag!='RSLogix5000Content' or root.get('TargetType')!='Routine' or root.get('TargetName')!=routine['name']:return result
+            controllers=root.findall('Controller')
+            if len(controllers)!=1:return result
+            programs=[p for p in controllers[0].findall('./Programs/Program') if p.get('Name')==routine['program']]
+            if len(programs)!=1:return result
+            targets=[r for r in programs[0].findall('./Routines/Routine') if r.get('Name')==routine['name']]
+            if len(targets)!=1 or targets[0].get('Type')!='RLL':return result
+            content=targets[0].findall('RLLContent')
+            if len(content)!=1 or any(n.tag!='Rung' for n in content[0]):return result
+            actual=[]
+            for rung in content[0]:
+                nodes=rung.findall('Text')
+                if len(nodes)!=1 or len(nodes[0]) or nodes[0].text is None:return result
+                actual.append(serialize_nodes(parse_rung(nodes[0].text)))
+            wanted=[serialize_nodes(parse_rung(text)) for text in routine['expectedRungs']]
+            if actual!=wanted:return result
+        result.update(verified=True,routine_exports_verified=True,tags=len(values),
+            value_bytes=sum(len(t['expectedHex'])//2 for t in expected['tags']),
+            routines=len(exports),rungs=sum(len(r['expectedRungs']) for r in expected['routines']))
+        return result
+    except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result
+
+
+def verify_saved(folder,expected,native_types,receipt):
+    """Check the native reopened full export, not just an ACD success/hash."""
+    from tools.probe_native_sdk import saved_uploaded_acd_effect
+    from logixlab.runtime import Engine
+    result=dict(verified=False,serialized_values_verified=False,serialized_logic_verified=False)
+    try:
+        if not saved_uploaded_acd_effect(Path(folder),receipt):return result
+        project=Project(Path(folder)/'uploaded.L5X')
+        if (project.name!=expected['controller'] or project.processor!=expected['processor'] or project.version!=expected['version']
+                or set(project.tags)!={t['name'].casefold() for t in expected['tags']}
+                or list(project.task_configuration.names)!=expected['taskNames']):return result
+        for tag in expected['tags']:
+            key=tag['name'].casefold();actual=project.tags[key]
+            if (actual.problem or actual.alias or actual.tag_class!='Standard' or actual.constant!=tag['constant']
+                    or actual.dtype.casefold()!=tag['dtype'].casefold()):return result
+            code,dimensions,elements,data=encode_initial(actual.dtype.upper(),project.initial[key],native_types)
+            if code!=tag['typeCode'] or dimensions!=tuple(tag['dimensions']) or data.hex()!=tag['expectedHex']:return result
+        result['serialized_values_verified']=True
+        if set(project.routines)!={(r['program']+'/'+r['name']).casefold() for r in expected['routines']}:return result
+        for routine in expected['routines']:
+            actual=project.routines[(routine['program']+'/'+routine['name']).casefold()]
+            if (actual.kind!='RLL' or actual.problems
+                    or [serialize_nodes(r['nodes']) for r in actual.rungs]!=[serialize_nodes(parse_rung(text)) for text in routine['expectedRungs']]):return result
+        engine=Engine(project,defer_prescan=True)
+        if engine.blockers or engine.fault or engine.entries!=expected['entryRoutines']:return result
+        result.update(verified=True,serialized_logic_verified=True,tags=len(expected['tags']),
+            value_bytes=sum(len(t['expectedHex'])//2 for t in expected['tags']),routines=len(expected['routines']),
+            rungs=sum(len(r['expectedRungs']) for r in expected['routines']),native_acd_reopened=True)
+        return result
+    except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result

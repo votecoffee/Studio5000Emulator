@@ -1,5 +1,11 @@
 # Native Routine upload checkpoint
 
+Version `26.1026.080644` adds [independent native content validation](upload-content-validation.md).
+Upload into a compatible NOP-altered baseline succeeds across 980 verified
+requests. The SDK's Offline reads match all 14 current tag roots (45 bytes),
+and its two native routine exports match all ten source rungs. Full ACD save
+still faults the tested SDK after these checks; persistence remains blocked.
+
 Version `26.1024.111516` completes existing-project native SDK upload of the
 two-routine conveyor demo across **981 verified requests**. Both complete
 Routine source streams are read: 688 and 476 bytes, containing ten rungs and

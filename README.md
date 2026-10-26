@@ -6,9 +6,15 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1024.111516`.** Versions use the release timestamp
+**Current app version: `26.1026.080644`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Uploaded-content validation](docs/upload-content-validation.md) now verifies
+all 14 offline tag values and both routines in the SDK's reconstructed demo.
+Upload replaces a deliberately changed merge-baseline routine and preserves
+all 45 current-value bytes and ten source rungs. Full uploaded ACD saving still
+faults the tested SDK during `SaveAsAsync`, after those content checks pass.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
@@ -141,7 +147,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving remains unverified.
 
-This iteration passes 238 affected checks and 359 Python syntax checks.
+This iteration passes 124 affected checks and 361 Python syntax checks.
 The routine-upload milestone passes 2,110 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
@@ -332,7 +338,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for a NOP routine and for empty Programs with nested and packed-bit UDTs; tag-operand reconstruction and saved uploaded ACDs remain unfinished |
+| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for the two-routine conveyor demo, a BOOL operand rung, packed BOOL arrays and empty Programs with supported UDTs; saved uploaded ACDs and arbitrary projects remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |
@@ -348,7 +354,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, bidirectional Run/Program control and Go Offline verified for the demo; native project transfer and tag/rung monitoring remain unfinished |
+| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline and bounded source-equivalent transfers verified for the demo; Studio GUI acceptance and native tag/rung monitoring remain unverified |
 | Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,
@@ -392,8 +398,9 @@ conventions.
 
 ## Roadmap
 
+- Complete uploaded ACD save/reopen and broader project replacement before the full online-edit lifecycle.
 - Expand supported instructions, data types and execution semantics.
-- Add packed BOOL arrays, built-in STRING transfers, predefined structures and more controller metadata.
+- Expand packed BOOL-array coverage, built-in STRING transfers, predefined structures and controller metadata.
 - Extend the verified native SDK connection to Studio GUI acceptance.
 - Resolve native tag addresses and demonstrate SDK/Studio tag and rung monitoring.
 - Demonstrate online monitoring before advertising Studio Go Online support.

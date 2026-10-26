@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+The current [Routine upload checkpoint](routine-upload.md) records successful
+existing-project SDK uploads of the two-routine conveyor demo, including live
+tag values. The entries below retain earlier checkpoints and do not override
+that acceptance. Current priorities are uploaded ACD save/reopen, broader
+project replacement and the full online-edit lifecycle. Version
+`26.1026.080644` adds [native uploaded-content checks](upload-content-validation.md)
+as a separate step before claiming serialized project persistence.
+
 Version `26.1024.023810` adds packed BOOL-array discovery and Data Table reads.
 The routine-free BOOL[64] fixture completes native upload across 965 requests,
 including an actual read of its exact eight packed value bytes, and
