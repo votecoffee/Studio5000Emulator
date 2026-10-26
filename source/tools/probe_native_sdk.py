@@ -779,7 +779,8 @@ def run(args):
             str(output/'unused-validation-report.json'),'--validate-request'],capture_output=True,text=True,
             check=True,timeout=15,**background_options())
         decoded=json.loads(check.stdout)
-        if decoded!=dict(requestValidated=True,nativeProjectCalls=0,uploadTags=len(content_plan['tags']),uploadRoutines=len(content_plan['routines'])):
+        if decoded!=dict(requestValidated=True,nativeProjectCalls=0,uploadTags=len(content_plan['tags']),uploadRoutines=len(content_plan['routines']),
+                         uploadPrograms=len(content_plan['programs'])):
             raise ValueError('Managed uploaded-content request differs from the generated plan')
         (output/'request-validation.json').write_text(json.dumps(decoded,indent=2),encoding='utf8')
     before = api(url, 'connectivity-trace', {})
@@ -902,6 +903,9 @@ def run(args):
         if content_plan is not None:
             summary['uploaded_content_requested']=True
             summary['uploaded_content_verification']=upload_content.verify(output,content_plan,(report or {}).get('uploadedContent'))
+            from logixlab.native_types import NativeTypes
+            summary['uploaded_program_verification']=upload_content.verify_programs(output,content_plan,
+                NativeTypes.from_acd(source,l5x_hash),(report or {}).get('uploadedContent'))
             if save_upload:
                 from logixlab.native_types import NativeTypes
                 try:verification=upload_content.verify_saved(output,content_plan,NativeTypes.from_acd(source,l5x_hash),(report or {}).get('savedUploadedProject'))
@@ -923,6 +927,7 @@ def run(args):
                 or save_acd and not summary.get('saved_edited_acd_verified')
                 or save_download and not summary.get('saved_downloaded_acd_verified')
                 or content_plan is not None and not summary['uploaded_content_verification']['verified']
+                or content_plan is not None and not summary['uploaded_program_verification']['verified']
                 or content_plan is not None and save_upload and not summary['serialized_uploaded_content_verification']['verified']
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'

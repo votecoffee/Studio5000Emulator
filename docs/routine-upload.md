@@ -11,6 +11,14 @@ verifying all 14 tag values and both routines with normal cleanup and no fault.
 This does not identify the earlier timeout's cause. Uploaded ACD persistence
 and reliable general upload remain unfinished.
 
+An expanded content check then exports a native Program package across 983
+verified requests. Its two routines, ten rungs and Program settings match;
+all 14 Offline tag values still verify. A separate offline Program import into
+the altered baseline saves and reopens a new ACD with all values and logic
+preserved. This [component rebuild](upload-content-validation.md#offline-program-rebuild-checkpoint)
+retains baseline Controller metadata and has different online correlation;
+it does not establish direct uploaded-project saving or Go Online for that file.
+
 Version `26.1026.080644` adds [independent native content validation](upload-content-validation.md).
 Upload into a compatible NOP-altered baseline succeeds across 980 verified
 requests. The SDK's Offline reads match all 14 current tag roots (45 bytes),

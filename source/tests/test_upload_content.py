@@ -1,4 +1,5 @@
 """Offline SDK upload content receipts must prove values and actual source."""
+import base64
 import copy
 import hashlib
 from pathlib import Path
@@ -25,6 +26,15 @@ class UploadContentTests(unittest.TestCase):
         self.state=self.app.state();self.state['connectivity']['source_l5x_sha256']=self.project.sha256
 
     def plan(self):return content.plan(self.project,self.types,self.state)
+
+    def program_receipt(self,expected):
+        exports=[]
+        for program in expected['programs']:
+            root=ET.fromstring(self.project.path.read_bytes())
+            root.set('TargetType','Program');root.set('TargetName',program['name'])
+            path=self.folder/program['fileName'];path.write_bytes(ET.tostring(root))
+            exports.append(dict(fileName=program['fileName'],sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
+        return dict(sourceL5xSha256=expected['sourceL5xSha256'],offlineOnly=True,programs=exports)
 
     def receipt(self,expected):
         exports=[]
@@ -125,6 +135,61 @@ class UploadContentTests(unittest.TestCase):
             with self.subTest(field=field):self.assertFalse(content.verify_saved(self.folder,dict(expected,**{field:value}),self.types,receipt())['verified'])
         bad=receipt();bad['nativeAcdReopened']=False
         self.assertFalse(content.verify_saved(self.folder,expected,self.types,bad)['verified'])
+
+    def test_native_program_package_checks_settings_full_routine_set_and_artifact_identity(self):
+        expected=self.plan();receipt=self.program_receipt(expected)
+        self.assertEqual(content.verify_programs(self.folder,expected,self.types,receipt),
+            dict(verified=True,programs_verified=1,routines_verified=2,local_tags_verified=0))
+        for case in ('hash','missing','target','extra-program','main','disabled','class','type','folder','routine','extra-routine','logic','doctype'):
+            with self.subTest(case=case):
+                receipt=self.program_receipt(expected);path=self.folder/expected['programs'][0]['fileName']
+                root=ET.fromstring(path.read_bytes());program=root.find('./Controller/Programs/Program')
+                if case=='hash':path.write_bytes(path.read_bytes()+b' ')
+                elif case=='missing':path.unlink()
+                else:
+                    if case=='target':root.set('TargetName','Foreign')
+                    if case=='extra-program':root.find('./Controller/Programs').append(copy.deepcopy(program))
+                    if case=='main':program.set('MainRoutineName','Reporting')
+                    if case=='disabled':program.set('Disabled','true')
+                    if case=='class':program.set('Class','Safety')
+                    if case=='type':program.set('Type','Phase')
+                    if case=='folder':program.set('UseAsFolder','true')
+                    if case=='routine':program.find('Routines').remove(program.find('./Routines/Routine'))
+                    if case=='extra-routine':
+                        extra=copy.deepcopy(program.find('./Routines/Routine'));extra.set('Name','Foreign');program.find('Routines').append(extra)
+                    if case=='logic':program.find('.//Rung/Text').text='NOP();'
+                    raw=ET.tostring(root)
+                    if case=='doctype':raw=b'<!DOCTYPE x>'+raw
+                    path.write_bytes(raw);receipt['programs'][0]['sha256']=hashlib.sha256(raw).hexdigest()
+                self.assertFalse(content.verify_programs(self.folder,expected,self.types,receipt)['verified'])
+
+    def test_program_local_values_types_and_coverage_are_independent_of_controller_context(self):
+        root=ET.fromstring(self.project.path.read_bytes());program=root.find('./Controller/Programs/Program')
+        tags=program.find('Tags')
+        if tags is None:tags=ET.SubElement(program,'Tags')
+        tag=ET.SubElement(tags,'Tag',Name='LocalValue',TagType='Base',DataType='DINT',Radix='Decimal',Constant='false',ExternalAccess='Read/Write')
+        ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Radix='Decimal',Value='87')
+        path=self.folder/'scoped.L5X';path.write_bytes(ET.tostring(root));self.project=content.Project(path)
+        self.app.command('load',{'name':'scoped.L5X','content':base64.b64encode(path.read_bytes()).decode()})
+        self.state=self.app.state();self.state['connectivity']['source_l5x_sha256']=self.project.sha256
+        self.types=NativeTypes('a'*64,self.project.sha256,list(self.types.types.values()),dict(self.types.type_ids))
+        expected=self.plan();receipt=self.program_receipt(expected)
+        self.assertEqual(content.verify_programs(self.folder,expected,self.types,receipt)['local_tags_verified'],1)
+        export=self.folder/expected['programs'][0]['fileName']
+        for case in ('value','missing','type','constant'):
+            receipt=self.program_receipt(expected);root=ET.fromstring(export.read_bytes());tags=root.find('./Controller/Programs/Program/Tags');tag=tags.find('Tag')
+            if case=='value':tag.find('./Data/DataValue').set('Value','0')
+            if case=='missing':tags.remove(tag)
+            if case=='type':tag.set('DataType','REAL')
+            if case=='constant':tag.set('Constant','true')
+            raw=ET.tostring(root);export.write_bytes(raw);receipt['programs'][0]['sha256']=hashlib.sha256(raw).hexdigest()
+            with self.subTest(case=case):self.assertFalse(content.verify_programs(self.folder,expected,self.types,receipt)['verified'])
+
+    def test_incomplete_foreign_or_reordered_program_receipts_do_not_pass(self):
+        expected=self.plan();good=self.program_receipt(expected)
+        for receipt in (None,dict(good,offlineOnly=False),dict(good,sourceL5xSha256='b'*64),dict(good,programs=[]),dict(good,programs=good['programs']*2)):
+            self.assertFalse(content.verify_programs(self.folder,expected,self.types,receipt)['verified'])
+        with patch.object(content,'MAX_PROGRAMS',0),self.assertRaises(ValueError):self.plan()
 
 
 if __name__=='__main__':unittest.main()

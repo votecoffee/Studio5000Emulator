@@ -15,6 +15,7 @@ from logixlab.server import serialize_nodes
 
 MAX_TAGS=32
 MAX_ROUTINES=32
+MAX_PROGRAMS=32
 MAX_BYTES=1024*1024
 MAX_XML=16_000_000
 NAME=re.compile(r'[A-Za-z_][A-Za-z_0-9]{0,39}\Z')
@@ -70,8 +71,16 @@ def plan(project,native_types,state):
     if (any(len(r['expectedRungs'])>10000 or any(len(text)>65536 for text in r['expectedRungs']) for r in routines)
             or sum(len(text) for r in routines for text in r['expectedRungs'])>2*MAX_BYTES):
         raise ValueError('Uploaded-content routine source extent outside bound')
+    programs=[]
+    if len(project.programs)>MAX_PROGRAMS:raise ValueError('Uploaded-content program count outside bound')
+    for name,settings in sorted(project.programs.items()):
+        if (not NAME.fullmatch(name) or settings['class']!='Standard' or settings['use_as_folder']
+                or project.program_configuration.type_attributes(name,source_sha256=project.sha256)!={30:b'\1'}):
+            raise ValueError('Uploaded-content ordinary Program required')
+        programs.append(dict(name=name,xpath=f"Controller/Programs/Program[@Name='{name}']",
+            fileName=f'uploaded-program-{len(programs):04d}.L5X',settings=settings))
     return dict(sourceL5xSha256=project.sha256,controller=project.name,processor=project.processor,version=project.version,
-        entryRoutines=state['entry_routines'],taskNames=list(project.task_configuration.names),tags=tags,routines=routines)
+        entryRoutines=state['entry_routines'],taskNames=list(project.task_configuration.names),tags=tags,routines=routines,programs=programs)
 
 
 def prepare(operation,new_project,l5x,acd,state):
@@ -157,5 +166,82 @@ def verify_saved(folder,expected,native_types,receipt):
         result.update(verified=True,serialized_logic_verified=True,tags=len(expected['tags']),
             value_bytes=sum(len(t['expectedHex'])//2 for t in expected['tags']),routines=len(expected['routines']),
             rungs=sum(len(r['expectedRungs']) for r in expected['routines']),native_acd_reopened=True)
+        return result
+    except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result
+
+
+class _ProgramValues:
+    """Reuse decorated-value parsing without treating a partial export as full."""
+    default=Project.default
+    string_capacity=Project.string_capacity
+    decorated=Project.decorated
+    _tag=Project._tag
+
+    def __init__(self,controller):
+        types=controller.findall('./DataTypes/DataType')
+        self.udts={d.get('Name','').casefold():d for d in types}
+        if len(self.udts)!=len(types):raise ValueError('Duplicate exported data type')
+        self.tags={}
+
+
+def verify_programs(folder,expected,native_types,receipt):
+    """Check actual native Program packages independently of routine exports.
+
+    Context objects are dependencies, not evidence of a complete Controller
+    export. Check the target Program's settings, full routine set and local
+    tag declarations/current values; controller roots have separate SDK reads.
+    """
+    result=dict(verified=False,programs_verified=0,routines_verified=0,local_tags_verified=0)
+    try:
+        if (not isinstance(receipt,dict) or receipt.get('offlineOnly') is not True
+                or receipt.get('sourceL5xSha256')!=expected['sourceL5xSha256']):return result
+        exports=receipt.get('programs')
+        if not isinstance(exports,list) or len(exports)!=len(expected['programs']):return result
+        for entry,program in zip(exports,expected['programs'],strict=True):
+            path=Path(folder)/program['fileName']
+            if (entry.get('fileName')!=program['fileName'] or path.is_symlink() or not path.is_file()
+                    or not 8<=path.stat().st_size<=MAX_XML):return result
+            raw=path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=entry.get('sha256'):return result
+            text=raw.decode('utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else 'utf-8-sig')
+            if '\0' in text or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():return result
+            root=ET.fromstring(text)
+            if (root.tag!='RSLogix5000Content' or root.get('TargetType')!='Program'
+                    or root.get('TargetName')!=program['name'] or len(root.findall('Controller'))!=1):return result
+            targets=root.findall('./Controller/Programs/Program')
+            if len(targets)!=1 or targets[0].get('Name')!=program['name'] or targets[0].get('Type','Normal')!='Normal':return result
+            target=targets[0]
+            if any(target.get(field,'false') not in ('true','false') for field in ('Disabled','UseAsFolder')):return result
+            settings=dict(main=target.get('MainRoutineName',''),**{'class':target.get('Class','Standard')},
+                disabled=target.get('Disabled','false')=='true',use_as_folder=target.get('UseAsFolder','false')=='true')
+            if settings!=program['settings']:return result
+            wanted=[r for r in expected['routines'] if r['program']==program['name']]
+            nodes=target.findall('./Routines/Routine');routines={r.get('Name'):r for r in nodes}
+            if len(routines)!=len(nodes) or set(routines)!={r['name'] for r in wanted}:return result
+            for routine in wanted:
+                value=routines[routine['name']];blocks=value.findall('RLLContent')
+                if value.get('Type')!='RLL' or len(blocks)!=1:return result
+                parsed=[]
+                for rung in blocks[0]:
+                    texts=rung.findall('Text')
+                    if (rung.tag!='Rung' or rung.get('Type','N')!='N' or len(texts)!=1
+                            or len(texts[0]) or texts[0].text is None):return result
+                    parsed.append(serialize_nodes(parse_rung(texts[0].text)))
+                if parsed!=[serialize_nodes(parse_rung(text)) for text in routine['expectedRungs']]:return result
+            prefix='program:'+program['name'].casefold()+'.'
+            tags=[t for t in expected['tags'] if t['name'].casefold().startswith(prefix)]
+            values=_ProgramValues(root.find('Controller'));nodes=target.findall('./Tags/Tag')
+            for node in nodes:values._tag(node,program['name'])
+            local=values.tags
+            if len(local)!=len(nodes):return result
+            if set(local)!={t['name'].casefold() for t in tags}:return result
+            for tag in tags:
+                key=tag['name'].casefold();value=local[key]
+                if (value.problem or value.alias or value.tag_class!='Standard' or value.constant!=tag['constant']
+                        or value.dtype.casefold()!=tag['dtype'].casefold()):return result
+                code,dimensions,elements,data=encode_initial(value.dtype.upper(),value.value,native_types)
+                if code!=tag['typeCode'] or dimensions!=tuple(tag['dimensions']) or data.hex()!=tag['expectedHex']:return result
+            result['programs_verified']+=1;result['routines_verified']+=len(wanted);result['local_tags_verified']+=len(tags)
+        result['verified']=True
         return result
     except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result

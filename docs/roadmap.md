@@ -14,6 +14,12 @@ connection confirms SDK recovery, and a new upload succeeds across 980 requests
 with all value/routine checks passing. Reliable general upload and the known
 uploaded-ACD save fault remain the priorities.
 
+The current probe also verifies native Program L5X exports and an offline
+import/save/reopen checkpoint using that package and an original Controller
+baseline. Its values and routines match, but the rebuilt ACD has different
+online correlation. Automating the component rebuild and retaining a correctly
+bound saved project are separate from resolving direct uploaded-project saving.
+
 The current [Routine upload checkpoint](routine-upload.md) records successful
 existing-project SDK uploads of the two-routine conveyor demo, including live
 tag values. The entries below retain earlier checkpoints and do not override

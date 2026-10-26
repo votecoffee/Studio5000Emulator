@@ -24,7 +24,7 @@ available for new-project factory upload or another probe operation.
 Before native calls, the tool checks the source hashes, complete leaf set,
 declared types, current values and every Standard RLL routine. It repeats that
 comparison after compilation to reject changes made while the probe builds.
-The bounded plan permits at most 32 roots and 32 routines; unsupported source,
+The bounded plan permits at most 32 roots, 32 routines and 32 ordinary Programs; unsupported source,
 unknown values, aliases, AOI contexts and changed logic reject the check.
 
 After `UploadAsync`, the SDK remains Offline. The probe:
@@ -37,6 +37,11 @@ After `UploadAsync`, the SDK remains Offline. The probe:
 3. Retains hashes and actual value receipts, including partial evidence when a
    later operation fails. Python independently parses each exported routine
    and compares its ladder nodes with the original source.
+4. Exports each complete Program through `PartialExportToXmlFileAsync` to a
+   separate native L5X. Python verifies its target, MainRoutine, disabled/class
+   settings, complete routine set and parsed ladder, plus every declared local
+   tag's type, dimensions, constant flag and current value. Controller objects
+   included as context remain dependencies; this is a partial Program package.
 
 An SDK success result with missing values, changed logic, incomplete receipts,
 wrong targets, modified files or unavailable artifacts cannot pass the content
@@ -63,8 +68,12 @@ Six focused tests cover complete current-value and routine receipts, changed
 source/state, missing or reordered values, altered export hashes and logic,
 wrong targets, malformed XML and unsupported operation selection. Native
 results are recorded separately from these software checks. The managed
-request decoder also checks the actual cross-language request without opening
-an SDK project before each content-check trial.
+request decoder also checks the actual cross-language request, including all
+Program counts, without opening an SDK project before each content-check trial.
+Three further tests cover Program package identity, changed settings/logic,
+missing or extra components, altered hashes and scoped tag value/type changes.
+The parser retains the distinction between a partial Program package and a
+complete Controller export.
 
 ## Native checkpoint
 
@@ -95,3 +104,27 @@ with an unknown native outcome. After a fresh saved-project connection confirms
 SDK recovery, a new upload succeeds across 980 requests on that following
 revision. All 14 values and both routines verify again, with native Offline
 cleanup and no fault. Uploaded ACD persistence remains blocked.
+
+The expanded Program check then succeeds across 983 verified requests. The
+SDK exports one native Program package containing both routines; its settings
+and all ten parsed rungs independently match the running source. All 14
+Offline root values still match, and native Offline cleanup, source/model/audit
+preservation and no SDK fault are confirmed. This verifies a native Program
+export, not direct saving of the reconstructed uploaded project as an ACD.
+
+## Offline Program rebuild checkpoint
+
+A separate offline trial imports that native Program package into a preserved
+ACD baseline whose MainRoutine contains one NOP. The SDK saves a new ACD;
+a fresh SDK process then reopens it and exports a complete Controller L5X.
+Independent checks verify both routines, all ten rungs, all 14 values (45
+bytes), the Program settings and the original task entry. The originals remain
+unchanged. The first combined trial exceeded its deadline during reopen;
+the separately validated saved file establishes the successful reopen.
+
+This demonstrates a component rebuild using the original Controller baseline.
+It does not demonstrate direct saving of the uploaded SDK project. The rebuilt
+ACD's correlation differs from the running installation, and Go Online with
+that rebuilt file has not been tested. Automating this rebuild and preserving
+the correct installed correlation remain further work. The probe currently
+provides the native Program package for inspection or offline import.

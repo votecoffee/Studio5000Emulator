@@ -35,8 +35,8 @@ if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
 if (options.SaveDownloadedAcd && options.Operation != "download") return 2;
 if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
 if (options.UploadContent is not null && (options.Operation != "upload" || options.UploadNewProject ||
-    options.UploadContent.Tags is null || options.UploadContent.Routines is null || options.UploadContent.SourceL5xSha256 is null ||
-    options.UploadContent.Tags.Length is < 1 or > 32 || options.UploadContent.Routines.Length > 32 ||
+    options.UploadContent.Tags is null || options.UploadContent.Routines is null || options.UploadContent.Programs is null || options.UploadContent.SourceL5xSha256 is null ||
+    options.UploadContent.Tags.Length is < 1 or > 32 || options.UploadContent.Routines.Length > 32 || options.UploadContent.Programs.Length > 32 ||
     !Regex.IsMatch(options.UploadContent.SourceL5xSha256, "^[0-9a-f]{64}$"))) return 2;
 foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptions>())
     if (edit.ImportOption is not ("LeaveEdits" or "AcceptEdits" or "FinalizeEdits") ||
@@ -48,7 +48,8 @@ foreach (var edit in new[] { options.Edit, options.SecondEdit }.OfType<EditOptio
 if (validateRequestOnly)
 {
     Console.WriteLine(JsonSerializer.Serialize(new { requestValidated = true, nativeProjectCalls = 0,
-        uploadTags = options.UploadContent?.Tags.Length ?? 0, uploadRoutines = options.UploadContent?.Routines.Length ?? 0 }));
+        uploadTags = options.UploadContent?.Tags.Length ?? 0, uploadRoutines = options.UploadContent?.Routines.Length ?? 0,
+        uploadPrograms = options.UploadContent?.Programs.Length ?? 0 }));
     return 0;
 }
 var steps = new List<object>();
@@ -301,10 +302,10 @@ async Task VerifyUploadedContent()
             throw new InvalidOperationException("Uploaded-content reads require Offline");
         return true;
     });
-    var tags = new List<object>(); var routines = new List<object>();
+    var tags = new List<object>(); var routines = new List<object>(); var programs = new List<object>();
     // Retain partial evidence if a later read/export fails. Completeness and
     // actual contents are independently checked by the Python receipt reader.
-    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines };
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs };
     foreach (var tag in expected.Tags)
     {
         if (!Regex.IsMatch(tag.ExpectedHex, "^(?:[0-9a-f]{2}){1,32768}$") ||
@@ -350,10 +351,28 @@ async Task VerifyUploadedContent()
             return new { rungs = rungs.Length, matchesSource = true };
         });
     }
+    foreach (var program in expected.Programs)
+    {
+        string path = Path.Combine(directory, program.FileName);
+        string xpath = $"Controller/Programs/Program[@Name='{program.Name}']";
+        if (!Regex.IsMatch(program.Name, "^[A-Za-z_][A-Za-z_0-9]{0,39}$") || program.XPath != xpath ||
+            !Regex.IsMatch(program.FileName, "^uploaded-program-[0-9]{4}\\.L5X$") || File.Exists(path))
+            throw new InvalidOperationException("Invalid uploaded-content Program plan");
+        await Step("PartialExportToXmlFileAsync:uploaded-program:" + program.Name, async () => {
+            await project!.PartialExportToXmlFileAsync(xpath, path);
+            if (new FileInfo(path).Length is < 8 or > 16000000) throw new InvalidOperationException("Native Program export outside bounds");
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 16000000 };
+            using var reader = XmlReader.Create(path, settings); var root = XDocument.Load(reader).Root!;
+            if (root.Name != "RSLogix5000Content" || (string?)root.Attribute("TargetType") != "Program" ||
+                (string?)root.Attribute("TargetName") != program.Name) throw new InvalidOperationException("Native Program export target differs");
+            programs.Add(new { fileName = program.FileName, sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() });
+            return new { exported = true, offlineOnly = true };
+        });
+    }
     if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
         throw new InvalidOperationException("Uploaded-content export unexpectedly connected");
     CheckPreserved(before, await Backend(), true);
-    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines };
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
@@ -686,7 +705,10 @@ sealed record Options(string Project, string SourceSha256, string Communications
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }
 sealed record UploadContentOptions([property: JsonPropertyName("sourceL5xSha256")] string SourceL5xSha256,
-    [property: JsonPropertyName("tags")] UploadTag[] Tags, [property: JsonPropertyName("routines")] UploadRoutine[] Routines);
+    [property: JsonPropertyName("tags")] UploadTag[] Tags, [property: JsonPropertyName("routines")] UploadRoutine[] Routines,
+    [property: JsonPropertyName("programs")] UploadProgram[] Programs);
+sealed record UploadProgram([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
+    [property: JsonPropertyName("fileName")] string FileName);
 sealed record UploadTag([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
     [property: JsonPropertyName("expectedHex")] string ExpectedHex);
 sealed record UploadRoutine([property: JsonPropertyName("program")] string Program, [property: JsonPropertyName("name")] string Name,

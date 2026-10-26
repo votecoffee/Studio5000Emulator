@@ -25,6 +25,12 @@ After an earlier upload timeout, a fresh saved-project connection confirms
 SDK recovery and a new upload succeeds across 980 verified requests with all
 content checks passing. The timeout's cause remains unknown. Upload reliability
 and uploaded ACD persistence remain the transfer priorities.
+The expanded check also produces a native Program L5X package with both
+routines, verifies its settings and all ten rungs, and completes normal SDK
+cleanup across 983 requests.
+A separate offline import of that package saves and reopens a new ACD with
+all values and logic verified. This uses the original Controller baseline;
+direct upload-save and the rebuilt file's online correlation remain unfinished.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
@@ -157,8 +163,8 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-This iteration passes 183 affected checks and 363 Python syntax checks.
-The current milestone passes 2,120 Windows tests, with two platform checks
+The current probe changes pass 79 affected checks and 363 Python syntax checks.
+The last full milestone passes 2,120 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
 **Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
