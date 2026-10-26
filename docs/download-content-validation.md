@@ -52,3 +52,9 @@ The affected Windows tools pass 91 focused checks and 371 Python syntax checks.
 App `26.1026.131441` is unchanged; this adds a Windows probe option. Broader
 project replacement, direct Studio GUI acceptance and the complete rebuilt
 project cycle remain separate acceptance steps.
+
+On `26.1026.153720`, both actually rebuilt profiles pass this downloaded-content
+check and their next upload snapshot/save/reopen/Online checks. The demo has
+fourteen roots and ten rungs; the two-Program fixture has twenty-nine roots,
+ten constants and thirteen rungs. See the current
+[rebuilt transfer checkpoint](installed-table-identities.md#read-path-validation-cost).

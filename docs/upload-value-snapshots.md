@@ -129,3 +129,10 @@ thirteen rungs through download/save/reopen/Online (435 requests) and snapshot
 upload/save/reopen/Online (1,221). Complete structure bytes and saved flags
 match, with actual Offline cleanup, restored mutable values and no SDK fault.
 See the [constant structure checkpoint](installed-memory-reads.md#constant-structure-checkpoint-261026131441).
+
+Version `26.1026.153720` extends acceptance to actual native Program-rebuilt
+inputs: both the fourteen-root demo and twenty-nine-root two-Program fixture
+complete download, subsequent upload snapshot, native save/reopen and Online
+value checks. All twelve and sixteen supported scalar getters respectively
+pass without SDK faults. See the current
+[rebuilt transfer checkpoint](installed-table-identities.md#read-path-validation-cost).

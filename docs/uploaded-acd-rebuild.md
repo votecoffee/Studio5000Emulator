@@ -103,8 +103,12 @@ typed Online BOOL getter for the demo and a two-Program snapshot reopen timeout.
 Version `26.1026.153720` then completes the rebuilt demo's native download and
 next upload snapshot, including save/reopen/Online, all fourteen values and ten
 rungs, and twelve typed Online scalar getters. Both cases clean up Offline
-without an SDK fault. The expanded rebuilt profile remains a separate checkpoint;
-this bounded source-equivalent result does not enable general Studio upload-save.
+without an SDK fault. The expanded rebuilt two-Program profile also completes
+that download/re-upload snapshot sequence, preserving all twenty-nine roots,
+ten constants, four routines and thirteen rungs. Sixteen typed Online scalar
+getters, including current Program-local values, pass; Offline cleanup succeeds
+without a fault. These bounded source-equivalent results do not enable general
+Studio upload-save.
 
 The optional [download content check](download-content-validation.md) verifies
 the complete saved Controller separately from connection and correlation.

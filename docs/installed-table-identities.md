@@ -81,3 +81,13 @@ are preserved; actual Offline cleanup succeeds without an SDK fault. Complete
 retained journals replay identically in the offline analyzer. This is native
 SDK acceptance of the bounded source-equivalent profile; general Studio GUI
 upload-save and project replacement remain separate work.
+
+The rebuilt two-Program profile also completes download/save/reopen/Online
+(435 requests) and the subsequent upload snapshot/save/reopen/Online (1,227).
+Independent saved exports preserve all twenty-nine roots, 202 bytes, ten
+constants, four routines and thirteen rungs, including nested UDTs and arrays.
+All sixteen typed Online scalar getters pass, including distinct local values
+in both Programs. Full correlation and schema checks pass. Native Offline
+cleanup is confirmed without an SDK fault, and the complete journals replay
+identically. This new revised trial completes within the unchanged deadline;
+the older timed-out trial retains its unknown final outcome.

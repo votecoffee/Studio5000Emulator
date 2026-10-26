@@ -12,8 +12,12 @@ revalidates source and effects; there is no cross-request validation cache or
 longer native timeout. 159 affected checks pass. The rebuilt demo now completes
 download/save/reopen/Online (430 requests) and its next upload snapshot/save/
 reopen/Online (1,137), including all fourteen roots, ten rungs and twelve typed
-Online scalar getters. Offline cleanup succeeds without an SDK fault. The
-larger rebuilt two-Program profile is the next acceptance checkpoint.
+Online scalar getters. The rebuilt two-Program profile also passes download
+(435) and upload snapshot (1,227), preserving twenty-nine roots, ten constants,
+four routines and thirteen rungs. Its sixteen typed Online scalar getters
+include both Programs' current local values. Both profiles confirm Offline
+cleanup without SDK faults. General GUI upload-save and project replacement
+remain unfinished.
 
 Version `26.1026.143655` keeps committed Symbol and Data Table identities
 separate and recognizes the captured read-only local-constant header profile.

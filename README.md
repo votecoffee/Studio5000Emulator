@@ -11,10 +11,12 @@ and executable use the name **LogixLab**.
 page header, Windows tray and executable properties share this version.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
-and reopen a current-value ACD that goes Online.** The native probe completes
-the demo sequence across 1,139 verified requests, preserving all 14 tag values,
-ten rungs and the installed correlation. A two-Program profile now passes
-across 1,221 requests, preserving 29 roots, ten constants, arrays and 13 rungs.
+and reopen a current-value ACD that goes Online.** Native SDK checks also pass
+after rebuilding the source ACD through native Program imports. The rebuilt
+demo upload passes across 1,137 verified requests, preserving all 14 tag values,
+ten rungs and the installed correlation. The rebuilt two-Program profile passes
+across 1,227 requests, preserving 29 roots, ten constants, arrays and 13 rungs.
+All twelve demo and sixteen two-Program typed Online scalar reads pass.
 This requires unchanged source and
 a matching saved-download baseline; direct general Studio upload-save remains
 unfinished.
@@ -67,9 +69,8 @@ schedules and explicit UDT schemas are verified after native save/reopen.
 [Installed Table identities](docs/installed-table-identities.md) now preserve
 the separate Symbol and Data Table IDs produced by native Program import.
 The committed catalogs, descriptors and value reads share the verified links.
-The rebuilt demo now completes native download/save/reopen/Online and its
-next upload snapshot/save/reopen/Online. All fourteen roots, ten rungs and
-twelve typed Online scalar reads verify, with Offline cleanup and no SDK fault.
+Both rebuilt profiles now complete native download/save/reopen/Online and the
+next upload snapshot/save/reopen/Online, with Offline cleanup and no SDK fault.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
