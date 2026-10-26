@@ -19,6 +19,11 @@ This requires unchanged source and
 a matching saved-download baseline; direct general Studio upload-save remains
 unfinished.
 
+The Windows [uploaded ACD rebuild](docs/uploaded-acd-rebuild.md) also saves
+verified native Program packages and current values into a fresh source copy,
+without a saved-download baseline. The rebuilt file is checked after native
+reopen and requires a download before going Online.
+
 [Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
 native SDK while Online. Separate BOOL sessions verify `true` and `false`,
 with Offline cleanup and no fault. The signed UserMemory request resolves to
@@ -47,10 +52,10 @@ and uploaded ACD persistence remain the transfer priorities.
 The expanded check also produces a native Program L5X package with both
 routines, verifies its settings and all ten rungs, and completes normal SDK
 cleanup across 983 requests.
-A separate offline import of that package saves and reopens a new ACD with
-all values and logic verified. This uses the original Controller baseline;
-direct upload-save remains unfinished. Native Go Online rejects the rebuilt
-file after offline Program import clears its download identity.
+The checked offline rebuild command imports those packages, saves and reopens
+a new ACD and verifies values, logic and scheduling. It uses the original
+Controller metadata; direct upload-save remains unfinished. Program import
+clears download identity, so the rebuilt file requires a download.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
@@ -374,7 +379,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Existing-project SDK upload verified for bounded fixtures; an unchanged-source value snapshot saves/reopens an ACD and verifies Online using a matching saved baseline. Direct general uploaded-project saving and arbitrary projects remain unfinished |
+| Upload discovery | Existing-project SDK upload verified for bounded fixtures; a value snapshot retains Online correlation using a matching saved baseline. An Offline Program rebuild saves/reopens without that baseline and requires a download before Online. Direct general uploaded-project saving and arbitrary projects remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |

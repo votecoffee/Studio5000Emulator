@@ -10,6 +10,11 @@ This profile retains the baseline's Controller metadata and compiled project.
 It does not import Programs or patch native identity/journal bytes. Direct
 saving of the SDK's fully reconstructed uploaded project remains unfinished.
 
+When a saved-download baseline is unavailable, the separate
+[Offline ACD rebuild](uploaded-acd-rebuild.md) imports verified native Program
+packages into the original source copy. Its saved result requires a download
+before going Online.
+
 ## Requirements
 
 - A stopped Program-mode emulator with an unchanged source-equivalent download.

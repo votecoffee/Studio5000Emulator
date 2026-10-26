@@ -10,6 +10,12 @@ provides a separate bounded save/reopen/Online path using a matching original
 baseline. It avoids the reconstructed-project save fault without importing
 logic or rewriting identity bytes.
 
+The separate [Offline ACD rebuild](uploaded-acd-rebuild.md) consumes these
+verified native Program packages and uploaded values to save/reopen an ACD
+using the original Controller metadata. It does not require a saved-download
+baseline; Program import clears correlation, so it requires a download before
+going Online.
+
 ## Usage
 
 Use the original source ACD and exact complete L5X matching the owned emulator.

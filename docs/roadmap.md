@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+The Windows [uploaded ACD rebuild](uploaded-acd-rebuild.md) now consumes checked
+native Program packages and current values without a saved-download baseline.
+Native save/reopen and independent complete export checks pass for the demo's
+14 roots/ten rungs and the expanded two-Program profile's 29 roots/thirteen
+rungs. Task order, UDT schemas and constant flags survive. Program import
+clears correlation, so the result requires a download before Online; direct
+Studio upload/save and online-edited source remain unfinished. This tool-only
+increment leaves the running app at `26.1026.131441`.
+
 Version `26.1026.131441` adds explicit UDT constants and UDT arrays to the
 source-bound snapshot profile. Native download/save/reopen/Online (435 requests)
 and upload snapshot/save/reopen/Online (1,221) preserve all 29 roots, ten
