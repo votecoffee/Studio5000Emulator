@@ -32,7 +32,12 @@ def source_schema(project):
                 target=member.get('Target',''),bit=member.get('BitNumber',''),access=member.get('ExternalAccess','Read/Write')))
         types[name] = dict(family=definition.get('Family','NoFamily'),
                           tag_class=definition.get('Class','User'),members=members)
-    return json.loads(json.dumps(dict(tasks=project.tasks,types=types)))
+    attributes = lambda rows: {str(k):v.hex() for k,v in rows.items()}
+    tasks = [dict(name=name,
+                  settings=attributes(project.task_configuration.attributes(name,source_sha256=project.sha256)),
+                  timing=attributes(project.task_timing.attributes(name,source_sha256=project.sha256)))
+             for name in project.task_configuration.names]
+    return json.loads(json.dumps(dict(tasks=project.tasks,task_attributes=tasks,types=types)))
 
 
 def read_json(path):

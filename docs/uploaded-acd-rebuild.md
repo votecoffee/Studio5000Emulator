@@ -61,8 +61,9 @@ The helper imports Programs in their original Task schedule order, restores
 all mutable uploaded root values and checks constants without assigning them.
 It saves, closes and reopens the new ACD, verifies Offline state and exports
 the complete Controller. Independent validation checks every value, root type,
-dimension and constant flag; all parsed ladder; Program settings; Task order
-and settings; explicit UDT member schemas; and cleared download correlation.
+dimension and constant flag; all parsed ladder; Program settings; Task order,
+priority, watchdog and output-update/inhibit settings; explicit UDT member
+schemas; and cleared download correlation.
 Successful native reopen, final Offline cleanup and preserved originals are
 also required. The result always reports `requires_download: true` and
 `online_verified: false`.

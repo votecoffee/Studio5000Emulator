@@ -109,7 +109,7 @@ class UploadedRebuildTests(unittest.TestCase):
         self.assertEqual(result['content']['rungs'],10)
 
     def test_correlation_edited_logic_values_or_missing_cleanup_reject_saved_result(self):
-        for change in ('correlation','logic','value','hash','cleanup','reopen','task','type','malformed'):
+        for change in ('correlation','logic','value','hash','cleanup','reopen','task','priority','watchdog','type','malformed'):
             receipt = self.artifacts()
             acd = self.folder/'rebuilt.ACD'; xml = self.folder/'rebuilt.L5X'
             if change == 'correlation':
@@ -117,10 +117,12 @@ class UploadedRebuildTests(unittest.TestCase):
             elif change in ('logic','value'):
                 raw=xml.read_bytes().replace(b'XIC(StartPB)',b'XIO(StartPB)') if change=='logic' else xml.read_bytes().replace(b'Value="50"',b'Value="87"')
                 xml.write_bytes(raw);receipt['l5xSha256']=rebuild.digest(xml)
-            elif change in ('task','type'):
+            elif change in ('task','priority','watchdog','type'):
                 from xml.etree import ElementTree as ET
                 tree=ET.fromstring(xml.read_bytes())
-                if change=='task': tree.find('.//Tasks/Task').set('Rate','99')
+                if change in ('task','priority','watchdog'):
+                    field,value={'task':('Rate','99'),'priority':('Priority','15'),'watchdog':('Watchdog','999')}[change]
+                    tree.find('.//Tasks/Task').set(field,value)
                 else:
                     data_types=ET.SubElement(tree.find('Controller'),'DataTypes')
                     ET.SubElement(data_types,'DataType',Name='ExtraType')
