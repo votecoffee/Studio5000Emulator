@@ -58,6 +58,26 @@ class UploadedRebuildTests(unittest.TestCase):
         self.assertEqual(len(expected['tags']),14)
         self.assertIs(types,self.types)
 
+    def test_requested_controller_tag_exports_are_revalidated_before_rebuild(self):
+        from test_upload_tag_definitions import UploadedTagDefinitionTests
+        source,files=self.inputs()
+        files['request.json']['ExportUploadedTags']=True
+        tag_receipt=UploadedTagDefinitionTests.artifact(self)
+        files['sdk-result.json']['uploadedContent']['controllerTags']=tag_receipt['controllerTags']
+        for name in ('request.json','sdk-result.json'):(self.folder/name).write_text(json.dumps(files[name]))
+        self.prepared(source)
+        path=self.folder/tag_receipt['controllerTags']['fileName']
+        path.write_bytes(path.read_bytes().replace(b'Value="50"',b'Value="51"'))
+        files['sdk-result.json']['uploadedContent']['controllerTags']['sha256']=rebuild.digest(path)
+        (self.folder/'sdk-result.json').write_text(json.dumps(files['sdk-result.json']))
+        with self.assertRaises(ValueError):self.prepared(source)
+
+    def test_requested_missing_or_invalid_tag_export_cannot_fall_back_to_old_receipt(self):
+        for flag in (True,'true',1):
+            source,files=self.inputs();files['request.json']['ExportUploadedTags']=flag
+            (self.folder/'request.json').write_text(json.dumps(files['request.json']))
+            with self.subTest(flag=flag),self.assertRaises(ValueError):self.prepared(source)
+
     def test_failed_uncertain_faulted_or_unclean_upload_is_not_rebuilt(self):
         for change in (dict(status='unknown'),dict(status='failed'),dict(sdk_server_faulted=True),
                        dict(cleanup_confirmed=False),dict(native_sdk_offline_confirmed=False),dict(source_unchanged=False)):

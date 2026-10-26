@@ -56,6 +56,9 @@ Before any native project opens, Python rechecks the pinned source, recorded
 plan, every uploaded root value, all routine exports and each complete Program
 package. Copied inputs are checked again after building; the managed helper
 also validates hashes and target paths without opening an SDK project.
+If the upload requested the [controller tag definition check](upload-tag-definitions.md),
+the rebuild independently rechecks that actual export too. Missing or altered
+tag evidence cannot fall back to the older receipt path.
 
 The helper imports Programs in their original Task schedule order, restores
 all mutable uploaded root values and checks constants without assigning them.

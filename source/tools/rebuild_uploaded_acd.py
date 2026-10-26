@@ -82,6 +82,13 @@ def prepare(source, l5x, upload):
     if (not upload_content.verify(upload, expected, receipt)['verified']
             or not upload_content.verify_programs(upload, expected, types, receipt)['verified']):
         raise ValueError('Native uploaded values, routines or Program packages failed independent validation')
+    tag_check=request.get('ExportUploadedTags',False)
+    if type(tag_check) is not bool:
+        raise ValueError('Uploaded tag-definition request flag is invalid')
+    if tag_check:
+        from tools import upload_tag_definitions
+        if not upload_tag_definitions.verify(upload,expected,types,receipt,project)['verified']:
+            raise ValueError('Native uploaded controller-tag definitions failed independent validation')
     if not expected['programs']:
         raise ValueError('Program rebuild requires at least one complete ordinary Program')
     if not project.task_configuration.source_complete:

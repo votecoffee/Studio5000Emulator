@@ -57,6 +57,10 @@ and uploaded ACD persistence remain the transfer priorities.
 The expanded check also produces a native Program L5X package with both
 routines, verifies its settings and all ten rungs, and completes normal SDK
 cleanup across 983 requests.
+The optional [uploaded tag definition check](docs/upload-tag-definitions.md)
+also exports every controller root and independently checks declarations,
+access/constant flags and current values. A requested check is revalidated
+before rebuilding an Offline ACD.
 The checked offline rebuild command imports those packages, saves and reopens
 a new ACD and verifies values, logic and scheduling. It uses the original
 Controller metadata; direct upload-save remains unfinished. Program import

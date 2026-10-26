@@ -695,6 +695,9 @@ def run(args):
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     content_source=getattr(args,'verify_uploaded_content',None)
+    export_uploaded_tags=getattr(args,'verify_uploaded_tag_definitions',False)
+    from tools import upload_tag_definitions
+    upload_tag_definitions.validate_options(args.operation,export_uploaded_tags,content_source,upload_new)
     snapshot_upload=getattr(args,'snapshot_uploaded_acd',False)
     from tools import upload_snapshot
     upload_snapshot.validate_options(args.operation,snapshot_upload,content_source,getattr(args,'upload_target',None),save_upload,upload_new)
@@ -735,6 +738,8 @@ def run(args):
     validate_idle(initial,allow_supported_edits=apply_edits)
     from tools import upload_content
     content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial)
+    if export_uploaded_tags and not any(not t['name'].casefold().startswith('program:') for t in content_plan['tags']):
+        raise ValueError('Uploaded controller-tag export requires at least one controller root')
     from tools import download_content
     download_content_plan=download_content.prepare(args.operation,save_download,download_content_source,source,initial)
     snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload else None
@@ -763,6 +768,7 @@ def run(args):
     config['SaveDownloadedAcd']=save_download
     config['ExportDownloadedL5x']=download_content_plan is not None
     config['UploadNewProject']=upload_new
+    config['ExportUploadedTags']=export_uploaded_tags
     config['SnapshotUploadedAcd']=snapshot_upload
     if snapshot_upload:
         snapshot_input=output/'snapshot-input.ACD';shutil.copyfile(baseline,snapshot_input)
@@ -813,7 +819,7 @@ def run(args):
             check=True,timeout=15,**background_options())
         decoded=json.loads(check.stdout)
         if decoded!=dict(requestValidated=True,nativeProjectCalls=0,uploadTags=len(content_plan['tags']),uploadRoutines=len(content_plan['routines']),
-                         uploadPrograms=len(content_plan['programs'])):
+                         uploadPrograms=len(content_plan['programs']),exportUploadedTags=export_uploaded_tags):
             raise ValueError('Managed uploaded-content request differs from the generated plan')
         (output/'request-validation.json').write_text(json.dumps(decoded,indent=2),encoding='utf8')
     before = api(url, 'connectivity-trace', {})
@@ -940,6 +946,10 @@ def run(args):
             from logixlab.native_types import NativeTypes
             summary['uploaded_program_verification']=upload_content.verify_programs(output,content_plan,
                 NativeTypes.from_acd(source,l5x_hash),(report or {}).get('uploadedContent'))
+            if export_uploaded_tags:
+                summary['uploaded_tag_definitions_requested']=True
+                summary['uploaded_tag_definitions_verification']=upload_tag_definitions.verify(output,content_plan,
+                    NativeTypes.from_acd(source,l5x_hash),(report or {}).get('uploadedContent'),upload_content.Project(content_source))
             if save_upload:
                 from logixlab.native_types import NativeTypes
                 try:verification=upload_content.verify_saved(output,content_plan,NativeTypes.from_acd(source,l5x_hash),(report or {}).get('savedUploadedProject'))
@@ -974,6 +984,7 @@ def run(args):
                 or save_download and not summary.get('saved_downloaded_acd_verified')
                 or content_plan is not None and not summary['uploaded_content_verification']['verified']
                 or content_plan is not None and not summary['uploaded_program_verification']['verified']
+                or export_uploaded_tags and not summary['uploaded_tag_definitions_verification']['verified']
                 or content_plan is not None and save_upload and not summary['serialized_uploaded_content_verification']['verified']
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
@@ -995,6 +1006,7 @@ def main():
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
     parser.add_argument('--connection-target',help='Connection only: preserved saved ACD to open on a private copy; --project still pins the emulator source')
     parser.add_argument('--snapshot-uploaded-acd',action='store_true',help='Upload only: save current verified values into a fresh matching-baseline ACD, requiring unchanged source, --upload-target and --verify-uploaded-content; reopen and verify Online')
+    parser.add_argument('--verify-uploaded-tag-definitions',action='store_true',help='With --verify-uploaded-content: independently export and verify every controller tag definition/current value after native upload')
     parser.add_argument('--retain-transfer-trace',action='store_true',help='Upload/download only: record bounded compressed cursor pages privately while the single native call runs')
     parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')

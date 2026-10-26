@@ -32,6 +32,7 @@ if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operatio
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
+if (options.ExportUploadedTags && (options.Operation != "upload" || options.UploadContent is null || options.UploadNewProject)) return 2;
 if (options.SnapshotUploadedAcd && (options.Operation != "upload" || options.SaveUploadedAcd || options.UploadNewProject ||
     options.UploadContent is null || options.SnapshotBaseline is null) ||
     !options.SnapshotUploadedAcd && options.SnapshotBaseline is not null) return 2;
@@ -53,7 +54,7 @@ if (validateRequestOnly)
 {
     Console.WriteLine(JsonSerializer.Serialize(new { requestValidated = true, nativeProjectCalls = 0,
         uploadTags = options.UploadContent?.Tags.Length ?? 0, uploadRoutines = options.UploadContent?.Routines.Length ?? 0,
-        uploadPrograms = options.UploadContent?.Programs.Length ?? 0 }));
+        uploadPrograms = options.UploadContent?.Programs.Length ?? 0, exportUploadedTags = options.ExportUploadedTags }));
     return 0;
 }
 var steps = new List<object>();
@@ -340,9 +341,10 @@ async Task VerifyUploadedContent()
         return true;
     });
     var tags = new List<object>(); var routines = new List<object>(); var programs = new List<object>();
+    object? controllerTags = null;
     // Retain partial evidence if a later read/export fails. Completeness and
     // actual contents are independently checked by the Python receipt reader.
-    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs };
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs, controllerTags };
     foreach (var tag in expected.Tags)
     {
         if (!Regex.IsMatch(tag.ExpectedHex, "^(?:[0-9a-f]{2}){1,32768}$") ||
@@ -391,10 +393,20 @@ async Task VerifyUploadedContent()
             return new { exported = true, offlineOnly = true };
         });
     }
+    if (options.ExportUploadedTags)
+        await Step("PartialExportToXmlFileAsync:uploaded-controller-tags", async () => {
+            const string fileName = "uploaded-controller-tags.L5X";
+            string path = Path.Combine(directory, fileName);
+            if (File.Exists(path)) throw new InvalidOperationException("Controller-tag export must be a new file");
+            await project!.PartialExportToXmlFileAsync("Controller/Tags/Tag", path);
+            if (new FileInfo(path).Length is < 8 or > 16000000) throw new InvalidOperationException("Native controller-tag export outside bounds");
+            controllerTags = new { fileName, sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() };
+            return new { exported = true, offlineOnly = true };
+        });
     if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
         throw new InvalidOperationException("Uploaded-content export unexpectedly connected");
     CheckPreserved(before, await Backend(), true);
-    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs };
+    uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs, controllerTags };
 }
 async Task SaveUploadedSnapshot()
 {
@@ -817,7 +829,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
                       bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
                       UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null,
-                      bool ExportDownloadedL5x = false)
+                      bool ExportDownloadedL5x = false, bool ExportUploadedTags = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }
