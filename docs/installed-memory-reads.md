@@ -40,6 +40,14 @@ this profile. Whole roots must fit the negotiated Table reply budget; oversized
 responses fail rather than returning partial values. Generic uninstalled
 constant storage remains unavailable.
 
+Version `26.1026.131441` also admits explicit user-defined structure roots and
+structure arrays. The installed native Template snapshot must bind the source
+member layouts, identities and storage size. The full encoded value, including
+reserved padding and packed bits, must match its prepared source bytes. Each
+visible member read rechecks external access. Unsupported built-in structures,
+unknown layouts and arbitrary memory remain unavailable; constant writes and
+UserMemory constant reads stay blocked.
+
 ## Constant upload checkpoint: `26.1026.124956`
 
 A source-authored two-Program project contains 26 roots (102 bytes), seven

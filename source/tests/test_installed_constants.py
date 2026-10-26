@@ -10,12 +10,15 @@ from logixlab.installed_memory import constant_keys,read_constant
 from logixlab.download_image import ImageError
 from logixlab.model import ModelError
 from logixlab.model import Tag
-from logixlab.data_table import AddressSpace
+from logixlab.data_table import AddressSpace,StructureLayout
+from logixlab.native_templates import NativeTemplates
 from logixlab.download_values import encode_initial
 from logixlab.native_symbols import Symbol
 import test_installed_memory as memory
 import test_download_changelog as logs
 import test_download_headers as headers
+import test_native_templates as native_templates
+import test_structure_reads as structures
 
 
 def constant_symbol(original):
@@ -115,3 +118,39 @@ class ConstantShapeTests(unittest.TestCase):
             with self.assertRaises(ImageError):read_constant(app,router,key)
             installed.values.values=((key,(2,5),0x20C4,raw),);ns._tables[0].key=(3,5)
             with self.assertRaises(ImageError):read_constant(app,router,key)
+
+
+class ConstantStructureTests(unittest.TestCase):
+    setUp=structures.StructureReadTests.setUp
+    tearDown=structures.StructureReadTests.tearDown
+
+    def installed(self,key):
+        project=self.app.engine.project;tag=project.tags[key];tag.constant=True
+        native,rows=native_templates.saved(project);catalog=NativeTemplates(native,rows).bind(project,native)
+        code,dims,_,raw=encode_initial(tag.dtype,project.initial[key],native)
+        space=AddressSpace([(dict(ref=tag.key,id=9,type=code,dimensions=dims),StructureLayout(catalog,catalog.for_type(tag.dtype)))])
+        ns=NS(_tables=[NS(key=5,value_address=0x72000000)],_image=NS(_symbols={(0,9):5}))
+        installed=NS(check=lambda identity,p:None,values=NS(values=((key,5,code,raw),)),namespace=ns)
+        self.app.engine.installed_download=installed;self.app.native_project_identity=object()
+        self.app.native_symbols=NS(by_key={key:Symbol('',0,tag.name,9)})
+        router=NS(endpoint=NS(native_read_only=True),access=self.router.access,scalar_storage=lambda:space)
+        return router,installed,ns,raw
+
+    def test_nested_constant_and_structure_array_preserve_every_source_byte(self):
+        for key in ('machine','machines'):
+            with self.subTest(root=key):
+                router,installed,ns,expected=self.installed(key)
+                with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+                    self.assertEqual(read_constant(self.app,router,key),expected)
+                    self.assertGreater(len(expected),32)
+
+    def test_changed_nested_member_and_member_access_cannot_return_source_bytes(self):
+        router,installed,ns,expected=self.installed('machine')
+        with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+            current=self.app.engine.memory.values['machine'];current['History'][11]['Samples'][7]+=1
+            with self.assertRaises(ImageError):read_constant(self.app,router,'machine')
+            current['History'][11]['Samples'][7]-=1
+            self.assertEqual(read_constant(self.app,router,'machine'),expected)
+            self.app.engine.project.udts['axisstate'].find('./Members/Member[@Name="Command"]').set('ExternalAccess','None')
+            from logixlab.ethernetip import CIPError
+            with self.assertRaises(CIPError):read_constant(self.app,router,'machine')

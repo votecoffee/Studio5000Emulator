@@ -21,19 +21,20 @@ def scalar_word(dtype,code,value):
 
 
 def constant_keys(app,router):
-    """Candidate numeric/BOOL roots; each external read still verifies effects."""
+    """Candidate atomic/explicit UDT roots; each read still verifies all effects."""
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if not router.endpoint.native_read_only or installed is None:return frozenset()
     try:installed.check(app.native_project_identity,project)
     except ImageError:return frozenset()
-    return frozenset(key for key,table,code,data in installed.values.values if not code&0x8000 and 1<=len(data)<=MAX_BYTES
-        and (tag:=project.tags.get(key)) is not None and tag.constant and tag.dtype.upper() in CONSTANT_ATOMS
+    return frozenset(key for key,table,code,data in installed.values.values if 1<=len(data)<=MAX_BYTES
+        and (tag:=project.tags.get(key)) is not None and tag.constant
+        and (tag.dtype.upper() in CONSTANT_ATOMS or tag.dtype.casefold() in project.udts)
         and not tag.alias and not tag.problem and tag.tag_class=='Standard')
 
 
 def read_constant(app,router,key):
-    """Read one complete proved atomic constant root without exposing a setter."""
-    if key not in constant_keys(app,router):raise ImageError('installed_constant_atomic_required')
+    """Read one complete source-backed constant root without exposing a setter."""
+    if key not in constant_keys(app,router):raise ImageError('installed_constant_root_required')
     installed,ns=_verified_installation(app,router)
     rows=[row for row in installed.values.values if row[0]==key]
     if len(rows)!=1:raise ImageError('installed_constant_binding_required')
@@ -42,7 +43,10 @@ def read_constant(app,router,key):
     if len(handles)!=1:raise ImageError('installed_constant_value_address_required')
     tag,cell=_bound_cell(app,router,ns,key,table,code)
     if not tag.constant or cell.size!=len(initial):raise ImageError('installed_constant_storage_changed')
-    try:value=cell.value(app.engine.memory.read)
+    def read(ref):
+        router.access(ref)
+        return app.engine.memory.read(ref)
+    try:value=cell.value(read)
     except ModelError as error:raise ImageError('installed_constant_current_value_unavailable') from error
     if value!=initial:raise ImageError('installed_constant_source_value_changed')
     return value
