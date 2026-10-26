@@ -701,6 +701,9 @@ def run(args):
     snapshot_upload=getattr(args,'snapshot_uploaded_acd',False)
     from tools import upload_snapshot
     upload_snapshot.validate_options(args.operation,snapshot_upload,content_source,getattr(args,'upload_target',None),save_upload,upload_new)
+    verify_upload_baseline=getattr(args,'verify_upload_baseline_online',False)
+    upload_snapshot.validate_options(args.operation,verify_upload_baseline,content_source,getattr(args,'upload_target',None),save_upload,upload_new,
+                                     option='--verify-upload-baseline-online')
     if content_source is not None and (args.operation!='upload' or upload_new):
         raise ValueError('--verify-uploaded-content requires an existing-project upload')
     connection_target=getattr(args,'connection_target',None)
@@ -742,7 +745,7 @@ def run(args):
         raise ValueError('Uploaded controller-tag export requires at least one controller root')
     from tools import download_content
     download_content_plan=download_content.prepare(args.operation,save_download,download_content_source,source,initial)
-    snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload else None
+    snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload or verify_upload_baseline else None
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
     if args.operation == 'edits':
@@ -769,6 +772,7 @@ def run(args):
     config['ExportDownloadedL5x']=download_content_plan is not None
     config['UploadNewProject']=upload_new
     config['ExportUploadedTags']=export_uploaded_tags
+    config['VerifyUploadBaselineOnline']=verify_upload_baseline
     config['SnapshotUploadedAcd']=snapshot_upload
     if snapshot_upload:
         snapshot_input=output/'snapshot-input.ACD';shutil.copyfile(baseline,snapshot_input)
@@ -800,6 +804,8 @@ def run(args):
         raise ValueError('Uploaded-content source or current values changed before the native call')
     if snapshot_upload and (upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline or digest(snapshot_input)!=baseline_hash):
         raise ValueError('Snapshot baseline or installation changed before the native call')
+    if verify_upload_baseline and upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline:
+        raise ValueError('Upload baseline admission changed before the native call')
     if download_content_plan!=download_content.prepare(args.operation,save_download,download_content_source,source,state):
         raise ValueError('Downloaded-content source or current-value plan changed before the native call')
     if args.operation=='modes':validate_mode_probe(state)
@@ -819,7 +825,7 @@ def run(args):
             check=True,timeout=15,**background_options())
         decoded=json.loads(check.stdout)
         if decoded!=dict(requestValidated=True,nativeProjectCalls=0,uploadTags=len(content_plan['tags']),uploadRoutines=len(content_plan['routines']),
-                         uploadPrograms=len(content_plan['programs']),exportUploadedTags=export_uploaded_tags):
+                         uploadPrograms=len(content_plan['programs']),exportUploadedTags=export_uploaded_tags,verifyUploadBaselineOnline=verify_upload_baseline):
             raise ValueError('Managed uploaded-content request differs from the generated plan')
         (output/'request-validation.json').write_text(json.dumps(decoded,indent=2),encoding='utf8')
     before = api(url, 'connectivity-trace', {})
@@ -942,6 +948,9 @@ def run(args):
             summary['upload_result_persistence']='saved_and_reopened' if summary['saved_uploaded_acd_verified'] else 'failed'
         if content_plan is not None:
             summary['uploaded_content_requested']=True
+            if verify_upload_baseline:
+                summary['upload_baseline_online_requested']=True
+                summary['upload_baseline_online_verified']=upload_snapshot.baseline_online_verified(report)
             summary['uploaded_content_verification']=upload_content.verify(output,content_plan,(report or {}).get('uploadedContent'))
             from logixlab.native_types import NativeTypes
             summary['uploaded_program_verification']=upload_content.verify_programs(output,content_plan,
@@ -985,6 +994,7 @@ def run(args):
                 or content_plan is not None and not summary['uploaded_content_verification']['verified']
                 or content_plan is not None and not summary['uploaded_program_verification']['verified']
                 or export_uploaded_tags and not summary['uploaded_tag_definitions_verification']['verified']
+                or verify_upload_baseline and not summary['upload_baseline_online_verified']
                 or content_plan is not None and save_upload and not summary['serialized_uploaded_content_verification']['verified']
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
@@ -1007,6 +1017,7 @@ def main():
     parser.add_argument('--connection-target',help='Connection only: preserved saved ACD to open on a private copy; --project still pins the emulator source')
     parser.add_argument('--snapshot-uploaded-acd',action='store_true',help='Upload only: save current verified values into a fresh matching-baseline ACD, requiring unchanged source, --upload-target and --verify-uploaded-content; reopen and verify Online')
     parser.add_argument('--verify-uploaded-tag-definitions',action='store_true',help='With --verify-uploaded-content: independently export and verify every controller tag definition/current value after native upload')
+    parser.add_argument('--verify-upload-baseline-online',action='store_true',help='Matching source-equivalent saved-download target only: verify Online/Offline before upload; requires upload-target and verify-uploaded-content; does not save or extend the ordinary timeout')
     parser.add_argument('--retain-transfer-trace',action='store_true',help='Upload/download only: record bounded compressed cursor pages privately while the single native call runs')
     parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')

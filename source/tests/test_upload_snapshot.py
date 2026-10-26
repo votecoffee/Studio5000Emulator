@@ -38,6 +38,26 @@ class UploadSnapshotTests(unittest.TestCase):
         for value in (None,1,'true',[]):
             with self.assertRaises(ValueError):snapshot.validate_options('upload',value,'source.L5X','saved.ACD')
 
+    def test_online_baseline_check_has_the_same_strict_profile_without_enabling_a_snapshot(self):
+        option='--verify-upload-baseline-online'
+        snapshot.validate_options('upload',True,'source.L5X','saved.ACD',option=option)
+        for operation,source,target,save,new in (('connection','source.L5X','saved.ACD',False,False),
+                ('upload',None,'saved.ACD',False,False),('upload','source.L5X',None,False,False),
+                ('upload','source.L5X','saved.ACD',True,False),('upload','source.L5X','saved.ACD',False,True)):
+            with self.assertRaisesRegex(ValueError,option):snapshot.validate_options(operation,True,source,target,save,new,option=option)
+
+    def test_baseline_online_receipt_requires_all_ordered_native_steps(self):
+        methods=('GoOnlineAsync:verify-upload-baseline','Verify upload baseline Online',
+                 'GoOfflineAsync:verify-upload-baseline','Require upload baseline Offline before upload')
+        receipt=dict(uploadBaselineOnlineVerified=True,steps=[dict(method=name,status='succeeded') for name in methods])
+        self.assertTrue(snapshot.baseline_online_verified(receipt))
+        for flag in (False,None,1):
+            self.assertFalse(snapshot.baseline_online_verified(dict(receipt,uploadBaselineOnlineVerified=flag)))
+        for variant in (receipt['steps'][:-1],list(reversed(receipt['steps'])),receipt['steps']+[receipt['steps'][0]],
+                        [dict(row,status='failed') if i==1 else row for i,row in enumerate(receipt['steps'])]):
+            self.assertFalse(snapshot.baseline_online_verified(dict(receipt,steps=variant)))
+        self.assertFalse(snapshot.baseline_online_verified(None))
+
     def test_only_unedited_saved_download_identity_is_admitted_without_rewriting_it(self):
         original,baseline,state=self.inputs();before=baseline.read_bytes()
         result=snapshot.prepare(original,baseline,state)

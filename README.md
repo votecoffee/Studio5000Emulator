@@ -61,6 +61,9 @@ The optional [uploaded tag definition check](docs/upload-tag-definitions.md)
 also exports every controller root and independently checks declarations,
 access/constant flags and current values. A requested check is revalidated
 before rebuilding an Offline ACD.
+A matching saved-download target can also receive a checked Online/Offline
+[baseline preflight](docs/upload-tag-definitions.md#ordinary-upload-with-a-checked-online-baseline)
+before ordinary upload, without saving or extending its timeout.
 The checked offline rebuild command imports those packages, saves and reopens
 a new ACD and verifies values, logic and scheduling. It uses the original
 Controller metadata; direct upload-save remains unfinished. Program import

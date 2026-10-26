@@ -62,3 +62,30 @@ the export step. Its final SDK outcome remains unknown. A fresh read-only
 connection subsequently goes Online, reads the live value and returns Offline
 without a fault. The timed-out call is not retried or relabeled as successful;
 ordinary upload reliability and direct general ACD saving remain unfinished.
+
+## Ordinary upload with a checked Online baseline
+
+For an unchanged matching saved-download target, the probe can verify Online
+and then Offline before starting an ordinary upload:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --upload-target .local/MatchingController.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation upload --verify-uploaded-content .local/Controller.L5X --verify-uploaded-tag-definitions --verify-upload-baseline-online --retain-transfer-trace --output .local/checked-baseline-upload
+```
+
+This uses the same source/correlation admission as the snapshot workflow. A
+missing, edited, uninstalled or incompatible baseline is rejected. The option
+does not save an ACD, retry an upload or extend the ordinary 120-second native
+helper limit. It is unsuitable for an arbitrary merge target whose offline
+changes need to be replaced by upload.
+
+The native report must confirm the actual ordered Online and Offline checks;
+setting the option or a receipt flag alone cannot prove them. The summary
+records `upload_baseline_online_verified` separately from upload success.
+
+The checked-baseline demo completes across 1,052 verified requests, including
+all fourteen controller definitions/current values and both routines. Native
+Offline cleanup succeeds without a fault, and runtime state remains unchanged.
+The controller response at the earlier stalled boundary is identical in the
+successful and timed-out traces; a differing response at that boundary is not
+established as the cause. This demonstrates the checked-baseline workflow,
+not general upload reliability or direct Studio ACD saving.

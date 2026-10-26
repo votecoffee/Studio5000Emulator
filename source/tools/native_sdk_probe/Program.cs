@@ -33,6 +33,7 @@ if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operatio
 if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
 if (options.ExportUploadedTags && (options.Operation != "upload" || options.UploadContent is null || options.UploadNewProject)) return 2;
+if (options.VerifyUploadBaselineOnline && (options.Operation != "upload" || options.UploadContent is null || options.UploadNewProject || options.SaveUploadedAcd)) return 2;
 if (options.SnapshotUploadedAcd && (options.Operation != "upload" || options.SaveUploadedAcd || options.UploadNewProject ||
     options.UploadContent is null || options.SnapshotBaseline is null) ||
     !options.SnapshotUploadedAcd && options.SnapshotBaseline is not null) return 2;
@@ -54,7 +55,8 @@ if (validateRequestOnly)
 {
     Console.WriteLine(JsonSerializer.Serialize(new { requestValidated = true, nativeProjectCalls = 0,
         uploadTags = options.UploadContent?.Tags.Length ?? 0, uploadRoutines = options.UploadContent?.Routines.Length ?? 0,
-        uploadPrograms = options.UploadContent?.Programs.Length ?? 0, exportUploadedTags = options.ExportUploadedTags }));
+        uploadPrograms = options.UploadContent?.Programs.Length ?? 0, exportUploadedTags = options.ExportUploadedTags,
+        verifyUploadBaselineOnline = options.VerifyUploadBaselineOnline }));
     return 0;
 }
 var steps = new List<object>();
@@ -80,6 +82,7 @@ object? savedDownloadedProject = null;
 object? uploadedContent = null;
 object? savedUploadedSnapshot = null;
 bool newUploadCompleted = false;
+bool uploadBaselineOnlineVerified = false;
 string newUploadPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "uploaded.ACD");
 if (options.UploadNewProject && File.Exists(newUploadPath)) return 2;
 async Task<T> BackendRead<T>(string operation, Func<Task<T>> read)
@@ -571,18 +574,19 @@ try
         await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
     });
     await Step("ReadConnectedStateAsync:initial", async () => (await project!.ReadConnectedStateAsync()).ToString());
-    if (options.SnapshotUploadedAcd)
+    if (options.SnapshotUploadedAcd || options.VerifyUploadBaselineOnline)
     {
-        await Step("GoOnlineAsync:verify-snapshot-baseline", async () => { await project!.GoOnlineAsync(); return true; });
-        await Step("Verify snapshot baseline Online", async () => {
+        await Step("GoOnlineAsync:verify-upload-baseline", async () => { await project!.GoOnlineAsync(); return true; });
+        await Step("Verify upload baseline Online", async () => {
             if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Online) throw new InvalidOperationException("Baseline is not Online");
             return true;
         });
-        await Step("GoOfflineAsync:verify-snapshot-baseline", async () => { await project!.GoOfflineAsync(); return true; });
-        await Step("Require snapshot baseline Offline before upload", async () => {
+        await Step("GoOfflineAsync:verify-upload-baseline", async () => { await project!.GoOfflineAsync(); return true; });
+        await Step("Require upload baseline Offline before upload", async () => {
             if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required");
             return true;
         });
+        uploadBaselineOnlineVerified = true;
     }
     }
     if (options.Operation is "upload" or "download")
@@ -817,7 +821,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
     backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent, savedUploadedSnapshot,
-    uploadNewProject = options.UploadNewProject, newProjectUpload,
+    uploadNewProject = options.UploadNewProject, newProjectUpload, uploadBaselineOnlineVerified,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
 return passed ? 0 : 1;
@@ -829,7 +833,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
                       bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
                       UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null,
-                      bool ExportDownloadedL5x = false, bool ExportUploadedTags = false)
+                      bool ExportDownloadedL5x = false, bool ExportUploadedTags = false, bool VerifyUploadBaselineOnline = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

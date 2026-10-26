@@ -11,10 +11,10 @@ from logixlab.native_project import NativeProjectIdentity
 from tools import upload_content
 
 
-def validate_options(operation,enabled,content_source,target,save_uploaded=False,new_project=False):
+def validate_options(operation,enabled,content_source,target,save_uploaded=False,new_project=False,*,option='--snapshot-uploaded-acd'):
     if type(enabled) is not bool:raise ValueError('Upload snapshot must be an explicit boolean')
     if enabled and (operation!='upload' or content_source is None or target is None or save_uploaded or new_project):
-        raise ValueError('--snapshot-uploaded-acd requires existing-project upload, --upload-target and --verify-uploaded-content without --save-uploaded-acd')
+        raise ValueError(option+' requires existing-project upload, --upload-target and --verify-uploaded-content without --save-uploaded-acd')
 
 
 def prepare(source,baseline,state):
@@ -31,6 +31,17 @@ def prepare(source,baseline,state):
             or saved.download_uid==original.download_uid or any(getattr(saved,k)!=getattr(original,k) for k in fixed)):
         raise ValueError('Upload snapshot requires an unedited saved-download baseline from the bound source')
     return saved.manifest()
+
+
+def baseline_online_verified(receipt):
+    """Require actual ordered Online/Offline steps, not only a requested flag."""
+    methods=('GoOnlineAsync:verify-upload-baseline','Verify upload baseline Online',
+             'GoOfflineAsync:verify-upload-baseline','Require upload baseline Offline before upload')
+    if not isinstance(receipt,dict) or receipt.get('uploadBaselineOnlineVerified') is not True:return False
+    steps=receipt.get('steps')
+    if not isinstance(steps,list) or any(not isinstance(row,dict) for row in steps):return False
+    selected=[row for row in steps if row.get('method') in methods]
+    return tuple(row['method'] for row in selected)==methods and all(row.get('status')=='succeeded' for row in selected)
 
 
 def verify(folder,expected,native_types,baseline,receipt):
