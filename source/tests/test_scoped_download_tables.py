@@ -4,6 +4,7 @@ import struct
 from types import MappingProxyType
 import unittest
 import zlib
+from types import SimpleNamespace
 
 from logixlab.download_image import ImageError
 from logixlab.download_namespace import DownloadNamespace
@@ -13,6 +14,9 @@ from logixlab.native_routines import NativeRoutines
 from logixlab.native_tables import NativeTables
 from logixlab.resilient_transport import ResilientTransport
 from logixlab import source_object_verification
+from logixlab.download_headers import HeaderBindings,attributes
+from logixlab.model import Tag
+import test_download_headers as headers
 from test_native_types import catalog,source_types
 import test_device_payload as payloads
 import test_download_image as images
@@ -80,6 +84,22 @@ class ScopedDownloadTableTests(unittest.TestCase):
         results=[self.image.read_preparation_effect(i,self.source) for i in range(self.image.records)]
         self.assertTrue(any(not row.matches for row in results))
         with self.assertRaises(ImageError):self.namespace.validate_base(self.source,self.native,**self.catalogs)
+
+    def test_explicit_read_only_local_constant_requires_captured_access_byte_and_keeps_flags(self):
+        tag=Tag('Local','DINT',1000,scope='A',constant=True,external_access='Read Only')
+        project=SimpleNamespace(sha256='b'*64,runtime_revision=0,runtime_edited_routines=(),
+            tags={tag.key.casefold():tag},programs={'A':{},'B':{}})
+        engine=SimpleNamespace(project=project,mode='project')
+        binding=HeaderBindings(engine,self.namespace,self.catalogs['native_symbols'],self.catalogs['native_routines'])
+        handle=next(x for x in self.namespace._tables if x.key==(2,1))
+        row=headers.symbol(1,'Local',0xC4,handle.value_address,((0x68,2),(0x6A,1)),2)
+        values=attributes(0x6B,row.request[2+2*row.request[1]:]);values[10]=b'\2';values[11]=b'\1'
+        key,retained=binding.check(headers.update(0x6B,1,values,2))
+        self.assertEqual(key,(0x6B,2,1));self.assertEqual(dict(retained)[10],b'\2')
+        self.assertTrue(tag.constant);self.assertEqual(tag.external_access,'Read Only');self.assertEqual(tag.value,1000)
+        for attr,value in ((10,b'\1'),(10,b'\0'),(11,b'\0')):
+            with self.subTest(attr=attr,value=value),self.assertRaises(ImageError):
+                binding.check(headers.update(0x6B,1,{**values,attr:value},2))
 
 
 if __name__=='__main__':unittest.main()

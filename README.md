@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.131441`.** Versions use the release timestamp
+**Current app version: `26.1026.143655`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -60,6 +60,10 @@ clears download identity, so the rebuilt file requires a download.
 The SDK probe can also [check the complete saved downloaded project](docs/download-content-validation.md)
 with `--verify-downloaded-content`. Values, logic, Program settings, Task
 schedules and explicit UDT schemas are verified after native save/reopen.
+
+[Installed Table identities](docs/installed-table-identities.md) now preserve
+the separate Symbol and Data Table IDs produced by native Program import.
+The committed catalogs, descriptors and value reads share the verified links.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
@@ -192,7 +196,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-This revision passes 374 affected checks and 367 Python syntax checks.
+This revision passes 398 affected checks and 372 Python syntax checks.
 The preceding full milestone passes 2,141 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

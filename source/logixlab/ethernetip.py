@@ -1663,7 +1663,18 @@ class Router:
         # Alias symbols refer to another tag's storage and do not create a new
         # Data Table instance. Reuse discovery's type/access/source checks.
         tags=self.app.engine.project.tags
-        return [symbol for symbol in self.symbols(scope) if symbol.get('object_reference') is None and not tags[symbol['ref'].lower()].alias]
+        from .installed_memory import table_ids
+        try:installed=table_ids(self.app,self)
+        except ImageError as error:raise CIPError(0x0C,error.reason) from error
+        rows=[]
+        for symbol in self.symbols(scope):
+            if symbol.get('object_reference') is not None or tags[symbol['ref'].lower()].alias:continue
+            if installed is not None:
+                instance=installed.get(symbol['ref'].casefold())
+                if instance is None:raise CIPError(0x0C,'installed_table_symbol_binding_unavailable')
+                symbol={**symbol,'id':instance,'symbol_id':symbol['id']}
+            rows.append(symbol)
+        return sorted(rows,key=lambda row:row['id'])
 
     def data_table_service(self,service,path,data,limit):
         scope=self.symbol_scope(path)
@@ -1709,7 +1720,7 @@ class Router:
                 else:
                     catalog=self.templates();template=catalog.for_type(dtype)
                     if template:rows.append((symbol,data_table.StructureLayout(catalog,template)))
-        key=(project,tuple((s['ref'],s['id'],s['type'],tuple(s['dimensions']),fmt) for s,fmt in rows))
+        key=(project,tuple((s['ref'],s['id'],s.get('symbol_id'),s['type'],tuple(s['dimensions']),fmt) for s,fmt in rows))
         if key!=self._storage_key:
             self._storage=data_table.AddressSpace(rows);self._storage_key=key
         return self._storage

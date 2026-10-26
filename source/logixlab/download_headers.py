@@ -154,6 +154,10 @@ class HeaderBindings:
                 tag=next((t for t in project.tags.values() if t.name==name and t.scope.casefold()==(self._program(program).casefold() if program else '')),None)
                 if tag is not None:
                     access={'Read/Write':0,'Read Only':1,'None':2}.get(tag.external_access)
+                    # Native Program import emits 02 for explicit read-only
+                    # local constants. Keep this observed profile separate
+                    # from other roots/access settings; do not accept both.
+                    if tag.scope and tag.constant and tag.external_access=='Read Only':access=2
                     if tag.alias or tag.problem or access is None:raise ImageError('download_header_tag_profile_unavailable')
                     constant=int(tag.constant)
             elif name.startswith('Program:') and not program:

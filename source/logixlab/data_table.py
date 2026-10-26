@@ -51,6 +51,10 @@ class Cell:
     slot: int
     dimensions: tuple = (0,0,0)
     array_offset: int = 0
+    symbol_instance: int | None = None
+
+    @property
+    def symbol_id(self):return self.instance if self.symbol_instance is None else self.symbol_instance
 
     @property
     def element_size(self):
@@ -93,7 +97,7 @@ class Cell:
         # Model-owned Symbol descriptor: value/table links, type, size, ID,
         # ordinary-base control and dimensions. Not a firmware layout.
         return struct.pack('<IIHHI4I', self.value_address, self.address,
-                           self.code, self.element_size, self.instance, 0, *self.dimensions)
+                           self.code, self.element_size, self.symbol_id, 0, *self.dimensions)
 
     def value(self, read):
         value = read(self.ref)
@@ -147,7 +151,7 @@ class AddressSpace:
                 if (symbol['type']!=0x20C1 or fmt!='<B' or dimensions[1:]!=(0,0)
                         or not 32<=dimensions[0]<=65536 or dimensions[0]%32):continue
                 fmt=PackedBoolLayout(dimensions[0])
-            cell=Cell(symbol['ref'],symbol['id'],symbol['type'],fmt,slot,dimensions,array_bytes)
+            cell=Cell(symbol['ref'],symbol['id'],symbol['type'],fmt,slot,dimensions,array_bytes,symbol.get('symbol_id'))
             if cell.aggregate:
                 size=(cell.size+7)//8*8
                 if cell.size>MAX_ARRAY_BYTES or array_bytes+size>MAX_ARRAY_STORAGE_BYTES:continue

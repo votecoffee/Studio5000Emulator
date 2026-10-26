@@ -52,6 +52,25 @@ def read_constant(app,router,key):
     return value
 
 
+def table_ids(app,router):
+    """Committed Table identities are independent of scoped Symbol identities."""
+    project=app.engine.project
+    if (not router.endpoint.native_read_only or getattr(app.engine,'installed_download',None) is None
+            or getattr(project,'runtime_revision',0)):
+        return None
+    installed,ns=_verified_installation(app,router)
+    result={};seen=set()
+    for key,table,code,initial in installed.values.values:
+        symbol=app.native_symbols.by_key.get(key) if app.native_symbols is not None else None
+        parent,instance=table if isinstance(table,tuple) else (0,table)
+        if (symbol is None or symbol.program_instance!=parent or key in result or (parent,instance) in seen
+                or ns._image._symbols.get((parent,symbol.instance))!=table
+                or not any(row.key==table for row in ns._tables)):
+            raise ImageError('installed_table_symbol_binding_changed')
+        result[key]=instance;seen.add((parent,instance))
+    return result
+
+
 def _verified_installation(app,router):
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if not router.endpoint.native_read_only or installed is None:
@@ -76,7 +95,8 @@ def _bound_cell(app,router,ns,key,table,code):
         raise ImageError('installed_memory_symbol_binding_changed')
     router.access(tag.key)
     cell=router.scalar_storage().by_ref.get(key)
-    if cell is None or cell.instance!=symbol.instance or cell.table_code!=code:
+    instance=table[1] if isinstance(table,tuple) else table
+    if cell is None or cell.symbol_id!=symbol.instance or cell.instance!=instance or cell.table_code!=code:
         raise ImageError('installed_memory_current_storage_unavailable')
     return tag,cell
 

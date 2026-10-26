@@ -87,7 +87,7 @@ class ConstantShapeTests(unittest.TestCase):
         code,dimensions,_,raw=encode_initial(dtype,value,None)
         logical_dimensions=(len(value),0,0) if dtype=='BOOL' and isinstance(value,list) else dimensions
         logical_code=0x20C1 if code==0x20D3 else code
-        space=AddressSpace([(dict(ref=tag.key,id=9,type=logical_code,dimensions=logical_dimensions),fmt)])
+        space=AddressSpace([(dict(ref=tag.key,id=5,symbol_id=9,type=logical_code,dimensions=logical_dimensions),fmt)])
         ns=NS(_tables=[NS(key=(2,5),value_address=0x72000000)],_image=NS(_symbols={(2,9):(2,5)}))
         installed=NS(check=lambda identity,project:None,values=NS(values=((key,(2,5),code,raw),)),namespace=ns)
         app=NS(engine=NS(project=NS(tags={key:tag}),installed_download=installed,memory=NS(read=lambda ref:value)),
@@ -128,7 +128,7 @@ class ConstantStructureTests(unittest.TestCase):
         project=self.app.engine.project;tag=project.tags[key];tag.constant=True
         native,rows=native_templates.saved(project);catalog=NativeTemplates(native,rows).bind(project,native)
         code,dims,_,raw=encode_initial(tag.dtype,project.initial[key],native)
-        space=AddressSpace([(dict(ref=tag.key,id=9,type=code,dimensions=dims),StructureLayout(catalog,catalog.for_type(tag.dtype)))])
+        space=AddressSpace([(dict(ref=tag.key,id=5,symbol_id=9,type=code,dimensions=dims),StructureLayout(catalog,catalog.for_type(tag.dtype)))])
         ns=NS(_tables=[NS(key=5,value_address=0x72000000)],_image=NS(_symbols={(0,9):5}))
         installed=NS(check=lambda identity,p:None,values=NS(values=((key,5,code,raw),)),namespace=ns)
         self.app.engine.installed_download=installed;self.app.native_project_identity=object()
