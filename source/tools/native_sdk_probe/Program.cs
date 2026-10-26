@@ -399,11 +399,20 @@ async Task Step(string name, Func<Task<object?>> action)
 {
     var clock = Stopwatch.StartNew();
     var startedAt = DateTimeOffset.UtcNow;
+    // Keep the last entered/completed SDK step if the native process stalls.
+    // These private diagnostic lines never substitute for sdk-result.json.
+    void Progress(string phase) {
+        Console.WriteLine(JsonSerializer.Serialize(new { kind = "native_step", method = name,
+            phase, startedAt, time = DateTimeOffset.UtcNow, elapsedMs = clock.Elapsed.TotalMilliseconds }));
+        Console.Out.Flush();
+    }
+    Progress("started");
     try
     {
         var value = await action();
         steps.Add(new { method = name, status = "succeeded", value, startedAt, finishedAt = DateTimeOffset.UtcNow,
                         elapsedMs = clock.Elapsed.TotalMilliseconds });
+        Progress("succeeded");
     }
     catch (Exception error)
     {
@@ -414,6 +423,7 @@ async Task Step(string name, Func<Task<object?>> action)
             chain.Add(new { type = item.GetType().FullName, message = item.Message, hresult = $"0x{item.HResult:X8}" });
         steps.Add(new { method = name, status = "failed", errors = chain, startedAt, finishedAt = DateTimeOffset.UtcNow,
                         elapsedMs = clock.Elapsed.TotalMilliseconds });
+        Progress("failed");
         throw;
     }
 }

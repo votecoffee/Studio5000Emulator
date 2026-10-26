@@ -62,7 +62,11 @@ complete recording contains no call to the new UserMemory read service and no
 new native rejection, but it does not establish the cause of the timeout or a
 completed upload. The SDK service remains running; the SDK call outcome and
 native Offline cleanup are unknown. The emulator endpoint is idle and its
-source/model/audit state is preserved. That uncertain operation is not retried.
+source/model/audit state is preserved. That call's outcome remains unknown.
+A later fresh saved-project connection succeeds across 73 requests with
+confirmed SDK Offline cleanup. A new upload succeeds across 980, independently
+verifying all 14 values and both routines, again with normal cleanup and no
+fault. This confirms recovery without establishing the timeout's cause.
 
 The milestone passes 2,120 software tests with two platform checks skipped;
 all 363 Python files parse. Source, executable, browser assets and all 120

@@ -21,9 +21,10 @@ all 14 offline tag values and both routines in the SDK's reconstructed demo.
 Upload replaces a deliberately changed merge-baseline routine and preserves
 all 45 current-value bytes and ten source rungs. Full uploaded ACD saving still
 faults the tested SDK during `SaveAsAsync`, after those content checks pass.
-A subsequent upload regression on the current version times out after 866
-verified requests; its native outcome is unknown. Upload reliability and
-uploaded ACD persistence remain the transfer priorities.
+After an earlier upload timeout, a fresh saved-project connection confirms
+SDK recovery and a new upload succeeds across 980 verified requests with all
+content checks passing. The timeout's cause remains unknown. Upload reliability
+and uploaded ACD persistence remain the transfer priorities.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.

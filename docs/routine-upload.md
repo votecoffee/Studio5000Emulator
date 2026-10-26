@@ -4,9 +4,12 @@ Version `26.1026.085243` adds [native Online scalar DINT reads](installed-memory
 Download/save/reopen/Online succeeds again, and two saved-project SDK sessions
 read positive and negative current values. Its subsequent upload regression
 times out after 866 verified requests without a new native rejection. The
-recording is complete, but native call completion and Offline cleanup are
-unknown; no retry is made. Earlier successful upload results below remain
-version-specific. Reliable upload and uploaded ACD persistence remain unfinished.
+recording is complete, but that call's completion and Offline cleanup are
+unknown. A later fresh saved-project connection confirms actual SDK Offline
+cleanup across 73 verified requests. A new upload then succeeds across 980,
+verifying all 14 tag values and both routines with normal cleanup and no fault.
+This does not identify the earlier timeout's cause. Uploaded ACD persistence
+and reliable general upload remain unfinished.
 
 Version `26.1026.080644` adds [independent native content validation](upload-content-validation.md).
 Upload into a compatible NOP-altered baseline succeeds across 980 verified

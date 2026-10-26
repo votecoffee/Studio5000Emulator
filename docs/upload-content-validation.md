@@ -47,6 +47,11 @@ native Offline cleanup, and never controls Windows services or repeats a native
 operation automatically. Project names, values and exported logic remain in
 ignored private storage.
 
+The private `sdk.log` also receives flushed `native_step` JSON lines when a
+step starts, succeeds or fails. These locate the last entered SDK call if the
+process times out before it can write `sdk-result.json`. They do not establish
+the outcome of an unfinished call or confirm native Offline cleanup.
+
 ## Acceptance boundary
 
 The content check uses the SDK's reconstructed offline project. It does not
@@ -86,5 +91,7 @@ All temporary values are restored exactly without scanning. After the SDK
 service is restarted externally, saved-download Go Online/Go Offline succeeds
 again. The following revision's [installed DINT read profile](installed-memory-reads.md)
 clears the typed online tag boundary; its separate upload regression times out
-with an unknown native outcome. It does not supersede this version's successful
-content check or establish reliable upload completion.
+with an unknown native outcome. After a fresh saved-project connection confirms
+SDK recovery, a new upload succeeds across 980 requests on that following
+revision. All 14 values and both routines verify again, with native Offline
+cleanup and no fault. Uploaded ACD persistence remains blocked.
