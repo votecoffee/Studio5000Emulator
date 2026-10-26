@@ -30,3 +30,27 @@ Focused checks cover admitted bindings, changed-effect rejection, independent
 Symbol/Table IDs through actual wire consumers, storage-cache invalidation,
 missing-root rejection and strict read-only local-constant headers. Native
 transfer acceptance is recorded separately from these software checks.
+
+## Native checkpoint
+
+Both actually rebuilt source profiles complete native download/save/reopen/
+Online on this revision. Independent full exports verify the demo's fourteen
+roots and ten rungs (431 requests), and the two-Program profile's twenty-nine
+roots and thirteen rungs (435 requests). The latter retains ten constants,
+nested UDTs, arrays and explicitly read-only local constants. Native Offline
+cleanup succeeds without an SDK fault.
+
+The rebuilt demo's upload now passes tag collection, all fourteen value reads,
+both routine exports and its complete Program export. Its snapshot saves,
+reopens and goes Online, then stops at the final typed DINT getter with a
+no-data result. Cleanup is confirmed; the complete snapshot case remains failed.
+
+The rebuilt two-Program trial saves a snapshot, but its 300-second client
+deadline expires during native reopen. Its final native outcome and Offline
+cleanup are unknown. That operation is not repeated. A separate read-only
+session using the previously verified downloaded file subsequently goes Online,
+reads the live value and returns Offline without a fault.
+
+These changes pass 398 focused checks and the full 2,163-test milestone, with
+two platform skips. All 372 Python sources parse. Direct reconstructed-project
+saving, general project replacement and Studio GUI acceptance remain unfinished.

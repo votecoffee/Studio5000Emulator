@@ -197,8 +197,8 @@ The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
 This revision passes 398 affected checks and 372 Python syntax checks.
-The preceding full milestone passes 2,141 Windows tests, with two platform checks
-skipped. Small revisions use affected checks.
+The full milestone runs 2,163 Windows tests, with two platform checks skipped.
+Small revisions use affected checks.
 
 **Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI

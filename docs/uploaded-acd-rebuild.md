@@ -93,10 +93,14 @@ source in the emulator. It retains the original input and changes only the
 installed download correlation. Native Offline cleanup succeeds without an
 SDK fault. This does not enable arbitrary project replacement over the network.
 
-Its subsequent upload stops during tag collection with normal Offline cleanup
-and no SDK fault. A separate rebuilt two-Program download stops at a typed
-header check before installation. These remain unresolved boundaries; the
-complete upload/rebuild/download/re-upload cycle is not yet accepted.
+That checkpoint's subsequent upload stops during tag collection, and its
+rebuilt two-Program download stops at a typed header check. Version
+`26.1026.143655` resolves those two boundaries using
+[installed Table identities](installed-table-identities.md): both rebuilt
+downloads pass with complete saved-content checks, and the demo upload's
+values, routines and Program package verify. The next failures are a final
+typed Online DINT getter for the demo and a two-Program snapshot reopen timeout.
+The complete upload/rebuild/download/re-upload cycle is not yet accepted.
 
 The optional [download content check](download-content-validation.md) verifies
 the complete saved Controller separately from connection and correlation.

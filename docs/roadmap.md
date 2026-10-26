@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.143655` keeps committed Symbol and Data Table identities
+separate and recognizes the captured read-only local-constant header profile.
+Both rebuilt projects now download/save/reopen/Online with full saved-content
+checks (431/435 requests). The rebuilt demo's upload verifies all values and
+logic, then fails at a final typed Online getter after snapshot reopen/Online.
+The two-Program snapshot times out during reopen; a separate read-only saved-file
+connection confirms recovery. Full case acceptance remains unfinished. See
+[installed Table identities](installed-table-identities.md) for the evidence.
+
 The Windows [downloaded-content check](download-content-validation.md) now
 verifies the actual saved/reopened Controller export, in addition to Online
 correlation. Native demo download/save/reopen/Online passes across 429 requests
