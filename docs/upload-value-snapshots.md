@@ -97,3 +97,14 @@ Online getters. A fresh SDK process reopens the saved snapshot, goes Online
 and reads the live DINT across 74 requests. Source/model preservation, correlation, Offline
 cleanup and no SDK fault pass. This revision passes 194 affected software checks;
 the preceding full milestone remains separately recorded above.
+
+App `26.1026.122552` extends native acceptance to a two-Program profile with
+six local roots, duplicate names across Programs, a DINT constant and an
+array. Download/save/reopen/Online succeeds across 434 requests; snapshot
+upload/save/reopen/Online succeeds across 1,188. Five deliberately changed
+local values survive upload and native save/reopen. All twenty roots (71
+bytes), four routines and thirteen rungs verify, including both Program
+packages. Eleven BOOLs and five DINTs receive typed Online checks; the constant
+remains `1000` with its flag preserved. Values are restored without scanning,
+with actual Offline cleanup and no fault. See the complete
+[scoped transfer checkpoint](scoped-download-tables.md#native-snapshot-checkpoint-261026122552).

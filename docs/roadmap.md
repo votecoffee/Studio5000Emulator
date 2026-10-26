@@ -6,6 +6,14 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.122552` completes native source-equivalent download/save/
+reopen/Online (434 requests) and upload value snapshot/save/reopen/Online
+(1,188) for a two-Program profile with local tags, duplicate names, a constant
+and an array. All twenty roots, six locals and thirteen rungs verify. Online
+BOOL/DINT getters return each Program's distinct changed values; the constant
+stays read-only. Normal Offline cleanup, restored values and no SDK fault pass.
+See [scoped tables](scoped-download-tables.md) for the boundaries and evidence.
+
 Version `26.1026.121058` adds [Program-scoped transfer tables](scoped-download-tables.md).
 Source inventory, reciprocal Symbol links, preparation effects, handles and
 incremental value storage retain the original Program parent. Repeated IDs in

@@ -71,3 +71,31 @@ The SDK reports Program upload failure and returns Offline without a fault.
 Temporary local values are restored. Version `26.1026.122552` adds the narrow
 [installed constant read profile](installed-memory-reads.md) needed at this
 boundary; general constant storage and writes remain unavailable.
+
+The constant follow-up passes 341 affected checks. The full software milestone
+passes 2,141 tests with two platform checks skipped; all 367 Python files parse.
+Software checks remain separate from the native transfer results above.
+
+## Native snapshot checkpoint: `26.1026.122552`
+
+The same two-Program profile completes download/save/reopen/Online across 434
+verified requests. Five temporary writes then change the two Programs' local
+DINTs and BOOLs independently, plus an array element. Upload snapshot/save/
+reopen/Online succeeds across 1,188 requests. All twenty roots (71 bytes),
+four routines and thirteen rungs match in the uploaded SDK project and the
+saved full L5X. Both native Program exports independently verify all six
+local roots.
+
+Typed Online getters verify eleven BOOLs and five DINTs, including distinct
+changed values for the duplicate local names. The constant retains its value
+`1000` and its constant flag. Independent recorded-response inspection confirms
+all seven constant Data Table fields and its four-byte value read. Original
+source, installed correlation and model state are preserved; all temporary
+values are restored without scanning. Native Offline cleanup and no SDK fault
+are confirmed.
+
+Complete 1,751/4,418-event download/snapshot recordings replay identically
+offline. MACs are not independently reauthenticated by replay. This is the
+unchanged-source [value snapshot profile](upload-value-snapshots.md); direct
+saving of a reconstructed upload and general Studio GUI acceptance remain
+unfinished.

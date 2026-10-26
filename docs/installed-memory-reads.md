@@ -20,6 +20,12 @@ bindings and a current value identical to its prepared source bytes. The
 constant flag remains set; tag writes and UserMemory reads of constants remain
 blocked. Generic uninstalled constants retain unavailable storage fields.
 
+The two-Program native snapshot completes across 1,188 verified requests,
+including an actual constant Table read of `1000` and independent saved-value/
+flag checks. Typed Online getters also verify mutable BOOLs and DINTs with
+duplicate names in different Programs. Their model value addresses remain
+distinct. Native Offline cleanup and no SDK fault are confirmed.
+
 The SDK's typed online tag request uses class `0x72`, instance `0`, service
 `0x4C`, with a little-endian 32-bit address and a 16-bit count of `1`. This
 profile returns exactly four DINT or padded BOOL bytes. Other counts, interior addresses,

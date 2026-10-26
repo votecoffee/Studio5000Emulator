@@ -12,8 +12,10 @@ page header, Windows tray and executable properties share this version.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
 and reopen a current-value ACD that goes Online.** The native probe completes
-the sequence across 1,139 verified requests, preserving all 14 tag values,
-ten rungs and the installed correlation. This requires unchanged source and
+the demo sequence across 1,139 verified requests, preserving all 14 tag values,
+ten rungs and the installed correlation. A two-Program profile now passes
+across 1,188 requests, preserving 20 roots, local arrays/constants and 13 rungs.
+This requires unchanged source and
 a matching saved-download baseline; direct general Studio upload-save remains
 unfinished.
 
@@ -25,8 +27,9 @@ and member/array monitoring remain unavailable through this native profile.
 
 [Program-scoped transfer storage](docs/scoped-download-tables.md) now preserves
 separate Data Table identities, handles and values when Programs reuse numeric
-IDs. Scoped source binding and all 924 records in a saved preparation batch
-pass offline checks; complete native transfer acceptance is checked separately.
+IDs. Native download/save/reopen/Online and upload snapshot/save/reopen/Online
+now pass for a two-Program profile, including current local values and a
+read-only DINT constant. General project replacement remains unsupported.
 
 [Uploaded-content validation](docs/upload-content-validation.md) now verifies
 all 14 offline tag values and both routines in the SDK's reconstructed demo.
@@ -177,7 +180,7 @@ The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
 This revision passes 341 affected checks and 367 Python syntax checks.
-The last full milestone passes 2,130 Windows tests, with two platform checks
+The current full milestone passes 2,141 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
 **Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
