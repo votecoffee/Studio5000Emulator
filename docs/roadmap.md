@@ -6,6 +6,12 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.085243` adds [installed scalar DINT reads](installed-memory-reads.md)
+accepted by two native Online SDK sessions. A subsequent upload regression
+times out after 866 verified requests, with complete traffic recording and no
+new native rejection. Its outcome is unknown and is not retried. Reliable
+upload completion and the known uploaded-ACD save fault remain the priorities.
+
 The current [Routine upload checkpoint](routine-upload.md) records successful
 existing-project SDK uploads of the two-routine conveyor demo, including live
 tag values. The entries below retain earlier checkpoints and do not override

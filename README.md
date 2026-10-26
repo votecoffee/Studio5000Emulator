@@ -6,15 +6,24 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.080644`.** Versions use the release timestamp
+**Current app version: `26.1026.085243`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Installed DINT reads](docs/installed-memory-reads.md) now work through the
+native SDK while Online. Two saved-ACD sessions read current values `87` and
+`-123`, each confirming Offline cleanup without an SDK fault. The observed
+signed UserMemory request resolves to an exact installed scalar value in
+current interpreter memory. General memory access remains unavailable.
 
 [Uploaded-content validation](docs/upload-content-validation.md) now verifies
 all 14 offline tag values and both routines in the SDK's reconstructed demo.
 Upload replaces a deliberately changed merge-baseline routine and preserves
 all 45 current-value bytes and ten source rungs. Full uploaded ACD saving still
 faults the tested SDK during `SaveAsAsync`, after those content checks pass.
+A subsequent upload regression on the current version times out after 866
+verified requests; its native outcome is unknown. Upload reliability and
+uploaded ACD persistence remain the transfer priorities.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
@@ -50,7 +59,7 @@ clears the two-BOOL XIC/OTE fixture's reconstruction failure; source-checked
 TIMER/COUNTER definitions close the demo's remaining tag-discovery gap.
 A second upload verifies all 33 current-value bytes across five deliberately
 changed tags; those temporary values are restored afterward. Saving an
-uploaded ACD remains unverified.
+uploaded ACD has since been tested and faults as described above.
 
 [Packed BOOL-array readback](docs/bool-array-download.md#packed-table-readback)
 keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
@@ -60,7 +69,7 @@ retains its existing behavior.
 
 For the owned routine-free BOOL[64] fixture, native SDK download/save/reopen/Go
 Online completes across 424 verified requests and `UploadAsync` across 968
-on the current version.
+on version `26.1024.111516`.
 The upload trace includes the packed table read, whose eight bytes match every
 saved bit. Independent CIP checks verify all 64 bits and the linked descriptors.
 Saving and reopening an uploaded ACD remains unverified.
@@ -145,13 +154,13 @@ while reporting the changed runtime logic separately. A native SDK test
 completes download, Program-mode rung import and Offline/Online reconnection
 across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
-both Routine source streams. Uploaded ACD saving remains unverified.
+both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-This iteration passes 124 affected checks and 361 Python syntax checks.
-The routine-upload milestone passes 2,110 Windows tests, with two platform checks
+This iteration passes 183 affected checks and 363 Python syntax checks.
+The current milestone passes 2,120 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
-**General routine-containing upload, replacement with another project, SDK tag-address discovery and the complete
+**Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
 Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
 monitoring remains unverified. Supported instructions have bounded software
 models; this project does not establish native controller equivalence.
@@ -354,7 +363,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline and bounded source-equivalent transfers verified for the demo; Studio GUI acceptance and native tag/rung monitoring remain unverified |
+| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar DINT reads and bounded source-equivalent transfers verified for the demo; Studio GUI acceptance and general tag/rung monitoring remain unverified |
 | Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,

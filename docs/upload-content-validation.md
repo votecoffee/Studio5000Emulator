@@ -84,4 +84,7 @@ uploaded ACD persistence. No automatic save retry is made.
 
 All temporary values are restored exactly without scanning. After the SDK
 service is restarted externally, saved-download Go Online/Go Offline succeeds
-again; the separate typed online tag read retains a UserMemory policy boundary.
+again. The following revision's [installed DINT read profile](installed-memory-reads.md)
+clears the typed online tag boundary; its separate upload regression times out
+with an unknown native outcome. It does not supersede this version's successful
+content check or establish reliable upload completion.
