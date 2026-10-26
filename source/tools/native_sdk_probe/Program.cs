@@ -444,6 +444,13 @@ async Task SaveUploadedSnapshot()
                 throw new InvalidOperationException("Snapshot Online value differs from uploaded value");
             return value;
         });
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant && tag.TypeCode == 0xC1 &&
+            tag.ExpectedHex is "00" or "01" && tag.Dimensions?.All(size => size == 0) == true))
+        await Step("Snapshot Online BOOL:" + tag.Name, async () => {
+            bool value = await project!.GetTagValueBOOLAsync(tag.XPath, LogixProject.OperationMode.Online);
+            if (value != (tag.ExpectedHex == "01")) throw new InvalidOperationException("Snapshot Online BOOL differs from uploaded value");
+            return value;
+        });
     CheckPreserved(before, await Backend(), true);
     await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
     await Step("Require snapshot Offline after Online check", async () => {

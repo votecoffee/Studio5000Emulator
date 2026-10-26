@@ -6,22 +6,22 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.085243`.** Versions use the release timestamp
+**Current app version: `26.1026.112241`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
 and reopen a current-value ACD that goes Online.** The native probe completes
-the sequence across 1,129 verified requests, preserving all 14 tag values,
+the sequence across 1,139 verified requests, preserving all 14 tag values,
 ten rungs and the installed correlation. This requires unchanged source and
 a matching saved-download baseline; direct general Studio upload-save remains
 unfinished.
 
-[Installed DINT reads](docs/installed-memory-reads.md) now work through the
-native SDK while Online. Two saved-ACD sessions read current values `87` and
-`-123`, each confirming Offline cleanup without an SDK fault. The observed
-signed UserMemory request resolves to an exact installed scalar value in
-current interpreter memory. General memory access remains unavailable.
+[Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
+native SDK while Online. Separate BOOL sessions verify `true` and `false`,
+with Offline cleanup and no fault. The signed UserMemory request resolves to
+an exact installed scalar value in current interpreter memory. General memory
+and member/array monitoring remain unavailable through this native profile.
 
 [Uploaded-content validation](docs/upload-content-validation.md) now verifies
 all 14 offline tag values and both routines in the SDK's reconstructed demo.
@@ -171,8 +171,8 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-The current probe changes pass 88 affected checks and 365 Python syntax checks.
-The current full milestone passes 2,130 Windows tests, with two platform checks
+This revision passes 194 affected checks and 365 Python syntax checks.
+The last full milestone passes 2,130 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
 **Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
@@ -378,7 +378,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar DINT reads and bounded source-equivalent transfers verified for the demo; Studio GUI acceptance and general tag/rung monitoring remain unverified |
+| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar BOOL/DINT reads and bounded source-equivalent transfers verified for the demo; Studio GUI acceptance and general tag/rung monitoring remain unverified |
 | Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,

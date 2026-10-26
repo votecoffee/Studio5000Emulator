@@ -6,8 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.112241` adds native Online scalar BOOL word reads, verified
+for both values with normal Offline cleanup. The snapshot verifier now checks
+BOOLs and DINTs Online. The upload snapshot also passes for a routine-free
+nested-UDT/array profile: 17 roots, 145 value bytes and 1,125 native requests,
+including deliberately changed member values. General member/array monitoring,
+broader reconstruction and native GUI acceptance remain separate work.
+
 The current [source-equivalent value snapshot](upload-value-snapshots.md)
-passes native upload/save/reopen/Online across 1,129 requests, preserving all
+passes native upload/save/reopen/Online across 1,139 requests, preserving all
 14 tag values, ten rungs and installed correlation. It uses an unedited saved
 baseline and Offline value updates only. Broader upload reconstruction,
 direct Studio upload-save, other-project download and the full online-edit

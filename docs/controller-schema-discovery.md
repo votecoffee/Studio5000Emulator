@@ -22,9 +22,11 @@ the API. A schema number does not establish controller execution equivalence.
 
 Only class instance zero is supported. Unknown class attributes return `0x14`,
 including per-field errors in mixed lists; nonzero instances return `0x05`.
-Instance counts, pool sizes, addresses, allocation and other instance services
-remain unavailable. Neither ordinary tag-write access nor a signed read grants
-those operations. These two classes remain absent from the research profile.
+Instance counts, pool sizes, allocation and general instance services remain
+unavailable. A later, separately bound [installed scalar word read profile](installed-memory-reads.md)
+supports signed `0x72` service `0x4C` for exact ordinary BOOL/DINT value addresses
+retained by a source-equivalent download. It grants no arbitrary memory access
+or writes. These two classes remain absent from the research profile.
 Connectivity metadata describes the subset under `controller_schemas`.
 
 ## Native Controller and Time Sync layout selection

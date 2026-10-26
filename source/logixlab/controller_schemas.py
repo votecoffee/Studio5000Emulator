@@ -3,7 +3,7 @@
 Reference class reads establish UINT revisions for classes 0x66 and 0x72.
 The installed v35 definition identifies 0x72 as UserMemory. Class 0x66's
 instance layout and semantics remain unimplemented. UserMemory additionally
-serves the narrow signed installed-DINT read profile; neither class grants
+serves the narrow signed installed DINT/BOOL word-read profile; neither class grants
 capacity, pool addresses, allocation or general memory access.
 Native compatibility selects observed v35 response schemas independently of
 their deliberately partial source/runtime attribute implementations. A layout
@@ -35,6 +35,8 @@ def description():
             'allocation_services': False, 'native_controller_equivalence': False,
             'installed_dint_read': {'class_id':0x72,'instance':0,'service':0x4C,'words':1,
                                     'source':'Committed model values only','writes':False},
+            'installed_bool_word_read': {'class_id':0x72,'instance':0,'service':0x4C,'words':1,
+                                         'reply_bytes':4,'encoding':'BOOL low byte; three zero bytes','writes':False},
             'compatibility_classes': [{'class_id': cls, 'schema_revision': revision,
                                       'name':COMPATIBILITY_NAMES[cls]}
                                      for cls,revision in COMPATIBILITY_REVISIONS.items()],

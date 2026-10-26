@@ -1,11 +1,11 @@
-"""Signed online DINT reads resolve committed addresses to current model values."""
+"""Signed online scalar reads resolve committed addresses to current model values."""
 import copy
 import struct
 from types import MappingProxyType
 import unittest
 
 from logixlab.download_namespace import VALUE_BASE
-from logixlab.installed_memory import read_dint
+from logixlab.installed_memory import read_scalar,scalar_word
 from logixlab.download_image import ImageError
 import test_installed_symbol_control as controls
 
@@ -25,6 +25,14 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
 
     def read_value(self,address=VALUE_BASE,words=1,path=bytes.fromhex('20722400')):
         return self.send(bytes((0x4C,len(path)//2))+path+struct.pack('<IH',address,words))
+
+    def test_scalar_word_preserves_dint_and_canonical_bool_without_accepting_other_storage(self):
+        self.assertEqual(scalar_word('DINT',0xC4,struct.pack('<i',-123)),struct.pack('<i',-123))
+        self.assertEqual(scalar_word('BOOL',0xC1,b'\1'),bytes.fromhex('01000000'))
+        self.assertEqual(scalar_word('BOOL',0xC1,b'\0'),bytes(4))
+        for dtype,code,value in (('BOOL',0xC1,b'\2'),('BOOL',0xC1,bytes(4)),('BOOL',0xC4,b'\1'),
+                                  ('DINT',0xC4,b'\1'),('USINT',0xC6,b'\1'),('BOOL',0xC1,bytearray(b'\1'))):
+            with self.subTest(dtype=dtype,code=code,value=value),self.assertRaises(ImageError):scalar_word(dtype,code,value)
 
     def test_installed_address_reads_current_dint_without_scans_or_model_mutation(self):
         self.assertEqual(self.read_value()[2],12)
@@ -60,7 +68,7 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
         tag.constant=True;self.assertEqual(self.read_value()[2],12);tag.constant=False
         tag.external_access='None';self.assertNotEqual(self.read_value()[2],0);tag.external_access='Read/Write'
         self.app.command('reset',{})
-        with self.assertRaises(ImageError):read_dint(self.app,self.endpoint.router,VALUE_BASE,1)
+        with self.assertRaises(ImageError):read_scalar(self.app,self.endpoint.router,VALUE_BASE,1)
 
 
 if __name__=='__main__':unittest.main()

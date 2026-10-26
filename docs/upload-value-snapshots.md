@@ -49,7 +49,7 @@ again before writing any values. Only Offline tag values are set; constants
 are checked without assigning them. ACD save, close and reopen follow.
 
 The reopened file must go Online and report Program mode. Supported ordinary
-scalar DINTs also receive typed Online reads that must match the uploaded
+scalar DINTs and BOOLs also receive typed Online reads that must match the uploaded
 values. Python independently checks every saved root's type, dimensions,
 constant flag and bytes, the complete parsed logic and Program/task entries,
 artifact hashes and exact retained correlation. A final model/source/cleanup
@@ -80,3 +80,20 @@ offline; replay does not reauthenticate MACs. Software checks and native
 acceptance are recorded separately. The snapshot/checking paths pass 88
 focused tests; the milestone passes 2,130 tests with two platform checks
 skipped, and all 365 Python files parse.
+
+An additional routine-free profile contains 17 roots, including nested UDTs,
+an array of structures, REAL/INT/DINT values and named packed bit members.
+Fourteen temporary member/array changes alter three UDT roots (100 bytes).
+Upload/save/reopen/Online succeeds across 1,125 verified requests; all 17 roots
+(145 bytes) match both the uploaded SDK values and the saved full L5X. Every
+temporary model value is restored without scanning, with native Offline cleanup
+and no fault. Download/save/reopen/Online separately succeeds across 423 requests.
+Complete 1,711/4,110-event recordings replay identically offline.
+
+On app `26.1026.112241`, the restored conveyor demo completes download/save/
+reopen/Online across 431 requests and upload snapshot/save/reopen/Online across
+1,139. The snapshot now checks nine scalar BOOLs and three DINTs through typed
+Online getters. A fresh SDK process reopens the saved snapshot, goes Online
+and reads the live DINT across 74 requests. Source/model preservation, correlation, Offline
+cleanup and no SDK fault pass. This revision passes 194 affected software checks;
+the preceding full milestone remains separately recorded above.
