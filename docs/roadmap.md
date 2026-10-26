@@ -9,8 +9,11 @@ native Studio connection and programming services remain unfinished.
 Version `26.1026.153720` removes repeated installed-project validation inside
 each scalar read and across Program storage scopes. The next request still
 revalidates source and effects; there is no cross-request validation cache or
-longer native timeout. 159 affected checks pass. Native transfer acceptance
-for this increment is assessed separately.
+longer native timeout. 159 affected checks pass. The rebuilt demo now completes
+download/save/reopen/Online (430 requests) and its next upload snapshot/save/
+reopen/Online (1,137), including all fourteen roots, ten rungs and twelve typed
+Online scalar getters. Offline cleanup succeeds without an SDK fault. The
+larger rebuilt two-Program profile is the next acceptance checkpoint.
 
 Version `26.1026.143655` keeps committed Symbol and Data Table identities
 separate and recognizes the captured read-only local-constant header profile.

@@ -31,7 +31,7 @@ Symbol/Table IDs through actual wire consumers, storage-cache invalidation,
 missing-root rejection and strict read-only local-constant headers. Native
 transfer acceptance is recorded separately from these software checks.
 
-## Native checkpoint
+## Native checkpoint before the read-path update
 
 Both actually rebuilt source profiles complete native download/save/reopen/
 Online on this revision. Independent full exports verify the demo's fourteen
@@ -70,4 +70,14 @@ the next read. The application lock serializes construction with project edits.
 This removes redundant project-wide validation as native polling grows to more
 tags. It does not increase native timeouts or retry a failed SDK getter.
 159 affected checks pass, including validation counts and corruption detected
-on the following read. Native transfer acceptance is checked separately.
+on the following read.
+
+The revised rebuilt demo completes native download/save/reopen/Online across
+430 verified requests and its next upload snapshot/save/reopen/Online across
+1,137. Both full saved exports preserve all fourteen roots, 45 value bytes,
+two routines and ten rungs. The snapshot also passes all twelve typed Online
+scalar getters: three DINTs and nine BOOLs. Correlation, source and model state
+are preserved; actual Offline cleanup succeeds without an SDK fault. Complete
+retained journals replay identically in the offline analyzer. This is native
+SDK acceptance of the bounded source-equivalent profile; general Studio GUI
+upload-save and project replacement remain separate work.

@@ -100,7 +100,11 @@ rebuilt two-Program download stops at a typed header check. Version
 downloads pass with complete saved-content checks, and the demo upload's
 values, routines and Program package verify. The next failures are a final
 typed Online BOOL getter for the demo and a two-Program snapshot reopen timeout.
-The complete upload/rebuild/download/re-upload cycle is not yet accepted.
+Version `26.1026.153720` then completes the rebuilt demo's native download and
+next upload snapshot, including save/reopen/Online, all fourteen values and ten
+rungs, and twelve typed Online scalar getters. Both cases clean up Offline
+without an SDK fault. The expanded rebuilt profile remains a separate checkpoint;
+this bounded source-equivalent result does not enable general Studio upload-save.
 
 The optional [download content check](download-content-validation.md) verifies
 the complete saved Controller separately from connection and correlation.

@@ -67,6 +67,9 @@ schedules and explicit UDT schemas are verified after native save/reopen.
 [Installed Table identities](docs/installed-table-identities.md) now preserve
 the separate Symbol and Data Table IDs produced by native Program import.
 The committed catalogs, descriptors and value reads share the verified links.
+The rebuilt demo now completes native download/save/reopen/Online and its
+next upload snapshot/save/reopen/Online. All fourteen roots, ten rungs and
+twelve typed Online scalar reads verify, with Offline cleanup and no SDK fault.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
