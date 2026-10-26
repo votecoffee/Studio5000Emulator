@@ -41,7 +41,7 @@ def read_constant(app,router,key):
     _,table,code,initial=rows[0]
     handles=[row for row in ns._tables if row.key==table]
     if len(handles)!=1:raise ImageError('installed_constant_value_address_required')
-    tag,cell=_bound_cell(app,router,ns,key,table,code)
+    tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
     if not tag.constant or cell.size!=len(initial):raise ImageError('installed_constant_storage_changed')
     def read(ref):
         router.access(ref)
@@ -59,6 +59,14 @@ def table_ids(app,router):
             or getattr(project,'runtime_revision',0)):
         return None
     installed,ns=_verified_installation(app,router)
+    return _table_ids(app,installed,ns)
+
+
+def _table_ids(app,installed,ns):
+    """Reuse this read's complete verification, never a previous request's result."""
+    if installed is not getattr(app.engine,'installed_download',None) or installed.namespace is not ns:
+        raise ImageError('installed_memory_committed_download_changed')
+    installed.check(app.native_project_identity,app.engine.project)
     result={};seen=set()
     for key,table,code,initial in installed.values.values:
         symbol=app.native_symbols.by_key.get(key) if app.native_symbols is not None else None
@@ -86,7 +94,7 @@ def _verified_installation(app,router):
     return installed,ns
 
 
-def _bound_cell(app,router,ns,key,table,code):
+def _bound_cell(app,router,installed,ns,key,table,code):
     tag=app.engine.project.tags.get(key)
     if tag is None or tag.alias or tag.problem or tag.tag_class!='Standard':
         raise ImageError('installed_memory_ordinary_tag_required')
@@ -94,7 +102,7 @@ def _bound_cell(app,router,ns,key,table,code):
     if symbol is None or ns._image._symbols.get((symbol.program_instance,symbol.instance))!=table:
         raise ImageError('installed_memory_symbol_binding_changed')
     router.access(tag.key)
-    cell=router.scalar_storage().by_ref.get(key)
+    cell=router.scalar_storage(_verified_installation=(installed,ns)).by_ref.get(key)
     instance=table[1] if isinstance(table,tuple) else table
     if cell is None or cell.symbol_id!=symbol.instance or cell.instance!=instance or cell.table_code!=code:
         raise ImageError('installed_memory_current_storage_unavailable')
@@ -109,7 +117,7 @@ def read_scalar(app,router,address,words):
     if len(handles)!=1:raise ImageError('installed_memory_value_address_unavailable')
     rows=[row for row in installed.values.values if row[1]==handles[0].key]
     if len(rows)!=1:raise ImageError('installed_memory_ordinary_tag_required')
-    key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,ns,key,table,code)
+    key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
     if tag.constant:
         raise ImageError('installed_memory_scalar_word_required')
     dtype=tag.dtype.upper();size={('DINT',0xC4):4,('BOOL',0xC1):1}.get((dtype,code))

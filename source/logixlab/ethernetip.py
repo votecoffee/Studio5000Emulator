@@ -1662,10 +1662,14 @@ class Router:
     def data_tables(self,scope=''):
         # Alias symbols refer to another tag's storage and do not create a new
         # Data Table instance. Reuse discovery's type/access/source checks.
-        tags=self.app.engine.project.tags
         from .installed_memory import table_ids
         try:installed=table_ids(self.app,self)
         except ImageError as error:raise CIPError(0x0C,error.reason) from error
+        return self._data_tables(scope,installed)
+
+    def _data_tables(self,scope,installed):
+        """One already verified Table map shared by this storage construction."""
+        tags=self.app.engine.project.tags
         rows=[]
         for symbol in self.symbols(scope):
             if symbol.get('object_reference') is not None or tags[symbol['ref'].lower()].alias:continue
@@ -1706,13 +1710,17 @@ class Router:
         # native physical memory and programming services remain unavailable.
         return self.attribute_read(service,path,data,attributes)
 
-    def scalar_storage(self):
+    def scalar_storage(self,*,_verified_installation=None):
         rows=[];project=self.app.engine.project
-        from .installed_memory import constant_keys
+        from .installed_memory import constant_keys,table_ids,_table_ids
+        try:
+            installed=(table_ids(self.app,self) if _verified_installation is None
+                       else _table_ids(self.app,*_verified_installation))
+        except ImageError as error:raise CIPError(0x0C,error.reason) from error
         constants=constant_keys(self.app,self)
         scopes=['']+[name for name,p in project.programs.items() if p['class']=='Standard']
         for scope in scopes:
-            for symbol in self.data_tables(scope):
+            for symbol in self._data_tables(scope,installed):
                 tag=project.tags[symbol['ref'].lower()]
                 if tag.constant and tag.key.casefold() not in constants:continue
                 dtype=self.access(symbol['ref'])[2]

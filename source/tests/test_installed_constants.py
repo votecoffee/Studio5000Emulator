@@ -92,7 +92,9 @@ class ConstantShapeTests(unittest.TestCase):
         installed=NS(check=lambda identity,project:None,values=NS(values=((key,(2,5),code,raw),)),namespace=ns)
         app=NS(engine=NS(project=NS(tags={key:tag}),installed_download=installed,memory=NS(read=lambda ref:value)),
             native_project_identity=object(),native_symbols=NS(by_key={key:Symbol('MainProgram',2,'Const',9)}))
-        router=NS(endpoint=NS(native_read_only=True),access=lambda ref:None,scalar_storage=lambda:space)
+        def storage(*,_verified_installation):
+            self.assertEqual(_verified_installation,(installed,ns));return space
+        router=NS(endpoint=NS(native_read_only=True),access=lambda ref:None,scalar_storage=storage)
         return app,router,installed,ns,key,raw
 
     def test_complete_constant_scalar_and_array_bytes_use_storage_type_and_size(self):
@@ -133,7 +135,9 @@ class ConstantStructureTests(unittest.TestCase):
         installed=NS(check=lambda identity,p:None,values=NS(values=((key,5,code,raw),)),namespace=ns)
         self.app.engine.installed_download=installed;self.app.native_project_identity=object()
         self.app.native_symbols=NS(by_key={key:Symbol('',0,tag.name,9)})
-        router=NS(endpoint=NS(native_read_only=True),access=self.router.access,scalar_storage=lambda:space)
+        def storage(*,_verified_installation):
+            self.assertEqual(_verified_installation,(installed,ns));return space
+        router=NS(endpoint=NS(native_read_only=True),access=self.router.access,scalar_storage=storage)
         return router,installed,ns,raw
 
     def test_nested_constant_and_structure_array_preserve_every_source_byte(self):

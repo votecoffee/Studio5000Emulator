@@ -99,7 +99,7 @@ rebuilt two-Program download stops at a typed header check. Version
 [installed Table identities](installed-table-identities.md): both rebuilt
 downloads pass with complete saved-content checks, and the demo upload's
 values, routines and Program package verify. The next failures are a final
-typed Online DINT getter for the demo and a two-Program snapshot reopen timeout.
+typed Online BOOL getter for the demo and a two-Program snapshot reopen timeout.
 The complete upload/rebuild/download/re-upload cycle is not yet accepted.
 
 The optional [download content check](download-content-validation.md) verifies

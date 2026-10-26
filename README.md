@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.143655`.** Versions use the release timestamp
+**Current app version: `26.1026.153720`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -29,6 +29,9 @@ native SDK while Online. Separate BOOL sessions verify `true` and `false`,
 with Offline cleanup and no fault. The signed UserMemory request resolves to
 an exact installed scalar value in current interpreter memory. General memory
 and member/array monitoring remain unavailable through this native profile.
+Each installed scalar read now shares its complete source/effect validation
+with storage construction, avoiding repeated project-wide checks per Program.
+Every subsequent read still validates the installation again.
 
 [Program-scoped transfer storage](docs/scoped-download-tables.md) now preserves
 separate Data Table identities, handles and values when Programs reuse numeric

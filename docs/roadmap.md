@@ -6,11 +6,17 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.153720` removes repeated installed-project validation inside
+each scalar read and across Program storage scopes. The next request still
+revalidates source and effects; there is no cross-request validation cache or
+longer native timeout. 159 affected checks pass. Native transfer acceptance
+for this increment is assessed separately.
+
 Version `26.1026.143655` keeps committed Symbol and Data Table identities
 separate and recognizes the captured read-only local-constant header profile.
 Both rebuilt projects now download/save/reopen/Online with full saved-content
 checks (431/435 requests). The rebuilt demo's upload verifies all values and
-logic, then fails at a final typed Online getter after snapshot reopen/Online.
+logic and all DINTs, then fails at a BOOL getter after snapshot reopen/Online.
 The two-Program snapshot times out during reopen; a separate read-only saved-file
 connection confirms recovery. Full case acceptance remains unfinished. See
 [installed Table identities](installed-table-identities.md) for the evidence.

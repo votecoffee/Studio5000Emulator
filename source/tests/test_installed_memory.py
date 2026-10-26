@@ -3,7 +3,9 @@ import copy
 import struct
 from types import MappingProxyType
 import unittest
+from unittest.mock import patch
 
+from logixlab import installed_memory
 from logixlab.download_namespace import VALUE_BASE
 from logixlab.installed_memory import read_scalar,scalar_word
 from logixlab.download_image import ImageError
@@ -62,6 +64,25 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
         stage=engine.installed_download.namespace._incremental;headers=dict(stage._headers)
         row=dict(headers[0x6B,0,1]);row[6]=bytes(4);headers[0x6B,0,1]=tuple(sorted(row.items()));stage._headers=MappingProxyType(headers)
         self.assertEqual(self.read_value()[2],12)
+
+    def test_scalar_read_verifies_once_and_rechecks_effects_on_the_next_read(self):
+        self.installed()
+        with patch.object(installed_memory,'_verified_installation',wraps=installed_memory._verified_installation) as verify:
+            self.assertEqual(self.read_value()[4:],bytes(4))
+            self.assertEqual(verify.call_count,1)
+            stage=self.app.engine.installed_download.namespace._incremental
+            headers=dict(stage._headers);row=dict(headers[0x6B,0,1]);row[6]=bytes(4)
+            headers[0x6B,0,1]=tuple(sorted(row.items()));stage._headers=MappingProxyType(headers)
+            self.assertEqual(self.read_value()[2],12)
+            self.assertEqual(verify.call_count,2)
+
+    def test_storage_construction_does_not_repeat_verification_for_each_program(self):
+        self.installed()
+        self.assertTrue(self.app.engine.project.programs)
+        with patch.object(installed_memory,'_verified_installation',wraps=installed_memory._verified_installation) as verify:
+            storage=self.endpoint.router.scalar_storage()
+            self.assertIn('speedsetpoint',storage.by_ref)
+            self.assertEqual(verify.call_count,1)
 
     def test_constants_private_access_and_reset_do_not_keep_old_addresses(self):
         self.installed();tag=self.app.engine.project.tags['speedsetpoint']

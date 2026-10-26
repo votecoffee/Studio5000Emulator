@@ -42,8 +42,11 @@ cleanup succeeds without an SDK fault.
 
 The rebuilt demo's upload now passes tag collection, all fourteen value reads,
 both routine exports and its complete Program export. Its snapshot saves,
-reopens and goes Online, then stops at the final typed DINT getter with a
-no-data result. Cleanup is confirmed; the complete snapshot case remains failed.
+reopens and goes Online. All three DINT getters and the first BOOL getter pass;
+`MotorRunning` then returns a no-data result. A separate fresh download/read
+check also passes all three DINTs. Another complete snapshot trial passes
+`MotorRunning` and more BOOLs before failing at `SensorMemory`. Both trials
+confirm Offline cleanup without SDK faults; neither complete case passes.
 
 The rebuilt two-Program trial saves a snapshot, but its 300-second client
 deadline expires during native reopen. Its final native outcome and Offline
@@ -54,3 +57,17 @@ reads the live value and returns Offline without a fault.
 These changes pass 398 focused checks and the full 2,163-test milestone, with
 two platform skips. All 372 Python sources parse. Direct reconstructed-project
 saving, general project replacement and Studio GUI acceptance remain unfinished.
+
+## Read-path validation cost
+
+Version `26.1026.153720` verifies a committed installation once per scalar
+read and reuses that result while constructing its current storage view.
+Standalone storage construction also shares one Table identity map across
+all Program scopes. These are local call results, not a cache retained across
+requests. Changed headers, source, identities, effects and access still revoke
+the next read. The application lock serializes construction with project edits.
+
+This removes redundant project-wide validation as native polling grows to more
+tags. It does not increase native timeouts or retry a failed SDK getter.
+159 affected checks pass, including validation counts and corruption detected
+on the following read. Native transfer acceptance is checked separately.
