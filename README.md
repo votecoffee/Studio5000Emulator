@@ -10,6 +10,13 @@ and executable use the name **LogixLab**.
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
+**[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
+and reopen a current-value ACD that goes Online.** The native probe completes
+the sequence across 1,129 verified requests, preserving all 14 tag values,
+ten rungs and the installed correlation. This requires unchanged source and
+a matching saved-download baseline; direct general Studio upload-save remains
+unfinished.
+
 [Installed DINT reads](docs/installed-memory-reads.md) now work through the
 native SDK while Online. Two saved-ACD sessions read current values `87` and
 `-123`, each confirming Offline cleanup without an SDK fault. The observed
@@ -164,8 +171,8 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-The current probe changes pass 79 affected checks and 363 Python syntax checks.
-The last full milestone passes 2,120 Windows tests, with two platform checks
+The current probe changes pass 88 affected checks and 365 Python syntax checks.
+The current full milestone passes 2,130 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 
 **Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
@@ -355,7 +362,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Native compatibility | Experimental anonymous metadata/tag reads and bounded Run/Program control; fresh keys, checked single/batch MACs and counters; peer authentication unverified |
 | Offline protocol analysis | `0x36`/`0x37` singles, `0x38` batches, observed `0x39` transfers and `0x3A` read chunks with bounded detached assembly; decoded captures never execute |
 | ACD correlation | Source-bound Change Log identifiers and TagInfo symbol IDs; controller/program instance paths use imported IDs; native SDK passes project identity comparison for the tested demo |
-| Upload discovery | Source-bound discovery and backed values; existing-project SDK upload verified for the two-routine conveyor demo, a BOOL operand rung, packed BOOL arrays and empty Programs with supported UDTs; saved uploaded ACDs and arbitrary projects remain unfinished |
+| Upload discovery | Existing-project SDK upload verified for bounded fixtures; an unchanged-source value snapshot saves/reopens an ACD and verifies Online using a matching saved baseline. Direct general uploaded-project saving and arbitrary projects remain unfinished |
 | Download preparation | Three source-checked batches, task/controller/setup metadata, Map and Change Log headers, and bounded installation with exact scalar, numeric-array, supported structure and structure-array values; general project replacement remains unsupported |
 | Routine metadata | Original scoped Type/instance values, opaque source metadata, live header references and guarded ordinary RLL edit/pause/unsigned state; compiled logic and native signature verification remain unavailable |
 | AOI metadata | Original definition and scoped Routine IDs, clean model state, explicit revision/vendor headers and available Routine descriptions; compiled definitions and native AOI edits remain unavailable |

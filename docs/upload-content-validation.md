@@ -5,6 +5,11 @@ SDK upload. A successful transfer alone does not establish that the SDK's
 reconstructed offline project contains the expected values and logic, or that
 it can be saved as an ACD.
 
+The optional [source-equivalent value snapshot](upload-value-snapshots.md)
+provides a separate bounded save/reopen/Online path using a matching original
+baseline. It avoids the reconstructed-project save fault without importing
+logic or rewriting identity bytes.
+
 ## Usage
 
 Use the original source ACD and exact complete L5X matching the owned emulator.

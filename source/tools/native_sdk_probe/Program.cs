@@ -32,6 +32,9 @@ if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operatio
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
+if (options.SnapshotUploadedAcd && (options.Operation != "upload" || options.SaveUploadedAcd || options.UploadNewProject ||
+    options.UploadContent is null || options.SnapshotBaseline is null) ||
+    !options.SnapshotUploadedAcd && options.SnapshotBaseline is not null) return 2;
 if (options.SaveDownloadedAcd && options.Operation != "download") return 2;
 if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
 if (options.UploadContent is not null && (options.Operation != "upload" || options.UploadNewProject ||
@@ -73,6 +76,7 @@ object? savedEditedProject = null;
 object? savedUploadedProject = null;
 object? savedDownloadedProject = null;
 object? uploadedContent = null;
+object? savedUploadedSnapshot = null;
 bool newUploadCompleted = false;
 string newUploadPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "uploaded.ACD");
 if (options.UploadNewProject && File.Exists(newUploadPath)) return 2;
@@ -292,6 +296,25 @@ string CanonicalRung(string text)
     if (quote != '\0') throw new InvalidOperationException("Unterminated exported rung literal");
     return output.ToString().TrimEnd(';');
 }
+int CheckRoutineExport(string path, UploadRoutine routine)
+{
+    if (new FileInfo(path).Length is < 8 or > 16000000) throw new InvalidOperationException("Native routine export outside bounds");
+    var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 16000000 };
+    using var reader = XmlReader.Create(path, settings); var root = XDocument.Load(reader).Root!;
+    if (root.Name != "RSLogix5000Content" || (string?)root.Attribute("TargetType") != "Routine" ||
+        (string?)root.Attribute("TargetName") != routine.Name) throw new InvalidOperationException("Native routine export target differs");
+    var program = root.Elements("Controller").Single().Element("Programs")!.Elements("Program")
+        .Single(node => (string?)node.Attribute("Name") == routine.Program);
+    var target = program.Element("Routines")!.Elements("Routine").Single(node => (string?)node.Attribute("Name") == routine.Name);
+    if ((string?)target.Attribute("Type") != "RLL") throw new InvalidOperationException("Native routine export is not RLL");
+    var rungs = target.Elements("RLLContent").Single().Elements().Select(node => {
+        if (node.Name != "Rung" || (string?)node.Attribute("Type") is not (null or "N")) throw new InvalidOperationException("Unexpected native RLL content");
+        return CanonicalRung(node.Elements("Text").Single().Value);
+    }).ToArray();
+    if (!rungs.SequenceEqual(routine.ExpectedRungs.Select(CanonicalRung)))
+        throw new InvalidOperationException("Native routine differs from unchanged source logic");
+    return rungs.Length;
+}
 async Task VerifyUploadedContent()
 {
     var expected = options.UploadContent!; var before = await Backend();
@@ -331,24 +354,9 @@ async Task VerifyUploadedContent()
             throw new InvalidOperationException("Invalid uploaded-content routine plan");
         await Step("PartialExportToXmlFileAsync:uploaded:" + routine.Program + "/" + routine.Name, async () => {
             await project!.PartialExportToXmlFileAsync(xpath, path);
-            if (new FileInfo(path).Length is < 8 or > 16000000) throw new InvalidOperationException("Native routine export outside bounds");
-            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 16000000 };
-            using var reader = XmlReader.Create(path, settings); var xml = XDocument.Load(reader);
-            var root = xml.Root!;
-            if (root.Name != "RSLogix5000Content" || (string?)root.Attribute("TargetType") != "Routine" ||
-                (string?)root.Attribute("TargetName") != routine.Name) throw new InvalidOperationException("Native routine export target differs");
-            var program = root.Elements("Controller").Single().Element("Programs")!.Elements("Program")
-                .Single(node => (string?)node.Attribute("Name") == routine.Program);
-            var target = program.Element("Routines")!.Elements("Routine").Single(node => (string?)node.Attribute("Name") == routine.Name);
-            if ((string?)target.Attribute("Type") != "RLL") throw new InvalidOperationException("Native routine export is not RLL");
-            var rungs = target.Elements("RLLContent").Single().Elements().Select(node => {
-                if (node.Name != "Rung") throw new InvalidOperationException("Unexpected native RLL content");
-                return CanonicalRung(node.Elements("Text").Single().Value);
-            }).ToArray();
-            if (!rungs.SequenceEqual(routine.ExpectedRungs.Select(CanonicalRung)))
-                throw new InvalidOperationException("Native uploaded routine differs from source logic");
+            int rungs = CheckRoutineExport(path, routine);
             routines.Add(new { fileName = routine.FileName, sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() });
-            return new { rungs = rungs.Length, matchesSource = true };
+            return new { rungs, matchesSource = true };
         });
     }
     foreach (var program in expected.Programs)
@@ -373,6 +381,79 @@ async Task VerifyUploadedContent()
         throw new InvalidOperationException("Uploaded-content export unexpectedly connected");
     CheckPreserved(before, await Backend(), true);
     uploadedContent = new { sourceL5xSha256 = expected.SourceL5xSha256, offlineOnly = true, tags, routines, programs };
+}
+async Task SaveUploadedSnapshot()
+{
+    string directory = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+    string baseline = Path.GetFullPath(options.SnapshotBaseline!);
+    string acdPath = Path.Combine(directory, "snapshot.ACD"), xmlPath = Path.Combine(directory, "snapshot.L5X");
+    string HashFile(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+    if (baseline != Path.Combine(directory, "snapshot-input.ACD") || HashFile(baseline) != options.SourceSha256 ||
+        File.Exists(acdPath) || File.Exists(xmlPath)) throw new InvalidOperationException("Snapshot baseline or fresh outputs changed");
+    var before = await Backend();
+    await Step("Close verified uploaded project before value snapshot", () => {
+        var closing = project!; project = null; closing.Dispose(); return Task.FromResult<object?>(true);
+    });
+    await Step("OpenLogixProjectAsync:snapshot-baseline", async () => {
+        project = await LogixProject.OpenLogixProjectAsync(baseline, logger); return true;
+    });
+    await Step("Require Offline snapshot baseline", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required");
+        return true;
+    });
+    foreach (var routine in options.UploadContent!.Routines)
+    {
+        string path = Path.Combine(directory, routine.FileName.Replace("uploaded-routine-", "baseline-routine-"));
+        if (File.Exists(path)) throw new InvalidOperationException("Baseline source export must be fresh");
+        await Step("Verify snapshot baseline routine:" + routine.Program + "/" + routine.Name, async () => {
+            await project!.PartialExportToXmlFileAsync(routine.XPath, path); return CheckRoutineExport(path, routine);
+        });
+    }
+    foreach (var tag in options.UploadContent.Tags)
+        await Step("Snapshot Offline tag:" + tag.Name, async () => {
+            var raw = Convert.FromHexString(tag.ExpectedHex);
+            if (!tag.Constant) await project!.SetTagValueAsync(tag.XPath, LogixProject.OperationMode.Offline, raw, LogixProject.DataType.BYTE_ARRAY);
+            var value = await project!.GetTagValueAsync(tag.XPath, LogixProject.OperationMode.Offline, LogixProject.DataType.BYTE_ARRAY);
+            if (!value.ToByteArray().SequenceEqual(raw)) throw new InvalidOperationException("Snapshot Offline value differs from uploaded value");
+            return new { bytes = raw.Length, matchesUploadedValue = true };
+        });
+    await Step("SaveAsAsync:snapshot.ACD", async () => { await project!.SaveAsAsync(acdPath, false); return true; });
+    await Step("Close saved value snapshot", () => {
+        var closing = project!; project = null; closing.Dispose(); return Task.FromResult<object?>(true);
+    });
+    await Step("OpenLogixProjectAsync:snapshot.ACD", async () => {
+        project = await LogixProject.OpenLogixProjectAsync(acdPath, logger); return true;
+    });
+    await Step("Require reopened snapshot Offline", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required");
+        return true;
+    });
+    await Step("SaveAsAsync:snapshot.L5X", async () => { await project!.SaveAsAsync(xmlPath, false); return true; });
+    await Step("SetCommunicationsPathAsync:snapshot.ACD", async () => { await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true; });
+    await Step("GoOnlineAsync:snapshot.ACD", async () => { await project!.GoOnlineAsync(); return true; });
+    await Step("Verify reopened snapshot Online", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Online) throw new InvalidOperationException("Snapshot is not Online");
+        return true;
+    });
+    await Step("CheckMode:snapshot.ACD", async () => { await CheckMode("Program"); return true; });
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant && tag.TypeCode == 0xC4 &&
+            tag.ExpectedHex.Length == 8 && tag.Dimensions?.All(size => size == 0) == true))
+        await Step("Snapshot Online DINT:" + tag.Name, async () => {
+            int value = await project!.GetTagValueDINTAsync(tag.XPath, LogixProject.OperationMode.Online);
+            if (value != System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(Convert.FromHexString(tag.ExpectedHex)))
+                throw new InvalidOperationException("Snapshot Online value differs from uploaded value");
+            return value;
+        });
+    CheckPreserved(before, await Backend(), true);
+    await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
+    await Step("Require snapshot Offline after Online check", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required");
+        return true;
+    });
+    if (HashFile(baseline) != options.SourceSha256) throw new InvalidOperationException("Snapshot baseline changed");
+    savedUploadedSnapshot = new { sourceEquivalentValueSnapshot = true, baselineLogicVerified = true,
+        baselineSha256 = options.SourceSha256, acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
+        nativeAcdReopened = true, reopenedOnline = true };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
@@ -457,6 +538,19 @@ try
         await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
     });
     await Step("ReadConnectedStateAsync:initial", async () => (await project!.ReadConnectedStateAsync()).ToString());
+    if (options.SnapshotUploadedAcd)
+    {
+        await Step("GoOnlineAsync:verify-snapshot-baseline", async () => { await project!.GoOnlineAsync(); return true; });
+        await Step("Verify snapshot baseline Online", async () => {
+            if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Online) throw new InvalidOperationException("Baseline is not Online");
+            return true;
+        });
+        await Step("GoOfflineAsync:verify-snapshot-baseline", async () => { await project!.GoOfflineAsync(); return true; });
+        await Step("Require snapshot baseline Offline before upload", async () => {
+            if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline required");
+            return true;
+        });
+    }
     }
     if (options.Operation is "upload" or "download")
     {
@@ -477,6 +571,7 @@ try
         finally { await CaptureProtocolTrace("after-transfer-trace.json", options.Operation); }
         if (options.UploadContent is not null) await VerifyUploadedContent();
         if (options.SaveUploadedAcd) await SaveUploadedAcd();
+        if (options.SnapshotUploadedAcd) await SaveUploadedSnapshot();
         if (options.SaveDownloadedAcd) await SaveDownloadedAcd();
     }
     else
@@ -688,7 +783,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent, savedUploadedSnapshot,
     uploadNewProject = options.UploadNewProject, newProjectUpload,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -700,7 +795,7 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
                       bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
-                      UploadContentOptions? UploadContent = null)
+                      UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }
@@ -710,7 +805,8 @@ sealed record UploadContentOptions([property: JsonPropertyName("sourceL5xSha256"
 sealed record UploadProgram([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
     [property: JsonPropertyName("fileName")] string FileName);
 sealed record UploadTag([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
-    [property: JsonPropertyName("expectedHex")] string ExpectedHex);
+    [property: JsonPropertyName("expectedHex")] string ExpectedHex, [property: JsonPropertyName("constant")] bool Constant = false,
+    [property: JsonPropertyName("typeCode")] int TypeCode = 0, [property: JsonPropertyName("dimensions")] int[]? Dimensions = null);
 sealed record UploadRoutine([property: JsonPropertyName("program")] string Program, [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("xpath")] string XPath, [property: JsonPropertyName("fileName")] string FileName,
     [property: JsonPropertyName("expectedRungs")] string[] ExpectedRungs);

@@ -694,6 +694,9 @@ def run(args):
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     content_source=getattr(args,'verify_uploaded_content',None)
+    snapshot_upload=getattr(args,'snapshot_uploaded_acd',False)
+    from tools import upload_snapshot
+    upload_snapshot.validate_options(args.operation,snapshot_upload,content_source,getattr(args,'upload_target',None),save_upload,upload_new)
     if content_source is not None and (args.operation!='upload' or upload_new):
         raise ValueError('--verify-uploaded-content requires an existing-project upload')
     connection_target=getattr(args,'connection_target',None)
@@ -731,6 +734,7 @@ def run(args):
     validate_idle(initial,allow_supported_edits=apply_edits)
     from tools import upload_content
     content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial)
+    snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload else None
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
     if args.operation == 'edits':
@@ -755,6 +759,11 @@ def run(args):
     config['SaveUploadedAcd']=save_upload
     config['SaveDownloadedAcd']=save_download
     config['UploadNewProject']=upload_new
+    config['SnapshotUploadedAcd']=snapshot_upload
+    if snapshot_upload:
+        snapshot_input=output/'snapshot-input.ACD';shutil.copyfile(baseline,snapshot_input)
+        if digest(snapshot_input)!=baseline_hash:raise ValueError('Snapshot baseline changed while copying')
+        config['SnapshotBaseline']=str(snapshot_input)
     if content_plan is not None:config['UploadContent']=content_plan
     edit_files=[]
     for index,(payload,details) in enumerate(edits):
@@ -779,6 +788,8 @@ def run(args):
     validate_idle(state,allow_supported_edits=apply_edits)
     if content_plan is not None and upload_content.prepare(args.operation,upload_new,content_source,source,state)!=content_plan:
         raise ValueError('Uploaded-content source or current values changed before the native call')
+    if snapshot_upload and (upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline or digest(snapshot_input)!=baseline_hash):
+        raise ValueError('Snapshot baseline or installation changed before the native call')
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
@@ -835,7 +846,7 @@ def run(args):
             journal=TraceJournal(journal_path,lambda body:api(url,'connectivity-trace-read',body),instance,l5x_hash)
         with (output / 'sdk.log').open('wb') as log:
             command=[str(executable),str(output/'request.json'),str(output/'sdk-result.json')]
-            timeout=300 if save_acd or save_upload or save_download else 120
+            timeout=300 if save_acd or save_upload or save_download or snapshot_upload else 120
             if journal is None:
                 result=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,**background_options())
             else:
@@ -935,6 +946,14 @@ def run(args):
             summary['saved_downloaded_project']=(report or {}).get('savedDownloadedProject')
             summary['download_result_persistence']='saved_and_reopened_online' if summary['saved_downloaded_acd_verified'] else 'failed'
             summary['emulator_installation_persistence']='memory_only'
+        if snapshot_upload:
+            from logixlab.native_types import NativeTypes
+            summary['snapshot_uploaded_acd_requested']=True
+            summary['uploaded_snapshot_verification']=upload_snapshot.verify(output,content_plan,
+                NativeTypes.from_acd(source,l5x_hash),baseline,(report or {}).get('savedUploadedSnapshot'))
+            try:summary['snapshot_baseline_preserved']=digest(snapshot_input)==baseline_hash
+            except OSError:summary['snapshot_baseline_preserved']=False
+            summary['upload_result_persistence']='source_equivalent_value_snapshot' if summary['uploaded_snapshot_verification']['verified'] else 'failed'
         model_ok=(summary.get('mode_restored') and summary.get('scans_advanced')) if args.operation=='modes' else summary.get('supported_edit_applied') if apply_edits else summary.get('model_unchanged') is not False
         if upload_new:
             summary['new_project_artifact_matches_receipt']=new_upload_artifact(output,(report or {}).get('newProjectUpload'))
@@ -948,6 +967,8 @@ def run(args):
                 or content_plan is not None and save_upload and not summary['serialized_uploaded_content_verification']['verified']
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
+        if snapshot_upload and (not summary['uploaded_snapshot_verification']['verified'] or not summary['snapshot_baseline_preserved']):
+            summary['status']='failed'
         if args.operation=='upload' and summary['status']=='succeeded' and (
                 summary['working_copy_matches_sdk'] is not True or summary['sdk_controller_source_matches'] is not True):
             summary['status']='failed'
@@ -961,6 +982,7 @@ def main():
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
     parser.add_argument('--connection-target',help='Connection only: preserved saved ACD to open on a private copy; --project still pins the emulator source')
+    parser.add_argument('--snapshot-uploaded-acd',action='store_true',help='Upload only: save current verified values into a fresh matching-baseline ACD, requiring unchanged source, --upload-target and --verify-uploaded-content; reopen and verify Online')
     parser.add_argument('--retain-transfer-trace',action='store_true',help='Upload/download only: record bounded compressed cursor pages privately while the single native call runs')
     parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')

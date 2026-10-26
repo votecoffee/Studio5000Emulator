@@ -1,0 +1,61 @@
+"""Bounded current-value ACD snapshots on an unchanged matching installation.
+
+The native SDK upload supplies independently checked values and source. A
+separate matching ACD copy retains Controller metadata and receives Offline
+value updates only. No compiled logic, identity or journal bytes are patched.
+"""
+from pathlib import Path
+
+from logixlab.model import ModelError
+from logixlab.native_project import NativeProjectIdentity
+from tools import upload_content
+
+
+def validate_options(operation,enabled,content_source,target,save_uploaded=False,new_project=False):
+    if type(enabled) is not bool:raise ValueError('Upload snapshot must be an explicit boolean')
+    if enabled and (operation!='upload' or content_source is None or target is None or save_uploaded or new_project):
+        raise ValueError('--snapshot-uploaded-acd requires existing-project upload, --upload-target and --verify-uploaded-content without --save-uploaded-acd')
+
+
+def prepare(source,baseline,state):
+    installed=state.get('connectivity',{}).get('native_download') or {}
+    if (installed.get('source_equivalent') is not True or installed.get('installed') is not True
+            or state.get('routine_edits',{}).get('revision')!=0):
+        raise ValueError('Upload snapshot requires an unchanged source-equivalent installation')
+    binding=state['connectivity']['source_l5x_sha256']
+    try:
+        original=NativeProjectIdentity.from_acd(source,binding);saved=NativeProjectIdentity.from_acd(baseline,binding)
+    except ModelError as error:raise ValueError('Snapshot source/baseline identity is unavailable: '+str(error)) from error
+    fixed=('online_index','online_generation','copy_uid','project_uid','timeline_uid','empty_change_log')
+    if (not original.empty_change_log or not saved.empty_change_log or not saved.download_uid
+            or saved.download_uid==original.download_uid or any(getattr(saved,k)!=getattr(original,k) for k in fixed)):
+        raise ValueError('Upload snapshot requires an unedited saved-download baseline from the bound source')
+    return saved.manifest()
+
+
+def verify(folder,expected,native_types,baseline,receipt):
+    """Require native reopen/Online receipts, retained correlation and full content."""
+    from tools.probe_native_sdk import digest
+    result=dict(verified=False,correlation_preserved=False,serialized_content_verified=False)
+    try:
+        if (not isinstance(receipt,dict) or any(receipt.get(key) is not True for key in
+                ('sourceEquivalentValueSnapshot','baselineLogicVerified','nativeAcdReopened','reopenedOnline'))
+                or receipt.get('baselineSha256')!=digest(baseline)):return result
+        folder=Path(folder)
+        for filename,key,maximum in (('snapshot.ACD','acdSha256',100_000_000),('snapshot.L5X','reopenedL5xSha256',16_000_000)):
+            path=folder/filename
+            if (path.is_symlink() or not path.is_file() or not 8<=path.stat().st_size<=maximum
+                    or digest(path)!=receipt.get(key)):return result
+        binding=expected['sourceL5xSha256']
+        before=NativeProjectIdentity.from_acd(baseline,binding)
+        after=NativeProjectIdentity.from_acd(folder/'snapshot.ACD',binding)
+        if (not before.empty_change_log or not before.download_uid or before.attributes()!=after.attributes()
+                or before.empty_change_log!=after.empty_change_log):return result
+        result['correlation_preserved']=True
+        content=upload_content.verify_serialized(folder/'snapshot.L5X',expected,native_types)
+        result['content']=content
+        if not content['verified']:return result
+        result.update(verified=True,serialized_content_verified=True,native_acd_reopened=True,reopened_online=True,
+                      profile='Unchanged source with current uploaded values; baseline Controller metadata retained')
+        return result
+    except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result

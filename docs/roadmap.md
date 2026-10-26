@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+The current [source-equivalent value snapshot](upload-value-snapshots.md)
+passes native upload/save/reopen/Online across 1,129 requests, preserving all
+14 tag values, ten rungs and installed correlation. It uses an unedited saved
+baseline and Offline value updates only. Broader upload reconstruction,
+direct Studio upload-save, other-project download and the full online-edit
+lifecycle remain future acceptance steps.
+
 Version `26.1026.085243` adds [installed scalar DINT reads](installed-memory-reads.md)
 accepted by two native Online SDK sessions. A subsequent upload regression
 times out after 866 verified requests, with complete traffic recording and no

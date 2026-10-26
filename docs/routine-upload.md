@@ -1,5 +1,12 @@
 # Native Routine upload checkpoint
 
+The current [source-equivalent value snapshot](upload-value-snapshots.md)
+completes native upload, ACD save/reopen and Go Online across 1,129 verified
+requests. All 14 values and ten rungs match and correlation is retained.
+This requires an unchanged original project and matching saved baseline;
+direct saving of the reconstructed upload and general replacement remain
+unfinished. Earlier checkpoints below describe their specific paths.
+
 Version `26.1026.085243` adds [native Online scalar DINT reads](installed-memory-reads.md).
 Download/save/reopen/Online succeeds again, and two saved-project SDK sessions
 read positive and negative current values. Its subsequent upload regression
