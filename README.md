@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.121058`.** Versions use the release timestamp
+**Current app version: `26.1026.122552`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -176,7 +176,7 @@ across 547 verified requests. General project replacement remains unsupported.
 The routine-containing demo now completes existing-project SDK upload with
 both Routine source streams. Uploaded ACD saving still faults the tested SDK.
 
-This revision passes 317 affected checks and 366 Python syntax checks.
+This revision passes 341 affected checks and 367 Python syntax checks.
 The last full milestone passes 2,130 Windows tests, with two platform checks
 skipped. Small revisions use affected checks.
 

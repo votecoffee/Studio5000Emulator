@@ -1676,6 +1676,10 @@ class Router:
             table=next((s for s in tables if s['id']==path.instance),None)
             if table is None:raise CIPError(5,'Unknown modeled Data Table instance')
             storage=self.scalar_storage().by_ref.get(table['ref'].lower())
+            if storage is not None and self.app.engine.project.tags[table['ref'].lower()].constant:
+                from .installed_memory import read_constant
+                try:read_constant(self.app,self,table['ref'].lower())
+                except ImageError as error:raise CIPError(0x0C,error.reason) from error
             attributes=data_table.attributes(table,storage)
             if service==0x4F:
                 if path.attribute is not None:raise CIPError(4,'Data Table reads do not take an attribute')
@@ -1693,11 +1697,13 @@ class Router:
 
     def scalar_storage(self):
         rows=[];project=self.app.engine.project
+        from .installed_memory import constant_keys
+        constants=constant_keys(self.app,self)
         scopes=['']+[name for name,p in project.programs.items() if p['class']=='Standard']
         for scope in scopes:
             for symbol in self.data_tables(scope):
                 tag=project.tags[symbol['ref'].lower()]
-                if tag.constant:continue
+                if tag.constant and tag.key.casefold() not in constants:continue
                 dtype=self.access(symbol['ref'])[2]
                 if dtype in TYPES:rows.append((symbol,'<'+TYPES[dtype][1]))
                 else:

@@ -57,3 +57,17 @@ validation of those records now matches all 22 source table identities,
 including six scoped tables, and all retained preparation effects. Offline
 inspection does not independently reauthenticate recorded MACs or establish
 a completed native transfer.
+
+On that build, the complete two-Program download/save/reopen/Online succeeds
+across 438 verified requests. Native Table pages contain sixteen Controller
+tables and four/two tables in the separate Programs. All 22 model handles and
+value addresses are distinct. Offline cleanup, source/model preservation and
+no SDK fault are confirmed. The complete 1,768-event recording replays
+identically offline.
+
+The subsequent upload stops after 279 requests when it reaches a local DINT
+constant: its basic type is available, but its storage fields return `0x14`.
+The SDK reports Program upload failure and returns Offline without a fault.
+Temporary local values are restored. Version `26.1026.122552` adds the narrow
+[installed constant read profile](installed-memory-reads.md) needed at this
+boundary; general constant storage and writes remain unavailable.

@@ -16,7 +16,34 @@ def scalar_word(dtype,code,value):
     raise ImageError('installed_memory_scalar_word_required')
 
 
-def read_scalar(app,router,address,words):
+def constant_keys(app,router):
+    """Candidate source DINT constants; each external read still verifies effects."""
+    engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
+    if not router.endpoint.native_read_only or installed is None:return frozenset()
+    try:installed.check(app.native_project_identity,project)
+    except ImageError:return frozenset()
+    return frozenset(key for key,table,code,data in installed.values.values if code==0xC4 and len(data)==4
+        and (tag:=project.tags.get(key)) is not None and tag.constant and tag.dtype.upper()=='DINT'
+        and not tag.alias and not tag.problem and tag.tag_class=='Standard')
+
+
+def read_constant(app,router,key):
+    """Read a proved installed scalar DINT constant without exposing a setter."""
+    if key not in constant_keys(app,router):raise ImageError('installed_constant_dint_required')
+    installed=app.engine.installed_download
+    rows=[row for row in installed.values.values if row[0]==key]
+    if len(rows)!=1:raise ImageError('installed_constant_binding_required')
+    handles=[row for row in installed.namespace._tables if row.key==rows[0][1]]
+    if len(handles)!=1:raise ImageError('installed_constant_value_address_required')
+    value=_read_scalar(app,router,handles[0].value_address,1,constant=True)
+    if value!=rows[0][3]:raise ImageError('installed_constant_source_value_changed')
+    return value
+
+
+def read_scalar(app,router,address,words):return _read_scalar(app,router,address,words)
+
+
+def _read_scalar(app,router,address,words,*,constant=False):
     if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words!=1:
         raise ImageError('installed_memory_scalar_word_request_required')
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
@@ -35,7 +62,7 @@ def read_scalar(app,router,address,words):
     rows=[row for row in installed.values.values if row[1]==handles[0].key]
     if len(rows)!=1:raise ImageError('installed_memory_ordinary_tag_required')
     key,table,code,initial=rows[0];tag=project.tags.get(key)
-    if (tag is None or tag.constant or tag.alias or tag.problem or tag.tag_class!='Standard'):
+    if (tag is None or tag.constant is not constant or tag.alias or tag.problem or tag.tag_class!='Standard'):
         raise ImageError('installed_memory_scalar_word_required')
     dtype=tag.dtype.upper();size={('DINT',0xC4):4,('BOOL',0xC1):1}.get((dtype,code))
     if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')

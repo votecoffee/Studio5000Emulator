@@ -13,6 +13,13 @@ actual Offline cleanup and no fault. Recorded replies independently match
 `01000000` and `00000000` at the same installed address. This is a bounded
 model word profile, not arbitrary memory or BOOL-array bit storage.
 
+Version `26.1026.122552` separately supports source-bound scalar DINT constants
+through ordinary Data Table descriptors and read service `0x4F`. This requires
+a completed unchanged source-equivalent installation, verified header/effect
+bindings and a current value identical to its prepared source bytes. The
+constant flag remains set; tag writes and UserMemory reads of constants remain
+blocked. Generic uninstalled constants retain unavailable storage fields.
+
 The SDK's typed online tag request uses class `0x72`, instance `0`, service
 `0x4C`, with a little-endian 32-bit address and a 16-bit count of `1`. This
 profile returns exactly four DINT or padded BOOL bytes. Other counts, interior addresses,
