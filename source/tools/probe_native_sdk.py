@@ -691,6 +691,7 @@ def run(args):
         raise ValueError('--retain-transfer-trace requires upload or download')
     save_upload=getattr(args,'save_uploaded_acd',False);validate_upload_save(args.operation,save_upload)
     save_download=getattr(args,'save_downloaded_acd',False);validate_download_save(args.operation,save_download)
+    download_content_source=getattr(args,'verify_downloaded_content',None)
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     content_source=getattr(args,'verify_uploaded_content',None)
@@ -734,6 +735,8 @@ def run(args):
     validate_idle(initial,allow_supported_edits=apply_edits)
     from tools import upload_content
     content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial)
+    from tools import download_content
+    download_content_plan=download_content.prepare(args.operation,save_download,download_content_source,source,initial)
     snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload else None
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
@@ -758,6 +761,7 @@ def run(args):
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
     config['SaveUploadedAcd']=save_upload
     config['SaveDownloadedAcd']=save_download
+    config['ExportDownloadedL5x']=download_content_plan is not None
     config['UploadNewProject']=upload_new
     config['SnapshotUploadedAcd']=snapshot_upload
     if snapshot_upload:
@@ -790,6 +794,8 @@ def run(args):
         raise ValueError('Uploaded-content source or current values changed before the native call')
     if snapshot_upload and (upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline or digest(snapshot_input)!=baseline_hash):
         raise ValueError('Snapshot baseline or installation changed before the native call')
+    if download_content_plan!=download_content.prepare(args.operation,save_download,download_content_source,source,state):
+        raise ValueError('Downloaded-content source or current-value plan changed before the native call')
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
@@ -946,6 +952,10 @@ def run(args):
             summary['saved_downloaded_project']=(report or {}).get('savedDownloadedProject')
             summary['download_result_persistence']='saved_and_reopened_online' if summary['saved_downloaded_acd_verified'] else 'failed'
             summary['emulator_installation_persistence']='memory_only'
+            if download_content_plan is not None:
+                from logixlab.native_types import NativeTypes
+                summary['downloaded_content_verification']=download_content.verify(output,download_content_plan,
+                    NativeTypes.from_acd(source,l5x_hash),(report or {}).get('savedDownloadedProject'))
         if snapshot_upload:
             from logixlab.native_types import NativeTypes
             summary['snapshot_uploaded_acd_requested']=True
@@ -968,6 +978,8 @@ def run(args):
                 or save_upload and not summary.get('saved_uploaded_acd_verified')):
             summary['status'] = 'failed'
         if snapshot_upload and (not summary['uploaded_snapshot_verification']['verified'] or not summary['snapshot_baseline_preserved']):
+            summary['status']='failed'
+        if download_content_plan is not None and not summary['downloaded_content_verification']['verified']:
             summary['status']='failed'
         if args.operation=='upload' and summary['status']=='succeeded' and (
                 summary['working_copy_matches_sdk'] is not True or summary['sdk_controller_source_matches'] is not True):
@@ -1008,6 +1020,7 @@ def main():
     parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
     parser.add_argument('--verify-uploaded-content',metavar='SOURCE.L5X',help='Existing-project upload only: compare native offline tag bytes and independently exported routines with this exact source and current emulator values')
     parser.add_argument('--save-downloaded-acd',action='store_true',help='Successful source-equivalent download only: save a new downloaded.ACD, reopen it and verify Go Online; emulator installation remains memory-only')
+    parser.add_argument('--verify-downloaded-content',metavar='SOURCE.L5X',help='Download with --save-downloaded-acd only: independently verify the reopened full Controller values, logic, Programs, types and Task settings')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
     parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','DINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')

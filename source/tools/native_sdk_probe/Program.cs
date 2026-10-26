@@ -36,6 +36,7 @@ if (options.SnapshotUploadedAcd && (options.Operation != "upload" || options.Sav
     options.UploadContent is null || options.SnapshotBaseline is null) ||
     !options.SnapshotUploadedAcd && options.SnapshotBaseline is not null) return 2;
 if (options.SaveDownloadedAcd && options.Operation != "download") return 2;
+if (options.ExportDownloadedL5x && (options.Operation != "download" || !options.SaveDownloadedAcd)) return 2;
 if (options.UploadNewProject && (options.Operation != "upload" || options.SaveUploadedAcd)) return 2;
 if (options.UploadContent is not null && (options.Operation != "upload" || options.UploadNewProject ||
     options.UploadContent.Tags is null || options.UploadContent.Routines is null || options.UploadContent.Programs is null || options.UploadContent.SourceL5xSha256 is null ||
@@ -207,7 +208,10 @@ async Task SaveEditedAcd()
 async Task SaveDownloadedAcd()
 {
     var acdPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, "downloaded.ACD");
+    var xmlPath = Path.Combine(Path.GetDirectoryName(acdPath)!, "downloaded.L5X");
+    string? exportedHash = null;
     if (File.Exists(acdPath)) throw new InvalidOperationException("Downloaded-project output must be a new file");
+    if (options.ExportDownloadedL5x && File.Exists(xmlPath)) throw new InvalidOperationException("Downloaded-content output must be a new file");
     var before = await Backend();
     if (before.GetProperty("connectivity").GetProperty("native_download").ValueKind != JsonValueKind.Object ||
         !before.GetProperty("connectivity").GetProperty("native_download").GetProperty("source_equivalent").GetBoolean())
@@ -224,6 +228,15 @@ async Task SaveDownloadedAcd()
     await Step("OpenLogixProjectAsync:downloaded.ACD", async () => {
         project = await LogixProject.OpenLogixProjectAsync(acdPath, logger); return true;
     });
+    if (options.ExportDownloadedL5x)
+    {
+        await Step("Require reopened downloaded project Offline", async () => {
+            if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("Offline content export required");
+            return true;
+        });
+        await Step("SaveAsAsync:downloaded.L5X", async () => { await project!.SaveAsAsync(xmlPath, false); return true; });
+        exportedHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(xmlPath))).ToLowerInvariant();
+    }
     await Step("SetCommunicationsPathAsync:downloaded.ACD", async () => {
         await project!.SetCommunicationsPathAsync(options.CommunicationsPath); return true;
     });
@@ -237,6 +250,7 @@ async Task SaveDownloadedAcd()
     savedDownloadedProject = new {
         acdSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(acdPath))).ToLowerInvariant(),
         nativeAcdReopened = true, reopenedOnline = true, downloadResultSaved = true,
+        offlineContentExported = options.ExportDownloadedL5x, reopenedL5xSha256 = exportedHash,
         emulatorPersistence = "memory_only", nativeControllerEquivalence = "NOT ASSESSED"
     };
 }
@@ -802,7 +816,8 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       EditOptions? SecondEdit = null, bool ReconnectEdits = false,
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
                       bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
-                      UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null)
+                      UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null,
+                      bool ExportDownloadedL5x = false)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }

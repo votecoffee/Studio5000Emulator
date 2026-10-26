@@ -6,6 +6,15 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+The Windows [downloaded-content check](download-content-validation.md) now
+verifies the actual saved/reopened Controller export, in addition to Online
+correlation. Native demo download/save/reopen/Online passes across 429 requests
+with all fourteen roots and ten rungs matching. A rebuilt demo separately
+downloads/reconnects across 430 requests, but its next upload stops during tag
+collection. The rebuilt two-Program download stops at a typed header check.
+Both failures clean up Offline without SDK faults; the complete rebuilt cycle
+remains unfinished. This tool increment passes 91 affected checks.
+
 The Windows [uploaded ACD rebuild](uploaded-acd-rebuild.md) now consumes checked
 native Program packages and current values without a saved-download baseline.
 Native save/reopen and independent complete export checks pass for the demo's

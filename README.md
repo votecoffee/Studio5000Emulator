@@ -57,6 +57,10 @@ a new ACD and verifies values, logic and scheduling. It uses the original
 Controller metadata; direct upload-save remains unfinished. Program import
 clears download identity, so the rebuilt file requires a download.
 
+The SDK probe can also [check the complete saved downloaded project](docs/download-content-validation.md)
+with `--verify-downloaded-content`. Values, logic, Program settings, Task
+schedules and explicit UDT schemas are verified after native save/reopen.
+
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
 Source or effect changes revoke this view; the bits do not change simulator

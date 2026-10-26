@@ -84,3 +84,19 @@ order fixes that case; a regression check covers names whose alphabetical
 order differs from their execution order. Seventy focused upload checks pass.
 These are Windows tool results; app `26.1026.131441` remains unchanged. General
 Studio GUI upload/save and direct reconstructed-project saving are unfinished.
+
+## Round-trip boundary
+
+The rebuilt ConveyorDemo ACD has also completed native download/save/reopen/
+Online across 430 verified requests, after loading and binding that rebuilt
+source in the emulator. It retains the original input and changes only the
+installed download correlation. Native Offline cleanup succeeds without an
+SDK fault. This does not enable arbitrary project replacement over the network.
+
+Its subsequent upload stops during tag collection with normal Offline cleanup
+and no SDK fault. A separate rebuilt two-Program download stops at a typed
+header check before installation. These remain unresolved boundaries; the
+complete upload/rebuild/download/re-upload cycle is not yet accepted.
+
+The optional [download content check](download-content-validation.md) verifies
+the complete saved Controller separately from connection and correlation.
