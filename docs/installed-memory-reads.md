@@ -40,6 +40,29 @@ this profile. Whole roots must fit the negotiated Table reply budget; oversized
 responses fail rather than returning partial values. Generic uninstalled
 constant storage remains unavailable.
 
+## Constant upload checkpoint: `26.1026.124956`
+
+A source-authored two-Program project contains 26 roots (102 bytes), seven
+constants and thirteen rungs. The constants include BOOL, INT, DINT, REAL,
+LINT, a DINT array and a packed BOOL array. Native download/save/reopen/Online
+passes across 436 verified requests. Upload snapshot/save/reopen/Online then
+passes across 1,206 requests while five mutable local values differ from the
+saved source.
+
+Independent recorded-response inspection checks all seven constant Table
+descriptors and 35 value bytes, including the eight-byte LINT and packed BOOL
+word. All saved constant values and flags match. Both native Program exports
+and the complete saved L5X preserve all values and thirteen rungs. Eleven
+mutable BOOLs and five DINTs pass typed Online checks. Temporary mutable
+values are restored without scanning; native Offline cleanup and no SDK fault
+are confirmed.
+
+The complete 1,759/4,494-event download/snapshot recordings replay identically
+offline. Replay does not independently reauthenticate MACs. The snapshot still
+requires an unchanged source-equivalent installation and matching saved baseline;
+general Studio GUI upload/save remains unfinished. The revision passes 343
+affected software checks and 367 Python syntax checks.
+
 The SDK's typed online tag request uses class `0x72`, instance `0`, service
 `0x4C`, with a little-endian 32-bit address and a 16-bit count of `1`. This
 profile returns exactly four DINT or padded BOOL bytes. Other counts, interior addresses,

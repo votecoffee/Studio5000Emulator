@@ -6,6 +6,13 @@ native Studio connection and programming services remain unfinished.
 
 ## Native Linx and Studio connection
 
+Version `26.1026.124956` broadens constant upload to verified BOOL/numeric
+roots and arrays. The two-Program native profile now preserves 26 roots,
+seven constants and thirteen rungs through download/save/reopen/Online (436
+requests) and upload snapshot/save/reopen/Online (1,206). Constant widths,
+packed BOOL data, saved flags and current mutable local values verify;
+Offline cleanup and no SDK fault pass. General GUI upload/save remains separate.
+
 Version `26.1026.122552` completes native source-equivalent download/save/
 reopen/Online (434 requests) and upload value snapshot/save/reopen/Online
 (1,188) for a two-Program profile with local tags, duplicate names, a constant

@@ -108,3 +108,12 @@ packages. Eleven BOOLs and five DINTs receive typed Online checks; the constant
 remains `1000` with its flag preserved. Values are restored without scanning,
 with actual Offline cleanup and no fault. See the complete
 [scoped transfer checkpoint](scoped-download-tables.md#native-snapshot-checkpoint-261026122552).
+
+On `26.1026.124956`, the expanded two-Program profile passes with 26 roots
+(102 bytes) and seven BOOL/numeric/array constants. Download/save/reopen/Online
+completes across 436 requests; snapshot upload/save/reopen/Online across 1,206.
+Every constant's value and flag survives, including LINT and packed BOOL-array
+storage, while independently changed mutable local values are captured. All
+thirteen rungs and both Program packages verify with normal Offline cleanup
+and no SDK fault. See the
+[constant upload checkpoint](installed-memory-reads.md#constant-upload-checkpoint-261026124956).
