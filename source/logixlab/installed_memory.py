@@ -6,6 +6,10 @@ allocation, pointer traversal, arbitrary ranges or writes are available.
 """
 from .download_image import ImageError
 from .download_headers import HeaderBindings
+from .model import ModelError
+from .templates import ATOMS,MAX_BYTES
+
+CONSTANT_ATOMS=frozenset(('BOOL',*ATOMS))
 
 
 def scalar_word(dtype,code,value):
@@ -17,35 +21,34 @@ def scalar_word(dtype,code,value):
 
 
 def constant_keys(app,router):
-    """Candidate source DINT constants; each external read still verifies effects."""
+    """Candidate numeric/BOOL roots; each external read still verifies effects."""
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if not router.endpoint.native_read_only or installed is None:return frozenset()
     try:installed.check(app.native_project_identity,project)
     except ImageError:return frozenset()
-    return frozenset(key for key,table,code,data in installed.values.values if code==0xC4 and len(data)==4
-        and (tag:=project.tags.get(key)) is not None and tag.constant and tag.dtype.upper()=='DINT'
+    return frozenset(key for key,table,code,data in installed.values.values if not code&0x8000 and 1<=len(data)<=MAX_BYTES
+        and (tag:=project.tags.get(key)) is not None and tag.constant and tag.dtype.upper() in CONSTANT_ATOMS
         and not tag.alias and not tag.problem and tag.tag_class=='Standard')
 
 
 def read_constant(app,router,key):
-    """Read a proved installed scalar DINT constant without exposing a setter."""
-    if key not in constant_keys(app,router):raise ImageError('installed_constant_dint_required')
-    installed=app.engine.installed_download
+    """Read one complete proved atomic constant root without exposing a setter."""
+    if key not in constant_keys(app,router):raise ImageError('installed_constant_atomic_required')
+    installed,ns=_verified_installation(app,router)
     rows=[row for row in installed.values.values if row[0]==key]
     if len(rows)!=1:raise ImageError('installed_constant_binding_required')
-    handles=[row for row in installed.namespace._tables if row.key==rows[0][1]]
+    _,table,code,initial=rows[0]
+    handles=[row for row in ns._tables if row.key==table]
     if len(handles)!=1:raise ImageError('installed_constant_value_address_required')
-    value=_read_scalar(app,router,handles[0].value_address,1,constant=True)
-    if value!=rows[0][3]:raise ImageError('installed_constant_source_value_changed')
+    tag,cell=_bound_cell(app,router,ns,key,table,code)
+    if not tag.constant or cell.size!=len(initial):raise ImageError('installed_constant_storage_changed')
+    try:value=cell.value(app.engine.memory.read)
+    except ModelError as error:raise ImageError('installed_constant_current_value_unavailable') from error
+    if value!=initial:raise ImageError('installed_constant_source_value_changed')
     return value
 
 
-def read_scalar(app,router,address,words):return _read_scalar(app,router,address,words)
-
-
-def _read_scalar(app,router,address,words,*,constant=False):
-    if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words!=1:
-        raise ImageError('installed_memory_scalar_word_request_required')
+def _verified_installation(app,router):
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if not router.endpoint.native_read_only or installed is None:
         raise ImageError('installed_memory_committed_download_required')
@@ -57,21 +60,37 @@ def _read_scalar(app,router,address,words,*,constant=False):
     if ns._incremental is None:raise ImageError('installed_memory_headers_required')
     ns._incremental.verify_effects(ns._image,ns._source,app.native_metadata_values,headers)
     installed.values.validate(headers,app.native_types)
-    handles=[row for row in ns._tables if row.value_address==address]
-    if len(handles)!=1:raise ImageError('installed_memory_value_address_unavailable')
-    rows=[row for row in installed.values.values if row[1]==handles[0].key]
-    if len(rows)!=1:raise ImageError('installed_memory_ordinary_tag_required')
-    key,table,code,initial=rows[0];tag=project.tags.get(key)
-    if (tag is None or tag.constant is not constant or tag.alias or tag.problem or tag.tag_class!='Standard'):
-        raise ImageError('installed_memory_scalar_word_required')
-    dtype=tag.dtype.upper();size={('DINT',0xC4):4,('BOOL',0xC1):1}.get((dtype,code))
-    if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
+    return installed,ns
+
+
+def _bound_cell(app,router,ns,key,table,code):
+    tag=app.engine.project.tags.get(key)
+    if tag is None or tag.alias or tag.problem or tag.tag_class!='Standard':
+        raise ImageError('installed_memory_ordinary_tag_required')
     symbol=app.native_symbols.by_key.get(key)
     if symbol is None or ns._image._symbols.get((symbol.program_instance,symbol.instance))!=table:
         raise ImageError('installed_memory_symbol_binding_changed')
     router.access(tag.key)
     cell=router.scalar_storage().by_ref.get(key)
-    if cell is None or cell.code!=code or cell.aggregate or cell.size!=size:
+    if cell is None or cell.instance!=symbol.instance or cell.table_code!=code:
         raise ImageError('installed_memory_current_storage_unavailable')
-    value=cell.value(engine.memory.read)
+    return tag,cell
+
+
+def read_scalar(app,router,address,words):
+    if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words!=1:
+        raise ImageError('installed_memory_scalar_word_request_required')
+    installed,ns=_verified_installation(app,router)
+    handles=[row for row in ns._tables if row.value_address==address]
+    if len(handles)!=1:raise ImageError('installed_memory_value_address_unavailable')
+    rows=[row for row in installed.values.values if row[1]==handles[0].key]
+    if len(rows)!=1:raise ImageError('installed_memory_ordinary_tag_required')
+    key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,ns,key,table,code)
+    if tag.constant:
+        raise ImageError('installed_memory_scalar_word_required')
+    dtype=tag.dtype.upper();size={('DINT',0xC4):4,('BOOL',0xC1):1}.get((dtype,code))
+    if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
+    if cell.code!=code or cell.aggregate or cell.size!=size:
+        raise ImageError('installed_memory_current_storage_unavailable')
+    value=cell.value(app.engine.memory.read)
     return scalar_word(dtype,code,value)

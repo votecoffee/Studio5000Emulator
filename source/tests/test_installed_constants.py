@@ -2,12 +2,17 @@
 import copy
 import struct
 from types import MappingProxyType
+from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
 
 from logixlab.installed_memory import constant_keys,read_constant
 from logixlab.download_image import ImageError
 from logixlab.model import ModelError
+from logixlab.model import Tag
+from logixlab.data_table import AddressSpace
+from logixlab.download_values import encode_initial
+from logixlab.native_symbols import Symbol
 import test_installed_memory as memory
 import test_download_changelog as logs
 import test_download_headers as headers
@@ -71,3 +76,42 @@ class InstalledConstantTests(logs.NamespaceFixture,unittest.TestCase):
         self.assertNotEqual(self.send(bytes.fromhex('0e03206a24013003'))[2],0)
         self.app.command('reset',{});self.assertFalse(constant_keys(self.app,router))
         self.assertNotIn('speedsetpoint',router.scalar_storage().by_ref)
+
+
+class ConstantShapeTests(unittest.TestCase):
+    def fixture(self,dtype,value,fmt):
+        tag=Tag('Const',dtype,value,scope='MainProgram',constant=True);key=tag.key.casefold()
+        code,dimensions,_,raw=encode_initial(dtype,value,None)
+        logical_dimensions=(len(value),0,0) if dtype=='BOOL' and isinstance(value,list) else dimensions
+        logical_code=0x20C1 if code==0x20D3 else code
+        space=AddressSpace([(dict(ref=tag.key,id=9,type=logical_code,dimensions=logical_dimensions),fmt)])
+        ns=NS(_tables=[NS(key=(2,5),value_address=0x72000000)],_image=NS(_symbols={(2,9):(2,5)}))
+        installed=NS(check=lambda identity,project:None,values=NS(values=((key,(2,5),code,raw),)),namespace=ns)
+        app=NS(engine=NS(project=NS(tags={key:tag}),installed_download=installed,memory=NS(read=lambda ref:value)),
+            native_project_identity=object(),native_symbols=NS(by_key={key:Symbol('MainProgram',2,'Const',9)}))
+        router=NS(endpoint=NS(native_read_only=True),access=lambda ref:None,scalar_storage=lambda:space)
+        return app,router,installed,ns,key,raw
+
+    def test_complete_constant_scalar_and_array_bytes_use_storage_type_and_size(self):
+        cases=(('BOOL',True,'<B',b'\1'),('INT',-1234,'<h',struct.pack('<h',-1234)),
+            ('REAL',1.25,'<f',struct.pack('<f',1.25)),('LINT',2**40,'<q',struct.pack('<q',2**40)),
+            ('DINT',[-300,0,12345],'<i',struct.pack('<3i',-300,0,12345)),
+            ('BOOL',[i in (0,7,31) for i in range(32)],'<B',struct.pack('<I',0x80000081)))
+        for dtype,value,fmt,expected in cases:
+            with self.subTest(dtype=dtype,shape=type(value)):
+                app,router,installed,ns,key,raw=self.fixture(dtype,value,fmt)
+                self.assertEqual(raw,expected)
+                with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+                    self.assertEqual(read_constant(app,router,key),expected)
+                    self.assertIs(app.engine.memory.read(key),value)
+
+    def test_changed_array_element_storage_code_and_missing_scoped_handle_reject(self):
+        value=[-300,0,12345];app,router,installed,ns,key,raw=self.fixture('DINT',value,'<i')
+        with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+            value[2]=12346
+            with self.assertRaises(ImageError):read_constant(app,router,key)
+            value[2]=12345
+            installed.values.values=((key,(2,5),0x20C3,raw),)
+            with self.assertRaises(ImageError):read_constant(app,router,key)
+            installed.values.values=((key,(2,5),0x20C4,raw),);ns._tables[0].key=(3,5)
+            with self.assertRaises(ImageError):read_constant(app,router,key)

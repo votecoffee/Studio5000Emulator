@@ -26,6 +26,20 @@ flag checks. Typed Online getters also verify mutable BOOLs and DINTs with
 duplicate names in different Programs. Their model value addresses remain
 distinct. Native Offline cleanup and no SDK fault are confirmed.
 
+Version `26.1026.124956` extends the constant Table path to bounded complete
+BOOL/numeric roots, including numeric arrays and supported packed BOOL arrays.
+The shared installation check verifies the original source, namespace, header
+effects and prepared values. Readback then checks the exact scoped Symbol/Table
+binding, storage type and full byte count before comparing every current byte
+with its source value. This supports different scalar widths without treating
+them as four-byte UserMemory words.
+
+Constants retain their flags and write restrictions. UserMemory constant reads,
+constant structures, aliases, arbitrary ranges and host memory remain outside
+this profile. Whole roots must fit the negotiated Table reply budget; oversized
+responses fail rather than returning partial values. Generic uninstalled
+constant storage remains unavailable.
+
 The SDK's typed online tag request uses class `0x72`, instance `0`, service
 `0x4C`, with a little-endian 32-bit address and a 16-bit count of `1`. This
 profile returns exactly four DINT or padded BOOL bytes. Other counts, interior addresses,
