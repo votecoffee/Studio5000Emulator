@@ -16,8 +16,10 @@ verified requests. Its two routines, ten rungs and Program settings match;
 all 14 Offline tag values still verify. A separate offline Program import into
 the altered baseline saves and reopens a new ACD with all values and logic
 preserved. This [component rebuild](upload-content-validation.md#offline-program-rebuild-checkpoint)
-retains baseline Controller metadata and has different online correlation;
-it does not establish direct uploaded-project saving or Go Online for that file.
+retains baseline Controller metadata. Offline Program import clears the download
+identity even with a matching saved baseline; native Go Online rejects it with
+`RxCL_E_CHANGES_SINCE_IMAGE_COPY`. It does not establish direct uploaded-project
+saving or a reconnectable rebuilt file.
 
 Version `26.1026.080644` adds [independent native content validation](upload-content-validation.md).
 Upload into a compatible NOP-altered baseline succeeds across 980 verified

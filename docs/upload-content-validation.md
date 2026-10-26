@@ -124,7 +124,23 @@ the separately validated saved file establishes the successful reopen.
 
 This demonstrates a component rebuild using the original Controller baseline.
 It does not demonstrate direct saving of the uploaded SDK project. The rebuilt
-ACD's correlation differs from the running installation, and Go Online with
-that rebuilt file has not been tested. Automating this rebuild and preserving
-the correct installed correlation remain further work. The probe currently
+ACD's correlation differs from the running installation. Repeating the offline
+import with a saved, already matching baseline still clears its download UID.
+Native Go Online then rejects the rebuilt file with
+`RxCL_E_CHANGES_SINCE_IMAGE_COPY` across 69 verified requests. The SDK confirms
+Offline cleanup without a fault, and the running model remains unchanged.
+Automating this rebuild with valid online correlation remains further work. The probe currently
 provides the native Program package for inspection or offline import.
+
+## Checking a saved connection target
+
+The native probe accepts a separate saved ACD while retaining the original
+emulator source binding. It copies and preserves both files:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --connection-target .local/Saved.ACD --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation connection --output .local/saved-connection-check
+```
+
+`--connection-target` belongs only to a connection check and cannot combine
+with `--upload-target`. This selects an input; it does not rewrite project
+correlation, upload, download or enable native tag writes.

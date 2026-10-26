@@ -16,8 +16,9 @@ uploaded-ACD save fault remain the priorities.
 
 The current probe also verifies native Program L5X exports and an offline
 import/save/reopen checkpoint using that package and an original Controller
-baseline. Its values and routines match, but the rebuilt ACD has different
-online correlation. Automating the component rebuild and retaining a correctly
+baseline. Its values and routines match, but offline Program import clears the
+download UID; a native Go Online check rejects the rebuilt ACD as changed.
+Automating the component rebuild and retaining a correctly
 bound saved project are separate from resolving direct uploaded-project saving.
 
 The current [Routine upload checkpoint](routine-upload.md) records successful

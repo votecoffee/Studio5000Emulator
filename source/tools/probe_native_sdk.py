@@ -11,6 +11,8 @@ Reports contain private project metadata and default to ignored .local storage.
 An upload may select a separate preserved offline merge baseline with
 --upload-target; the emulator remains pinned to --project. Only the new private
 working copy may change during upload. Its final hash is checked independently.
+--connection-target selects a separate saved ACD for a read-only connection
+check, while --project continues to pin the emulator's original source.
 Only explicit --operation modes changes Run/Program and executes scans. It
 restores Program; resulting tag values and scan history are retained. Other
 operations never request mode changes. The edits diagnostic imports a generated
@@ -60,6 +62,16 @@ def upload_input(source,operation,target=None):
     if not target.is_file() or target.suffix.lower()!='.acd' or not 8<=target.stat().st_size<=100_000_000:
         raise ValueError('Upload target must be an ACD file of 8..100000000 bytes')
     return target
+
+
+def connection_input(source,operation,target=None):
+    """A saved connection target is a copied SDK input, never a new source binding."""
+    if target is None:return source
+    if operation!='connection':raise ValueError('--connection-target belongs only to a connection diagnostic')
+    path=Path(target).resolve(strict=True)
+    if path.suffix.lower()!='.acd' or not path.is_file() or not 8<=path.stat().st_size<=100_000_000:
+        raise ValueError('Connection target must be an ACD file of 8..100000000 bytes')
+    return path
 
 
 def validate_new_upload(operation, enabled, target=None, save_uploaded=False):
@@ -684,7 +696,11 @@ def run(args):
     content_source=getattr(args,'verify_uploaded_content',None)
     if content_source is not None and (args.operation!='upload' or upload_new):
         raise ValueError('--verify-uploaded-content requires an existing-project upload')
-    baseline=upload_input(source,args.operation,getattr(args,'upload_target',None))
+    connection_target=getattr(args,'connection_target',None)
+    if connection_target is not None and getattr(args,'upload_target',None) is not None:
+        raise ValueError('Select one SDK input target')
+    baseline=(connection_input(source,args.operation,connection_target) if connection_target is not None
+              else upload_input(source,args.operation,getattr(args,'upload_target',None)))
     baseline_hash=digest(baseline)
     tag_read_type=validate_tag_read_type(args.operation,args.tag,getattr(args,'tag_read_type','BYTE_ARRAY'))
     apply_edits=getattr(args,'apply_supported_edits',False)
@@ -789,7 +805,8 @@ def run(args):
     executable = output / 'bin/NativeSdkProbe.exe'
     summary = dict(operation=args.operation, version=state['app_version'], instance_id=instance,
                    source_sha256=source_hash, harness_sha256=digest(executable),
-                   sdk_input_sha256=baseline_hash,separate_upload_target=baseline!=source,
+                   sdk_input_sha256=baseline_hash,separate_upload_target=args.operation=='upload' and baseline!=source,
+                   separate_connection_target=args.operation=='connection' and baseline!=source,
                    harness_runtime_sha256=runtime_hashes(output / 'bin'),
                    harness_source_sha256={name: digest(SOURCE / 'tools/native_sdk_probe' / name)
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
@@ -943,6 +960,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
+    parser.add_argument('--connection-target',help='Connection only: preserved saved ACD to open on a private copy; --project still pins the emulator source')
     parser.add_argument('--retain-transfer-trace',action='store_true',help='Upload/download only: record bounded compressed cursor pages privately while the single native call runs')
     parser.add_argument('--upload-new-project',action='store_true',help='Upload only: use UploadToNewProjectAsync to create uploaded.ACD without opening a merge baseline; cannot combine with upload-target or save-uploaded-acd')
     parser.add_argument('--url', required=True, help='Running local LogixLab HTTP URL')

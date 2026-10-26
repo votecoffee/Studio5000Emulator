@@ -15,6 +15,20 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_saved_connection_target_is_explicit_copied_input_without_rebinding_source(self):
+        from tools.probe_native_sdk import connection_input
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'original.ACD';saved=root/'saved.ACD'
+            source.write_bytes(b'original-source');saved.write_bytes(b'distinct-saved-acd')
+            self.assertEqual(connection_input(source,'connection'),source)
+            self.assertEqual(connection_input(source,'connection',saved),saved.resolve())
+            self.assertEqual(source.read_bytes(),b'original-source')
+            for operation in ('upload','download','modes','edits'):
+                with self.assertRaises(ValueError):connection_input(source,operation,saved)
+            for name,data in (('wrong.L5X',b'not-an-acd'),('tiny.ACD',b'no')):
+                path=root/name;path.write_bytes(data)
+                with self.assertRaises(ValueError):connection_input(source,'connection',path)
+
     def test_recorded_transfer_keeps_native_result_and_correlates_private_cursor_journal(self):
         from tools.probe_native_sdk import digest
         from test_native_project import container

@@ -141,14 +141,23 @@ def verify(folder,expected,receipt):
 def verify_saved(folder,expected,native_types,receipt):
     """Check the native reopened full export, not just an ACD success/hash."""
     from tools.probe_native_sdk import saved_uploaded_acd_effect
+    result=dict(verified=False,serialized_values_verified=False,serialized_logic_verified=False)
+    if not saved_uploaded_acd_effect(Path(folder),receipt):return result
+    result=verify_serialized(Path(folder)/'uploaded.L5X',expected,native_types)
+    if result['verified']:result['native_acd_reopened']=True
+    return result
+
+
+def verify_serialized(path,expected,native_types):
+    """Check complete exported values/logic without claiming a native reopen."""
     from logixlab.runtime import Engine
     result=dict(verified=False,serialized_values_verified=False,serialized_logic_verified=False)
     try:
-        if not saved_uploaded_acd_effect(Path(folder),receipt):return result
-        project=Project(Path(folder)/'uploaded.L5X')
+        project=Project(path)
         if (project.name!=expected['controller'] or project.processor!=expected['processor'] or project.version!=expected['version']
                 or set(project.tags)!={t['name'].casefold() for t in expected['tags']}
                 or list(project.task_configuration.names)!=expected['taskNames']):return result
+        if 'programs' in expected and project.programs!={p['name']:p['settings'] for p in expected['programs']}:return result
         for tag in expected['tags']:
             key=tag['name'].casefold();actual=project.tags[key]
             if (actual.problem or actual.alias or actual.tag_class!='Standard' or actual.constant!=tag['constant']
@@ -165,7 +174,7 @@ def verify_saved(folder,expected,native_types,receipt):
         if engine.blockers or engine.fault or engine.entries!=expected['entryRoutines']:return result
         result.update(verified=True,serialized_logic_verified=True,tags=len(expected['tags']),
             value_bytes=sum(len(t['expectedHex'])//2 for t in expected['tags']),routines=len(expected['routines']),
-            rungs=sum(len(r['expectedRungs']) for r in expected['routines']),native_acd_reopened=True)
+            rungs=sum(len(r['expectedRungs']) for r in expected['routines']))
         return result
     except (OSError,ValueError,ModelError,TypeError,KeyError,AttributeError):return result
 

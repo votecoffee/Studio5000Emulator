@@ -136,6 +136,15 @@ class UploadContentTests(unittest.TestCase):
         bad=receipt();bad['nativeAcdReopened']=False
         self.assertFalse(content.verify_saved(self.folder,expected,self.types,bad)['verified'])
 
+    def test_serialized_content_check_does_not_invent_native_reopen_or_ignore_program_settings(self):
+        expected=self.plan();path=self.folder/'full.L5X';path.write_bytes(self.project.path.read_bytes())
+        result=content.verify_serialized(path,expected,self.types)
+        self.assertTrue(result['verified']);self.assertNotIn('native_acd_reopened',result)
+        changed=copy.deepcopy(expected);changed['programs'][0]['settings']['disabled']=True
+        self.assertFalse(content.verify_serialized(path,changed,self.types)['verified'])
+        root=ET.fromstring(path.read_bytes());root.set('TargetType','Program');path.write_bytes(ET.tostring(root))
+        self.assertFalse(content.verify_serialized(path,expected,self.types)['verified'])
+
     def test_native_program_package_checks_settings_full_routine_set_and_artifact_identity(self):
         expected=self.plan();receipt=self.program_receipt(expected)
         self.assertEqual(content.verify_programs(self.folder,expected,self.types,receipt),

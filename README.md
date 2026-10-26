@@ -30,7 +30,8 @@ routines, verifies its settings and all ten rungs, and completes normal SDK
 cleanup across 983 requests.
 A separate offline import of that package saves and reopens a new ACD with
 all values and logic verified. This uses the original Controller baseline;
-direct upload-save and the rebuilt file's online correlation remain unfinished.
+direct upload-save remains unfinished. Native Go Online rejects the rebuilt
+file after offline Program import clears its download identity.
 
 [Installed Symbol Control readback](docs/installed-symbol-control.md) now returns
 the original opaque control word from validated committed download headers.
