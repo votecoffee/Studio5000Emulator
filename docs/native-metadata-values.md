@@ -1,12 +1,14 @@
 # Original ACD metadata values
 
-Version `26.1028.124833` retains a closed Controller-only metadata view after
+Version `26.1028.125515` retains a closed Controller-only metadata view after
 supported routine-only edits. A native offline import/save/reopen comparison
 confirms that the original `ControllerSerialNumber` record remains unchanged
 through two independent routine replacements. The committed view also retains
 the already validated `ProjectType` marker. Reads recheck the installed source,
 unchanged tag layout, original metadata catalog and exact typed serial/profile
-properties. Unknown Controller properties and all-object metadata stay guarded;
+properties. Serial metadata may retain its exact original source value or the
+validated endpoint value accepted during download; it is not forced to equal
+the endpoint Identity serial. Unknown Controller properties and all-object metadata stay guarded;
 old continuation cursors are invalidated by another edit. This does not establish
 complete upload after edits or supply edited Routine component metadata.
 

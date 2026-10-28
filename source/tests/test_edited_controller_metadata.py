@@ -30,7 +30,7 @@ class EditedControllerMetadataTests(sources.wire.logs.NamespaceFixture,unittest.
         rows=tuple(stored if row is self.number else row for row in self.catalog.rows if row is not self.text)
         self.catalog=replace(self.catalog,rows=tuple(replace(row,record_word=n) for n,row in enumerate(rows,1)))
         self.app.native_metadata_values=self.catalog
-        self.number=replace(stored,data=self.endpoint.identity.serial.to_bytes(4,'little'))
+        self.number=stored
 
     def installed(self):
         self.stage();self.assertEqual(self.send(installation.logs.COMMIT)[2],0)
@@ -64,12 +64,24 @@ class EditedControllerMetadataTests(sources.wire.logs.NamespaceFixture,unittest.
         self.assertEqual(self.query()[2],12)
 
     def test_serial_identity_profile_tag_layout_and_missing_bindings_revoke_the_read(self):
+        self.number=replace(self.number,data=self.endpoint.identity.serial.to_bytes(4,'little'))
         self.installed();self.edit();engine=self.app.engine;installed=engine.installed_download
         identity=self.endpoint.identity;self.endpoint.identity=replace(identity,serial=identity.serial+1)
         self.assertEqual(self.query()[2],12);self.endpoint.identity=identity
         engine.project.processor='1756-L85ES';self.assertEqual(self.query()[2],12);engine.project.processor='1756-L85E'
         engine.installed_download=replace(installed,tag_bindings=None);self.assertEqual(self.query()[2],12)
         engine.installed_download=installed;engine.project.tags['speedsetpoint'].external_access='None'
+        self.assertEqual(self.query()[2],12)
+
+    def test_original_serial_is_preserved_without_claiming_to_be_the_endpoint_serial(self):
+        self.installed();self.edit()
+        rows=metadata_query.records(metadata.frame(metadata.query('controller-all'),self.query())[1].data)
+        serial=next(row for row in rows if row.target.qualifier==b'ControllerSerialNumber')
+        self.assertEqual(serial.data,bytes(4));self.assertNotEqual(serial.data,self.endpoint.identity.serial.to_bytes(4,'little'))
+        engine=self.app.engine;installed=engine.installed_download;view=installed.metadata
+        changed=tuple(replace(row,data=b'BAD!') if row.target.qualifier==b'ControllerSerialNumber' else row for row in view.rows)
+        engine.installed_download=replace(installed,metadata=replace(view,rows=changed,
+            _controller=encode_records(tuple(row for row in changed if row.target.class_id==0x8E))))
         self.assertEqual(self.query()[2],12)
 
     def test_next_edit_revokes_a_controller_metadata_continuation(self):

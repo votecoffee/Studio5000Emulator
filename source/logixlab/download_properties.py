@@ -39,17 +39,21 @@ def profile_marker(row,values):
             and r.kind==2 and r.type_code==0xC2 and r.elements==1 and r.data==b'\1' for r in values.rows))
 
 
-def serial_property(row,values,identity):
-    """Only an actual endpoint Identity supplies the downloaded serial value."""
-    if (not isinstance(identity,Identity) or identity.profile!='logix-v35-l85e'
-            or type(identity.serial) is not int or not 0<=identity.serial<=0xFFFFFFFF):return False
+def serial_record(row,values):
     return (row.target.class_id==0x8E and row.target.instance_word==1 and not row.target.context_word and not row.target.selector_word
         and row.target.qualifier==b'ControllerSerialNumber' and row.locale_word==0x7F and row.kind==2
-        and row.type_code==0xC4 and row.elements==1 and row.data==identity.serial.to_bytes(4,'little')
+        and row.type_code==0xC4 and row.elements==1 and len(row.data)==4
         and any(d.instance==row.definition and d.name=='SystemNumeric' for d in values.definitions.rows)
         and any(r.target.class_id==0x349 and r.target.instance_word==row.definition and not r.target.context_word
             and not r.target.selector_word and not r.target.qualifier and r.definition==17 and r.locale_word==0x7F
             and r.kind==2 and r.type_code==0xC2 and r.elements==1 and r.data==b'\1' for r in values.rows))
+
+
+def serial_property(row,values,identity):
+    """Only an actual endpoint Identity supplies a changed downloaded serial."""
+    return (isinstance(identity,Identity) and identity.profile=='logix-v35-l85e'
+        and type(identity.serial) is int and 0<=identity.serial<=0xFFFFFFFF
+        and serial_record(row,values) and row.data==identity.serial.to_bytes(4,'little'))
 
 
 @dataclass(frozen=True)
@@ -96,7 +100,9 @@ class CommittedProperties:
             raise ImageError('installed_controller_metadata_profile_changed')
         rows=tuple(row for row in self.rows if row.target.class_id==0x8E and row.target.instance_word==1
             and not row.target.context_word and not row.target.selector_word)
-        if any(not (profile_marker(row,values) or serial_property(row,values,identity)) for row in rows):
+        original={value_identity(row) for row in values.rows}
+        if any(not (profile_marker(row,values) or serial_property(row,values,identity)
+                or serial_record(row,values) and value_identity(row) in original) for row in rows):
             raise ImageError('installed_controller_metadata_edit_profile_unsupported')
         if encode_records(rows)!=body:raise ImageError('installed_controller_metadata_body_changed')
         return body
