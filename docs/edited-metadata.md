@@ -46,3 +46,25 @@ Program-package and controller-tag definition checks remain separate receipts.
 This option does not enable reconstructed-upload saving, snapshots, factory
 upload or native Test/Untest/Assemble. The default content check still requires
 unchanged logic unless this explicit edited-content option is supplied.
+
+## Native validation boundary
+
+For the two-routine conveyor demo, native download/save/reopen/Go Online and a
+Program-mode RLL edit with reconnect succeed. Independent signed reads verify
+both current routine sources, all fourteen tag roots, and all 1,670 current
+metadata records. Exactly the accepted old-rung Comment is removed from the
+1,671-record downloaded view; other typed values and local record IDs remain.
+
+The native edited-project upload now receives both routine sources and the
+complete current all-object metadata stream. Offline reconstruction of its
+complete journal matches the independently verified bytes. The next request,
+Change Log instance 1 service `0x4F`, receives the guard for unsupported edited
+history. The original empty-log shortcut requires runtime revision zero and
+must not stand in for actual edit history.
+
+That trial reached the diagnostic deadline, so its harness outcome remains
+unknown. A later SDK receipt reports a CIP error and Offline without a server
+fault; a separate fresh Go Online/read/Offline check confirms recovery. The
+trial is not an edited-upload success, does not verify the exported edited
+content, and saves no reconstructed ACD. Implementing the current Change Log
+search/history format is the next upload target.

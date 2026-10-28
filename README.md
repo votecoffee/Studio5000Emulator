@@ -15,6 +15,9 @@ accepted old-rung Comment removals to a separate upload view. The native upload
 content check can now explicitly verify current edited logic and Comments.
 Catalog checks are shared within each metadata fragment, and native type
 manifest generation preserves its canonical bytes without recursive copies.
+The latest native edited upload receives both routine sources and all extended
+metadata, then stops at guarded Change Log history. Complete edited-project
+upload remains unfinished.
 
 [Retained Routine profile reads](docs/routine-profile-readback.md) preserve the
 exact downloaded selector-9 component and empty selector-4 stream through
@@ -42,7 +45,7 @@ state fields. [Pinned Source Key metadata](docs/routine-source-key-retention.md)
 also remains available after verified plain RLL edits. Offline native imports
 confirm the original opaque bytes survive both routine edits and save/reopen.
 [Controller metadata after edits](docs/native-metadata-values.md) retains the
-validated serial/profile view while broader object metadata remains guarded.
+validated serial/profile view; other metadata requires the checked edit view.
 The current version passes native download/save/reopen/Online and an SDK edit
 with reconnect. A separate read-only peer verifies the edited source against SDK
 traffic and the untouched source against its pre-edit readback; both match active
