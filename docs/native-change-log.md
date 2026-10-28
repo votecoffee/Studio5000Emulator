@@ -13,6 +13,11 @@ bytes are represented by size and SHA-256, without values, record counts or MAC
 verification claims. Even a zero-filled summary remains an opaque summary.
 This is an inspection tool, not a source of runtime history.
 
+Independent signed reads verify the current empty reply before a supported RLL
+edit and the history rejection after it, including response MACs and the new
+endpoint rejection record. For current upload limits, see
+[metadata after edits](edited-metadata.md#native-validation-boundary).
+
 Version `.151` extends the read-only Change Log search used during v35 upload.
 It preserves the imported cursor and does not create history records.
 
@@ -58,7 +63,7 @@ The installed v35 Change Log definition independently identifies the UINT index
 and generation fields. A saved successful upload contains an empty four-byte
 cursor reply and a separate nonempty reply; the latter remains unsupported.
 
-## Validation and limits
+## Historical .151 validation
 
 Tests cover compressed/plain source profiles, strict EOF/trailer boundaries,
 legacy and malformed manifests, cursor echo and bounds, structural edit and
