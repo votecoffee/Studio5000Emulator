@@ -19,8 +19,17 @@ are preserved. The served view adds the explicit Standard upload class using
 the existing bounded container conversion. Each continuation rechecks the model;
 a new edit revokes an in-progress stream.
 
-Selector `(1, 4)`, opaque component `(1, 9)`, unrecorded routines and complete
-edited-project upload remain unavailable after edits. This does not implement
+Version `26.1028.103821` also preserves validated original source containers
+when a download installs. After an edit, untouched routines can still return
+selector `(1, 3)` from this immutable source-only snapshot. Each read verifies
+the original catalogs, exact bytes, native scope and every active ladder rung.
+Empty routines retain their exact empty container; no rung is invented. Editing
+a previously untouched routine switches it to its accepted edit source. A missing
+edit record never falls back to the original download. This snapshot contains
+no executable components and does not make original vendor metadata current.
+
+Selector `(1, 4)`, opaque component `(1, 9)`, edited routines without recorded
+source and complete edited-project upload remain unavailable after edits. This does not implement
 native compiled-code execution, Test/Untest/Assemble, updated vendor metadata or
 the complete online-edit upload lifecycle. [General upload/save](upload-to-acd.md)
 continues to require unchanged source.

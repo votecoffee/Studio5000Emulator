@@ -3,6 +3,7 @@
 The source and opaque component selectors use retained download bytes. No source
 is invented, no opaque code executes, and edits revoke the downloaded view.
 An edited routine can instead expose its exact accepted source for selector3;
+untouched routines use a validated source-only snapshot from installation.
 opaque components and complete edited-project uploads remain unavailable.
 """
 from dataclasses import dataclass,field
@@ -23,6 +24,10 @@ def source(app,program,routine,selector=3):
         raise ImageError('routine_read_unchanged_logic_required')
     if getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()):
         if selector!=3:raise ImageError('routine_read_edited_component_unavailable')
+        row=app.native_routines.by_instance.get((program,routine)) if app.native_routines is not None else None
+        if row is not None and (row.program+'/'+row.name).casefold() not in getattr(project,'runtime_edited_routines',()):
+            if installed.routine_sources is None:raise ImageError('routine_read_download_snapshot_required')
+            return installed.routine_sources.read(app,program,routine)
         from . import accepted_routine_source
         try:return accepted_routine_source.read(app,program,routine)
         except accepted_routine_source.Error as error:raise ImageError(str(error)) from error

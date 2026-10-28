@@ -20,6 +20,7 @@ class InstalledDownload:
     header:tuple
     values:PreparedValues
     metadata:object
+    routine_sources:object=None
 
     def check(self,original,project):
         if (original is not self.original or project is not self.project
@@ -56,6 +57,7 @@ class InstalledDownload:
             auxiliary_tables=len(self.values.auxiliary),original_catalogs_preserved=True,
             runtime_correlation=True,saved_values_installed=True,prescan_deferred=True,
             committed_metadata=self.metadata is not None,
+            retained_source_routines=0 if self.routine_sources is None else len(self.routine_sources.sources),
             added_controller_properties=0 if self.metadata is None else self.metadata.additions,
             audit_epoch_replaced=True,compiled_code_executed=False,persistent=False,
             payloads_exposed=False)
@@ -81,7 +83,9 @@ def prepare(app,changelog_bindings,native_types):
     except ValueError:raise ImageError('download_installation_audit_source_changed') from None
     runtime=replace(original,download_uid=int.from_bytes(header[3],'little'))
     metadata=CommittedProperties.prepare(ns.properties,ns._source,changelog_bindings.map.metadata,old.project)
-    installed=InstalledDownload(original,old.project,ns,runtime,tuple(sorted(header.items())),values,metadata)
+    from .download_source_snapshot import Snapshot
+    sources=Snapshot.prepare(headers,native_types)
+    installed=InstalledDownload(original,old.project,ns,runtime,tuple(sorted(header.items())),values,metadata,sources)
     candidate.installed_download=installed
     values.validate(headers,native_types);ns.change_log.require_configured(changelog_bindings)
     if app.engine is not old:raise ImageError('download_installation_engine_changed')
