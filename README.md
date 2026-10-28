@@ -14,6 +14,8 @@ page header, Windows tray and executable properties share this version.
 Table identities and original Symbol Control while serving current interpreter
 values. Tag layout, access, source identity and committed bindings are rechecked
 on every read; routine-only edits no longer force a fallback to Symbol IDs.
+Native SDK getters verify three DINTs after an edit and reconnect; separate
+signed reads verify all fourteen demo tag roots and their metadata.
 
 [Accepted edit source readback](docs/accepted-routine-source.md) now retains
 exact native RLL source at commit and supports signed source reads after an edit.

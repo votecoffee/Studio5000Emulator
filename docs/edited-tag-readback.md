@@ -36,3 +36,20 @@ Focused checks cover current values after repeated edits, committed identities
 and Control, stale views, altered layout/access/source/headers/handles, missing
 bindings, and read-only constant verification. Model/protocol checks remain
 separate from native SDK and Studio GUI acceptance.
+
+## Native checkpoint
+
+The deployed version completes native download/save/reopen/Online across 429
+verified requests. A Program-mode SDK edit and reconnect completes across 189
+requests, including successful post-edit DINT getters for SpeedSetpoint (50),
+SpeedCommand (0) and DisplayedPartCount (0), with actual Offline cleanup and no
+SDK fault.
+
+A separate read-only peer verifies every response MAC while reading all fourteen
+tag roots (45 value bytes), Table links, addresses and Control words before and
+after the edit. The values and descriptors match exactly, including the demo
+BOOL, DINT, TIMER and COUNTER roots. Both routine source streams and current
+metadata still verify independently. These reads leave values and scan state
+unchanged. The demo uses equal Symbol/Table IDs; native post-edit coverage of
+a differing-ID profile remains separate work. Full SDK upload after edits and
+Studio GUI monitoring are not established by these checks.
