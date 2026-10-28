@@ -134,3 +134,12 @@ Studio upload-save.
 
 The optional [download content check](download-content-validation.md) verifies
 the complete saved Controller separately from connection and correlation.
+
+The fresh L5X method also completes a ConveyorDemo round trip. Native import of
+assembled uploaded tags/Programs saves and reopens an ACD without opening the
+original source ACD. After loading that new source, download/save/reopen/Online
+passes across 428 verified requests; its subsequent upload and fresh L5X-based
+ACD save/reopen pass across 1,054. All fourteen values, ten rungs and source
+Task/type context verify. The uploaded output requires another download, since
+the fresh import clears correlation. These are separate SDK results from general
+Studio GUI acceptance and arbitrary Controller reconstruction.

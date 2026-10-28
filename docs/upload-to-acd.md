@@ -94,8 +94,12 @@ The fresh L5X method also saves and reopens an ACD from that retained verified
 upload, preserving the three changed values, all fourteen roots, both routines,
 ten rungs and source Task/type context. Its native input is the complete assembled
 L5X; no original ACD copy is opened. Cleared correlation and final Offline cleanup
-verify independently. This checkpoint establishes an Offline reconstruction;
-its download/re-upload round trip is checked separately.
+verify independently. Loading that reconstructed source into the emulator then
+completes native download/save/reopen/Online across 428 verified requests. Its
+next upload completes across 1,054 requests and the single-command L5X method
+again saves and reopens a complete ACD with all fourteen values and ten rungs
+preserved. Actual upload and rebuild Offline cleanup pass. That newly uploaded
+file again has cleared correlation and requires a download before going Online.
 
 This is a source-bound Windows tool result. The app remains `26.1026.153720`;
 general Studio upload/save and uploading online-edited routines remain unfinished.

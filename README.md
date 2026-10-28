@@ -31,6 +31,9 @@ separate stage results and stopping on a failed or uncertain upload.
 Its optional [fresh L5X import](docs/upload-to-acd.md#fresh-acd-from-uploaded-l5x)
 creates the ACD from verified native tag/Program exports and source XML context,
 without using an original ACD copy as the native save input.
+The reconstructed demo completes native download/save/reopen/Online across
+428 verified requests, followed by re-upload and another fresh ACD save/reopen
+across 1,054 requests, preserving all fourteen values and ten rungs.
 
 [Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
 native SDK while Online. Separate BOOL sessions verify `true` and `false`,
