@@ -93,5 +93,20 @@ class EditedMetadataTests(controller.EditedControllerMetadataTests):
             # Actual tag/control reads retain the full transfer-effect proof.
             with self.assertRaises(AssertionError):installed.tag_bindings.check(self.app,installed)
 
+    def test_grouped_source_checks_preserve_individual_views_and_reject_later_catalog_or_engine_changes(self):
+        from logixlab.routine_read import edited_sources,source
+        from logixlab.download_image import ImageError
+        self.installed();self.replacement();installed=self.app.engine.installed_download
+        with self.app.lock:
+            expected=tuple((row.target,source(self.app,*row.target,3)) for row in installed.routine_sources.sources)
+            self.assertEqual(edited_sources(self.app),expected)
+            self.app.engine.fault='current fault'
+            with self.assertRaises(ImageError):edited_sources(self.app)
+            self.app.engine.fault=''
+            stamp=self.app.native_types.source_acd_sha256;self.app.native_types.source_acd_sha256='f'*64
+            with self.assertRaises(ImageError):edited_sources(self.app)
+            self.app.native_types.source_acd_sha256=stamp
+            self.assertEqual(edited_sources(self.app),expected)
+
 
 if __name__=='__main__':unittest.main()

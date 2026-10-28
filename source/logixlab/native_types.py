@@ -245,9 +245,15 @@ class NativeTypes:
         return cls(digest,source_l5x_sha256,types,type_paths(data,result.types))
 
     def manifest(self):
+        def member(m):
+            # Validated Member fields are immutable scalars and a tuple of ints.
+            # Avoid recursive deepcopy on every source/catalog binding check.
+            if type(m) is not Member:return {**asdict(m),'dimensions':list(m.dimensions)}
+            return {'name':m.name,'dtype':m.dtype,'offset':m.offset,'bit':m.bit,
+                    'dimensions':list(m.dimensions),'access':m.access,'hidden':m.hidden}
         return {'source_acd_sha256':self.source_acd_sha256,'source_l5x_sha256':self.source_l5x_sha256,
                 'type_ids':dict(self.type_ids),
-                'types':[{'name':t.name,'size':t.size,'members':[{**asdict(m),'dimensions':list(m.dimensions)} for m in t.members]}
+                'types':[{'name':t.name,'size':t.size,'members':[member(m) for m in t.members]}
                          for t in self.types.values()]}
 
     def description(self):

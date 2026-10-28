@@ -1,6 +1,6 @@
 """Synthetic source binding and member comparisons, without native acceptance claims."""
 import base64
-from dataclasses import replace
+from dataclasses import asdict,dataclass,replace
 import hashlib
 import json
 from pathlib import Path
@@ -48,6 +48,22 @@ XML='''<LogixTagInfo><SchemaVersion Major="1" Minor="0"/><DataTypes>
 
 
 class NativeTypeTests(unittest.TestCase):
+    def test_manifest_preserves_legacy_canonical_bytes_and_detached_member_dimensions(self):
+        c=catalog()
+        legacy={'source_acd_sha256':c.source_acd_sha256,'source_l5x_sha256':c.source_l5x_sha256,
+                'type_ids':dict(c.type_ids),'types':[{'name':t.name,'size':t.size,
+                'members':[{**asdict(m),'dimensions':list(m.dimensions)} for m in t.members]} for t in c.types.values()]}
+        canonical=lambda value:json.dumps(value,sort_keys=True,separators=(',',':')).encode('utf-8')
+        self.assertEqual(canonical(c.manifest()),canonical(legacy))
+        self.assertEqual(c.binding_stamp(),hashlib.sha256(canonical(legacy)).hexdigest())
+        changed=c.manifest();changed['types'][1]['members'][2]['dimensions'].append(2)
+        self.assertEqual(c.manifest(),legacy)
+        @dataclass(frozen=True)
+        class Extended(nt.Member):extra:int=7
+        m=Extended('Value','DINT',0,None,(),'Read/Write',False)
+        subclass=nt.NativeTypes('a'*64,'b'*64,(nt.Type('Example',4,(m,)),))
+        self.assertEqual(subclass.manifest()['types'][0]['members'][0],{**asdict(m),'dimensions':[]})
+
     def test_nested_array_direct_and_packed_bool_locations_match_without_authorizing_storage(self):
         value=catalog().verify(staged())
         self.assertEqual((value['status'],value['types_matched'],value['members_matched']),('matched',2,6))

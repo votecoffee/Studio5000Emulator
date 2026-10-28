@@ -84,14 +84,15 @@ class View:
         original.edited_controller_body(app.native_metadata_values,project,identity)
         if installed.routine_sources is None or installed.tag_bindings is None:
             raise ImageError('edited_metadata_installation_required')
-        installed.routine_sources.check_catalog(app);installed.tag_bindings.check_metadata(app,installed)
-        from .routine_read import source
+        installed.tag_bindings.check_metadata(app,installed)
+        from .routine_read import edited_sources
         from .upload_routine_source import decode
         current={}
-        for row in installed.routine_sources.sources:
-            blob=source(app,*row.target,3)
-            value=decode(blob) if project.routines[row.key].rungs else None
-            current[row.target]=set(r.region_id for r in value.records) if value is not None else set()
+        for target,blob in edited_sources(app):
+            row=app.native_routines.by_instance[target]
+            name=(row.program+'/'+row.name).casefold()
+            value=decode(blob) if project.routines[name].rungs else None
+            current[target]=set(r.region_id for r in value.records) if value is not None else set()
         edited=set(project.runtime_edited_routines)
         for row in self.rows:
             target=rung_metadata.scope(row.target)

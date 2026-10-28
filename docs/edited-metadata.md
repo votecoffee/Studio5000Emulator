@@ -19,7 +19,13 @@ Each fragment rechecks current source for every installed routine, tag layout,
 native catalog fingerprints, serial/profile configuration and the view's bytes.
 The metadata path validates declarations and catalogs without rescanning the
 legacy transfer RAM image for each fragment. Storage reads retain that separate
-full effect validation. A later edit revokes an existing continuation. An internal or unrecorded edit
+full effect validation. Routine source validation shares one catalog check
+within a locked fragment and still checks every retained source against current
+logic. No proof is cached across requests. Type manifests retain the same
+canonical bytes and binding fingerprints while avoiding recursive copies of
+immutable member fields.
+
+A later edit revokes an existing continuation. An internal or unrecorded edit
 does not acquire native metadata authority.
 
 ## Native content diagnostic

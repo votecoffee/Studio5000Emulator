@@ -100,9 +100,14 @@ class Snapshot:
         return record.component
 
     def read(self,app,program,routine):
+        self.check_catalog(app)
+        return self._read(app,program,routine)
+
+    def _read(self,app,program,routine):
+        """Caller has checked this catalog in the same locked request."""
         if type(program) is not int or type(routine) is not int:
             raise ImageError('download_source_target_unavailable')
-        project=app.engine.project;self.check_catalog(app)
+        project=app.engine.project
         revision=getattr(project,'runtime_revision',0);edited=getattr(project,'runtime_edited_routines',())
         if (type(revision) is not int or revision<1 or type(edited) is not tuple or not edited
                 or any(key not in project.routines for key in edited)):

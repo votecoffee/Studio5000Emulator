@@ -6,13 +6,15 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.144741`.** Versions use the release timestamp
+**Current app version: `26.1028.150454`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
 [Current metadata after native edits](docs/edited-metadata.md) applies only
 accepted old-rung Comment removals to a separate upload view. The native upload
 content check can now explicitly verify current edited logic and Comments.
+Catalog checks are shared within each metadata fragment, and native type
+manifest generation preserves its canonical bytes without recursive copies.
 
 [Retained Routine profile reads](docs/routine-profile-readback.md) preserve the
 exact downloaded selector-9 component and empty selector-4 stream through

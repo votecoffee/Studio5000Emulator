@@ -16,13 +16,42 @@ from .download_routines import RoutineBindings
 from . import read_transport as rt,upload_routine_source
 
 
-def source(app,program,routine,selector=3):
-    if type(selector) is not int or selector not in (3,4,9):raise ImageError('routine_read_selector_unsupported')
+def _context(app):
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if installed is None:raise ImageError('routine_read_installed_download_required')
     installed.check(app.native_project_identity,project)
     if engine.mode!='project' or engine.blockers or engine.fault or engine.calls.stack or engine.memory.frames:
         raise ImageError('routine_read_unchanged_logic_required')
+    return project,installed
+
+
+def edited_sources(app):
+    """Validate all retained source views together in one locked request.
+
+    Each fragment still fingerprints the catalog. Untouched routines share that
+    check within this call; their source bytes and active rungs are all rechecked.
+    No validation result is retained across requests.
+    """
+    project,installed=_context(app)
+    if not (getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
+        raise ImageError('routine_read_edited_project_required')
+    snapshot=installed.routine_sources
+    if snapshot is None:raise ImageError('routine_read_download_snapshot_required')
+    snapshot.check_catalog(app)
+    from . import accepted_routine_source
+    result=[]
+    for record in snapshot.sources:
+        if record.key in getattr(project,'runtime_edited_routines',()):
+            try:data=accepted_routine_source.read(app,*record.target)
+            except accepted_routine_source.Error as error:raise ImageError(str(error)) from error
+        else:data=snapshot._read(app,*record.target)
+        result.append((record.target,data))
+    return tuple(result)
+
+
+def source(app,program,routine,selector=3):
+    if type(selector) is not int or selector not in (3,4,9):raise ImageError('routine_read_selector_unsupported')
+    project,installed=_context(app)
     if getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()):
         if selector!=3:
             if installed.routine_sources is None:raise ImageError('routine_read_download_snapshot_required')
@@ -36,7 +65,7 @@ def source(app,program,routine,selector=3):
         except accepted_routine_source.Error as error:raise ImageError(str(error)) from error
     ns=installed.namespace;batch=ns._routine_batch
     if batch is None:raise ImageError('routine_read_download_source_required')
-    headers=HeaderBindings(engine,ns,app.native_symbols,app.native_routines,app.native_auxiliary_symbols,
+    headers=HeaderBindings(app.engine,ns,app.native_symbols,app.native_routines,app.native_auxiliary_symbols,
         app.native_tasks,app.native_tables)
     bindings=RoutineBindings(headers,app.native_types)
     raw=batch.read(program,routine,'source',bindings)
