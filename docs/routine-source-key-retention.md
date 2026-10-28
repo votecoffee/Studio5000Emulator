@@ -31,3 +31,12 @@ edited routine. It does not supply edited Routine components or change-log
 records, establish full SDK upload after edits, or add protection configuration
 changes. See [current source/state readback](accepted-routine-source.md) and
 [tag readback after edits](edited-tag-readback.md) for the neighboring profiles.
+
+Version `26.1028.125515` also checks this on the running emulator. Separate
+signed reads before and after a native edit verify both exact Source Keys and
+all 22 Routine fields. The native SDK's subsequent upload receives the first
+complete Routine bulk reply with the same Source Key, then reports a Program
+reconstruction failure before source requests. The unchanged-project raw upload
+completes across 980 requests. Receiving that field is established; complete
+edited-project upload remains unfinished. See the [Controller metadata
+checkpoint](native-metadata-values.md) for transfer limits.

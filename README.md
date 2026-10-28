@@ -21,8 +21,11 @@ signed reads verify all fourteen demo tag roots and their metadata.
 exact native RLL source at commit and supports signed source reads after an edit.
 Untouched routines retain a validated source-only download snapshot so they
 remain readable after another routine changes. Every source fragment is checked
-against active logic and catalog bindings. Complete uploads
-of online-edited projects still require additional metadata/component support.
+against active logic and catalog bindings. An unchanged-project raw SDK upload
+passes across 980 verified requests. Upload after an edit now passes Controller
+metadata and receives the first complete 22-field Routine reply, then fails
+during Program reconstruction across 356 requests, before routine source reads.
+Complete uploads after online edits remain unfinished.
 Verified edited source also retains the v35 Routine schema and clean interpreter
 state fields. [Pinned Source Key metadata](docs/routine-source-key-retention.md)
 also remains available after verified plain RLL edits. Offline native imports

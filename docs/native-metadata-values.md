@@ -12,6 +12,17 @@ the endpoint Identity serial. Unknown Controller properties and all-object metad
 old continuation cursors are invalidated by another edit. This does not establish
 complete upload after edits or supply edited Routine component metadata.
 
+A rebuilt native checkpoint passes download/save/reopen/Online, routine edit
+and reconnect, then three native DINT getters. A separate signed peer verifies
+both Controller properties, all 22 Routine fields and fourteen tag roots before
+and after the edit. The raw edited-project SDK upload now passes Controller
+metadata and reaches 356 verified requests. The SDK reports
+`RxCsE_UPLOAD_OF_PROGRAMS_FAILED` after the first complete Routine bulk reply,
+before requesting source. The unchanged-project comparison completes upload
+across 980 requests. Both trials return Offline without an SDK fault; direct
+reconstructed-upload saving is not attempted. This locates the next comparison
+checkpoint without attributing the Program failure to a particular field.
+
 Version `26.1024.005421` permits the download owner to update an existing
 `ControllerSerialNumber` property to the actual emulator endpoint serial. The
 packet must use the checked Controller scope, invariant locale, declared
