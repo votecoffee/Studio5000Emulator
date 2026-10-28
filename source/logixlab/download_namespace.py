@@ -129,7 +129,7 @@ class DownloadNamespace:
         transport.routine_execution_status(bindings)
         self._routine_batch=transport.routine_batch
 
-    def validate_base(self,source,native_types,**catalogs):
+    def validate_catalogs(self,source,native_types,**catalogs):
         self._image.require_source(source)
         try:
             if native_types is not self._types or native_types.binding_stamp()!=self._type_stamp:
@@ -143,6 +143,9 @@ class DownloadNamespace:
             raise ImageError('download_namespace_catalog_unavailable') from error
         if self._binding!=(self._image.record_sha256,self._image.records):
             raise ImageError('download_namespace_image_binding_changed')
+
+    def validate_base(self,source,native_types,**catalogs):
+        self.validate_catalogs(source,native_types,**catalogs)
         for ordinal in range(self._image.records):
             if not self._image.read_preparation_effect(ordinal,source).matches:
                 raise ImageError('download_namespace_effect_changed')

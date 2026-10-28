@@ -87,7 +87,7 @@ class Snapshot:
         result.check_layout(project)
         return result
 
-    def check(self,app,installed):
+    def _check_installation(self,app,installed):
         project=app.engine.project
         self.check_layout(project)
         if (app.engine.mode!='project' or app.engine.memory.project is not project
@@ -95,6 +95,15 @@ class Snapshot:
                 or installed.namespace is not self.namespace or self.namespace._source!=self.source
                 or self.namespace._incremental is not self.incremental):
             raise ImageError('installed_tag_binding_changed')
+
+    def check_metadata(self,app,installed):
+        """Declarations/catalogs only; metadata never reads transfer RAM effects."""
+        self._check_installation(app,installed)
+        self.namespace.validate_catalogs(self.source,app.native_types,native_symbols=app.native_symbols,
+            native_routines=app.native_routines,native_auxiliary_symbols=app.native_auxiliary_symbols,native_tables=app.native_tables)
+
+    def check(self,app,installed):
+        self._check_installation(app,installed)
         ns=self.namespace
         ns.validate_base(self.source,app.native_types,native_symbols=app.native_symbols,native_routines=app.native_routines,
             native_auxiliary_symbols=app.native_auxiliary_symbols,native_tables=app.native_tables)

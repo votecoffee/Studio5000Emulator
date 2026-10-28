@@ -86,5 +86,12 @@ class EditedMetadataTests(controller.EditedControllerMetadataTests):
         engine.project.routines['mainprogram/mainroutine'].rungs[0]['nodes']=[]
         self.assertEqual(self.query('all-objects')[2],12)
 
+    def test_detached_metadata_does_not_rescan_transfer_ram_effects_on_every_fragment(self):
+        self.installed();self.replacement();installed=self.app.engine.installed_download
+        with patch.object(installed.namespace._image,'read_preparation_effect',side_effect=AssertionError('RAM effect scan')):
+            self.assertTrue(self.read_all().complete)
+            # Actual tag/control reads retain the full transfer-effect proof.
+            with self.assertRaises(AssertionError):installed.tag_bindings.check(self.app,installed)
+
 
 if __name__=='__main__':unittest.main()

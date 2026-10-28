@@ -1816,11 +1816,12 @@ class Router:
                         or installed.tag_bindings is None):
                     raise ImageError('edited_metadata_selection_unsupported')
                 installed.check(self.app.native_project_identity,project)
-                installed.tag_bindings.check(self.app,installed)
                 if query.selection=='all-objects':
                     if installed.edited_metadata is None:raise ImageError('edited_metadata_current_view_required')
                     data=installed.edited_metadata.body(self.app,installed,self.endpoint.identity)
-                else:data=installed.metadata.edited_controller_body(catalog,project,self.endpoint.identity)
+                else:
+                    installed.tag_bindings.check(self.app,installed)
+                    data=installed.metadata.edited_controller_body(catalog,project,self.endpoint.identity)
             else:
                 data=(catalog.body(query.selection) if installed is None else
                     installed.metadata_body(self.app.native_project_identity,project,catalog,query.selection))

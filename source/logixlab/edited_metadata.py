@@ -84,7 +84,7 @@ class View:
         original.edited_controller_body(app.native_metadata_values,project,identity)
         if installed.routine_sources is None or installed.tag_bindings is None:
             raise ImageError('edited_metadata_installation_required')
-        installed.routine_sources.check_catalog(app);installed.tag_bindings.check(app,installed)
+        installed.routine_sources.check_catalog(app);installed.tag_bindings.check_metadata(app,installed)
         from .routine_read import source
         from .upload_routine_source import decode
         current={}

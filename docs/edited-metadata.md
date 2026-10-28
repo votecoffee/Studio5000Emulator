@@ -17,7 +17,9 @@ Comments retain their exact typed values and local record IDs. IDs are not
 renumbered to fill a removed record's gap. Original catalogs remain immutable.
 Each fragment rechecks current source for every installed routine, tag layout,
 native catalog fingerprints, serial/profile configuration and the view's bytes.
-A later edit revokes an existing continuation. An internal or unrecorded edit
+The metadata path validates declarations and catalogs without rescanning the
+legacy transfer RAM image for each fragment. Storage reads retain that separate
+full effect validation. A later edit revokes an existing continuation. An internal or unrecorded edit
 does not acquire native metadata authority.
 
 ## Native content diagnostic
