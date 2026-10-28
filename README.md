@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.121233`.** Versions use the release timestamp
+**Current app version: `26.1028.124833`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -27,6 +27,8 @@ Verified edited source also retains the v35 Routine schema and clean interpreter
 state fields. [Pinned Source Key metadata](docs/routine-source-key-retention.md)
 also remains available after verified plain RLL edits. Offline native imports
 confirm the original opaque bytes survive both routine edits and save/reopen.
+[Controller metadata after edits](docs/native-metadata-values.md) retains the
+validated serial/profile view while broader object metadata remains guarded.
 The current version passes native download/save/reopen/Online and an SDK edit
 with reconnect. A separate read-only peer verifies the edited source against SDK
 traffic and the untouched source against its pre-edit readback; both match active

@@ -89,6 +89,18 @@ class CommittedProperties:
         if selection=='controller-all':return self._controller
         raise ImageError('installed_metadata_selection_unsupported')
 
+    def edited_controller_body(self,values,project,identity):
+        """Only unchanged serial/profile configuration, never Routine records."""
+        body=self.body(values,'controller-all')
+        if (project.sha256!=self.source.l5x_sha256 or project.version!='35' or project.processor!='1756-L85E'):
+            raise ImageError('installed_controller_metadata_profile_changed')
+        rows=tuple(row for row in self.rows if row.target.class_id==0x8E and row.target.instance_word==1
+            and not row.target.context_word and not row.target.selector_word)
+        if any(not (profile_marker(row,values) or serial_property(row,values,identity)) for row in rows):
+            raise ImageError('installed_controller_metadata_edit_profile_unsupported')
+        if encode_records(rows)!=body:raise ImageError('installed_controller_metadata_body_changed')
+        return body
+
 
 class DownloadProperties:
     def __init__(self):

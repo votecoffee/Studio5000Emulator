@@ -1808,13 +1808,19 @@ class Router:
             raise CIPError(0x0C,'Original Metadata Value binding is unavailable or stale')
         try:query=metadata_query.parse_query(payload)
         except ValueError as error:raise CIPError(3,'Unsupported metadata value query') from error
-        if getattr(self.app.engine.project,'runtime_revision',0) and query.selection!='controller-attribute-26':
-            native.metadata_query=None
-            raise CIPError(0x0C,'Original metadata values do not describe edited runtime logic')
+        project=self.app.engine.project;modified=bool(getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()))
         installed=getattr(self.app.engine,'installed_download',None);provider=installed or catalog
         try:
-            data=(catalog.body(query.selection) if installed is None else
-                installed.metadata_body(self.app.native_project_identity,self.app.engine.project,catalog,query.selection))
+            if modified and query.selection!='controller-attribute-26':
+                if (query.selection!='controller-all' or installed is None or installed.metadata is None
+                        or installed.tag_bindings is None):
+                    raise ImageError('edited_metadata_selection_unsupported')
+                installed.check(self.app.native_project_identity,project)
+                installed.tag_bindings.check(self.app,installed)
+                data=installed.metadata.edited_controller_body(catalog,project,self.endpoint.identity)
+            else:
+                data=(catalog.body(query.selection) if installed is None else
+                    installed.metadata_body(self.app.native_project_identity,project,catalog,query.selection))
         except ImageError as error:
             native.metadata_query=None
             raise CIPError(0x0C,error.reason) from error
