@@ -451,6 +451,9 @@ its trace. See [connectivity documentation](docs/connectivity.md) for the suppor
 services, identity profiles and remaining Studio handshake work.
 Unsupported attribute reads now show their object, field IDs and read counts in
 Connectivity, with the full bounded summary in the exported trace.
+For saved upload exchanges, [Change Log sequence inspection](docs/native-change-log.md#inspect-a-saved-sequence)
+checks cursor links, repeated queries and rejections offline. It keeps opaque
+records separate from demonstrated history or native upload acceptance.
 Linux endpoints can restart on the same IP and port after closing connected
 clients; a conflicting active listener still prevents startup.
 

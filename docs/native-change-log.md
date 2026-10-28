@@ -63,6 +63,34 @@ The installed v35 Change Log definition independently identifies the UINT index
 and generation fields. A saved successful upload contains an empty four-byte
 cursor reply and a separate nonempty reply; the latter remains unsupported.
 
+## Inspect a saved sequence
+
+The offline sequence tool checks ordered exact request/response pairs:
+
+```powershell
+py -3.13 -X utf8 source/tools/change_log_sequence.py --pairs .local/change-log-pairs.json --output .local/change-log-sequence.json
+```
+
+The input is a UTF-8 JSON array. Each row has exactly `request_hex` and
+`response_hex`, containing complete unwrapped CIP messages as lowercase hex.
+Use the inner messages after decoding signed envelopes; this tool does not
+verify their MACs. Input files are bounded to 2 MiB and 4,096 pairs. Duplicate
+JSON keys, malformed frames and unsupported shapes fail the whole report.
+The output must be a new file; existing reports are preserved.
+
+The report counts adjacent cursor links, unlinked and repeated queries,
+rejections, cursor changes and echoes. Rejections break adjacency. Opaque
+summaries retain only hashes and counts, with at most 64 distinct hashes shown.
+A stationary opaque summary remains opaque. No cursor or summary bytes appear
+in the report; the exact input file has a separate SHA-256 receipt.
+
+These are facts about supplied order. Interleaved clients, missing exchanges,
+generation ordering and cursor wrap are not resolved. Even a linked sequence
+ending in a cursor-only echo does not prove end-of-history, empty history,
+decoded records, source binding or native acceptance. A header read earlier in
+the transfer does not establish the later log head. The running emulator's
+history policy and edited-upload rejection remain unchanged.
+
 ## Historical .151 validation
 
 Tests cover compressed/plain source profiles, strict EOF/trailer boundaries,
