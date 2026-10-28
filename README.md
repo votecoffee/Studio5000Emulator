@@ -28,6 +28,9 @@ reopen and requires a download before going Online.
 A [single upload-to-ACD command](docs/upload-to-acd.md) now runs the native
 upload, complete content checks and Offline rebuild in sequence, retaining
 separate stage results and stopping on a failed or uncertain upload.
+Its optional [fresh L5X import](docs/upload-to-acd.md#fresh-acd-from-uploaded-l5x)
+creates the ACD from verified native tag/Program exports and source XML context,
+without using an original ACD copy as the native save input.
 
 [Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
 native SDK while Online. Separate BOOL sessions verify `true` and `false`,

@@ -22,11 +22,24 @@ string Hash(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllByte
 bool Name(string name) => Regex.IsMatch(name, "^[A-Za-z_][A-Za-z_0-9]{0,39}$");
 void Inputs()
 {
-    if (options.Project != Path.Combine(folder, "input.ACD") || Hash(options.Project) != options.SourceSha256 ||
+    if (options.InputFormat is not ("ACD" or "L5X") ||
+        options.Project != Path.Combine(folder, "input." + options.InputFormat) ||
+        !Regex.IsMatch(options.SourceSha256, "^[0-9a-f]{64}$") ||
+        options.InputFormat == "ACD" && options.InputSha256 is not null ||
+        options.InputFormat == "L5X" && (options.InputSha256 is null || !Regex.IsMatch(options.InputSha256, "^[0-9a-f]{64}$")) ||
+        Hash(options.Project) != (options.InputSha256 ?? options.SourceSha256) ||
         !Regex.IsMatch(options.SourceL5xSha256, "^[0-9a-f]{64}$") || options.Programs.Length is < 1 or > 32 ||
         options.Tags.Length is < 1 or > 32 || options.Programs.Select(p => p.Name.ToLowerInvariant()).Distinct().Count() != options.Programs.Length ||
         options.Programs.Select(p => p.FileName).Distinct().Count() != options.Programs.Length)
         throw new InvalidOperationException("Rebuild source or complete plan is invalid");
+    if (options.InputFormat == "L5X")
+    {
+        using var reader = XmlReader.Create(options.Project, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 16000000 });
+        var root = XDocument.Load(reader).Root!;
+        if (root.Name != "RSLogix5000Content" || (string?)root.Attribute("TargetType") != "Controller" ||
+            (string?)root.Attribute("ContainsContext") != "false" || root.Elements("Controller").Count() != 1)
+            throw new InvalidOperationException("Reconstructed input must be a complete Controller L5X");
+    }
     for (int i = 0; i < options.Programs.Length; i++)
     {
         var p = options.Programs[i];
@@ -72,9 +85,9 @@ async Task Offline()
 }
 try
 {
-    await Step("Open bound source copy", async () => { project = await LogixProject.OpenLogixProjectAsync(options.Project, new StdOutEventLogger()); });
+    await Step(options.InputFormat == "L5X" ? "Import assembled complete Controller L5X" : "Open bound source copy", async () => { project = await LogixProject.OpenLogixProjectAsync(options.Project, new StdOutEventLogger()); });
     await Step("Require Offline source", Offline);
-    foreach (var program in options.Programs)
+    if (options.InputFormat == "ACD") foreach (var program in options.Programs)
         await Step("Import verified uploaded Program:" + program.Name, async () => {
             Inputs(); await Offline();
             await project!.PartialImportFromXmlFileAsync(program.XPath, Path.Combine(folder, program.FileName), LogixProject.ImportCollisionOptions.OverwriteOnColl);
@@ -105,13 +118,15 @@ bool success = error is null && reopened && cleanup;
 File.WriteAllText(Path.Combine(folder, "native-result.json"), JsonSerializer.Serialize(new {
     status = success ? "succeeded" : "failed", offlineOnly = true, nativeAcdReopened = reopened,
     cleanupConfirmed = cleanup, directUploadedProjectSave = false, steps, error,
+    inputFormat = options.InputFormat, inputSha256 = Hash(options.Project), uploadedCompleteL5xImported = options.InputFormat == "L5X" && reopened,
     acdSha256 = File.Exists(acd) ? Hash(acd) : null, l5xSha256 = File.Exists(xml) ? Hash(xml) : null
 }, new JsonSerializerOptions { WriteIndented = true }));
 return success ? 0 : 1;
 
 sealed record Request([property: JsonPropertyName("project")] string Project,
     [property: JsonPropertyName("sourceSha256")] string SourceSha256, [property: JsonPropertyName("sourceL5xSha256")] string SourceL5xSha256,
-    [property: JsonPropertyName("programs")] ProgramPackage[] Programs, [property: JsonPropertyName("tags")] TagValue[] Tags);
+    [property: JsonPropertyName("programs")] ProgramPackage[] Programs, [property: JsonPropertyName("tags")] TagValue[] Tags,
+    [property: JsonPropertyName("inputFormat")] string InputFormat = "ACD", [property: JsonPropertyName("inputSha256")] string? InputSha256 = null);
 sealed record ProgramPackage([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,
     [property: JsonPropertyName("fileName")] string FileName, [property: JsonPropertyName("sha256")] string Sha256);
 sealed record TagValue([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("xpath")] string XPath,

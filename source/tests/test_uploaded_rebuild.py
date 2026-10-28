@@ -128,6 +128,20 @@ class UploadedRebuildTests(unittest.TestCase):
         self.assertFalse(result['online_verified'])
         self.assertEqual(result['content']['rungs'],10)
 
+    def test_complete_l5x_import_requires_actual_input_hash_and_native_import_step(self):
+        receipt=self.artifacts();payload=self.project.path.read_bytes();path=self.folder/'input.L5X';path.write_bytes(payload)
+        expected=dict(self.expected(),rebuildInputFormat='L5X',rebuildInputSha256=rebuild.digest(path))
+        receipt.update(inputFormat='L5X',uploadedCompleteL5xImported=True,inputSha256=rebuild.digest(path),
+            steps=[dict(method='Import assembled complete Controller L5X',status='succeeded')])
+        result=rebuild.verify(self.folder,expected,self.types,receipt)
+        self.assertTrue(result['verified']);self.assertTrue(result['uploaded_complete_l5x_imported'])
+        self.assertFalse(result['original_acd_binary_used'])
+        for field,value in (('inputFormat','ACD'),('inputSha256','0'*64),('uploadedCompleteL5xImported',False),('steps',[])):
+            with self.subTest(field=field):
+                self.assertFalse(rebuild.verify(self.folder,expected,self.types,dict(receipt,**{field:value}))['verified'])
+        path.write_bytes(payload+b'changed')
+        self.assertFalse(rebuild.verify(self.folder,expected,self.types,receipt)['verified'])
+
     def test_correlation_edited_logic_values_or_missing_cleanup_reject_saved_result(self):
         for change in ('correlation','logic','value','hash','cleanup','reopen','task','priority','watchdog','type','malformed'):
             receipt = self.artifacts()

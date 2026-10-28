@@ -39,6 +39,19 @@ output directory must be new. `--sdk-feed` optionally selects the installed
 SDK NuGet feed. All native helper processes run hidden. The command never
 controls Windows services, changes controller mode or enables write authority.
 
+## Fresh ACD from uploaded L5X
+
+Add `--from-uploaded-l5x` to create the saved ACD by importing a complete L5X
+assembled from the verified uploaded controller tags and complete Program
+packages. This mode retains Controller, Task and type context from the original
+source L5X. The source ACD is used for provenance/native type checks; the native
+save helper receives `input.L5X` and opens no source ACD. It checks current values,
+saves a fresh ACD, closes and reopens it, and exports its complete Controller.
+
+The default method imports the uploaded Programs into an original ACD copy.
+Both methods preserve originals and require a download before going Online.
+Neither reconstructs unknown Controller metadata or uploads online-edited logic.
+
 ## Outputs and verification
 
 `summary.json` reports the overall result, separate upload/rebuild statuses,
@@ -47,6 +60,8 @@ On success, the ACD is `rebuilt/rebuilt.ACD`; `rebuilt/rebuilt.L5X` is its compl
 native reopened export. `upload/` retains the original upload receipts, actual
 routine/Program/controller-tag exports and the full compressed transfer journal.
 `rebuilt/` retains the independent native rebuild/save/reopen receipt.
+The L5X method also retains its exact complete `rebuilt/input.L5X`; its hash and
+actual native import step must match. It cannot fall back to an ACD-copy receipt.
 
 The upload's success flag alone cannot start the rebuild. Its actual native
 values, every routine, complete Program packages and requested controller-tag
@@ -74,6 +89,13 @@ changed live values. The actual controller-tag export, complete Program package,
 Task configuration and cleared download correlation verify. Upload and rebuild
 confirm Offline cleanup; source files and the running model remain unchanged
 by the workflow. The test restores the original live values afterward.
+
+The fresh L5X method also saves and reopens an ACD from that retained verified
+upload, preserving the three changed values, all fourteen roots, both routines,
+ten rungs and source Task/type context. Its native input is the complete assembled
+L5X; no original ACD copy is opened. Cleared correlation and final Offline cleanup
+verify independently. This checkpoint establishes an Offline reconstruction;
+its download/re-upload round trip is checked separately.
 
 This is a source-bound Windows tool result. The app remains `26.1026.153720`;
 general Studio upload/save and uploading online-edited routines remain unfinished.

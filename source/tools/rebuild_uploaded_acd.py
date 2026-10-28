@@ -4,6 +4,7 @@ This separate, offline-only step consumes retained successful upload evidence.
 Program import invalidates download correlation: the result requires a download.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -117,6 +118,21 @@ def verify(folder, expected, types, receipt):
                 or receipt.get('directUploadedProjectSave') is not False):
             return result
         folder = Path(folder)
+        input_format=expected.get('rebuildInputFormat','ACD')
+        if receipt.get('inputFormat','ACD')!=input_format:return result
+        if input_format=='L5X':
+            path=folder/'input.L5X'
+            if (receipt.get('uploadedCompleteL5xImported') is not True or path.is_symlink()
+                    or not path.is_file() or not 8<=path.stat().st_size<=upload_content.MAX_XML
+                    or digest(path)!=expected.get('rebuildInputSha256')
+                    or receipt.get('inputSha256')!=expected['rebuildInputSha256']):return result
+            steps=receipt.get('steps',[])
+            if (not isinstance(steps,list) or any(not isinstance(s,dict) for s in steps)
+                    or len([s for s in steps if s.get('method')=='Import assembled complete Controller L5X' and s.get('status')=='succeeded'])!=1
+                    or any(s.get('method','').startswith('Import verified uploaded Program:') for s in steps)):return result
+            from tools import uploaded_l5x
+            uploaded_l5x.verify(path,expected,types)
+        elif input_format!='ACD':return result
         for name, key, bound in [('rebuilt.ACD', 'acdSha256', 100_000_000), ('rebuilt.L5X', 'l5xSha256', 16_000_000)]:
             p = folder / name
             if p.is_symlink() or not p.is_file() or not 8 <= p.stat().st_size <= bound or digest(p) != receipt.get(key):
@@ -130,6 +146,9 @@ def verify(folder, expected, types, receipt):
         if content['verified'] and schema_matches:
             result.update(verified=True,native_acd_reopened=True,download_correlation_cleared=True,
                           profile='Native uploaded Programs and current values with original Controller metadata')
+            if input_format=='L5X':
+                result.update(uploaded_complete_l5x_imported=True,original_acd_binary_used=False,
+                    profile='Native uploaded tags and Programs with original source XML Controller/Task/type context')
         return result
     except (OSError, ValueError, ModelError, TypeError, KeyError, AttributeError):
         return result
@@ -139,19 +158,30 @@ def run(args):
     if sys.platform != 'win32':
         raise ValueError('The offline native rebuild requires Windows and the Logix Designer SDK')
     source, l5x, upload = Path(args.project).absolute(), Path(args.source).absolute(), Path(args.upload_result).absolute()
+    from_l5x=getattr(args,'from_uploaded_l5x',False)
+    if type(from_l5x) is not bool:raise ValueError('L5X reconstruction must be an explicit boolean')
     manifest, expected, types = prepare(source, l5x, upload)
+    payload=None
+    if from_l5x:
+        from tools import uploaded_l5x
+        payload=uploaded_l5x.assemble(source,l5x,upload)
+        expected.update(rebuildInputFormat='L5X',rebuildInputSha256=hashlib.sha256(payload).hexdigest())
     output = Path(args.output).absolute()
     output.mkdir(parents=True, exist_ok=False)
-    copied = output / 'input.ACD'
-    shutil.copyfile(source, copied)
+    copied = output / ('input.L5X' if from_l5x else 'input.ACD')
+    if from_l5x:copied.write_bytes(payload)
+    else:shutil.copyfile(source, copied)
     for p in manifest['programs']:
         shutil.copyfile(upload / p['fileName'], output / p['fileName'])
     config = dict(manifest, project=str(copied))
+    input_hash=expected['rebuildInputSha256'] if from_l5x else manifest['sourceSha256']
+    if from_l5x:config.update(inputFormat='L5X',inputSha256=input_hash)
     request = output / 'rebuild-request.json'
     request.write_text(json.dumps(config, indent=2), encoding='utf8')
     summary = dict(status='failed', offline_only=True, online_verified=False, requires_download=True,
-                   physical_controller_contact_initiated=False)
+                   physical_controller_contact_initiated=False,input_format='L5X' if from_l5x else 'ACD')
     try:
+        if from_l5x:uploaded_l5x.verify(copied,expected,types)
         require_sdk_service()
         command = ['dotnet', 'build', str(SOURCE / 'tools/native_uploaded_rebuild/NativeUploadedRebuild.csproj'),
                    '-c', 'Release', '--nologo', '--output', str(output / 'bin'),
@@ -163,8 +193,10 @@ def run(args):
             command.append('-p:RestoreAdditionalProjectSources=' + str(feed.resolve()))
         with (output / 'build.log').open('xb') as log:
             subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=120, **background_options())
-        if prepare(source, l5x, upload)[0] != manifest or digest(copied) != manifest['sourceSha256']:
+        if prepare(source, l5x, upload)[0] != manifest or digest(copied) != input_hash:
             raise ValueError('Source or uploaded artifacts changed while building')
+        if from_l5x and uploaded_l5x.assemble(source,l5x,upload)!=payload:
+            raise ValueError('Assembled upload changed while building')
         for p in manifest['programs']:
             if digest(output / p['fileName']) != p['sha256']:
                 raise ValueError('Copied Program changed')
@@ -180,8 +212,10 @@ def run(args):
         require_sdk_service()
         if not summary['verification']['verified']:
             raise ValueError('Saved rebuilt ACD failed independent validation')
-        if prepare(source, l5x, upload)[0] != manifest or digest(copied) != manifest['sourceSha256']:
+        if prepare(source, l5x, upload)[0] != manifest or digest(copied) != input_hash:
             raise ValueError('Original inputs changed during native rebuild')
+        if from_l5x and uploaded_l5x.assemble(source,l5x,upload)!=payload:
+            raise ValueError('Assembled upload inputs changed during native import')
         summary.update(status='succeeded', source_unchanged=True, native_offline_cleanup=True,
                        source_acd_sha256=manifest['sourceSha256'], rebuilt_acd_sha256=digest(output / 'rebuilt.ACD'))
     except subprocess.TimeoutExpired:
@@ -200,6 +234,7 @@ def main():
     parser.add_argument('--source', required=True, help='Exact complete source Controller L5X')
     parser.add_argument('--upload-result', required=True, help='Successful probe folder with complete native upload content checks')
     parser.add_argument('--output', required=True, help='New private output directory')
+    parser.add_argument('--from-uploaded-l5x',action='store_true',help='Create a fresh ACD by importing verified uploaded tags/Programs assembled with source XML context; requires the actual controller-tag export')
     parser.add_argument('--sdk-feed')
     args = parser.parse_args()
     try:

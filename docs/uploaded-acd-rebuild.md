@@ -12,6 +12,12 @@ before going Online. The separate [value snapshot](upload-value-snapshots.md)
 retains Online correlation when a matching saved-download baseline is available.
 Direct saving of the reconstructed SDK upload remains unfinished.
 
+The optional `--from-uploaded-l5x` method instead creates a fresh ACD from an
+assembled complete L5X. It uses the actual uploaded controller tags and Program
+packages with Controller, Task and type context from the original source L5X.
+The original ACD supplies provenance/type checks; the native import receives
+only the assembled XML. This still requires a bound source and unchanged logic.
+
 ## Requirements
 
 - Windows, .NET 8 and the installed Logix Designer SDK with its service running.
@@ -53,6 +59,17 @@ successful upload remain preserved; a partial or unknown result is retained
 for inspection and is not reported as successful.
 
 ## Validation
+
+With `--from-uploaded-l5x`, the retained upload must include the actual
+[controller tag export](upload-tag-definitions.md), requested using
+`--verify-uploaded-tag-definitions`. The tool builds `input.L5X` from those tags
+and complete native Program packages, retaining source XML context and original
+Program/Task order. Only independently checked decorated tag values are retained;
+alternative raw/L5K representations are omitted. The complete document is checked
+before opening any SDK project and reassembled after build/save to detect changed
+inputs. The native helper imports `input.L5X`, checks all uploaded values, saves
+and reopens `rebuilt.ACD`, then exports the complete `rebuilt.L5X`. It never opens
+the original source ACD in this mode. The resulting ACD still requires a download.
 
 Before any native project opens, Python rechecks the pinned source, recorded
 plan, every uploaded root value, all routine exports and each complete Program

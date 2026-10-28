@@ -53,12 +53,15 @@ def stage_unknown(summary):
 
 
 def run(args):
+    from_l5x=getattr(args,'from_uploaded_l5x',False)
+    if type(from_l5x) is not bool:raise ValueError('L5X reconstruction must be an explicit boolean')
     url,source,l5x,baseline,before,pins=admit(args)
     output=Path(args.output).absolute()
     output.mkdir(parents=True,exist_ok=False)
     summary=dict(status='failed',phase='upload',native_upload_status='not_started',
         native_rebuild_status='not_started',online_verified=False,requires_download=True,
         original_controller_metadata_used=True,direct_uploaded_project_save=False,
+        original_acd_binary_used=not from_l5x,
         automatic_retry=False,physical_controller_contact_initiated=False)
     (output/'before-state.json').write_text(json.dumps(before,indent=2),encoding='utf8')
     try:
@@ -89,7 +92,7 @@ def run(args):
         summary['phase']='rebuild'
         print('Building a fresh Offline ACD from the verified upload...',flush=True)
         request=SimpleNamespace(project=str(source),source=str(l5x),upload_result=str(output/'upload'),
-                                output=str(output/'rebuilt'),sdk_feed=args.sdk_feed)
+                                output=str(output/'rebuilt'),sdk_feed=args.sdk_feed,from_uploaded_l5x=from_l5x)
         summary['native_rebuild_status']='started'
         with (output/'rebuild-stage.log').open('x',encoding='utf8') as log,redirect_stdout(log):
             code=rebuild.run(request)
@@ -98,6 +101,11 @@ def run(args):
         if code!=0 or saved.get('status')!='succeeded':
             summary['status']='unknown' if stage_unknown(saved) else 'failed'
             raise ValueError('Native ACD rebuild did not succeed; outputs are retained without retry')
+        if from_l5x:
+            from tools import uploaded_l5x
+            expected.update(rebuildInputFormat='L5X',rebuildInputSha256=probe.digest(output/'rebuilt/input.L5X'))
+            if (output/'rebuilt/input.L5X').read_bytes()!=uploaded_l5x.assemble(source,l5x,output/'upload'):
+                raise ValueError('Imported complete L5X differs from verified upload components')
         verification=rebuild.verify(output/'rebuilt',expected,types,rebuild.read_json(output/'rebuilt/native-result.json'))
         summary['verification']=verification
         if not verification['verified']:raise ValueError('Saved ACD failed independent reopen/content validation')
@@ -130,6 +138,7 @@ def main():
     parser.add_argument('--project',required=True,help='Original bound source ACD; preserved')
     parser.add_argument('--source',required=True,help='Exact complete source Controller L5X; preserved')
     parser.add_argument('--upload-target',help='Optional matching saved-download baseline; checked Online/Offline before upload')
+    parser.add_argument('--from-uploaded-l5x',action='store_true',help='Create the saved ACD from a complete L5X assembled with verified native tags/Programs and original source XML context')
     parser.add_argument('--url',required=True,help='Owned emulator local HTTP URL')
     parser.add_argument('--path',required=True,help=r'Owned emulator Linx driver\IPv4\Backplane\0')
     parser.add_argument('--output',required=True,help='New private directory containing upload/, rebuilt/ and separate receipts')

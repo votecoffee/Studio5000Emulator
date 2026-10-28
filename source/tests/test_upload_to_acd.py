@@ -32,6 +32,7 @@ class UploadToAcdTests(unittest.TestCase):
         pins={source:rebuild.digest(source),self.project.path:rebuild.digest(self.project.path)}
         args=SimpleNamespace(project=str(source),source=str(self.project.path),upload_target=None,
             output=str(self.folder/'workflow'),url='http://127.0.0.1:8786',path=r'Emulator\192.0.2.8\Backplane\0',sdk_feed=None)
+        args.from_uploaded_l5x=case.startswith('l5x-')
         admitted=(args.url,source,self.project.path,source,before,pins)
         inputs={p.name:p.read_bytes() for p in self.folder.iterdir() if p.is_file()}
         calls=[]
@@ -59,6 +60,13 @@ class UploadToAcdTests(unittest.TestCase):
             if case=='save-unknown':
                 (out/'summary.json').write_text(json.dumps(dict(status='unknown')));return 1
             receipt=self.artifacts()
+            if request.from_uploaded_l5x:
+                from tools import uploaded_l5x
+                payload=uploaded_l5x.assemble(source,self.project.path,Path(request.upload_result))
+                (out/'input.L5X').write_bytes(payload)
+                if case!='l5x-wrong-kind':
+                    receipt.update(inputFormat='L5X',inputSha256=rebuild.digest(out/'input.L5X'),uploadedCompleteL5xImported=True,
+                        steps=[dict(method='Import assembled complete Controller L5X',status='succeeded')])
             if case=='wrong-saved-logic':
                 p=self.folder/'rebuilt.L5X';p.write_bytes(p.read_bytes().replace(b'OTE(MotorRunning)',b'OTL(MotorRunning)'))
                 receipt['l5xSha256']=rebuild.digest(p)
@@ -92,6 +100,21 @@ class UploadToAcdTests(unittest.TestCase):
         self.assertFalse(report['direct_uploaded_project_save'] or report['automatic_retry'])
         self.assertEqual(report['acd_sha256'],rebuild.digest(out/report['acd_path']))
         self.assertTrue((out/'upload/summary.json').is_file() and (out/'rebuilt/summary.json').is_file())
+
+    def test_l5x_method_requires_the_native_import_receipt_and_preserves_separate_stages(self):
+        code,report,calls,_=self.scenario('l5x-success')
+        self.assertEqual(code,0);self.assertEqual(calls,['upload','rebuild'])
+        self.assertFalse(report['original_acd_binary_used'])
+        self.assertTrue(report['verification']['uploaded_complete_l5x_imported'])
+
+    def test_l5x_method_cannot_fall_back_to_an_acd_baseline_receipt(self):
+        code,report,_,_=self.scenario('l5x-wrong-kind')
+        self.assertEqual(code,1);self.assertFalse(report['verification']['verified'])
+
+    def test_invalid_reconstruction_flag_stops_before_admission_or_native_work(self):
+        with patch.object(flow,'admit') as admit:
+            with self.assertRaises(ValueError):flow.run(SimpleNamespace(from_uploaded_l5x=1))
+        admit.assert_not_called()
 
     def test_failed_uncertain_or_faulted_upload_never_starts_native_save(self):
         for case in ('upload-failed','upload-unknown','upload-fault'):
