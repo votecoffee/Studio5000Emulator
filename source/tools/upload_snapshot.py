@@ -71,6 +71,10 @@ def online_small_integers(expected,receipt):
     return _online_typed(expected,receipt,{0xC2:2,0xC3:4},'onlineIntegerChecks')
 
 
+def online_lints(expected,receipt):
+    return _online_typed(expected,receipt,{0xC5:16},'onlineLintChecks')
+
+
 def verify(folder,expected,native_types,baseline,receipt):
     """Require native reopen/Online receipts, retained correlation and full content."""
     from tools.probe_native_sdk import digest
@@ -85,6 +89,9 @@ def verify(folder,expected,native_types,baseline,receipt):
         integers=online_small_integers(expected,receipt)
         result['online_integer_checks']=integers
         if not integers['verified']:return result
+        lints=online_lints(expected,receipt)
+        result['online_lint_checks']=lints
+        if not lints['verified']:return result
         folder=Path(folder)
         for filename,key,maximum in (('snapshot.ACD','acdSha256',100_000_000),('snapshot.L5X','reopenedL5xSha256',16_000_000)):
             path=folder/filename

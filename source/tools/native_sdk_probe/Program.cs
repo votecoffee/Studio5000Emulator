@@ -511,6 +511,18 @@ async Task SaveUploadedSnapshot()
             onlineIntegerChecks.Add(new { xpath = tag.XPath, actualHex });
             return value;
         });
+    var onlineLintChecks = new List<object>();
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant && tag.TypeCode == 0xC5 &&
+            tag.ExpectedHex.Length == 16 && tag.Dimensions?.All(size => size == 0) == true))
+        await Step("Snapshot Online LINT:" + tag.Name, async () => {
+            long value = await project!.GetTagValueLINTAsync(tag.XPath, LogixProject.OperationMode.Online);
+            byte[] actual = new byte[8];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(actual, value);
+            string actualHex = Convert.ToHexString(actual).ToLowerInvariant();
+            if (actualHex != tag.ExpectedHex) throw new InvalidOperationException("Snapshot Online LINT differs from uploaded bytes");
+            onlineLintChecks.Add(new { xpath = tag.XPath, actualHex });
+            return value;
+        });
     CheckPreserved(before, await Backend(), true);
     await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
     await Step("Require snapshot Offline after Online check", async () => {
@@ -520,7 +532,7 @@ async Task SaveUploadedSnapshot()
     if (HashFile(baseline) != options.SourceSha256) throw new InvalidOperationException("Snapshot baseline changed");
     savedUploadedSnapshot = new { sourceEquivalentValueSnapshot = true, baselineLogicVerified = true,
         baselineSha256 = options.SourceSha256, acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
-        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray(), onlineIntegerChecks = onlineIntegerChecks.ToArray() };
+        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray(), onlineIntegerChecks = onlineIntegerChecks.ToArray(), onlineLintChecks = onlineLintChecks.ToArray() };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(

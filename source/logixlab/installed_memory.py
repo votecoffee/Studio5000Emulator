@@ -1,8 +1,8 @@
 """Narrow native scalar word reads at installed model value addresses.
 
-The observed UserMemory request names a retained download address and one
-word. Only exact backed SINT, INT, DINT, REAL and BOOL scalars are served. No host/native memory,
-allocation, pointer traversal, arbitrary ranges or writes are available.
+Observed UserMemory requests name an exact retained scalar allocation.
+SINT, INT, DINT, REAL and BOOL use one word; LINT alone uses two words.
+No host/native memory, pointer traversal, arbitrary ranges or writes exist.
 """
 from .download_image import ImageError
 from .download_headers import HeaderBindings
@@ -12,9 +12,12 @@ from .templates import ATOMS,MAX_BYTES
 CONSTANT_ATOMS=frozenset(('BOOL',*ATOMS))
 
 
-def scalar_word(dtype,code,value):
-    """One model word; smaller scalars use their low bytes with zero padding."""
+def scalar_word(dtype,code,value,words=1):
+    """Exact scalar bytes; smaller one-word values have explicit zero padding."""
+    if type(words) is not int or words not in (1,2):raise ImageError('installed_memory_scalar_word_request_required')
     if not isinstance(value,bytes):raise ImageError('installed_memory_current_value_unavailable')
+    if dtype=='LINT' and code==0xC5 and len(value)==8 and words==2:return value
+    if words!=1:raise ImageError('installed_memory_scalar_word_request_required')
     if (dtype,code,len(value)) in (('SINT',0xC2,1),('INT',0xC3,2)):return value+bytes(4-len(value))
     if dtype=='DINT' and code==0xC4 and len(value)==4:return value
     if dtype=='REAL' and code==0xCA and len(value)==4:return value
@@ -114,7 +117,7 @@ def _bound_cell(app,router,installed,ns,key,table,code):
 
 
 def read_scalar(app,router,address,words):
-    if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words!=1:
+    if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words not in (1,2):
         raise ImageError('installed_memory_scalar_word_request_required')
     installed,ns=_verified_installation(app,router)
     handles=[row for row in ns._tables if row.value_address==address]
@@ -124,9 +127,10 @@ def read_scalar(app,router,address,words):
     key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
     if tag.constant:
         raise ImageError('installed_memory_scalar_word_required')
-    dtype=tag.dtype.upper();size={('SINT',0xC2):1,('INT',0xC3):2,('DINT',0xC4):4,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
+    dtype=tag.dtype.upper();size={('SINT',0xC2):1,('INT',0xC3):2,('DINT',0xC4):4,('LINT',0xC5):8,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
     if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
+    if words!=(2 if dtype=='LINT' else 1):raise ImageError('installed_memory_scalar_word_request_required')
     if cell.code!=code or cell.aggregate or cell.size!=size:
         raise ImageError('installed_memory_current_storage_unavailable')
     value=cell.value(app.engine.memory.read)
-    return scalar_word(dtype,code,value)
+    return scalar_word(dtype,code,value,words)

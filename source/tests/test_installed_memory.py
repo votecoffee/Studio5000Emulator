@@ -45,6 +45,17 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
                 with self.assertRaises(ImageError):scalar_word(dtype,code,wrong)
             with self.assertRaises(ImageError):scalar_word(dtype,0xC4,struct.pack('<'+fmt,0))
 
+    def test_lint_requires_two_words_and_preserves_all_signed_bits(self):
+        for value in (-(1<<63),-1,0,(1<<63)-1):
+            raw=struct.pack('<q',value)
+            self.assertEqual(scalar_word('LINT',0xC5,raw,2),raw)
+            for words in (0,1,3,65535,True):
+                with self.assertRaises(ImageError):scalar_word('LINT',0xC5,raw,words)
+        for code,raw in ((0xC4,bytes(8)),(0xC5,bytes(4)),(0xC5,bytes(16)),(0xC5,bytearray(8))):
+            with self.assertRaises(ImageError):scalar_word('LINT',code,raw,2)
+        for dtype,code,size in (('BOOL',0xC1,1),('SINT',0xC2,1),('INT',0xC3,2),('DINT',0xC4,4),('REAL',0xCA,4)):
+            with self.assertRaises(ImageError):scalar_word(dtype,code,bytes(size),2)
+
     def test_real_word_preserves_encoded_fraction_sign_zero_and_finite_limits(self):
         for bits in (0,0x80000000,0x3FA00000,0xC0200000,0x7F7FFFFF,0xFF7FFFFF):
             raw=struct.pack('<I',bits)

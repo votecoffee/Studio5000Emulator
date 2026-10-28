@@ -43,6 +43,20 @@ class UploadSnapshotTests(unittest.TestCase):
         for changed in (dict(tags[0],constant=True),dict(tags[0],dimensions=[2,0,0]),dict(tags[0],typeCode=0xC4)):
             self.assertEqual(snapshot.online_small_integers(dict(tags=[changed]),{}),dict(verified=True,tags=0))
 
+    def test_lint_online_receipts_require_full_eight_bytes_and_every_scoped_path(self):
+        paths=["Controller/Tags/Tag[@Name='Long']","Controller/Programs/Program[@Name='Main']/Tags/Tag[@Name='Long']"]
+        tags=[dict(xpath=path,typeCode=0xC5,constant=False,expectedHex=raw,dimensions=[0,0,0])
+            for path,raw in zip(paths,('0000000000000080','ffffffffffffff7f'))]
+        rows=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in tags];expected=dict(tags=tags)
+        self.assertEqual(snapshot.online_lints(expected,dict(onlineLintChecks=rows)),dict(verified=True,tags=2))
+        for changed in ([],rows[:1],rows*2,[rows[0]]*2,[dict(rows[0],actualHex='00000000'),rows[1]],
+                        [rows[0],dict(rows[1],actualHex='0000000000000080')],[dict(rows[0],extra=True),rows[1]]):
+            self.assertFalse(snapshot.online_lints(expected,dict(onlineLintChecks=changed))['verified'])
+        self.assertFalse(snapshot.online_lints(expected,{})['verified'])
+        self.assertEqual(snapshot.online_lints(dict(tags=[]),{}),dict(verified=True,tags=0))
+        for changed in (dict(tags[0],constant=True),dict(tags[0],dimensions=[2,0,0]),dict(tags[0],typeCode=0xC4)):
+            self.assertEqual(snapshot.online_lints(dict(tags=[changed]),{}),dict(verified=True,tags=0))
+
     def inputs(self):
         original=self.folder/'source.ACD';baseline=self.folder/'baseline.ACD'
         original.write_bytes(container(fields={**FIELDS,10:0,11:0}))

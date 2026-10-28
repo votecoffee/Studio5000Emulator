@@ -6,9 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.170503`.** Versions use the release timestamp
+**Current app version: `26.1028.180022`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+LINT online reads now use exact eight-byte installed allocations. Snapshot
+diagnostics require complete byte-exact 64-bit receipts, preserving signed
+values independently of browser number precision.
 
 [Native SINT and INT reads](docs/installed-memory-reads.md#small-signed-integer-words)
 now preserve signed limits across global and Program-local tags. The expanded
