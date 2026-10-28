@@ -1,13 +1,18 @@
 # Routine identities and guarded RLL state
 
+Version `26.1028.121233` [preserves pinned Source Key metadata after verified
+plain RLL edits](routine-source-key-retention.md). Native offline edit/save/reopen
+checks show the original opaque configuration stays unchanged. Earlier versioned
+checkpoints below retain their original scope.
+
 Version `.130` extends source-bound Executable (`0x6D`) metadata. Version `.131`
 adds the [remaining bulk fields](routine-bulk-metadata.md). Ordered bulk
 and single-attribute reads use the same checks, including signed sessions.
 The separate [original Type word](routine-types.md) remains unchanged.
 
 Version `26.1028.105723` also supports [source-verified edited routines](accepted-routine-source.md#current-state-metadata-after-edits).
-Their current source must validate on every request; original source keys remain
-withheld for changed routines. The other idle and fault guards still apply.
+Their current source must validate on every request. From `26.1028.121233`,
+original source keys use the additional pinned-configuration check described above. The other idle and fault guards still apply.
 
 ## Runtime fields
 

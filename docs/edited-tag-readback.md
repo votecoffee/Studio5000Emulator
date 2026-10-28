@@ -1,5 +1,10 @@
 # Tag readback after routine edits
 
+Version `26.1028.121233` [preserves pinned Source Key metadata after verified
+plain RLL edits](routine-source-key-retention.md). Native offline edit/save/reopen
+checks show the original opaque configuration stays unchanged. Earlier versioned
+checkpoints below retain their original scope.
+
 Version `26.1028.112823` preserves validated ordinary tag bindings when a
 source-equivalent download installs. Previously a routine edit disabled the
 installed Table map, making discovery fall back to Symbol IDs. Installed-address
@@ -29,7 +34,8 @@ This view is independent of historical Routine components. It can expose current
 tag values even if edited native source readback is unavailable or the interpreter
 has faulted. It does not make original compiled code or Routine metadata current,
 add a setter, persist an edited project or establish full SDK upload after edits.
-That still needs current source-key metadata, change-log and component support.
+That still needs change-log and component support; Source Key handling follows
+the versioned pinned-configuration profile described above.
 See [edited Routine source and state](accepted-routine-source.md) for that scope.
 
 Focused checks cover current values after repeated edits, committed identities

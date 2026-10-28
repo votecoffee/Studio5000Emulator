@@ -17,6 +17,25 @@ def current_source(app,engine,program,routine,target):
     return True
 
 
+def source_key(app,program,routine):
+    """Keep the original Source Key through verified plain-logic replacement.
+
+    Caller must first establish idle state/current source with attributes().
+    This additionally pins the unchanged configuration to installation catalogs.
+    """
+    engine=app.engine;project=engine.project;catalog=app.native_routines
+    row=catalog.by_instance.get((program,routine)) if catalog is not None else None
+    if row is None:return None
+    if not (getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):return row.source_key
+    installed=getattr(engine,'installed_download',None)
+    if installed is None or installed.routine_sources is None:return None
+    from .download_image import ImageError
+    try:
+        installed.check(app.native_project_identity,project)
+        return installed.routine_sources.source_key(app,program,routine)
+    except ImageError:return None
+
+
 def attributes(engine,program,routine,*,source_sha256,idle,type_bound,app=None,native_target=None):
     project=engine.project
     if (type_bound is not True or source_sha256!=project.sha256 or engine.mode!='project' or
@@ -49,6 +68,6 @@ def description():
         edited_model_source_readback_required=True,
         fault_history_required_clean=True,aoi_state=False,null_code_address=True,active_code_addresses=False,
         uid=False,header_address='Live interpreter Routine reference; shared with Program main reference',
-        source_keys='Original opaque metadata for untouched routines only; no decryption',executable_flags='Main=0; other ordinary RLL=2',
+        source_keys='Pinned original opaque configuration; plain RLL edits preserve it; no decryption',executable_flags='Main=0; other ordinary RLL=2',
         signature_types='Unsigned canonical ordinary RLL only; no native signature verification',
         test_untest_assemble=False,configuration_writes=False)

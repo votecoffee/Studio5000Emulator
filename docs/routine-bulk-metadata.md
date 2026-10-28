@@ -1,5 +1,10 @@
 # Guarded Routine bulk metadata
 
+Version `26.1028.121233` [preserves pinned Source Key metadata after verified
+plain RLL edits](routine-source-key-retention.md). Native offline edit/save/reopen
+checks show the original opaque configuration stays unchanged. Earlier versioned
+checkpoints below retain their original scope.
+
 Version `.134` adds [offline comparison diagnostics](routine-metadata-comparison.md)
 for this reply shape. Matching nonidentity fields does not establish native
 interpretation or source association; the isolated address-range trial does not
@@ -53,8 +58,8 @@ lowercase hexadecimal and supported prefix. Absent fields in older manifests
 stay absent. Routine objects are immutable, omit the blob from their ordinary
 representation, and report availability counts without blob contents. The
 status API does not return these bytes. The read-only field (22) requires the
-matching original Project identity, untouched Routine source and guarded Program
-RLL state. AOI bindings
+matching original Project identity and guarded Program RLL state. Edited source
+also requires the original installation configuration fingerprint. AOI bindings
 can retain the metadata but do not gain this Program-specific read behavior.
 
 ## Unsigned model state

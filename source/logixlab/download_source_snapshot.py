@@ -50,13 +50,26 @@ class Snapshot:
         if sum(len(s.data) for s in sources)>MAX_STORAGE:raise ImageError('download_source_storage_limit')
         return cls(acd,l5x,stamp,tuple(sources))
 
-    def read(self,app,program,routine):
-        if type(program) is not int or type(routine) is not int:
-            raise ImageError('download_source_target_unavailable')
-        engine=app.engine;project=engine.project;identity=app.native_project_identity
+    def check_catalog(self,app):
+        project=app.engine.project;identity=app.native_project_identity
         if (identity is None or (identity.source_acd_sha256,project.sha256)!=(self.acd,self.l5x)
                 or catalog_stamp(app.native_symbols,app.native_routines,app.native_types,self.acd,self.l5x)!=self.catalog):
             raise ImageError('download_source_catalog_changed')
+
+    def source_key(self,app,program,routine):
+        """Original opaque configuration; plain RLL replacements do not set it."""
+        if type(program) is not int or type(routine) is not int:raise ImageError('download_source_key_unavailable')
+        self.check_catalog(app)
+        row=app.native_routines.by_instance.get((program,routine))
+        if (row is None or row.type_word!=0x7FF or row.source_key is None
+                or not any(s.target==(program,routine) for s in self.sources)):
+            raise ImageError('download_source_key_unavailable')
+        return row.source_key
+
+    def read(self,app,program,routine):
+        if type(program) is not int or type(routine) is not int:
+            raise ImageError('download_source_target_unavailable')
+        project=app.engine.project;self.check_catalog(app)
         revision=getattr(project,'runtime_revision',0);edited=getattr(project,'runtime_edited_routines',())
         if (type(revision) is not int or revision<1 or type(edited) is not tuple or not edited
                 or any(key not in project.routines for key in edited)):

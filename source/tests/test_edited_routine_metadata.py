@@ -46,24 +46,43 @@ class EditedRoutineMetadataTests(sources.wire.logs.NamespaceFixture,unittest.Tes
         path=logical_path(0x6D,routine,program=2)+logical(0x20,0x8C)+logical(0x24,0)
         return self.send(bytes((0x4B,len(path)//2))+path)
 
-    def test_schema_and_clean_bulk_state_remain_current_after_one_edit_but_its_key_is_withheld(self):
-        self.installed();original_key=self.attribute(22,routine=2);old,_=self.edit()
+    def test_schema_and_clean_bulk_state_keep_pinned_configuration_keys_after_plain_logic_edit(self):
+        self.installed();original_keys={n:self.attribute(22,routine=n) for n in (1,2)};old,_=self.edit()
         before=copy.deepcopy(self.app.state());project=self.app.engine.project
         for parent in (None,2):self.assertEqual(self.revision(parent),b'\x8e\0\0\0\x0b\0')
         for instance,key in ((1,'mainprogram/mainroutine'),(2,'mainprogram/reporting')):
             decoded=self.bulk(instance);rows=decoded['attributes']
             fields={r['attribute']:bytes.fromhex(r['data_hex']) for r in rows if not r['status']}
-            self.assertEqual([r['attribute'] for r in rows if r['status']],[22] if instance==1 else [])
+            self.assertEqual([r['attribute'] for r in rows if r['status']],[])
             self.assertTrue(all(not any(fields[n]) for n in ZEROS))
             self.assertEqual(int.from_bytes(fields[9],'little'),instance)
             self.assertEqual(int.from_bytes(fields[24],'little'),0 if instance==1 else 2)
             address=int.from_bytes(fields[8],'little')
             self.assertIs(self.app.engine.runtime_references.resolve(project,address,'routine'),project.routines[key])
             self.assertIsNone(old.runtime_references.resolve(old.project,address,'routine'))
-        self.assertEqual(self.attribute(22)[2],0x14)
-        self.assertEqual(self.attribute(22,routine=2),original_key)
+        for instance in (1,2):self.assertEqual(self.attribute(22,routine=instance),original_keys[instance])
         for field in ('tags','scan','ms','routines','controller','routine_edits'):
             self.assertEqual(self.app.state()[field],before[field])
+
+    def test_source_key_pins_original_catalog_and_does_not_serve_replacement_metadata(self):
+        from logixlab.native_routines import NativeRoutines
+        self.installed();expected=self.attribute(22);self.edit();original=self.app.native_routines
+        rows=[row.manifest() for row in original.rows];rows[0]['source_key_hex']='0008'+'42'*64
+        self.app.native_routines=NativeRoutines(original.source_acd_sha256,original.source_l5x_sha256,rows)
+        self.assertEqual(self.attribute(22)[2],0x14)
+        self.app.native_routines=original;self.assertEqual(self.attribute(22),expected)
+
+    def test_missing_original_snapshot_withholds_key_while_current_edited_state_still_verifies(self):
+        self.installed();self.edit();engine=self.app.engine
+        engine.installed_download=replace(engine.installed_download,routine_sources=None)
+        self.assertEqual(self.attribute(10)[2],0)
+        self.assertEqual(self.attribute(22)[2],0x14)
+
+    def test_repeated_plain_edits_keep_the_same_key_without_bypassing_source_checks(self):
+        self.installed();expected=self.attribute(22);self.edit(region='42');self.edit(region='43')
+        self.assertEqual(self.attribute(22),expected)
+        self.app.engine.project.runtime_native_sources=()
+        self.assertEqual(self.attribute(22)[2],0x14)
 
     def test_corrupted_edit_source_revokes_its_state_and_complete_schema_without_hiding_untouched_state(self):
         self.installed();self.edit();project=self.app.engine.project;record=project.runtime_native_sources[0]

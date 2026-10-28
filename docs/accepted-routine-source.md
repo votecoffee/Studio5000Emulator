@@ -1,5 +1,10 @@
 # Accepted edited Routine source readback
 
+Version `26.1028.121233` [preserves pinned Source Key metadata after verified
+plain RLL edits](routine-source-key-retention.md). Native offline edit/save/reopen
+checks show the original opaque configuration stays unchanged. Earlier versioned
+checkpoints below retain their original scope.
+
 Version `26.1028.094227` retains the exact native source container when a
 supported Program-mode RLL edit commits. Previously the temporary transfer was
 cleared after updating interpreter logic, leaving no current native source for

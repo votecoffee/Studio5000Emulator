@@ -1545,9 +1545,9 @@ class Router:
                     source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None,
                     app=self.app,native_target=(path.program_instance,routine['id']))
                 attributes.update(state_fields)
-                if (state_fields and routine['source_key'] is not None
-                        and (routine['program']+'/'+routine['name']).casefold() not in getattr(self.app.engine.project,'runtime_edited_routines',())):
-                    attributes[22]=struct.pack('<H',len(routine['source_key']))+routine['source_key']
+                if state_fields:
+                    key=routine_state.source_key(self.app,path.program_instance,routine['id'])
+                    if key is not None:attributes[22]=struct.pack('<H',len(key))+key
         return self.attribute_read(service,path,data,attributes)
 
     def routine_labels_service(self,service,path,data):
