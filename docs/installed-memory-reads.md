@@ -1,5 +1,43 @@
 # Installed scalar word online reads
 
+## Small signed integer words
+
+Version `26.1028.170503` supports exact installed scalar SINT (`0xC2`, one byte)
+and INT (`0xC3`, two bytes) through the observed count-one UserMemory request.
+The returned four-byte word contains the current encoded value in its low bytes
+and explicit zero padding. The signed value is preserved by the typed SDK getter.
+All source, declaration, access, namespace, effect and current-storage checks
+remain active. Constants, arrays, interior/padding addresses and other counts
+remain unavailable through this word path.
+
+Snapshot diagnostics require an exact typed SINT/INT result for every expected
+mutable scalar path. Their receipt preserves the one-byte or two-byte value,
+independently of transport padding; missing, duplicated or changed results fail
+verification. The CLI also supports explicit `--tag-read-type SINT` and `INT`
+connection checks.
+
+### Native checkpoint: `26.1028.170503`
+
+A fresh two-Program fixture with 31 roots and 107 value bytes completes native
+download/save/reopen/Online across 439 verified requests. Global and Program-local
+SINT/INT values are changed independently to `-128`, `127`, `-32768` and `32767`
+without scanning. Source-equivalent upload snapshot/save/reopen/Online succeeds
+across 1230 requests, with all 31 values, four routines and thirteen rungs
+verified. Both Program packages and all controller tag definitions pass. All
+23 typed Online scalar checks pass: eleven BOOL, five DINT, three REAL, two SINT
+and two INT. Array and constant values and declarations remain preserved.
+
+A supported rung replacement and reconnection pass across 188 requests.
+Two fresh SDK sessions then read both scoped SINT limits (75 requests) and
+both INT limits (75) after the edit. Independent signed peers verify all four
+padded words before and after the edit, including denials for array/constant
+words, interior/padding addresses and count two. Response MACs are checked on
+these fresh peer sessions; recorded native exchanges are not reauthenticated.
+Every native case confirms Offline cleanup without an SDK fault. No scans
+execute, and reads preserve current values. This extends the bounded SDK
+profile; complete edited-project upload and Studio GUI monitoring remain
+unverified.
+
 ## REAL scalar words
 
 The current profile also accepts exact mutable scalar REAL allocations with
