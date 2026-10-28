@@ -15,6 +15,22 @@ from tools.probe_native_sdk import (runtime_hashes, validate_target, validate_ur
 
 
 class NativeSdkProbeTests(unittest.TestCase):
+    def test_saved_edit_target_requires_an_installed_unchanged_baseline_before_build(self):
+        from tools.probe_native_sdk import digest
+        from test_native_project import container
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'source.ACD';saved=root/'saved.ACD'
+            source.write_bytes(container());saved.write_bytes(container())
+            state=self.state();state['connectivity']['native_correlation']['source_acd_sha256']=digest(source)
+            state['connectivity']['native_programming_lease'].update(online_edits=True,online_edit_scope='standard_rll_program_mode')
+            state['routine_edits']=dict(enabled=True,revision=0)
+            args=SimpleNamespace(project=str(source),url='http://127.0.0.1:8786',path=r'TestDriver\192.0.2.8\Backplane\0',
+                operation='edits',tag=[],connection_target=str(saved),apply_supported_edits=True,output=str(root/'result'),sdk_feed=None)
+            with patch('tools.probe_native_sdk.api',return_value=state),patch('tools.probe_native_sdk.subprocess.run') as native,\
+                    self.assertRaisesRegex(ValueError,'source-equivalent'):
+                run(args)
+            native.assert_not_called();self.assertFalse((root/'result').exists())
+
     def test_saved_connection_target_is_explicit_copied_input_without_rebinding_source(self):
         from tools.probe_native_sdk import connection_input
         with tempfile.TemporaryDirectory() as directory:
@@ -23,7 +39,8 @@ class NativeSdkProbeTests(unittest.TestCase):
             self.assertEqual(connection_input(source,'connection'),source)
             self.assertEqual(connection_input(source,'connection',saved),saved.resolve())
             self.assertEqual(source.read_bytes(),b'original-source')
-            for operation in ('upload','download','modes','edits'):
+            self.assertEqual(connection_input(source,'edits',saved),saved.resolve())
+            for operation in ('upload','download','modes'):
                 with self.assertRaises(ValueError):connection_input(source,operation,saved)
             for name,data in (('wrong.L5X',b'not-an-acd'),('tiny.ACD',b'no')):
                 path=root/name;path.write_bytes(data)

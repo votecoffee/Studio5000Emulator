@@ -23,7 +23,7 @@ if (options.Operation is not ("connection" or "upload" or "download" or "modes" 
     return 2;
 string Hash() => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.Project))).ToLowerInvariant();
 if (Hash() != options.SourceSha256) return 2;
-if (options.ControllerSourceSha256 is not null && (options.Operation != "upload" ||
+if (options.ControllerSourceSha256 is not null && (options.Operation is not ("upload" or "edits") ||
     !Regex.IsMatch(options.ControllerSourceSha256, "^[0-9a-f]{64}$"))) return 2;
 var controllerSourceHash = options.ControllerSourceSha256 ?? options.SourceSha256;
 if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.ReconnectEdits) && options.Operation != "edits" ||

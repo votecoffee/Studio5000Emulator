@@ -14,6 +14,9 @@ page header, Windows tray and executable properties share this version.
 exact native RLL source at commit and supports signed source reads after an edit.
 The source is checked against active logic on each fragment. Complete uploads
 of online-edited projects still require additional metadata/component support.
+Two native SDK edits and reconnects pass across 291 verified requests; a separate
+read-only peer verifies signed readback of both exact accepted sources against
+the SDK traffic and active logic. Values and scan state remain unchanged.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
 and reopen a current-value ACD that goes Online.** Native SDK checks also pass

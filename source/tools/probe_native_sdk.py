@@ -12,7 +12,8 @@ An upload may select a separate preserved offline merge baseline with
 --upload-target; the emulator remains pinned to --project. Only the new private
 working copy may change during upload. Its final hash is checked independently.
 --connection-target selects a separate saved ACD for a read-only connection
-check, while --project continues to pin the emulator's original source.
+check, or an unchanged source-equivalent saved-download target for edits.
+--project continues to pin the emulator's original source.
 Only explicit --operation modes changes Run/Program and executes scans. It
 restores Program; resulting tag values and scan history are retained. Other
 operations never request mode changes. The edits diagnostic imports a generated
@@ -67,7 +68,7 @@ def upload_input(source,operation,target=None):
 def connection_input(source,operation,target=None):
     """A saved connection target is a copied SDK input, never a new source binding."""
     if target is None:return source
-    if operation!='connection':raise ValueError('--connection-target belongs only to a connection diagnostic')
+    if operation not in ('connection','edits'):raise ValueError('--connection-target requires a connection or edits diagnostic')
     path=Path(target).resolve(strict=True)
     if path.suffix.lower()!='.acd' or not path.is_file() or not 8<=path.stat().st_size<=100_000_000:
         raise ValueError('Connection target must be an ACD file of 8..100000000 bytes')
@@ -746,6 +747,7 @@ def run(args):
     from tools import download_content
     download_content_plan=download_content.prepare(args.operation,save_download,download_content_source,source,initial)
     snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload or verify_upload_baseline else None
+    edit_baseline=upload_snapshot.prepare(source,baseline,initial) if args.operation=='edits' and connection_target is not None else None
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
     if args.operation == 'edits':
@@ -762,7 +764,7 @@ def run(args):
         raise ValueError('Source changed while creating the private copy')
     config = dict(Project=str(copied), SourceSha256=baseline_hash, CommunicationsPath=args.path,
                   Operation=args.operation, Tags=args.tag, TagReadType=tag_read_type)
-    if args.operation=='upload':config['ControllerSourceSha256']=source_hash
+    if args.operation in ('upload','edits'):config['ControllerSourceSha256']=source_hash
     if args.operation in ('modes','edits','upload','download'):config.update(BackendUrl=url,InstanceId=instance)
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
@@ -808,6 +810,8 @@ def run(args):
         raise ValueError('Upload baseline admission changed before the native call')
     if download_content_plan!=download_content.prepare(args.operation,save_download,download_content_source,source,state):
         raise ValueError('Downloaded-content source or current-value plan changed before the native call')
+    if edit_baseline is not None and upload_snapshot.prepare(source,baseline,state)!=edit_baseline:
+        raise ValueError('Saved edit baseline changed before the native call')
     if args.operation=='modes':validate_mode_probe(state)
     if args.operation == 'edits':
         current_edits=edit_sequence(state,edit_options[0] or 'MainProgram',edit_options[1] or 'MainRoutine',
@@ -836,6 +840,7 @@ def run(args):
                    source_sha256=source_hash, harness_sha256=digest(executable),
                    sdk_input_sha256=baseline_hash,separate_upload_target=args.operation=='upload' and baseline!=source,
                    separate_connection_target=args.operation=='connection' and baseline!=source,
+                   separate_edit_target=args.operation=='edits' and baseline!=source,
                    harness_runtime_sha256=runtime_hashes(output / 'bin'),
                    harness_source_sha256={name: digest(SOURCE / 'tools/native_sdk_probe' / name)
                                           for name in ('Program.cs', 'NativeSdkProbe.csproj')},
@@ -1014,7 +1019,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True, help='Original ACD, preserved and checked by SHA-256')
     parser.add_argument('--upload-target',help='Upload only: preserved offline merge baseline, copied into the new private output directory; --project still pins the emulator source')
-    parser.add_argument('--connection-target',help='Connection only: preserved saved ACD to open on a private copy; --project still pins the emulator source')
+    parser.add_argument('--connection-target',help='Connection or edits: preserved saved ACD copy; edits require an unchanged source-equivalent saved-download identity; --project still pins the emulator source')
     parser.add_argument('--snapshot-uploaded-acd',action='store_true',help='Upload only: save current verified values into a fresh matching-baseline ACD, requiring unchanged source, --upload-target and --verify-uploaded-content; reopen and verify Online')
     parser.add_argument('--verify-uploaded-tag-definitions',action='store_true',help='With --verify-uploaded-content: independently export and verify every controller tag definition/current value after native upload')
     parser.add_argument('--verify-upload-baseline-online',action='store_true',help='Matching source-equivalent saved-download target only: verify Online/Offline before upload; requires upload-target and verify-uploaded-content; does not save or extend the ordinary timeout')

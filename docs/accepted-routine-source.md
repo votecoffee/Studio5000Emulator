@@ -35,3 +35,26 @@ Focused checks cover actual signed edit commit retention, fragmented source
 readback, native RegionIds/auxiliary preservation, same-routine replacement,
 stale-stream rejection, missing or altered bindings and atomic storage failure.
 Software/protocol checks remain separate from Studio GUI acceptance.
+
+The SDK edit probe can use `--connection-target` to open a preserved matching
+saved-download ACD after a download, while `--project` continues to pin the
+emulator's original source. Edit targets require an unchanged source-equivalent
+installation and unedited saved correlation; admission is checked again after
+building. The original ACD and saved target are preserved on private copies.
+
+## Native checkpoint
+
+The v35 SDK applies two ordinary Program-mode edits in separate ConveyorDemo
+routines using a saved-download target and reconnects after each, across 291
+verified requests. Both exact source containers remain after native Offline
+cleanup. A separate read-only peer reads both sources over the signed transport,
+verifies every response MAC and compares the complete returned source with the
+SDK's actual transmitted containers. Native RegionIds and auxiliary data match;
+independent IOI resolution matches every active ladder rung. Values and scan state
+remain unchanged by editing/readback. This establishes accepted source readback,
+not SDK full-project upload after edits.
+
+The same deployed version also passes native download/save/reopen/Online across
+429 requests and unchanged-source upload/fresh-L5X ACD save/reopen across 1,053.
+All fourteen tag values, both routines and ten rungs verify. Host SDK/Linx services
+remain running; the original demo is restored after the edit check.
