@@ -1,6 +1,6 @@
-"""Immutable source-only download snapshot for untouched routines after edits.
+"""Immutable downloaded source and bounded selector9 profile after edits.
 
-The snapshot contains validated source bytes, never executable components. Its
+The snapshot contains validated source and opaque profile bytes, never ELF. Its
 catalog identities and every resolved rung are rechecked against the live model.
 """
 from dataclasses import dataclass,field
@@ -11,6 +11,7 @@ from . import routine_source,upload_routine_source
 from .download_image import ImageError
 from .download_routines import RoutineBindings,MAX_STORAGE
 from .model import parse_rung
+from .incremental_download import ROUTINE_DATA
 
 
 def catalog_stamp(symbols,routines,types,acd,l5x):
@@ -26,6 +27,8 @@ class Source:
     target:tuple=field(repr=False)
     data:bytes=field(repr=False)
     sha256:str
+    component:bytes|None=field(default=None,repr=False)
+    component_sha256:str|None=None
 
 
 @dataclass(frozen=True)
@@ -36,7 +39,7 @@ class Snapshot:
     sources:tuple=field(repr=False)
 
     @classmethod
-    def prepare(cls,headers,types):
+    def prepare(cls,headers,types,metadata=None):
         ns=headers.namespace;batch=ns._routine_batch
         if batch is None:return None
         acd,l5x=ns._source.acd_sha256,ns._source.l5x_sha256
@@ -46,8 +49,13 @@ class Snapshot:
             raw=batch.read(*target,'source',bindings)
             if raw[:8]!=struct.pack('<II',1,3):raise ImageError('download_source_profile_changed')
             bindings.source(target,raw[8:]);row=headers._routine(*target)
-            sources.append(Source((row.program+'/'+row.name).casefold(),target,raw[8:],hashlib.sha256(raw[8:]).hexdigest()))
-        if sum(len(s.data) for s in sources)>MAX_STORAGE:raise ImageError('download_source_storage_limit')
+            component=None;incremental=ns._incremental
+            if incremental is not None and target in incremental._routine_data:
+                component=incremental.read_routine_data(*target,ns._image,ns._source,headers,metadata)
+                if component!=ROUTINE_DATA:raise ImageError('download_source_component_profile_changed')
+            sources.append(Source((row.program+'/'+row.name).casefold(),target,raw[8:],hashlib.sha256(raw[8:]).hexdigest(),
+                component,hashlib.sha256(component).hexdigest() if component is not None else None))
+        if sum(len(s.data)+len(s.component or b'') for s in sources)>MAX_STORAGE:raise ImageError('download_source_storage_limit')
         return cls(acd,l5x,stamp,tuple(sources))
 
     def check_catalog(self,app):
@@ -65,6 +73,31 @@ class Snapshot:
                 or not any(s.target==(program,routine) for s in self.sources)):
             raise ImageError('download_source_key_unavailable')
         return row.source_key
+
+    def profile(self,app,program,routine,selector):
+        """Keep accepted selector9 bytes; plain RLL replacement has no setter.
+
+        The empty selector4 view belongs to the same unprotected RLL profile.
+        Neither view supplies ELF or infers new opaque component data.
+        """
+        if type(selector) is not int or selector not in (4,9):raise ImageError('download_source_profile_selector')
+        self.source_key(app,program,routine)
+        from .routine_read import source
+        source(app,program,routine,3)
+        installed=app.engine.installed_download
+        if installed.routine_sources is not self or installed.tag_bindings is None:
+            raise ImageError('download_source_profile_installation_changed')
+        installed.tag_bindings.check(app,installed)
+        rows=[s for s in self.sources if s.target==(program,routine)]
+        if len(rows)!=1:raise ImageError('download_source_target_unavailable')
+        row=app.native_routines.by_instance[(program,routine)]
+        if rows[0].key!=(row.program+'/'+row.name).casefold():raise ImageError('download_source_target_unavailable')
+        if selector==4:return b''
+        record=rows[0]
+        if (type(record.component) is not bytes or record.component!=ROUTINE_DATA
+                or hashlib.sha256(record.component).hexdigest()!=record.component_sha256):
+            raise ImageError('download_source_component_unavailable')
+        return record.component
 
     def read(self,app,program,routine):
         if type(program) is not int or type(routine) is not int:

@@ -206,8 +206,17 @@ def analyze(before,after,operation,report=None,*,journal=None):
                     and response[2]!=0 and len(response)==4+2*response[3]):
                 wrapper_count+=1;envelopes+=1
                 if len(wrappers)<MAX_REPORT_ROWS:
-                    wrappers.append(dict(service=raw[0],status=response[2],sequence=request.sequence,
-                        additional_status=list(struct.unpack('<'+'H'*response[3],response[4:]))))
+                    row=dict(service=raw[0],status=response[2],sequence=request.sequence,
+                        additional_status=list(struct.unpack('<'+'H'*response[3],response[4:])))
+                    if isinstance(request,rt.ReadRequest):
+                        row['read_request']=dict(container_format=request.container_format,position=request.position)
+                        if request.inner:
+                            row['read_request']['first_request']=describe(request.inner)
+                            end=2+2*request.inner[1];path=decode_path(request.inner[2:end])
+                            if (request.inner[0]==0x5D and path.class_id==0x6D and path.program_instance
+                                    and len(request.inner[end:])==8 and request.inner[end:end+4]==struct.pack('<I',1)):
+                                row['read_request']['routine_selector']=struct.unpack_from('<I',request.inner,end+4)[0]
+                    wrappers.append(row)
                 continue
             reply=sm.parse_response(response,request);envelopes+=1
             if isinstance(request,rt.ReadRequest):

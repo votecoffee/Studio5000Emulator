@@ -1995,7 +1995,10 @@ class Router:
                                 selector=stream.selector,total_bytes=len(stream.data),complete=complete,frames=stream.frames)
                     except ImageError as error:
                         native.read_stream=None
-                        raise CIPError(0x1B if error.reason=='routine_read_reply_budget' else 0x0C,error.reason) from error
+                        status=0x1B if error.reason=='routine_read_reply_budget' else 0x0C
+                        if envelope.container_format==0x101:
+                            self.endpoint.record_native_rejection(0x5D,target,status,error.reason)
+                        raise CIPError(status,error.reason) from error
                     except CIPError:
                         native.read_stream=None;raise
                 elif isinstance(envelope,signed_messages.FragmentEnvelope):

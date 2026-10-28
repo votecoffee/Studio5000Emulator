@@ -6,9 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.125515`.** Versions use the release timestamp
+**Current app version: `26.1028.132722`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Retained Routine profile reads](docs/routine-profile-readback.md) preserve the
+exact downloaded selector-9 component and empty selector-4 stream through
+source-checked routine edits. Rejected stream reads now identify the requested
+component in transfer diagnostics.
 
 [Tag readback after routine edits](docs/edited-tag-readback.md) preserves committed
 Table identities and original Symbol Control while serving current interpreter

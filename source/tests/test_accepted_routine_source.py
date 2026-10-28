@@ -48,8 +48,8 @@ class AcceptedRoutineSourceTests(wire.logs.NamespaceFixture,unittest.TestCase):
         self.assertEqual(row.data,raw);self.assertEqual(row.sha256,hashlib.sha256(raw).hexdigest())
         self.assertEqual(accepted.records(old.project),())
         self.assertEqual(self.app.state()['tags'],before['tags'])
-        for selector in (4,9):
-            with self.assertRaises(ImageError):routine_read.source(self.app,2,1,selector)
+        self.assertEqual(routine_read.source(self.app,2,1,4),b'')
+        self.assertEqual(routine_read.source(self.app,2,1,9),wire.components.DATA)
 
     def test_latest_full_source_replaces_previous_record_without_mutating_old_engine(self):
         self.installed();_,first=self.edit(region='42');old,second=self.edit(region='43')
@@ -106,8 +106,8 @@ class AcceptedRoutineSourceTests(wire.logs.NamespaceFixture,unittest.TestCase):
         self.assertEqual(upload_routine_source.decode(before).records[0].text_ioi,'NOP();')
         self.assertTrue(installed.description()['source_equivalent'])
         self.assertFalse(self.app.engine.installed_download.description()['source_equivalent'])
-        for selector in (4,9):
-            with self.assertRaises(ImageError):routine_read.source(self.app,2,2,selector)
+        self.assertEqual(routine_read.source(self.app,2,2,4),b'')
+        self.assertEqual(routine_read.source(self.app,2,2,9),wire.components.DATA)
 
     def test_untouched_source_rechecks_catalog_bytes_active_logic_and_edit_inventory(self):
         self.installed();self.edit();engine=self.app.engine;installed=engine.installed_download

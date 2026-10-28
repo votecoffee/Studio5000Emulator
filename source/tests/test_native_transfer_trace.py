@@ -194,6 +194,19 @@ class TransferTraceTests(unittest.TestCase):
         self.assertEqual(result['requests_observed'],0);self.assertEqual(result['failed_requests'],[])
         self.assertEqual(result['wrapper_rejections'],[dict(service=0x39,status=15,sequence=10,additional_status=[0x1234])])
 
+    def test_rejected_read_reports_its_target_and_selector_without_counting_a_successful_frame(self):
+        from logixlab import read_transport as rt
+        from test_routine_read import inner
+        raw=rt.encode_request(rt.ReadRequest(7,0x101,0,inner(selector=9)),KEY)
+        denied=dict(kind='cip',request_hex=raw.hex(),response_hex='ba000c00')
+        result=tool.analyze({'events':[]},{'events':[denied]},'upload')
+        self.assertTrue(result['analysis_complete']);self.assertEqual(result['read_transport_frames_observed'],0)
+        row,=result['wrapper_rejections'];self.assertEqual((row['status'],row['sequence']),(12,7))
+        self.assertEqual(row['read_request']['routine_selector'],9)
+        path=row['read_request']['first_request']['object_path']
+        self.assertEqual([(p['class_id'],p['instance']) for p in path],[(0x68,2),(0x6D,1)])
+        self.assertEqual(result['failure_cause'],'NOT INFERRED');self.assertNotIn(raw.hex(),json.dumps(result))
+
     def test_missing_ambiguous_and_oversized_checkpoints_do_not_guess_an_interval(self):
         marker={'kind':'marker'}
         for events,status in (([],'checkpoint_not_retained'),([marker,marker],'checkpoint_ambiguous')):

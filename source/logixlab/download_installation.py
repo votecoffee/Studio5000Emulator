@@ -87,7 +87,7 @@ def prepare(app,changelog_bindings,native_types):
     runtime=replace(original,download_uid=int.from_bytes(header[3],'little'))
     metadata=CommittedProperties.prepare(ns.properties,ns._source,changelog_bindings.map.metadata,old.project)
     from .download_source_snapshot import Snapshot
-    sources=Snapshot.prepare(headers,native_types)
+    sources=Snapshot.prepare(headers,native_types,app.native_metadata_values)
     from .installed_tag_bindings import Snapshot as TagSnapshot
     tags=TagSnapshot.prepare(headers,values,native_types,app.native_metadata_values)
     installed=InstalledDownload(original,old.project,ns,runtime,tuple(sorted(header.items())),values,metadata,sources,tags)
