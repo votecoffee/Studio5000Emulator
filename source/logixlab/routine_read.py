@@ -2,6 +2,8 @@
 
 The source and opaque component selectors use retained download bytes. No source
 is invented, no opaque code executes, and edits revoke the downloaded view.
+An edited routine can instead expose its exact accepted source for selector3;
+opaque components and complete edited-project uploads remain unavailable.
 """
 from dataclasses import dataclass,field
 import struct
@@ -17,9 +19,13 @@ def source(app,program,routine,selector=3):
     engine=app.engine;project=engine.project;installed=getattr(engine,'installed_download',None)
     if installed is None:raise ImageError('routine_read_installed_download_required')
     installed.check(app.native_project_identity,project)
-    if (engine.mode!='project' or engine.blockers or engine.fault or engine.calls.stack or engine.memory.frames
-            or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
+    if engine.mode!='project' or engine.blockers or engine.fault or engine.calls.stack or engine.memory.frames:
         raise ImageError('routine_read_unchanged_logic_required')
+    if getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()):
+        if selector!=3:raise ImageError('routine_read_edited_component_unavailable')
+        from . import accepted_routine_source
+        try:return accepted_routine_source.read(app,program,routine)
+        except accepted_routine_source.Error as error:raise ImageError(str(error)) from error
     ns=installed.namespace;batch=ns._routine_batch
     if batch is None:raise ImageError('routine_read_download_source_required')
     headers=HeaderBindings(engine,ns,app.native_symbols,app.native_routines,app.native_auxiliary_symbols,

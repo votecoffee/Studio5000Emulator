@@ -12,7 +12,7 @@ from .routine_source import candidate_project,validate_plan,SourceError
 from .runtime import Engine
 
 
-def prepare(engine,source,neutral,program,base_revision):
+def prepare(engine,source,neutral,program,base_revision,*,native_source=None,native_target=None):
     if (engine.mode!='project' or engine.blockers or engine.fault or engine.project.aois
             or engine.calls.stack or engine.memory.frames):
         raise ModelError('Routine replacement requires an executable ordinary project')
@@ -39,6 +39,9 @@ def prepare(engine,source,neutral,program,base_revision):
     project.runtime_edited_routines=tuple(sorted(set(getattr(engine.project,'runtime_edited_routines',()))|{key}))
     content=[(key,r.kind,[x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
     project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
+    from .accepted_routine_source import retain
+    try:project.runtime_native_sources=retain(engine.project,project,key,source,native_source,native_target)
+    except SourceError as error:raise ModelError(str(error)) from error
     installed=getattr(engine,'installed_download',None)
     if installed is not None:
         from .download_image import ImageError
@@ -49,10 +52,12 @@ def prepare(engine,source,neutral,program,base_revision):
 
 
 def description(app):
+    from .accepted_routine_source import description as source_description
     project=app.engine.project if app.engine else None
     revision=getattr(project,'runtime_revision',0)
     return {'enabled':app.allow_routine_edits,'profile':'standard_rll_program_mode',
             'revision':revision,'modified':revision>0,'logic_sha256':getattr(project,'runtime_logic_sha256',None),
             'edited_routines':list(getattr(project,'runtime_edited_routines',())),
             'l5x_export_available':revision>0,
+            'native_source_readback':source_description(project),
             'persistence':'memory_only','test_untest_assemble':False,'native_code_execution':False}

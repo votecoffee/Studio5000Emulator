@@ -6,9 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1026.153720`.** Versions use the release timestamp
+**Current app version: `26.1028.094227`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Accepted edit source readback](docs/accepted-routine-source.md) now retains
+exact native RLL source at commit and supports signed source reads after an edit.
+The source is checked against active logic on each fragment. Complete uploads
+of online-edited projects still require additional metadata/component support.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
 and reopen a current-value ACD that goes Online.** Native SDK checks also pass

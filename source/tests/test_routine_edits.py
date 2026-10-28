@@ -45,6 +45,25 @@ class RoutineEditWireTests(unittest.TestCase):
 
     def release_program(self):self.send(reservations.message(0x4C,payload=b''))
 
+    def test_native_commit_retains_exact_source_after_temporary_transfer_is_cleared(self):
+        from logixlab.accepted_routine_source import records
+        self.app.allow_routine_edits=True;self.stage();raw=self.endpoint.programming_lease.edit_transfer.source_bytes()
+        old=self.app.engine;self.release_program();self.assertEqual(self.send(COMMIT)[2],0)
+        rows=records(self.app.engine.project)
+        self.assertEqual(len(rows),1);self.assertEqual(rows[0].data,raw)
+        self.assertEqual(rows[0].sha256,hashlib.sha256(raw).hexdigest())
+        self.assertEqual(records(old.project),())
+        self.assertFalse(self.endpoint.programming_lease.edit_transfer.ready())
+        self.assertEqual(self.app.state()['routine_edits']['native_source_readback']['retained_routines'],1)
+
+    def test_retained_source_budget_failure_does_not_commit_or_discard_the_candidate(self):
+        from unittest.mock import patch
+        from logixlab import accepted_routine_source
+        self.app.allow_routine_edits=True;self.stage();self.release_program();old=self.app.engine
+        with patch.object(accepted_routine_source,'MAX_BYTES',1):self.assertEqual(self.send(COMMIT)[2],12)
+        self.assertIs(self.app.engine,old)
+        self.assertTrue(self.endpoint.programming_lease.edit_transfer.ready())
+
     def test_replacement_metadata_requires_supported_live_edit_context_and_does_not_write_active_metadata(self):
         from logixlab.ethernetip import logical
         self.stage();before=self.app.engine

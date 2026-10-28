@@ -261,7 +261,8 @@ class Router:
                         neutral=resolve(stage.source,self.app.engine.project,self.app.native_symbols,
                             self.app.native_routines,self.app.native_types,program['name'])
                         if neutral!=stage.translated_rungs:return reject(0x0C,'source_correlation_changed')
-                        candidate,receipt=prepare(self.app.engine,stage.source,neutral,program['name'],stage.base_revision)
+                        candidate,receipt=prepare(self.app.engine,stage.source,neutral,program['name'],stage.base_revision,
+                            native_source=stage.source_bytes(),native_target=stage.target)
                     except (SourceError,ModelError):return reject(0x0C,'routine_replacement_validation_failed')
                     self.app.engine=candidate;self.app._io_dirty=True
                     candidate.change_detection.record('routine_transaction')
@@ -1966,7 +1967,7 @@ class Router:
                                 if (inner[0]!=0x5D or target.class_id!=0x6D or not target.program_instance or not target.instance
                                         or target.attribute is not None or target.symbols or target.io_map_instance is not None
                                         or target.controller_instance is not None or target.aoi_instance is not None):
-                                    raise CIPError(0x0F,'Only scoped downloaded Routine source reads are supported')
+                                    raise CIPError(0x0F,'Only scoped Routine source reads are supported')
                                 if inner[n:] not in tuple(struct.pack('<II',1,s) for s in (3,4,9)):
                                     raise CIPError(0x0F,'Unsupported Routine read selector')
                                 selector=struct.unpack_from('<I',inner,n+4)[0]

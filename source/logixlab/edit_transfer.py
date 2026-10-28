@@ -118,6 +118,10 @@ class EditTransfer:
                 and self.translated_rungs is not None and self.plan_validated and self._attachment is not None
                 and type(self.base_revision) is int and self.base_revision>=0)
 
+    def source_bytes(self):
+        if not self.ready():raise EditTransferError(0x0C,'validated_edit_source_required')
+        return bytes(self._data)
+
     def retain_metadata(self,data):
         """Retain the observed removed-rung metadata profile, without applying it.
 
