@@ -26,3 +26,25 @@ stream frames. Initial read failures also appear in the endpoint's scoped native
 rejection summary. This makes an unavailable component visible even when the SDK
 reports only a higher-level Program upload failure. Journal framing analysis
 does not authenticate old MACs or establish native upload acceptance.
+
+## Native checkpoint
+
+Version `26.1028.132722` passes native download/save/reopen/Online, a supported
+routine replacement with reconnect, and three post-edit DINT getters. Independent
+signed peers verify both retained components, empty streams, current source,
+all 22 Routine fields and all fourteen tag roots before and after the edit.
+
+The actual SDK upload now completes six read streams: selectors `9`, `3` and `4`
+for both routines. Every received stream matches the independent peer byte for
+byte, including the edited source. Program queries `31`, `32` and `33` also pass.
+Upload reaches 376 verified requests, then fails at the guarded class `0x349`,
+service `0x53`, all-object metadata query. The SDK returns Offline without a fault.
+Complete edited-project upload and saving remain unfinished. SDK-received source
+streams are separate evidence from native offline exports of a completed upload.
+
+The unchanged-project comparison completes upload across 980 verified requests.
+Native Offline reads and exports independently verify all fourteen roots and
+45 value bytes, both routines and ten rungs, the Program package and all fourteen
+controller tag definitions. A fresh matching download and separate Online DINT
+read also pass after restoring the original demo. Reconstructed uploaded-ACD
+saving is not attempted by this checkpoint.

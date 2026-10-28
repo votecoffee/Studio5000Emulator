@@ -34,8 +34,9 @@ This view is independent of historical Routine components. It can expose current
 tag values even if edited native source readback is unavailable or the interpreter
 has faulted. It does not make original compiled code or Routine metadata current,
 add a setter, persist an edited project or establish full SDK upload after edits.
-That still needs change-log and component support; Source Key handling follows
-the versioned pinned-configuration profile described above.
+The current edited upload stops at all-object metadata after both Routine
+source streams pass. [Bounded profile components](routine-profile-readback.md)
+and Source Keys now follow their pinned-configuration profiles.
 See [edited Routine source and state](accepted-routine-source.md) for that scope.
 
 Focused checks cover current values after repeated edits, committed identities

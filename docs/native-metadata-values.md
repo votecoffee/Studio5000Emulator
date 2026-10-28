@@ -1,5 +1,10 @@
 # Original ACD metadata values
 
+The `26.1028.132722` [Routine profile checkpoint](routine-profile-readback.md)
+now reaches the guarded all-object selection after both routines' source and
+component reads pass. Controller-only metadata remains available after edits;
+general original metadata is still withheld from a changed runtime.
+
 Version `26.1028.125515` retains a closed Controller-only metadata view after
 supported routine-only edits. A native offline import/save/reopen comparison
 confirms that the original `ControllerSerialNumber` record remains unchanged

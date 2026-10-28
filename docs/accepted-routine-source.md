@@ -1,5 +1,10 @@
 # Accepted edited Routine source readback
 
+Version `26.1028.132722` also [retains the bounded selector-9 profile and
+empty selector-4 stream](routine-profile-readback.md) through supported source
+replacement. The SDK now reads both routines' source and components; complete
+edited upload next stops at the guarded all-object metadata query.
+
 Version `26.1028.121233` [preserves pinned Source Key metadata after verified
 plain RLL edits](routine-source-key-retention.md). Native offline edit/save/reopen
 checks show the original opaque configuration stays unchanged. Earlier versioned
@@ -33,11 +38,10 @@ a previously untouched routine switches it to its accepted edit source. A missin
 edit record never falls back to the original download. This snapshot contains
 no executable components and does not make original vendor metadata current.
 
-Selector `(1, 4)`, opaque component `(1, 9)`, edited routines without recorded
-source and complete edited-project upload remain unavailable after edits. This
-does not implement
-native compiled-code execution, Test/Untest/Assemble, updated vendor metadata or
-the complete online-edit upload lifecycle. [General upload/save](upload-to-acd.md)
+Edited routines without recorded source and complete edited-project upload
+remain unavailable. The bounded profile retention above does not implement
+native compiled-code execution, Test/Untest/Assemble, updated general vendor
+metadata or the complete online-edit upload lifecycle. [General upload/save](upload-to-acd.md)
 continues to require unchanged source.
 
 Storage is bounded to 128 retained routines and 8 MiB per project, within the
