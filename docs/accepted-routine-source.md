@@ -80,3 +80,21 @@ untouched routine matches its pre-edit source bytes. Both independently resolve
 to every active ladder rung, preserving RegionIds and auxiliary data. Each source
 uses two signed frames, and reads leave values, scan state and edit state intact.
 These are source-read checks, not a complete SDK upload of the edited project.
+
+## Current state metadata after edits
+
+Version `26.1028.105723` keeps Executable class revision 11 for the supported v35
+Standard RLL inventory after an edit when every current routine source verifies.
+The same source checks gate clean idle-state attributes, live interpreter header
+references and empty Label discovery. Source checks bind the current Engine and
+native scope on every metadata request; earlier successful reads grant no cache.
+Reservations, pending transfers, active execution, fault history and unsupported
+source continue to withhold state. A missing or corrupted edit source revokes its
+state and prevents complete typed inventory recognition.
+
+The edited routine does not expose its original opaque source-key attribute 22.
+An untouched routine retains that attribute only with verified original source.
+This does not synthesize a replacement key, compiled components or change-log
+records, or implement Test/Untest/Assemble. Complete upload after edits remains
+unfinished. Focused signed checks cover the two scopes, source corruption, stale
+Engine proof, reservations, faults, live references and empty Label discovery.

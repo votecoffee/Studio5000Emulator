@@ -1483,12 +1483,11 @@ class Router:
     def routine_class_revision(self):
         project=self.app.engine.project
         if (not self.endpoint.native_read_only or project.version!='35' or project.processor!='1756-L85E'
-                or not project.executable_configuration.source_complete or project.aois
-                or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
+                or not project.executable_configuration.source_complete or project.aois):
             return 1
         # The v35 RLL instance schema is paired with Executable class revision
         # 11 in the observed upload. Keep the legacy profile when the complete
-        # original typed, unprotected Routine inventory cannot be established.
+        # current typed, unprotected Routine inventory cannot be established.
         found=False
         try:
             for program in self.programs():
@@ -1496,6 +1495,9 @@ class Router:
                     target=project.routines[(row['program']+'/'+row['name']).casefold()]
                     if (target.kind!='RLL' or row['type_word']!=0x7FF or row['source_key'] is None or
                             not self.routine_identity_attributes(self.app.native_routines,row['type_word'],row['id'],row['name'])):
+                        return 1
+                    if ((getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()))
+                            and not routine_state.current_source(self.app,self.app.engine,row['program'],row['name'],(program['id'],row['id']))):
                         return 1
                     found=True
         except CIPError:return 1
@@ -1536,9 +1538,11 @@ class Router:
                 source=self.app.engine.project.sha256
                 idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,path.program_instance)
                 state_fields=routine_state.attributes(self.app.engine,routine['program'],routine['name'],
-                    source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None)
+                    source_sha256=source,idle=idle,type_bound=routine['type_word'] is not None,
+                    app=self.app,native_target=(path.program_instance,routine['id']))
                 attributes.update(state_fields)
-                if state_fields and routine['source_key'] is not None:
+                if (state_fields and routine['source_key'] is not None
+                        and (routine['program']+'/'+routine['name']).casefold() not in getattr(self.app.engine.project,'runtime_edited_routines',())):
                     attributes[22]=struct.pack('<H',len(routine['source_key']))+routine['source_key']
         return self.attribute_read(service,path,data,attributes)
 
@@ -1562,12 +1566,12 @@ class Router:
         identity=self.routine_identity_attributes(self.app.native_routines,row['type_word'],row['id'],row['name'])
         idle=self.endpoint.programming_lease.program_edits_idle(self.app.generation,source,path.program_instance)
         state=routine_state.attributes(engine,row['program'],row['name'],source_sha256=source,idle=idle,
-            type_bound=row['type_word']==0x7FF)
+            type_bound=row['type_word']==0x7FF,app=self.app,native_target=(path.program_instance,row['id']))
         key=(row['program']+'/'+row['name']).casefold()
         target=engine.project.routines.get(key)
         if (not identity or not state or target is None or
                 any(op.name in ('LBL','JMP') for rung in target.rungs for op in operations(rung['nodes']))):
-            raise CIPError(0x0C,'Complete unchanged source without LBL instructions is required')
+            raise CIPError(0x0C,'Complete verified source without LBL instructions is required')
         return 0,b''
 
     def task_service(self,service,path,data,limit):
