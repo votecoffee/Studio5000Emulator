@@ -33,7 +33,8 @@ def source_prefix(routine=700):return prefix(routine=routine)[:-16]+struct.pack(
 
 class EditTransferModelTests(unittest.TestCase):
     def test_removed_rung_metadata_is_bounded_idempotent_scoped_and_cleared_with_candidate(self):
-        def record(region=2,program=300):return struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,program,0x6D,700,region,0,0x7F,0,0,0,4)
+        def record(region=2,program=300):return struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,program,0x6D,700,
+            ((region&0xFFFF)<<16)|0xFF80|(region>>16),0,0x7F,0,0,0,4)
         with self.assertRaises(EditTransferError):self.stage.retain_metadata(record())
         self.validated_source();self.stage.attach(struct.pack('<5I',2,5,0,1,123),target=(300,700));self.stage.base_revision=0
         before=self.stage.description()['retained_bytes'];self.stage.retain_metadata(record());self.stage.retain_metadata(record())

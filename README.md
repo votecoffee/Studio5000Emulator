@@ -6,9 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.132722`.** Versions use the release timestamp
+**Current app version: `26.1028.141239`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Current metadata after native edits](docs/edited-metadata.md) applies only
+accepted old-rung Comment removals to a separate upload view. The native upload
+content check can now explicitly verify current edited logic and Comments.
 
 [Retained Routine profile reads](docs/routine-profile-readback.md) preserve the
 exact downloaded selector-9 component and empty selector-4 stream through
@@ -27,10 +31,10 @@ exact native RLL source at commit and supports signed source reads after an edit
 Untouched routines retain a validated download source snapshot so they
 remain readable after another routine changes. Every source fragment is checked
 against active logic and catalog bindings. An unchanged-project raw SDK upload
-passes across 980 verified requests. Upload after an edit now passes both
-routines' component and source reads and all three Program queries. It reaches
-376 verified requests, then stops at the guarded all-object metadata query.
-Complete uploads after online edits remain unfinished.
+passes across 980 verified requests. Edited-project upload now has a guarded
+current all-object metadata view for the supported Comment-removal profile.
+Native transfer and exported-content acceptance are checked separately.
+General edited-project upload and ACD persistence remain under development.
 Verified edited source also retains the v35 Routine schema and clean interpreter
 state fields. [Pinned Source Key metadata](docs/routine-source-key-retention.md)
 also remains available after verified plain RLL edits. Offline native imports

@@ -68,7 +68,7 @@ class RoutineEditWireTests(unittest.TestCase):
         from logixlab.ethernetip import logical
         self.stage();before=self.app.engine
         path=logical(0x20,0x349)+logical(0x24,1)
-        payload=struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,300,0x6D,self.routine,2,0,0x7F,0,0,0,4)
+        payload=struct.pack('<IIHHHHIHHIIIH',0x301,30,0x68,300,0x6D,self.routine,0x0002FF80,0,0x7F,0,0,0,4)
         message=bytes((0x4F,len(path)//2))+path+payload
         self.assertEqual(self.send(message)[2],15)
         self.app.allow_routine_edits=True

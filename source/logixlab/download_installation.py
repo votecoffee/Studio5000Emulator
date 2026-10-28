@@ -22,6 +22,7 @@ class InstalledDownload:
     metadata:object
     routine_sources:object=None
     tag_bindings:object=None
+    edited_metadata:object=None
 
     def check(self,original,project):
         if (original is not self.original or project is not self.project
@@ -37,7 +38,7 @@ class InstalledDownload:
         if self.metadata is None:raise ImageError('installed_metadata_unavailable')
         return self.metadata.body(catalog,selection)
 
-    def after_routine_edit(self,previous,project):
+    def after_routine_edit(self,previous,project,*,native_source=None,native_target=None,native_metadata=None,key=None):
         """Keep committed correlation through a validated detached logic edit.
 
         The original transfer remains a historical snapshot. This only binds
@@ -51,7 +52,9 @@ class InstalledDownload:
                 or getattr(project,'runtime_revision',0)!=getattr(previous,'runtime_revision',0)+1):
             raise ImageError('installed_download_edit_source_changed')
         tags=self.tag_bindings.after_edit(previous,project) if self.tag_bindings is not None else None
-        return replace(self,project=project,tag_bindings=tags)
+        from .edited_metadata import View
+        current=View.prepare(self,previous,project,key,native_target,native_source,native_metadata)
+        return replace(self,project=project,tag_bindings=tags,edited_metadata=current)
 
     def description(self):
         revision=getattr(self.project,'runtime_revision',0)

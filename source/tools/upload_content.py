@@ -4,6 +4,7 @@ This optional diagnostic neither saves an ACD nor substitutes source files for
 native exports. Its plan and artifacts contain private engineering content.
 """
 import hashlib
+import json
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
@@ -45,10 +46,22 @@ def tag_declarations(controller):
     return result
 
 
-def plan(project,native_types,state):
-    """Complete bounded roots and unchanged Standard RLL routines, not a sample."""
+def plan(project,native_types,state,*,allow_edited=False):
+    """Complete bounded roots and source-bound Standard RLL routines."""
+    edits=state.get('routine_edits',{});revision=edits.get('revision');changed=set()
+    if type(allow_edited) is not bool:raise ValueError('Invalid edited-content option')
+    if allow_edited:
+        names=edits.get('edited_routines');retained=edits.get('native_source_readback',{})
+        if (type(revision) is not int or revision<1 or edits.get('modified') is not True
+                or type(names) not in (tuple,list) or not names or len(names)>MAX_ROUTINES
+                or any(type(n) is not str or n!=n.casefold() or n not in project.routines for n in names)
+                or len(set(names))!=len(names) or type(retained.get('retained_routines')) is not int
+                or retained['retained_routines']!=len(names)
+                or not re.fullmatch('[0-9a-f]{64}',edits.get('logic_sha256') or '')):
+            raise ValueError('Edited-content check requires complete retained native RLL edits')
+        changed=set(names)
     if (project.sha256!=state.get('connectivity',{}).get('source_l5x_sha256')
-            or state.get('routine_edits',{}).get('revision')!=0
+            or (revision!=0 and not allow_edited)
             or state.get('controller',{}).get('mode')!='Program'
             or state.get('controller',{}).get('running') is not False or project.aois
             or not NAME.fullmatch(project.name)):
@@ -89,15 +102,29 @@ def plan(project,native_types,state):
     routines=[];actual={row['key'].casefold():row for row in state.get('routines',[])}
     if len(actual)!=len(state.get('routines',[])) or set(actual)!=set(project.routines) or len(actual)>MAX_ROUTINES:
         raise ValueError('Uploaded-content routine coverage changed')
+    if allow_edited:
+        current=[(key,row['kind'],[r['text'] for r in row['rungs']]) for key,row in sorted(actual.items())]
+        if hashlib.sha256(json.dumps(current,separators=(',',':')).encode()).hexdigest()!=edits['logic_sha256']:
+            raise ValueError('Uploaded-content active logic fingerprint changed')
     for key,routine in sorted(project.routines.items()):
         row=actual[key]
         if (routine.kind!='RLL' or routine.problems or not NAME.fullmatch(routine.name)
                 or not NAME.fullmatch(routine.program) or project.programs[routine.program]['class']!='Standard'
-                or row['kind']!='RLL' or [r['nodes'] for r in row['rungs']]!=[serialize_nodes(r['nodes']) for r in routine.rungs]):
+                or row['kind']!='RLL' or key not in changed and
+                    [r['nodes'] for r in row['rungs']]!=[serialize_nodes(r['nodes']) for r in routine.rungs]):
             raise ValueError('Uploaded-content complete unchanged Standard RLL source required')
+        rungs=[r['text'] for r in routine.rungs]
+        if key in changed:
+            rungs=[r['text'] for r in row['rungs']]
+            if any(serialize_nodes(parse_rung(text))!=r['nodes'] for text,r in zip(rungs,row['rungs'],strict=True)):
+                raise ValueError('Uploaded-content active text and parsed logic differ')
         routines.append(dict(program=routine.program,name=routine.name,
             xpath=f"Controller/Programs/Program[@Name='{routine.program}']/Routines/Routine[@Name='{routine.name}']",
-            fileName=f'uploaded-routine-{len(routines):04d}.L5X',expectedRungs=[r['text'] for r in routine.rungs]))
+            fileName=f'uploaded-routine-{len(routines):04d}.L5X',expectedRungs=rungs))
+        if allow_edited:
+            comments=[r.get('comment','') for r in row['rungs']]
+            if any(type(c) is not str or len(c)>65536 for c in comments):raise ValueError('Uploaded-content Comment extent outside bound')
+            routines[-1]['expectedComments']=comments
     if (any(len(r['expectedRungs'])>10000 or any(len(text)>65536 for text in r['expectedRungs']) for r in routines)
             or sum(len(text) for r in routines for text in r['expectedRungs'])>2*MAX_BYTES):
         raise ValueError('Uploaded-content routine source extent outside bound')
@@ -109,18 +136,20 @@ def plan(project,native_types,state):
             raise ValueError('Uploaded-content ordinary Program required')
         programs.append(dict(name=name,xpath=f"Controller/Programs/Program[@Name='{name}']",
             fileName=f'uploaded-program-{len(programs):04d}.L5X',settings=settings))
-    return dict(sourceL5xSha256=project.sha256,controller=project.name,processor=project.processor,version=project.version,
+    result=dict(sourceL5xSha256=project.sha256,controller=project.name,processor=project.processor,version=project.version,
         entryRoutines=state['entry_routines'],taskNames=list(project.task_configuration.names),tags=tags,routines=routines,programs=programs)
+    if allow_edited:result.update(runtimeRevision=revision,runtimeLogicSha256=edits['logic_sha256'])
+    return result
 
 
-def prepare(operation,new_project,l5x,acd,state):
+def prepare(operation,new_project,l5x,acd,state,*,allow_edited=False):
     if l5x is None:return None
     if operation!='upload' or new_project:raise ValueError('Uploaded-content check requires existing-project upload')
     source=Path(l5x).resolve(strict=True)
     if source.suffix.lower()!='.l5x' or source.stat().st_size>MAX_XML:
         raise ValueError('Uploaded-content source must be a bounded complete L5X')
     project=Project(source)
-    return plan(project,NativeTypes.from_acd(acd,project.sha256),state)
+    return plan(project,NativeTypes.from_acd(acd,project.sha256),state,allow_edited=allow_edited)
 
 
 def verify(folder,expected,receipt):
@@ -154,13 +183,17 @@ def verify(folder,expected,receipt):
             if len(targets)!=1 or targets[0].get('Type')!='RLL':return result
             content=targets[0].findall('RLLContent')
             if len(content)!=1 or any(n.tag!='Rung' for n in content[0]):return result
-            actual=[]
+            actual=[];comments=[]
             for rung in content[0]:
                 nodes=rung.findall('Text')
                 if len(nodes)!=1 or len(nodes[0]) or nodes[0].text is None:return result
                 actual.append(serialize_nodes(parse_rung(nodes[0].text)))
+                values_comment=rung.findall('Comment')
+                if len(values_comment)>1 or any(len(c) for c in values_comment):return result
+                comments.append((values_comment[0].text or '') if values_comment else '')
             wanted=[serialize_nodes(parse_rung(text)) for text in routine['expectedRungs']]
             if actual!=wanted:return result
+            if 'expectedComments' in routine and comments!=routine['expectedComments']:return result
         result.update(verified=True,routine_exports_verified=True,tags=len(values),
             value_bytes=sum(len(t['expectedHex'])//2 for t in expected['tags']),
             routines=len(exports),rungs=sum(len(r['expectedRungs']) for r in expected['routines']))

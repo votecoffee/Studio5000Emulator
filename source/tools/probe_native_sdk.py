@@ -696,6 +696,7 @@ def run(args):
     upload_new=getattr(args,'upload_new_project',False)
     validate_new_upload(args.operation,upload_new,getattr(args,'upload_target',None),save_upload)
     content_source=getattr(args,'verify_uploaded_content',None)
+    edited_content=getattr(args,'allow_edited_upload_content',False)
     export_uploaded_tags=getattr(args,'verify_uploaded_tag_definitions',False)
     from tools import upload_tag_definitions
     upload_tag_definitions.validate_options(args.operation,export_uploaded_tags,content_source,upload_new)
@@ -703,6 +704,9 @@ def run(args):
     from tools import upload_snapshot
     upload_snapshot.validate_options(args.operation,snapshot_upload,content_source,getattr(args,'upload_target',None),save_upload,upload_new)
     verify_upload_baseline=getattr(args,'verify_upload_baseline_online',False)
+    if edited_content and (content_source is None or args.operation!='upload' or upload_new
+            or snapshot_upload or verify_upload_baseline or save_upload):
+        raise ValueError('--allow-edited-upload-content requires a content-checked existing upload without save or baseline snapshot options')
     upload_snapshot.validate_options(args.operation,verify_upload_baseline,content_source,getattr(args,'upload_target',None),save_upload,upload_new,
                                      option='--verify-upload-baseline-online')
     if content_source is not None and (args.operation!='upload' or upload_new):
@@ -741,7 +745,7 @@ def run(args):
     instance = validate_target(initial, args.path, source_hash)
     validate_idle(initial,allow_supported_edits=apply_edits)
     from tools import upload_content
-    content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial)
+    content_plan=upload_content.prepare(args.operation,upload_new,content_source,source,initial,allow_edited=edited_content)
     if export_uploaded_tags and not any(not t['name'].casefold().startswith('program:') for t in content_plan['tags']):
         raise ValueError('Uploaded controller-tag export requires at least one controller root')
     from tools import download_content
@@ -802,7 +806,7 @@ def run(args):
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
     validate_idle(state,allow_supported_edits=apply_edits)
-    if content_plan is not None and upload_content.prepare(args.operation,upload_new,content_source,source,state)!=content_plan:
+    if content_plan is not None and upload_content.prepare(args.operation,upload_new,content_source,source,state,allow_edited=edited_content)!=content_plan:
         raise ValueError('Uploaded-content source or current values changed before the native call')
     if snapshot_upload and (upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline or digest(snapshot_input)!=baseline_hash):
         raise ValueError('Snapshot baseline or installation changed before the native call')
@@ -1047,6 +1051,7 @@ def main():
     parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
     parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
     parser.add_argument('--verify-uploaded-content',metavar='SOURCE.L5X',help='Existing-project upload only: compare native offline tag bytes and independently exported routines with this exact source and current emulator values')
+    parser.add_argument('--allow-edited-upload-content',action='store_true',help='With verify-uploaded-content: use complete retained native RLL edits as expected logic; pin runtime revision/hash; no upload save/snapshot')
     parser.add_argument('--save-downloaded-acd',action='store_true',help='Successful source-equivalent download only: save a new downloaded.ACD, reopen it and verify Go Online; emulator installation remains memory-only')
     parser.add_argument('--verify-downloaded-content',metavar='SOURCE.L5X',help='Download with --save-downloaded-acd only: independently verify the reopened full Controller values, logic, Programs, types and Task settings')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')

@@ -262,7 +262,7 @@ class Router:
                             self.app.native_routines,self.app.native_types,program['name'])
                         if neutral!=stage.translated_rungs:return reject(0x0C,'source_correlation_changed')
                         candidate,receipt=prepare(self.app.engine,stage.source,neutral,program['name'],stage.base_revision,
-                            native_source=stage.source_bytes(),native_target=stage.target)
+                            native_source=stage.source_bytes(),native_target=stage.target,native_metadata=stage.metadata_bytes())
                     except (SourceError,ModelError):return reject(0x0C,'routine_replacement_validation_failed')
                     self.app.engine=candidate;self.app._io_dirty=True
                     candidate.change_detection.record('routine_transaction')
@@ -1812,12 +1812,15 @@ class Router:
         installed=getattr(self.app.engine,'installed_download',None);provider=installed or catalog
         try:
             if modified and query.selection!='controller-attribute-26':
-                if (query.selection!='controller-all' or installed is None or installed.metadata is None
+                if (query.selection not in ('controller-all','all-objects') or installed is None or installed.metadata is None
                         or installed.tag_bindings is None):
                     raise ImageError('edited_metadata_selection_unsupported')
                 installed.check(self.app.native_project_identity,project)
                 installed.tag_bindings.check(self.app,installed)
-                data=installed.metadata.edited_controller_body(catalog,project,self.endpoint.identity)
+                if query.selection=='all-objects':
+                    if installed.edited_metadata is None:raise ImageError('edited_metadata_current_view_required')
+                    data=installed.edited_metadata.body(self.app,installed,self.endpoint.identity)
+                else:data=installed.metadata.edited_controller_body(catalog,project,self.endpoint.identity)
             else:
                 data=(catalog.body(query.selection) if installed is None else
                     installed.metadata_body(self.app.native_project_identity,project,catalog,query.selection))

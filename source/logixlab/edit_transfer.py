@@ -8,7 +8,7 @@ import hashlib
 import struct
 import time
 from .signed_messages import FragmentEnvelope,FRAGMENT_FORMATS,MAX_MESSAGE
-from . import routine_source
+from . import routine_source,rung_metadata
 
 MAX_BYTES=262144
 MAX_FRAGMENTS=128
@@ -125,9 +125,9 @@ class EditTransfer:
     def retain_metadata(self,data):
         """Retain the observed removed-rung metadata profile, without applying it.
 
-        The region identifier and marker 4 remain opaque. Scope must match the
-        complete validated candidate; a region still present in its new source
-        cannot use this profile. No active metadata property is written.
+        Only the observed 23-bit RLL region encoding is recognized. Scope must
+        match the validated candidate; a region still present in its new source
+        cannot use this profile. Receipt does not write an active property.
         """
         if not self.ready() or self.program_released:
             raise EditTransferError(0x0C,'validated_edit_source_required')
@@ -138,13 +138,19 @@ class EditTransfer:
                 or selector or marker!=0x7F or a or b or c or kind!=4):
             raise EditTransferError(3,'unsupported_edit_metadata_profile')
         if (program,routine)!=self.target:raise EditTransferError(0x0C,'edit_target_changed')
-        if any(row.region_id==region for row in self.source.rungs):
+        try:_,decoded_region=rung_metadata.removal(data,self.target)
+        except ValueError as error:raise EditTransferError(3,'unsupported_edit_metadata_profile') from error
+        if any(row.region_id==decoded_region for row in self.source.rungs):
             raise EditTransferError(0x0C,'edit_metadata_region_still_present')
         if region in self._metadata:return
         if len(self._metadata)>=MAX_METADATA_RECORDS:raise EditTransferError(2,'edit_metadata_limit')
         if len(self._data)+len(self._code or b'')+len(self._attachment or b'')+38*(len(self._metadata)+1)>MAX_BYTES:
             raise EditTransferError(2,'edit_storage_limit')
         self._metadata[region]=data
+
+    def metadata_bytes(self):
+        if not self.ready():raise EditTransferError(0x0C,'validated_edit_source_required')
+        return tuple(self._metadata[key] for key in sorted(self._metadata))
 
     def description(self):
         self.expire()

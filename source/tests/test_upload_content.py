@@ -2,6 +2,7 @@
 import base64
 import copy
 import hashlib
+import json
 from pathlib import Path
 import struct
 import tempfile
@@ -11,6 +12,8 @@ from xml.etree import ElementTree as ET
 
 from logixlab.server import Application
 from logixlab.model import ModelError
+from logixlab.model import parse_rung
+from logixlab.server import serialize_nodes
 from logixlab.native_types import NativeTypes
 from tools import upload_content as content
 import test_download_values as layouts
@@ -26,6 +29,39 @@ class UploadContentTests(unittest.TestCase):
         self.state=self.app.state();self.state['connectivity']['source_l5x_sha256']=self.project.sha256
 
     def plan(self):return content.plan(self.project,self.types,self.state)
+
+    def edited_state(self):
+        state=copy.deepcopy(self.state);row=next(r for r in state['routines'] if r['key'].casefold()=='mainprogram/mainroutine')
+        row['rungs'][0].update(text='MOV(123,SpeedSetpoint);',nodes=serialize_nodes(parse_rung('MOV(123,SpeedSetpoint);')),comment='')
+        state['routine_edits'].update(revision=1,modified=True,edited_routines=['mainprogram/mainroutine'],
+            native_source_readback=dict(retained_routines=1))
+        rows=sorted((r['key'].casefold(),r['kind'],[rr['text'] for rr in r['rungs']]) for r in state['routines'])
+        state['routine_edits']['logic_sha256']=hashlib.sha256(json.dumps(rows,separators=(',',':')).encode()).hexdigest()
+        return state
+
+    def test_explicit_edited_content_checks_native_exports_against_current_logic_and_pins_revision(self):
+        state=self.edited_state()
+        with self.assertRaises(ValueError):content.plan(self.project,self.types,state)
+        expected=content.plan(self.project,self.types,state,allow_edited=True)
+        self.assertEqual(expected['runtimeRevision'],1)
+        self.assertEqual(expected['routines'][0]['expectedRungs'][0],'MOV(123,SpeedSetpoint);')
+        self.assertTrue(content.verify(self.folder,expected,self.receipt(expected))['verified'])
+        stale=content.plan(self.project,self.types,self.state)
+        self.assertFalse(content.verify(self.folder,expected,self.receipt(stale))['verified'])
+        state['routine_edits']['revision']=2
+        self.assertNotEqual(content.plan(self.project,self.types,state,allow_edited=True),expected)
+
+    def test_edited_content_requires_complete_native_source_inventory_and_exact_text_ast_fingerprint(self):
+        initial=self.edited_state()
+        for case in ('missing-native','unknown-routine','changed-text','changed-node','hash','duplicate'):
+            state=copy.deepcopy(initial)
+            if case=='missing-native':state['routine_edits']['native_source_readback']['retained_routines']=0
+            elif case=='unknown-routine':state['routine_edits']['edited_routines']=['other/routine']
+            elif case=='duplicate':state['routine_edits']['edited_routines']*=2
+            elif case=='changed-text':state['routines'][0]['rungs'][0]['text']='NOP();'
+            elif case=='changed-node':state['routines'][0]['rungs'][0]['nodes']=[]
+            else:state['routine_edits']['logic_sha256']='f'*64
+            with self.subTest(case=case),self.assertRaises(ValueError):content.plan(self.project,self.types,state,allow_edited=True)
 
     def program_receipt(self,expected):
         exports=[]
@@ -44,7 +80,9 @@ class UploadContentTests(unittest.TestCase):
             target=ET.SubElement(ET.SubElement(program,'Routines'),'Routine',Name=routine['name'],Type='RLL')
             rll=ET.SubElement(target,'RLLContent')
             for number,text in enumerate(routine['expectedRungs']):
-                ET.SubElement(ET.SubElement(rll,'Rung',Number=str(number)),'Text').text='\n '+text+'\n'
+                rung=ET.SubElement(rll,'Rung',Number=str(number));ET.SubElement(rung,'Text').text='\n '+text+'\n'
+                if routine.get('expectedComments',[None]*len(routine['expectedRungs']))[number]:
+                    ET.SubElement(rung,'Comment').text=routine['expectedComments'][number]
             path=self.folder/routine['fileName'];path.write_bytes(ET.tostring(root))
             exports.append(dict(fileName=routine['fileName'],sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
         return dict(sourceL5xSha256=expected['sourceL5xSha256'],offlineOnly=True,

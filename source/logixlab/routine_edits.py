@@ -12,7 +12,7 @@ from .routine_source import candidate_project,validate_plan,SourceError
 from .runtime import Engine
 
 
-def prepare(engine,source,neutral,program,base_revision,*,native_source=None,native_target=None):
+def prepare(engine,source,neutral,program,base_revision,*,native_source=None,native_target=None,native_metadata=None):
     if (engine.mode!='project' or engine.blockers or engine.fault or engine.project.aois
             or engine.calls.stack or engine.memory.frames):
         raise ModelError('Routine replacement requires an executable ordinary project')
@@ -45,7 +45,8 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
     installed=getattr(engine,'installed_download',None)
     if installed is not None:
         from .download_image import ImageError
-        try:candidate.installed_download=installed.after_routine_edit(engine.project,project)
+        try:candidate.installed_download=installed.after_routine_edit(engine.project,project,
+            native_source=native_source,native_target=native_target,native_metadata=native_metadata,key=key)
         except ImageError as error:raise ModelError(str(error)) from error
     return candidate,{'applied':True,'revision':project.runtime_revision,'logic_sha256':project.runtime_logic_sha256,
                       'rung_count':len(neutral),'native_code_executed':False,'file_written':False}
