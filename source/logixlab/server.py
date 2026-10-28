@@ -89,6 +89,7 @@ class Application:
         self.execution_environment = os.environ.get('LOGIXLAB_ENVIRONMENT', 'desktop')
         self.running = False
         self.allow_routine_edits = False
+        self.allow_native_tag_writes = False
         self.scan_interval_ms = 10
         self._scan_condition = threading.Condition(self.lock)
         self._scan_thread = None
@@ -222,6 +223,7 @@ class Application:
         from .routine_edits import description as routine_edit_description
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
                     'routine_edits':routine_edit_description(self),
+                    'native_tag_writes':{'enabled':self.allow_native_tag_writes,'scope':'installed_scalar_program_mode'},
                     'instance_id': self.instance_id, 'execution_environment': self.execution_environment,
                     'device_io':self.device_io.description(), 'controller':self.controller_state()}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
@@ -494,6 +496,19 @@ class Application:
                 with self.lock: self.busy = False
         with self.lock:
             if self.busy: raise ModelError("Import in progress")
+            if action=='native-tag-writes-configure':
+                enabled=data.get('allow_writes')
+                if type(enabled) is not bool:raise ModelError('Studio tag write access must be boolean')
+                if enabled!=self.allow_native_tag_writes:
+                    if self.engine is None or self.running or self.controller_state()['mode']!='Program':
+                        raise ModelError('Switch to Program before changing Studio tag write access')
+                    if self.endpoint is None or not self.endpoint.enabled or not self.endpoint.native_read_only:
+                        raise ModelError('Enable native Studio connectivity before changing tag write access')
+                    with self.endpoint.lock:
+                        if self.endpoint.state()['active_tcp_clients'] or self.endpoint.programming_lease.live(self.generation,self.engine.project.sha256):
+                            raise ModelError('Disconnect native clients before changing Studio tag write access')
+                    self.allow_native_tag_writes=enabled
+                return self.state()
             if action=='routine-edits-configure':
                 enabled=data.get('allow_writes')
                 if type(enabled) is not bool:raise ModelError('Supported Studio edits must be boolean')

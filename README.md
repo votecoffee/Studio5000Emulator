@@ -6,9 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.180022`.** Versions use the release timestamp
+**Current app version: `26.1028.184545`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+Native SDK scalar tag writes now have a separate opt-in control on the webpage.
+Program mode, complete installed scalar values and existing tag-access rules
+are required; default native writes remain disabled.
 
 [Native LINT reads](docs/installed-memory-reads.md#lint-two-word-reads) preserve
 both signed 64-bit limits through upload, native save/reopen and Online checks.

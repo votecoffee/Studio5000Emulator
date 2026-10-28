@@ -843,6 +843,27 @@ class Router:
                         attributes[7]=stage.read(bindings)
                         status,value=self.attribute_read(inner[0],path,payload,attributes,limit=limit)
                         return reply(inner[0],status,value)
+            if inner[0]==0x50 and path.class_id==0x6A:
+                if not self.app.allow_native_tag_writes:return reject(0x0F,'native_tag_writes_disabled')
+                if self.app.controller_state()['mode']!='Program' or self.app.running:return reject(0x0C,'native_tag_write_program_required')
+                if (path.instance is None or path.instance==0 or path.attribute is not None or path.symbols
+                        or any(getattr(path,key) is not None for key in
+                               ('io_map_instance','controller_instance','aoi_instance','routine_instance'))):
+                    return reject(4,'native_tag_write_table_path_required')
+                self.symbol_scope(path)
+                need(payload,7);selector,marker,count=struct.unpack_from('<IBH',payload)
+                exact(payload,7+count)
+                if selector or marker:return reject(3,'native_tag_write_zero_selector_required')
+                if limit<4:return reject(0x1B,'native_tag_write_reply_budget')
+                with self.endpoint.lock:
+                    if self.endpoint.programming_lease.live(self.app.generation,self.app.engine.project.sha256):
+                        return reject(0x0C,'native_tag_write_transfer_busy')
+                from .installed_memory import prepare_scalar_write
+                dtype,key,value=prepare_scalar_write(self.app,self,path.program_instance or 0,path.instance,payload[7:])
+                self.store_atomic(dtype,[key],[value])
+                self.endpoint.counts['native_tag_value_writes']+=1
+                self.endpoint.record('native_tag_value_write',program_instance=path.program_instance,instance=path.instance,bytes=count)
+                return reply(inner[0])
             if inner[0]==0x4C and path.class_id==0x72:
                 if (path.instance!=0 or path.attribute is not None or path.symbols or any(getattr(path,key) is not None for key in
                         ('program_instance','io_map_instance','controller_instance','aoi_instance','routine_instance'))):
@@ -2626,7 +2647,9 @@ class Endpoint:
                     'native_session':{**native_session.description(self.enabled and self.native_read_only),
                         'controller_mode':self.app.controller_state()['mode'] if self.enabled and self.native_read_only else None,
                         'keyswitch':'Remote' if self.enabled and self.native_read_only else None,
-                        'controller_mode_requests':self.enabled and self.native_read_only},
+                        'controller_mode_requests':self.enabled and self.native_read_only,
+                        'tag_writes':getattr(self.app,'allow_native_tag_writes',False),
+                        'tag_write_scope':'installed_scalar_program_mode'},
                     'native_programming_lease':{**self.programming_lease.description(self.app.generation,self.source_sha256),
                         'online_edits':self.app.allow_routine_edits,'online_edit_scope':'standard_rll_program_mode',
                         'available':bool(self.app.native_project_identity and self.app.native_project_identity.source_l5x_sha256==self.source_sha256)} if self.enabled and self.native_read_only else None,

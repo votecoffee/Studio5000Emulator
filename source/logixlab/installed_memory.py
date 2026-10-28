@@ -4,9 +4,11 @@ Observed UserMemory requests name an exact retained scalar allocation.
 SINT, INT, DINT, REAL and BOOL use one word; LINT alone uses two words.
 No host/native memory, pointer traversal, arbitrary ranges or writes exist.
 """
+import struct
+
 from .download_image import ImageError
 from .download_headers import HeaderBindings
-from .model import ModelError
+from .model import ModelError,coerce
 from .templates import ATOMS,MAX_BYTES
 
 CONSTANT_ATOMS=frozenset(('BOOL',*ATOMS))
@@ -134,3 +136,25 @@ def read_scalar(app,router,address,words):
         raise ImageError('installed_memory_current_storage_unavailable')
     value=cell.value(app.engine.memory.read)
     return scalar_word(dtype,code,value,words)
+
+
+def prepare_scalar_write(app,router,program,instance,data):
+    """Decode one complete installed scalar; caller commits through store_atomic."""
+    from .object_staging import table_key
+    if (type(program) is not int or type(instance) is not int or not 0<=program<=0xFFFF
+            or not 1<=instance<=0xFFFE or type(data) is not bytes):
+        raise ImageError('native_tag_write_table_required')
+    installed,ns=_verified_installation(app,router);table=table_key(program,instance)
+    rows=[row for row in installed.values.values if row[1]==table]
+    if len(rows)!=1:raise ImageError('native_tag_write_backing_required')
+    key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
+    router.access(tag.key,True)
+    profile={'BOOL':(0xC1,1,'B'),'SINT':(0xC2,1,'b'),'INT':(0xC3,2,'h'),
+             'DINT':(0xC4,4,'i'),'LINT':(0xC5,8,'q'),'REAL':(0xCA,4,'f')}.get(tag.dtype.upper())
+    if (tag.constant or profile is None or code!=profile[0] or cell.code!=code or cell.aggregate
+            or cell.size!=profile[1] or len(initial)!=profile[1] or len(data)!=profile[1]):
+        raise ImageError('native_tag_write_complete_scalar_required')
+    dtype=tag.dtype.upper();value=struct.unpack('<'+profile[2],data)[0]
+    try:value=coerce(value,dtype)
+    except ModelError as error:raise ImageError('native_tag_write_value_invalid') from error
+    return dtype,tag.key,value
