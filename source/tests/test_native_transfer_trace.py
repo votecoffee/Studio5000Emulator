@@ -19,6 +19,18 @@ def event(child,result,sequence=7):
 
 
 class TransferTraceTests(unittest.TestCase):
+    def test_change_log_search_decodes_opaque_summary_and_keeps_rejection_visible(self):
+        query=bytes.fromhex('4f0220ac240100000200')
+        answer=bytes.fromhex('cf000000')+bytes(32)+bytes.fromhex('01000200')
+        report=tool.analyze({'events':[]},{'events':[event(query,answer),event(query,bytes.fromhex('cf000c00'),8)]},'upload')
+        self.assertTrue(report['analysis_complete']);self.assertEqual(report['change_log_searches_observed'],2)
+        rows=report['change_log_searches'];self.assertEqual(rows[0]['change_log_search']['shape'],'opaque_summary')
+        self.assertEqual(rows[1]['change_log_search']['shape'],'rejected');self.assertEqual(report['failed_request_count'],1)
+        self.assertEqual(report['failed_requests'][0]['change_log_search']['status'],12)
+        self.assertEqual(report['mac_verification'],'NOT PERFORMED')
+        bad=tool.analyze({'events':[]},{'events':[event(query,bytes.fromhex('cf000000')+bytes(7))]},'upload')
+        self.assertFalse(bad['analysis_complete']);self.assertEqual(bad['change_log_search_errors'],1)
+
     def test_new_project_factory_correlates_the_own_sdk_step_without_assuming_saved_file_acceptance(self):
         report=tool.analyze({'events':[]},{'events':[]},'upload',dict(uploadNewProject=True,
             steps=[dict(method='UploadToNewProjectAsync',status='failed')]))

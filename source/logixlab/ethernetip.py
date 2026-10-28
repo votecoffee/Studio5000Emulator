@@ -858,7 +858,13 @@ class Router:
                 inner[0]==0x4B and path.class_id in (*alarm_catalog.CLASSES,*energy_catalog.CLASSES,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x6E,0x70,0x71,0x8D,0xB0,0xB1,0x32B,0x338,0x349,0x36A,0x36E,0x3B0,0x3B1,0x3B2) or
                 inner[0]==0x4B and path.class_id==0x8C and path.routine_instance is not None or
                 inner[0]==0x4F and path.class_id in (0x6A,0xAC)):
-                return self.handle(inner,session,depth+1,limit,budget)
+                result=self.handle(inner,session,depth+1,limit,budget)
+                if inner[0]==0x4F and path.class_id==0xAC:
+                    self.endpoint.counts['native_change_log_search_queries']+=1
+                    self.endpoint.record('native_change_log_search',status=result[2],query_bytes=len(payload),
+                        response_payload_bytes=len(result)-4-2*result[3],history_supplied=False)
+                    if result[2]:self.endpoint.record_native_rejection(inner[0],path,result[2],'change_log_search_unavailable')
+                return result
             if (inner[0]==0x53 and path.class_id==0x349 and path.instance==0 and
                 path.attribute is None and not path.symbols and all(getattr(path,key) is None for key in
                     ('program_instance','io_map_instance','controller_instance','aoi_instance'))):

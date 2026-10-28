@@ -1,5 +1,18 @@
 # Source-backed empty Change Log reads
 
+Current diagnostics decode cursor-only replies and the observed 32-byte opaque
+summary followed by a cursor. Summary fields and record semantics remain
+unresolved. The running endpoint records accepted and rejected search results;
+rejections also appear as `change_log_search_unavailable` in native diagnostics.
+The empty-history policy is unchanged.
+
+Saved-transfer reports now expose `change_log_searches`, their total count,
+malformed framing count and truncation flag. The decoder validates class,
+instance, path, cursor extent and CIP header before reporting a shape. Opaque
+bytes are represented by size and SHA-256, without values, record counts or MAC
+verification claims. Even a zero-filled summary remains an opaque summary.
+This is an inspection tool, not a source of runtime history.
+
 Version `.151` extends the read-only Change Log search used during v35 upload.
 It preserves the imported cursor and does not create history records.
 

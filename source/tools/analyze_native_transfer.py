@@ -22,6 +22,7 @@ from tools.inspect_cip_capture import describe_path,describe
 from tools.routine_metadata_profile import BULK_ATTRIBUTES,describe as describe_routine_bulk
 from tools.program_upload_query import describe as describe_program_query
 from tools.metadata_upload_query import describe as describe_metadata_query
+from tools.change_log_query import describe as describe_change_log_query
 
 MAX_EVENTS=2048
 MAX_REQUESTS=4096
@@ -116,6 +117,12 @@ def request_row(child,result,sequence,ordinal):
         try:row['program_upload_query']=describe_program_query(child,result)
         except ValueError as error:
             row['program_upload_query']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
+    if (child[0]==0x4F and row['class_id']==0xAC and row['instance']==1 and
+            row['attribute'] is None and not row['symbolic'] and 'object_path' not in row and
+            all(row[key] is None for key in ('program_instance','io_map_instance','controller_instance','aoi_instance'))):
+        try:row['change_log_search']=describe_change_log_query(child,result)
+        except ValueError as error:
+            row['change_log_search']={'structure':'UNSUPPORTED OR MALFORMED','reason':str(error)}
     if child[0]==3 and row['attribute'] is None:
         data=child[end:]
         if len(data)>=2:
@@ -177,6 +184,7 @@ def analyze(before,after,operation,report=None,*,journal=None):
     reads=[];read_count=read_bytes=0
     program_queries=[];program_query_count=program_query_errors=0
     metadata_queries=[];metadata_query_count=metadata_query_errors=0
+    change_queries=[];change_query_count=change_query_errors=0
     limited=False
     for event in events:
         if event.get('kind') in VERIFICATIONS:
@@ -242,6 +250,10 @@ def analyze(before,after,operation,report=None,*,journal=None):
                     metadata_query_count+=1
                     if row['metadata_upload_query'].get('structure')=='UNSUPPORTED OR MALFORMED':metadata_query_errors+=1
                     if len(metadata_queries)<MAX_REPORT_ROWS:metadata_queries.append(row)
+                if 'change_log_search' in row:
+                    change_query_count+=1
+                    if row['change_log_search'].get('structure')=='UNSUPPORTED OR MALFORMED':change_query_errors+=1
+                    if len(change_queries)<MAX_REPORT_ROWS:change_queries.append(row)
                 if 'program_upload_query' in row:
                     program_query_count+=1
                     if row['program_upload_query'].get('structure')=='UNSUPPORTED OR MALFORMED':program_query_errors+=1
@@ -262,7 +274,7 @@ def analyze(before,after,operation,report=None,*,journal=None):
                      **({'object_path':[dict(zip(('class_id','instance','attribute','symbolic_path'),scope)) for scope in key[-1]]} if key[-1] else {}))
                  for key,count in objects.items()]
     return {**base,'status':'observed' if envelopes else 'no_complete_signed_events',
-        'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors or program_query_errors or metadata_query_errors),'signed_envelopes':envelopes,'requests_observed':matched,
+        'analysis_complete':not (unparsed or limited or invalid_verifications or collection_errors or program_query_errors or metadata_query_errors or change_query_errors),'signed_envelopes':envelopes,'requests_observed':matched,
         'fragment_acknowledgements':fragments,'fragment_bytes':fragment_bytes,'compact_device_transfers':compact_transfers,'unparsed_events':unparsed,
         'read_transport_frames':reads,'read_transport_frames_observed':read_count,'read_transport_bytes':read_bytes,
         'read_transport_frames_truncated':read_count>MAX_REPORT_ROWS,
@@ -279,6 +291,8 @@ def analyze(before,after,operation,report=None,*,journal=None):
         'program_upload_query_errors':program_query_errors,'program_upload_queries_truncated':program_query_count>MAX_REPORT_ROWS,
         'metadata_query_frames':metadata_queries,'metadata_query_frames_observed':metadata_query_count,
         'metadata_query_errors':metadata_query_errors,'metadata_query_frames_truncated':metadata_query_count>MAX_REPORT_ROWS,
+        'change_log_searches':change_queries,'change_log_searches_observed':change_query_count,
+        'change_log_search_errors':change_query_errors,'change_log_searches_truncated':change_query_count>MAX_REPORT_ROWS,
         'endpoint_attribute_gaps':gaps,'attribute_gaps_truncated':gaps_truncated,
         'attribute_gap_scope':'all endpoint readers between checkpoints'}
 

@@ -48,6 +48,28 @@ XML='''<LogixTagInfo><SchemaVersion Major="1" Minor="0"/><DataTypes>
 
 
 class NativeTypeTests(unittest.TestCase):
+    def test_binding_rechecks_every_member_field_after_repeated_reads(self):
+        expected=lambda c:hashlib.sha256(json.dumps(c.manifest(),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        for field,value in (('name','Changed'),('dtype','REAL'),('offset',1),('bit',0),('dimensions',(1,)),
+                            ('access','None'),('hidden',True),('name','quote"slash\\unicode\u00e9')):
+            c=catalog();original=c.binding_stamp();self.assertEqual(c.binding_stamp(),original)
+            object.__setattr__(next(iter(c.types.values())).members[0],field,value)
+            self.assertEqual(c.binding_stamp(),expected(c));self.assertNotEqual(c.binding_stamp(),original)
+
+    def test_binding_rechecks_source_type_ids_order_and_mutable_fallbacks(self):
+        expected=lambda c:hashlib.sha256(json.dumps(c.manifest(),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        for modify in (lambda c:setattr(c,'source_acd_sha256','c'*64),lambda c:setattr(c,'source_l5x_sha256','d'*64),
+                       lambda c:c.type_ids.update(inner=9),lambda c:object.__setattr__(c.types['inner'],'size',8),
+                       lambda c:object.__setattr__(c.types['inner'],'name','Other'),
+                       lambda c:setattr(c,'types',dict(reversed(tuple(c.types.items()))))):
+            c=catalog();original=c.binding_stamp();modify(c)
+            self.assertEqual(c.binding_stamp(),expected(c));self.assertNotEqual(c.binding_stamp(),original)
+        c=catalog();c.binding_stamp();member=c.types['inner'].members[0]
+        object.__setattr__(member,'dimensions',[1]);self.assertEqual(c.binding_stamp(),expected(c))
+        member.dimensions.append(2);self.assertEqual(c.binding_stamp(),expected(c))
+        c.manifest=lambda:{'override':[1]};self.assertEqual(c.binding_stamp(),expected(c))
+        c.manifest=lambda:{'override':[2]};self.assertEqual(c.binding_stamp(),expected(c))
+
     def test_manifest_preserves_legacy_canonical_bytes_and_detached_member_dimensions(self):
         c=catalog()
         legacy={'source_acd_sha256':c.source_acd_sha256,'source_l5x_sha256':c.source_l5x_sha256,

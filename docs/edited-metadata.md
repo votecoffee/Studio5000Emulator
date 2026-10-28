@@ -21,7 +21,10 @@ The metadata path validates declarations and catalogs without rescanning the
 legacy transfer RAM image for each fragment. Storage reads retain that separate
 full effect validation. Routine source validation shares one catalog check
 within a locked fragment and still checks every retained source against current
-logic. No proof is cached across requests. Type manifests retain the same
+logic. No catalog validation result is reused across requests. Canonical type
+encoding is reused only after a freshly rebuilt immutable snapshot compares
+every source, type ID, type and member field; mutable or subclass values retain
+full serialization. Type manifests retain the same
 canonical bytes and binding fingerprints while avoiding recursive copies of
 immutable member fields.
 

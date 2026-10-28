@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.150454`.** Versions use the release timestamp
+**Current app version: `26.1028.154252`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -15,6 +15,9 @@ accepted old-rung Comment removals to a separate upload view. The native upload
 content check can now explicitly verify current edited logic and Comments.
 Catalog checks are shared within each metadata fragment, and native type
 manifest generation preserves its canonical bytes without recursive copies.
+Canonical type hashes now reuse encoding only after comparing a fresh complete
+field snapshot. Rejected Change Log searches appear in native diagnostics and
+saved-transfer reports; opaque summaries remain undecoded.
 The latest native edited upload receives both routine sources and all extended
 metadata, then stops at guarded Change Log history. Complete edited-project
 upload remains unfinished.

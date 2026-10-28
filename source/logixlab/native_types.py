@@ -262,10 +262,37 @@ class NativeTypes:
                 'native_type_ids':len(self.type_ids),
                 'source_l5x_sha256':self.source_l5x_sha256,'compiled_addresses':False,'runtime_equivalence':False}
 
+    def _binding_state(self):
+        """Fresh immutable values, never object identity, authorize encoding reuse."""
+        if (type(self) is not NativeTypes or 'manifest' in self.__dict__
+                or type(self.types) is not dict or type(self.type_ids) is not dict
+                or type(self.source_acd_sha256) is not str or type(self.source_l5x_sha256) is not str):return None
+        if any(type(k) is not str or type(v) is not int for k,v in self.type_ids.items()):return None
+        rows=[]
+        for t in self.types.values():
+            if type(t) is not Type or type(t.name) is not str or type(t.size) is not int:return None
+            members=[]
+            for m in t.members:
+                if (type(m) is not Member or type(m.name) is not str or type(m.dtype) is not str
+                        or type(m.offset) is not int or m.bit is not None and type(m.bit) is not int
+                        or type(m.dimensions) is not tuple or any(type(v) is not int for v in m.dimensions)
+                        or type(m.access) is not str or type(m.hidden) is not bool):return None
+                members.append((m.name,m.dtype,m.offset,m.bit,m.dimensions,m.access,m.hidden))
+            rows.append((t.name,t.size,tuple(members)))
+        return self.source_acd_sha256,self.source_l5x_sha256,tuple(sorted(self.type_ids.items())),tuple(rows)
+
     def binding_stamp(self):
-        """Pin the source pair, layouts and optional original IDs during staging."""
+        """Pin the complete current source/layout using the original canonical hash.
+
+        Reuse serialization only after rebuilding and comparing every immutable
+        field. Subclasses and unusual mutable values use full serialization.
+        """
+        state=self._binding_state();previous=getattr(self,'_binding_cache',None)
+        if state is not None and previous is not None and previous[0]==state:return previous[1]
         raw=json.dumps(self.manifest(),sort_keys=True,separators=(',',':')).encode('utf-8')
-        return hashlib.sha256(raw).hexdigest()
+        value=hashlib.sha256(raw).hexdigest()
+        if state is not None:self._binding_cache=(state,value)
+        return value
 
     def verify(self, templates):
         definitions={};errors=Counter();matched=members=0
