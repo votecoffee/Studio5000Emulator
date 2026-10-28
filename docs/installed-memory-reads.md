@@ -20,6 +20,32 @@ or changed results prevent snapshot verification. Native acceptance remains a
 separate check from these model and diagnostic contracts.
 
 
+### Native REAL checkpoint: `26.1028.160718`
+
+A two-Program fixture with 25 roots and 95 value bytes completes native
+download/save/reopen/Online across 437 verified requests. Three duplicate-named
+mutable REAL scalars, one global and one in each Program, are independently
+changed to `-7.25`, `-0.5` and `42.125` without scanning. Snapshot upload,
+native save/reopen and Online readback complete across 1,207 requests. All three
+`GetTagValueREALAsync` results match the exact expected IEEE-754 bits; the saved
+full Controller export verifies all values, four routines and thirteen rungs.
+
+The overall snapshot diagnostic remains **failed**: its separate partial
+controller-tag export changes a constant's External Access from `Read/Write`
+to `Read Only`, while the full saved export preserves it. Definition validation
+continues to reject that change and now reports the tag and both access values.
+The original failed report is retained; successful snapshot stages do not make
+that separate definition check pass.
+
+A subsequent supported rung replacement and reconnection complete across 185
+requests. A fresh SDK connection then reads all three changed REAL values across
+76 requests. Independent signed peers verify the same current bits both before
+and after the edit, with distinct committed addresses and scopes. Interior and
+padding addresses, count two, arrays and constants remain rejected on this word
+path. Each native case confirms Offline cleanup without an SDK fault. The
+checks preserve all tag values and execute no scans. This verifies the bounded
+SDK read profile, not Studio GUI monitoring or general edited-project upload.
+
 Version `26.1028.112823` extends this profile to [validated tag readback after
 routine-only edits](edited-tag-readback.md). Current tag values, committed Table
 identities and original Symbol Control remain readable with per-request layout,

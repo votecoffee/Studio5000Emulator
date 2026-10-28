@@ -13,6 +13,10 @@ page header, Windows tray and executable properties share this version.
 [Native REAL scalar reads](docs/installed-memory-reads.md#real-scalar-words) now
 serve current four-byte values at exact committed addresses, including Program
 locals. Upload snapshots add typed Online REAL checks against the uploaded bits.
+Native save/reopen/Online checks return changed REAL values in three scopes,
+including after an accepted rung edit. The expanded snapshot's full saved
+content verifies, but its separate partial tag export changes one constant's
+External Access; that strict definition check remains failed.
 
 [Current metadata after native edits](docs/edited-metadata.md) applies only
 accepted old-rung Comment removals to a separate upload view. The native upload
