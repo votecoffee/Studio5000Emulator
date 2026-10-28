@@ -6,7 +6,7 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.160718`.** Versions use the release timestamp
+**Current app version: `26.1028.163802`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
@@ -14,9 +14,9 @@ page header, Windows tray and executable properties share this version.
 serve current four-byte values at exact committed addresses, including Program
 locals. Upload snapshots add typed Online REAL checks against the uploaded bits.
 Native save/reopen/Online checks return changed REAL values in three scopes,
-including after an accepted rung edit. The expanded snapshot's full saved
-content verifies, but its separate partial tag export changes one constant's
-External Access; that strict definition check remains failed.
+including after an accepted rung edit. Constant Symbol metadata now retains
+declared External Access independently of the enforced Constant write block.
+The strict partial-export definition check remains in place.
 
 [Current metadata after native edits](docs/edited-metadata.md) applies only
 accepted old-rung Comment removals to a separate upload view. The native upload

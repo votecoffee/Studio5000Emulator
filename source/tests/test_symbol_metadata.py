@@ -44,11 +44,36 @@ class SymbolMetadataTests(unittest.TestCase):
         self.add('Pair',value={'A':1});self.app.engine.project.tags['pair'].dtype='PAIR'
         self.app.engine.project.udts['pair']=E.fromstring('<DataType><Members><Member Name="A" DataType="DINT" ExternalAccess="Read Only"/></Members></DataType>')
         self.add('MemberAlias',value=None,alias='Pair.A')
-        for name in ('ReadOnly','ReadOnlyAlias','Constant','MemberAlias'):
+        for name in ('ReadOnly','ReadOnlyAlias','MemberAlias'):
             with self.subTest(name=name):self.assertEqual(self.cip(0x0E,self.path(name)+b'\x30\x0A')[4:],b'\2')
         self.assertEqual(self.cip(0x0E,self.path('Step')+b'\x30\x0A')[4:],b'\0')
         self.endpoint.allow_writes=False
         self.assertEqual(self.cip(0x0E,self.path('Step')+b'\x30\x0A')[4:],b'\0')
+
+    def test_constant_declaration_and_flag_do_not_enable_writes(self):
+        for name,value,dtype,scope in (('Fixed',7,'DINT',''),('Analog',3.5,'REAL',''),
+                ('Array',[1,2],'DINT',''),('LocalFixed',9,'DINT','MainProgram')):
+            self.add(name,value,constant=True,scope=scope)
+            key=(f'Program:{scope}.{name}' if scope else name).lower()
+            self.app.engine.project.tags[key].dtype=dtype
+            path=self.path(name,scope);ref=f'Program:{scope}.{name}' if scope else name
+            with self.subTest(name=name):
+                self.assertEqual(self.cip(0x0E,path+b'\x30\x0A')[4:],b'\0')
+                self.assertEqual(self.cip(0x0E,path+b'\x30\x0B')[4:],b'\1')
+                row=next(s for s in self.endpoint.router.symbols(scope) if s['name']==name)
+                listing=self.cip(0x55,path,struct.pack('<HHH',2,10,11))
+                self.assertEqual(listing[4:10],struct.pack('<IBB',row['id'],0,1))
+                code,fmt=(0xCA,'f') if dtype=='REAL' else (0xC4,'i')
+                result=self.client.cip(request(0x4D,ref,struct.pack('<HH'+fmt,code,1,0)))[1]
+                self.assertEqual(result[2],0x0F)
+                self.assertEqual(self.app.engine.memory.values[key],value)
+                self.endpoint.allow_writes=False
+                self.assertEqual(self.cip(0x0E,path+b'\x30\x0A')[4:],b'\0')
+                self.endpoint.allow_writes=True
+        self.add('DeclaredRO',constant=True,external_access='Read Only')
+        self.add('FixedAlias',value=None,alias='Fixed')
+        for name in ('DeclaredRO','FixedAlias'):
+            with self.subTest(name=name):self.assertEqual(self.cip(0x0E,self.path(name)+b'\x30\x0A')[4:],b'\2')
 
     def test_enumeration_supports_access_attribute_and_reordered_attributes(self):
         path=self.path('Step');instance=struct.unpack_from('<H',path,4)[0]

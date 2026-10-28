@@ -931,7 +931,11 @@ class Router:
                 if dtype not in TYPES and template is None or len(dims)>3:continue
                 if dtype=='BOOL' and dims and (len(dims)!=1 or not 32<=dims[0]<=65536 or dims[0]%32):continue
                 try:self.access(tag.key,True);access=0
-                except (CIPError,ModelError):access=2
+                except (CIPError,ModelError):
+                    # Constant is a separate declaration and write restriction.
+                    # Keep a base constant's declared access in upload metadata;
+                    # aliases still inherit restrictions from their target.
+                    access=0 if tag.constant and not tag.alias and tag.external_access=='Read/Write' else 2
                 code=(0x8000|template.instance) if template else TYPES[dtype][0]
                 result.append({'id':mapping.instance if mapping else len(result)+1,'name':tag.name,'ref':tag.key,'type':code|(len(dims)<<13),
                                'dimensions':(dims+[0,0,0])[:3],'external_access':access})
