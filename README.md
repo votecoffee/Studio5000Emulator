@@ -10,9 +10,10 @@ and executable use the name **LogixLab**.
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-Native SDK scalar tag writes now have a separate opt-in control on the webpage.
-Program mode, complete installed scalar values and existing tag-access rules
-are required; default native writes remain disabled.
+[Native SDK scalar writes](docs/native-tag-writes.md) now update and read back
+six tag types, including Program locals, before and after a supported rung edit.
+Enable **Allow Studio tag writes** before connecting. Program mode and a
+source-equivalent installation are required; writes remain disabled by default.
 
 [Native LINT reads](docs/installed-memory-reads.md#lint-two-word-reads) preserve
 both signed 64-bit limits through upload, native save/reopen and Online checks.
