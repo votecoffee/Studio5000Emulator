@@ -28,7 +28,9 @@ unknown controller or incorporate online logic edits.
 
 ## Run
 
-First collect a native upload with content checks:
+The [upload-to-ACD command](upload-to-acd.md) runs both stages serially, with
+controller-tag checks and separate retained outcomes. To consume an existing
+upload or run the stages separately, first collect a native upload with content checks:
 
 ```powershell
 py -3.13 -X utf8 source/tools/probe_native_sdk.py --project .local/Controller.ACD --verify-uploaded-content .local/Controller.L5X --url http://127.0.0.1:8786 --path 'Emulator\192.0.2.8\Backplane\0' --operation upload --output .local/verified-upload

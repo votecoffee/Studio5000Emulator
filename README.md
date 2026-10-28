@@ -25,6 +25,9 @@ The Windows [uploaded ACD rebuild](docs/uploaded-acd-rebuild.md) also saves
 verified native Program packages and current values into a fresh source copy,
 without a saved-download baseline. The rebuilt file is checked after native
 reopen and requires a download before going Online.
+A [single upload-to-ACD command](docs/upload-to-acd.md) now runs the native
+upload, complete content checks and Offline rebuild in sequence, retaining
+separate stage results and stopping on a failed or uncertain upload.
 
 [Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
 native SDK while Online. Separate BOOL sessions verify `true` and `false`,
