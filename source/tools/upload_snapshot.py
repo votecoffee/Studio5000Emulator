@@ -44,6 +44,25 @@ def baseline_online_verified(receipt):
     return tuple(row['method'] for row in selected)==methods and all(row.get('status')=='succeeded' for row in selected)
 
 
+def online_reals(expected,receipt):
+    """Require exact typed Online REAL results for every mutable scalar root."""
+    result=dict(verified=False,tags=0)
+    try:
+        wanted={tag['xpath']:tag['expectedHex'] for tag in expected['tags']
+            if tag['typeCode']==0xCA and tag['constant'] is False and len(tag['expectedHex'])==8
+            and all(size==0 for size in tag['dimensions'])}
+        rows=receipt.get('onlineRealChecks',[])
+        if type(rows) is not list or len(rows)!=len(wanted):return result
+        seen=set()
+        for row in rows:
+            if (type(row) is not dict or set(row)!={'xpath','actualHex'} or type(row['xpath']) is not str
+                    or row['xpath'] in seen or row['xpath'] not in wanted
+                    or type(row['actualHex']) is not str or row['actualHex']!=wanted[row['xpath']]):return result
+            seen.add(row['xpath'])
+        return dict(verified=True,tags=len(wanted))
+    except (ValueError,TypeError,KeyError,AttributeError):return result
+
+
 def verify(folder,expected,native_types,baseline,receipt):
     """Require native reopen/Online receipts, retained correlation and full content."""
     from tools.probe_native_sdk import digest
@@ -52,6 +71,9 @@ def verify(folder,expected,native_types,baseline,receipt):
         if (not isinstance(receipt,dict) or any(receipt.get(key) is not True for key in
                 ('sourceEquivalentValueSnapshot','baselineLogicVerified','nativeAcdReopened','reopenedOnline'))
                 or receipt.get('baselineSha256')!=digest(baseline)):return result
+        online=online_reals(expected,receipt)
+        result['online_real_checks']=online
+        if not online['verified']:return result
         folder=Path(folder)
         for filename,key,maximum in (('snapshot.ACD','acdSha256',100_000_000),('snapshot.L5X','reopenedL5xSha256',16_000_000)):
             path=folder/filename

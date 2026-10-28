@@ -36,6 +36,13 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
                                   ('DINT',0xC4,b'\1'),('USINT',0xC6,b'\1'),('BOOL',0xC1,bytearray(b'\1'))):
             with self.subTest(dtype=dtype,code=code,value=value),self.assertRaises(ImageError):scalar_word(dtype,code,value)
 
+    def test_real_word_preserves_encoded_fraction_sign_zero_and_finite_limits(self):
+        for bits in (0,0x80000000,0x3FA00000,0xC0200000,0x7F7FFFFF,0xFF7FFFFF):
+            raw=struct.pack('<I',bits)
+            self.assertEqual(scalar_word('REAL',0xCA,raw),raw)
+        for code,value in ((0xC4,bytes(4)),(0xCA,bytes(3)),(0xCA,bytes(8)),(0xCA,bytearray(4))):
+            with self.assertRaises(ImageError):scalar_word('REAL',code,value)
+
     def test_installed_address_reads_current_dint_without_scans_or_model_mutation(self):
         self.assertEqual(self.read_value()[2],12)
         self.installed();self.app.engine.memory.write('SpeedSetpoint',87);before=copy.deepcopy(self.app.state())

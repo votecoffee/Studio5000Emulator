@@ -1,5 +1,10 @@
 # Source-equivalent upload value snapshots
 
+Snapshot diagnostics include typed Online REAL reads for all mutable scalar
+REAL roots after reopen. Each result must match the exact uploaded four bytes;
+Python validation requires complete, unique scoped-path coverage in the native
+receipt. Arrays and constants retain their separate whole-value checks.
+
 The native probe can save the current uploaded tag values into a fresh ACD
 when the installed project still has its original supported logic. It uses
 the native SDK to upload and check the values/source, then updates a separate

@@ -13,6 +13,22 @@ class UploadSnapshotTests(unittest.TestCase):
     setUp=content_tests.UploadContentTests.setUp
     plan=content_tests.UploadContentTests.plan
 
+    def test_online_real_receipt_requires_exact_bytes_and_complete_scoped_coverage(self):
+        paths=["Controller/Tags/Tag[@Name='Analog']","Controller/Programs/Program[@Name='Main']/Tags/Tag[@Name='Analog']"]
+        tags=[dict(xpath=path,typeCode=0xCA,constant=False,expectedHex=value,dimensions=[0,0,0])
+            for path,value in zip(paths,('0000a03f','000020c0'))]
+        expected=dict(tags=tags);receipt=dict(onlineRealChecks=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in tags])
+        self.assertEqual(snapshot.online_reals(expected,receipt),dict(verified=True,tags=2))
+        for rows in ([],receipt['onlineRealChecks'][:1],receipt['onlineRealChecks']*2,
+                     [receipt['onlineRealChecks'][0]]*2,
+                     [dict(xpath=paths[0],actualHex='000020c0'),receipt['onlineRealChecks'][1]],
+                     [dict(xpath=paths[0],actualHex='0000a03f',extra=True),receipt['onlineRealChecks'][1]]):
+            self.assertFalse(snapshot.online_reals(expected,dict(onlineRealChecks=rows))['verified'])
+        self.assertFalse(snapshot.online_reals(expected,{})['verified'])
+        self.assertEqual(snapshot.online_reals(dict(tags=[]),{}),dict(verified=True,tags=0))
+        for changed in (dict(tags[0],constant=True),dict(tags[0],dimensions=[2,0,0]),dict(tags[0],typeCode=0xC4)):
+            self.assertEqual(snapshot.online_reals(dict(tags=[changed]),{}),dict(verified=True,tags=0))
+
     def inputs(self):
         original=self.folder/'source.ACD';baseline=self.folder/'baseline.ACD'
         original.write_bytes(container(fields={**FIELDS,10:0,11:0}))

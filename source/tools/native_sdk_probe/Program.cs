@@ -480,6 +480,18 @@ async Task SaveUploadedSnapshot()
             if (value != (tag.ExpectedHex == "01")) throw new InvalidOperationException("Snapshot Online BOOL differs from uploaded value");
             return value;
         });
+    var onlineRealChecks = new List<object>();
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant && tag.TypeCode == 0xCA &&
+            tag.ExpectedHex.Length == 8 && tag.Dimensions?.All(size => size == 0) == true))
+        await Step("Snapshot Online REAL:" + tag.Name, async () => {
+            float value = await project!.GetTagValueREALAsync(tag.XPath, LogixProject.OperationMode.Online);
+            byte[] actual = new byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(actual, BitConverter.SingleToInt32Bits(value));
+            string actualHex = Convert.ToHexString(actual).ToLowerInvariant();
+            if (actualHex != tag.ExpectedHex) throw new InvalidOperationException("Snapshot Online REAL differs from uploaded bits");
+            onlineRealChecks.Add(new { xpath = tag.XPath, actualHex });
+            return value;
+        });
     CheckPreserved(before, await Backend(), true);
     await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
     await Step("Require snapshot Offline after Online check", async () => {
@@ -489,7 +501,7 @@ async Task SaveUploadedSnapshot()
     if (HashFile(baseline) != options.SourceSha256) throw new InvalidOperationException("Snapshot baseline changed");
     savedUploadedSnapshot = new { sourceEquivalentValueSnapshot = true, baselineLogicVerified = true,
         baselineSha256 = options.SourceSha256, acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
-        nativeAcdReopened = true, reopenedOnline = true };
+        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray() };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(

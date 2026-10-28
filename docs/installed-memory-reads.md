@@ -1,5 +1,25 @@
 # Installed scalar word online reads
 
+## REAL scalar words
+
+The current profile also accepts exact mutable scalar REAL allocations with
+CIP type `0xCA`, four-byte storage and count one. It returns the current encoded
+IEEE-754 single-precision bits without integer conversion. Global and
+Program-local roots use their committed Table scope and value address.
+
+All existing source, declaration, access, prepared-effect and current-storage
+checks remain. Constants, arrays, structure members, aliases, interior addresses
+and other word counts do not acquire UserMemory access. Constants retain their
+separate checked whole-Table upload path. Plain RLL edits preserve this read
+view only through the existing source-bound tag binding checks.
+
+Upload snapshot diagnostics now call `GetTagValueREALAsync` for each mutable
+scalar REAL after save/reopen/Online and compare the four encoded bytes. Their
+receipt must cover every expected scoped path exactly once. Missing, duplicate
+or changed results prevent snapshot verification. Native acceptance remains a
+separate check from these model and diagnostic contracts.
+
+
 Version `26.1028.112823` extends this profile to [validated tag readback after
 routine-only edits](edited-tag-readback.md). Current tag values, committed Table
 identities and original Symbol Control remain readable with per-request layout,

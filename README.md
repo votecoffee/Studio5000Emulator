@@ -6,9 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.154252`.** Versions use the release timestamp
+**Current app version: `26.1028.160718`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Native REAL scalar reads](docs/installed-memory-reads.md#real-scalar-words) now
+serve current four-byte values at exact committed addresses, including Program
+locals. Upload snapshots add typed Online REAL checks against the uploaded bits.
 
 [Current metadata after native edits](docs/edited-metadata.md) applies only
 accepted old-rung Comment removals to a separate upload view. The native upload
