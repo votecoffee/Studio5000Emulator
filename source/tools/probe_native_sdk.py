@@ -180,8 +180,8 @@ def validate_operation(operation, tags):
 
 
 def validate_tag_read_type(operation,tags,read_type):
-    if read_type not in ('BYTE_ARRAY','BOOL','SINT','INT','DINT','REAL'):
-        raise ValueError('Supported SDK tag-read types are BYTE_ARRAY, BOOL, SINT, INT, DINT and REAL')
+    if read_type not in ('BYTE_ARRAY','BOOL','SINT','INT','DINT','LINT','REAL'):
+        raise ValueError('Supported SDK tag-read types are BYTE_ARRAY, BOOL, SINT, INT, DINT, LINT and REAL')
     if read_type!='BYTE_ARRAY' and (operation!='connection' or not tags):
         raise ValueError('A typed SDK read requires a connection probe and at least one --tag')
     return read_type
@@ -1055,7 +1055,7 @@ def main():
     parser.add_argument('--save-downloaded-acd',action='store_true',help='Successful source-equivalent download only: save a new downloaded.ACD, reopen it and verify Go Online; emulator installation remains memory-only')
     parser.add_argument('--verify-downloaded-content',metavar='SOURCE.L5X',help='Download with --save-downloaded-acd only: independently verify the reopened full Controller values, logic, Programs, types and Task settings')
     parser.add_argument('--tag', action='append', default=[], help='Optional SDK tag XPath; may repeat')
-    parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','SINT','INT','DINT','REAL'),default='BYTE_ARRAY',
+    parser.add_argument('--tag-read-type',choices=('BYTE_ARRAY','BOOL','SINT','INT','DINT','LINT','REAL'),default='BYTE_ARRAY',
                         help='Use the generic byte-array API or a typed SDK getter for every selected tag')
     parser.add_argument('--output', help='New private output directory; default .local/native-probes/<unique run>')
     parser.add_argument('--sdk-feed', help='Optional installed SDK NuGet feed directory')

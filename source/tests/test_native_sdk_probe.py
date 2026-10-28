@@ -400,9 +400,9 @@ class NativeSdkProbeTests(unittest.TestCase):
         validate_idle(legacy)
 
     def test_typed_tag_getters_are_explicit_and_require_a_tag_connection_case(self):
-        for kind in ('BYTE_ARRAY','BOOL','SINT','INT','DINT','REAL'):
+        for kind in ('BYTE_ARRAY','BOOL','SINT','INT','DINT','LINT','REAL'):
             self.assertEqual(validate_tag_read_type('connection',['tag'],kind),kind)
-        for kind in ('BOOL','SINT','INT','DINT','REAL'):
+        for kind in ('BOOL','SINT','INT','DINT','LINT','REAL'):
             for operation,tags in (('connection',[]),('upload',[]),('download',[]),('edits',[])):
                 with self.assertRaises(ValueError):validate_tag_read_type(operation,tags,kind)
         for kind in ('bool','STRING','',None):
