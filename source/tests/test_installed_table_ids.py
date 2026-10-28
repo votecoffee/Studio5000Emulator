@@ -31,7 +31,7 @@ class InstalledTableIdentityTests(logs.NamespaceFixture,unittest.TestCase):
         with self.assertRaises(ImageError):installed_memory.table_ids(self.app,self.endpoint.router)
         self.app.native_project_identity=original
         self.app.engine.project.runtime_revision=1
-        self.assertIsNone(installed_memory.table_ids(self.app,self.endpoint.router))
+        with self.assertRaises(ImageError):installed_memory.table_ids(self.app,self.endpoint.router)
 
     def test_changed_header_effect_revokes_table_identity_instead_of_guessing(self):
         self.installed();stage=self.app.engine.installed_download.namespace._incremental

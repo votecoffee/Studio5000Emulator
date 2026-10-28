@@ -1,5 +1,10 @@
 # Installed scalar word online reads
 
+Version `26.1028.112823` extends this profile to [validated tag readback after
+routine-only edits](edited-tag-readback.md). Current tag values, committed Table
+identities and original Symbol Control remain readable with per-request layout,
+source and binding checks. Historical Routine components remain separate.
+
 Version `26.1026.085243` supports the observed signed UserMemory request for an
 exact scalar DINT value retained by a completed source-equivalent download.
 It joins a saved download address to the current interpreter value, rather

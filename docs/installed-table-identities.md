@@ -1,5 +1,10 @@
 # Installed Symbol and Data Table identities
 
+Version `26.1028.112823` extends this profile to [validated tag readback after
+routine-only edits](edited-tag-readback.md). Current tag values, committed Table
+identities and original Symbol Control remain readable with per-request layout,
+source and binding checks. Historical Routine components remain separate.
+
 Version `26.1026.143655` keeps a tag's Symbol ID separate from its Data Table ID
 after a verified source-equivalent download. Native Program import can preserve
 one identity while allocating a different storage-table identity. Equal numeric
@@ -14,7 +19,8 @@ The committed view derives these links from the validated downloaded object
 graph and complete prepared values. Every read rechecks source identity,
 catalogs, typed headers and retained effects. Missing or altered links fail;
 the view does not substitute a Symbol ID for an unavailable Table ID. An
-uninstalled or edited project retains the prior model discovery behavior.
+uninstalled project retains the prior model discovery behavior. An edited
+installation uses its validated retained tag view; a missing view is an error.
 
 Addresses remain model-owned and backed by current interpreter values. This
 does not expose firmware/host memory, add setters or execute compiled code.

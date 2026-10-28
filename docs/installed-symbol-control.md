@@ -1,5 +1,10 @@
 # Installed Symbol Control readback
 
+Version `26.1028.112823` extends this profile to [validated tag readback after
+routine-only edits](edited-tag-readback.md). Current tag values, committed Table
+identities and original Symbol Control remain readable with per-request layout,
+source and binding checks. Historical Routine components remain separate.
+
 Version `26.1024.104524` returns Symbol attribute `6`, named **Symbol Control**
 by the installed v35 schema, from the validated headers of an unchanged,
 source-equivalent installed download. Previously, ordinary backed tags always
@@ -23,8 +28,9 @@ layout. For packed BOOL arrays the public Symbol remains `0x20C1` with logical
 bit dimensions, while the downloaded header/Table uses `0x20D3` with word
 dimensions. Both must still refer to the same current storage cell.
 
-Before installation, outside native compatibility, or after routine editing,
-the existing model descriptor behavior remains in use. Supported value writes
+Before installation or outside native compatibility, the existing model
+descriptor behavior remains in use. An edited installation requires the validated
+retained tag view; missing or contradicted bindings reject the read. Supported value writes
 do not change source declarations or the retained control word.
 
 ## Evidence and validation

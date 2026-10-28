@@ -54,11 +54,11 @@ class InstalledSymbolControlTests(logs.NamespaceFixture,unittest.TestCase):
         self.assertEqual(self.control()[2],12);self.app.native_project_identity=original
         self.assertEqual(self.control()[2],0)
 
-    def test_uncommitted_and_edited_projects_keep_existing_model_control_behavior(self):
+    def test_uncommitted_control_stays_modeled_and_forged_edit_revision_is_rejected(self):
         self.ready_install();self.assertEqual(self.control()[4:],bytes(4))
         self.assertEqual(self.send(logs.COMMIT)[2],0)
         self.app.engine.project.runtime_revision=1
-        self.assertEqual(self.control()[4:],bytes(4))
+        self.assertEqual(self.control()[2],12)
 
 
 if __name__=='__main__':unittest.main()

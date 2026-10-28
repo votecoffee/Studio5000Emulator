@@ -1221,13 +1221,17 @@ class Router:
         """
         engine=self.app.engine;project=engine.project
         installed=getattr(engine,'installed_download',None)
-        if (not self.endpoint.native_read_only or installed is None
-                or getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',())):
-            return None
+        if not self.endpoint.native_read_only or installed is None:return None
         try:
             installed.check(self.app.native_project_identity,project)
             catalog=self.app.native_symbols;row=catalog.by_key.get(symbol['ref'].casefold()) if catalog else None
             if row is None or row.instance!=symbol['id']:raise ImageError('installed_symbol_identity_changed')
+            if getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()):
+                from .installed_memory import _verified_installation
+                installation=_verified_installation(self.app,self)
+                if storage is None:storage=self.scalar_storage(_verified_installation=installation).by_ref.get(symbol['ref'].casefold())
+                if storage is None or storage.code!=symbol['type']:raise ImageError('installed_symbol_type_changed')
+                return installed.tag_bindings.control(symbol['ref'].casefold(),storage.table_code)
             ns=installed.namespace;incremental=ns._incremental
             if incremental is None:raise ImageError('installed_symbol_header_required')
             bindings=HeaderBindings(engine,ns,catalog,self.app.native_routines,self.app.native_auxiliary_symbols,

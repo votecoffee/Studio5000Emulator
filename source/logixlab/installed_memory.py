@@ -54,9 +54,7 @@ def read_constant(app,router,key):
 
 def table_ids(app,router):
     """Committed Table identities are independent of scoped Symbol identities."""
-    project=app.engine.project
-    if (not router.endpoint.native_read_only or getattr(app.engine,'installed_download',None) is None
-            or getattr(project,'runtime_revision',0)):
+    if not router.endpoint.native_read_only or getattr(app.engine,'installed_download',None) is None:
         return None
     installed,ns=_verified_installation(app,router)
     return _table_ids(app,installed,ns)
@@ -85,6 +83,10 @@ def _verified_installation(app,router):
         raise ImageError('installed_memory_committed_download_required')
     installed.check(app.native_project_identity,project)
     ns=installed.namespace
+    if getattr(project,'runtime_revision',0) or getattr(project,'runtime_edited_routines',()):
+        if installed.tag_bindings is None:raise ImageError('installed_tag_bindings_required')
+        installed.tag_bindings.check(app,installed)
+        return installed,ns
     ns.validate_base(ns._source,app.native_types,native_symbols=app.native_symbols,native_routines=app.native_routines,
         native_auxiliary_symbols=app.native_auxiliary_symbols,native_tables=app.native_tables)
     headers=HeaderBindings(engine,ns,app.native_symbols,app.native_routines,app.native_auxiliary_symbols,app.native_tasks,app.native_tables)

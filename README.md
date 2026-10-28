@@ -6,9 +6,14 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.105723`.** Versions use the release timestamp
+**Current app version: `26.1028.112823`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Tag readback after routine edits](docs/edited-tag-readback.md) preserves committed
+Table identities and original Symbol Control while serving current interpreter
+values. Tag layout, access, source identity and committed bindings are rechecked
+on every read; routine-only edits no longer force a fallback to Symbol IDs.
 
 [Accepted edit source readback](docs/accepted-routine-source.md) now retains
 exact native RLL source at commit and supports signed source reads after an edit.

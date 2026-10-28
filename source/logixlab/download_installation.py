@@ -21,6 +21,7 @@ class InstalledDownload:
     values:PreparedValues
     metadata:object
     routine_sources:object=None
+    tag_bindings:object=None
 
     def check(self,original,project):
         if (original is not self.original or project is not self.project
@@ -49,7 +50,8 @@ class InstalledDownload:
                 or project.programs is not previous.programs or project.tasks is not previous.tasks
                 or getattr(project,'runtime_revision',0)!=getattr(previous,'runtime_revision',0)+1):
             raise ImageError('installed_download_edit_source_changed')
-        return replace(self,project=project)
+        tags=self.tag_bindings.after_edit(previous,project) if self.tag_bindings is not None else None
+        return replace(self,project=project,tag_bindings=tags)
 
     def description(self):
         revision=getattr(self.project,'runtime_revision',0)
@@ -58,6 +60,7 @@ class InstalledDownload:
             runtime_correlation=True,saved_values_installed=True,prescan_deferred=True,
             committed_metadata=self.metadata is not None,
             retained_source_routines=0 if self.routine_sources is None else len(self.routine_sources.sources),
+            retained_tag_bindings=0 if self.tag_bindings is None else len(self.tag_bindings.rows),
             added_controller_properties=0 if self.metadata is None else self.metadata.additions,
             audit_epoch_replaced=True,compiled_code_executed=False,persistent=False,
             payloads_exposed=False)
@@ -85,7 +88,9 @@ def prepare(app,changelog_bindings,native_types):
     metadata=CommittedProperties.prepare(ns.properties,ns._source,changelog_bindings.map.metadata,old.project)
     from .download_source_snapshot import Snapshot
     sources=Snapshot.prepare(headers,native_types)
-    installed=InstalledDownload(original,old.project,ns,runtime,tuple(sorted(header.items())),values,metadata,sources)
+    from .installed_tag_bindings import Snapshot as TagSnapshot
+    tags=TagSnapshot.prepare(headers,values,native_types,app.native_metadata_values)
+    installed=InstalledDownload(original,old.project,ns,runtime,tuple(sorted(header.items())),values,metadata,sources,tags)
     candidate.installed_download=installed
     values.validate(headers,native_types);ns.change_log.require_configured(changelog_bindings)
     if app.engine is not old:raise ImageError('download_installation_engine_changed')
