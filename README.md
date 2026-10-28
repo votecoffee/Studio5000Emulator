@@ -10,9 +10,10 @@ and executable use the name **LogixLab**.
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
 
-LINT online reads now use exact eight-byte installed allocations. Snapshot
-diagnostics require complete byte-exact 64-bit receipts, preserving signed
-values independently of browser number precision.
+[Native LINT reads](docs/installed-memory-reads.md#lint-two-word-reads) preserve
+both signed 64-bit limits through upload, native save/reopen and Online checks.
+The expanded fixture passes all 32 roots and 24 typed scalar checks, with exact
+LINT readback also verified after a supported rung edit.
 
 [Native SINT and INT reads](docs/installed-memory-reads.md#small-signed-integer-words)
 now preserve signed limits across global and Program-local tags. The expanded
@@ -489,7 +490,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |
 | Device locator | Network-triggered blinking webpage banner with timed expiry and cancellation |
-| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar BOOL/SINT/INT/DINT/REAL reads and bounded source-equivalent transfers verified for demo and expanded fixtures; Studio GUI acceptance and general tag/rung monitoring remain unverified |
+| Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar BOOL/SINT/INT/DINT/LINT/REAL reads and bounded source-equivalent transfers verified for demo and expanded fixtures; Studio GUI acceptance and general tag/rung monitoring remain unverified |
 | Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
 Coverage depends on the actual project and execution scope. Full task scheduling,

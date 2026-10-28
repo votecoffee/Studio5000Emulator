@@ -1,5 +1,43 @@
 # Installed scalar word online reads
 
+## LINT two-word reads
+
+Version `26.1028.180022` supports exact installed mutable scalar LINT (`0xC5`,
+eight bytes) through the observed UserMemory request with count two. This count
+is unavailable for the existing one-word types. A successful LINT reply contains
+all eight current little-endian value bytes; shorter reply budgets fail. Source,
+declaration, access, namespace, prepared effects and current storage are checked
+on every read. Arrays, constants, members and interior addresses remain blocked
+on this profile; it supplies no arbitrary memory range.
+
+Native snapshot checks call `GetTagValueLINTAsync` and require a complete unique
+receipt of eight-byte values for all expected mutable scalar paths. The existing
+decimal-text representation for LINT/ULINT tags keeps the webpage/API values
+exact beyond JavaScript's safe integer range. The explicit connection diagnostic
+also accepts `--tag-read-type LINT`.
+
+### Native checkpoint: `26.1028.180022`
+
+A fresh two-Program fixture with 32 roots and 140 value bytes completes native
+download/save/reopen/Online across 436 verified requests. The global and local
+LINTs are independently changed to `-9223372036854775808` and
+`9223372036854775807`, with exact decimal-text API readback and no scans.
+Source-equivalent upload snapshot/save/reopen/Online succeeds across
+1231 requests. All 32 values, four routines, thirteen rungs, both Program
+packages and controller tag definitions verify. All 24 typed scalar checks pass:
+eleven BOOL, five DINT, three REAL, one SINT, two INT and two LINT. The LINT array
+and constant retain their values and declarations through the whole-Table path.
+
+A supported rung replacement and reconnection pass across 186 requests. A fresh
+SDK session then reads both LINT limits after the edit across 75 requests.
+Independent signed peers verify both eight-byte values before and after the
+edit, along with count-one/other-count, interior-address, array/constant and
+two-word DINT denials. Fresh response MACs are verified; recorded exchanges are
+not reauthenticated. Every native case confirms Offline cleanup without an SDK
+fault. No scans execute and reads preserve current values. Complete
+edited-project upload remains blocked at Change Log history; Studio GUI
+monitoring and arbitrary-project transfer remain unverified.
+
 ## Small signed integer words
 
 Version `26.1028.170503` supports exact installed scalar SINT (`0xC2`, one byte)
