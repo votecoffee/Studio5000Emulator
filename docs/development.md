@@ -643,6 +643,14 @@ import/save/reopen. Its receipt and the reopened source must pass
 before `saved_edited_acd_verified` is true. It does not save the original native
 project or automatically load the new source into the emulator.
 
+For one accepted edit, [direct native edit persistence](native-edit-persistence.md)
+uses `--save-native-edits-acd SOURCE.L5X` with a matching saved-download
+`--connection-target` and `--reconnect-edits`. It saves the same SDK project,
+reopens its ACD and verifies Online. Source/values and fixed correlation anchors
+are checked independently, allowing the native Copy UID change. This option is
+separate from `--save-edited-acd`, which imports a neutral L5X; they cannot be
+combined. Neither path resolves complete edited-controller upload.
+
 `--post-edit-tag "Controller/Tags/Tag[@Name='SpeedSetpoint']"` diagnoses a DINT SDK
 read after imports/reconnects and before final Offline. Up to eight bounded
 XPaths are accepted. Read failures mark the overall diagnostic failed while

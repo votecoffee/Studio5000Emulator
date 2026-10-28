@@ -67,15 +67,17 @@ against active logic and catalog bindings. An unchanged-project raw SDK upload
 passes across 980 verified requests. Edited-project upload now has a guarded
 current all-object metadata view for the supported Comment-removal profile.
 Native transfer and exported-content acceptance are checked separately.
-General edited-project upload and ACD persistence remain under development.
+General edited-project upload and arbitrary-project ACD persistence remain under development.
 Verified edited source also retains the v35 Routine schema and clean interpreter
 state fields. [Pinned Source Key metadata](docs/routine-source-key-retention.md)
 also remains available after verified plain RLL edits. Offline native imports
 confirm the original opaque bytes survive both routine edits and save/reopen.
 [Controller metadata after edits](docs/native-metadata-values.md) retains the
 validated serial/profile view; other metadata requires the checked edit view.
-The current version passes native download/save/reopen/Online and an SDK edit
-with reconnect. A separate read-only peer verifies the edited source against SDK
+[Native accepted-edit persistence](docs/native-edit-persistence.md) now saves
+the SDK project directly, reopens its ACD and verifies Go Online. Full exported
+values and logic match the active emulator; a fresh SDK session reconnects to
+the saved file. A separate read-only peer verifies the edited source against SDK
 traffic and the untouched source against its pre-edit readback; both match active
 logic. Values and scan state remain unchanged.
 

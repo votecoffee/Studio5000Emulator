@@ -400,7 +400,7 @@ These are separate native acceptance stages:
 | Native upload | `.58` deployed probe also accepts empty Data Logging discovery and retained Timeline UID acknowledgements; controller collection still fails after Time Sync | Handler-reference encoding, remaining controller/clock metadata, tag kinds and project reconstruction |
 | Native download | Models the first tested batch, retains source-checked catalogs and stages source-matched metadata and private table values from the later batch | Remaining attribute/router operations, proposal installation, compiled definitions and atomic active-model replacement |
 | Native online edits | Explicit supported Program-mode imports replace model logic; consecutive insertions/replacements and reconnects execute in the emulator | Studio GUI acceptance, broader operands, Test/Untest/Assemble, rollback and full native edit semantics |
-| Edited project persistence | `.92` SDK imports an edited L5X, saves/reopens a new ACD and reconnects it against the new source pair | General project coverage, Studio GUI acceptance and firmware transfer round trips |
+| Edited project persistence | [Native accepted edits](native-edit-persistence.md) save directly, reopen and go Online; the earlier `.92` neutral-L5X import path remains separate | Complete edited-controller upload, general project coverage, Studio GUI acceptance and firmware transfer round trips |
 
 Version `.33` supports Get Instance List (`0x4B`) for Symbol (`0x6B`), Template
 (`0x6C`) and the model's empty Metadata Definition (`0x349`) catalog. Replies

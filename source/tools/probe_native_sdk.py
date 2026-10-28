@@ -740,6 +740,11 @@ def run(args):
     ranges=ranges[:len(edit_codes)]
     if args.operation != 'edits' and any(value is not None for value in edit_options):
         raise ValueError('Edit options belong to an edits diagnostic')
+    native_save_source=getattr(args,'save_native_edits_acd',None)
+    native_save=native_save_source is not None
+    from tools import native_edit_save
+    native_edit_save.validate_options(args.operation,native_save,apply=apply_edits,baseline=connection_target,
+        reconnect=reconnect,second_code=second_code,import_option=edit_options[2] or 'AcceptEdits',neutral_save=save_acd)
     source_hash = digest(source)
     initial = api(url, 'state')
     instance = validate_target(initial, args.path, source_hash)
@@ -752,6 +757,7 @@ def run(args):
     download_content_plan=download_content.prepare(args.operation,save_download,download_content_source,source,initial)
     snapshot_baseline=upload_snapshot.prepare(source,baseline,initial) if snapshot_upload or verify_upload_baseline else None
     edit_baseline=upload_snapshot.prepare(source,baseline,initial) if args.operation=='edits' and connection_target is not None else None
+    native_save_hash=native_edit_save.prepare(native_save_source,source,initial) if native_save else None
     if args.operation=='modes':validate_mode_probe(initial)
     edits=[]
     if args.operation == 'edits':
@@ -773,6 +779,7 @@ def run(args):
     config['ApplySupportedEdits']=apply_edits
     config['ReconnectEdits']=reconnect
     config.update(SaveEditedAcd=save_acd,PostEditTags=edit_tags)
+    config.update(SaveNativeEditsAcd=native_save,NativeEditBaselineSha256=baseline_hash if native_save else None)
     config['SaveUploadedAcd']=save_upload
     config['SaveDownloadedAcd']=save_download
     config['ExportDownloadedL5x']=download_content_plan is not None
@@ -806,6 +813,8 @@ def run(args):
     state = api(url, 'state')
     validate_target(state, args.path, source_hash, instance=instance, l5x_hash=l5x_hash)
     validate_idle(state,allow_supported_edits=apply_edits)
+    if native_save and native_edit_save.prepare(native_save_source,source,state)!=native_save_hash:
+        raise ValueError('Native edit save source changed before the SDK call')
     if content_plan is not None and upload_content.prepare(args.operation,upload_new,content_source,source,state,allow_edited=edited_content)!=content_plan:
         raise ValueError('Uploaded-content source or current values changed before the native call')
     if snapshot_upload and (upload_snapshot.prepare(source,baseline,state)!=snapshot_baseline or digest(snapshot_input)!=baseline_hash):
@@ -946,6 +955,9 @@ def run(args):
         except Exception as error:
             summary.update(status='incomplete', target_rechecked=False, final_check_error=str(error))
         if apply_edits:summary['supported_edit_applied']=supported_sequence_effect(state,final,edits,edit_codes,output,reconnect=reconnect)
+        if native_save:
+            summary['native_edited_acd_verification']=native_edit_save.verify(output,native_save_source,source,baseline,final,report,native_save_hash)
+            summary['saved_native_edited_project']=(report or {}).get('savedNativeEditedProject')
         if save_acd:
             summary['saved_edited_acd_verified']=saved_acd_effect(final,output,report.get('savedEditedProject') if report else None)
             summary['saved_edited_project']=report.get('savedEditedProject') if report else None
@@ -999,6 +1011,7 @@ def run(args):
                 or upload_new and summary.get('working_copy_unchanged') is not True
                 or upload_new and report is not None and not summary.get('new_project_artifact_matches_receipt')
                 or save_acd and not summary.get('saved_edited_acd_verified')
+                or native_save and not summary['native_edited_acd_verification']['verified']
                 or save_download and not summary.get('saved_downloaded_acd_verified')
                 or content_plan is not None and not summary['uploaded_content_verification']['verified']
                 or content_plan is not None and not summary['uploaded_program_verification']['verified']
@@ -1049,6 +1062,7 @@ def main():
     parser.add_argument('--reconnect-edits',action='store_true',help='Explicit supported edits only: go Offline/Online after each checked insert')
     parser.add_argument('--post-edit-tag',action='append',default=[],help='Explicit supported edits only: diagnose a DINT SDK read after the imports, before Offline; may repeat up to eight times')
     parser.add_argument('--save-edited-acd',action='store_true',help='Explicit supported edits only: import exported L5X through the SDK, save a new edited.ACD and reopen it offline')
+    parser.add_argument('--save-native-edits-acd',metavar='SOURCE.L5X',help='One accepted edit with --connection-target and --reconnect-edits: save the existing native project, reopen and verify Online; independently compare against this original bound L5X')
     parser.add_argument('--save-uploaded-acd',action='store_true',help='Successful upload only: save a new uploaded.ACD, reopen it offline and export uploaded.L5X for separate content comparison')
     parser.add_argument('--verify-uploaded-content',metavar='SOURCE.L5X',help='Existing-project upload only: compare native offline tag bytes and independently exported routines with this exact source and current emulator values')
     parser.add_argument('--allow-edited-upload-content',action='store_true',help='With verify-uploaded-content: use complete retained native RLL edits as expected logic; pin runtime revision/hash; no upload save/snapshot')

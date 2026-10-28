@@ -31,6 +31,10 @@ if ((options.ApplySupportedEdits || options.SecondEdit is not null || options.Re
 if ((options.SaveEditedAcd || options.EditTags.Length != 0) && (options.Operation != "edits" || !options.ApplySupportedEdits) ||
     options.EditTags.Length > 8 || options.EditTags.Any(tag => string.IsNullOrEmpty(tag) || tag.Length > 1024 || tag.Contains('\0'))) return 2;
 if (options.Operation == "edits" && options.Edit is null) return 2;
+if (options.SaveNativeEditsAcd && (options.Operation != "edits" || !options.ApplySupportedEdits || !options.ReconnectEdits ||
+    options.SecondEdit is not null || options.Edit?.ImportOption != "AcceptEdits" || options.SaveEditedAcd ||
+    options.NativeEditBaselineSha256 != options.SourceSha256 || options.ControllerSourceSha256 is null) ||
+    !options.SaveNativeEditsAcd && options.NativeEditBaselineSha256 is not null) return 2;
 if (options.SaveUploadedAcd && options.Operation != "upload") return 2;
 if (options.ExportUploadedTags && (options.Operation != "upload" || options.UploadContent is null || options.UploadNewProject)) return 2;
 if (options.VerifyUploadBaselineOnline && (options.Operation != "upload" || options.UploadContent is null || options.UploadNewProject || options.SaveUploadedAcd)) return 2;
@@ -77,6 +81,7 @@ using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = fals
 http.DefaultRequestHeaders.ConnectionClose = true;
 var backendReadRecoveries = new List<object>();
 object? savedEditedProject = null;
+object? savedNativeEditedProject = null;
 object? savedUploadedProject = null;
 object? savedDownloadedProject = null;
 object? uploadedContent = null;
@@ -145,6 +150,45 @@ async Task CaptureProtocolTrace(string fileName, string operation = "edit")
         await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[1]))!, fileName), text);
         return true;
     });
+}
+async Task SaveNativeEditsAcd()
+{
+    string directory = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+    string acd = Path.Combine(directory, "native-edited.ACD"), xml = Path.Combine(directory, "native-edited.L5X");
+    if (File.Exists(acd) || File.Exists(xml)) throw new InvalidOperationException("Native edit outputs must be new");
+    var before = await Backend();
+    if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+        throw new InvalidOperationException("Native edit save requires Offline");
+    await Step("SaveAsAsync:native-edited.ACD", async () => { await project!.SaveAsAsync(acd, false); return true; });
+    await Step("Close native edited project before reopen", () => {
+        var closing = project!; project = null; closing.Dispose(); return Task.FromResult<object?>(true);
+    });
+    await Step("OpenLogixProjectAsync:native-edited.ACD", async () => {
+        project = await LogixProject.OpenLogixProjectAsync(acd, logger); return true;
+    });
+    await Step("Require native edited ACD Offline", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+            throw new InvalidOperationException("Reopened native edited ACD is not Offline"); return true;
+    });
+    await Step("SaveAsAsync:native-edited.L5X", async () => { await project!.SaveAsAsync(xml, false); return true; });
+    await project!.SetCommunicationsPathAsync(options.CommunicationsPath);
+    await Step("GoOnlineAsync:native-edited.ACD", async () => { await project!.GoOnlineAsync(); return true; });
+    await Step("Verify native edited ACD Online", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Online)
+            throw new InvalidOperationException("Saved native edited ACD did not go Online");
+        await CheckMode("Program"); CheckPreserved(before, await Backend(), true); return true;
+    });
+    await Step("GoOfflineAsync:native-edited.ACD", async () => { await project!.GoOfflineAsync(); return true; });
+    await Step("Require native edited ACD Offline after verification", async () => {
+        if (await project!.ReadConnectedStateAsync() != LogixProject.ConnectedState.Offline)
+            throw new InvalidOperationException("Saved native edited ACD did not go Offline"); return true;
+    });
+    savedNativeEditedProject = new {
+        directAcceptedEditSave=true, nativeAcdReopened=true, reopenedOnline=true,
+        noUploadCalled=true, noL5xImportCalled=true, baselineSha256=options.NativeEditBaselineSha256,
+        acdSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(acd))).ToLowerInvariant(),
+        l5xSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(xml))).ToLowerInvariant()
+    };
 }
 async Task SaveEditedAcd()
 {
@@ -809,6 +853,7 @@ try
                 if (state != LogixProject.ConnectedState.Offline) throw new InvalidOperationException("SDK did not report Offline");
                 return state.ToString();
             });
+            if (options.SaveNativeEditsAcd) await SaveNativeEditsAcd();
             if (options.SaveEditedAcd) await Step("Save edited L5X through native ACD reopen", async () => {
                 await SaveEditedAcd(); return true;
             });
@@ -868,7 +913,7 @@ await File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new {
     status = passed ? "succeeded" : "failed", operation = options.Operation,
     sourceUnchanged = unchanged, workingProjectUnchanged = unchanged, workingProjectSha256 = workingHash,
     controllerSourceSha256 = controllerSourceHash, steps, events = logger.Events.ToArray(),
-    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent, savedUploadedSnapshot,
+    backendReadRecoveries, serverFaulted, sdkOfflineConfirmed, savedEditedProject, savedNativeEditedProject, savedUploadedProject, savedDownloadedProject, uploadedContent, savedUploadedSnapshot,
     uploadNewProject = options.UploadNewProject, newProjectUpload, uploadBaselineOnlineVerified,
     eventsTruncated = logger.Truncated, nativeControllerEquivalence = "NOT ASSESSED"
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -881,7 +926,8 @@ sealed record Options(string Project, string SourceSha256, string Communications
                       bool SaveEditedAcd = false, string[]? PostEditTags = null, string? ControllerSourceSha256 = null,
                       bool SaveUploadedAcd = false, bool UploadNewProject = false, bool SaveDownloadedAcd = false,
                       UploadContentOptions? UploadContent = null, bool SnapshotUploadedAcd = false, string? SnapshotBaseline = null,
-                      bool ExportDownloadedL5x = false, bool ExportUploadedTags = false, bool VerifyUploadBaselineOnline = false)
+                      bool ExportDownloadedL5x = false, bool ExportUploadedTags = false, bool VerifyUploadBaselineOnline = false,
+                      bool SaveNativeEditsAcd = false, string? NativeEditBaselineSha256 = null)
 {
     public string[] EditTags => PostEditTags ?? Array.Empty<string>();
 }
