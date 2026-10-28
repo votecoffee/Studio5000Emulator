@@ -55,8 +55,14 @@ def verify(folder,expected,native_types,receipt,source):
         if len(values.tags)!=len(nodes) or set(values.tags)!=set(wanted):return result
         for key,tag in wanted.items():
             actual=values.tags[key];original=source.tags[key]
+            if actual.external_access!=original.external_access:
+                result['failure_reason']='controller_tag_external_access_changed'
+                result['failure_tag']=tag['name']
+                result['expected_external_access']=original.external_access
+                result['actual_external_access']=actual.external_access
+                return result
             if (actual.problem or actual.alias or actual.tag_class!='Standard' or actual.constant!=tag['constant']
-                    or actual.dtype.casefold()!=tag['dtype'].casefold() or actual.external_access!=original.external_access):return result
+                    or actual.dtype.casefold()!=tag['dtype'].casefold()):return result
             code,dimensions,_,data=encode_initial(actual.dtype.upper(),actual.value,native_types)
             if code!=tag['typeCode'] or dimensions!=tuple(tag['dimensions']) or data.hex()!=tag['expectedHex']:return result
         result.update(verified=True,controller_tags_verified=len(wanted),serialized_values_verified=True,

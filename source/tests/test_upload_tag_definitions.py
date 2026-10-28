@@ -66,6 +66,15 @@ class UploadedTagDefinitionTests(unittest.TestCase):
             self.mutate(root,receipt)
             with self.subTest(change=change):self.assertFalse(self.verify(receipt)['verified'])
 
+    def test_external_access_changes_are_reported_without_relaxing_validation(self):
+        receipt=self.artifact();root=ET.fromstring((self.folder/tags.FILENAME).read_bytes())
+        node=root.find(".//Tag[@Name='SpeedSetpoint']");node.set('ExternalAccess','Read Only')
+        self.mutate(root,receipt);result=self.verify(receipt)
+        self.assertFalse(result['verified'])
+        self.assertEqual(result['failure_reason'],'controller_tag_external_access_changed')
+        self.assertEqual(result['failure_tag'],'SpeedSetpoint')
+        self.assertEqual((result['expected_external_access'],result['actual_external_access']),('Read/Write','Read Only'))
+
     def test_bad_or_incomplete_native_receipts_and_wrong_file_do_not_count(self):
         receipt=self.artifact()
         for altered in (None,{},dict(receipt,offlineOnly=False),dict(receipt,sourceL5xSha256='a'*64),
