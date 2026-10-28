@@ -46,6 +46,29 @@ path. Each native case confirms Offline cleanup without an SDK fault. The
 checks preserve all tag values and execute no scans. This verifies the bounded
 SDK read profile, not Studio GUI monitoring or general edited-project upload.
 
+### Constant External Access checkpoint: `26.1028.163802`
+
+Symbol discovery now preserves a base constant's declared `Read/Write` access
+independently of its Constant flag and enforced write restriction. Explicit
+`Read Only` declarations and aliases to restricted targets retain their existing
+access. The upload definition validator remains strict.
+
+The same two-Program, 25-root fixture now completes native download/save/reopen/
+Online across 434 verified requests and source-equivalent upload snapshot/
+save/reopen/Online across 1207. All 95 value bytes, four routines and thirteen
+rungs verify. The separate partial controller-tag export also passes, including
+the constant's original External Access. All three independently changed REAL
+scalars pass typed Online checks. The native response changes only the reported
+access for this comparison; the Constant flag and original opaque Control word
+are preserved. The previous failed report remains unchanged.
+
+A supported rung replacement and reconnection pass across 187 requests, followed
+by a fresh SDK read of three REAL values across 76. Independent signed peers check
+both global and Program-local constant declarations and flags before and after
+the edit; their UserMemory word reads remain blocked. Each native case confirms
+Offline cleanup without an SDK fault. No scans execute, and current values are
+preserved. Complete edited-project upload remains blocked by Change Log history.
+
 Version `26.1028.112823` extends this profile to [validated tag readback after
 routine-only edits](edited-tag-readback.md). Current tag values, committed Table
 identities and original Symbol Control remain readable with per-request layout,

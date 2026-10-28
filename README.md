@@ -16,7 +16,9 @@ locals. Upload snapshots add typed Online REAL checks against the uploaded bits.
 Native save/reopen/Online checks return changed REAL values in three scopes,
 including after an accepted rung edit. Constant Symbol metadata now retains
 declared External Access independently of the enforced Constant write block.
-The strict partial-export definition check remains in place.
+The expanded source-equivalent upload snapshot now passes the strict tag
+definition check, native save/reopen/Online and all three REAL value reads.
+Constant flags remain set and writes remain blocked.
 
 [Current metadata after native edits](docs/edited-metadata.md) applies only
 accepted old-rung Comment removals to a separate upload view. The native upload
