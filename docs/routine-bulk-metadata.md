@@ -11,6 +11,11 @@ source, identity, fault-history, unchanged-logic and native-edit guards. This
 completes the observed 22-field metadata shape for the narrow eligible profile;
 it does not supply compiled Routine logic.
 
+Version `26.1028.105723` extends these guards to [source-verified edited
+routines](accepted-routine-source.md#current-state-metadata-after-edits), retaining
+class revision 11 for the verified v35 inventory. Changed routines withhold the
+original source-key field; their live state and header references remain available.
+
 ## Header references and flags
 
 Executable attribute 8 is **Header Address**, as defined by the installed v35
@@ -48,7 +53,8 @@ lowercase hexadecimal and supported prefix. Absent fields in older manifests
 stay absent. Routine objects are immutable, omit the blob from their ordinary
 representation, and report availability counts without blob contents. The
 status API does not return these bytes. The read-only field (22) requires the
-matching original Project identity and guarded Program RLL state. AOI bindings
+matching original Project identity, untouched Routine source and guarded Program
+RLL state. AOI bindings
 can retain the metadata but do not gain this Program-specific read behavior.
 
 ## Unsigned model state

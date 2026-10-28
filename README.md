@@ -17,7 +17,8 @@ remain readable after another routine changes. Every source fragment is checked
 against active logic and catalog bindings. Complete uploads
 of online-edited projects still require additional metadata/component support.
 Verified edited source also retains the v35 Routine schema and clean interpreter
-state fields. Original opaque source keys remain withheld for changed routines.
+state fields. Original opaque source keys remain withheld for changed routines. Signed checks
+verify those fields, live main references and empty Label discovery after an edit.
 The current version passes native download/save/reopen/Online and an SDK edit
 with reconnect. A separate read-only peer verifies the edited source against SDK
 traffic and the untouched source against its pre-edit readback; both match active

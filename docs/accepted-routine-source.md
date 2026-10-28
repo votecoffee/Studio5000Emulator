@@ -98,3 +98,13 @@ This does not synthesize a replacement key, compiled components or change-log
 records, or implement Test/Untest/Assemble. Complete upload after edits remains
 unfinished. Focused signed checks cover the two scopes, source corruption, stale
 Engine proof, reservations, faults, live references and empty Label discovery.
+
+The deployed version passes native download/save/reopen/Online across 428
+verified requests and one Program-mode SDK edit/reconnect across 186. A separate
+read-only peer verifies signed bulk metadata and source reads before and after
+the edit. Both routines retain class revision 11, clean idle-state fields and
+empty Label discovery; the main header reference matches its Program reference.
+Only the changed routine withholds source-key attribute 22, and the untouched
+key matches its pre-edit value. Every reply MAC verifies; both source containers
+match active logic. These checks leave tag values and scan state unchanged.
+Complete SDK upload after edits is not established by this metadata checkpoint.

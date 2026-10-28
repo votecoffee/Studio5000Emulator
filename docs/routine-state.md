@@ -5,6 +5,10 @@ adds the [remaining bulk fields](routine-bulk-metadata.md). Ordered bulk
 and single-attribute reads use the same checks, including signed sessions.
 The separate [original Type word](routine-types.md) remains unchanged.
 
+Version `26.1028.105723` also supports [source-verified edited routines](accepted-routine-source.md#current-state-metadata-after-edits).
+Their current source must validate on every request; original source keys remain
+withheld for changed routines. The other idle and fault guards still apply.
+
 ## Runtime fields
 
 | Attribute | Value | Availability |
@@ -18,7 +22,7 @@ The separate [original Type word](routine-types.md) remains unchanged.
 Guarded state requires complete ordinary v35 source, explicit `TestEdits=false`,
 normal RLL rungs and the validated native Type storage profile. The simulator
 must have no execution blockers, current fault, uncertain fault history, active
-call frames, changed logic or pending native edit preparation/transfer. A
+call frames, unverified logic changes or pending native edit preparation/transfer. A
 reservation withholds state for its Program; a global edit phase withholds it
 for all Programs. Unrelated Program reservations do not hide known idle state.
 Clearing a fault message does not clear uncertain history; reset does.

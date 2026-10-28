@@ -14,13 +14,16 @@ provide a global inventory, Label instances or label-address attributes.
 
 Only service `0x4B`, child cursor zero and an empty request body can read the
 empty Routine Label catalog. Discovery requires matching Project, Program and
-Routine identities, the original ordinary RLL Type profile, complete unchanged
-readable source, idle native edits and clean simulator state. The routine's
+Routine identities, the original ordinary RLL Type profile, complete readable
+source checked against active logic, idle native edits and clean simulator state. The routine's
 complete parsed instruction tree must contain neither `LBL` nor `JMP`.
 This proof applies to unscheduled routines too; it does not depend on the
 interpreter's cache of labels for scheduled code.
 
-Actual labels, incomplete source, changed logic, stale bindings, unknown
+Since `26.1028.105723`, this includes [verified accepted edits and untouched
+downloaded source](accepted-routine-source.md#current-state-metadata-after-edits).
+
+Actual labels, incomplete source, unverified logic changes, stale bindings, unknown
 parents and uncertain faults remain errors. A successful empty list never
 stands in for an unsupported nonempty inventory. Label reads, writes, IDs and
 native code addresses are not synthesized. No scan or model value changes.
