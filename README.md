@@ -16,9 +16,10 @@ Untouched routines retain a validated source-only download snapshot so they
 remain readable after another routine changes. Every source fragment is checked
 against active logic and catalog bindings. Complete uploads
 of online-edited projects still require additional metadata/component support.
-Two native SDK edits and reconnects pass across 291 verified requests; a separate
-read-only peer verifies signed readback of both exact accepted sources against
-the SDK traffic and active logic. Values and scan state remain unchanged.
+The current version passes native download/save/reopen/Online and an SDK edit
+with reconnect. A separate read-only peer verifies the edited source against SDK
+traffic and the untouched source against its pre-edit readback; both match active
+logic. Values and scan state remain unchanged.
 
 **[Source-equivalent upload snapshots](docs/upload-value-snapshots.md) now save
 and reopen a current-value ACD that goes Online.** Native SDK checks also pass

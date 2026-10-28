@@ -29,7 +29,8 @@ edit record never falls back to the original download. This snapshot contains
 no executable components and does not make original vendor metadata current.
 
 Selector `(1, 4)`, opaque component `(1, 9)`, edited routines without recorded
-source and complete edited-project upload remain unavailable after edits. This does not implement
+source and complete edited-project upload remain unavailable after edits. This
+does not implement
 native compiled-code execution, Test/Untest/Assemble, updated vendor metadata or
 the complete online-edit upload lifecycle. [General upload/save](upload-to-acd.md)
 continues to require unchanged source.
@@ -51,7 +52,7 @@ emulator's original source. Edit targets require an unchanged source-equivalent
 installation and unedited saved correlation; admission is checked again after
 building. The original ACD and saved target are preserved on private copies.
 
-## Native checkpoint
+## Native checkpoint for 26.1028.094227
 
 The v35 SDK applies two ordinary Program-mode edits in separate ConveyorDemo
 routines using a saved-download target and reconnects after each, across 291
@@ -67,3 +68,15 @@ The same deployed version also passes native download/save/reopen/Online across
 429 requests and unchanged-source upload/fresh-L5X ACD save/reopen across 1,053.
 All fourteen tag values, both routines and ten rungs verify. Host SDK/Linx services
 remain running; the original demo is restored after the edit check.
+
+## Native checkpoint for 26.1028.103821
+
+The updated version passes native download/save/reopen/Online across 433 verified
+requests, including all fourteen tag values, both routines and ten rungs. One
+Program-mode SDK edit and reconnect passes across 185 requests. A separate signed
+peer reads both routine sources before and after the edit and verifies every
+response MAC. The changed routine matches the exact SDK edit container; the
+untouched routine matches its pre-edit source bytes. Both independently resolve
+to every active ladder rung, preserving RegionIds and auxiliary data. Each source
+uses two signed frames, and reads leave values, scan state and edit state intact.
+These are source-read checks, not a complete SDK upload of the edited project.
