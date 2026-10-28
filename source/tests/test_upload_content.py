@@ -145,6 +145,33 @@ class UploadContentTests(unittest.TestCase):
         root=ET.fromstring(path.read_bytes());root.set('TargetType','Program');path.write_bytes(ET.tostring(root))
         self.assertFalse(content.verify_serialized(path,expected,self.types)['verified'])
 
+    def test_changed_array_declaration_cannot_hide_behind_unchanged_decorated_scalar(self):
+        expected=self.plan();path=self.folder/'changed-dimensions.L5X'
+        root=ET.fromstring(self.project.path.read_bytes())
+        root.find("./Controller/Tags/Tag[@Name='SpeedSetpoint']").set('Dimensions','2')
+        path.write_bytes(ET.tostring(root))
+        # The value parser still returns scalar 50; that is insufficient proof
+        # that the native file declares the expected scalar tag.
+        changed=content.Project(path)
+        self.assertEqual(changed.initial['speedsetpoint'],50)
+        self.assertFalse(content.verify_serialized(path,expected,self.types)['verified'])
+        state=copy.deepcopy(self.state);state['connectivity']['source_l5x_sha256']=changed.sha256
+        with self.assertRaisesRegex(ValueError,'declared dimensions'):
+            content.plan(changed,self.types,state)
+
+    def test_full_export_checks_logical_bool_bits_separately_from_packed_words(self):
+        root=ET.fromstring(self.project.path.read_bytes());parent=root.find('./Controller/Tags')
+        node=ET.SubElement(parent,'Tag',Name='Bits',TagType='Base',DataType='BOOL',Dimensions='32',Constant='true')
+        array=ET.SubElement(ET.SubElement(node,'Data',Format='Decorated'),'Array',DataType='BOOL',Dimensions='32')
+        for i in range(32):ET.SubElement(array,'Element',Index=f'[{i}]',Value=str(int(i in (0,7,31))))
+        path=self.folder/'bits.L5X';path.write_bytes(ET.tostring(root))
+        self.app.command('load',dict(name=path.name,content=base64.b64encode(path.read_bytes()).decode()))
+        self.project=self.app.engine.project;self.state=self.app.state()
+        self.state['connectivity']['source_l5x_sha256']=self.project.sha256
+        expected=self.plan();self.assertTrue(content.verify_serialized(path,expected,self.types)['verified'])
+        root.find(".//Tag[@Name='Bits']").set('Dimensions','1');path.write_bytes(ET.tostring(root))
+        self.assertFalse(content.verify_serialized(path,expected,self.types)['verified'])
+
     def test_native_program_package_checks_settings_full_routine_set_and_artifact_identity(self):
         expected=self.plan();receipt=self.program_receipt(expected)
         self.assertEqual(content.verify_programs(self.folder,expected,self.types,receipt),
@@ -185,12 +212,13 @@ class UploadContentTests(unittest.TestCase):
         expected=self.plan();receipt=self.program_receipt(expected)
         self.assertEqual(content.verify_programs(self.folder,expected,self.types,receipt)['local_tags_verified'],1)
         export=self.folder/expected['programs'][0]['fileName']
-        for case in ('value','missing','type','constant'):
+        for case in ('value','missing','type','constant','dimension'):
             receipt=self.program_receipt(expected);root=ET.fromstring(export.read_bytes());tags=root.find('./Controller/Programs/Program/Tags');tag=tags.find('Tag')
             if case=='value':tag.find('./Data/DataValue').set('Value','0')
             if case=='missing':tags.remove(tag)
             if case=='type':tag.set('DataType','REAL')
             if case=='constant':tag.set('Constant','true')
+            if case=='dimension':tag.set('Dimensions','2')
             raw=ET.tostring(root);export.write_bytes(raw);receipt['programs'][0]['sha256']=hashlib.sha256(raw).hexdigest()
             with self.subTest(case=case):self.assertFalse(content.verify_programs(self.folder,expected,self.types,receipt)['verified'])
 

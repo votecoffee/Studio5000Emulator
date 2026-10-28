@@ -9,7 +9,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from logixlab.download_values import encode_initial
-from logixlab.model import Project,Memory,ModelError,parse_rung
+from logixlab.model import Project,Memory,ModelError,parse_rung,dimensions as declared_dimensions
 from logixlab.native_types import NativeTypes
 from logixlab.server import serialize_nodes
 
@@ -19,6 +19,30 @@ MAX_PROGRAMS=32
 MAX_BYTES=1024*1024
 MAX_XML=16_000_000
 NAME=re.compile(r'[A-Za-z_][A-Za-z_0-9]{0,39}\Z')
+
+
+def declaration_matches(node,tag):
+    """Check declared logical dimensions separately from decorated value shape.
+
+    Packed BOOL Table dimensions count words; L5X tag dimensions count bits.
+    A decorated scalar can replace an array default during value parsing, so
+    encoding those values alone cannot establish the tag's declaration.
+    """
+    logical=tuple(size for size in tag['dimensions'] if size)
+    if tag['dtype'].upper()=='BOOL' and tag['typeCode']==0x20D3:
+        if len(logical)!=1:return False
+        logical=(logical[0]*32,)
+    return declared_dimensions(node.get('Dimensions',''))==logical
+
+
+def tag_declarations(controller):
+    pairs=[(node.get('Name','').casefold(),node) for node in controller.findall('./Tags/Tag')]
+    for program in controller.findall('./Programs/Program'):
+        prefix='program:'+program.get('Name','').casefold()+'.'
+        pairs.extend((prefix+node.get('Name','').casefold(),node) for node in program.findall('./Tags/Tag'))
+    result=dict(pairs)
+    if len(result)!=len(pairs):raise ValueError('Duplicate tag declaration')
+    return result
 
 
 def plan(project,native_types,state):
@@ -56,6 +80,12 @@ def plan(project,native_types,state):
         prefix=f"Controller/Programs/Program[@Name='{tag.scope}']/" if tag.scope else 'Controller/'
         tags.append(dict(name=tag.key,xpath=prefix+f"Tags/Tag[@Name='{tag.name}']",typeCode=code,
             dimensions=dimensions,dtype=tag.dtype,constant=tag.constant,expectedHex=data.hex()))
+    raw=project.path.read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=project.sha256:raise ValueError('Uploaded-content source changed')
+    declarations=tag_declarations(ET.fromstring(raw).find('Controller'))
+    if (set(declarations)!={t['name'].casefold() for t in tags}
+            or any(not declaration_matches(declarations[t['name'].casefold()],t) for t in tags)):
+        raise ValueError('Uploaded-content declared dimensions differ from source values')
     routines=[];actual={row['key'].casefold():row for row in state.get('routines',[])}
     if len(actual)!=len(state.get('routines',[])) or set(actual)!=set(project.routines) or len(actual)>MAX_ROUTINES:
         raise ValueError('Uploaded-content routine coverage changed')
@@ -158,10 +188,12 @@ def verify_serialized(path,expected,native_types):
                 or set(project.tags)!={t['name'].casefold() for t in expected['tags']}
                 or list(project.task_configuration.names)!=expected['taskNames']):return result
         if 'programs' in expected and project.programs!={p['name']:p['settings'] for p in expected['programs']}:return result
+        declarations=tag_declarations(ET.fromstring(Path(path).read_bytes()).find('Controller'))
         for tag in expected['tags']:
             key=tag['name'].casefold();actual=project.tags[key]
             if (actual.problem or actual.alias or actual.tag_class!='Standard' or actual.constant!=tag['constant']
-                    or actual.dtype.casefold()!=tag['dtype'].casefold()):return result
+                    or actual.dtype.casefold()!=tag['dtype'].casefold()
+                    or not declaration_matches(declarations[key],tag)):return result
             code,dimensions,elements,data=encode_initial(actual.dtype.upper(),project.initial[key],native_types)
             if code!=tag['typeCode'] or dimensions!=tuple(tag['dimensions']) or data.hex()!=tag['expectedHex']:return result
         result['serialized_values_verified']=True
@@ -244,10 +276,12 @@ def verify_programs(folder,expected,native_types,receipt):
             local=values.tags
             if len(local)!=len(nodes):return result
             if set(local)!={t['name'].casefold() for t in tags}:return result
+            declarations={prefix+node.get('Name','').casefold():node for node in nodes}
             for tag in tags:
                 key=tag['name'].casefold();value=local[key]
                 if (value.problem or value.alias or value.tag_class!='Standard' or value.constant!=tag['constant']
-                        or value.dtype.casefold()!=tag['dtype'].casefold()):return result
+                        or value.dtype.casefold()!=tag['dtype'].casefold()
+                        or not declaration_matches(declarations[key],tag)):return result
                 code,dimensions,elements,data=encode_initial(value.dtype.upper(),value.value,native_types)
                 if code!=tag['typeCode'] or dimensions!=tuple(tag['dimensions']) or data.hex()!=tag['expectedHex']:return result
             result['programs_verified']+=1;result['routines_verified']+=len(wanted);result['local_tags_verified']+=len(tags)

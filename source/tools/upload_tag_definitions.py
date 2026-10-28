@@ -5,8 +5,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from logixlab.download_values import encode_initial
-from logixlab.model import ModelError,dimensions as declared_dimensions
-from tools.upload_content import MAX_XML, _ProgramValues
+from logixlab.model import ModelError
+from tools.upload_content import MAX_XML, _ProgramValues, declaration_matches
 
 FILENAME='uploaded-controller-tags.L5X'
 
@@ -46,13 +46,11 @@ def verify(folder,expected,native_types,receipt,source):
         values=_ProgramValues(controller)
         for node in nodes:
             planned=wanted[node.get('Name','').casefold()]
-            logical=tuple(size for size in planned['dimensions'] if size)
-            if planned['dtype'].upper()=='BOOL' and planned['typeCode']==0x20D3:logical=(logical[0]*32,)
             if (node.get('Use')!='Target' or node.get('TagType')!='Base'
                     or node.get('Constant','false') not in ('true','false')
                     or node.get('Class','Standard')!='Standard'
                     or len(node.findall("Data[@Format='Decorated']"))!=1
-                    or declared_dimensions(node.get('Dimensions',''))!=logical):return result
+                    or not declaration_matches(node,planned)):return result
             values._tag(node,'')
         if len(values.tags)!=len(nodes) or set(values.tags)!=set(wanted):return result
         for key,tag in wanted.items():
