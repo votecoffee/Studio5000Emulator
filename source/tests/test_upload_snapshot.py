@@ -29,6 +29,20 @@ class UploadSnapshotTests(unittest.TestCase):
         for changed in (dict(tags[0],constant=True),dict(tags[0],dimensions=[2,0,0]),dict(tags[0],typeCode=0xC4)):
             self.assertEqual(snapshot.online_reals(dict(tags=[changed]),{}),dict(verified=True,tags=0))
 
+    def test_small_integer_online_receipts_require_exact_signed_bytes_and_scoped_coverage(self):
+        paths=["Controller/Tags/Tag[@Name='Byte']","Controller/Programs/Program[@Name='Aux']/Tags/Tag[@Name='Word']"]
+        tags=[dict(xpath=path,typeCode=code,constant=False,expectedHex=raw,dimensions=[0,0,0])
+            for path,code,raw in zip(paths,(0xC2,0xC3),('80','ff7f'))]
+        expected=dict(tags=tags);rows=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in tags]
+        self.assertEqual(snapshot.online_small_integers(expected,dict(onlineIntegerChecks=rows)),dict(verified=True,tags=2))
+        for changed in ([],rows[:1],rows*2,[rows[0]]*2,[dict(rows[0],actualHex='7f'),rows[1]],
+                        [rows[0],dict(rows[1],actualHex='ff7f0000')],[dict(rows[0],extra=True),rows[1]]):
+            self.assertFalse(snapshot.online_small_integers(expected,dict(onlineIntegerChecks=changed))['verified'])
+        self.assertFalse(snapshot.online_small_integers(expected,{})['verified'])
+        self.assertEqual(snapshot.online_small_integers(dict(tags=[]),{}),dict(verified=True,tags=0))
+        for changed in (dict(tags[0],constant=True),dict(tags[0],dimensions=[2,0,0]),dict(tags[0],typeCode=0xC4)):
+            self.assertEqual(snapshot.online_small_integers(dict(tags=[changed]),{}),dict(verified=True,tags=0))
+
     def inputs(self):
         original=self.folder/'source.ACD';baseline=self.folder/'baseline.ACD'
         original.write_bytes(container(fields={**FIELDS,10:0,11:0}))

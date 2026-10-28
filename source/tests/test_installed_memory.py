@@ -36,6 +36,15 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
                                   ('DINT',0xC4,b'\1'),('USINT',0xC6,b'\1'),('BOOL',0xC1,bytearray(b'\1'))):
             with self.subTest(dtype=dtype,code=code,value=value),self.assertRaises(ImageError):scalar_word(dtype,code,value)
 
+    def test_small_signed_words_preserve_low_bytes_and_explicit_zero_padding(self):
+        for dtype,code,fmt,limits in (('SINT',0xC2,'b',(-128,-1,0,127)),('INT',0xC3,'h',(-32768,-1,0,32767))):
+            for value in limits:
+                raw=struct.pack('<'+fmt,value)
+                with self.subTest(dtype=dtype,value=value):self.assertEqual(scalar_word(dtype,code,raw),raw+bytes(4-len(raw)))
+            for wrong in (b'',bytes(3),bytes(4),bytearray(struct.pack('<'+fmt,0))):
+                with self.assertRaises(ImageError):scalar_word(dtype,code,wrong)
+            with self.assertRaises(ImageError):scalar_word(dtype,0xC4,struct.pack('<'+fmt,0))
+
     def test_real_word_preserves_encoded_fraction_sign_zero_and_finite_limits(self):
         for bits in (0,0x80000000,0x3FA00000,0xC0200000,0x7F7FFFFF,0xFF7FFFFF):
             raw=struct.pack('<I',bits)

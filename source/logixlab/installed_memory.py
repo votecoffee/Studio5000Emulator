@@ -1,7 +1,7 @@
 """Narrow native scalar word reads at installed model value addresses.
 
 The observed UserMemory request names a retained download address and one
-word. Only exact backed DINT, REAL and BOOL scalars are served. No host/native memory,
+word. Only exact backed SINT, INT, DINT, REAL and BOOL scalars are served. No host/native memory,
 allocation, pointer traversal, arbitrary ranges or writes are available.
 """
 from .download_image import ImageError
@@ -13,8 +13,9 @@ CONSTANT_ATOMS=frozenset(('BOOL',*ATOMS))
 
 
 def scalar_word(dtype,code,value):
-    """One model word; BOOL occupies the low byte with explicit zero padding."""
+    """One model word; smaller scalars use their low bytes with zero padding."""
     if not isinstance(value,bytes):raise ImageError('installed_memory_current_value_unavailable')
+    if (dtype,code,len(value)) in (('SINT',0xC2,1),('INT',0xC3,2)):return value+bytes(4-len(value))
     if dtype=='DINT' and code==0xC4 and len(value)==4:return value
     if dtype=='REAL' and code==0xCA and len(value)==4:return value
     if dtype=='BOOL' and code==0xC1 and value in (b'\0',b'\1'):return value+bytes(3)
@@ -123,7 +124,7 @@ def read_scalar(app,router,address,words):
     key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
     if tag.constant:
         raise ImageError('installed_memory_scalar_word_required')
-    dtype=tag.dtype.upper();size={('DINT',0xC4):4,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
+    dtype=tag.dtype.upper();size={('SINT',0xC2):1,('INT',0xC3):2,('DINT',0xC4):4,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
     if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
     if cell.code!=code or cell.aggregate or cell.size!=size:
         raise ImageError('installed_memory_current_storage_unavailable')

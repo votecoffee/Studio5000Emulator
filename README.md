@@ -6,9 +6,13 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.163802`.** Versions use the release timestamp
+**Current app version: `26.1028.170503`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+Scalar SINT and INT online reads now use exact committed allocations, with
+explicit zero padding in the returned word. Upload snapshot diagnostics add
+typed signed-integer checks with complete scoped value receipts.
 
 [Native REAL scalar reads](docs/installed-memory-reads.md#real-scalar-words) now
 serve current four-byte values at exact committed addresses, including Program

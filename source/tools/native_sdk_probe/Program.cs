@@ -492,6 +492,25 @@ async Task SaveUploadedSnapshot()
             onlineRealChecks.Add(new { xpath = tag.XPath, actualHex });
             return value;
         });
+    var onlineIntegerChecks = new List<object>();
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant &&
+            (tag.TypeCode == 0xC2 && tag.ExpectedHex.Length == 2 || tag.TypeCode == 0xC3 && tag.ExpectedHex.Length == 4) &&
+            tag.Dimensions?.All(size => size == 0) == true))
+        await Step("Snapshot Online " + (tag.TypeCode == 0xC2 ? "SINT:" : "INT:") + tag.Name, async () => {
+            byte[] actual; long value;
+            if (tag.TypeCode == 0xC2) {
+                sbyte current = await project!.GetTagValueSINTAsync(tag.XPath, LogixProject.OperationMode.Online);
+                value = current; actual = new[] { unchecked((byte)current) };
+            } else {
+                short current = await project!.GetTagValueINTAsync(tag.XPath, LogixProject.OperationMode.Online);
+                value = current; actual = new byte[2];
+                System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(actual, current);
+            }
+            string actualHex = Convert.ToHexString(actual).ToLowerInvariant();
+            if (actualHex != tag.ExpectedHex) throw new InvalidOperationException("Snapshot Online integer differs from uploaded bytes");
+            onlineIntegerChecks.Add(new { xpath = tag.XPath, actualHex });
+            return value;
+        });
     CheckPreserved(before, await Backend(), true);
     await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
     await Step("Require snapshot Offline after Online check", async () => {
@@ -501,7 +520,7 @@ async Task SaveUploadedSnapshot()
     if (HashFile(baseline) != options.SourceSha256) throw new InvalidOperationException("Snapshot baseline changed");
     savedUploadedSnapshot = new { sourceEquivalentValueSnapshot = true, baselineLogicVerified = true,
         baselineSha256 = options.SourceSha256, acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
-        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray() };
+        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray(), onlineIntegerChecks = onlineIntegerChecks.ToArray() };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(
