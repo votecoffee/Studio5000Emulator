@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -340,6 +340,7 @@ class Engine:
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
         if n in sequencer_operations.INSTRUCTIONS:sequencer_operations.validate(self.memory,op,scope);return
         if n in numeric_conversions.INSTRUCTIONS:numeric_conversions.validate(self.memory,op,scope);return
+        if n in real_math.INSTRUCTIONS:real_math.validate(self.memory,op,scope);return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.specification(self.memory,op,scope);return
         if self.extensions.validate(op,scope):return
@@ -520,6 +521,7 @@ class Engine:
         if n in control_operations.INSTRUCTIONS:return control_operations.execute(self.memory,op,p,scope)
         if n in sequencer_operations.INSTRUCTIONS:return sequencer_operations.execute(self.memory,op,p,scope)
         if n in numeric_conversions.INSTRUCTIONS:return numeric_conversions.execute(self.memory,op,p,scope)
+        if n in real_math.INSTRUCTIONS:return real_math.execute(self.memory,op,p,scope)
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
             if p:control_operations.reset(self.memory,a[0],scope)
             return p
@@ -664,6 +666,7 @@ class Engine:
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
                 'numeric_conversions':numeric_conversions.description(),
+                'real_math':real_math.description(),
                 "supported_instructions": sorted(ARITIES),
                 'known_add_on_instructions':sorted(self.project.aois),
                 'data_only_types':sorted(self.project.data_only_types),

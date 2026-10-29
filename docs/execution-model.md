@@ -42,6 +42,13 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[Common REAL math](math-operations.md) provides standalone ladder square roots,
+power, logs, angle conversion and trigonometry. SINT/INT/DINT/REAL sources and
+results use the finite float32 software profile with REAL destinations.
+Square roots take the source absolute value, including existing CPT/ST functions.
+Domain/overflow failures retain advance rollback; native NaN/infinity, precision
+and math-status behavior remain separate work.
+
 [Numeric conversions](numeric-conversions.md) provide ladder DINT FRD/TOD and
 ladder/ST INT/DINT SWPB. FRD weights all eight hex nibbles, including A–F;
 TOD packs qualified decimal values into a signed DINT bit pattern. SWPB uses

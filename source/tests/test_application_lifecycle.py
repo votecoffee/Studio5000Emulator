@@ -191,6 +191,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['numeric_conversions']['native_math_status'])
 
+    def test_math_lab_roots_trig_logs_and_power_through_http(self):
+        state = self.post('demo', {'sample': 'MathLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Root'], 4.0)
+        self.assertEqual(values['Root'], values['CptRoot'])
+        self.assertEqual(values['Root'], values['StRoot'])
+        self.assertEqual(values['Radians'], values['StAngle'])
+        self.assertEqual(values['Log10'], 2.0)
+        self.assertEqual(values['Powered'], 8.0)
+        self.assertEqual(values['RoundTrip'], 30.0)
+        self.assertAlmostEqual(values['Sine'], 0.5, places=6)
+        self.assertTrue(values['AllOK'])
+        self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; numeric conversion forms updated for app `26.1029.191218`. The engine has **72 built-in
+Audited 2026-10-29; common REAL math forms updated for app `26.1029.192319`. The engine has **84 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -22,7 +22,7 @@ separate language family, not RLL mnemonics.
 | Family | RLL model, limited forms | Expression only; standalone remains | Remaining names |
 | --- | --- | --- | --- |
 | Alarm Instructions | — | — | `ALMA`, `ALMD`, `ASO` |
-| Advanced Math Instructions | — | `LN`, `LOG` | `XPY` |
+| Advanced Math Instructions | `LN`, `LOG`, `XPY` | — | — |
 | Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` | — | — |
 | Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
 | ASCII Conversion Instructions | `DTOS`, `STOD` | — | `LOWER`, `RTOS`, `STOR`, `UPPER` |
@@ -30,7 +30,7 @@ separate language family, not RLL mnemonics.
 | ASCII String | `CONCAT`, `DELETE`, `FIND`, `INSERT`, `MID` | — | — |
 | Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | `OSFI`, `OSRI` |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
-| Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SUB` | `SQR`, `SQRT` | — |
+| Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
 | Drives Instructions | — | — | `HMIBC`, `INTG`, `PI`, `PMUL`, `SCRV`, `SOC`, `UPDN` |
 | Drive Safety Instructions | — | — | `SBC`, `SDI`, `SFX`, `SLP`, `SLS`, `SOS`, `SS1`, `SS2` |
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
@@ -39,7 +39,7 @@ separate language family, not RLL mnemonics.
 | For Break Instructions | — | — | `BRK`, `FOR` |
 | Input/Output Instructions | `GSV` | — | `IOT`, `MSG`, `SSV` |
 | License Instructions | — | — | `LV` |
-| Math Conversion Instructions | `FRD`, `TOD`, `TRN` | `DEG`, `RAD` | — |
+| Math Conversion Instructions | `DEG`, `FRD`, `RAD`, `TOD`, `TRN` | — | — |
 | Metal Form Instructions | — | — | `AVC`, `CBCM`, `CBIM`, `CBSSM`, `CPM`, `CSM`, `EPMS`, `MMVC`, `MVC` |
 | Motion Event Instructions | — | — | `MAOC`, `MAR`, `MAW`, `MDOC`, `MDR`, `MDW` |
 | Motion Group Instructions | — | — | `MGS`, `MGSD`, `MGSP`, `MGSR` |
@@ -57,7 +57,7 @@ separate language family, not RLL mnemonics.
 | Special Instructions | — | — | `DDT`, `DTR`, `FBC`, `PID` |
 | Statistical Instructions | — | — | `MAVE`, `MAXC`, `MINC`, `MSTD` |
 | Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | `CTUD`, `RTOR`, `TOFR`, `TONR` |
-| Trigonometric Instructions | — | `ACOS`, `ACS`, `ASIN`, `ASN`, `ATAN`, `ATN`, `COS`, `SIN`, `TAN` | — |
+| Trigonometric Instructions | `ACS`, `ASN`, `ATN`, `COS`, `SIN`, `TAN` | `ACOS`, `ASIN`, `ATAN` | — |
 | Additional alphabetical entries | — | `TRUNC` | `BPT`, `PCE`, `SRT`, `TPT` |
 | Additional motion registration and homing | — | — | `MAAT`, `MAHD`, `MRAT`, `MRHD` |
 
@@ -71,6 +71,7 @@ schema/behavior backlog separately from instruction names.
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
+| SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite REAL-result ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources. Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/status/nonfinite behavior remain unfinished. |
 | FRD/TOD/SWPB | [DINT BCD and INT/DINT byte-order forms](numeric-conversions.md) for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Other BCD types, mixed conversions, BCD expressions/FBD and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
@@ -89,6 +90,7 @@ The exact current dispatch table is `ARITIES` in
 [runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
 [numeric_conversions.py](../source/logixlab/numeric_conversions.py),
+[real_math.py](../source/logixlab/real_math.py),
 [string_operations.py](../source/logixlab/string_operations.py),
 [control_operations.py](../source/logixlab/control_operations.py),
 [sequencer_operations.py](../source/logixlab/sequencer_operations.py),

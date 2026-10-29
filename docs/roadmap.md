@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available common math increment: [finite REAL-result ladder math](math-operations.md),
+including roots, power, logs, angle conversions and trigonometry. Integer
+destinations, wide/unsigned/LREAL inputs, FBD and native math/status parity stay open.
+
 Available conversion increment: [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md),
 including ST SWPB and byte-order/sign-extension examples. Other BCD types, mixed
 conversions, expression/FBD variants and native overflow/status behavior remain open.

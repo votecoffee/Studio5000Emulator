@@ -2,8 +2,9 @@
 import math
 import re
 from .model import ModelError, coerce, literal
+from .real_math import square_root
 
-FUNCTIONS = {'ABS': abs, 'SQR': math.sqrt, 'SQRT': math.sqrt, 'TRN': math.trunc,
+FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.trunc,
              'TRUNC': math.trunc, 'LN': math.log, 'LOG': math.log10,
              'SIN': math.sin, 'COS': math.cos, 'TAN': math.tan,
              'ASN': math.asin, 'ACS': math.acos, 'ATN': math.atan,
