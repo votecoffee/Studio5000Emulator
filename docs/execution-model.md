@@ -42,6 +42,12 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[Array statistics](array-statistics.md) add ladder AVE and sample STD with
+logical CONTROL. A complete qualified operation varies one declared array
+dimension, retains other subscripts, and completes within one advance. Held
+EN/DN retains results. AVE and STD have distinct prescan/false-rung rules.
+Partial POS/resume and native precision/error side effects remain unqualified.
+
 [Common REAL math](math-operations.md) provides standalone ladder square roots,
 power, logs, angle conversion and trigonometry. SINT/INT/DINT/REAL sources and
 results use the finite float32 software profile with REAL destinations.

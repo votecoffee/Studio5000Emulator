@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; common REAL math forms updated for app `26.1029.192319`. The engine has **84 built-in
+Audited 2026-10-29; array statistics updated for app `26.1029.193708`. The engine has **86 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -24,7 +24,7 @@ separate language family, not RLL mnemonics.
 | Alarm Instructions | — | — | `ALMA`, `ALMD`, `ASO` |
 | Advanced Math Instructions | `LN`, `LOG`, `XPY` | — | — |
 | Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` | — | — |
-| Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
+| Array File/Misc. Instructions | `AVE`, `COP`, `CPS`, `FLL`, `SIZE`, `STD` | — | `FAL`, `FSC` |
 | ASCII Conversion Instructions | `DTOS`, `STOD` | — | `LOWER`, `RTOS`, `STOR`, `UPPER` |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
 | ASCII String | `CONCAT`, `DELETE`, `FIND`, `INSERT`, `MID` | — | — |
@@ -76,6 +76,7 @@ schema/behavior backlog separately from instruction names.
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
 | SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
+| AVE/STD | [Dimension-wise statistics](array-statistics.md) with SINT/INT/DINT/REAL arrays, REAL results and logical CONTROL. Partial POS/resume, integer AVE destinations, indirect/alias/AOI array starts and native precision/fault/status behavior remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
@@ -91,6 +92,7 @@ The exact current dispatch table is `ARITIES` in
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
 [numeric_conversions.py](../source/logixlab/numeric_conversions.py),
 [real_math.py](../source/logixlab/real_math.py),
+[array_statistics.py](../source/logixlab/array_statistics.py),
 [string_operations.py](../source/logixlab/string_operations.py),
 [control_operations.py](../source/logixlab/control_operations.py),
 [sequencer_operations.py](../source/logixlab/sequencer_operations.py),

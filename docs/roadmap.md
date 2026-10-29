@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available statistics increment: [dimension-wise AVE/sample STD](array-statistics.md)
+with REAL results and logical CONTROL transitions. Partial resume, integer AVE
+results, remaining file consumers and native precision/fault/status stay open.
+
 Available common math increment: [finite REAL-result ladder math](math-operations.md),
 including roots, power, logs, angle conversions and trigonometry. Integer
 destinations, wide/unsigned/LREAL inputs, FBD and native math/status parity stay open.

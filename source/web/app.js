@@ -203,6 +203,7 @@ $('control-demo').onclick=()=>loadDemo('ControlLab');
 $('sequence-demo').onclick=()=>loadDemo('SequenceLab');
 $('conversion-demo').onclick=()=>loadDemo('ConversionLab');
 $('math-demo').onclick=()=>loadDemo('MathLab');
+$('stats-demo').onclick=()=>loadDemo('StatsLab');
 $('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('structure-demo').onclick=()=>loadDemo('StructureLab');
 $('layout-demo').onclick=()=>loadDemo('LayoutLab');

@@ -207,6 +207,31 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_stats_lab_average_sample_deviation_dimensions_and_rearm(self):
+        state = self.post('demo', {'sample': 'StatsLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('step', {'dt': 10})
+        self.post('write', {'tag': 'Calculate', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Average'], 5.0)
+        self.assertAlmostEqual(values['Deviation'], 2.581988897, places=6)
+        self.assertEqual(values['ColumnMean'], 7.0)
+        self.assertEqual(values['RowMean'], 10.0)
+        self.assertTrue(values['Ready'])
+        self.post('write', {'tag': 'Values[0]', 'value': 14})
+        state = self.post('step', {'dt': 10})
+        self.assertEqual(next(row['value'] for row in state['tags'] if row['name']=='Average'), 5.0)
+        self.post('write', {'tag': 'Calculate', 'value': False})
+        self.post('step', {'dt': 10})
+        self.post('write', {'tag': 'Calculate', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Average'], 8.0)
+        self.assertEqual(values['MeanControl.POS'], 4)
+        self.assertEqual(values['Values[4]'], 999)
+        self.assertFalse(self.post('report', {})['array_statistics']['native_math_status'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

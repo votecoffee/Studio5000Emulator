@@ -40,7 +40,7 @@ def flag(obj, name):
     return obj[name]
 
 
-def array_region(memory, ref, count, scope, *, writable=True):
+def static_array(memory, ref, scope, *, writable=True):
     # Static starting references keep .POS out of array subscripts. References
     # are re-resolved on each scan; the selected member remains the boundary.
     if not re.fullmatch(r'[A-Za-z_][\w:]*(?:\.[A-Za-z_]\w*|\[\d+(?:,\d+)*\])*', ref):
@@ -59,6 +59,11 @@ def array_region(memory, ref, count, scope, *, writable=True):
     if not isinstance(value, list) and not any(isinstance(memory.at(key, parts[:i]), list)
                                              for i, part in enumerate(parts) if isinstance(part, int)):
         raise ModelError('Shift/FIFO operand must address an array')
+    return key, parts, dtype
+
+
+def array_region(memory, ref, count, scope, *, writable=True):
+    static_array(memory, ref, scope, writable=writable)
     if not 0 <= count <= MAX_ELEMENTS:
         raise ModelError('Shift/FIFO operation exceeds the 4096-element software limit')
     return memory.region(ref, count, scope)
