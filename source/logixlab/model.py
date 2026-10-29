@@ -55,7 +55,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "COP": 3, "CPS": 3, "FLL": 3, "SIZE": 3, "CPT": 2,
            "JMP": 1, "LBL": 1, "TND": 0,
            "CONCAT": 3, "MID": 4, "DTOS": 2, "STOD": 2, "TRN": 2,
-           'CMP':1,'MEQ':3,'GSV':4}
+           'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4}
 
 
 def operand_problem(op):

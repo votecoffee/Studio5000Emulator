@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer
+from . import system_values, integer_math, bit_transfer, string_operations
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -648,6 +648,7 @@ class Engine:
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
                 'integer_execution':integer_math.description(self.project),
                 'bit_transfer':bit_transfer.description(),
+                'string_operations':string_operations.description(),
                 "supported_instructions": sorted(ARITIES),
                 'known_add_on_instructions':sorted(self.project.aois),
                 'data_only_types':sorted(self.project.data_only_types),

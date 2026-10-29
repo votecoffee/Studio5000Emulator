@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; bit transfers updated for app `26.1029.181021`. **Full Logix emulation is not
+Audited 2026-10-29; string operations updated for app `26.1029.182441`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,7 +19,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 57 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 60 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
 | Structured Text | Assignments, conditionals, integer CASE, bounded loops, supported expressions/calls and RLL/ST calls | Complete language/function coverage, wide/time arithmetic, integer division and aggregate assignment |
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
@@ -31,7 +31,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
 | MESSAGE/CONTROL and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
-| STRING and user strings | Built-in STRING and explicit DINT LEN plus one-dimensional SINT DATA definitions; selected string instructions | Remaining string instructions, encodings and all capacities/forms; built-in STRING wire profile |
+| STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), selected conversions | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
 | AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
 | Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | CPU preemption/time slicing, event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
@@ -277,5 +277,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 57 built-in RLL entries.
+added by project AOIs are counted separately from the 60 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

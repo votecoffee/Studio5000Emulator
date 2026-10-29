@@ -110,6 +110,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(report['bit_transfer']['instructions'], ['BTD', 'MVM'])
         self.assertFalse(report['bit_transfer']['native_math_status'])
 
+    def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
+        state = self.post('demo', {'sample': 'StringLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Location'], 10)
+        self.assertEqual(values['StPosition'], 10)
+        self.assertEqual(values['MissingPos'], 0)
+        self.assertEqual(values['RllEdited'], 'PART=ABC;<OK>STATE=IDLE')
+        self.assertEqual(values['Cleaned'], values['SourceText'])
+        self.assertEqual(values['StEdited'], values['SourceText'])
+        self.assertTrue(values['AllOK'])
+        self.post('write', {'tag': 'SearchText', 'value': 'PART'})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Location'], 1)
+        self.assertEqual(values['StPosition'], 1)
+        self.assertFalse(values['AllOK'])
+        self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

@@ -6,7 +6,7 @@ from .model import ModelError,Op,literal,coerce,operand_problem
 from .st_expression import STExpression
 from . import system_values
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','JSR','SBR','RET','GSV'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','JSR','SBR','RET','GSV'}
 
 
 @dataclass
@@ -234,7 +234,7 @@ class Structured:
                     for p,arg in zip(self.engine.project.aois[op.name].required,op.args[1:]):
                         if p.get('Usage') in ('Output','InOut'):writes.append(arg)
                 else:
-                    positions={'COP':[1],'CPS':[1],'FLL':[1],'SIZE':[2],'CONCAT':[2],'MID':[3],'DTOS':[1],'STOD':[1],
+                    positions={'COP':[1],'CPS':[1],'FLL':[1],'SIZE':[2],'CONCAT':[2],'MID':[3],'DTOS':[1],'STOD':[1],'FIND':[3],'INSERT':[3],'DELETE':[3],
                                'SBR':list(range(len(op.args)))}.get(op.name,[])
                     writes.extend(op.args[i] for i in positions if i<len(op.args))
         for ref in writes:

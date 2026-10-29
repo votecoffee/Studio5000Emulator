@@ -19,7 +19,7 @@ Track implementation in [full-emulation issue #1](https://github.com/votecoffee/
 Prioritize basic, widely used features before specialized types or motion:
 Continuous/Periodic execution, standard RLL/ST forms, bit/move/math operations,
 timers/counters, strings, arrays, UDTs and ordinary AOIs. Next common gaps include
-shifts/FIFO/CONTROL/sequencers, string search/editing/conversion, basic
+shifts/FIFO/CONTROL/sequencers, remaining string conversions, basic
 math functions, practical fault/status behavior, then event tasks/MSG/virtual I/O.
 LREAL/time expansion, advanced languages/process families, Safety and motion
 follow these common execution paths.
@@ -32,6 +32,10 @@ expand numeric forms and types without bypassing type checks.
 Build deterministic multi-task/event scheduling and fault/status/lifecycle
 semantics before relying on them in devices or motion. Expand common missing
 data-manipulation, array/shift/sequencer, math and string instructions.
+
+Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operations.md)
+with explicit user-string capacities, alias-safe source reads and rollback.
+Remaining string edge cases, conversions and native status behavior stay open.
 
 Available common move increment: [MVM/BTD ladder execution](bit-transfer.md)
 for SINT/INT/DINT, with mixed widths, masks and bounded fields. Native status

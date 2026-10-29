@@ -47,6 +47,11 @@ widths, zero-fill, snapshot overlap and preserved destination bits. BTD position
 and length are immediate; its excess bits never wrap to another array element.
 Native math/status flags and ST/FBD variants remain unfinished.
 
+[String search/editing](string-operations.md) supports FIND, INSERT and DELETE
+in RLL/ST with one-based byte positions, represented user-string capacities
+and captured source text for aliasing. Result writes preserve unused backing
+bytes. Unqualified edge cases and native minor faults remain explicit.
+
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
 all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms

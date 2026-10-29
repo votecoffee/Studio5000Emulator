@@ -198,6 +198,7 @@ $('file').onchange=async()=>{
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
+$('string-demo').onclick=()=>loadDemo('StringLab');
 $('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('structure-demo').onclick=()=>loadDemo('StructureLab');
 $('layout-demo').onclick=()=>loadDemo('LayoutLab');

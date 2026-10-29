@@ -3,6 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
+from . import string_operations
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
@@ -91,6 +92,8 @@ class Extensions:
         if n in COMPARE and any(self.is_string(x,scope) for x in a):
             for arg in a:self.memory.string(arg,scope)
             return True
+        if n in string_operations.INSTRUCTIONS:
+            string_operations.validate(self.memory,op,scope);return True
         if n not in EXTENDED:return False
         if n=='CMP':self.condition(a[0]).validate(self.memory,scope)
         elif n=='MEQ':
@@ -135,6 +138,9 @@ class Extensions:
             if not power:return False
             x,y=(self.memory.string(arg,scope) for arg in a)
             return {'EQU':x==y,'NEQ':x!=y,'LES':x<y,'LEQ':x<=y,'GRT':x>y,'GEQ':x>=y}[n]
+        if n in string_operations.INSTRUCTIONS:
+            if power:string_operations.execute(self.memory,op,scope)
+            return power
         if n not in EXTENDED:return None
         if not power:return power
         if n=='CMP':return self.condition(a[0]).evaluate(self.memory,scope)

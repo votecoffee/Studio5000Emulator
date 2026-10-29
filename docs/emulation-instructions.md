@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; bit-transfer forms updated for app `26.1029.181021`. The engine has **57 built-in
+Audited 2026-10-29; string forms updated for app `26.1029.182441`. The engine has **60 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -27,7 +27,7 @@ separate language family, not RLL mnemonics.
 | Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
 | ASCII Conversion Instructions | `DTOS`, `STOD` | — | `LOWER`, `RTOS`, `STOR`, `UPPER` |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
-| ASCII String | `CONCAT`, `MID` | — | `DELETE`, `FIND`, `INSERT` |
+| ASCII String | `CONCAT`, `DELETE`, `FIND`, `INSERT`, `MID` | — | — |
 | Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | `OSFI`, `OSRI` |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SUB` | `SQR`, `SQRT` | — |
@@ -77,7 +77,7 @@ schema/behavior backlog separately from instruction names.
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
-| CONCAT/MID/DTOS/STOD/TRN | Remaining types/forms, capacity/conversion/error/status behavior and full string encoding support. |
+| CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
 | GSV | Currently only Controller AuditValue and ChangesToDetect, with an empty instance operand and LINT/two-DINT destination. All other objects/attributes remain unsupported; SSV has no execution model. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |
 
@@ -85,6 +85,7 @@ The exact current dispatch table is `ARITIES` in
 [model.py](../source/logixlab/model.py). Execution and operand checks live in
 [runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
+[string_operations.py](../source/logixlab/string_operations.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports

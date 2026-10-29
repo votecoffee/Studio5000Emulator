@@ -1,0 +1,682 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="StringLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="StringLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes>
+      <DataType Name="LabText32" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="LEN" DataType="DINT" Dimension="0" />
+          <Member Name="DATA" DataType="SINT" Dimension="32" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="SourceText" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="19" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="80" />
+              <Element Index="[1]" Value="65" />
+              <Element Index="[2]" Value="82" />
+              <Element Index="[3]" Value="84" />
+              <Element Index="[4]" Value="61" />
+              <Element Index="[5]" Value="65" />
+              <Element Index="[6]" Value="66" />
+              <Element Index="[7]" Value="67" />
+              <Element Index="[8]" Value="59" />
+              <Element Index="[9]" Value="83" />
+              <Element Index="[10]" Value="84" />
+              <Element Index="[11]" Value="65" />
+              <Element Index="[12]" Value="84" />
+              <Element Index="[13]" Value="69" />
+              <Element Index="[14]" Value="61" />
+              <Element Index="[15]" Value="73" />
+              <Element Index="[16]" Value="68" />
+              <Element Index="[17]" Value="76" />
+              <Element Index="[18]" Value="69" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SearchText" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="83" />
+              <Element Index="[1]" Value="84" />
+              <Element Index="[2]" Value="65" />
+              <Element Index="[3]" Value="84" />
+              <Element Index="[4]" Value="69" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Addition" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="60" />
+              <Element Index="[1]" Value="79" />
+              <Element Index="[2]" Value="75" />
+              <Element Index="[3]" Value="62" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MissingText" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="65" />
+              <Element Index="[1]" Value="76" />
+              <Element Index="[2]" Value="65" />
+              <Element Index="[3]" Value="82" />
+              <Element Index="[4]" Value="77" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="RllEdited" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Cleaned" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StEdited" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Start" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Qty" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="4" />
+        </Data>
+      </Tag>
+      <Tag Name="Location" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MissingPos" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StPosition" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Enable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="AllOK" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Enable)FIND(SourceText,SearchText,Start,Location);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>FIND(SourceText,MissingText,1,MissingPos);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>INSERT(SourceText,Addition,10,RllEdited);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>DELETE(RllEdited,Qty,10,Cleaned);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>JSR(EditText,0);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>EQU(Location,10)EQU(StPosition,10)EQU(MissingPos,0)EQU(SourceText,Cleaned)OTE(AllOK);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EditText" Type="ST">
+            <STContent>
+              <Line Number="0">INSERT(SourceText,Addition,1,StEdited);</Line>
+              <Line Number="1">DELETE(StEdited,Qty,1,StEdited);</Line>
+              <Line Number="2">FIND(StEdited,SearchText,1,StPosition);</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>
