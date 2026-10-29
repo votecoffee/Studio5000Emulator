@@ -1,7 +1,7 @@
 """Native word reads at exact installed model value allocations.
 
-Scalars keep their observed word widths. Word-aligned aggregates require the
-complete allocation, verified source/layout and current accessible value bytes.
+Scalars keep their observed word widths. Aggregates require the complete
+allocation and current accessible bytes, with explicit zero tail word padding.
 No host/native memory, pointer traversal, arbitrary ranges or writes exist.
 """
 import struct
@@ -132,18 +132,18 @@ def read_words(app,router,address,words):
     if tag.constant:
         raise ImageError('installed_memory_scalar_word_required')
     if cell.aggregate:
-        # The SDK asks for all words of numeric arrays and predefined roots.
-        # Do not expose an interior, partial, padded or cross-allocation range.
-        if not 4<=cell.size<=MAX_ARRAY_BYTES or cell.size%4 or len(initial)!=cell.size:
+        # The SDK rounds the complete root extent to words. Tail bytes are
+        # explicit model zeros; no adjacent allocation or interior is read.
+        if not 1<=cell.size<=MAX_ARRAY_BYTES or len(initial)!=cell.size:
             raise ImageError('installed_memory_complete_word_allocation_required')
-        if words!=cell.size//4:raise ImageError('installed_memory_scalar_word_request_required')
+        if words!=(cell.size+3)//4:raise ImageError('installed_memory_scalar_word_request_required')
         def read(ref):
             router.access(ref)
             return app.engine.memory.read(ref)
         try:value=cell.value(read)
         except ModelError as error:raise ImageError('installed_memory_current_value_unavailable') from error
         if len(value)!=cell.size:raise ImageError('installed_memory_current_storage_unavailable')
-        return value
+        return value+bytes(-len(value)%4)
     dtype=tag.dtype.upper();size={('SINT',0xC2):1,('INT',0xC3):2,('DINT',0xC4):4,('LINT',0xC5):8,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
     if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
     if words!=(2 if dtype=='LINT' else 1):raise ImageError('installed_memory_scalar_word_request_required')

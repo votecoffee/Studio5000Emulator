@@ -78,13 +78,13 @@ def online_lints(expected,receipt):
 
 
 def online_aggregates(expected,receipt):
-    """Exact Online coverage of small word-aligned mutable aggregate roots."""
+    """Exact logical-byte Online coverage of small mutable aggregate roots."""
     result=dict(verified=False,tags=0,value_bytes=0,maximum_bytes=MAX_ONLINE_AGGREGATE_BYTES,excluded_tags=0)
     try:
         roots=[tag for tag in expected['tags'] if tag['constant'] is False
             and (tag['typeCode']&0x8000 or any(tag['dimensions']))]
-        eligible=[tag for tag in roots if 8<=len(tag['expectedHex'])<=2*MAX_ONLINE_AGGREGATE_BYTES
-            and len(tag['expectedHex'])%8==0]
+        eligible=[tag for tag in roots if 2<=len(tag['expectedHex'])<=2*MAX_ONLINE_AGGREGATE_BYTES
+            and len(tag['expectedHex'])%2==0]
         result['excluded_tags']=len(roots)-len(eligible)
         wanted={tag['xpath']:tag['expectedHex'] for tag in eligible}
         if len(wanted)!=len(eligible) or receipt.get('onlineAggregateMaximumBytes')!=MAX_ONLINE_AGGREGATE_BYTES:return result

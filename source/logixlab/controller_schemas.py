@@ -3,7 +3,7 @@
 Reference class reads establish UINT revisions for classes 0x66 and 0x72.
 The installed v35 definition identifies 0x72 as UserMemory. Class 0x66's
 instance layout and semantics remain unimplemented. UserMemory additionally
-serves signed reads of exact installed scalar/word-aligned aggregate values;
+serves signed reads of exact installed scalar/aggregate values with zero tail word padding;
 neither class grants capacity, pool addresses, allocation or general memory access.
 Native compatibility selects observed v35 response schemas independently of
 their deliberately partial source/runtime attribute implementations. A layout
@@ -38,7 +38,7 @@ def description():
             'installed_bool_word_read': {'class_id':0x72,'instance':0,'service':0x4C,'words':1,
                                          'reply_bytes':4,'encoding':'BOOL low byte; three zero bytes','writes':False},
             'installed_aggregate_word_read': {'class_id':0x72,'instance':0,'service':0x4C,
-                'whole_allocation':True,'word_aligned':True,'current_values':True,
+                'whole_allocation':True,'rounded_word_extent':True,'zero_tail_padding':True,'current_values':True,
                 'source_and_layout_checked':True,'interior_addresses':False,'writes':False},
             'compatibility_classes': [{'class_id': cls, 'schema_revision': revision,
                                       'name':COMPATIBILITY_NAMES[cls]}

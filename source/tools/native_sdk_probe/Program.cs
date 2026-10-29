@@ -571,8 +571,8 @@ async Task SaveUploadedSnapshot()
     var onlineAggregateChecks = new List<object>();
     foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant &&
             ((tag.TypeCode & 0x8000) != 0 || tag.Dimensions?.Any(size => size > 0) == true) &&
-            tag.ExpectedHex.Length >= 8 && tag.ExpectedHex.Length <= 2 * onlineAggregateMaximumBytes &&
-            tag.ExpectedHex.Length % 8 == 0))
+            tag.ExpectedHex.Length >= 2 && tag.ExpectedHex.Length <= 2 * onlineAggregateMaximumBytes &&
+            tag.ExpectedHex.Length % 2 == 0))
         await Step("Snapshot Online BYTE_ARRAY:" + tag.Name, async () => {
             var value = await project!.GetTagValueAsync(tag.XPath, LogixProject.OperationMode.Online, LogixProject.DataType.BYTE_ARRAY);
             string actualHex = Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();

@@ -30,19 +30,20 @@ class UploadSnapshotTests(unittest.TestCase):
             self.assertFalse(snapshot.online_aggregates(expected,changed)['verified'])
         self.assertFalse(snapshot.online_aggregates(dict(tags=tags+[tags[0]]),receipt)['verified'])
 
-    def test_online_aggregate_coverage_reports_large_and_nonword_roots_outside_its_bound(self):
+    def test_online_aggregate_coverage_includes_short_roots_and_reports_large_roots_outside_its_bound(self):
         def tag(name,code,size,dims,constant=False):
             return dict(xpath="Controller/Tags/Tag[@Name='"+name+"']",typeCode=code,constant=constant,
                 expectedHex='00'*size,dimensions=dims)
-        eligible=[tag('OneWord',0x8F00,4,[0,0,0]),tag('AtLimit',0x20C4,128,[32,0,0]),tag('Packed',0x20D3,8,[2,0,0])]
-        excluded=[tag('OverLimit',0x20C4,132,[33,0,0]),tag('Odd',0x20C3,6,[3,0,0])]
+        eligible=[tag('OneWord',0x8F00,4,[0,0,0]),tag('AtLimit',0x20C4,128,[32,0,0]),tag('Packed',0x20D3,8,[2,0,0]),
+                  tag('Odd',0x20C3,6,[3,0,0]),tag('Byte',0x20C2,1,[1,0,0])]
+        excluded=[tag('OverLimit',0x20C4,132,[33,0,0])]
         ignored=[tag('Scalar',0xC4,4,[0,0,0]),tag('Constant',0x8F00,4,[0,0,0],True)]
         receipt=dict(onlineAggregateMaximumBytes=128,onlineAggregateChecks=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in eligible])
         result=snapshot.online_aggregates(dict(tags=eligible+excluded+ignored),receipt)
-        self.assertEqual(result,dict(verified=True,tags=3,value_bytes=140,maximum_bytes=128,excluded_tags=2))
+        self.assertEqual(result,dict(verified=True,tags=5,value_bytes=147,maximum_bytes=128,excluded_tags=1))
         empty=dict(onlineAggregateMaximumBytes=128,onlineAggregateChecks=[])
         self.assertEqual(snapshot.online_aggregates(dict(tags=excluded+ignored),empty),
-            dict(verified=True,tags=0,value_bytes=0,maximum_bytes=128,excluded_tags=2))
+            dict(verified=True,tags=0,value_bytes=0,maximum_bytes=128,excluded_tags=1))
 
     def test_snapshot_requires_online_aggregate_coverage_independently_of_file_hashes_and_flags(self):
         _,baseline,_=self.inputs();expected=self.plan();receipt=self.artifacts(baseline)

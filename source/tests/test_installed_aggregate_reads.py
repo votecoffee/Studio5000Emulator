@@ -48,11 +48,38 @@ class AggregateValueTests(unittest.TestCase):
             installed.values.values=((key,(2,5),0x20C4,raw[:-4]),)
             with self.assertRaises(ImageError):read_words(app,router,0x72000000,4)
 
-    def test_nonword_extents_and_changed_array_shapes_do_not_add_padding_or_initial_values(self):
-        for value in ([1],[1,2,3]):
-            app,router,installed,ns,key,raw=self.fixture('INT',value,'<h')
-            with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
-                with self.assertRaises(ImageError):read_words(app,router,0x72000000,(len(raw)+3)//4)
+    def test_short_signed_arrays_require_complete_rounded_words_and_zero_tail_bytes(self):
+        cases=(('SINT',[-128,0,-17],'<b',bytes.fromhex('8000ef00')),
+               ('INT',[-32768,0,-22222],'<h',bytes.fromhex('0080000032a90000')),
+               ('SINT',[-3,-1,0,1,-55],'<b',bytes.fromhex('fdff0001c9000000')),
+               ('INT',[-32768],'<h',bytes.fromhex('00800000')),
+               ('SINT',[-1],'<b',bytes.fromhex('ff000000')))
+        for dtype,value,fmt,expected in cases:
+            with self.subTest(dtype=dtype,size=len(value)):
+                app,router,installed,ns,key,raw=self.fixture(dtype,value,fmt);before=copy.deepcopy(value)
+                with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+                    words=(len(raw)+3)//4
+                    self.assertEqual(read_words(app,router,0x72000000,words),expected)
+                    self.assertEqual(value,before);self.assertEqual(len(expected),4*words)
+                    for wrong in (0,words+1):
+                        with self.assertRaises(ImageError):read_words(app,router,0x72000000,wrong)
+                    if words>1:
+                        with self.assertRaises(ImageError):read_words(app,router,0x72000000,words-1)
+
+    def test_tail_padding_never_reads_adjacent_storage_or_grants_interior_address_access(self):
+        value=[1,2,-1];app,router,installed,ns,key,raw=self.fixture('SINT',value,'<b')
+        ns._tables.append(NS(key=(2,8),value_address=0x72000003))
+        installed.values.values+=(("neighbor",(2,8),0xC2,b'\xa5'),)
+        original=app.engine.memory.read;reads=[]
+        def read(ref):reads.append(ref);return original(ref)
+        app.engine.memory.read=read
+        with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
+            self.assertEqual(read_words(app,router,0x72000000,1),bytes.fromhex('0102ff00'))
+            self.assertEqual(reads,[app.engine.project.tags[key].key])
+            for address in (0x72000001,0x72000002,0x72000003):
+                with self.assertRaises(ImageError):read_words(app,router,address,1)
+
+    def test_changed_array_shapes_do_not_return_initial_values_or_synthetic_padding(self):
         value=[1,2,3,4];app,router,installed,ns,key,raw=self.fixture('DINT',value,'<i');value.pop()
         with patch('logixlab.installed_memory._verified_installation',return_value=(installed,ns)):
             with self.assertRaises(ImageError):read_words(app,router,0x72000000,4)
