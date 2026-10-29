@@ -77,6 +77,11 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 
 ## Data types and memory
 
+The [222-entry predefined type inventory](predefined-data-types.md) records every
+supplied name, current dedicated model status, controller annotation and v35
+index comparison. Its [JSON catalog](predefined-data-types.json) is a maintained
+backlog, not a source of invented schemas or automatically enabled behavior.
+
 - [ ] **D01 — Full numeric operations:** extend the implemented homogeneous
   [LINT/unsigned RLL profile](integer-execution.md) to mixed types, expressions,
   conversions and all qualified targets. Add LREAL storage and operations,
@@ -90,7 +95,9 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
   conversions and transfer encoding. The installed help lists these names, but
   runtime availability still needs verification against each controller/firmware
   profile. Do not treat them as untyped LINT aliases.
-- [ ] **D04 — Predefined structures:** dedicated validated models for CONTROL,
+- [ ] **D04 — Predefined structures:** complete the named
+  [predefined-type inventory](predefined-data-types.md), including dedicated
+  validated models for CONTROL,
   MESSAGE, PID/PID_ENHANCED, alarm/filter/drive/phase/sequence records, motion
   control/axis/group/coordinate/cam records and module-defined I/O types.
   Decorated-data retention alone does not supply control behavior.

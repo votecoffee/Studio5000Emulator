@@ -16,7 +16,9 @@ Track implementation in [full-emulation issue #1](https://github.com/votecoffee/
 
 ## 1. Execution and data foundation
 
-Scope: E01–E08 and D01–D09 in the capability checklist. Start with explicit
+Scope: E01–E08 and D01–D09 in the capability checklist. Use the
+[222-entry predefined-type catalog](predefined-data-types.md) to track schemas,
+behavior and version/controller qualification independently. Start with explicit
 controller/firmware feature profiles and the numeric/memory model; add complete
 LINT/unsigned behavior, LREAL and time types without bypassing type checks.
 Build deterministic multi-task/event scheduling and fault/status/lifecycle

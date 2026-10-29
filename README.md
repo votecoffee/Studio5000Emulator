@@ -14,7 +14,9 @@ The current model is partial: 55 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
-[instruction inventory](docs/emulation-instructions.md) and [roadmap](docs/roadmap.md).
+[instruction inventory](docs/emulation-instructions.md),
+[222-entry predefined type inventory](docs/predefined-data-types.md) and
+[roadmap](docs/roadmap.md).
 
 Existing native SDK connection, transfer and routine-edit profiles remain
 experimental and preserved. Their acceptance does not establish full runtime

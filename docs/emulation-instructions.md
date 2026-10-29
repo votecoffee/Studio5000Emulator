@@ -21,7 +21,7 @@ separate language family, not RLL mnemonics.
 
 | Family | RLL model, limited forms | Expression only; standalone remains | Remaining names |
 | --- | --- | --- | --- |
-| Alarm Instructions | — | — | `ALMA`, `ALMD` |
+| Alarm Instructions | — | — | `ALMA`, `ALMD`, `ASO` |
 | Advanced Math Instructions | — | `LN`, `LOG` | `XPY` |
 | Array (File)/Shift Instructions | — | — | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` |
 | Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
@@ -60,6 +60,11 @@ separate language family, not RLL mnemonics.
 | Trigonometric Instructions | — | `ACOS`, `ACS`, `ASIN`, `ASN`, `ATAN`, `ATN`, `COS`, `SIN`, `TAN` | — |
 | Additional alphabetical entries | — | `TRUNC` | `BPT`, `PCE`, `SRT`, `TPT` |
 | Additional motion registration and homing | — | — | `MAAT`, `MAHD`, `MRAT`, `MRHD` |
+
+ASO is additionally confirmed in installed v35 instruction help for
+ALARM_SET_CONTROL; it is not implemented. The
+[predefined-type inventory](predefined-data-types.md) tracks its associated
+schema/behavior backlog separately from instruction names.
 
 ## Remaining forms of existing instructions
 
