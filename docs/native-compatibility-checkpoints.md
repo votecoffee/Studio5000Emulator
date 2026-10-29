@@ -1,0 +1,325 @@
+# Native compatibility checkpoints through 2026-10-29
+
+Historical checkpoints retained from the README. Statements about priorities and
+current support below describe their original checkpoints. The current
+[emulation-first roadmap](roadmap.md) takes precedence.
+
+An experimental offline Logix v35 emulator with a browser UI and local EtherNet/IP research endpoint.
+
+Explore supported ladder and Structured Text logic, drive inputs, inspect scan
+traces, and test explicit messaging against a custom execution model. The app
+and executable use the name **LogixLab**.
+
+**Current app version: `26.1028.214608`.** Versions use the release timestamp
+`YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
+page header, Windows tray and executable properties share this version.
+
+[Saved native edits](native-edit-persistence.md#reload-and-download-a-saved-edit)
+can now be reloaded and downloaded as a new source. The corrected importer
+retains the SDK's extended routine storage metadata. A changed instruction
+executes, and a value-snapshot upload preserves its result and edited logic
+through native save/reopen/Online checks.
+
+[Native SDK scalar writes](native-tag-writes.md) now update and read back
+six tag types, including Program locals, before and after a supported rung edit.
+Enable **Allow Studio tag writes** before connecting. Program mode and a
+source-equivalent installation are required; writes remain disabled by default.
+
+[Native LINT reads](installed-memory-reads.md#lint-two-word-reads) preserve
+both signed 64-bit limits through upload, native save/reopen and Online checks.
+The expanded fixture passes all 32 roots and 24 typed scalar checks, with exact
+LINT readback also verified after a supported rung edit.
+
+[Native SINT and INT reads](installed-memory-reads.md#small-signed-integer-words)
+now preserve signed limits across global and Program-local tags. The expanded
+upload snapshot passes native save/reopen/Online and all 23 scalar checks,
+with all 31 roots, values and routine sources verified.
+
+[Native REAL scalar reads](installed-memory-reads.md#real-scalar-words) now
+serve current four-byte values at exact committed addresses, including Program
+locals. Upload snapshots add typed Online REAL checks against the uploaded bits.
+Native save/reopen/Online checks return changed REAL values in three scopes,
+including after an accepted rung edit. Constant Symbol metadata now retains
+declared External Access independently of the enforced Constant write block.
+The expanded source-equivalent upload snapshot now passes the strict tag
+definition check, native save/reopen/Online and all three REAL value reads.
+Constant flags remain set and writes remain blocked.
+
+[Current metadata after native edits](edited-metadata.md) applies only
+accepted old-rung Comment removals to a separate upload view. The native upload
+content check can now explicitly verify current edited logic and Comments.
+Catalog checks are shared within each metadata fragment, and native type
+manifest generation preserves its canonical bytes without recursive copies.
+Canonical type hashes now reuse encoding only after comparing a fresh complete
+field snapshot. Rejected Change Log searches appear in native diagnostics and
+saved-transfer reports; opaque summaries remain undecoded.
+The latest native edited upload receives both routine sources and all extended
+metadata, then stops at guarded Change Log history. Complete edited-project
+upload remains unfinished.
+
+[Retained Routine profile reads](routine-profile-readback.md) preserve the
+exact downloaded selector-9 component and empty selector-4 stream through
+source-checked routine edits. Rejected stream reads now identify the requested
+component in transfer diagnostics.
+
+[Tag readback after routine edits](edited-tag-readback.md) preserves committed
+Table identities and original Symbol Control while serving current interpreter
+values. Tag layout, access, source identity and committed bindings are rechecked
+on every read; routine-only edits no longer force a fallback to Symbol IDs.
+Native SDK getters verify three DINTs after an edit and reconnect; separate
+signed reads verify all fourteen demo tag roots and their metadata.
+
+[Accepted edit source readback](accepted-routine-source.md) now retains
+exact native RLL source at commit and supports signed source reads after an edit.
+Untouched routines retain a validated download source snapshot so they
+remain readable after another routine changes. Every source fragment is checked
+against active logic and catalog bindings. An unchanged-project raw SDK upload
+passes across 980 verified requests. Edited-project upload now has a guarded
+current all-object metadata view for the supported Comment-removal profile.
+Native transfer and exported-content acceptance are checked separately.
+General edited-project upload and arbitrary-project ACD persistence remain under development.
+Verified edited source also retains the v35 Routine schema and clean interpreter
+state fields. [Pinned Source Key metadata](routine-source-key-retention.md)
+also remains available after verified plain RLL edits. Offline native imports
+confirm the original opaque bytes survive both routine edits and save/reopen.
+[Controller metadata after edits](native-metadata-values.md) retains the
+validated serial/profile view; other metadata requires the checked edit view.
+[Native accepted-edit persistence](native-edit-persistence.md) now saves
+the SDK project directly, reopens its ACD and verifies Go Online. Full exported
+values and logic match the active emulator; a fresh SDK session reconnects to
+the saved file. A separate read-only peer verifies the edited source against SDK
+traffic and the untouched source against its pre-edit readback; both match active
+logic. Values and scan state remain unchanged.
+
+**[Source-equivalent upload snapshots](upload-value-snapshots.md) now save
+and reopen a current-value ACD that goes Online.** Native SDK checks also pass
+after rebuilding the source ACD through native Program imports. The rebuilt
+demo upload passes across 1,137 verified requests, preserving all 14 tag values,
+ten rungs and the installed correlation. The rebuilt two-Program profile passes
+across 1,227 requests, preserving 29 roots, ten constants, arrays and 13 rungs.
+All twelve demo and sixteen two-Program typed Online scalar reads pass.
+This requires unchanged source and
+a matching saved-download baseline; direct general Studio upload-save remains
+unfinished.
+
+The Windows [uploaded ACD rebuild](uploaded-acd-rebuild.md) also saves
+verified native Program packages and current values into a fresh source copy,
+without a saved-download baseline. The rebuilt file is checked after native
+reopen and requires a download before going Online.
+A [single upload-to-ACD command](upload-to-acd.md) now runs the native
+upload, complete content checks and Offline rebuild in sequence, retaining
+separate stage results and stopping on a failed or uncertain upload.
+Its optional [fresh L5X import](upload-to-acd.md#fresh-acd-from-uploaded-l5x)
+creates the ACD from verified native tag/Program exports and source XML context,
+without using an original ACD copy as the native save input.
+The reconstructed demo completes native download/save/reopen/Online across
+428 verified requests, followed by re-upload and another fresh ACD save/reopen
+across 1,054 requests, preserving all fourteen values and ten rungs.
+
+[Installed Online reads](installed-memory-reads.md) support six mutable
+scalar types and complete aggregate values, including short SINT/INT arrays.
+Native SDK tests read changed one-, two- and three-dimensional numeric arrays,
+TIMER and COUNTER roots from an uploaded, saved and reopened snapshot, before
+and after a supported routine edit. Values match current interpreter memory byte for byte. General
+memory ranges and individual member/array-element monitoring remain unavailable
+through this native profile.
+
+[Snapshot diagnostics](upload-value-snapshots.md#online-aggregate-readback)
+now automatically verify small arrays and structures while Online
+after reopening the saved ACD. Tests cover a Program-local array, nested UDTs
+and record/TIMER/COUNTER arrays, including readback after a supported routine edit.
+Their receipts require exact scoped paths and all value bytes; coverage reports
+roots outside the diagnostic's size bound. Short array replies use explicit zero
+tail-word padding while preserving their logical lengths and values.
+
+Each installed scalar read now shares its complete source/effect validation
+with storage construction, avoiding repeated project-wide checks per Program.
+Every subsequent read still validates the installation again.
+
+[Program-scoped transfer storage](scoped-download-tables.md) now preserves
+separate Data Table identities, handles and values when Programs reuse numeric
+IDs. Native download/save/reopen/Online and upload snapshot/save/reopen/Online
+now pass for a two-Program profile, including current local values and
+read-only BOOL, INT, DINT, REAL, LINT and array constants. General project
+replacement remains unsupported.
+
+Nested UDT constants and arrays of UDTs also preserve their complete source
+values, packed bits and padding through native upload snapshot/save/reopen.
+
+[Uploaded-content validation](upload-content-validation.md) now verifies
+all 14 offline tag values and both routines in the SDK's reconstructed demo.
+Upload replaces a deliberately changed merge-baseline routine and preserves
+all 45 current-value bytes and ten source rungs. Full uploaded ACD saving still
+faults the tested SDK during `SaveAsAsync`, after those content checks pass.
+After an earlier upload timeout, a fresh saved-project connection confirms
+SDK recovery and a new upload succeeds across 980 verified requests with all
+content checks passing. The timeout's cause remains unknown. Upload reliability
+and uploaded ACD persistence remain the transfer priorities.
+The expanded check also produces a native Program L5X package with both
+routines, verifies its settings and all ten rungs, and completes normal SDK
+cleanup across 983 requests.
+The optional [uploaded tag definition check](upload-tag-definitions.md)
+also exports every controller root and independently checks declarations,
+access/constant flags and current values. A requested check is revalidated
+before rebuilding an Offline ACD.
+A matching saved-download target can also receive a checked Online/Offline
+[baseline preflight](upload-tag-definitions.md#ordinary-upload-with-a-checked-online-baseline)
+before ordinary upload, without saving or extending its timeout.
+The checked offline rebuild command imports those packages, saves and reopens
+a new ACD and verifies values, logic and scheduling. It uses the original
+Controller metadata; direct upload-save remains unfinished. Program import
+clears download identity, so the rebuilt file requires a download.
+
+The SDK probe can also [check the complete saved downloaded project](download-content-validation.md)
+with `--verify-downloaded-content`. Values, logic, Program settings, Task
+schedules and explicit UDT schemas are verified after native save/reopen.
+
+[Installed Table identities](installed-table-identities.md) now preserve
+the separate Symbol and Data Table IDs produced by native Program import.
+The committed catalogs, descriptors and value reads share the verified links.
+Both rebuilt profiles now complete native download/save/reopen/Online and the
+next upload snapshot/save/reopen/Online, with Offline cleanup and no SDK fault.
+
+[Installed Symbol Control readback](installed-symbol-control.md) now returns
+the original opaque control word from validated committed download headers.
+Source or effect changes revoke this view; the bits do not change simulator
+flags or permissions. Native tag-operand upload is checked separately.
+
+[TIMER/COUNTER reads](builtin-template-reads.md) now use exact source-checked
+definitions retained by a committed download. Discovery, structured reads and
+Data Tables share current PRE, ACC and status-bit values. Packed BOOL control
+readback also preserves the distinction between logical bits and storage words.
+
+[Scoped Routine reference Symbols](routine-reference-symbols.md) now expose
+the original `Routine:<name>` identities under each Program. Their backed
+references match the corresponding Routine headers and remain separate from
+tag values and Data Tables. This closes a source-backed upload discovery gap;
+native upload acceptance is checked separately. The first native trial reads
+Routine data before exposing a further Label-discovery gap.
+
+[Routine Label discovery](routine-label-discovery.md) now preserves the
+Program/Routine/Label path and returns an empty catalog only for complete,
+unchanged source without `LBL` or `JMP` instructions. Nonempty Label inventories
+remain unsupported.
+
+[Downloaded Routine reads](downloaded-routine-read.md) now support the
+observed empty `(1, 4)` component for source-checked, unprotected Standard RLL
+routines. The source view adds the observed `TargetClass` field while retaining
+the original rung XML and compressed auxiliary bytes.
+
+**[Native SDK upload succeeds for the two-routine conveyor demo](routine-upload.md)**
+across **981 verified requests**, reading all ten rungs and 30 IOI operands.
+Download/save/reopen/Go Online also succeeds. Original Symbol Control metadata
+clears the two-BOOL XIC/OTE fixture's reconstruction failure; source-checked
+TIMER/COUNTER definitions close the demo's remaining tag-discovery gap.
+A second upload verifies all 33 current-value bytes across five deliberately
+changed tags; those temporary values are restored afterward. Saving an
+uploaded ACD has since been tested and faults as described above.
+
+[Packed BOOL-array readback](bool-array-download.md#packed-table-readback)
+keeps Symbol dimensions in logical bits and Data Table dimensions in 32-bit
+storage words. Supported arrays now appear in discovery and expose their current
+packed values through read-only table services. Individual symbolic bit access
+retains its existing behavior.
+
+For the owned routine-free BOOL[64] fixture, native SDK download/save/reopen/Go
+Online completes across 424 verified requests and `UploadAsync` across 968
+on version `26.1024.111516`.
+The upload trace includes the packed table read, whose eight bytes match every
+saved bit. Independent CIP checks verify all 64 bits and the linked descriptors.
+Saving and reopening an uploaded ACD remains unverified.
+
+The [appliance manager](vmware-appliance.md#stop-restart-and-update) keeps
+the PLC running through temporary webpage poll failures. It powers off only
+for an explicit, instance-bound shutdown request. Unexpected tunnel loss leaves
+the guest running so the launcher can reconnect.
+
+[Packed BOOL-array downloads](bool-array-download.md) now accept the
+source-checked one-dimensional storage profile. The owned BOOL[64] fixture
+completes native SDK download/save/reopen/Go Online across 433 verified requests;
+independent CIP reads match every saved bit. Whole-array symbolic wire operations
+remain outside this profile.
+
+[Empty ladder routine downloads](empty-routine-download.md) retain the
+native source and zero-count attachment without inventing compiled code or a
+NOP. This requires an explicitly empty original source routine. Missing or
+protected source declarations remain blocked.
+Both mixed and single-empty-routine fixtures complete native SDK
+download/save/reopen/Go Online across 433 verified requests each, with complete
+retained traces and actual Offline cleanup. Source/model preservation passes
+without an SDK fault. Those earlier upload trials failed at the first Routine
+metadata reply, including for the single empty routine. The newer scoped
+reference work reaches Routine-data retrieval.
+
+Saved-download imports recognize the checked [Program Routine headers](routine-types.md)
+and named Controller numeric [metadata qualifiers](native-metadata-values.md).
+During download, Studio may update `ControllerSerialNumber` to the endpoint's
+actual Identity. The original catalog stays immutable, and the committed view
+retains that serial. Other metadata replacements stay checked against source.
+
+An owned saved ACD completes Offline save/reopen/L5X export, preserving both
+routines' parsed logic and all 14 tags' saved values. Reimporting it and performing
+another download, save, reopen and Go Online succeeds across 414 verified requests.
+The earlier routine-upload trial failed before data retrieval after 349 verified
+requests; newer upload progress is described above.
+
+Studio's nested UDT dependency lists are validated when checking
+whether an ordinary source project has no Energy objects. Every declared
+dependency must match a nested member type; opaque, incomplete or foreign
+dependency graphs remain unavailable.
+
+The app accepts explicitly named packed-bit hosts in the
+[UDT wire catalog](native-template-snapshots.md). A declared hidden scalar
+SINT with valid BIT targets can use an ordinary identifier. The hidden storage,
+overlap, reserved-bit and member-access checks remain in place.
+Downloads can also omit a routine-data batch when the complete original source
+and prepared image both establish that there are no routines.
+The owned empty-Program fixture completes SDK download/save/reopen/Online across
+425 verified requests. Complete symbolic and Data Table reads match 100 UDT
+value bytes. With the dependency check, SDK `UploadAsync` also completes across
+975 verified requests and reads those same three UDT tables. This profile has
+no routines; saving and reopening an uploaded ACD remains unverified.
+
+[Source-defined structure downloads](download-image.md#source-matched-initial-values)
+support nested UDTs, numeric arrays and UDT/TIMER/COUNTER arrays, checking complete
+saved values and explicit source layouts before committing a separate model.
+
+Optional [compressed transfer recording](transfer-trace-recording.md)
+retains complete native upload/download traces beyond the diagnostic ring's
+capacity, with gaps and interrupted recordings reported explicitly.
+The nested-UDT empty-Program upload retains all 3,466 diagnostic events and an
+identical offline transfer replay. Current bounded Routine upload acceptance
+is described above; arbitrary projects remain unfinished.
+
+Committed Controller metadata and [signed Routine readback](downloaded-routine-read.md)
+retain the exact accepted download values and source/component bytes. Earlier
+independent readback verified both routines and all 1,671 metadata records.
+Changed source, logic or catalogs revoke the corresponding reads.
+
+The [saved-download workflow](development.md#saved-download-reconnection) can
+save a new ACD after a source-equivalent download, close it, reopen it and verify
+Go Online. The native SDK completes that sequence across 433 verified requests;
+a separate SDK process reopens the saved ACD and goes Online across 74.
+Both confirm Offline cleanup, preserve original ACD bytes and report no SDK fault.
+The saved ACD retains the new download identity; the emulator installation
+remains memory-only. Resetting or reloading it revokes that correlation.
+
+Program-mode routine replacement now retains the committed download identity
+while reporting the changed runtime logic separately. A native SDK test
+completes download, Program-mode rung import and Offline/Online reconnection
+across 547 verified requests. General project replacement remains unsupported.
+The routine-containing demo now completes existing-project SDK upload with
+both Routine source streams. Uploaded ACD saving still faults the tested SDK.
+
+This revision passes 398 affected checks and 372 Python syntax checks.
+The full milestone runs 2,163 Windows tests, with two platform checks skipped.
+Small revisions use affected checks.
+
+**Reliable general upload and uploaded ACD saving, replacement with another project, general SDK tag monitoring and the complete
+Test/Untest/Assemble edit lifecycle remain unfinished.** Studio 5000 GUI
+monitoring remains unverified. Supported instructions have bounded software
+models; this project does not establish native controller equivalence.
+
+See [compatibility checkpoints](connectivity-history.md) for earlier
+revision results and the [roadmap](roadmap.md) for remaining work.
+Application development is maintained on `main`.

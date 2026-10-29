@@ -41,6 +41,29 @@ retain only the declared logical bytes. See the [short-array native check](insta
 Constants retain their existing source-value checks. The command line is
 unchanged; `--snapshot-uploaded-acd` performs these checks automatically.
 
+### Large-array native checkpoint on app `26.1028.214608`
+
+A private source-authored fixture contains global DINT[160] and Program-local
+DINT[161] roots with the same name: 640 and 644 logical bytes. Native
+download/save/reopen/Online passes across 429 verified requests. After changing
+their final elements to opposite signed DINT limits and a scalar to 123,
+snapshot upload/save/reopen/Online passes across 1,146 requests. All sixteen
+roots (1,329 bytes), two routines and ten rungs match in the uploaded values
+and saved/reopened ACD; Program content and tag definitions also verify.
+
+The automatic Online receipt checks the two eligible small structures (24
+bytes) and explicitly excludes the two larger roots from its 128-byte policy.
+A separate whole-array SDK Online read fails normally: the SDK requests
+160/161 words on a Standard Forward Open connection negotiated at 500 bytes.
+The emulator rejects the oversized child replies rather than exceeding that
+budget. A different 4,000-byte connection in the same session is not the
+connection carrying those reads. Large-array Online monitoring remains
+unfinished; successful upload/saved-value checks do not override that result.
+
+Every native case confirms Offline cleanup and no SDK fault. Original source
+files remain unchanged, no scans execute, and the original demo is restored
+with a fresh saved-download ACD and independent typed Online DINT read.
+
 ### Native coverage on app `26.1028.204732`
 
 The diagnostic changes do not alter the running app or its version. A two-Program
