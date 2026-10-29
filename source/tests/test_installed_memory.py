@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from logixlab import installed_memory
 from logixlab.download_namespace import VALUE_BASE
-from logixlab.installed_memory import read_scalar,scalar_word
+from logixlab.installed_memory import read_words,scalar_word
 from logixlab.download_image import ImageError
 import test_installed_symbol_control as controls
 
@@ -116,7 +116,7 @@ class InstalledMemoryTests(controls.logs.NamespaceFixture,unittest.TestCase):
         tag.constant=True;self.assertEqual(self.read_value()[2],12);tag.constant=False
         tag.external_access='None';self.assertNotEqual(self.read_value()[2],0);tag.external_access='Read/Write'
         self.app.command('reset',{})
-        with self.assertRaises(ImageError):read_scalar(self.app,self.endpoint.router,VALUE_BASE,1)
+        with self.assertRaises(ImageError):read_words(self.app,self.endpoint.router,VALUE_BASE,1)
 
 
 if __name__=='__main__':unittest.main()

@@ -869,10 +869,10 @@ class Router:
                         ('program_instance','io_map_instance','controller_instance','aoi_instance','routine_instance'))):
                     return reject(4,'installed_memory_controller_scope_required')
                 exact(payload,6);address,words=struct.unpack('<IH',payload)
-                if words not in (1,2):return reject(3,'installed_memory_scalar_word_request_required')
-                if limit<8:return reject(0x1B,'installed_memory_reply_budget')
-                from .installed_memory import read_scalar
-                try:value=read_scalar(self.app,self,address,words)
+                if not 1<=words<=data_table.MAX_ARRAY_BYTES//4:return reject(3,'installed_memory_scalar_word_request_required')
+                if limit<4+4*words:return reject(0x1B,'installed_memory_reply_budget')
+                from .installed_memory import read_words
+                try:value=read_words(self.app,self,address,words)
                 except ImageError as error:
                     if str(error)=='installed_memory_scalar_word_request_required':return reject(3,str(error))
                     raise

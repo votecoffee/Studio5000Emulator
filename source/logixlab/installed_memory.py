@@ -1,13 +1,14 @@
-"""Narrow native scalar word reads at installed model value addresses.
+"""Native word reads at exact installed model value allocations.
 
-Observed UserMemory requests name an exact retained scalar allocation.
-SINT, INT, DINT, REAL and BOOL use one word; LINT alone uses two words.
+Scalars keep their observed word widths. Word-aligned aggregates require the
+complete allocation, verified source/layout and current accessible value bytes.
 No host/native memory, pointer traversal, arbitrary ranges or writes exist.
 """
 import struct
 
 from .download_image import ImageError
 from .download_headers import HeaderBindings
+from .data_table import MAX_ARRAY_BYTES
 from .model import ModelError,coerce
 from .templates import ATOMS,MAX_BYTES
 
@@ -118,8 +119,9 @@ def _bound_cell(app,router,installed,ns,key,table,code):
     return tag,cell
 
 
-def read_scalar(app,router,address,words):
-    if type(address) is not int or not 0<=address<=0xFFFFFFFF or type(words) is not int or words not in (1,2):
+def read_words(app,router,address,words):
+    if (type(address) is not int or not 0<=address<=0xFFFFFFFF
+            or type(words) is not int or not 1<=words<=MAX_ARRAY_BYTES//4):
         raise ImageError('installed_memory_scalar_word_request_required')
     installed,ns=_verified_installation(app,router)
     handles=[row for row in ns._tables if row.value_address==address]
@@ -129,6 +131,19 @@ def read_scalar(app,router,address,words):
     key,table,code,initial=rows[0];tag,cell=_bound_cell(app,router,installed,ns,key,table,code)
     if tag.constant:
         raise ImageError('installed_memory_scalar_word_required')
+    if cell.aggregate:
+        # The SDK asks for all words of numeric arrays and predefined roots.
+        # Do not expose an interior, partial, padded or cross-allocation range.
+        if not 4<=cell.size<=MAX_ARRAY_BYTES or cell.size%4 or len(initial)!=cell.size:
+            raise ImageError('installed_memory_complete_word_allocation_required')
+        if words!=cell.size//4:raise ImageError('installed_memory_scalar_word_request_required')
+        def read(ref):
+            router.access(ref)
+            return app.engine.memory.read(ref)
+        try:value=cell.value(read)
+        except ModelError as error:raise ImageError('installed_memory_current_value_unavailable') from error
+        if len(value)!=cell.size:raise ImageError('installed_memory_current_storage_unavailable')
+        return value
     dtype=tag.dtype.upper();size={('SINT',0xC2):1,('INT',0xC3):2,('DINT',0xC4):4,('LINT',0xC5):8,('REAL',0xCA):4,('BOOL',0xC1):1}.get((dtype,code))
     if size is None or len(initial)!=size:raise ImageError('installed_memory_scalar_word_required')
     if words!=(2 if dtype=='LINT' else 1):raise ImageError('installed_memory_scalar_word_request_required')
