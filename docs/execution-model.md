@@ -52,6 +52,11 @@ in RLL/ST with one-based byte positions, represented user-string capacities
 and captured source text for aliasing. Result writes preserve unused backing
 bytes. Unqualified edge cases and native minor faults remain explicit.
 
+[CONTROL operations](control-operations.md) add bounded DINT bit shifts and
+matching numeric FIFO pairs with separate edge latches, saved LEN/POS and
+explicit reset/prescan. The logical members are accessible separately; native
+CONTROL layouts and whole-record wire transfers remain unsupported.
+
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
 all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms

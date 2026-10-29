@@ -55,7 +55,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "COP": 3, "CPS": 3, "FLL": 3, "SIZE": 3, "CPT": 2,
            "JMP": 1, "LBL": 1, "TND": 0,
            "CONCAT": 3, "MID": 4, "DTOS": 2, "STOD": 2, "TRN": 2,
-           'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4}
+           'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4,'BSL':4,'BSR':4,'FFL':5,'FFU':5}
 
 
 def operand_problem(op):
@@ -374,7 +374,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','STRING'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -458,6 +458,9 @@ class Project:
         if upper == "BOOL": return False
         if upper == "TIMER": return {"PRE": 0, "ACC": 0, "EN": False, "TT": False, "DN": False}
         if upper == "COUNTER": return {"PRE": 0, "ACC": 0, "CU": False, "CD": False, "DN": False, "OV": False, "UN": False}
+        if upper == "CONTROL":
+            from .control_operations import default
+            return default()
         capacity = self.string_capacity(dtype)
         if capacity is not None:return {'LEN':0,'DATA':[0]*capacity}
         if dtype.lower() in stack: raise ModelError("Recursive UDT")
@@ -650,8 +653,8 @@ class Memory:
                     if not isinstance(value, dict): raise ModelError(f"Not a structure: {ref}")
                     actual = next((k for k in value if k.lower() == item.lower()), None)
                     if actual is None: raise ModelError(f"Unknown member {ref}")
-                    if dtype.upper() in ("TIMER", "COUNTER"):
-                        dtype = "DINT" if actual in ("PRE", "ACC") else "BOOL"
+                    if dtype.upper() in ("TIMER", "COUNTER", "CONTROL"):
+                        dtype = "DINT" if actual in ("PRE", "ACC", "LEN", "POS") else "BOOL"
                     elif self.project.string_capacity(dtype) is not None:
                         dtype='DINT' if actual=='LEN' else 'SINT'
                     else:

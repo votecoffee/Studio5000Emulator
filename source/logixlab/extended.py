@@ -71,7 +71,7 @@ class Extensions:
         else:
             value=self.memory.read(a[0],scope)
             if isinstance(value,(bool,dict,list)):raise ModelError('FLL requires a numeric scalar source')
-            aggregate=dt in ('TIMER','COUNTER','STRING') or dt.lower() in self.memory.project.udts
+            aggregate=dt in ('TIMER','COUNTER','CONTROL','STRING') or dt.lower() in self.memory.project.udts
             if aggregate:
                 if not isinstance(value,int) or value!=0:raise ModelError('FLL of structures currently supports DINT zero only')
                 def zero(obj):
@@ -79,7 +79,7 @@ class Extensions:
                     if isinstance(obj,list):return [zero(v) for v in obj]
                     return False if isinstance(obj,bool) else 0.0 if isinstance(obj,float) else 0
                 if execute:
-                    for dest in dparts:self.memory.store(dk,dest,zero(self.memory.at(dk,dest)))
+                    for dest in dparts:self.memory.store(dk,dest,self.memory.project.default(dt) if dt=='CONTROL' else zero(self.memory.at(dk,dest)))
             else:
                 if dt not in ('SINT','INT','DINT','REAL'):raise ModelError('Unsupported FLL destination type')
                 # Out-of-range narrowing is blocked instead of guessing native truncation.

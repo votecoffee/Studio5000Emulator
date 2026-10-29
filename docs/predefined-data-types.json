@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-29",
-  "audited_app_version": "26.1029.072958",
+  "audited_app_version": "26.1029.184244",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -43,6 +43,11 @@
       "remaining": "All string forms/instructions/encodings and complete built-in wire behavior.",
       "source": "source/logixlab/model.py"
     },
+    "control_model": {
+      "label": "CONTROL model (partial)",
+      "remaining": "Native layouts/transfers, remaining consumers/forms and full scan/status/fault parity.",
+      "source": "source/logixlab/control_operations.py"
+    },
     "no_dedicated_model": {
       "label": "No dedicated model",
       "remaining": "Verified schema/layout plus associated stateful runtime behavior and conformance cases.",
@@ -73,7 +78,7 @@
     "control": {
       "label": "Array/control state",
       "work_items": "D04/L01",
-      "remaining": "Define CONTROL and implement stateful array/shift/FIFO/sequencer consumers."
+      "remaining": "Expand logical CONTROL/shift/numeric FIFO forms; add LIFO/sequencer consumers and native layout/status parity."
     },
     "alarm": {
       "label": "Alarms",
@@ -163,14 +168,15 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 13,
-    "no_dedicated_model": 209,
+    "dedicated_bounded_models": 14,
+    "no_dedicated_model": 208,
     "status_counts": {
-      "no_dedicated_model": 209,
+      "no_dedicated_model": 208,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
-      "string_model": 1
+      "string_model": 1,
+      "control_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -498,7 +504,7 @@
       "identifier_candidate": "CONTROL",
       "starred": false,
       "family": "control",
-      "model_status": "no_dedicated_model",
+      "model_status": "control_model",
       "v35_listing": "exact",
       "v35_catalog_name": "CONTROL",
       "notes": []

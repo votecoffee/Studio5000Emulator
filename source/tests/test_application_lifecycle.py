@@ -130,6 +130,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['AllOK'])
         self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
 
+    def test_control_lab_shifts_and_fifo_edges_through_http(self):
+        state = self.post('demo', {'sample': 'ControlLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('step', {'dt': 10})
+        self.post('write', {'tag': 'ShiftLeft', 'value': True})
+        self.post('write', {'tag': 'Load', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['LeftBits[0]'], 1)
+        self.assertEqual(values['LeftBits[1]'], 0x12345679)
+        self.assertEqual(values['Queue[0]'], 11)
+        self.assertEqual(values['QueueControl.POS'], 1)
+        state = self.post('step', {'dt': 10})
+        self.assertEqual(next(row['value'] for row in state['tags'] if row['name']=='QueueControl.POS'), 1)
+        self.post('write', {'tag': 'Load', 'value': False})
+        self.post('write', {'tag': 'Unload', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Outgoing'], 11)
+        self.assertEqual(values['QueueControl.POS'], 0)
+        self.assertTrue(values['QueueControl.EM'])
+        self.assertEqual(values['Queue[3]'], 999)
+        self.assertFalse(self.post('report', {})['control_operations']['native_control_layout'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -337,6 +337,8 @@ class Engine:
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
         if n=='GSV':system_values.validate(self,op,scope);return
+        if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
+        if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.specification(self.memory,op,scope);return
         if self.extensions.validate(op,scope):return
         if n in ("TND", "AFI", "NOP"): return
@@ -385,6 +387,7 @@ class Engine:
                 n,a=op.name,op.args
                 def w(member,value):self.memory.write(a[0]+member,value,scope)
                 if n in self.project.aois:self.addons.call(op,False,scope,depth+1,prescan=True)
+                elif n in control_operations.INSTRUCTIONS:control_operations.prescan(self.memory,op,scope)
                 elif n=='OTE':w('',False)
                 elif n in ('ONS','OSR','OSF'):
                     w('',n!='OSF')
@@ -511,6 +514,10 @@ class Engine:
         r = lambda i: self.memory.read(a[i], scope)
         w = lambda i, value: self.memory.write(a[i], value, scope)
         if n in bit_transfer.INSTRUCTIONS:return bit_transfer.execute(self.memory,op,p,scope)
+        if n in control_operations.INSTRUCTIONS:return control_operations.execute(self.memory,op,p,scope)
+        if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
+            if p:control_operations.reset(self.memory,a[0],scope)
+            return p
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:
@@ -649,6 +656,7 @@ class Engine:
                 'integer_execution':integer_math.description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'string_operations':string_operations.description(),
+                'control_operations':control_operations.description(),
                 "supported_instructions": sorted(ARITIES),
                 'known_add_on_instructions':sorted(self.project.aois),
                 'data_only_types':sorted(self.project.data_only_types),

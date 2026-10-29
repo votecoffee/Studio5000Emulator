@@ -1018,8 +1018,8 @@ class Router:
             return self.access(alias+tail,write,seen+(key,))
         dtype=tag.dtype
         for item in re.findall(r'\.([A-Za-z_][\w]*)',tail):
-            if dtype.upper() in ('TIMER','COUNTER','STRING'):
-                dtype='DINT' if item.upper() in ('LEN','PRE','ACC') else 'SINT' if item.upper()=='DATA' else 'BOOL';continue
+            if dtype.upper() in ('TIMER','COUNTER','CONTROL','STRING'):
+                dtype='DINT' if item.upper() in ('LEN','POS','PRE','ACC') else 'SINT' if item.upper()=='DATA' else 'BOOL';continue
             udt=project.udts.get(dtype.lower())
             member=next((m for m in udt.findall('./Members/Member') if m.get('Name','').lower()==item.lower()),None) if udt is not None else None
             if member is None:raise CIPError(5,'Unknown member')

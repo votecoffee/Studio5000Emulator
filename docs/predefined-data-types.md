@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1029.072958` on 2026-10-29. Every supplied entry appears below in its original
+`26.1029.184244` on 2026-10-29. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -20,9 +20,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Wide RLL profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous ladder operations; [profile restrictions](integer-execution.md) apply |
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
-| No dedicated model | 209 | No complete named schema/layout and associated execution/state model |
+| CONTROL model, partial | 1 | Logical members plus [BSL/BSR, numeric FFL/FFU and RES](control-operations.md); native layout and remaining consumers unfinished |
+| No dedicated model | 208 | No dedicated bounded named runtime model |
 
-Thus **13 entries have dedicated bounded models**; this is not 13 fully
+Thus **14 entries have dedicated bounded models**; this is not 14 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -100,7 +101,7 @@ Every dedicated model status still requires the qualifications above.
 | 24 | `CC` | Process/filter/drive | No dedicated model | Listed |
 | 25 | `CONFIGURABLE_ROUT` | Safety | No dedicated model | Listed |
 | 26 | `CONNECTION_STATUS` | Module/connection | No dedicated model | Listed |
-| 27 | `CONTROL` | Array/control state | No dedicated model | Listed |
+| 27 | `CONTROL` | Array/control state | CONTROL model (partial) | Listed |
 | 28 | `COORDINATE_SYSTEM` | Motion/axis/reference | No dedicated model | Listed |
 | 29 | `COUNTER` | Timers/counters | Timer/counter model (partial) | Listed |
 | 30 | `DATALOG_INSTRUCTION` | Data logging | No dedicated model | Listed |
@@ -312,7 +313,7 @@ Field storage alone does not complete an asynchronous or stateful type.
 | Time/date | D03 | Implement exact typed storage, literals, units, operations, clock interaction and transfers. |
 | Timers/counters | D05 | Complete dedicated fields, instruction states, time behavior and native fault/status parity. |
 | Strings | D07 | Complete capacities/encoding, backing storage, instructions and wire models. |
-| Array/control state | D04/L01 | Define CONTROL and implement stateful array/shift/FIFO/sequencer consumers. |
+| Array/control state | D04/L01 | Expand logical CONTROL/shift/numeric FIFO forms; add LIFO/sequencer consumers and native layout/status parity. |
 | Alarms | D04/L05 | Define alarm/set state, operations, periodic evaluation, event lifecycle and consumers. |
 | Motion/axis/reference | D04/M01-M07 | Define axes, references, groups, trajectories/cams and instruction state on the simulation clock. |
 | Metal forming/valves | D04/M07 | Define configuration/state and linked metal-form/valve instruction models. |
@@ -334,7 +335,7 @@ Field storage alone does not complete an asynchronous or stateful type.
 Safety structures need a separate logical simulation profile; their names do
 not imply a certified controller or CIP Safety implementation. Axis/reference
 types need identity/lifetime and deterministic motion state, not fabricated
-addresses. MESSAGE, CONTROL, ALARM_SET_CONTROL and SFC/FBD records need their
+addresses. MESSAGE, ALARM_SET_CONTROL and SFC/FBD records need their
 consumer instruction/chart state machines as well as fields. PlantPAx/RAC
 records may include private fields that cannot be reconstructed from a partial
 export. Unknown members and layouts must stay explicit.
@@ -350,6 +351,7 @@ implementation merely by listing a name.
 Implementation status is based on [model.py](../source/logixlab/model.py),
 [runtime.py](../source/logixlab/runtime.py),
 [integer_math.py](../source/logixlab/integer_math.py),
+[control_operations.py](../source/logixlab/control_operations.py),
 [templates.py](../source/logixlab/templates.py) and the current dedicated type
 and transfer tests. Custom UDT/string behavior is documented in the
 [execution model](execution-model.md).

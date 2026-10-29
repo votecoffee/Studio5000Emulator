@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; string forms updated for app `26.1029.182441`. The engine has **60 built-in
+Audited 2026-10-29; CONTROL forms updated for app `26.1029.184244`. The engine has **64 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -23,7 +23,7 @@ separate language family, not RLL mnemonics.
 | --- | --- | --- | --- |
 | Alarm Instructions | — | — | `ALMA`, `ALMD`, `ASO` |
 | Advanced Math Instructions | — | `LN`, `LOG` | `XPY` |
-| Array (File)/Shift Instructions | — | — | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` |
+| Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU` | — | `LFL`, `LFU` |
 | Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
 | ASCII Conversion Instructions | `DTOS`, `STOD` | — | `LOWER`, `RTOS`, `STOR`, `UPPER` |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
@@ -72,6 +72,7 @@ schema/behavior backlog separately from instruction names.
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
+| BSL/BSR/FFL/FFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure FIFO, conversions, indirect/AOI array starts, LIFO and sequencers remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
@@ -86,6 +87,7 @@ The exact current dispatch table is `ARITIES` in
 [runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
 [string_operations.py](../source/logixlab/string_operations.py),
+[control_operations.py](../source/logixlab/control_operations.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports
