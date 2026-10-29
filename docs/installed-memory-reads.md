@@ -1,4 +1,56 @@
-# Installed scalar word online reads
+# Installed value Online reads
+
+## Complete word-aligned aggregates
+
+Version `26.1028.204732` extends the signed UserMemory read to complete,
+word-aligned installed aggregate values. The generic native SDK
+`GetTagValueAsync(..., Online, BYTE_ARRAY)` requests the retained value address
+and a count of 32-bit words. Tested numeric arrays use three or four words;
+TIMER and COUNTER roots use three. The reply contains current interpreter bytes
+in the source-verified native storage order.
+
+Each read requires exactly one committed Table allocation at its start address,
+its complete prepared source value extent, matching scoped Symbol/Table/type
+bindings and a checked current storage layout. Source/effect validation and all
+root/member access checks run for every request, including after supported
+routine-only edits. Reads preserve values, logic, mode, scans and elapsed time.
+The response must fit the negotiated reply budget before value resolution.
+
+Only complete extents divisible by four are accepted. Interior addresses,
+partial/cross-allocation ranges, implicit padding, ambiguous handles, constants,
+unknown layouts and unavailable member values are rejected. This does not add
+individual element/member monitoring, general memory access, aggregate writes
+or large-value fragmentation. Constants retain their separate checked whole-
+Table upload path. Existing scalar widths and small-integer zero padding remain.
+
+### Native aggregate checkpoint: `26.1028.204732`
+
+A preceding diagnostic on the prior app successfully downloaded the retained
+18-root array fixture, then rejected all six generic Online reads at the old
+scalar-only count check. It finished Offline without an SDK fault; that failed
+diagnostic is preserved.
+
+On the new app, native download/save/reopen/Online succeeds across
+428 verified requests. Nine element/member writes change DINT, two-dimensional
+INT, LINT and three-dimensional REAL arrays, plus COUNTER/TIMER accumulators
+and flags, without executing a scan. Source-equivalent upload snapshot/save/
+reopen/Online succeeds across 1147 requests, verifying all 18 roots, 105 value
+bytes, both routines, ten rungs, Program content and controller tag definitions.
+
+A separate SDK session reopens the saved snapshot and reads all four numeric
+array roots plus TIMER and COUNTER with `BYTE_ARRAY`, across
+79 requests. All 84 aggregate bytes match the current value plan, including
+the changed final array elements, exact LINT bits and packed status flags.
+A supported NOP rung replacement/reconnect succeeds across
+186 requests. Another SDK session then reads the same six complete values
+across 79 requests, with the same exact bytes.
+
+Every native case confirms Offline cleanup and no SDK fault. Source fixtures
+remain unchanged. The focused software checks also exercise scoped allocation
+binding, current nested structure values, member access revocation, malformed
+shapes/counts, nonword extents and response budgets. These model checks do not
+establish native support for arbitrary UDTs or Studio GUI monitoring. Complete
+in-epoch edited-project upload remains blocked by Change Log history.
 
 ## LINT two-word reads
 

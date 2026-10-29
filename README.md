@@ -112,11 +112,13 @@ The reconstructed demo completes native download/save/reopen/Online across
 428 verified requests, followed by re-upload and another fresh ACD save/reopen
 across 1,054 requests, preserving all fourteen values and ten rungs.
 
-[Installed BOOL and DINT reads](docs/installed-memory-reads.md) work through the
-native SDK while Online. Separate BOOL sessions verify `true` and `false`,
-with Offline cleanup and no fault. The signed UserMemory request resolves to
-an exact installed scalar value in current interpreter memory. General memory
-and member/array monitoring remain unavailable through this native profile.
+[Installed Online reads](docs/installed-memory-reads.md) support six mutable
+scalar types and complete word-aligned aggregate values. Native SDK tests read
+changed one-, two- and three-dimensional numeric arrays, TIMER and COUNTER roots
+from an uploaded, saved and reopened snapshot, before and after a supported
+routine edit. Values match current interpreter memory byte for byte. General
+memory ranges and individual member/array-element monitoring remain unavailable
+through this native profile.
 Each installed scalar read now shares its complete source/effect validation
 with storage construction, avoiding repeated project-wide checks per Program.
 Every subsequent read still validates the installation again.
