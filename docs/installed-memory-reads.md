@@ -1,5 +1,14 @@
 # Installed value Online reads
 
+## Automatic snapshot coverage
+
+The [snapshot diagnostic](upload-value-snapshots.md#online-aggregate-readback)
+automatically checks small, word-aligned mutable aggregate roots after native
+save/reopen/Go Online. Native tests now cover a Program-scoped DINT array,
+nested UDTs, record arrays and TIMER/COUNTER arrays. Exact current bytes also
+remain readable after a supported routine edit. The diagnostic reports its
+128-byte bound and any roots outside that coverage in the snapshot summary.
+
 ## Complete word-aligned aggregates
 
 Version `26.1028.204732` extends the signed UserMemory read to complete,

@@ -119,6 +119,14 @@ from an uploaded, saved and reopened snapshot, before and after a supported
 routine edit. Values match current interpreter memory byte for byte. General
 memory ranges and individual member/array-element monitoring remain unavailable
 through this native profile.
+
+[Snapshot diagnostics](docs/upload-value-snapshots.md#online-aggregate-readback)
+now automatically verify small word-aligned arrays and structures while Online
+after reopening the saved ACD. Tests cover a Program-local array, nested UDTs
+and record/TIMER/COUNTER arrays, including readback after a supported routine edit.
+Their receipts require exact scoped paths and all value bytes; coverage reports
+roots outside the diagnostic's size/alignment bound.
+
 Each installed scalar read now shares its complete source/effect validation
 with storage construction, avoiding repeated project-wide checks per Program.
 Every subsequent read still validates the installation again.

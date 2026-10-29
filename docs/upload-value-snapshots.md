@@ -1,9 +1,9 @@
 # Source-equivalent upload value snapshots
 
-Snapshot diagnostics include typed Online REAL reads for all mutable scalar
-REAL roots after reopen. Each result must match the exact uploaded four bytes;
-Python validation requires complete, unique scoped-path coverage in the native
-receipt. Arrays and constants retain their separate whole-value checks.
+Snapshot diagnostics include typed Online scalar reads and bounded Online
+aggregate reads after reopen. Results must match the exact current uploaded
+bytes. Python validation requires complete, unique scoped-path coverage for
+every eligible root, along with independent saved-file content checks.
 
 The native probe can save the current uploaded tag values into a fresh ACD
 when the installed project still has its original supported logic. It uses
@@ -19,6 +19,53 @@ When a saved-download baseline is unavailable, the separate
 [Offline ACD rebuild](uploaded-acd-rebuild.md) imports verified native Program
 packages into the original source copy. Its saved result requires a download
 before going Online.
+
+## Online aggregate readback
+
+After native save/reopen/Go Online, the snapshot diagnostic now calls
+`GetTagValueAsync(..., Online, BYTE_ARRAY)` for every mutable aggregate root
+whose complete value occupies 4 through 128 bytes and is divisible by four.
+Eligible roots include declared arrays and supported structures. Each native
+result must match every byte of the uploaded value plan at its exact Controller
+or Program-scoped XPath. The Python validator independently rejects missing,
+duplicate, wrong-scope, truncated or changed results and a changed size policy.
+
+The native receipt contains `onlineAggregateMaximumBytes` and
+`onlineAggregateChecks`; the verified summary contains `online_aggregate_checks`
+with `tags`, `value_bytes`, `maximum_bytes` and `excluded_tags`. The latter counts
+mutable aggregate roots outside the size/alignment bound. Such roots still
+receive the existing full Offline/saved-value checks. This diagnostic adds no
+individual member read, large-value fragmentation or native aggregate write.
+Constants retain their existing source-value checks. The command line is
+unchanged; `--snapshot-uploaded-acd` performs these checks automatically.
+
+### Native coverage on app `26.1028.204732`
+
+The diagnostic changes do not alter the running app or its version. A two-Program
+32-root fixture completes native download/save/reopen/Online across
+436 verified requests. Seven independent value changes include a Program-local
+DINT-array element, global REAL/LINT-array elements and distinct Program-local
+scalar values. Snapshot upload/save/reopen/Online passes across
+1239 requests, checking all 140 value bytes, four routines and thirteen rungs,
+both Program packages and controller tag definitions. Its automatic Online
+aggregate receipt verifies five roots and 60 bytes, with zero excluded roots.
+
+A separate 19-root fixture contains nested UDTs, an array of records and
+TIMER/COUNTER arrays. Native download/save/reopen/Online passes across
+429 requests. Thirteen nested value changes exercise final member-array
+elements, record-array values, packed flags, REAL and predefined accumulators.
+Snapshot upload/save/reopen/Online passes across
+1165 requests, verifying all 193 value bytes, both routines and ten rungs,
+Program content and controller tag definitions. All seven eligible aggregate
+roots pass automatic Online readback: 172 bytes, with zero exclusions.
+
+A supported NOP replacement/reconnect passes across
+185 requests. A fresh SDK session then reads those seven complete aggregate
+values across 80 requests; all 172 bytes still match, including the changed
+nested fields and packed flags. No scans execute. All native cases confirm
+Offline cleanup and no SDK fault, and both original source pairs remain unchanged.
+This verifies the tested native SDK profiles. Studio GUI monitoring, arbitrary
+UDT layouts and complete live-edited-project upload remain separate work.
 
 ## Requirements
 
