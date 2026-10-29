@@ -226,7 +226,9 @@ class ExpansionTests(unittest.TestCase):
         self.assertEqual(row['kind'],'integer_text')
         e.memory.write('WideDest','9007199254740993')
         self.assertEqual(e.memory.read('WideDest'),9007199254740993)
-        self.assertTrue(self.engine(['ADD(WideSource,WideSource,WideDest);']).blockers)
+        e=self.engine(['ADD(WideSource,WideSource,WideDest);'])
+        self.assertEqual(e.blockers,[])
+        with self.assertRaisesRegex(ModelError,'overflow'):e.step()
 
     def test_unsigned_bit_access_does_not_sign_extend(self):
         e=self.engine(['OTL(PackedStatus.15);']);e.memory.write('PackedStatus',0);e.step()

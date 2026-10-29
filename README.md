@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1028.214608`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.072958`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -22,6 +22,12 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[Wide integer ladder execution](docs/integer-execution.md) now supports
+homogeneous LINT and unsigned arithmetic, comparisons and bitwise operations
+for the v35 ControlLogix 5580 model. Integer DIV uses exact truncation toward
+zero. Mixed-type arithmetic, wide ST expressions and native math flags remain
+unfinished.
 
 ## Table of Contents
 

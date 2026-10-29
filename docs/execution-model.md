@@ -32,6 +32,12 @@ Supported ladder forms include bit logic, comparisons, typed math, timers and
 counters, copies/fills, expressions, strings, jumps and routine calls. The
 project's Coverage view is authoritative for implemented operand forms.
 
+The [integer ladder profile](integer-execution.md) adds homogeneous LINT and
+unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
+5580 identifiers. Integer DIV truncates toward zero without floating-point
+conversion. Mixed-type wide operations and native math flags remain blocked;
+overflow and divide faults retain modeled scan rollback.
+
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
 all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms

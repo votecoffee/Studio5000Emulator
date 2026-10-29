@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29 against app `26.1028.214608`. **Full Logix emulation is not
+Audited 2026-10-29; integer execution updated for app `26.1029.072958`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -24,7 +24,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
 | Sequential Function Chart (SFC) | Routine kind can be identified; execution is blocked | Steps, transitions, actions, qualifiers, branches, timers, reset/pause/forcing and monitoring |
 | BOOL/SINT/INT/DINT/REAL | Saved values, scalar/member/array access and supported operations | Complete conversions, math flags, overflow and native edge cases |
-| LINT and unsigned integers | Storage, exact integer values, bit access, same-type RLL MOV/CLR and bounded copies/transfers | General arithmetic/comparisons/conversions and ST expressions; type availability per target |
+| LINT and unsigned integers | Storage/transfers plus homogeneous RLL arithmetic, comparisons and bitwise operations in the v35 5580 profile | Mixed types/conversions, wide ST/CPT/CMP/MEQ, math flags and other target profiles |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
@@ -77,10 +77,11 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 
 ## Data types and memory
 
-- [ ] **D01 — Full numeric operations:** LINT, USINT, UINT, UDINT and ULINT
-  arithmetic, comparisons, expressions, moves, conversions and bit operations;
-  LREAL storage and operations; exact signed/unsigned boundaries and promotion.
-  Storing a 64-bit value currently does not enable 64-bit arithmetic.
+- [ ] **D01 — Full numeric operations:** extend the implemented homogeneous
+  [LINT/unsigned RLL profile](integer-execution.md) to mixed types, expressions,
+  conversions and all qualified targets. Add LREAL storage and operations,
+  complete signed/unsigned boundaries and promotion. Wide ST/CPT/CMP/MEQ and
+  native status semantics remain unfinished.
 - [ ] **D02 — Numeric edge behavior:** overflow/truncation, carry and math flags,
   divide-by-zero, rounding, REAL/LREAL NaN/infinity/subnormal handling and
   conversions. The current engine rejects nonfinite REAL values.
@@ -254,7 +255,7 @@ deferred, rather than being counted toward full execution coverage:
 ## Audit basis and maintenance
 
 Implementation evidence: [RLL/model](../source/logixlab/model.py),
-[runtime](../source/logixlab/runtime.py), [extended instructions](../source/logixlab/extended.py),
+[runtime](../source/logixlab/runtime.py), [integer execution](../source/logixlab/integer_math.py), [extended instructions](../source/logixlab/extended.py),
 [ST](../source/logixlab/structured.py), [ST expressions](../source/logixlab/st_expression.py),
 [AOIs](../source/logixlab/addons.py), [wire templates](../source/logixlab/templates.py),
 [motion catalogs](../source/logixlab/motion_catalog.py),

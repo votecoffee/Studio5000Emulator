@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="IntegerLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="IntegerLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="SignedInput" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedDelta" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedSum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Divisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedInput" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="18446744073709551614" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedOne" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedSum" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedComplement" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteInput" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="200" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteStep" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteSum" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WordInput" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="60000" />
+        </Data>
+      </Tag>
+      <Tag Name="WordStep" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="123" />
+        </Data>
+      </Tag>
+      <Tag Name="WordSum" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DwordInput" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="4000000000" />
+        </Data>
+      </Tag>
+      <Tag Name="DwordStep" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="42" />
+        </Data>
+      </Tag>
+      <Tag Name="DwordSum" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExactComparison" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(SignedInput,SignedDelta,SignedSum);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>DIV(SignedInput,Divisor,SignedQuotient);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>MOD(SignedInput,Divisor,SignedRemainder);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>ADD(UnsignedInput,UnsignedOne,UnsignedSum);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>NOT(UnsignedInput,UnsignedComplement);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>ADD(ByteInput,ByteStep,ByteSum);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>ADD(WordInput,WordStep,WordSum);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>ADD(DwordInput,DwordStep,DwordSum);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>GRT(SignedSum,SignedInput)OTE(ExactComparison);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

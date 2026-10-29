@@ -136,7 +136,7 @@ class RuntimeTests(unittest.TestCase):
 
     def test_arithmetic_known_vectors(self):
         cases=[('ADD(7,-3,SpeedCommand);',4),('SUB(7,3,SpeedCommand);',4),
-               ('MUL(-7,3,SpeedCommand);',-21),('DIV(7,2,SpeedCommand);',4),
+               ('MUL(-7,3,SpeedCommand);',-21),('DIV(7,2,SpeedCommand);',3),
                ('DIV(5,2,SpeedCommand);',2),('MOD(-7,3,SpeedCommand);',-1),
                ('NEG(7,SpeedCommand);',-7),('ABS(-7,SpeedCommand);',7),
                ('AND(15,6,SpeedCommand);',6),('OR(8,6,SpeedCommand);',14),

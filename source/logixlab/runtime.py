@@ -9,7 +9,7 @@ from . import task_runtime
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values
+from . import system_values, integer_math
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -357,15 +357,7 @@ class Engine:
         if n in ("AND", "OR", "XOR", "NOT"):
             for arg in a:
                 if isinstance(self.memory.read(arg, scope), (bool, float)): raise ModelError("Bitwise operands require integers")
-        narrow={'LINT','USINT','UINT','UDINT','ULINT'}
-        types=[]
-        for arg in a:
-            try:types.append(self.memory.resolve(arg,scope)[2])
-            except ModelError:types.append(None)
-        if any(dtype in narrow for dtype in types):
-            if n=='CLR':pass
-            elif n=='MOV' and types[0]==types[1]:pass
-            else:raise ModelError('Wide/unsigned types support same-type MOV, CLR, COPY, and bit access; this arithmetic form is unsupported')
+        integer_math.profile(self,op,scope)
 
     def _prescan(self):
         for key in sorted(self.active):
@@ -494,6 +486,9 @@ class Engine:
         w = lambda i, value: self.memory.write(a[i], value, scope)
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra
+        if p and n in integer_math.INSTRUCTIONS:
+            dtype=integer_math.profile(self,op,scope)
+            if dtype is not None:return integer_math.execute(self,op,scope,dtype)
         if n=='LBL':return p
         if n=='JMP':
             if p:raise JumpRoutine(a[0])
@@ -534,8 +529,12 @@ class Engine:
                     q = abs(x) // abs(y) * (-1 if (x < 0) != (y < 0) else 1)
                     value = x - q * y
                 else:
-                    value = {"ADD": operator.add, "SUB": operator.sub, "MUL": operator.mul,
-                             "DIV": operator.truediv, "AND": operator.and_, "OR": operator.or_, "XOR": operator.xor}[n](x, y)
+                    operation = {"ADD": operator.add, "SUB": operator.sub, "MUL": operator.mul,
+                                 "DIV": operator.truediv, "AND": operator.and_, "OR": operator.or_, "XOR": operator.xor}[n]
+                    if n=='DIV' and type(x) is int and type(y) is int:
+                        from .model import INT_BITS
+                        if self.memory.resolve(a[2],scope)[2] in INT_BITS:operation=integer_math.quotient
+                    value=operation(x,y)
                     if n in ("AND", "OR", "XOR"):
                         dtype = self.memory.resolve(a[2], scope)[2]
                         bits = {"SINT": 8, "INT": 16, "DINT": 32}.get(dtype)
@@ -609,6 +608,7 @@ class Engine:
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
                 'structured_text':{'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer)','FOR','WHILE','REPEAT','EXIT','supported calls'],
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
+                'integer_execution':integer_math.description(self.project),
                 "supported_instructions": sorted(ARITIES),
                 'known_add_on_instructions':sorted(self.project.aois),
                 'data_only_types':sorted(self.project.data_only_types),
@@ -618,6 +618,7 @@ class Engine:
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
                            "One Standard task; scan interval is simulated time, not controller timing",
+                           "v35 5580 RLL integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide ST/CPT/CMP and math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
                            "JSR calls are bounded to 25 levels and 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",

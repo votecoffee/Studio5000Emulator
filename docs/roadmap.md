@@ -23,6 +23,10 @@ Build deterministic multi-task/event scheduling and fault/status/lifecycle
 semantics before relying on them in devices or motion. Expand common missing
 data-manipulation, array/shift/sequencer, math and string instructions.
 
+First increment: [homogeneous wide-integer RLL execution](integer-execution.md)
+for v35 ControlLogix 5580, with exact division and explicit type/profile limits.
+Mixed types, wide ST expressions, flags and other target profiles remain open.
+
 Acceptance: focused fixtures for every type/operation/scan-mode boundary;
 mixed-task ordering and fault-handler tests; unchanged saved values and clear
 unsupported-feature reports. Native comparisons are identified separately.

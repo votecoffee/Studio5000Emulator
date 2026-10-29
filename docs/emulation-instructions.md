@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29 against app `26.1028.214608`. The engine has **55 built-in
+Audited 2026-10-29; integer forms updated for app `26.1029.072958`. The engine has **55 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -65,7 +65,7 @@ separate language family, not RLL mnemonics.
 
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
-| Bit logic, comparisons, MOV/CLR and math | Full data-type matrix, conversions, status flags, overflow/fault behavior and native scan parity. Wide/unsigned arithmetic is blocked even when storage works. |
+| Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |

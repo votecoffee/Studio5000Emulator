@@ -201,6 +201,7 @@ $('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('structure-demo').onclick=()=>loadDemo('StructureLab');
 $('layout-demo').onclick=()=>loadDemo('LayoutLab');
 $('flag-demo').onclick=()=>loadDemo('FlagLab');
+$('integer-demo').onclick=()=>loadDemo('IntegerLab');
 $('aoi-context').onchange=()=>{selectedContext=$('aoi-context').value;renderLadder();};
 $('step').onclick=scan;
   $('device-apply').onclick=async()=>{try{await accept(await api('device-io-configure',{allow_writes:$('device-writes').checked}));}catch(e){error(e);}};
