@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.190232`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.191218`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 69 built-in RLL instruction entries, a bounded ST
+The current model is partial: 72 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -24,6 +24,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[Numeric conversions](docs/numeric-conversions.md) add DINT FRD/TOD and
+INT/DINT SWPB byte ordering in ladder, with SWPB also available in ST. Choose
+**Conversion lab** to inspect packed BCD, byte orders and sign extension.
 
 [CONTROL, bit shifts and FIFO](docs/control-operations.md) add BSL/BSR, numeric
 FFL/FFU, numeric LFL/LFU and CONTROL reset with explicit edge and bounds rules.

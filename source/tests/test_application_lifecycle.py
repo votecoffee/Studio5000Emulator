@@ -175,6 +175,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['Patterns[4]'], 999)
         self.assertFalse(self.post('report', {})['sequencer_operations']['native_scan_parity'])
 
+    def test_conversion_lab_bcd_and_st_byte_swapping_through_http(self):
+        state = self.post('demo', {'sample': 'ConversionLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Packed'], 0x12345678)
+        self.assertEqual(values['Decoded'], 12345678)
+        self.assertEqual(values['Weighted'], 12345684)
+        self.assertEqual(values['Reverse'], 0x78563412)
+        self.assertEqual(values['STValue'], 0x34127856)
+        self.assertEqual(values['SwappedWords[0]'], -21742)
+        self.assertEqual(values['SwappedWords[1]'], 255)
+        self.assertEqual(values['SwappedWords[2]'], 999)
+        self.assertTrue(values['AllOK'])
+        self.assertFalse(self.post('report', {})['numeric_conversions']['native_math_status'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

@@ -201,6 +201,7 @@ $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');
 $('sequence-demo').onclick=()=>loadDemo('SequenceLab');
+$('conversion-demo').onclick=()=>loadDemo('ConversionLab');
 $('network-demo').onclick=()=>loadDemo('NetworkLab');
 $('structure-demo').onclick=()=>loadDemo('StructureLab');
 $('layout-demo').onclick=()=>loadDemo('LayoutLab');

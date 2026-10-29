@@ -42,6 +42,12 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[Numeric conversions](numeric-conversions.md) provide ladder DINT FRD/TOD and
+ladder/ST INT/DINT SWPB. FRD weights all eight hex nibbles, including A–F;
+TOD packs qualified decimal values into a signed DINT bit pattern. SWPB uses
+explicit byte-order selectors and sign-extends swapped INT results to DINT.
+Native TOD saturation/math flags remain separate from modeled rollback.
+
 [Masked moves and bit fields](bit-transfer.md) use declared SINT/INT/DINT
 widths, zero-fill, snapshot overlap and preserved destination bits. BTD positions
 and length are immediate; its excess bits never wrap to another array element.

@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available conversion increment: [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md),
+including ST SWPB and byte-order/sign-extension examples. Other BCD types, mixed
+conversions, expression/FBD variants and native overflow/status behavior remain open.
+
 Available common move increment: [MVM/BTD ladder execution](bit-transfer.md)
 for SINT/INT/DINT, with mixed widths, masks and bounded fields. Native status
 parity and distinct language variants remain open.

@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="ConversionLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="ConversionLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Enable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Decimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="12345678" />
+        </Data>
+      </Tag>
+      <Tag Name="Packed" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Decoded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HexDigits" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305419902" />
+        </Data>
+      </Tag>
+      <Tag Name="Weighted" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteSource" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305419896" />
+        </Data>
+      </Tag>
+      <Tag Name="Reverse" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Words" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighLow" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WordSource" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="4779" />
+        </Data>
+      </Tag>
+      <Tag Name="SignExtended" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="STValue" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Index" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AllOK" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputWords" DataType="INT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="3">
+            <Element Index="[0]" Value="4779" />
+            <Element Index="[1]" Value="-256" />
+            <Element Index="[2]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="SwappedWords" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Enable)TOD(Decimal,Packed);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Enable)FRD(Packed,Decoded);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Enable)FRD(HexDigits,Weighted);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Enable)SWPB(ByteSource,REVERSE,Reverse)SWPB(ByteSource,WORD,Words)SWPB(ByteSource,HIGHLOW,HighLow);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(Enable)SWPB(WordSource,HIGHLOW,SignExtended);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>JSR(SwapText,0);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>EQU(Decoded,Decimal)EQU(Weighted,12345684)EQU(SignExtended,-21742)EQU(SwappedWords[0],-21742)EQU(SwappedWords[1],255)OTE(AllOK);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="SwapText" Type="ST">
+            <STContent>
+              <Line Number="0">SWPB(ByteSource,HIGHLOW,STValue);</Line>
+              <Line Number="1">FOR Index:=0 TO 1 DO</Line>
+              <Line Number="2">SWPB(InputWords[Index],REVERSE,SwappedWords[Index]);</Line>
+              <Line Number="3">END_FOR;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

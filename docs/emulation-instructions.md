@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; CONTROL forms updated for app `26.1029.190232`. The engine has **69 built-in
+Audited 2026-10-29; numeric conversion forms updated for app `26.1029.191218`. The engine has **72 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -39,13 +39,13 @@ separate language family, not RLL mnemonics.
 | For Break Instructions | — | — | `BRK`, `FOR` |
 | Input/Output Instructions | `GSV` | — | `IOT`, `MSG`, `SSV` |
 | License Instructions | — | — | `LV` |
-| Math Conversion Instructions | `TRN` | `DEG`, `RAD` | `FRD`, `TOD` |
+| Math Conversion Instructions | `FRD`, `TOD`, `TRN` | `DEG`, `RAD` | — |
 | Metal Form Instructions | — | — | `AVC`, `CBCM`, `CBIM`, `CBSSM`, `CPM`, `CSM`, `EPMS`, `MMVC`, `MVC` |
 | Motion Event Instructions | — | — | `MAOC`, `MAR`, `MAW`, `MDOC`, `MDR`, `MDW` |
 | Motion Group Instructions | — | — | `MGS`, `MGSD`, `MGSP`, `MGSR` |
 | Motion Move Instructions | — | — | `MAG`, `MAH`, `MAJ`, `MAM`, `MAPC`, `MAS`, `MATC`, `MCCP`, `MCD`, `MCSV`, `MDAC`, `MRP` |
 | Motion State Instruction | — | — | `MAFR`, `MASD`, `MASR`, `MDF`, `MDO`, `MDS`, `MSF`, `MSO` |
-| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `XOR` | — | `BAND`, `BNOT`, `BOR`, `BTDT`, `BXOR`, `DFF`, `JKFF`, `MVMT`, `RESD`, `SETD`, `SWPB` |
+| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | `BAND`, `BNOT`, `BOR`, `BTDT`, `BXOR`, `DFF`, `JKFF`, `MVMT`, `RESD`, `SETD` |
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `DEDT`, `FGEN`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SCL`, `SRTP`, `TOT` |
@@ -71,6 +71,7 @@ schema/behavior backlog separately from instruction names.
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
+| FRD/TOD/SWPB | [DINT BCD and INT/DINT byte-order forms](numeric-conversions.md) for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Other BCD types, mixed conversions, BCD expressions/FBD and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
 | SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
@@ -87,6 +88,7 @@ The exact current dispatch table is `ARITIES` in
 [model.py](../source/logixlab/model.py). Execution and operand checks live in
 [runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
+[numeric_conversions.py](../source/logixlab/numeric_conversions.py),
 [string_operations.py](../source/logixlab/string_operations.py),
 [control_operations.py](../source/logixlab/control_operations.py),
 [sequencer_operations.py](../source/logixlab/sequencer_operations.py),
