@@ -1,9 +1,51 @@
 # Installed value Online reads
 
+## Short arrays and final word padding
+
+Version `26.1028.214608` supports complete installed arrays whose logical byte
+length is not divisible by four. The SDK requests a rounded count of 32-bit
+words. The emulator returns every current logical value byte followed by one
+through three explicit zero bytes when needed. Those bytes belong to the model's
+transport reply; no neighboring allocation is read or added to the tag value.
+
+The start address must still identify exactly one committed allocation. The
+requested count must equal `(logical_bytes + 3) // 4`; partial, oversized,
+interior, unknown, stale, inaccessible and constant reads retain their existing
+denials. Source, scoped Symbol/Table bindings, prepared effects, current shape
+and member access remain checked. Reply budgets include the complete padded
+word extent. Existing aligned aggregate and scalar encodings are unchanged.
+
+### Native short-array checkpoint
+
+A new private fixture contains global SINT[3]/INT[3] and Program-local
+SINT[5]/INT[1] roots. The original app downloaded it successfully, then rejected
+all four Online reads with confirmed Offline cleanup and no SDK fault. Its
+retained requests ask for one, two, two and one words for logical sizes
+3, 6, 5 and 2 bytes. This observation establishes the SDK's request sizes;
+it does not establish physical-controller padding semantics.
+
+On the new app, download/save/reopen/Online passes across
+430 verified requests. A separate SDK session reads all four original short
+arrays across 77 requests and returns exactly their logical 3/6/5/2 bytes.
+Four array elements and a separate DINT are changed without a scan. Snapshot
+upload/save/reopen/Online then passes across
+1156 requests, preserving all 18 roots and 61 value bytes, both routines,
+ten rungs, Program content and tag definitions. Automatic Online aggregate
+checks verify six roots and 40 logical bytes, with zero exclusions.
+
+A supported NOP replacement/reconnect passes across
+185 requests. A fresh SDK session then reads the six complete aggregate roots
+across 79 requests and matches every changed logical byte. Native cases finish
+Offline without an SDK fault; source fixtures and logical dimensions remain
+unchanged. Focused checks also verify zero padding after negative values,
+neighbor isolation, wrong counts, interior denials and changed-shape rejection.
+Aggregate writes, fragmented ranges and full live-edited upload remain separate
+work. The Change Log history policy is unchanged.
+
 ## Automatic snapshot coverage
 
 The [snapshot diagnostic](upload-value-snapshots.md#online-aggregate-readback)
-automatically checks small, word-aligned mutable aggregate roots after native
+automatically checks small mutable aggregate roots, including short arrays, after native
 save/reopen/Go Online. Native tests now cover a Program-scoped DINT array,
 nested UDTs, record arrays and TIMER/COUNTER arrays. Exact current bytes also
 remain readable after a supported routine edit. The diagnostic reports its

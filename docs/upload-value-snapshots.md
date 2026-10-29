@@ -24,7 +24,7 @@ before going Online.
 
 After native save/reopen/Go Online, the snapshot diagnostic now calls
 `GetTagValueAsync(..., Online, BYTE_ARRAY)` for every mutable aggregate root
-whose complete value occupies 4 through 128 bytes and is divisible by four.
+whose complete logical value occupies 1 through 128 bytes.
 Eligible roots include declared arrays and supported structures. Each native
 result must match every byte of the uploaded value plan at its exact Controller
 or Program-scoped XPath. The Python validator independently rejects missing,
@@ -33,9 +33,11 @@ duplicate, wrong-scope, truncated or changed results and a changed size policy.
 The native receipt contains `onlineAggregateMaximumBytes` and
 `onlineAggregateChecks`; the verified summary contains `online_aggregate_checks`
 with `tags`, `value_bytes`, `maximum_bytes` and `excluded_tags`. The latter counts
-mutable aggregate roots outside the size/alignment bound. Such roots still
+mutable aggregate roots outside the size bound. Such roots still
 receive the existing full Offline/saved-value checks. This diagnostic adds no
 individual member read, large-value fragmentation or native aggregate write.
+Short SINT/INT arrays use explicit zero tail-word transport padding; SDK receipts
+retain only the declared logical bytes. See the [short-array native check](installed-memory-reads.md#short-arrays-and-final-word-padding).
 Constants retain their existing source-value checks. The command line is
 unchanged; `--snapshot-uploaded-acd` performs these checks automatically.
 

@@ -113,19 +113,20 @@ The reconstructed demo completes native download/save/reopen/Online across
 across 1,054 requests, preserving all fourteen values and ten rungs.
 
 [Installed Online reads](docs/installed-memory-reads.md) support six mutable
-scalar types and complete word-aligned aggregate values. Native SDK tests read
-changed one-, two- and three-dimensional numeric arrays, TIMER and COUNTER roots
-from an uploaded, saved and reopened snapshot, before and after a supported
-routine edit. Values match current interpreter memory byte for byte. General
+scalar types and complete aggregate values, including short SINT/INT arrays.
+Native SDK tests read changed one-, two- and three-dimensional numeric arrays,
+TIMER and COUNTER roots from an uploaded, saved and reopened snapshot, before
+and after a supported routine edit. Values match current interpreter memory byte for byte. General
 memory ranges and individual member/array-element monitoring remain unavailable
 through this native profile.
 
 [Snapshot diagnostics](docs/upload-value-snapshots.md#online-aggregate-readback)
-now automatically verify small word-aligned arrays and structures while Online
+now automatically verify small arrays and structures while Online
 after reopening the saved ACD. Tests cover a Program-local array, nested UDTs
 and record/TIMER/COUNTER arrays, including readback after a supported routine edit.
 Their receipts require exact scoped paths and all value bytes; coverage reports
-roots outside the diagnostic's size/alignment bound.
+roots outside the diagnostic's size bound. Short array replies use explicit zero
+tail-word padding while preserving their logical lengths and values.
 
 Each installed scalar read now shares its complete source/effect validation
 with storage construction, avoiding repeated project-wide checks per Program.
