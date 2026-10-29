@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; integer forms updated for app `26.1029.072958`. The engine has **55 built-in
+Audited 2026-10-29; bit-transfer forms updated for app `26.1029.181021`. The engine has **57 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -45,7 +45,7 @@ separate language family, not RLL mnemonics.
 | Motion Group Instructions | — | — | `MGS`, `MGSD`, `MGSP`, `MGSR` |
 | Motion Move Instructions | — | — | `MAG`, `MAH`, `MAJ`, `MAM`, `MAPC`, `MAS`, `MATC`, `MCCP`, `MCD`, `MCSV`, `MDAC`, `MRP` |
 | Motion State Instruction | — | — | `MAFR`, `MASD`, `MASR`, `MDF`, `MDO`, `MDS`, `MSF`, `MSO` |
-| Move/Logical Instructions | `AND`, `CLR`, `MOV`, `NOT`, `OR`, `XOR` | — | `BAND`, `BNOT`, `BOR`, `BTD`, `BTDT`, `BXOR`, `DFF`, `JKFF`, `MVM`, `MVMT`, `RESD`, `SETD`, `SWPB` |
+| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `XOR` | — | `BAND`, `BNOT`, `BOR`, `BTDT`, `BXOR`, `DFF`, `JKFF`, `MVMT`, `RESD`, `SETD`, `SWPB` |
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `DEDT`, `FGEN`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SCL`, `SRTP`, `TOT` |
@@ -71,6 +71,7 @@ schema/behavior backlog separately from instruction names.
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
+| MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
@@ -83,6 +84,7 @@ schema/behavior backlog separately from instruction names.
 The exact current dispatch table is `ARITIES` in
 [model.py](../source/logixlab/model.py). Execution and operand checks live in
 [runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
+[bit_transfer.py](../source/logixlab/bit_transfer.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports

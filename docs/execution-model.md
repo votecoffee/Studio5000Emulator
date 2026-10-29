@@ -42,6 +42,11 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[Masked moves and bit fields](bit-transfer.md) use declared SINT/INT/DINT
+widths, zero-fill, snapshot overlap and preserved destination bits. BTD positions
+and length are immediate; its excess bits never wrap to another array element.
+Native math/status flags and ST/FBD variants remain unfinished.
+
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
 all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms

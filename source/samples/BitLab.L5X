@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="BitLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="BitLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="SourceByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="-86" />
+        </Data>
+      </Tag>
+      <Tag Name="SourceWord" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-4660" />
+        </Data>
+      </Tag>
+      <Tag Name="Mask" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="255" />
+        </Data>
+      </Tag>
+      <Tag Name="Status" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305397760" />
+        </Data>
+      </Tag>
+      <Tag Name="Packed" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LowWord" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedMask" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="Overlap" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="4660" />
+        </Data>
+      </Tag>
+      <Tag Name="Truncated" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="1234" />
+        </Data>
+      </Tag>
+      <Tag Name="Enable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="BitOK" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Enable)MVM(SourceByte,Mask,Status);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>CLR(Packed)BTD(SourceByte,0,Packed,0,8)BTD(SourceWord,0,Packed,16,16);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>BTD(Packed,0,LowWord,0,16);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>BTD(Packed,24,HighByte,0,8);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>MVM(0,SourceByte,MixedMask);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>MOV(16#1234,Overlap)BTD(Overlap,0,Overlap,4,12);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>BTD(SourceWord,0,Truncated,12,32);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>MEQ(Status,Mask,SourceByte)OTE(BitOK);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

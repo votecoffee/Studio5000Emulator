@@ -93,6 +93,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [6,3,1])
         self.assertEqual(state['controller']['scan_interval_ms'], 10)
 
+    def test_bit_lab_packs_values_through_http_and_reports_instruction_scope(self):
+        state = self.post('demo', {'sample': 'BitLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Status'], 0x123400aa)
+        self.assertEqual(values['Packed'], -305397590)
+        self.assertEqual(values['LowWord'], 170)
+        self.assertEqual(values['HighByte'], -19)
+        self.assertEqual(values['MixedMask'], -171)
+        self.assertEqual(values['Overlap'], 0x2344)
+        self.assertEqual(values['Truncated'], -15150)
+        self.assertTrue(values['BitOK'])
+        report = self.post('report', {})
+        self.assertEqual(report['bit_transfer']['instructions'], ['BTD', 'MVM'])
+        self.assertFalse(report['bit_transfer']['native_math_status'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})
