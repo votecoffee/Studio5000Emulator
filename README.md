@@ -272,6 +272,8 @@ conventions.
 4. Qualify mixed-feature projects with explicit conformance evidence.
 5. Resume broader Studio uploads/downloads and the complete online-edit lifecycle.
 
+Follow the [full-emulation tracker](https://github.com/votecoffee/Studio5000Emulator/issues/1).
+
 The [full remaining-work inventory](docs/emulation-coverage.md) includes current
 limitations and specialized controller profiles. The [milestones](docs/roadmap.md)
 define acceptance gates. Preserve existing connectivity and external HTTP/MQTT

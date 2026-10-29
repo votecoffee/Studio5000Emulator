@@ -12,6 +12,8 @@ inventory. The [instruction inventory](emulation-instructions.md) names current
 RLL entries, expression-only forms and unimplemented instruction families.
 All milestones below are planned capabilities, not current compatibility claims.
 
+Track implementation in [full-emulation issue #1](https://github.com/votecoffee/Studio5000Emulator/issues/1).
+
 ## 1. Execution and data foundation
 
 Scope: E01–E08 and D01–D09 in the capability checklist. Start with explicit
