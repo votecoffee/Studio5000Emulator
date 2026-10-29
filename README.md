@@ -6,9 +6,15 @@ Explore supported ladder and Structured Text logic, drive inputs, inspect scan
 traces, and test explicit messaging against a custom execution model. The app
 and executable use the name **LogixLab**.
 
-**Current app version: `26.1028.184545`.** Versions use the release timestamp
+**Current app version: `26.1028.201704`.** Versions use the release timestamp
 `YY.MMDD.HHmmss` in the release workstation's local time. The browser title,
 page header, Windows tray and executable properties share this version.
+
+[Saved native edits](docs/native-edit-persistence.md#reload-and-download-a-saved-edit)
+can now be reloaded and downloaded as a new source. The corrected importer
+retains the SDK's extended routine storage metadata. A changed instruction
+executes, and a value-snapshot upload preserves its result and edited logic
+through native save/reopen/Online checks.
 
 [Native SDK scalar writes](docs/native-tag-writes.md) now update and read back
 six tag types, including Program locals, before and after a supported rung edit.

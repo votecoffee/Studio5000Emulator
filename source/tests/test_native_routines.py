@@ -58,7 +58,41 @@ def saved_record(*,logical=(0x68,11,0x6D,7,0,0),component_type=259,offset=None,v
     return struct.pack('<HI',0xFAFA,len(data)+6)+data
 
 
+def saved_edit_record(*,logical=(0x68,11,0x6D,7,0,0)):
+    data=bytearray(saved_record(logical=logical)[6:])
+    struct.pack_into('<II',data,148+74,369,10)
+    struct.pack_into('<II',data,148+363,110,4)
+    data+=struct.pack('<III',0x12345678,113,64)+bytes(64)
+    # The native stored used length excludes its own final four bytes.
+    struct.pack_into('<I',data,0,len(data)-4)
+    return struct.pack('<HI',0xFAFA,len(data)+6)+data
+
+
 class NativeRoutineTests(unittest.TestCase):
+    def test_saved_accepted_edit_profile_keeps_original_scope_type_and_opaque_key(self):
+        raw=saved_edit_record();paths=native_routines.routine_paths(database(raw),EXPECTED,PROGRAMS)
+        self.assertEqual(paths,[dict(row(),type_word=0x7FF,source_key_hex=(b'\0\x08'+bytes(range(64))).hex())])
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'native-edited.ACD';original=container(database(raw));path.write_bytes(original)
+            symbols=NativeSymbols(hashlib.sha256(original).hexdigest(),'b'*64,[],[dict(name='ProgramA',instance=11)])
+            parsed=NativeRoutines.from_acd(path,'b'*64,EXPECTED,symbols)
+            self.assertEqual(parsed.rows[0].manifest(),paths[0]);self.assertEqual(path.read_bytes(),original)
+        aoi=native_routines.routine_paths(database(saved_edit_record(logical=(0x338,11,0x6D,7,0,0))),
+                                         EXPECTED,PROGRAMS,parent_class=0x338)
+        self.assertNotIn('type_word',aoi[0]);self.assertNotIn('source_key_hex',aoi[0])
+
+    def test_saved_edit_extension_requires_its_exact_header_complete_extent_and_all_zero_bytes(self):
+        original=saved_edit_record();variants=[]
+        for offset,value in ((74,struct.pack('<I',368)),(78,struct.pack('<I',9)),
+                             (363,struct.pack('<I',109)),(375,struct.pack('<I',112)),(379,struct.pack('<I',60)),
+                             (383,b'\1'),(415,b'\1'),(446,b'\1'),(90,b'\xfc\x07'),(158,b'\0\x09')):
+            data=bytearray(original);data[6+148+offset:6+148+offset+len(value)]=value;variants.append(bytes(data))
+        data=bytearray(original[:-4]);struct.pack_into('<I',data,2,len(data));variants.append(bytes(data))
+        for data in variants:
+            with self.subTest(prefix=data[:6]),self.assertRaises(ModelError):
+                native_routines.routine_paths(database(data),EXPECTED,PROGRAMS)
+        with self.assertRaises(ModelError):native_routines.routine_paths(database(saved_record(),original),EXPECTED,PROGRAMS)
+
     def test_saved_download_program_headers_preserve_original_id_type_and_opaque_key(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'saved.ACD';original=container(database(saved_record()));path.write_bytes(original)

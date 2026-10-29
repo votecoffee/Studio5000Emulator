@@ -59,6 +59,64 @@ addition. The saved file is correlated to that live installation; a new download
 or emulator reload can revoke it. Studio GUI Save/Save As, arbitrary projects
 and the full Test/Untest/Assemble lifecycle remain unverified.
 
+## Reload and download a saved edit
+
+Version `26.1028.201704` fixes ACD routine-metadata import for the exact storage
+extension emitted by the tested native accepted-edit save. The original and
+saved-download records use a 371-byte stored body prefix. The edited Routine
+uses 443 bytes, with stored block length 369 and item count 10. It retains the
+original Type word and opaque source key, then adds item 113 with 64 zero bytes.
+The importer checks the preceding item boundary, extension ID/length and all
+64 bytes, including four bytes beyond the stored used-length prefix. Unknown,
+nonzero, truncated or malformed extensions remain rejected. This profile is
+limited to Program-scoped component type 259; it does not extend AOI Type
+metadata, interpret the added item or execute native compiled code.
+
+To use the saved edited project as a new source:
+
+1. Load the saved ACD and matching L5X source into the emulator's native import
+   workflow. Use the exact L5X bytes bound by the importer for verification;
+   separately generated exports can have different hashes.
+2. Download that source-equivalent project and save its matching download ACD.
+   This starts a new source/download epoch with the saved edited logic.
+3. Exercise the supported logic using **Step scan** while the emulator is stopped.
+4. Upload a value snapshot using the matching saved-download baseline.
+
+The transfer commands use the existing acceptance tool. Substitute the owned
+emulator route and source paths:
+
+```powershell
+py -3.13 -X utf8 source/tools/probe_native_sdk.py `
+  --project .local/native-edit-save/native-edited.ACD `
+  --url http://127.0.0.1:8786 --path 'YourDriver\192.0.2.8\Backplane\0' `
+  --operation download --save-downloaded-acd `
+  --verify-downloaded-content .local/native-edit-save/native-edited.L5X `
+  --retain-transfer-trace --output .local/edited-roundtrip/download
+
+# Step the supported source, then snapshot its current values.
+py -3.13 -X utf8 source/tools/probe_native_sdk.py `
+  --project .local/native-edit-save/native-edited.ACD `
+  --url http://127.0.0.1:8786 --path 'YourDriver\192.0.2.8\Backplane\0' `
+  --operation upload --upload-target .local/edited-roundtrip/download/downloaded.ACD `
+  --snapshot-uploaded-acd `
+  --verify-uploaded-content .local/native-edit-save/native-edited.L5X `
+  --verify-uploaded-tag-definitions --retain-transfer-trace `
+  --output .local/edited-roundtrip/upload
+```
+
+The controlled native test reloads a saved `MOV(234,SpeedSetpoint)` edit,
+downloads it across 411 verified requests, and performs one 10 ms interpreter scan.
+`SpeedSetpoint` becomes 234. Upload snapshot/save/reopen/Online passes across
+1140 requests, checking all 14 roots and 45 value bytes, both routines and ten
+rungs, Program content, tag definitions and current typed Online scalar reads.
+Actual Offline cleanup and no SDK fault are confirmed. Both fixture files remain
+unchanged. The ACD snapshot retains correlation to the new download epoch.
+
+Direct edited upload was also tried with a freshly saved native edited ACD as
+its merge target. It still stops at the Change Log rejection and finishes
+Offline without an SDK fault. The workflow above deliberately reloads and
+downloads a new source; it does not bypass or implement that live-edit history.
+
 ## Upload boundary
 
 This saves the client's accepted native project. It does not call `UploadAsync`

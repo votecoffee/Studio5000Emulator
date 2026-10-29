@@ -6,8 +6,8 @@ ordinary unprotected RLL storage profile seen in saved downloads. Six UINT16
 logical words describe Program 0x68 parent
 and Executable 0x6D child IDs. Nothing here reads compiled code or addresses,
 generates IDs from source order, or grants native edit/execution authority.
-The unprotected 371-byte body profile also retains its original Type word;
-other body layouts retain identities without inventing that field.
+The canonical 371-byte and exact saved-edit 443-byte body prefixes retain the
+original Type word; other layouts retain identities without inventing it.
 """
 from dataclasses import dataclass,field
 import gzip
@@ -125,9 +125,17 @@ def routine_paths(data, expected_routines, program_ids, *, parent_class=0x68):
         pair=(logical[1],logical[3])
         if pair in instances:raise ModelError('Conflicting native routine child instances')
         type_word=None;source_key=None
-        # The ordinary unprotected format-54/body-371 data area starts at 90.
+        # The ordinary unprotected data area starts at 90. SDK-saved accepted
+        # edits add exactly one observed zero-filled storage item. The stored
+        # used length omits the last four bytes; verify those bytes as well.
         # Other layouts still supply identities but no guessed Type attribute.
-        if (len(body)==371 and struct.unpack_from('<4I',body,74)==(297,9,1,189)):
+        canonical=len(body)==371 and struct.unpack_from('<4I',body,74)==(297,9,1,189)
+        saved_edit=(parent_class==0x68 and component_type==259 and len(body)==443
+            and struct.unpack_from('<4I',body,74)==(369,10,1,189)
+            and body[363:371]==struct.pack('<II',110,4)
+            and body[375:383]==struct.pack('<II',113,64)
+            and used+4<=len(record) and bytes(record[148+383:used+4])==bytes(64))
+        if canonical or saved_edit:
             type_word=struct.unpack_from('<H',body,90)[0]
             if body[156:160]==b'\x42\0\0\x08':source_key=bytes(body[158:224])
         if parent_class==0x68 and component_type==259 and (type_word!=0x7FF or source_key is None):
@@ -239,6 +247,6 @@ class NativeRoutines:
                     type_words_available=sum(row.type_word is not None for row in self.rows),
                     source_key_metadata_available=sum(row.source_key is not None for row in self.rows),
                     source_keys_decrypted=False,
-                    type_word_source='Original unprotected format-54/body-371 data, UINT16 at offset 90',
+                    type_word_source='Original validated unprotected format-54 storage, UINT16 at offset 90',
                     type_word_semantics_inferred=False,
                     compiled_code=False,compiled_addresses=False,native_edit_authority=False,runtime_equivalence=False)
