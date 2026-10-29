@@ -154,6 +154,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['Queue[3]'], 999)
         self.assertFalse(self.post('report', {})['control_operations']['native_control_layout'])
 
+    def test_sequence_lab_current_rows_compare_feedback_and_teach_while_held(self):
+        state = self.post('demo', {'sample': 'SequenceLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('step', {'dt': 10})
+        self.post('write', {'tag': 'Advance', 'value': True})
+        self.post('write', {'tag': 'Feedback', 'value': 1})
+        self.post('write', {'tag': 'Teach', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['SequenceControl.POS'], 1)
+        self.assertEqual(values['Outputs'], 0x120001)
+        self.assertTrue(values['Matches'])
+        self.assertEqual(values['Learned[1]'], 40)
+        self.post('write', {'tag': 'TeachValue', 'value': 41})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['TeachControl.POS'], 1)
+        self.assertEqual(values['Learned[1]'], 41)
+        self.assertEqual(values['Patterns[4]'], 999)
+        self.assertFalse(self.post('report', {})['sequencer_operations']['native_scan_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; CONTROL operations updated for app `26.1029.184244`. **Full Logix emulation is not
+Audited 2026-10-29; CONTROL operations updated for app `26.1029.190232`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,7 +19,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 64 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 69 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
 | Structured Text | Assignments, conditionals, integer CASE, bounded loops, supported expressions/calls and RLL/ST calls | Complete language/function coverage, wide/time arithmetic, integer division and aggregate assignment |
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
@@ -29,7 +29,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
-| CONTROL | [Logical members, BSL/BSR, numeric FFL/FFU and RES](control-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
+| CONTROL | [Logical members, shifts, numeric FIFO/LIFO and RES](control-operations.md); [DINT sequencers](sequencer-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), selected conversions | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
@@ -100,7 +100,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   profile. Do not treat them as untyped LINT aliases.
 - [ ] **D04 — Predefined structures:** complete the named
   [predefined-type inventory](predefined-data-types.md), including dedicated
-  complete CONTROL beyond its [logical shift/FIFO profile](control-operations.md),
+  complete CONTROL beyond its [logical shift/FIFO/LIFO profile](control-operations.md),
   and implement MESSAGE, PID/PID_ENHANCED, alarm/filter/drive/phase/sequence records, motion
   control/axis/group/coordinate/cam records and module-defined I/O types.
   Decorated-data retention alone does not supply control behavior.
@@ -278,5 +278,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 64 built-in RLL entries.
+added by project AOIs are counted separately from the 69 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

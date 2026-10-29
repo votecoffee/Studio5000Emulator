@@ -268,5 +268,40 @@ class ControlOperationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('RightBits'),[-2147483648,0x12345679,999])
         self.assertTrue(e.memory.read('RightControl.UL'))
 
+    def lifo_pair(self,**kwargs):
+        return self.checked(['XIC(StartPB)LFL(Incoming,Queue[0],Ctl,?,?);','XIC(PartSensor)LFU(Queue[0],Outgoing,Ctl,?,?);'],length=3,**kwargs)
+
+    def test_lifo_order_zeroes_popped_slot_without_shifting_and_rejects_full_push(self):
+        e=self.lifo_pair();e.step()
+        for value in (11,22,33):self.pulse(e,'StartPB',value)
+        self.pulse(e,'StartPB',44);self.assertEqual(e.memory.read('Queue'),[11,22,33,999])
+        e.memory.write('StartPB',False)
+        for value in (33,22,11,0):
+            self.pulse(e,'PartSensor');self.assertEqual(e.memory.read('Outgoing'),value)
+        self.assertEqual(e.memory.read('Queue'),[0,0,0,999]);self.assertTrue(e.memory.read('Ctl.EM'))
+
+    def test_lifo_pop_preserves_lower_and_unknown_inactive_elements(self):
+        e=self.checked(['XIC(PartSensor)LFU(Queue[0],Outgoing,Ctl,?,?);'],length=3,position=2,queue=(11,22,0,999))
+        e.step();e.memory.values['queue'][2]=None;self.pulse(e,'PartSensor')
+        self.assertEqual(e.memory.read('Outgoing'),22);self.assertEqual(e.memory.read('Queue[0]'),11)
+        self.assertIsNone(e.memory.values['queue'][2]);self.assertEqual(e.memory.read('Queue[1]'),0)
+
+    def test_lifo_numeric_types_prescan_and_held_true_edges(self):
+        for dtype,value in (('SINT',-12),('INT',-1234),('DINT',123456),('REAL',1.25)):
+            e=self.lifo_pair(dtype=dtype,queue=(0,0,0,0));e.memory.write('StartPB',True);e.step()
+            self.assertEqual(e.memory.read('Ctl.POS'),0)
+            self.pulse(e,'StartPB',value);e.step();self.assertEqual(e.memory.read('Ctl.POS'),1)
+            e.memory.write('StartPB',False);self.pulse(e,'PartSensor');e.step()
+            self.assertEqual(e.memory.read('Outgoing'),value);self.assertEqual(e.memory.read('Ctl.POS'),0)
+
+    def test_lifo_offset_bounds_and_unknown_top_are_transactional(self):
+        e=self.checked(['XIC(PartSensor)LFU(Queue[1],Outgoing,Ctl,?,?);'],length=2,position=2,queue=(111,11,22,999))
+        e.step();self.pulse(e,'PartSensor');self.assertEqual(e.memory.read('Queue'),[111,11,0,999])
+        self.assertEqual(e.memory.read('Outgoing'),22)
+        e=self.checked(['XIC(PartSensor)LFU(Queue[0],Outgoing,Ctl,?,?);'],length=3,position=1)
+        e.step();e.memory.values['queue'][0]=None;e.memory.write('PartSensor',True);before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
+        self.assertEqual(e.memory.values,before)
+
 
 if __name__=='__main__':unittest.main()

@@ -53,9 +53,14 @@ and captured source text for aliasing. Result writes preserve unused backing
 bytes. Unqualified edge cases and native minor faults remain explicit.
 
 [CONTROL operations](control-operations.md) add bounded DINT bit shifts and
-matching numeric FIFO pairs with separate edge latches, saved LEN/POS and
+matching numeric FIFO/LIFO pairs with separate edge latches, saved LEN/POS and
 explicit reset/prescan. The logical members are accessible separately; native
 CONTROL layouts and whole-record wire transfers remain unsupported.
+
+[DINT sequencers](sequencer-operations.md) qualify v35 5580 ladder SQO/SQI/SQL.
+SQO and SQL advance on an edge and apply the current row while held true.
+SQI compares without advancing; cyclic rows 1..LEN follow startup row zero.
+Selected-member bounds, mask widths, unknown values and rollback remain explicit.
 
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve

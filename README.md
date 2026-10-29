@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.184244`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.190232`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 64 built-in RLL instruction entries, a bounded ST
+The current model is partial: 69 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -26,8 +26,10 @@ and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
 
 [CONTROL, bit shifts and FIFO](docs/control-operations.md) add BSL/BSR, numeric
-FFL/FFU and CONTROL reset with explicit edge and bounds rules. Choose
-**Control lab** to inspect shifts, queue occupancy and unload order.
+FFL/FFU, numeric LFL/LFU and CONTROL reset with explicit edge and bounds rules.
+Choose **Control lab** to inspect shifts and queues. **Sequence lab** demonstrates
+a stack plus [DINT SQO/SQI/SQL](docs/sequencer-operations.md) for masked pattern
+outputs, feedback comparison and teaching a table.
 
 [String search and editing](docs/string-operations.md) add FIND, INSERT and
 DELETE in ladder and ST, including explicit user strings and in-place edits.

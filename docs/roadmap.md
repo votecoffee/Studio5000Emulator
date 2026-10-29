@@ -19,7 +19,7 @@ Track implementation in [full-emulation issue #1](https://github.com/votecoffee/
 Prioritize basic, widely used features before specialized types or motion:
 Continuous/Periodic execution, standard RLL/ST forms, bit/move/math operations,
 timers/counters, strings, arrays, UDTs and ordinary AOIs. Next common gaps include
-remaining shift/FIFO forms, LIFO/sequencers, string conversions, basic
+remaining shift/FIFO/LIFO/sequencer forms, string conversions, basic
 math functions, practical fault/status behavior, then event tasks/MSG/virtual I/O.
 LREAL/time expansion, advanced languages/process families, Safety and motion
 follow these common execution paths.
@@ -33,9 +33,11 @@ Build deterministic multi-task/event scheduling and fault/status/lifecycle
 semantics before relying on them in devices or motion. Expand common missing
 data-manipulation, array/shift/sequencer, math and string instructions.
 
-Available CONTROL increment: [BSL/BSR and numeric FFL/FFU](control-operations.md)
-with logical CONTROL members, saved LEN/POS and reset. Remaining consumers,
-aggregate FIFO/conversions and native layout/status parity stay open.
+Available CONTROL increment: [BSL/BSR and numeric FIFO/LIFO](control-operations.md)
+with logical CONTROL members, saved LEN/POS and reset.
+[DINT SQO/SQI/SQL](sequencer-operations.md) add cyclic output, comparison and
+teaching. Aggregate transfers, mixed types, remaining file consumers and native
+layout/status parity stay open.
 
 Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operations.md)
 with explicit user-string capacities, alias-safe source reads and rollback.

@@ -1,0 +1,186 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SequenceLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="SequenceLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="StackControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SequenceControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TeachControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Stack" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Patterns" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="1" />
+            <Element Index="[2]" Value="2" />
+            <Element Index="[3]" Value="4" />
+            <Element Index="[4]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Learned" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Push" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Pop" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Advance" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Teach" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Reset" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Matches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StackValue" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="11" />
+        </Data>
+      </Tag>
+      <Tag Name="Popped" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Outputs" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1179648" />
+        </Data>
+      </Tag>
+      <Tag Name="Feedback" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Mask" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="255" />
+        </Data>
+      </Tag>
+      <Tag Name="TeachValue" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="40" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Reset)RES(StackControl)RES(SequenceControl)RES(TeachControl);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Push)LFL(StackValue,Stack[0],StackControl,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Pop)LFU(Stack[0],Popped,StackControl,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Advance)SQO(Patterns[0],Mask,Outputs,SequenceControl,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>SQI(Patterns[0],Mask,Feedback,SequenceControl,?,?)OTE(Matches);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(Teach)SQL(Learned[0],TeachValue,TeachControl,?,?);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

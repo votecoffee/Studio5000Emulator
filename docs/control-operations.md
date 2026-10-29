@@ -1,4 +1,4 @@
-# CONTROL, bit shifts and FIFO
+# CONTROL, bit shifts, FIFO and LIFO
 
 LogixLab models a logical CONTROL record and these ladder forms:
 
@@ -7,6 +7,8 @@ BSL(Array,Control,SourceBit,?);
 BSR(Array,Control,SourceBit,?);
 FFL(Source,FIFO,Control,?,?);
 FFU(FIFO,Dest,Control,?,?);
+LFL(Source,LIFO,Control,?,?);
+LFU(LIFO,Dest,Control,?,?);
 RES(Control);
 ```
 
@@ -45,9 +47,22 @@ profile and stops execution. Exact native invalid-state/edge parity remains open
 This increment supports matching scalar SINT/INT/DINT/REAL sources, destinations
 and arrays, plus representable numeric source immediates. The array region is
 limited to its selected member. FIFO strings/structures, conversions, indirect
-or alias array starts, AOI array bindings, LIFO and sequencer consumers remain
-unfinished. FFU destinations cannot share the FIFO base tag. Shift SourceBit
+or alias array starts and AOI array bindings remain unfinished. FFU/LFU
+destinations cannot share their array base tag. Shift SourceBit
 cannot overlap its CONTROL. These restrictions are checked before execution.
+
+## LIFO pair
+
+LFL/LFU use the same numeric types, bounds and independent EN/EU edge latches
+as FIFO. LFL loads at POS and increments it. LFU returns the newest value at
+POS-1, zeroes only that slot and decrements POS; lower entries do not shift.
+An empty unload edge writes zero. Held true does not repeat either operation.
+DN/EM and the bounded invalid-state policy follow the FIFO profile above.
+
+[Sequence lab](../source/samples/SequenceLab.L5X) demonstrates a three-value stack
+and [DINT sequencers](sequencer-operations.md). Step once to rearm, then pulse
+Push for each StackValue. Pulse Pop to inspect reverse order through Popped.
+The fourth array element is a guard and stays 999.
 
 ## Reset, observation and limits
 
@@ -77,7 +92,7 @@ QueueControl.POS/DN/EM show occupancy. Reset clears control state and retains
 backing data. See [ControlLab.L5X](../source/samples/ControlLab.L5X).
 
 The baseline was checked against installed v35 help 14533 (BSL), 14525 (BSR),
-14529 (FFL), 14528 (FFU), 14733 (RES) and 454960 (pseudo-operands). Published
+14529 (FFL), 14528 (FFU), 14527 (LFL), 14526 (LFU), 14733 (RES) and 454960 (pseudo-operands). Published
 Rockwell [BSL](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/array--file--shift-instructions/bit-shift-left--bsl-.html)
 and [FFL](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-load--ffl-.html)
 references provide additional context. Software tests of this bounded logical

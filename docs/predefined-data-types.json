@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-29",
-  "audited_app_version": "26.1029.184244",
+  "audited_app_version": "26.1029.190232",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -78,7 +78,7 @@
     "control": {
       "label": "Array/control state",
       "work_items": "D04/L01",
-      "remaining": "Expand logical CONTROL/shift/numeric FIFO forms; add LIFO/sequencer consumers and native layout/status parity."
+      "remaining": "Expand remaining shift/FIFO/LIFO/sequencer forms, aggregate transfers, conversions and file consumers; qualify native layout/status parity."
     },
     "alarm": {
       "label": "Alarms",

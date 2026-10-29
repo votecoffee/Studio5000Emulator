@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1029.184244` on 2026-10-29. Every supplied entry appears below in its original
+`26.1029.190232` on 2026-10-29. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -20,7 +20,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Wide RLL profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous ladder operations; [profile restrictions](integer-execution.md) apply |
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
-| CONTROL model, partial | 1 | Logical members plus [BSL/BSR, numeric FFL/FFU and RES](control-operations.md); native layout and remaining consumers unfinished |
+| CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
 | No dedicated model | 208 | No dedicated bounded named runtime model |
 
 Thus **14 entries have dedicated bounded models**; this is not 14 fully
@@ -313,7 +313,7 @@ Field storage alone does not complete an asynchronous or stateful type.
 | Time/date | D03 | Implement exact typed storage, literals, units, operations, clock interaction and transfers. |
 | Timers/counters | D05 | Complete dedicated fields, instruction states, time behavior and native fault/status parity. |
 | Strings | D07 | Complete capacities/encoding, backing storage, instructions and wire models. |
-| Array/control state | D04/L01 | Expand logical CONTROL/shift/numeric FIFO forms; add LIFO/sequencer consumers and native layout/status parity. |
+| Array/control state | D04/L01 | Expand remaining shift/FIFO/LIFO/sequencer forms, aggregate transfers, conversions and file consumers; qualify native layout/status parity. |
 | Alarms | D04/L05 | Define alarm/set state, operations, periodic evaluation, event lifecycle and consumers. |
 | Motion/axis/reference | D04/M01-M07 | Define axes, references, groups, trajectories/cams and instruction state on the simulation clock. |
 | Metal forming/valves | D04/M07 | Define configuration/state and linked metal-form/valve instruction models. |

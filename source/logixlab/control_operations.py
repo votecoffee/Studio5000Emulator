@@ -1,4 +1,4 @@
-"""Logical CONTROL state with bounded ladder shifts and numeric FIFO pairs.
+"""Logical CONTROL state with bounded ladder shifts and numeric FIFO/LIFO pairs.
 
 No native CONTROL byte layout, fault record or unimplemented consumer is implied.
 Length/position pseudo-operands use saved LEN/POS, never per-scan initialization.
@@ -8,7 +8,7 @@ import re
 from .model import ModelError, coerce, literal
 
 FLAGS = ('EN', 'EU', 'DN', 'EM', 'ER', 'UL', 'IN', 'FD')
-INSTRUCTIONS = frozenset(('BSL', 'BSR', 'FFL', 'FFU'))
+INSTRUCTIONS = frozenset(('BSL', 'BSR', 'FFL', 'FFU', 'LFL', 'LFU'))
 NUMERIC = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 MAX_ELEMENTS = 4096
 
@@ -40,7 +40,7 @@ def flag(obj, name):
     return obj[name]
 
 
-def array_region(memory, ref, count, scope):
+def array_region(memory, ref, count, scope, *, writable=True):
     # Static starting references keep .POS out of array subscripts. References
     # are re-resolved on each scan; the selected member remains the boundary.
     if not re.fullmatch(r'[A-Za-z_][\w:]*(?:\.[A-Za-z_]\w*|\[\d+(?:,\d+)*\])*', ref):
@@ -53,7 +53,7 @@ def array_region(memory, ref, count, scope):
     tag = memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
     if tag is not None and tag.alias:
         raise ModelError('Alias starting arrays are not yet qualified for shifts/FIFO')
-    key, parts, dtype = memory.check_writable(ref, scope)
+    key, parts, dtype = (memory.check_writable if writable else memory.resolve)(ref, scope)
     if dtype not in NUMERIC:raise ModelError('Shift/FIFO operand requires a supported numeric array')
     value = memory.at(key, parts)
     if not isinstance(value, list) and not any(isinstance(memory.at(key, parts[:i]), list)
@@ -88,7 +88,7 @@ def validate(memory, op, scope):
     control(memory, ctrl, scope)
     if a[3:] != (['?'] if shift else ['?', '?']):
         raise ModelError('Use neutral-text ? pseudo-operands; CONTROL.LEN/POS hold saved values')
-    array = a[0] if n != 'FFL' else a[1]
+    array = a[1] if n in ('FFL', 'LFL') else a[0]
     key, _, dtype = array_region(memory, array, 0, scope)
     _, parts, _ = memory.resolve(array, scope)
     ck, cp, _ = memory.resolve(ctrl, scope)
@@ -102,9 +102,9 @@ def validate(memory, op, scope):
             raise ModelError('Shift source must not overlap its CONTROL record')
     else:
         if dtype not in NUMERIC:raise ModelError('FIFO currently supports SINT/INT/DINT/REAL arrays')
-        value = a[0] if n == 'FFL' else a[1]
-        scalar(memory, value, scope, dtype, destination=n == 'FFU')
-        if n == 'FFU':
+        value = a[0] if n in ('FFL', 'LFL') else a[1]
+        scalar(memory, value, scope, dtype, destination=n in ('FFU', 'LFU'))
+        if n in ('FFU', 'LFU'):
             dk, dp, _ = memory.resolve(value, scope)
             if dk == key:
                 raise ModelError('FFU destination must not share the FIFO base tag')
@@ -122,7 +122,7 @@ def prescan(memory, op, scope):
     if op.name in ('BSL', 'BSR'):
         obj.update(EN=False, DN=False, ER=False, POS=0)
     else:
-        obj['EN' if op.name == 'FFL' else 'EU'] = True
+        obj['EN' if op.name in ('FFL', 'LFL') else 'EU'] = True
         fifo_status(obj)
 
 
@@ -170,7 +170,7 @@ def shift(memory, op, power, scope):
 def fifo(memory, op, power, scope):
     n, a = op.name, op.args;obj = control(memory, a[2], scope)
     length, position = fifo_status(obj)
-    latch = 'EN' if n == 'FFL' else 'EU'
+    latch = 'EN' if n in ('FFL', 'LFL') else 'EU'
     if not power:
         obj[latch] = False
         return False
@@ -179,15 +179,20 @@ def fifo(memory, op, power, scope):
     if length <= 0 or position < 0:return True
     if position > length:
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
-    if n == 'FFL' and position == length:return True
-    array = a[1] if n == 'FFL' else a[0]
+    if n in ('FFL', 'LFL') and position == length:return True
+    array = a[1] if n in ('FFL', 'LFL') else a[0]
     key, paths, dtype = array_region(memory, array, length, scope)
-    if n == 'FFL':
+    if n in ('FFL', 'LFL'):
         source = memory.read(a[0], scope)
         memory.store(key, paths[position], coerce(source, dtype))
         obj['POS'] += 1
     elif position == 0:
         memory.write(a[1], 0, scope)
+    elif n == 'LFU':
+        value = memory.read(memory.address(key, paths[position - 1]))
+        memory.store(key, paths[position - 1], coerce(0, dtype))
+        memory.write(a[1], value, scope)
+        obj['POS'] -= 1
     else:
         values = [memory.read(memory.address(key, path)) for path in paths]
         if any(type(value) not in (int, float) for value in values):raise ModelError('FIFO array contains unknown numeric data')
@@ -208,6 +213,7 @@ def description():
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
                 fifo='Matching SINT/INT/DINT/REAL, rising EN/EU, saved LEN/POS, selected-member bounds',
                 fifo_empty='Empty unload writes zero once per qualified rising edge',
+                lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
-                remaining=['FIFO structures/strings/conversions', 'LIFO/sequencers/file consumers',
+                remaining=['FIFO structures/strings/conversions', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
                            'Indirect/alias/AOI starting arrays', 'Native invalid-state and scan parity'])

@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; CONTROL forms updated for app `26.1029.184244`. The engine has **64 built-in
+Audited 2026-10-29; CONTROL forms updated for app `26.1029.190232`. The engine has **69 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -23,7 +23,7 @@ separate language family, not RLL mnemonics.
 | --- | --- | --- | --- |
 | Alarm Instructions | — | — | `ALMA`, `ALMD`, `ASO` |
 | Advanced Math Instructions | — | `LN`, `LOG` | `XPY` |
-| Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU` | — | `LFL`, `LFU` |
+| Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` | — | — |
 | Array File/Misc. Instructions | `COP`, `CPS`, `FLL`, `SIZE` | — | `AVE`, `FAL`, `FSC`, `STD` |
 | ASCII Conversion Instructions | `DTOS`, `STOD` | — | `LOWER`, `RTOS`, `STOR`, `UPPER` |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
@@ -52,7 +52,7 @@ separate language family, not RLL mnemonics.
 | Program Control Instructions | `AFI`, `JMP`, `JSR`, `LBL`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `EVENT`, `JXR`, `MCR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
 | Select/Limit Instructions | — | — | `ESEL`, `HLL`, `MUX`, `RLIM`, `SEL`, `SNEG`, `SSUM` |
-| Sequencer Instructions | — | — | `SQI`, `SQL`, `SQO` |
+| Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | — | — | `DDT`, `DTR`, `FBC`, `PID` |
 | Statistical Instructions | — | — | `MAVE`, `MAXC`, `MINC`, `MSTD` |
@@ -72,7 +72,8 @@ schema/behavior backlog separately from instruction names.
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned RLL operations now have a bounded [v35 5580 profile](integer-execution.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
-| BSL/BSR/FFL/FFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure FIFO, conversions, indirect/AOI array starts, LIFO and sequencers remain unfinished. |
+| BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
+| SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
@@ -88,6 +89,7 @@ The exact current dispatch table is `ARITIES` in
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
 [string_operations.py](../source/logixlab/string_operations.py),
 [control_operations.py](../source/logixlab/control_operations.py),
+[sequencer_operations.py](../source/logixlab/sequencer_operations.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports
