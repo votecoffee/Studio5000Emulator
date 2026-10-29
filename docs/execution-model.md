@@ -6,10 +6,13 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
-Whole-project execution currently requires one Standard Continuous or Periodic
-task. An isolated routine harness runs its selected routine, called routines and
-AOIs, excluding unrelated tasks/programs. Periodic tasks require an integral
-millisecond rate supported by the model.
+Whole-project execution supports one to 32 Standard Continuous/Periodic tasks,
+with at most one Continuous task. Periodic releases follow integral-millisecond
+rates and priority ordering at coincident times; each task executes serially.
+Continuous logic runs once per simulation step after due Periodic work. An
+isolated routine harness bypasses scheduling. See the exact
+[release and rollback rules](task-scheduling.md); CPU preemption, event and Safety
+tasks remain unfinished.
 
 Import restores represented saved values. Unknown values omitted by an export
 remain unknown. Prescan and scan behavior use explicit modeled rules. Runtime
@@ -18,7 +21,8 @@ and AOI state; native controller fault handling can differ.
 
 The application retains imported values in Program and validates prescan with
 a rollback preview. [Run entry](run-entry.md) commits initialization once and
-rearms `S:FS`; the first manual Step also initializes once. Repeated Run requests
+rearms `S:FS` independently for each Program's first actual execution; the first
+manual Step also initializes once. Repeated Run requests
 do not repeat prescan. A failed prescan restores values and execution context,
 keeps the controller stopped and reports a fault.
 
@@ -89,7 +93,7 @@ converter logs and project-specific reports are local inputs, not public fixture
 
 ## Boundaries
 
-FBD/SFC, multiple/event-task execution, motion, physical I/O, produced/consumed
+FBD/SFC, preemptive/event/Safety-task execution, motion, physical I/O, produced/consumed
 behavior, full native fault/status behavior and Safety execution are not complete.
 Offline model results do not establish commissioning, safety approval or native
 runtime equivalence. Local explicit messaging has a separate

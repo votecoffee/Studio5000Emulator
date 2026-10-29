@@ -405,7 +405,7 @@ class Project:
                 self.routines[routine.key.lower()] = routine
         for t in c.findall("./Tasks/Task"):
             self.tasks.append({"name": t.get("Name"), "type": t.get("Type", "").title(),
-                               "rate": t.get("Rate", "10"),
+                               "rate": t.get("Rate", "10"), "priority": t.get("Priority", "10"),
                                "inhibited": t.get("InhibitTask", "false").lower() == "true",
                                "class": t.get("Class", "Standard"),
                                "programs": [p.get("Name") for p in t.findall("./ScheduledPrograms/ScheduledProgram")]})

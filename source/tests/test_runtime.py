@@ -212,10 +212,11 @@ class RuntimeTests(unittest.TestCase):
         e=self.engine(['JSR(Reporting,0);'],mutate)
         self.assertTrue(any('Recursive' in b for b in e.blockers))
 
-    def test_multiple_tasks_block_project_but_harness_is_explicit(self):
+    def test_multiple_tasks_execute_and_harness_bypasses_scheduling(self):
         def mutate(root): ET.SubElement(root.find('./Controller/Tasks'),'Task',Name='Other',Type='PERIODIC',Class='Standard')
         e=self.engine(['NOP();'],mutate)
-        self.assertTrue(e.blockers)
+        self.assertEqual(e.blockers,[]);e.step(10)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['executions'],1)
         harness=Engine(e.project,'routine','MainProgram/MainRoutine')
         self.assertEqual(harness.blockers,[]);harness.step()
         self.assertEqual(harness.report()['mode'],'routine')
@@ -271,10 +272,12 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse(app.engine.memory.read('StartPB'))
         self.assertEqual(Project(SAMPLE).sha256,source_hash)
 
-    def test_inhibited_task_blocks_execution(self):
+    def test_inhibited_task_remains_idle_without_blocking_clock_advancement(self):
         def mutate(root):root.find('./Controller/Tasks/Task').set('InhibitTask','true')
-        e=self.engine(['NOP();'],mutate)
-        self.assertTrue(any('inhibited' in b for b in e.blockers))
+        e=self.engine(['MOV(99,SpeedCommand);'],mutate)
+        self.assertEqual(e.blockers,[]);e.step(10)
+        self.assertEqual(e.memory.read('SpeedCommand'),0)
+        self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
 
     def test_missing_initial_data_is_not_silently_zeroed(self):
         def mutate(root):

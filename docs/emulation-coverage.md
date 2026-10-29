@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; integer execution updated for app `26.1029.072958`. **Full Logix emulation is not
+Audited 2026-10-29; task scheduling updated for app `26.1029.080759`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -32,7 +32,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN plus one-dimensional SINT DATA definitions; selected string instructions | Remaining string instructions, encodings and all capacities/forms; built-in STRING wire profile |
 | AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
-| Tasks/controller | One Standard Continuous or Periodic task, simulated millisecond scans, Program/Run and first-scan handling | Multiple tasks, priorities/preemption, event triggers, watchdogs, full fault handlers, restart/retention |
+| Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | CPU preemption/time slicing, event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
 | I/O modules | Limited local-controller metadata; ordinary tags can be driven externally | Module backplane/adapters, cyclic I/O, channel behavior, diagnostics, forces and failures |
 | POINT I/O | No POINT I/O device model | Adapter, rack/slot/channel configuration, digital/analog/specialty modules and connection lifecycle |
@@ -49,9 +49,10 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 
 ## Execution and controller foundation
 
-- [ ] **E01 — Multiple tasks:** import and execute Continuous, Periodic and Event
-  tasks together; honor rates, priorities, inhibition, scheduled Program order
-  and eligible event sources. Model preemption and simultaneous deadlines.
+- [ ] **E01 — Multiple tasks:** [Continuous/Periodic serial scheduling](task-scheduling.md)
+  now honors modeled releases, coincident priorities, inhibition and Program order.
+  Add Event tasks, eligible triggers/queues, CPU preemption/time slicing and
+  deadline behavior. Full native scheduler parity remains unfinished.
 - [ ] **E02 — Simulation time:** one deterministic clock shared by instructions,
   tasks, motion, device adapters and external simulation. Support pause, step,
   accelerated execution and reproducible event ordering without wall-clock drift.

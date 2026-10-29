@@ -39,7 +39,7 @@ from .runtime import Engine
 from . import __version__
 
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
-SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab')
+SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab', 'TaskLab')
 
 
 def serialize_nodes(nodes):
@@ -128,11 +128,11 @@ class Application:
         return {'mode':'Faulted' if fault else 'Run' if self.running else 'Program',
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
-                'first_scan_pending':self.engine.memory.first_scan if self.engine else False}
+                'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
 
     def default_scan_interval(self):
         tasks=self.engine.project.tasks
-        if self.engine.mode=='project' and tasks and tasks[0]['type']=='Periodic':
+        if self.engine.mode=='project' and len(tasks)==1 and not tasks[0]['inhibited'] and tasks[0]['type']=='Periodic':
             try:
                 rate=float(tasks[0]['rate'])
                 if rate.is_integer() and 1<=rate<=60000:return int(rate)
@@ -237,7 +237,7 @@ class Application:
                 'entry_routines':e.entries,
                 "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
                 "changes": e.changes, "provenance": self.provenance,
-                "tasks": e.project.tasks, "converter": self.converter,
+                "tasks": e.project.tasks, "task_schedule":e.scheduler_description(), "converter": self.converter,
                 'aoi_instances':e.addons.instances,
                 "routines": [{"key": r.key, "kind": r.kind, "problems": r.problems,
                               "active": r.key.lower() in e.active or r.program[4:] in e.addons.active,

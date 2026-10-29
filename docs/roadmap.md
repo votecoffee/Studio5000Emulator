@@ -16,16 +16,28 @@ Track implementation in [full-emulation issue #1](https://github.com/votecoffee/
 
 ## 1. Execution and data foundation
 
+Prioritize basic, widely used features before specialized types or motion:
+Continuous/Periodic execution, standard RLL/ST forms, bit/move/math operations,
+timers/counters, strings, arrays, UDTs and ordinary AOIs. Next common gaps include
+MVM/BTD, shifts/FIFO/CONTROL/sequencers, string search/editing/conversion, basic
+math functions, practical fault/status behavior, then event tasks/MSG/virtual I/O.
+LREAL/time expansion, advanced languages/process families, Safety and motion
+follow these common execution paths.
+
 Scope: E01–E08 and D01–D09 in the capability checklist. Use the
 [222-entry predefined-type catalog](predefined-data-types.md) to track schemas,
 behavior and version/controller qualification independently. Start with explicit
-controller/firmware feature profiles and the numeric/memory model; add complete
-LINT/unsigned behavior, LREAL and time types without bypassing type checks.
+controller/firmware feature profiles and complete common execution semantics;
+expand numeric forms and types without bypassing type checks.
 Build deterministic multi-task/event scheduling and fault/status/lifecycle
 semantics before relying on them in devices or motion. Expand common missing
 data-manipulation, array/shift/sequencer, math and string instructions.
 
-First increment: [homogeneous wide-integer RLL execution](integer-execution.md)
+Available scheduler increment: [mixed Continuous/Periodic execution](task-scheduling.md)
+with deterministic serial releases, per-Program first scans and transactional
+rollback. CPU preemption, event tasks and watchdog enforcement remain open.
+
+Available numeric increment: [homogeneous wide-integer RLL execution](integer-execution.md)
 for v35 ControlLogix 5580, with exact division and explicit type/profile limits.
 Mixed types, wide ST expressions, flags and other target profiles remain open.
 

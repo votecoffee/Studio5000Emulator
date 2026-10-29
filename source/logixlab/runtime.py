@@ -6,6 +6,7 @@ from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
 from . import task_runtime
+from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
@@ -59,6 +60,9 @@ class Engine:
         self._program_timings = {}
         self._task_measurements = None
         self._measured_task = None
+        self._task_scheduler = None
+        self._program_scanned = set()
+        self._executing_task = None
         self._plan()
         if not self.blockers:
             try:self._apply_prescan(preview=defer_prescan,report_fault=False)
@@ -72,7 +76,7 @@ class Engine:
                 if self.project.program_configuration.type_attributes(name,source_sha256=project.sha256):
                     self._program_timings[name.casefold()]=ProgramTiming()
             task=project.tasks[0]['name']
-            if project.task_configuration.measurement_supported(task,source_sha256=project.sha256):
+            if len(project.tasks)==1 and project.task_configuration.measurement_supported(task,source_sha256=project.sha256):
                 self._measured_task=task.casefold()
                 self._task_measurements=task_runtime.TaskMeasurements()
 
@@ -216,6 +220,8 @@ class Engine:
         else:
             self.prescan_count+=1
             self._initial_prescan_pending=False
+            self._program_scanned=set()
+            if self._task_scheduler is not None:self._task_scheduler.reset(self.time_ms)
             self.trace=[]
 
     def enter_run(self):
@@ -233,10 +239,9 @@ class Engine:
             self.entries = [self.selected]
         elif self.mode == "project":
             self.blockers.extend(self.project.issues)
-            if len(self.project.tasks) != 1:
-                self.blockers.append("Whole-project mode requires exactly one Standard Continuous or Periodic task")
+            task_entries={}
             for task in self.project.tasks:
-                if task["inhibited"]: self.blockers.append(f"Task {task['name']} is inhibited")
+                local_entries=[];task_entries[str(task['name']).casefold()]=local_entries
                 if task["type"] not in ("Continuous", "Periodic") or task["class"] != "Standard":
                     self.blockers.append(f"Task {task['name']}: {task['class']} {task['type']} task is unsupported")
                 for name in task["programs"]:
@@ -245,18 +250,23 @@ class Engine:
                         self.blockers.append(f"Scheduled program {name} is missing")
                     elif program['use_as_folder']:
                         self.blockers.append(f"Program {name} is a folder and cannot be scheduled")
-                    elif not program["disabled"]:
+                    elif not program["disabled"] and not task['inhibited']:
                         if (not program['main'] and self.project.program_diagnostics.has_no_main(
                                 name,source_sha256=self.project.sha256)):
                             self._no_main_programs.add(name.casefold())
                             if self.project.program_diagnostics.is_empty(name,source_sha256=self.project.sha256):
                                 self._empty_programs.add(name.casefold())
-                        else:self.entries.append(f"{name}/{program['main']}".lower())
+                        else:
+                            entry=f"{name}/{program['main']}".lower()
+                            self.entries.append(entry);local_entries.append(entry)
                         # Program prescan includes all its routines, including routines not called.
                         self.active.update(k for k, r in self.project.routines.items() if r.program == name)
+            try:self._task_scheduler=TaskScheduler(self.project.tasks,task_entries)
+            except ModelError as error:self.blockers.append(str(error))
             for tag in self.project.tags.values():
                 if tag.problem: self.blockers.append(f"Tag {tag.key}: {tag.problem}")
-            if not self.entries and not self._no_main_programs:self.blockers.append("No scheduled main routine")
+            if not self.entries and not self._no_main_programs and any(not task['inhibited'] for task in self.project.tasks):
+                self.blockers.append("No scheduled main routine")
         else:
             self.blockers.append("Unknown execution mode")
             return
@@ -386,9 +396,12 @@ class Engine:
     def validate_interval(self, dt):
         if self.blockers: raise ModelError("Execution blocked; inspect the coverage report")
         if not isinstance(dt, int) or not 1 <= dt <= 60000: raise ModelError("Scan interval must be 1..60000 ms")
-        if self.mode == "project" and self.project.tasks[0]["type"] == "Periodic":
-            rate = float(self.project.tasks[0]["rate"])
-            if dt != rate: raise ModelError(f"Periodic task requires a {rate:g} ms scan interval")
+        if self.mode == "project":
+            if len(self.project.tasks)==1 and not self.project.tasks[0]['inhibited'] and self.project.tasks[0]["type"] == "Periodic":
+                rate = float(self.project.tasks[0]["rate"])
+                if dt != rate: raise ModelError(f"Periodic task requires a {rate:g} ms scan interval")
+            if self._task_scheduler.clock!=self.time_ms:raise ModelError('Task scheduler clock changed; reload the project')
+            self._task_scheduler.prepare(self.time_ms+dt)
 
     def prepare_step(self, dt=10):
         self.validate_interval(dt)
@@ -398,22 +411,32 @@ class Engine:
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace)
-        self.time_ms += dt
+        end_ms=self.time_ms+dt
+        batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
+        runs=[(due,self._task_scheduler.tasks[i].name,self._task_scheduler.tasks[i].entries) for due,i in batch.releases] if batch else [(end_ms,None,self.entries)]
         self.trace = []
         self.budget = self.instruction_limit
         timings=dict(self._program_timings)
         try:
             task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
             task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
-            for entry in self.entries:
-                name=self.project.routines[entry].program.casefold()
-                if name in timings:
-                    start=perf_counter_ns()
-                    self._routine(entry, 0)
-                    timings[name]=timings[name].record(perf_counter_ns()-start)
-                else:self._routine(entry, 0)
+            scanned=set(self._program_scanned)
+            for due,task,entries in runs:
+                self.time_ms=due;self._executing_task=task
+                for entry in entries:
+                    name=self.project.routines[entry].program.casefold()
+                    if self.mode=='project':self.memory.first_scan=name not in scanned
+                    if name in timings:
+                        start=perf_counter_ns()
+                        self._routine(entry, 0)
+                        timings[name]=timings[name].record(perf_counter_ns()-start)
+                    else:self._routine(entry, 0)
+                    scanned.add(name)
+            self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
+            if batch:self._task_scheduler.commit(batch)
+            self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
@@ -422,6 +445,7 @@ class Engine:
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace = previous
+            self._executing_task=None
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
         changes = []
@@ -456,7 +480,8 @@ class Engine:
                 pc=self.labels[routine.key.lower()][jump.label];control='jump '+jump.label
             except ReturnRoutine:
                 control='return';pc=len(routine.rungs)
-            self.trace.append({"routine":routine.key,"context":context,"number":rung['number'],"power":power,"events":events,'control':control})
+            self.trace.append({"routine":routine.key,"context":context,"number":rung['number'],"power":power,"events":events,'control':control,
+                               'task':self._executing_task,'release_ms':self.time_ms})
             if len(self.trace)>5000:self.trace=self.trace[-5000:]
 
     def _sequence(self, nodes, power, scope, depth, events):
@@ -597,6 +622,16 @@ class Engine:
         else: raise ModelError(f"Unsupported instruction {n}")
         return p
 
+    @property
+    def first_scan_pending(self):
+        if self._initial_prescan_pending:return True
+        if self.blockers:return self.memory.first_scan
+        if self.mode=='routine':return self.memory.first_scan
+        return any(self.project.routines[key].program.casefold() not in self._program_scanned for key in self.entries)
+
+    def scheduler_description(self):
+        return self._task_scheduler.description() if self._task_scheduler is not None else dict(policy='Isolated routine; task scheduling bypassed' if self.mode=='routine' else 'No executable task schedule; inspect blockers',tasks=[],preemptive=False)
+
     def report(self):
         return {"application": "LogixLab "+__version__, "controller": self.project.name,
                 "revision": self.project.version, "processor": self.project.processor,
@@ -605,6 +640,7 @@ class Engine:
                 "executable": not self.blockers, "blockers": self.blockers,
                 "active_routines": sorted(self.active),
                 'entry_routines':self.entries,
+                'task_schedule':self.scheduler_description(),
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
                 'structured_text':{'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer)','FOR','WHILE','REPEAT','EXIT','supported calls'],
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
@@ -617,7 +653,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "One Standard task; scan interval is simulated time, not controller timing",
+                           "Standard Continuous/Periodic tasks use deterministic serial releases; no CPU preemption, event/Safety execution or watchdog enforcement",
                            "v35 5580 RLL integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide ST/CPT/CMP and math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",

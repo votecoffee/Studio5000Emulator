@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="TaskLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="TaskLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="BackgroundCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BackgroundFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastDone" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastTimer" DataType="TIMER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="100" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(BackgroundCount,1,BackgroundCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(BackgroundFirst,1,BackgroundFirst);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="FastProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(FastCount,1,FastCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(FastFirst,1,FastFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>TON(FastTimer,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(FastTimer.DN)OTE(FastDone);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(SlowCount,1,SlowCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(SlowFirst,1,SlowFirst);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="BackgroundTask" Type="CONTINUOUS" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="BackgroundProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="FastTask" Type="PERIODIC" Class="Standard" Priority="2" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="10">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="FastProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="SlowTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="25">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="SlowProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -305,7 +305,8 @@ class Structured:
 
     def trace(self,routine,n,context,power=True,detail=''):
         self.engine.trace.append({'routine':routine.key,'number':str(n.line),'context':context,'language':'ST','power':power,
-                                  'statement':n.kind,'detail':str(detail),'events':[]})
+                                  'statement':n.kind,'detail':str(detail),'events':[],
+                                  'task':self.engine._executing_task,'release_ms':self.engine.time_ms})
         if len(self.engine.trace)>5000:self.engine.trace=self.engine.trace[-5000:]
 
     def execute(self,routine,scope,depth,context=''):

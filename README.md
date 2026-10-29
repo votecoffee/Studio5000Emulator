@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.072958`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.080759`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -24,6 +24,11 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[Continuous/periodic scheduling](docs/task-scheduling.md) now runs mixed
+Standard tasks at deterministic simulated release times. Choose **Task lab**
+in the header to try the 10/25 ms example and inspect per-task counts in
+Coverage. CPU preemption, event tasks and Safety execution remain unfinished.
 
 [Wide integer ladder execution](docs/integer-execution.md) now supports
 homogeneous LINT and unsigned arithmetic, comparisons and bitwise operations
@@ -203,7 +208,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Area | Available behavior |
 | --- | --- |
 | Projects | v35 L5X import; optional native ACD-to-L5X conversion on a copy |
-| Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic scans |
+| Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic serial Continuous/Periodic task scheduling |
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
 | EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
 | Connected reply sizes | Standard/Large Forward Open replies use their negotiated size up to 4,000 bytes, including sequence and signed-message overhead |
@@ -231,7 +236,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Studio online | Native SDK Go Online, bidirectional Run/Program control, Go Offline, installed scalar BOOL/SINT/INT/DINT/LINT/REAL reads and bounded source-equivalent transfers verified for demo and expanded fixtures; Studio GUI acceptance and general tag/rung monitoring remain unverified |
 | Supported routine edits | Opt-in Program-mode Standard RLL replacement; consecutive SDK imports, replacement across routines and reconnection using the same updated project verified; edited L5X working-copy export |
 
-Coverage depends on the actual project and execution scope. Full task scheduling,
+Coverage depends on the actual project and execution scope. Preemptive/event scheduling,
 motion, physical I/O, CIP Safety, FBD/SFC and broad native runtime parity remain
 outside the current model. Unknown data and unsupported forms are not silently
 replaced with assumed behavior.
@@ -272,13 +277,15 @@ conventions.
 
 ## Roadmap
 
-1. Complete core execution/data semantics: task scheduling, faults/status,
-   numeric/time types and the remaining common instructions.
-2. Expand AOIs and Structured Text, then implement FBD and SFC.
-3. Build generic cyclic I/O and device models, including EDS mappings, POINT I/O
+1. Prioritize common execution: Continuous/Periodic tasks, basic RLL/ST forms,
+   timers/counters, ordinary strings/arrays/UDTs/AOIs and frequently used instructions.
+2. Add common data manipulation, shift/FIFO/sequencer operations and faults/status;
+   then event scheduling, messaging and virtual I/O.
+3. Expand AOIs and Structured Text, then implement FBD and SFC.
+4. Build generic cyclic I/O and device models, including EDS mappings, POINT I/O
    and FANUC handshakes; then virtual drive/motion execution.
-4. Qualify mixed-feature projects with explicit conformance evidence.
-5. Resume broader Studio uploads/downloads and the complete online-edit lifecycle.
+5. Qualify mixed-feature projects with explicit conformance evidence.
+6. Resume broader Studio uploads/downloads and the complete online-edit lifecycle.
 
 Follow the [full-emulation tracker](https://github.com/votecoffee/Studio5000Emulator/issues/1).
 

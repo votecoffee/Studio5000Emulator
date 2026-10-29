@@ -41,6 +41,10 @@ units and limits without exposing a raw monotonic timestamp or object reference.
 
 ## Availability and references
 
+[Multi-task scheduling](task-scheduling.md) now has separate simulated release
+counts and timestamps. The native measurement fields documented here retain
+the guarded single-task profile below.
+
 The existing single Standard Continuous/Periodic Task execution profile applies.
 Complete current source, a canonical Task declaration, explicit priority/output
 and inhibit settings, and a known ordered Program schedule are required. Blocked

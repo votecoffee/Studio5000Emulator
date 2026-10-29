@@ -185,7 +185,8 @@ class ChangeDetectionIntegrationTests(unittest.TestCase):
     def test_native_commit_updates_once_and_retransmission_does_not_update_or_reapply(self):
         source=NS(name='MainRoutine');clear=Mock()
         stage=NS(target=(300,700),source=source,base_revision=0,translated_rungs=('NOP();',),
-            program_released=True,ready=lambda:True,clear=clear)
+            program_released=True,ready=lambda:True,clear=clear,
+            source_bytes=lambda:b'synthetic-source',metadata_bytes=lambda:None)
         lease=NS(require_edit_owner=Mock(),edit_phase_open=True,program_reservations=set(),
             applied_edit=None,edit_transfer=stage)
         self.endpoint.programming_lease=lease;self.app.native_symbols=None
@@ -203,6 +204,9 @@ class ChangeDetectionIntegrationTests(unittest.TestCase):
             self.assertIs(self.app.engine,candidate)
             self.assertNotEqual(candidate.change_detection.attributes(self.engine.project.sha256)[27],before)
             self.assertEqual(send(),bytes.fromhex('d9000000'));planner.assert_called_once()
+            self.assertEqual(planner.call_args.kwargs['native_source'],b'synthetic-source')
+            self.assertEqual(planner.call_args.kwargs['native_target'],(300,700))
+            self.assertIsNone(planner.call_args.kwargs['native_metadata'])
         self.assertEqual(candidate.change_detection.description()['updates'],1)
         self.assertEqual(self.value(self.engine),before);clear.assert_called_once()
 

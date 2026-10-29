@@ -79,6 +79,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_task_lab_schedules_through_http_and_reports_pending_first_scans(self):
+        state = self.post('demo', {'sample': 'TaskLab'})
+        self.assertEqual(state['blockers'], [])
+        self.assertEqual(len(state['task_schedule']['tasks']), 3)
+        self.assertTrue(state['controller']['first_scan_pending'])
+        state = self.post('step', {'dt': 5})
+        self.assertTrue(state['controller']['first_scan_pending'])
+        for _ in range(5): state = self.post('step', {'dt': 5})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[k] for k in ('BackgroundCount','FastCount','SlowCount')], [6,3,1])
+        self.assertFalse(state['controller']['first_scan_pending'])
+        self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [6,3,1])
+        self.assertEqual(state['controller']['scan_interval_ms'], 10)
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

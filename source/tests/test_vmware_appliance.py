@@ -164,7 +164,9 @@ lease 192.0.2.1 { hardware ethernet 00:50:56:3a:12:34; }'''
                 (directory / name).write_text('test-key-content')
             with tarfile.open(fileobj=io.BytesIO(vm.overlay(directory))) as archive:
                 names = archive.getnames()
-                self.assertEqual(sum(name.endswith('.L5X') for name in names), 9)
+                from logixlab.server import SAMPLES
+                self.assertEqual({name for name in names if name.endswith('.L5X')},
+                                 {'opt/logixlab/samples/'+sample+'.L5X' for sample in SAMPLES})
                 self.assertEqual(archive.extractfile('opt/logixlab/web/icons/plc-simulator.ico').read(),
                                  (vm.SOURCE / 'web/icons/plc-simulator.ico').read_bytes())
                 self.assertFalse(any(name.lower().endswith(('.acd', '.exe', '.pyc', '.dll')) for name in names))

@@ -84,7 +84,9 @@ class RoutineEditWireTests(unittest.TestCase):
 
     def test_atomic_apply_preserves_values_scan_history_source_and_changes_next_execution(self):
         self.app.allow_routine_edits=True
-        old=self.app.engine;old.memory.write('SpeedSetpoint',7);old.scan_count=12;old.time_ms=120
+        old=self.app.engine
+        for _ in range(12):old.step(10)
+        old.memory.write('SpeedSetpoint',7)
         old.prescan_count=3;old._initial_prescan_pending=False;old.memory.first_scan=False
         old.last_timer={('startdelay',()):100};old.changes=[{'scan':10,'tag':'SpeedSetpoint'}]
         from logixlab.program_timing import ProgramTiming

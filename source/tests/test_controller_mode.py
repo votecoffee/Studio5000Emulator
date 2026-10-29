@@ -55,7 +55,12 @@ class ControllerModeTests(unittest.TestCase):
         self.assertEqual(self.app.engine.scan_count,0)
 
     def test_periodic_run_uses_task_interval_and_blocks_other_intervals(self):
-        self.app.engine.project.tasks[0].update(type='Periodic',rate='20')
+        import base64
+        from xml.etree import ElementTree as E
+        root=E.parse(self.app.engine.project.path).getroot()
+        root.find('./Controller/Tasks/Task').set('Type','PERIODIC')
+        root.find('./Controller/Tasks/Task').set('Rate','20')
+        self.app.command('load',{'name':'Periodic.L5X','content':base64.b64encode(E.tostring(root)).decode()})
         with self.assertRaises(ModelError):self.app.command('controller-mode',{'mode':'Run','dt':10})
         self.app.command('controller-mode',{'mode':'Run','dt':20})
         wait_for(lambda:self.app.engine.scan_count>=2)

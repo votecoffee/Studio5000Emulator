@@ -51,7 +51,7 @@ function render() {
   $('run').textContent = running ? '■ Program' : '▶ Run';
   $('dt').disabled = running||modePending;
   if(running)$('dt').value=state.controller.scan_interval_ms;
-  $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : 'One modeled task · scheduled programs in order.';
+  $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : `${state.tasks.length} modeled task(s) · deterministic periodic releases · serial execution.`;
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
   const provenance = state.provenance;
@@ -169,6 +169,7 @@ function renderCoverage() {
   const blocked=state.blockers.length>0;
   $('coverage-body').innerHTML=`<div class="coverage-result ${blocked?'blocked':''}">${blocked ? `${state.blockers.length} blockers prevent execution in this scope.` : 'This scope can execute in the current software model.'}</div>
   ${state.blockers.map(b=>`<div class="issue">${escapeHtml(b)}</div>`).join('')}
+  <h3>TASK SCHEDULING</h3><p class="limits">${escapeHtml(report.task_schedule?.policy || '')}</p><div class="chips">${(report.task_schedule?.tasks || []).map(t=>`<span class="chip">${escapeHtml(t.name)} · ${t.inhibited?'inhibited':t.kind==='Continuous'?'background':`${t.rate_ms} ms · priority ${t.priority}`} · ${t.executions} executions · next ${t.next_release_ms??'—'}</span>`).join('') || '<span class="limits">No executable task schedule in this scope.</span>'}</div>
   <h3>STRUCTURED TEXT</h3><p class="limits">${escapeHtml(report.structured_text?.policy || '')}</p><div class="chips">${Object.entries(report.structured_text?.constructs || {}).map(([n,c])=>`<span class="chip">${escapeHtml(n)} × ${c}</span>`).join('') || '<span class="limits">No ST statements in program routines.</span>'}</div>
   <h3>SUBROUTINE PARAMETERS</h3><p class="limits">${escapeHtml(report.routine_parameters?.contract || '')}</p><div class="chips">${Object.entries(report.routine_parameters?.calls || {}).map(([name,v])=>`<span class="chip">${escapeHtml(name)} · ${v.inputs} in / ${v.returns} out</span>`).join('') || '<span class="limits">No JSR calls in this scope.</span>'}</div>
   <h3>ADD-ON INSTRUCTIONS</h3><p class="limits">${report.add_on_instructions?.definitions || 0} definitions · ${(report.add_on_instructions?.active_definitions || []).map(escapeHtml).join(', ') || 'none in execution scope'}<br>${escapeHtml(report.add_on_instructions?.local_state_policy || '')}</p>
@@ -192,9 +193,9 @@ $('open').onclick=()=>{$('file').value='';$('file').click();};
 $('file').onchange=async()=>{
   const file=$('file').files[0];if(!file)return;if(file.size>100000000)return error(new Error('100 MB file limit'));
   $('busy-text').textContent='Importing ' + file.name + '…';$('busy').hidden=false;
-  try{const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});selected='';await accept(await api('load',{name:file.name,content}),true);$('mode').value='project';const task=state.tasks[0];if(task?.type==='Periodic')$('dt').value=Number(task.rate);render();if(state.blockers.length)selectTab('coverage');}catch(e){error(e);}finally{$('busy').hidden=true;}
+  try{const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});selected='';await accept(await api('load',{name:file.name,content}),true);$('mode').value='project';const task=state.tasks[0];if(state.tasks.length===1&&task?.type==='Periodic'&&!task.inhibited)$('dt').value=Number(task.rate);render();if(state.blockers.length)selectTab('coverage');}catch(e){error(e);}finally{$('busy').hidden=true;}
 };
-$('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
+$('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('network-demo').onclick=()=>loadDemo('NetworkLab');
