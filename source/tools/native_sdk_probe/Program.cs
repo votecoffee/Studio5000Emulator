@@ -567,6 +567,19 @@ async Task SaveUploadedSnapshot()
             onlineLintChecks.Add(new { xpath = tag.XPath, actualHex });
             return value;
         });
+    const int onlineAggregateMaximumBytes = 128;
+    var onlineAggregateChecks = new List<object>();
+    foreach (var tag in options.UploadContent.Tags.Where(tag => !tag.Constant &&
+            ((tag.TypeCode & 0x8000) != 0 || tag.Dimensions?.Any(size => size > 0) == true) &&
+            tag.ExpectedHex.Length >= 8 && tag.ExpectedHex.Length <= 2 * onlineAggregateMaximumBytes &&
+            tag.ExpectedHex.Length % 8 == 0))
+        await Step("Snapshot Online BYTE_ARRAY:" + tag.Name, async () => {
+            var value = await project!.GetTagValueAsync(tag.XPath, LogixProject.OperationMode.Online, LogixProject.DataType.BYTE_ARRAY);
+            string actualHex = Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();
+            if (actualHex != tag.ExpectedHex) throw new InvalidOperationException("Snapshot Online aggregate differs from uploaded bytes: " + tag.Name);
+            onlineAggregateChecks.Add(new { xpath = tag.XPath, actualHex });
+            return new { bytes = value.Length, matchesCurrentModel = true };
+        });
     CheckPreserved(before, await Backend(), true);
     await Step("GoOfflineAsync:snapshot.ACD", async () => { await project!.GoOfflineAsync(); return true; });
     await Step("Require snapshot Offline after Online check", async () => {
@@ -576,7 +589,8 @@ async Task SaveUploadedSnapshot()
     if (HashFile(baseline) != options.SourceSha256) throw new InvalidOperationException("Snapshot baseline changed");
     savedUploadedSnapshot = new { sourceEquivalentValueSnapshot = true, baselineLogicVerified = true,
         baselineSha256 = options.SourceSha256, acdSha256 = HashFile(acdPath), reopenedL5xSha256 = HashFile(xmlPath),
-        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray(), onlineIntegerChecks = onlineIntegerChecks.ToArray(), onlineLintChecks = onlineLintChecks.ToArray() };
+        nativeAcdReopened = true, reopenedOnline = true, onlineRealChecks = onlineRealChecks.ToArray(), onlineIntegerChecks = onlineIntegerChecks.ToArray(), onlineLintChecks = onlineLintChecks.ToArray(),
+        onlineAggregateMaximumBytes, onlineAggregateChecks = onlineAggregateChecks.ToArray() };
 }
 bool Same(JsonElement left, JsonElement right) => JsonNode.DeepEquals(JsonNode.Parse(left.GetRawText()), JsonNode.Parse(right.GetRawText()));
 async Task SaveState(string fileName, JsonElement state) => await File.WriteAllTextAsync(

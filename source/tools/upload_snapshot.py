@@ -10,6 +10,8 @@ from logixlab.model import ModelError
 from logixlab.native_project import NativeProjectIdentity
 from tools import upload_content
 
+MAX_ONLINE_AGGREGATE_BYTES=128
+
 
 def validate_options(operation,enabled,content_source,target,save_uploaded=False,new_project=False,*,option='--snapshot-uploaded-acd'):
     if type(enabled) is not bool:raise ValueError('Upload snapshot must be an explicit boolean')
@@ -75,6 +77,30 @@ def online_lints(expected,receipt):
     return _online_typed(expected,receipt,{0xC5:16},'onlineLintChecks')
 
 
+def online_aggregates(expected,receipt):
+    """Exact Online coverage of small word-aligned mutable aggregate roots."""
+    result=dict(verified=False,tags=0,value_bytes=0,maximum_bytes=MAX_ONLINE_AGGREGATE_BYTES,excluded_tags=0)
+    try:
+        roots=[tag for tag in expected['tags'] if tag['constant'] is False
+            and (tag['typeCode']&0x8000 or any(tag['dimensions']))]
+        eligible=[tag for tag in roots if 8<=len(tag['expectedHex'])<=2*MAX_ONLINE_AGGREGATE_BYTES
+            and len(tag['expectedHex'])%8==0]
+        result['excluded_tags']=len(roots)-len(eligible)
+        wanted={tag['xpath']:tag['expectedHex'] for tag in eligible}
+        if len(wanted)!=len(eligible) or receipt.get('onlineAggregateMaximumBytes')!=MAX_ONLINE_AGGREGATE_BYTES:return result
+        rows=receipt.get('onlineAggregateChecks')
+        if type(rows) is not list or len(rows)!=len(wanted):return result
+        seen=set()
+        for row in rows:
+            if (type(row) is not dict or set(row)!={'xpath','actualHex'} or type(row['xpath']) is not str
+                    or row['xpath'] in seen or row['xpath'] not in wanted
+                    or type(row['actualHex']) is not str or row['actualHex']!=wanted[row['xpath']]):return result
+            seen.add(row['xpath'])
+        result.update(verified=True,tags=len(wanted),value_bytes=sum(len(raw)//2 for raw in wanted.values()))
+        return result
+    except (ValueError,TypeError,KeyError,AttributeError):return result
+
+
 def verify(folder,expected,native_types,baseline,receipt):
     """Require native reopen/Online receipts, retained correlation and full content."""
     from tools.probe_native_sdk import digest
@@ -92,6 +118,9 @@ def verify(folder,expected,native_types,baseline,receipt):
         lints=online_lints(expected,receipt)
         result['online_lint_checks']=lints
         if not lints['verified']:return result
+        aggregates=online_aggregates(expected,receipt)
+        result['online_aggregate_checks']=aggregates
+        if not aggregates['verified']:return result
         folder=Path(folder)
         for filename,key,maximum in (('snapshot.ACD','acdSha256',100_000_000),('snapshot.L5X','reopenedL5xSha256',16_000_000)):
             path=folder/filename

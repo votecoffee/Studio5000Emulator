@@ -13,6 +13,45 @@ class UploadSnapshotTests(unittest.TestCase):
     setUp=content_tests.UploadContentTests.setUp
     plan=content_tests.UploadContentTests.plan
 
+    def test_online_aggregate_receipt_requires_exact_unique_scoped_paths_and_all_bytes(self):
+        paths=["Controller/Tags/Tag[@Name='Record']","Controller/Programs/Program[@Name='Aux']/Tags/Tag[@Name='Record']"]
+        tags=[dict(xpath=p,typeCode=c,constant=False,dimensions=d,expectedHex=raw)
+            for p,c,d,raw in zip(paths,(0x8F00,0x20C4),([0,0,0],[3,0,0]),('01000000ffff0000','0000000001000000ffffffff'))]
+        rows=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in tags]
+        expected=dict(tags=tags);receipt=dict(onlineAggregateMaximumBytes=128,onlineAggregateChecks=rows)
+        self.assertEqual(snapshot.online_aggregates(expected,receipt),
+            dict(verified=True,tags=2,value_bytes=20,maximum_bytes=128,excluded_tags=0))
+        self.assertTrue(snapshot.online_aggregates(expected,dict(receipt,onlineAggregateChecks=list(reversed(rows))))['verified'])
+        for changed in ([],rows[:1],rows*2,[rows[0]]*2,[dict(rows[0],actualHex='01000000'),rows[1]],
+                        [rows[0],dict(rows[1],actualHex=rows[1]['actualHex']+'00')],
+                        [dict(rows[0],extra=True),rows[1]],[dict(rows[0],xpath=paths[1]),rows[1]],None):
+            self.assertFalse(snapshot.online_aggregates(expected,dict(receipt,onlineAggregateChecks=changed))['verified'])
+        for changed in ({},dict(receipt,onlineAggregateMaximumBytes=64),dict(receipt,onlineAggregateMaximumBytes=None)):
+            self.assertFalse(snapshot.online_aggregates(expected,changed)['verified'])
+        self.assertFalse(snapshot.online_aggregates(dict(tags=tags+[tags[0]]),receipt)['verified'])
+
+    def test_online_aggregate_coverage_reports_large_and_nonword_roots_outside_its_bound(self):
+        def tag(name,code,size,dims,constant=False):
+            return dict(xpath="Controller/Tags/Tag[@Name='"+name+"']",typeCode=code,constant=constant,
+                expectedHex='00'*size,dimensions=dims)
+        eligible=[tag('OneWord',0x8F00,4,[0,0,0]),tag('AtLimit',0x20C4,128,[32,0,0]),tag('Packed',0x20D3,8,[2,0,0])]
+        excluded=[tag('OverLimit',0x20C4,132,[33,0,0]),tag('Odd',0x20C3,6,[3,0,0])]
+        ignored=[tag('Scalar',0xC4,4,[0,0,0]),tag('Constant',0x8F00,4,[0,0,0],True)]
+        receipt=dict(onlineAggregateMaximumBytes=128,onlineAggregateChecks=[dict(xpath=t['xpath'],actualHex=t['expectedHex']) for t in eligible])
+        result=snapshot.online_aggregates(dict(tags=eligible+excluded+ignored),receipt)
+        self.assertEqual(result,dict(verified=True,tags=3,value_bytes=140,maximum_bytes=128,excluded_tags=2))
+        empty=dict(onlineAggregateMaximumBytes=128,onlineAggregateChecks=[])
+        self.assertEqual(snapshot.online_aggregates(dict(tags=excluded+ignored),empty),
+            dict(verified=True,tags=0,value_bytes=0,maximum_bytes=128,excluded_tags=2))
+
+    def test_snapshot_requires_online_aggregate_coverage_independently_of_file_hashes_and_flags(self):
+        _,baseline,_=self.inputs();expected=self.plan();receipt=self.artifacts(baseline)
+        result=snapshot.verify(self.folder,expected,self.types,baseline,receipt)
+        self.assertEqual(result['online_aggregate_checks'],
+            dict(verified=True,tags=2,value_bytes=24,maximum_bytes=128,excluded_tags=0))
+        for key,value in (('onlineAggregateChecks',[]),('onlineAggregateMaximumBytes',64)):
+            self.assertFalse(snapshot.verify(self.folder,expected,self.types,baseline,dict(receipt,**{key:value}))['verified'])
+
     def test_online_real_receipt_requires_exact_bytes_and_complete_scoped_coverage(self):
         paths=["Controller/Tags/Tag[@Name='Analog']","Controller/Programs/Program[@Name='Main']/Tags/Tag[@Name='Analog']"]
         tags=[dict(xpath=path,typeCode=0xCA,constant=False,expectedHex=value,dimensions=[0,0,0])
@@ -69,7 +108,9 @@ class UploadSnapshotTests(unittest.TestCase):
         acd.write_bytes(baseline.read_bytes());xml.write_bytes(self.project.path.read_bytes())
         digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
         return dict(sourceEquivalentValueSnapshot=True,baselineLogicVerified=True,nativeAcdReopened=True,
-            reopenedOnline=True,baselineSha256=digest(baseline),acdSha256=digest(acd),reopenedL5xSha256=digest(xml))
+            reopenedOnline=True,baselineSha256=digest(baseline),acdSha256=digest(acd),reopenedL5xSha256=digest(xml),
+            onlineAggregateMaximumBytes=128,onlineAggregateChecks=[dict(xpath=t['xpath'],actualHex=t['expectedHex'])
+                for t in self.plan()['tags'] if t['typeCode']&0x8000 or any(t['dimensions'])])
 
     def test_snapshot_requires_explicit_source_check_matching_target_and_existing_upload(self):
         snapshot.validate_options('upload',True,'source.L5X','saved.ACD')
