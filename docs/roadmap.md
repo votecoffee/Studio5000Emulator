@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available search increment: [FSC ALL/numeric execution](file-search.md),
+including match/inhibit/resume and numeric continuation on false rungs. INC,
+broader expressions, AOI execution and native cursor/status/fault parity stay open.
+
 Available sorting increment: [dimension-wise SRT in ladder/ST](array-sort.md),
 including exact integer ordering and ST write effects. Native internal POS,
 partial states/faults, remaining file consumers and broader references stay open.

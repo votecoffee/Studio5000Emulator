@@ -192,6 +192,58 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="Search" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BatchSearch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SearchLimit" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="BatchLimit" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="9" />
+        </Data>
+      </Tag>
+      <Tag Name="SearchControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="BatchControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -200,7 +252,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Reset)RES(MeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl);</Text>
+                <Text>XIC(Reset)RES(MeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl)RES(SearchControl)RES(BatchControl);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(Calculate)AVE(Values[0],0,Average,MeanControl,?,?);</Text>
@@ -222,6 +274,12 @@
               </Rung>
               <Rung Number="7" Type="N">
                 <Text>XIC(TextSort)JSR(SortText,0);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(Search)FSC(SearchControl,?,?,ALL,Values[SearchControl.POS]&gt;=SearchLimit);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(BatchSearch)FSC(BatchControl,?,?,2,Values[BatchControl.POS]&gt;=BatchLimit);</Text>
               </Rung>
             </RLLContent>
           </Routine>

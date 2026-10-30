@@ -252,6 +252,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['SortControl.POS'], 0)
         self.assertFalse(self.post('report', {})['array_sort']['native_fault_classification'])
 
+    def test_stats_lab_file_search_match_resume_and_numeric_false_scan(self):
+        state = self.post('demo', {'sample': 'StatsLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('write', {'tag': 'Search', 'value': True})
+        self.post('write', {'tag': 'BatchSearch', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['SearchControl.POS'], 2)
+        self.assertTrue(values['SearchControl.FD'])
+        self.assertTrue(values['SearchControl.IN'])
+        self.assertEqual(values['BatchControl.POS'], 1)
+        self.assertFalse(values['BatchControl.DN'])
+        self.post('write', {'tag': 'SearchControl.IN', 'value': False})
+        self.post('write', {'tag': 'BatchSearch', 'value': False})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['SearchControl.POS'], 3)
+        self.assertTrue(values['SearchControl.DN'])
+        self.assertEqual(values['BatchControl.POS'], 3)
+        self.assertTrue(values['BatchControl.DN'])
+        self.assertFalse(values['BatchControl.EN'])
+        self.assertFalse(values['BatchControl.FD'])
+        self.assertFalse(self.post('report', {})['file_search']['native_cursor_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

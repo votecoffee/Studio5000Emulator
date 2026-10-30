@@ -42,6 +42,11 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[File search](file-search.md) adds ladder FSC ALL and numeric modes. Matches
+set FD/IN and hold the current index until IN is cleared; numeric work can
+continue while rung input is false. Each comparison consumes the instruction
+budget. Unknown data and later failures retain whole-advance rollback.
+
 [File sorting](array-sort.md) supports ladder enable edges and three-operand ST
 calls. Each executed ST call performs false then true. Integer sorting retains
 exact values; selected dimensions and member boundaries constrain the writes.

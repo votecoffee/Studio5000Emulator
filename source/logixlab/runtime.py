@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -343,6 +343,7 @@ class Engine:
         if n in real_math.INSTRUCTIONS:real_math.validate(self.memory,op,scope);return
         if n in array_statistics.INSTRUCTIONS:array_statistics.validate(self.memory,op,scope);return
         if n in array_sort.INSTRUCTIONS:array_sort.validate(self.memory,op,scope);return
+        if n in file_search.INSTRUCTIONS:file_search.validate(self,op,scope);return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.specification(self.memory,op,scope);return
         if self.extensions.validate(op,scope):return
@@ -527,6 +528,7 @@ class Engine:
         if n in real_math.INSTRUCTIONS:return real_math.execute(self.memory,op,p,scope)
         if n in array_statistics.INSTRUCTIONS:return array_statistics.execute(self.memory,op,p,scope)
         if n in array_sort.INSTRUCTIONS:return array_sort.execute(self.memory,op,p,scope)
+        if n in file_search.INSTRUCTIONS:return file_search.execute(self,op,p,scope)
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
             if p:control_operations.reset(self.memory,a[0],scope)
             return p
@@ -674,6 +676,7 @@ class Engine:
                 'real_math':real_math.description(),
                 'array_statistics':array_statistics.description(),
                 'array_sort':array_sort.description(),
+                'file_search':file_search.description(),
                 "supported_instructions": sorted(ARITIES),
                 'known_add_on_instructions':sorted(self.project.aois),
                 'data_only_types':sorted(self.project.data_only_types),
