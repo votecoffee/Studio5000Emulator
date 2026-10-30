@@ -106,4 +106,4 @@ def description():
                 rollback='Event writes, first scans, release counts and overlap diagnostics commit only with the complete advance',
                 native_cpu_timing=False, native_status_parity=False,
                 remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed/timeout event sources',
-                           'AOI/routine harness and FOR-loop EVENT calls','Native interrupt latency, watchdog/status/fault parity'])
+                           'AOI/routine harness and ST FOR-loop EVENT calls','Native interrupt latency, watchdog/status/fault parity'])

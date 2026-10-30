@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST RLIM added for app `26.1030.102258`. The engine has **99 built-in
+Audited 2026-10-30; RLL FOR/BRK added for app `26.1030.105135`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -17,8 +17,8 @@ separate language family, not RLL mnemonics.
 - **RLL model** means a dispatch entry exists for supported forms.
 - **Expression only** means the name can be used in the supported CPT/ST
   expression grammar; a standalone instruction/block is still unimplemented.
-- **Remaining names** have no built-in execution implementation. ST FOR/EXIT
-  constructs do not implement the distinct RLL FOR/BRK instructions.
+- **Remaining names** have no built-in execution implementation.
+  [RLL FOR/BRK](ladder-loops.md) and ST FOR/EXIT have distinct execution profiles.
 
 [ST-only TONR/TOFR/RTOR](st-timers.md) use logical FBD_TIMER records;
 [ST CTUD](st-counter.md) uses FBD_COUNTER and [ST OSRI/OSFI](st-oneshot.md) use
@@ -46,7 +46,7 @@ count. Their FBD graph forms remain unimplemented.
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
 | Filter Instructions | — | — | `DERV`, `HPF`, `LDL2`, `LPF`, `NTCH` |
-| For Break Instructions | — | — | `BRK`, `FOR` |
+| For Break Instructions | `BRK`, `FOR` | — | — |
 | Input/Output Instructions | `GSV`, `SSV` | — | `IOT`, `MSG` |
 | License Instructions | — | — | `LV` |
 | Math Conversion Instructions | `DEG`, `FRD`, `RAD`, `TOD`, `TRN` | — | — |
@@ -103,10 +103,11 @@ schema/behavior backlog separately from instruction names.
 | FBC/DDT | [DINT ladder bit diagnostics](file-bit-compare.md), bit offsets, all/one-mismatch modes, result wrapping, selective DDT updates and prescan/false controls. Broader references/profiles and native cursor/status/fault parity remain unfinished. |
 | DTR | [DINT ladder data transition](data-transition.md), complete prior-reference comparison, true/false writes and lexical prescan, including existing AOI bindings. Other profiles and native operand/status/fault parity remain unfinished. |
 | MCR | [Paired ladder zones](master-control.md), false scanning, unconditional endings, routine/AOI isolation and trace markers. Open-ended/conditional/nested zones, cross-boundary jumps and native scan/fault/CPU parity remain unfinished. |
+| FOR/BRK | [Ladder indexed routine loops](ladder-loops.md), signed inclusive bounds, early exits, nested calls and task-isolated frames. Native operand sampling/overflow/watchdog/postscan parity, recursion, AOI and SFC forms remain unfinished. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
-| EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/FOR forms and CPU/status parity remain unfinished. |
+| EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/ST FOR forms and CPU/status parity remain unfinished. |
 | GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and broader SSV remain unfinished. |
 | SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. Other classes/attributes, Event/Safety targets, AOIs and harness calls remain unfinished. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |

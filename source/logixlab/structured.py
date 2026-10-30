@@ -316,6 +316,7 @@ class Structured:
 
     def execute(self,routine,scope,depth,context=''):
         from .runtime import ReturnRoutine
+        from .calls import BreakLoop
         def run(nodes):
             for n in nodes:
                 self.tick()
@@ -343,6 +344,8 @@ class Structured:
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             self.trace(routine,n,context,detail='return');raise
+                        except BreakLoop:
+                            self.trace(routine,n,context,detail='break');raise
                         self.trace(routine,n,context,detail=n.op.name)
                     elif n.kind=='if':
                         chosen=n.otherwise;result=False

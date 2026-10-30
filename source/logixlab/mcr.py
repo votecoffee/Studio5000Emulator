@@ -32,8 +32,8 @@ def plan(project,routine,labels):
     if opening is not None:raise ModelError('MCR requires a paired unconditional end in the same routine')
     for index,rung in enumerate(routine.rungs):
         for op in operations(rung['nodes']):
-            if index in zones and op.name in ('SBR','RET','TND'):
-                raise ModelError('SBR/RET/TND inside an MCR zone remain unqualified')
+            if index in zones and op.name in ('SBR','RET','TND','BRK'):
+                raise ModelError('SBR/RET/TND/BRK inside an MCR zone remain unqualified')
             if op.name=='JMP' and len(op.args)==1:
                 target=labels.get(op.args[0].casefold())
                 if target is not None and zones.get(index)!=zones.get(target):

@@ -10,7 +10,7 @@ name **LogixLab**.
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 99 built-in RLL instruction entries, a bounded ST
+The current model is partial: 101 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -137,6 +137,10 @@ Choose **Signal lab** to combine limits, negation, selected gains and bias.
 [Structured Text rate limiting](docs/st-rate-limiter.md) adds RLIM with a logical
 RATE_LIMITER record, separate ramp rates, bypass and period/oversample timing.
 Choose **Rate lab** to try ramps, timing diagnostics and clock rollback.
+
+[Ladder FOR/BRK](docs/ladder-loops.md) adds indexed subroutine loops, nested
+early exits, shared limits and transactional rollback. Choose **Loop lab** to try
+ascending/descending ranges and conditional breaks.
 
 ## Table of Contents
 

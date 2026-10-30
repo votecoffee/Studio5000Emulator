@@ -80,7 +80,7 @@ class AddOns:
                         old_structural=self.memory.structural
                         if routine.kind=='ST':self.memory.structural=True
                         try:
-                            if nested.name in ('JSR','SBR','RET'):raise ModelError('JSR/SBR/RET within an AOI is unsupported')
+                            if nested.name in ('JSR','SBR','RET','FOR','BRK'):raise ModelError('JSR/SBR/RET/FOR/BRK within an AOI is unsupported')
                             if nested.name in self.engine.project.aois:
                                 self.validate(nested,frame,stack+(definition.name.upper(),))
                             else:

@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.105135`: [ladder FOR/BRK](ladder-loops.md), inclusive
+indexed routine loops, nested early exits, Event isolation and Loop Lab.
+
 Available in `26.1030.102258`: [ST RLIM](st-rate-limiter.md), logical RATE_LIMITER,
 separate ramps, bypass, Periodic/elapsed and oversample timing, and Rate Lab.
 

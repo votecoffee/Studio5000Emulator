@@ -14,7 +14,7 @@ from . import system_values, integer_math, bit_transfer, string_operations, cont
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
-from .calls import Calls
+from .calls import Calls, BreakLoop
 from .structured import Structured
 from . import __version__
 
@@ -284,7 +284,7 @@ class Engine:
         visited = set()
         def visit(key):
             if key in visiting:
-                self.blockers.append(f"Recursive JSR cycle at {key}")
+                self.blockers.append(f"Recursive JSR/FOR cycle at {key}")
                 return
             if key in visited: return
             visited.add(key)
@@ -315,8 +315,9 @@ class Engine:
                         if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program)
                         if op.name=='JMP' and op.args and op.args[0].lower() not in labels:
                             raise ModelError(f'Missing label {op.args[0]}')
-                        if op.name == "JSR" and op.args:
-                            self.calls.call_spec(op,r.program)
+                        if op.name in ('JSR','FOR') and op.args:
+                            if op.name=='JSR':self.calls.call_spec(op,r.program)
+                            else:self.calls.loop_spec(op,r.program)
                             visit(f"{r.program}/{op.args[0]}".lower())
                     except (ModelError, ValueError, TypeError) as e:
                         self.blockers.append(f"{r.key}, rung {rung['number']}: {op.name}: {e}")
@@ -342,6 +343,7 @@ class Engine:
         n, a = op.name, op.args
         if n in self.project.aois:
             self.addons.validate(op,scope);return
+        if n in ('FOR','BRK'):self.calls.loop_spec(op,scope);return
         if n in ('JSR','SBR','RET'):
             self.calls.validate_operands(op,scope);return
         if n in st_timers.INSTRUCTIONS:st_timers.validate(self,op,scope);return
@@ -464,6 +466,7 @@ class Engine:
             def run_task(due,task,entries):
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
                 self.time_ms=due;self._executing_task=task
+                previous_calls=self.calls.stack;self.calls.stack=[]
                 try:
                     for entry in entries:
                         name=self.project.routines[entry].program.casefold()
@@ -474,7 +477,9 @@ class Engine:
                             timings[name]=timings[name].record(perf_counter_ns()-start)
                         else:self._routine(entry, 0)
                         scanned.add(name)
-                finally:self._executing_task,self.memory.first_scan=previous_task,previous_first
+                finally:
+                    self.calls.stack=previous_calls
+                    self._executing_task,self.memory.first_scan=previous_task,previous_first
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
             for position,(due,task,entries) in enumerate(runs):
                 index=batch.releases[position][1] if batch else None
@@ -529,7 +534,7 @@ class Engine:
         if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
         pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
         while pc<len(routine.rungs):
-            rung=routine.rungs[pc];events=[];power=False;control=''
+            rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
             role=plan.get(pc);forced=role in ('body','close') and not enabled
             try:
                 power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
@@ -540,9 +545,12 @@ class Engine:
                 pc=self.labels[routine.key.lower()][jump.label];control='jump '+jump.label
             except ReturnRoutine:
                 control='return';pc=len(routine.rungs)
+            except BreakLoop:
+                control='break';breaking=True
             self.trace.append({"routine":routine.key,"context":context,"number":rung['number'],"power":power,"events":events,'control':control,
                                'task':self._executing_task,'release_ms':self.time_ms,**({'mcr_forced_false':forced} if plan else {})})
             if len(self.trace)>5000:self.trace=self.trace[-5000:]
+            if breaking:raise BreakLoop()
 
     def _sequence(self, nodes, power, scope, depth, events, *, force_false=False):
         if force_false:power=False
@@ -558,7 +566,7 @@ class Engine:
                 try:
                     result=self._op(node,incoming,scope,depth)
                     power=False if force_false else result
-                except (JumpRoutine,ReturnRoutine):
+                except (JumpRoutine,ReturnRoutine,BreakLoop):
                     events.append({'instruction':node.name,'args':node.args,'in':incoming,'out':incoming,'transfer':True})
                     raise
                 events.append({"instruction": node.name, "args": node.args, "in": incoming, "out": power})
@@ -691,6 +699,10 @@ class Engine:
                 obj = r(0)
                 for k in obj:
                     if k != "PRE": obj[k] = 0 if k == "ACC" else False
+        elif n=='FOR':
+            if p:self.calls.loop(op,scope,depth)
+        elif n=='BRK':
+            if p:self.calls.break_loop()
         elif n == "JSR":
             if p:self.calls.call(op,scope,depth)
         elif n=='SBR':
@@ -726,6 +738,7 @@ class Engine:
                 "active_routines": sorted(self.active),
                 'entry_routines':self.entries,
                 'task_schedule':self.scheduler_description(),
+                'ladder_loops':self.calls.loop_description(),
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
                 'structured_text':{'case':st_cases.description(),'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer/REAL)','FOR','WHILE','REPEAT','EXIT','supported calls'],
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Mixed numeric conversions, wide FOR/CASE/index forms and FBD instructions remain unqualified.'},
@@ -766,10 +779,10 @@ class Engine:
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; mixed types, wide CPT/CMP and native math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
-                           "JSR calls are bounded to 25 levels and 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
+                           "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",
                            "Hidden saved AOI locals stay unknown until written; definition defaults are never substituted for saved values",
-                           "AOI alias/constant/nullable parameters, JSR inside AOIs, FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
+                           "AOI alias/constant/nullable parameters, JSR/FOR/BRK inside AOIs, FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
                            "ST supports a bounded typed subset and reached-statement calls; FOR bounds/step must remain unchanged by its body; dynamic counter references are blocked",
                            "ST [:=] clears during prescan; ordinary assignments retain imported values until executed; native runtime equivalence is unverified",
                            "COP/CPS require matching types and stay inside modeled array/member boundaries; no raw layout reinterpretation",

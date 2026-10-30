@@ -50,7 +50,7 @@ remain unqualified. Endings contain only MCR(). Multiple separate zones work.
 
 JMP within one zone is supported; ordinary jumps can also skip a complete zone.
 Skipping a whole zone retains its outputs because its body was not scanned.
-Jumps into, out of or between zones are blocked. SBR/RET/TND inside a zone,
+Jumps into, out of or between zones are blocked. SBR/RET/TND/BRK inside a zone,
 conditional endings, unterminated zones and intended nesting remain unqualified.
 Zones are paired in source order; nesting has no separate interpretation.
 Malformed forms block before scanning, including in unreachable code.

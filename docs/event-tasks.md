@@ -56,8 +56,9 @@ EVENT inside AOIs, routine harnesses and ST FOR loops remains unqualified.
 WHILE/REPEAT calls share the instruction budget. Higher-priority Event writes
 are visible immediately; waiting on a deferred Event from inside a caller loop
 cannot make progress until that caller returns and will exhaust the budget.
-Task logic can alter loop data, so FOR calls are withheld until full write-effect
-analysis is available.
+Task logic can alter loop data, so ST FOR calls await full write-effect analysis.
+[Ladder FOR](ladder-loops.md) supports live loop data and separate per-task call
+stacks, including nested Event calls; native timing and sampling remain unverified.
 
 ## State, limits and timing
 

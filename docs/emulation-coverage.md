@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST RLIM added for app `26.1030.102258`. **Full Logix emulation is not
+Audited 2026-10-30; RLL FOR/BRK added for app `26.1030.105135`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,8 +19,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 99 built-in dispatch entries, branches, bounded calls, [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
-| Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/FOR forms and CPU/status/fault parity |
+| Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed transforms, scalar accumulation and sequential writes | Saved active INC/hidden state, mixed CONTROL consumers, AOIs, broader expressions/types and native cursor/overflow/status/partial-fault parity |
@@ -296,5 +296,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 99 built-in RLL entries.
+added by project AOIs are counted separately from the 101 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

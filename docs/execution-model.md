@@ -149,6 +149,13 @@ static references and bounded call nesting. Calls cannot target a main routine;
 RET in a main routine is blocked. Parameterized subroutines require their caller
 when selecting a routine harness.
 
+[Ladder FOR/BRK](ladder-loops.md) calls parameterless routines over inclusive
+DINT index ranges. BRK exits the nearest active FOR; RET/TND end only that
+iteration. Calls share a 25-level limit, every loop test costs budget, and
+preempting tasks use separate call stacks. Index overflow or a later fault
+rolls back loop writes and scheduling. Native sampling/watchdog parity remains
+unverified. ST FOR/EXIT retains its separate validation and zero-step rules.
+
 RLL/ST AOIs support bounded nested instances, copied Input/Output values, InOut
 references, Prescan and EnableInFalse behavior. Optional parameters use saved
 instance members. Hidden saved locals omitted by an export remain unknown;

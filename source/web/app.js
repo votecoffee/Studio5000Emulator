@@ -122,7 +122,7 @@ function sequence(nodes, events, cursor) {
       const op=document.createElement('div');op.className='op' + (event?.out ? ' live' : '') + (report && !recognized(node.name) ? ' bad' : '');
       op.innerHTML=`<div class="op-name">${escapeHtml(node.name)}</div><div class="op-args">${node.args.map(escapeHtml).join('<br>')}</div>`;
       op.title=event ? `Condition in: ${event.in}\nCondition out: ${event.out}` : 'No execution trace for this instruction';div.append(op);
-      if(node.name==='JSR'){
+      if(node.name==='JSR'||node.name==='FOR'){
         const target=state.routines.find(r=>r.key.toLowerCase()===(selected.split('/')[0]+'/'+node.args[0]).toLowerCase());
         if(target){op.classList.add('call-link');op.setAttribute('role','button');op.setAttribute('tabindex','0');op.setAttribute('aria-label','Open routine '+node.args[0]);op.title+='\nOpen '+target.key;
           op.onclick=()=>{selected=target.key;renderExplorer();renderLadder();};op.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();op.click();}};}
@@ -171,7 +171,7 @@ function renderCoverage() {
   ${state.blockers.map(b=>`<div class="issue">${escapeHtml(b)}</div>`).join('')}
   <h3>TASK SCHEDULING</h3><p class="limits">${escapeHtml(report.task_schedule?.policy || '')}</p><div class="chips">${(report.task_schedule?.tasks || []).map(t=>`<span class="chip">${escapeHtml(t.name)} · ${t.inhibited?'inhibited':t.kind==='Continuous'?'background':t.kind==='Event'?`EVENT · priority ${t.priority} · ${t.event_instruction_overlaps} modeled overlaps · ${t.event_pending_requests_coalesced} pending duplicates merged`:`${t.rate_ms} ms · priority ${t.priority}`} · ${t.executions} executions · next ${t.next_release_ms??'—'}</span>`).join('') || '<span class="limits">No executable task schedule in this scope.</span>'}</div>
   <h3>STRUCTURED TEXT</h3><p class="limits">${escapeHtml(report.structured_text?.policy || '')}</p><div class="chips">${Object.entries(report.structured_text?.constructs || {}).map(([n,c])=>`<span class="chip">${escapeHtml(n)} × ${c}</span>`).join('') || '<span class="limits">No ST statements in program routines.</span>'}</div>
-  <h3>SUBROUTINE PARAMETERS</h3><p class="limits">${escapeHtml(report.routine_parameters?.contract || '')}</p><div class="chips">${Object.entries(report.routine_parameters?.calls || {}).map(([name,v])=>`<span class="chip">${escapeHtml(name)} · ${v.inputs} in / ${v.returns} out</span>`).join('') || '<span class="limits">No JSR calls in this scope.</span>'}</div>
+  <h3>SUBROUTINE PARAMETERS</h3><p class="limits">${escapeHtml(report.routine_parameters?.contract || '')}</p><div class="chips">${Object.entries(report.routine_parameters?.calls || {}).map(([name,v])=>`<span class="chip">${escapeHtml(name)} · ${v.inputs} in / ${v.returns} out</span>`).join('') || '<span class="limits">No routine calls in this scope.</span>'}</div>
   <h3>ADD-ON INSTRUCTIONS</h3><p class="limits">${report.add_on_instructions?.definitions || 0} definitions · ${(report.add_on_instructions?.active_definitions || []).map(escapeHtml).join(', ') || 'none in execution scope'}<br>${escapeHtml(report.add_on_instructions?.local_state_policy || '')}</p>
   <h3>INSTRUCTION INVENTORY · PROGRAM ROUTINES</h3><div class="chips">${Object.entries(report.instructions).map(([n,c])=>`<span class="chip ${recognized(n)?'':'bad'}">${escapeHtml(n)} × ${c}</span>`).join('')}</div>
   <h3>MODEL LIMITS</h3><ul class="limits">${report.limits.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>
@@ -197,6 +197,7 @@ $('file').onchange=async()=>{
 };
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('system-demo').onclick=()=>loadDemo('SystemLab');$('timer-demo').onclick=()=>loadDemo('TimerLab');$('counter-demo').onclick=()=>loadDemo('CounterLab');$('pulse-demo').onclick=()=>loadDemo('PulseLab');$('scale-demo').onclick=()=>loadDemo('ScaleLab');$('signal-demo').onclick=()=>loadDemo('SignalLab');$('rate-demo').onclick=()=>loadDemo('RateLab');$('event-demo').onclick=()=>loadDemo('EventLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
+$('loop-demo').onclick=()=>loadDemo('LoopLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

@@ -79,6 +79,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_loop_lab_ranges_breaks_false_calls_and_late_fault_through_http(self):
+        state=self.post('demo',{'sample':'LoopLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):self.post('write',{'tag':tag,'value':value})
+        state=self.post('step',{'dt':10});v=values(state)
+        self.assertEqual((v['Total'],v['Iterations'],v['Index'],v['Completed']),(10,5,5,True))
+        write('BreakEnabled',True);state=self.post('step',{'dt':10});v=values(state)
+        self.assertEqual((v['Total'],v['Iterations'],v['TailRuns'],v['Index']),(1,3,2,2))
+        self.assertTrue(any(row.get('control')=='break' for row in state['trace']))
+        write('BreakEnabled',False);write('Start',4);write('Finish',0);write('Increment',-2)
+        state=self.post('step',{'dt':10});v=values(state)
+        self.assertEqual((v['Total'],v['Iterations'],v['Index']),(6,3,-2))
+        write('Enabled',False);state=self.post('step',{'dt':10});v=values(state)
+        self.assertEqual((v['Iterations'],v['Index'],v['Completed']),(0,-2,False))
+        write('Enabled',True);write('FaultDivisor',0);before=json.load(urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3))
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':10})
+        self.assertEqual(caught.exception.code,400);caught.exception.close()
+        after=json.load(urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3));self.assertEqual((after['tags'],after['scan'],after['ms']),(before['tags'],before['scan'],before['ms']))
+        write('FaultDivisor',1);state=self.post('step',{'dt':10});v=values(state)
+        self.assertEqual((v['Total'],v['Iterations'],v['Index'],state['scan']),(6,3,-2,before['scan']+1))
+        report=self.post('report',{});self.assertIn('FOR',report['supported_instructions'])
+        self.assertIn('BRK',report['supported_instructions']);self.assertFalse(report['ladder_loops']['native_runtime_parity'])
+
     def test_task_lab_schedules_through_http_and_reports_pending_first_scans(self):
         state = self.post('demo', {'sample': 'TaskLab'})
         self.assertEqual(state['blockers'], [])
