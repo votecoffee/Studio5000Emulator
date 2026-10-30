@@ -620,6 +620,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
+    def test_scale_lab_alarms_limits_status_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'ScaleLab'})['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('write', {'tag':'RawValue','value':2047.5})
+        self.assertEqual(values(self.post('step', {'dt':10}))['ScaledValue'],50.0)
+        self.post('write', {'tag':'RawValue','value':8190.0});v=values(self.post('step', {'dt':10}))
+        self.assertEqual(v['ScaledValue'],200.0);self.assertTrue(v['HighAlarm'])
+        self.post('write', {'tag':'LimitOutput','value':True});self.assertEqual(values(self.post('step', {'dt':10}))['ScaledValue'],100.0)
+        self.post('write', {'tag':'RawValue','value':-4095.0});v=values(self.post('step', {'dt':10}))
+        self.assertEqual(v['ScaledValue'],0.0);self.assertTrue(v['LowAlarm'])
+        self.post('write', {'tag':'RawMaximum','value':0.0});v=values(self.post('step', {'dt':10}))
+        self.assertEqual(v['ScaledValue'],0.0);self.assertTrue(v['ScaleFault']);self.assertTrue(v['InvalidRange'])
+        self.post('write', {'tag':'RawMaximum','value':4095.0});self.post('write', {'tag':'RawValue','value':2047.5})
+        v=values(self.post('step', {'dt':10}));self.assertEqual(v['ScaledValue'],50.0);self.assertFalse(v['ScaleFault'])
+        self.post('write', {'tag':'CallScale','value':False});self.post('write', {'tag':'RawMaximum','value':0.0})
+        v=values(self.post('step', {'dt':10}));self.assertFalse(v['InvalidRange']);self.assertEqual(v['ScaledValue'],50.0)
+        self.post('write', {'tag':'CallScale','value':True});self.assertTrue(values(self.post('step', {'dt':10}))['InvalidRange'])
+        self.post('write', {'tag':'RawMaximum','value':4095.0});self.post('write', {'tag':'RawValue','value':8190.0})
+        self.post('write', {'tag':'LimitOutput','value':False})
+        for invalid in (False,True):
+            if invalid:self.post('write', {'tag':'RawMinimum','value':4095.0})
+            before=self.post('write', {'tag':'FaultDivisor','value':0})
+            with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+            self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}))
+            self.assertEqual(v['ScaledValue'],200.0);self.assertEqual(v['InvalidRange'],invalid)
+        self.post('write', {'tag':'RawMinimum','value':0.0});self.post('write', {'tag':'EUMinimum','value':100.0})
+        self.post('write', {'tag':'EUMaximum','value':-100.0});self.post('write', {'tag':'RawValue','value':2047.5})
+        v=values(self.post('step', {'dt':10}));self.assertEqual(v['ScaledValue'],0.0);self.assertFalse(v['ScaleFault'])
+        profile=self.post('report', {})['st_scale'];self.assertEqual(profile['instructions'],['SCL']);self.assertFalse(profile['native_runtime_parity'])
+
     def test_pulse_lab_st_edges_skips_and_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'PulseLab'})['blockers'], [])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

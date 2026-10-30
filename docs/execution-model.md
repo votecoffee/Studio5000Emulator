@@ -6,6 +6,10 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST SCL](st-scaling.md) adds stateless finite-REAL analog scaling, limiting and
+raw-range diagnostics over logical SCALE records. Its values/status share
+whole-advance rollback; native precision/overflow/layout parity remains unverified.
+
 [ST OSRI/OSFI](st-oneshot.md) use logical FBD_ONESHOT records and per-record
 sampled input history. Reached calls produce rising/falling pulses; skipped
 calls retain outputs and history. Run entry reprimes history. Values and edges

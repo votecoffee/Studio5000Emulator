@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.092825` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.094109` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -24,9 +24,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD_TIMER model, partial | 1 | [ST TONR/TOFR/RTOR](st-timers.md), logical fields and deterministic elapsed time; FBD graphs and native parity remain unfinished |
 | FBD_COUNTER model, partial | 1 | [ST CTUD](st-counter.md), sampled edges and logical up/down state; FBD graphs and native parity remain unfinished |
 | FBD_ONESHOT model, partial | 1 | [ST OSRI/OSFI](st-oneshot.md), sampled rising/falling pulses and logical fields; FBD graphs and native parity remain unfinished |
-| No dedicated model | 205 | No dedicated bounded named runtime model |
+| SCALE model, partial | 1 | [ST SCL](st-scaling.md), finite REAL scaling, limiting, alarms and status; FBD graphs and native parity remain unfinished |
+| No dedicated model | 204 | No dedicated bounded named runtime model |
 
-Thus **17 entries have dedicated bounded models**; this is not 17 fully
+Thus **18 entries have dedicated bounded models**; this is not 18 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -263,7 +264,7 @@ Every dedicated model status still requires the qualifications above.
 | 183 | `SAFE_OPERATING_STOP` | Safety | No dedicated model | Listed |
 | 184 | `SAFE_STOP_1` | Safety | No dedicated model | Listed |
 | 185 | `SAFE_STOP_2` | Safety | No dedicated model | Listed |
-| 186 | `SCALE` | Process/filter/drive | No dedicated model | Listed |
+| 186 | `SCALE` | Process/filter/drive | SCALE model (partial) | Listed |
 | 187 | `SEC_ORDER_CONTROLLER` | Process/filter/drive | No dedicated model | Listed |
 | 188 | `SELECT` | Process/filter/drive | No dedicated model | Listed |
 | 189 | `SELECTABLE_NEGATE` | Process/filter/drive | No dedicated model | Listed |

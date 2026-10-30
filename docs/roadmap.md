@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.094109`: [ST SCL analog scaling](st-scaling.md), logical SCALE
+records, finite REAL scaling, limiting/alarms/status recovery and Scale Lab.
+
 Available in `26.1030.092825`: [ST OSRI/OSFI](st-oneshot.md), logical FBD_ONESHOT
 records, rising/falling edge pulses, startup/skip/rollback behavior and Pulse Lab.
 
