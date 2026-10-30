@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.094109`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.100100`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -129,6 +129,10 @@ Choose **Pulse lab** to try rising/falling edges and skipped calls.
 [Structured Text analog scaling](docs/st-scaling.md) adds SCL with logical SCALE
 records, range alarms, output limiting, status aliases and rollback.
 Choose **Scale lab** to try raw/engineering ranges and invalid-range recovery.
+
+[Structured Text signal conditioning](docs/st-signals.md) adds HLL limits, SNEG
+selectable negation and SSUM weighted sums with three logical record types.
+Choose **Signal lab** to combine limits, negation, selected gains and bias.
 
 ## Table of Contents
 

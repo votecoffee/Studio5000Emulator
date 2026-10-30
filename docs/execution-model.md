@@ -6,6 +6,10 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST HLL/SNEG/SSUM](st-signals.md) add stateless finite-REAL limits, selectable
+negation and weighted sums. Inclusive HLL alarms and status-backed diagnostics
+are distinct from SCL raw alarms. Whole-advance rollback covers all three records.
+
 [ST SCL](st-scaling.md) adds stateless finite-REAL analog scaling, limiting and
 raw-range diagnostics over logical SCALE records. Its values/status share
 whole-advance rollback; native precision/overflow/layout parity remains unverified.

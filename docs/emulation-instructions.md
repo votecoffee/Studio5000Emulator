@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST SCL added for app `26.1030.094109`. The engine has **99 built-in
+Audited 2026-10-30; ST HLL/SNEG/SSUM added for app `26.1030.100100`. The engine has **99 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -22,8 +22,9 @@ separate language family, not RLL mnemonics.
 
 [ST-only TONR/TOFR/RTOR](st-timers.md) use logical FBD_TIMER records;
 [ST CTUD](st-counter.md) uses FBD_COUNTER and [ST OSRI/OSFI](st-oneshot.md) use
-FBD_ONESHOT. [ST SCL](st-scaling.md) uses SCALE. These seven additional calls
-are excluded from the RLL dispatch count. Their FBD graph forms remain unimplemented.
+FBD_ONESHOT. [ST SCL](st-scaling.md) uses SCALE; [ST HLL/SNEG/SSUM](st-signals.md)
+add three signal-conditioning records. These ten additional calls are excluded
+from the RLL dispatch count. Their FBD graph forms remain unimplemented.
 
 ## Instruction families
 
@@ -59,7 +60,7 @@ are excluded from the RLL dispatch count. Their FBD graph forms remain unimpleme
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `DEDT`, `FGEN`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
 | Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
-| Select/Limit Instructions | — | — | `ESEL`, `HLL`, `MUX`, `RLIM`, `SEL`, `SNEG`, `SSUM` |
+| Select/Limit Instructions | — | — | `ESEL`, `MUX`, `RLIM`, `SEL` (ST-only HLL/SNEG/SSUM listed above) |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |
@@ -91,6 +92,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| HLL/SNEG/SSUM (ST only) | [Logical signal records](st-signals.md), both/one-sided limits, inclusive alarms, status aliases, selectable negation and eight weighted input pairs plus bias. FBD graphs and native precision/overflow/status/layout/fault parity remain unfinished. |
 | SCL (ST only) | [Logical SCALE](st-scaling.md), finite REAL scaling, extrapolation/limiting, raw alarms, invalid-range status and rollback. FBD graphs and native precision/overflow/status/layout/fault parity remain unfinished. |
 | OSRI/OSFI (ST only) | [Logical FBD_ONESHOT](st-oneshot.md), sampled rising/falling edges, startup suppression, skipped calls and transactional history. FBD graphs, mixed instruction kinds on one record and native layout/lifecycle/fault parity remain unfinished. |
 | CTUD (ST only) | [Logical FBD_COUNTER](st-counter.md), sampled up/down edges, first-call/Run priming, reset, signed wrap and transactional history. FBD graphs and native reset/flag/layout/fault parity remain unfinished. |
@@ -127,6 +129,7 @@ The exact current dispatch table is `ARITIES` in
 [st_counter.py](../source/logixlab/st_counter.py),
 [st_oneshot.py](../source/logixlab/st_oneshot.py),
 [st_scale.py](../source/logixlab/st_scale.py),
+[st_signal.py](../source/logixlab/st_signal.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports

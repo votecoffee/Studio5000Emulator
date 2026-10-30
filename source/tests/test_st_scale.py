@@ -271,7 +271,7 @@ class StructuredScaleTests(unittest.TestCase):
     def test_builtin_classification_counts_and_report_qualification(self):
         e=self.checked();self.assertNotIn('SCALE',e.project.data_only_types);self.assertNotIn('scale',e.project.udts)
         self.assertEqual(set(e.memory.read('T')),set(FIELDS));self.assertEqual(len(ARITIES),99)
-        self.assertEqual(set(ST_ONLY_ARITIES),{'TONR','TOFR','RTOR','CTUD','OSRI','OSFI','SCL'})
+        self.assertTrue({'TONR','TOFR','RTOR','CTUD','OSRI','OSFI','SCL'}<=set(ST_ONLY_ARITIES))
         profile=e.report()['st_scale'];self.assertEqual(profile['instructions'],['SCL']);self.assertFalse(profile['native_runtime_parity'])
         self.assertEqual(profile['status_aliases']['InRawRangeInv'],'Status.1')
 

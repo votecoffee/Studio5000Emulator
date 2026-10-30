@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SignalLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="SignalLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="5.0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighLimit" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10.0" />
+        </Data>
+      </Tag>
+      <Tag Name="LowLimit" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitMode" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Negate" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UseLimited" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="UseNegated" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Bias" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1.0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitedGain" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1.0" />
+        </Data>
+      </Tag>
+      <Tag Name="NegatedGain" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1.0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallSignals" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitedValue" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="NegatedValue" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="SumValue" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighAlarm" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LowAlarm" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignalFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitsInvalid" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectorInvalid" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Limiter" DataType="HL_LIMIT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="HL_LIMIT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighLimit" DataType="REAL" Value="10.0" />
+            <DataValueMember Name="LowLimit" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectLimit" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LowAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Negator" DataType="SELECTABLE_NEGATE" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="SELECTABLE_NEGATE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="NegateEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Summer" DataType="SELECTED_SUMMER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="SELECTED_SUMMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain1" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select1" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain2" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select2" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In3" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain3" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select3" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In4" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain4" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select4" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In5" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain5" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select5" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In6" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain6" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select6" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In7" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain7" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select7" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In8" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain8" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select8" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Bias" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallSignals THEN</Line>
+              <Line Number="1">    Limiter.In := Input;</Line>
+              <Line Number="2">    Limiter.HighLimit := HighLimit;</Line>
+              <Line Number="3">    Limiter.LowLimit := LowLimit;</Line>
+              <Line Number="4">    Limiter.SelectLimit := LimitMode;</Line>
+              <Line Number="5">    HLL(Limiter);</Line>
+              <Line Number="6">    Negator.In := Input;</Line>
+              <Line Number="7">    Negator.NegateEnable := Negate;</Line>
+              <Line Number="8">    SNEG(Negator);</Line>
+              <Line Number="9">    Summer.In1 := Limiter.Out;</Line>
+              <Line Number="10">    Summer.Gain1 := LimitedGain;</Line>
+              <Line Number="11">    Summer.Select1 := UseLimited;</Line>
+              <Line Number="12">    Summer.In2 := Negator.Out;</Line>
+              <Line Number="13">    Summer.Gain2 := NegatedGain;</Line>
+              <Line Number="14">    Summer.Select2 := UseNegated;</Line>
+              <Line Number="15">    Summer.Bias := Bias;</Line>
+              <Line Number="16">    SSUM(Summer);</Line>
+              <Line Number="17">    CallCount := CallCount + 1;</Line>
+              <Line Number="18">END_IF;</Line>
+              <Line Number="19">LimitedValue := Limiter.Out;</Line>
+              <Line Number="20">NegatedValue := Negator.Out;</Line>
+              <Line Number="21">SumValue := Summer.Out;</Line>
+              <Line Number="22">HighAlarm := Limiter.HighAlarm;</Line>
+              <Line Number="23">LowAlarm := Limiter.LowAlarm;</Line>
+              <Line Number="24">SignalFault := Limiter.InstructFault;</Line>
+              <Line Number="25">LimitsInvalid := Limiter.LimitsInv;</Line>
+              <Line Number="26">SelectorInvalid := Limiter.SelectLimitInv;</Line>
+              <Line Number="27">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

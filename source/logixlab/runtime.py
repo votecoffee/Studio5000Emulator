@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
@@ -348,6 +348,7 @@ class Engine:
         if n in st_counter.INSTRUCTIONS:st_counter.validate(self,op,scope);return
         if n in st_oneshot.INSTRUCTIONS:st_oneshot.validate(self,op,scope);return
         if n in st_scale.INSTRUCTIONS:st_scale.validate(self,op,scope);return
+        if n in st_signal.INSTRUCTIONS:st_signal.validate(self,op,scope);return
         if n not in ARITIES or len(a) != ARITIES[n]: return
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
@@ -737,6 +738,7 @@ class Engine:
                 'st_counter':st_counter.description(),
                 'st_oneshot':st_oneshot.description(),
                 'st_scale':st_scale.description(),
+                'st_signal':st_signal.description(),
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),

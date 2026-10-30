@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.094109` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.100100` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -25,9 +25,12 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD_COUNTER model, partial | 1 | [ST CTUD](st-counter.md), sampled edges and logical up/down state; FBD graphs and native parity remain unfinished |
 | FBD_ONESHOT model, partial | 1 | [ST OSRI/OSFI](st-oneshot.md), sampled rising/falling pulses and logical fields; FBD graphs and native parity remain unfinished |
 | SCALE model, partial | 1 | [ST SCL](st-scaling.md), finite REAL scaling, limiting, alarms and status; FBD graphs and native parity remain unfinished |
-| No dedicated model | 204 | No dedicated bounded named runtime model |
+| HL_LIMIT model, partial | 1 | [ST HLL](st-signals.md), both/one-sided limits, alarms and status |
+| SELECTABLE_NEGATE model, partial | 1 | [ST SNEG](st-signals.md), finite REAL selectable negation |
+| SELECTED_SUMMER model, partial | 1 | [ST SSUM](st-signals.md), eight weighted input pairs and bias |
+| No dedicated model | 201 | No dedicated bounded named runtime model |
 
-Thus **18 entries have dedicated bounded models**; this is not 18 fully
+Thus **21 entries have dedicated bounded models**; this is not 21 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -158,7 +161,7 @@ Every dedicated model status still requires the qualifications above.
 | 77 | `FLIP_FLOP_D` | FBD state/logic | No dedicated model | Listed |
 | 78 | `FLIP_FLOP_JK` | FBD state/logic | No dedicated model | Listed |
 | 79 | `FUNCTION_GENERATOR` | Process/filter/drive | No dedicated model | Listed |
-| 80 | `HL_LIMIT` | Process/filter/drive | No dedicated model | Listed |
+| 80 | `HL_LIMIT` | Process/filter/drive | HL_LIMIT model (partial) | Listed |
 | 81 | `HMIBC` | HMI button control | No dedicated model | Listed |
 | 82 | `IMC` | Process/filter/drive | No dedicated model | Listed |
 | 83 | `INT` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
@@ -267,8 +270,8 @@ Every dedicated model status still requires the qualifications above.
 | 186 | `SCALE` | Process/filter/drive | SCALE model (partial) | Listed |
 | 187 | `SEC_ORDER_CONTROLLER` | Process/filter/drive | No dedicated model | Listed |
 | 188 | `SELECT` | Process/filter/drive | No dedicated model | Listed |
-| 189 | `SELECTABLE_NEGATE` | Process/filter/drive | No dedicated model | Listed |
-| 190 | `SELECTED_SUMMER` | Process/filter/drive | No dedicated model | Listed |
+| 189 | `SELECTABLE_NEGATE` | Process/filter/drive | SELECTABLE_NEGATE model (partial) | Listed |
+| 190 | `SELECTED_SUMMER` | Process/filter/drive | SELECTED_SUMMER model (partial) | Listed |
 | 191 | `SELECT_ENHANCED` | Process/filter/drive | No dedicated model | Listed |
 | 192 | `SEQUENCE` | Phase/sequence | No dedicated model | Listed |
 | 193 | `SEQ_BOOL` | Phase/sequence | No dedicated model | Spelling variant |

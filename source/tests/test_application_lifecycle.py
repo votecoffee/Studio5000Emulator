@@ -620,6 +620,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
+    def test_signal_lab_limits_negation_sum_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'SignalLab'})['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        v=values(self.post('step', {'dt':10}));self.assertEqual((v['LimitedValue'],v['NegatedValue'],v['SumValue']),(5.0,5.0,6.0))
+        self.post('write', {'tag':'Input','value':10.0});v=values(self.post('step', {'dt':10}))
+        self.assertTrue(v['HighAlarm']);self.assertEqual(v['LimitedValue'],10.0)
+        for tag,value in (('Input',20.0),('Negate',True),('UseNegated',True)):
+            self.post('write', {'tag':tag,'value':value})
+        v=values(self.post('step', {'dt':10}));self.assertEqual((v['LimitedValue'],v['NegatedValue'],v['SumValue']),(10.0,-20.0,-9.0))
+        self.post('write', {'tag':'LimitMode','value':2});v=values(self.post('step', {'dt':10}))
+        self.assertEqual(v['SumValue'],1.0);self.assertFalse(v['HighAlarm'])
+        for tag,value in (('LimitMode',9),('HighLimit',0.0),('LowLimit',10.0),('Input',5.0)):
+            self.post('write', {'tag':tag,'value':value})
+        v=values(self.post('step', {'dt':10}));self.assertEqual(v['Limiter.Status'],7)
+        self.assertTrue(v['LimitsInvalid']);self.assertTrue(v['SelectorInvalid']);self.assertEqual(v['LimitedValue'],10.0)
+        self.post('write', {'tag':'CallSignals','value':False});self.post('write', {'tag':'HighLimit','value':20.0})
+        v=values(self.post('step', {'dt':10}));self.assertEqual(v['Limiter.Status'],7)
+        self.post('write', {'tag':'CallSignals','value':True});self.post('write', {'tag':'LimitMode','value':0})
+        before=self.post('write', {'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}));self.assertEqual(v['Limiter.Status'],0)
+        self.post('write', {'tag':'UseLimited','value':False});self.post('write', {'tag':'NegatedGain','value':3e38})
+        before=self.post('write', {'tag':'Input','value':20.0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'UseNegated','value':False});v=values(self.post('step', {'dt':10}));self.assertEqual(v['SumValue'],1.0)
+        self.assertEqual(self.post('report', {})['st_signal']['instructions'],['HLL','SNEG','SSUM'])
+
     def test_scale_lab_alarms_limits_status_and_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'ScaleLab'})['blockers'], [])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

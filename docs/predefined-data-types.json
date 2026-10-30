@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.094109",
+  "audited_app_version": "26.1030.100100",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -67,6 +67,21 @@
       "label": "SCALE model (partial)",
       "remaining": "Bounded finite-REAL ST SCL; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_scale.py"
+    },
+    "hl_limit_model": {
+      "label": "HL_LIMIT model (partial)",
+      "remaining": "Bounded ST HLL limits, alarms and status; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "source": "source/logixlab/st_signal.py"
+    },
+    "selectable_negate_model": {
+      "label": "SELECTABLE_NEGATE model (partial)",
+      "remaining": "Bounded ST SNEG selectable finite-REAL negation; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "source": "source/logixlab/st_signal.py"
+    },
+    "selected_summer_model": {
+      "label": "SELECTED_SUMMER model (partial)",
+      "remaining": "Bounded ST SSUM selected weighted inputs and bias; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "source": "source/logixlab/st_signal.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -188,10 +203,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 18,
-    "no_dedicated_model": 204,
+    "dedicated_bounded_models": 21,
+    "no_dedicated_model": 201,
     "status_counts": {
-      "no_dedicated_model": 204,
+      "no_dedicated_model": 201,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -200,7 +215,10 @@
       "fbd_timer_model": 1,
       "fbd_counter_model": 1,
       "fbd_oneshot_model": 1,
-      "scale_model": 1
+      "scale_model": 1,
+      "hl_limit_model": 1,
+      "selectable_negate_model": 1,
+      "selected_summer_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1164,7 +1182,7 @@
       "identifier_candidate": "HL_LIMIT",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "hl_limit_model",
       "v35_listing": "exact",
       "v35_catalog_name": "HL_LIMIT",
       "notes": []
@@ -2479,7 +2497,7 @@
       "identifier_candidate": "SELECTABLE_NEGATE",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "selectable_negate_model",
       "v35_listing": "exact",
       "v35_catalog_name": "SELECTABLE_NEGATE",
       "notes": []
@@ -2491,7 +2509,7 @@
       "identifier_candidate": "SELECTED_SUMMER",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "selected_summer_model",
       "v35_listing": "exact",
       "v35_catalog_name": "SELECTED_SUMMER",
       "notes": []

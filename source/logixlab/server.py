@@ -39,7 +39,7 @@ from .runtime import Engine
 from . import __version__
 
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
-SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab', 'TaskLab', 'BitLab', 'StringLab', 'ControlLab', 'SequenceLab', 'ConversionLab', 'MathLab', 'StatsLab', 'SystemLab', 'EventLab', 'RecordLab', 'TimerLab', 'CounterLab', 'PulseLab', 'ScaleLab')
+SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab', 'TaskLab', 'BitLab', 'StringLab', 'ControlLab', 'SequenceLab', 'ConversionLab', 'MathLab', 'StatsLab', 'SystemLab', 'EventLab', 'RecordLab', 'TimerLab', 'CounterLab', 'PulseLab', 'ScaleLab', 'SignalLab')
 
 
 def serialize_nodes(nodes):

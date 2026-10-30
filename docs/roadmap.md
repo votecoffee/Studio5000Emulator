@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.100100`: [ST HLL/SNEG/SSUM](st-signals.md), three logical
+signal records, limits/diagnostics, selectable negation, weighted sums and Signal Lab.
+
 Available in `26.1030.094109`: [ST SCL analog scaling](st-scaling.md), logical SCALE
 records, finite REAL scaling, limiting/alarms/status recovery and Scale Lab.
 
