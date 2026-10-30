@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="RateLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="RateLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Target" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="IncreaseRate" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="100.0" />
+        </Data>
+      </Tag>
+      <Tag Name="DecreaseRate" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="200.0" />
+        </Data>
+      </Tag>
+      <Tag Name="Bypass" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingMode" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.125" />
+        </Data>
+      </Tag>
+      <Tag Name="CallRate" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Output" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="ElapsedSeconds" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="RateFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IncreaseInvalid" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DecreaseInvalid" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimeInvalid" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RateState" DataType="RATE_LIMITER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="RATE_LIMITER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="IncRate" DataType="REAL" Value="100.0" />
+            <DataValueMember Name="DecRate" DataType="REAL" Value="200.0" />
+            <DataValueMember Name="ByPass" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.125" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallRate THEN</Line>
+              <Line Number="1">    RateState.In := Target;</Line>
+              <Line Number="2">    RateState.IncRate := IncreaseRate;</Line>
+              <Line Number="3">    RateState.DecRate := DecreaseRate;</Line>
+              <Line Number="4">    RateState.ByPass := Bypass;</Line>
+              <Line Number="5">    RateState.TimingMode := TimingMode;</Line>
+              <Line Number="6">    RateState.OversampleDT := SampleTime;</Line>
+              <Line Number="7">    RLIM(RateState);</Line>
+              <Line Number="8">    CallCount := CallCount + 1;</Line>
+              <Line Number="9">END_IF;</Line>
+              <Line Number="10">Output := RateState.Out;</Line>
+              <Line Number="11">ElapsedSeconds := RateState.DeltaT;</Line>
+              <Line Number="12">RateFault := RateState.InstructFault;</Line>
+              <Line Number="13">IncreaseInvalid := RateState.IncRateInv;</Line>
+              <Line Number="14">DecreaseInvalid := RateState.DecRateInv;</Line>
+              <Line Number="15">TimeInvalid := RateState.TimingModeInv OR RateState.DeltaTInv;</Line>
+              <Line Number="16">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

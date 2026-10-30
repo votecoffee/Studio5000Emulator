@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST HLL/SNEG/SSUM added for app `26.1030.100100`. **Full Logix emulation is not
+Audited 2026-10-30; ST RLIM added for app `26.1030.102258`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -39,6 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
+| RATE_LIMITER and ST RLIM | [Rate limiting](st-rate-limiter.md), separate rates, bypass, Periodic/elapsed and explicit oversample timing, status aliases and rollback | Module timestamp mode/RTS diagnostics, FBD graphs and native timing/precision/status/layout/fault parity |
 | ST signal conditioning | [HLL/SNEG/SSUM](st-signals.md), logical HL_LIMIT/SELECTABLE_NEGATE/SELECTED_SUMMER, inclusive limit alarms, selector diagnostics and weighted sums | FBD graph forms and native precision/overflow/status/layout/fault parity |
 | SCALE and ST SCL | [Analog scaling](st-scaling.md), finite REAL interpolation/extrapolation, limiting, raw alarms and status aliases | FBD graph forms and native precision/overflow/status/layout/fault parity |
 | FBD_ONESHOT and ST edges | [OSRI/OSFI](st-oneshot.md), rising/falling pulses, startup suppression, skipped calls and transactional history | FBD graph forms, shared-kind records and native layout/lifecycle/fault parity |

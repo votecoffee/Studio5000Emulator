@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.102258`: [ST RLIM](st-rate-limiter.md), logical RATE_LIMITER,
+separate ramps, bypass, Periodic/elapsed and oversample timing, and Rate Lab.
+
 Available in `26.1030.100100`: [ST HLL/SNEG/SSUM](st-signals.md), three logical
 signal records, limits/diagnostics, selectable negation, weighted sums and Signal Lab.
 

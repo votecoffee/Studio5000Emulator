@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.100100` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.102258` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -28,9 +28,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | HL_LIMIT model, partial | 1 | [ST HLL](st-signals.md), both/one-sided limits, alarms and status |
 | SELECTABLE_NEGATE model, partial | 1 | [ST SNEG](st-signals.md), finite REAL selectable negation |
 | SELECTED_SUMMER model, partial | 1 | [ST SSUM](st-signals.md), eight weighted input pairs and bias |
-| No dedicated model | 201 | No dedicated bounded named runtime model |
+| RATE_LIMITER model, partial | 1 | [ST RLIM](st-rate-limiter.md), ramps/bypass and Periodic/oversample timing; RTS/FBD/native parity remain unfinished |
+| No dedicated model | 200 | No dedicated bounded named runtime model |
 
-Thus **21 entries have dedicated bounded models**; this is not 21 fully
+Thus **22 entries have dedicated bounded models**; this is not 22 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -247,7 +248,7 @@ Every dedicated model status still requires the qualifications above.
 | 163 | `RAC_ITF_DVC_PWRVELOCITY_SET*` | RAC interfaces | No dedicated model | Listed |
 | 164 | `RAC_ITF_DVC_PWRVELOCITY_STS*` | RAC interfaces | No dedicated model | Listed |
 | 165 | `RAMP_SOAK` | Process/filter/drive | No dedicated model | Listed |
-| 166 | `RATE_LIMITER` | Process/filter/drive | No dedicated model | Listed |
+| 166 | `RATE_LIMITER` | Process/filter/drive | RATE_LIMITER model (partial) | Listed |
 | 167 | `REAL` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
 | 168 | `REDUNDANT_INPUT` | Safety | No dedicated model | Listed |
 | 169 | `REDUNDANT_OUTPUT` | Safety | No dedicated model | Listed |

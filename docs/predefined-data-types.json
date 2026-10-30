@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.100100",
+  "audited_app_version": "26.1030.102258",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -82,6 +82,11 @@
       "label": "SELECTED_SUMMER model (partial)",
       "remaining": "Bounded ST SSUM selected weighted inputs and bias; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_signal.py"
+    },
+    "rate_limiter_model": {
+      "label": "RATE_LIMITER model (partial)",
+      "remaining": "Bounded ST RLIM period/oversample ramps; module timestamp timing, FBD graphs and native timing/precision/status/layout/fault parity remain unfinished.",
+      "source": "source/logixlab/st_rate.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -203,10 +208,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 21,
-    "no_dedicated_model": 201,
+    "dedicated_bounded_models": 22,
+    "no_dedicated_model": 200,
     "status_counts": {
-      "no_dedicated_model": 201,
+      "no_dedicated_model": 200,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -218,7 +223,8 @@
       "scale_model": 1,
       "hl_limit_model": 1,
       "selectable_negate_model": 1,
-      "selected_summer_model": 1
+      "selected_summer_model": 1,
+      "rate_limiter_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -2216,7 +2222,7 @@
       "identifier_candidate": "RATE_LIMITER",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "rate_limiter_model",
       "v35_listing": "exact",
       "v35_catalog_name": "RATE_LIMITER",
       "notes": []

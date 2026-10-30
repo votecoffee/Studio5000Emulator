@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.100100`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.102258`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -133,6 +133,10 @@ Choose **Scale lab** to try raw/engineering ranges and invalid-range recovery.
 [Structured Text signal conditioning](docs/st-signals.md) adds HLL limits, SNEG
 selectable negation and SSUM weighted sums with three logical record types.
 Choose **Signal lab** to combine limits, negation, selected gains and bias.
+
+[Structured Text rate limiting](docs/st-rate-limiter.md) adds RLIM with a logical
+RATE_LIMITER record, separate ramp rates, bypass and period/oversample timing.
+Choose **Rate lab** to try ramps, timing diagnostics and clock rollback.
 
 ## Table of Contents
 

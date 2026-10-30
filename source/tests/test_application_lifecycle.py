@@ -620,6 +620,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
+    def test_rate_lab_timing_bypass_status_and_clock_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'RateLab'})['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        for tag,value in (('IncreaseRate',8.0),('DecreaseRate',16.0)):
+            self.post('write', {'tag':tag,'value':value})
+        self.post('step', {'dt':125});self.post('write', {'tag':'Target','value':10.0})
+        self.assertEqual(values(self.post('step', {'dt':125}))['Output'],1.0)
+        self.assertEqual(values(self.post('step', {'dt':125}))['Output'],2.0)
+        self.post('write', {'tag':'Target','value':-10.0});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],0.0)
+        self.post('write', {'tag':'Bypass','value':True});self.post('write', {'tag':'Target','value':7.0})
+        self.assertEqual(values(self.post('step', {'dt':125}))['Output'],7.0)
+        for tag,value in (('Bypass',False),('Target',100.0),('TimingMode',1),('SampleTime',0.125)):
+            self.post('write', {'tag':tag,'value':value})
+        self.assertEqual(values(self.post('step', {'dt':125}))['Output'],8.0)
+        self.post('write', {'tag':'CallRate','value':False});self.post('write', {'tag':'Target','value':-10.0})
+        self.assertEqual(values(self.post('step', {'dt':500}))['Output'],8.0)
+        self.post('write', {'tag':'CallRate','value':True});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],6.0)
+        self.post('write', {'tag':'SampleTime','value':0.0});v=values(self.post('step', {'dt':125}))
+        self.assertEqual(v['Output'],6.0);self.assertTrue(v['TimeInvalid']);self.assertEqual(v['RateState.Status'],-2147483647)
+        self.post('write', {'tag':'SampleTime','value':0.125});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],4.0)
+        for target,expected in ((100.0,5.0),(-100.0,3.0)):
+            self.post('write', {'tag':'Target','value':target});before=self.post('write', {'tag':'FaultDivisor','value':0})
+            with self.assertRaises(HTTPError) as error:self.post('step', {'dt':125})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+            self.post('write', {'tag':'FaultDivisor','value':1});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],expected)
+        before=self.post('write', {'tag':'TimingMode','value':2})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':125})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'TimingMode','value':1});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],1.0)
+        profile=self.post('report', {})['st_rate'];self.assertEqual(profile['instructions'],['RLIM']);self.assertFalse(profile['native_runtime_parity'])
+
     def test_signal_lab_limits_negation_sum_and_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'SignalLab'})['blockers'], [])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

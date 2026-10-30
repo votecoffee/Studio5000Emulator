@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST RLIM](st-rate-limiter.md) adds rate limiting with per-record previous output
+and call time in transactional history. Periodic calls use the configured task
+period; Continuous/harness calls use elapsed simulated time; oversample calls
+use an explicit interval. Values and history share rollback and Run entry.
+
 [ST HLL/SNEG/SSUM](st-signals.md) add stateless finite-REAL limits, selectable
 negation and weighted sums. Inclusive HLL alarms and status-backed diagnostics
 are distinct from SCL raw alarms. Whole-advance rollback covers all three records.
