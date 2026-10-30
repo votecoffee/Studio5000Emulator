@@ -162,6 +162,15 @@ conditions, WHILE/REPEAT and matching AOI/routine bindings share existing contro
 flow and rollback. Mixed types, wide loop/CASE/index forms and native parity
 remain unqualified.
 
+## Paired MCR zones
+
+[Master control reset](master-control.md) plans paired ladder zones and forces
+every disabled body instruction to receive false power. The ending restores
+normal execution. Each routine/AOI invocation has local state; prescan remains
+lexical and existing instruction false paths apply. Cross-boundary jumps and
+unsupported endings block execution. Budget/fault rollback and detached routine
+replacement retain their existing contracts; native override/CPU parity stays open.
+
 ## Runtime task inhibition
 
 [SSV Task InhibitTask](task-inhibition.md) changes a separate runtime flag. Each

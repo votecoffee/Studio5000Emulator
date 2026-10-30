@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; aggregate FIFO/LIFO updated for app `26.1030.070834`. The engine has **95 built-in
+Audited 2026-10-30; paired MCR zones updated for app `26.1030.074205`. The engine has **96 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -52,7 +52,7 @@ separate language family, not RLL mnemonics.
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `DEDT`, `FGEN`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SCL`, `SRTP`, `TOT` |
-| Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `MCR`, `SFP`, `SFR`, `UID`, `UIE` |
+| Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
 | Select/Limit Instructions | — | — | `ESEL`, `HLL`, `MUX`, `RLIM`, `SEL`, `SNEG`, `SSUM` |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
@@ -87,6 +87,7 @@ schema/behavior backlog separately from instruction names.
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
+| MCR | [Paired ladder zones](master-control.md), false scanning, unconditional endings, routine/AOI isolation and trace markers. Open-ended/conditional/nested zones, cross-boundary jumps and native scan/fault/CPU parity remain unfinished. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |

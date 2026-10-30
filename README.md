@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.070834`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.074205`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 95 built-in RLL instruction entries, a bounded ST
+The current model is partial: 96 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -105,6 +105,10 @@ provides independent controls for its Fast and Slow tasks.
 [String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
 matching records, including custom strings, arrays and exact 64-bit fields.
 Choose **Record lab** to try part tracking, a stack and a text FIFO.
+
+[Paired MCR zones](docs/master-control.md) add controlled false scanning in
+ladder and supported RLL AOIs. **Control lab** shows output clearing, retained
+values, timer/counter behavior and whole-advance rollback.
 
 ## Table of Contents
 

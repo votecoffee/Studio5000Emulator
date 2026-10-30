@@ -121,6 +121,70 @@
           <DataValue DataType="DINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="ZoneEnable" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneInput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneOutput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneLatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneScans" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AfterZone" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneMath" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ZoneTimer" TagType="Base" DataType="TIMER" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="30" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ZoneCounter" TagType="Base" DataType="COUNTER" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="COUNTER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="2" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="CU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CD" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OV" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -142,6 +206,33 @@
               </Rung>
               <Rung Number="4" Type="N">
                 <Text>XIC(Unload)FFU(Queue[0],Outgoing,QueueControl,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(ZoneEnable)MCR();</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(ZoneInput)OTE(ZoneOutput);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(ZoneInput)TON(ZoneTimer,?,?);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(ZoneInput)CTU(ZoneCounter,?,?);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(ZoneInput)OTL(ZoneLatch);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>ADD(ZoneScans,1,ZoneScans);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>DIV(1,ZoneDivisor,ZoneMath);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>MCR();</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>ADD(AfterZone,1,AfterZone);</Text>
               </Rung>
             </RLLContent>
           </Routine>

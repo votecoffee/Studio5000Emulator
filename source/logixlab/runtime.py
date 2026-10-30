@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
@@ -38,6 +38,7 @@ class Engine:
         self.memory = Memory(project)
         self.extensions = Extensions(self)
         self.labels = {}
+        self._mcr_plans = {}
         self.instruction_limit = 100000
         self.budget = self.instruction_limit
         self.scan_count = 0
@@ -331,6 +332,8 @@ class Engine:
                     if label in labels:raise ModelError(f'{routine.key}: duplicate label {label}')
                     labels[label]=index
 
+        self._mcr_plans[routine.key.lower()]=mcr.plan(self.project,routine,labels)
+
     def _validate(self, op, scope):
         n, a = op.name, op.args
         if n in self.project.aois:
@@ -341,6 +344,7 @@ class Engine:
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
+        if n=='MCR':mcr.profile(self.project);return
         if n=='SSV':task_inhibit.validate(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -509,31 +513,37 @@ class Engine:
     def _execute_routine(self,routine,scope,depth,context=''):
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')
         if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
-        pc=0
+        pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
         while pc<len(routine.rungs):
             rung=routine.rungs[pc];events=[];power=False;control=''
+            role=plan.get(pc);forced=role in ('body','close') and not enabled
             try:
-                power = self._sequence(rung["nodes"], True, scope, depth, events)
+                power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
+                if role=='open':enabled=power
+                elif role=='close':enabled=True
                 pc+=1
             except JumpRoutine as jump:
                 pc=self.labels[routine.key.lower()][jump.label];control='jump '+jump.label
             except ReturnRoutine:
                 control='return';pc=len(routine.rungs)
             self.trace.append({"routine":routine.key,"context":context,"number":rung['number'],"power":power,"events":events,'control':control,
-                               'task':self._executing_task,'release_ms':self.time_ms})
+                               'task':self._executing_task,'release_ms':self.time_ms,**({'mcr_forced_false':forced} if plan else {})})
             if len(self.trace)>5000:self.trace=self.trace[-5000:]
 
-    def _sequence(self, nodes, power, scope, depth, events):
+    def _sequence(self, nodes, power, scope, depth, events, *, force_false=False):
+        if force_false:power=False
         for node in nodes:
             if isinstance(node, Branch):
                 # All branch paths execute, including de-energized output instructions.
-                results = [self._sequence(path, power, scope, depth, events) for path in node.paths]
+                results = [self._sequence(path, power, scope, depth, events,force_false=force_false) for path in node.paths]
                 power = any(results)
             else:
                 self.budget -= 1
                 if self.budget < 0: raise ModelError("Instruction budget exceeded")
-                incoming = power
-                try:power = self._op(node, power, scope, depth)
+                incoming = False if force_false else power
+                try:
+                    result=self._op(node,incoming,scope,depth)
+                    power=False if force_false else result
                 except (JumpRoutine,ReturnRoutine):
                     events.append({'instruction':node.name,'args':node.args,'in':incoming,'out':incoming,'transfer':True})
                     raise
@@ -543,6 +553,7 @@ class Engine:
     def _op(self, op, p, scope, depth):
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
+        if n=='MCR':return p
         if n=='SSV':return task_inhibit.execute(self,op,p,scope)
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n=='GSV':
@@ -710,6 +721,7 @@ class Engine:
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
                 'event_execution':event_tasks.description(),
+                'mcr_execution':mcr.description()|dict(planned_zones=sum(list(plan.values()).count('open') for plan in self._mcr_plans.values())),
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
                 'numeric_conversions':numeric_conversions.description(),

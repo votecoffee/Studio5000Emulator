@@ -280,6 +280,24 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_control_lab_mcr_false_scan_and_late_fault_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'ControlLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step',{'dt':10});row=values(self.post('step',{'dt':10}))
+        self.assertTrue(row['ZoneOutput']);self.assertTrue(row['ZoneLatch']);self.assertEqual(row['ZoneTimer.ACC'],10)
+        self.post('write',{'tag':'ZoneEnable','value':False});self.post('write',{'tag':'ZoneDivisor','value':0})
+        state=self.post('step',{'dt':10});row=values(state)
+        self.assertEqual((row['ZoneOutput'],row['ZoneTimer.ACC'],row['ZoneScans'],row['AfterZone']),(False,0,2,3))
+        self.assertTrue(any(trace.get('mcr_forced_false') for trace in state['trace']))
+        self.post('write',{'tag':'ZoneEnable','value':True});before=self.post('write',{'tag':'Load','value':True})
+        with self.assertRaises(HTTPError) as context:self.post('step',{'dt':10})
+        self.assertEqual(context.exception.code,400);context.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'ZoneDivisor','value':1});row=values(self.post('step',{'dt':10}))
+        self.assertEqual((row['QueueControl.POS'],row['ZoneCounter.ACC'],row['ZoneScans'],row['AfterZone']),(1,1,3,4))
+        profile=self.post('report',{})['mcr_execution'];self.assertEqual(profile['planned_zones'],1);self.assertFalse(profile['native_runtime_parity'])
+
     def test_record_lab_fifo_values_guards_and_rollback_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'RecordLab'})['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

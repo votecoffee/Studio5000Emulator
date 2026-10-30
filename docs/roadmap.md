@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.074205`: [paired MCR zones](master-control.md), including
+false scanning, local routine/AOI scope, validated jumps and Control Lab examples.
+
 Available in `26.1030.070834`: [string and explicit UDT FIFO/LIFO](record-queues.md)
 with whole-record copies, typed clearing, unknown-field preservation and Record Lab.
 
