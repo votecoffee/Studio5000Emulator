@@ -1000,6 +1000,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['st_counter'];self.assertEqual(profile['instructions'],['CTUD'])
         self.assertFalse(profile['native_runtime_parity'])
 
+    def test_selector_lab_function_blocks_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'SelectorLab'});self.assertEqual(state['blockers'],[])
+        graph=next(row for row in state['routines'] if row['kind']=='FBD')['diagram']
+        self.assertEqual((len(graph['nodes']),len(graph['wires'])),(10,11))
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['SelectedOutput'],v['MultiplexedOutput']),(10,10))
+        self.post('write',{'tag':'ManualMode','value':True});self.post('write',{'tag':'ManualValue','value':12.5})
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['SelectedOutput'],v['MultiplexedOutput']),(12.5,12.5))
+        self.post('write',{'tag':'Channel','value':8});v=values(self.post('step',{'dt':10}));self.assertEqual(v['MultiplexedOutput'],80)
+        self.post('write',{'tag':'Channel','value':0});v=values(self.post('step',{'dt':10}));self.assertEqual((v['MultiplexedOutput'],v['SelectorStatus']),(80,3))
+        self.post('write',{'tag':'BlockEnable','value':False});v=values(self.post('step',{'dt':10}));self.assertFalse(v['Choice.EnableOut'])
+        self.post('write',{'tag':'BlockEnable','value':True});self.post('write',{'tag':'Channel','value':1})
+        self.post('write',{'tag':'ManualValue','value':22});before=self.post('write',{'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write',{'tag':'ManualValue','value':33});self.post('write',{'tag':'FaultDivisor','value':1})
+        state=self.post('step',{'dt':10});self.assertEqual(values(state)['MultiplexedOutput'],33)
+        self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),2)
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['MUX','SEL'])
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

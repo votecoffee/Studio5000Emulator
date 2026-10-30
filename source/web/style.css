@@ -12,3 +12,4 @@ header{height:auto;min-height:86px;gap:20px}.brand{flex-shrink:0}.head-actions{f
 #locator-time{font-size:12px;letter-spacing:0;color:var(--text)}
 @keyframes locator-flash{0%{color:#ffb0a5;background:#412523}33.333%{color:#8aefbe;background:#1b392d}66.667%{color:#a6b1b7;background:#172024}}
 @media(prefers-reduced-motion:reduce){.device-locator{animation:none;color:#8aefbe;background:#1b392d}}
+.fbd-sheet{overflow:auto;padding:20px}.fbd-wire{fill:none;stroke:var(--muted);stroke-width:2}.fbd-node rect{fill:var(--panel);stroke:var(--line);stroke-width:2}.fbd-node.live rect{stroke:var(--accent)}.fbd-node text{fill:var(--text);font:12px Consolas,monospace}.fbd-node .fbd-kind{font-weight:bold;fill:var(--accent)}.fbd-node .fbd-pins{font-size:10px;fill:var(--muted)}

@@ -1,7 +1,8 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; numeric COP/CPS added for app `26.1030.155819`. **Full Logix emulation is not
-implemented.** The current engine executes a bounded RLL/Structured Text subset.
+Audited 2026-10-30; FBD selector graphs added for app `26.1030.162944`. **Full Logix emulation is not
+implemented.** The current engine executes bounded RLL/Structured Text and a
+limited FBD selector graph.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
 
@@ -19,6 +20,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
+| Function blocks | [Single-sheet SEL/MUX graphs](function-blocks.md), typed IRef/ORef/wires, dependency execution, enables, diagnostics and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
@@ -161,9 +163,10 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   the complete division/promotion matrix, remaining wide/time expressions, aggregate operations and
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
-- [ ] **L03 — FBD execution:** parse sheets/blocks/wires/connectors, assign
-  execution order, evaluate feedback and retained state, process execution
-  control and sample periods, support FBD instructions/AOIs and monitor values.
+- [ ] **L03 — FBD execution:** [Single-sheet SEL/MUX graphs](function-blocks.md)
+  now execute typed acyclic wires with enable/status/rollback. Complete multiple
+  sheets, connectors, feedback, native execution order, retained state, sample
+  periods, other FBD instructions/functions/AOIs and native transfer/edit support.
 - [ ] **L04 — SFC execution:** active steps and transitions, selection/parallel
   branches, action execution/qualifiers, step timers, stored actions, stop/reset,
   restart/pause, first/last scans, Postscan, forces and cross-language calls.

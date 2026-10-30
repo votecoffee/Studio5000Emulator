@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.155819",
+  "audited_app_version": "26.1030.162944",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -128,6 +128,11 @@
       "remaining": "Bounded ST PI regulation with linear/shaped gains and transactional integral; native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_pi.py"
     },
+    "fbd_selector_model": {
+      "label": "FBD selector model (partial)",
+      "remaining": "Bounded single-sheet SEL/MUX logical records and acyclic typed wires; native ordering/lifecycle/status/fault, packed layouts, general FBD and transfer/edit parity remain unfinished.",
+      "source": "source/logixlab/fbd_select.py"
+    },
     "no_dedicated_model": {
       "label": "No dedicated model",
       "remaining": "Verified schema/layout plus associated stateful runtime behavior and conformance cases.",
@@ -253,10 +258,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 38,
-    "no_dedicated_model": 184,
+    "dedicated_bounded_models": 40,
+    "no_dedicated_model": 182,
     "status_counts": {
-      "no_dedicated_model": 184,
+      "no_dedicated_model": 182,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -278,7 +283,8 @@
       "enhanced_select_model": 1,
       "derivative_model": 1,
       "curve_delay_model": 2,
-      "pi_software_model": 1
+      "pi_software_model": 1,
+      "fbd_selector_model": 2
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1518,7 +1524,7 @@
       "identifier_candidate": "MULTIPLEXER",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_selector_model",
       "v35_listing": "exact",
       "v35_catalog_name": "MULTIPLEXER",
       "notes": []
@@ -2545,7 +2551,7 @@
       "identifier_candidate": "SELECT",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_selector_model",
       "v35_listing": "exact",
       "v35_catalog_name": "SELECT",
       "notes": []

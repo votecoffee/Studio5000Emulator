@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 let state = null, selected = '', selectedContext = '', running = false, stepping = false, modePending = false, observing = false, currentTab = 'ladder', report = null, editTag = null;
 let connectivityPoll = null;
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
-const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name);
+const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(action, data = {}) {
   const response = await fetch('/api/' + action, {method:'POST', headers:{'Content-Type':'application/json','X-Logix-Token':window.LOGIX_TOKEN}, body:JSON.stringify(data)});
@@ -142,6 +142,7 @@ function renderLadder() {
   $('aoi-context').value=selectedContext;
   $('routine-name').textContent=routine.key; $('routine-type').textContent=routine.kind + (routine.active ? ' · IN EXECUTION SCOPE' : ' · OUTSIDE EXECUTION SCOPE');
   $('rungs').replaceChildren();
+  if(routine.kind==='FBD'){renderFunctionBlocks(routine);return;}
   if(routine.kind==='ST'){
     const note=document.createElement('div');note.className='st-note';note.textContent='Structured Text · Green lines executed this scan. Details show the last visit.';$('rungs').append(note);
     for(const line of routine.lines || []){
@@ -164,12 +165,31 @@ function renderLadder() {
     const rail=document.createElement('div');rail.className='rail'+(trace?.power ? ' live' : '');rail.append(sequence(rung.nodes,trace?.events || [],{value:0}));row.append(rail);$('rungs').append(row);
   });
 }
+function renderFunctionBlocks(routine) {
+  const graph=routine.diagram;
+  if(!graph?.nodes?.length){const p=document.createElement('p');p.className='st-note';p.textContent=routine.problems.join('\n') || 'No function blocks.';$('rungs').append(p);return;}
+  const note=document.createElement('div');note.className='st-note';note.textContent='Function Block Diagram · Green blocks executed with EnableIn. Wires show source and destination pins.';$('rungs').append(note);
+  const ns='http://www.w3.org/2000/svg';
+  const make=(name,attrs={},text)=>{const el=document.createElementNS(ns,name);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;return el;};
+  const box=document.createElement('div');box.className='fbd-sheet';const svg=make('svg',{role:'img','aria-label':'Function blocks for '+routine.key});box.append(svg);$('rungs').append(box);
+  const nodes=new Map(graph.nodes.map(n=>[n.id,n]));
+  const width=Math.max(...graph.nodes.map(n=>n.x+240),600),height=Math.max(...graph.nodes.map(n=>n.y+140),220);
+  svg.setAttribute('width',width);svg.setAttribute('height',height);svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+  for(const w of graph.wires){const a=nodes.get(w.source),b=nodes.get(w.target);if(!a||!b)continue;const x=a.x+200,y=a.y+45,tx=b.x,ty=b.y+45;
+    const line=make('path',{d:`M${x} ${y} H${(x+tx)/2} V${ty} H${tx}`,class:'fbd-wire'});line.append(make('title',{},`${a.operand}.${w.source_pin} → ${b.operand}.${w.target_pin}`));svg.append(line);}
+  for(const n of graph.nodes){const trace=state.trace.findLast(t=>t.routine===routine.key&&t.language==='FBD'&&t.number===String(n.id));
+    const g=make('g',{class:'fbd-node'+(trace?.power?' live':''),transform:`translate(${n.x},${n.y})`});
+    g.append(make('rect',{width:200,height:90,rx:6}),make('text',{x:12,y:22,class:'fbd-kind'},n.type||n.kind),make('text',{x:12,y:45},n.operand));
+    const label=graph.wires.filter(w=>w.target===n.id).map(w=>w.target_pin).join(', ');g.append(make('text',{x:12,y:68,class:'fbd-pins'},label));
+    g.append(make('title',{},`${n.type||n.kind} ${n.operand} · ID ${n.id}${trace?' · last execution '+trace.release_ms+' ms':''}`));svg.append(g);}
+}
 function renderCoverage() {
   if (!report) return;
   const blocked=state.blockers.length>0;
   $('coverage-body').innerHTML=`<div class="coverage-result ${blocked?'blocked':''}">${blocked ? `${state.blockers.length} blockers prevent execution in this scope.` : 'This scope can execute in the current software model.'}</div>
   ${state.blockers.map(b=>`<div class="issue">${escapeHtml(b)}</div>`).join('')}
   <h3>TASK SCHEDULING</h3><p class="limits">${escapeHtml(report.task_schedule?.policy || '')}</p><div class="chips">${(report.task_schedule?.tasks || []).map(t=>`<span class="chip">${escapeHtml(t.name)} · ${t.inhibited?'inhibited':t.kind==='Continuous'?'background':t.kind==='Event'?`EVENT · priority ${t.priority} · ${t.event_instruction_overlaps} modeled overlaps · ${t.event_pending_requests_coalesced} pending duplicates merged`:`${t.rate_ms} ms · priority ${t.priority}`} · ${t.executions} executions · next ${t.next_release_ms??'—'}</span>`).join('') || '<span class="limits">No executable task schedule in this scope.</span>'}</div>
+  <h3>FUNCTION BLOCKS</h3><p class="limits">${escapeHtml(report.function_blocks?.graph || '')}<br>${escapeHtml(report.function_blocks?.ordering || '')}</p>
   <h3>STRUCTURED TEXT</h3><p class="limits">${escapeHtml(report.structured_text?.policy || '')}</p><div class="chips">${Object.entries(report.structured_text?.constructs || {}).map(([n,c])=>`<span class="chip">${escapeHtml(n)} × ${c}</span>`).join('') || '<span class="limits">No ST statements in program routines.</span>'}</div>
   <h3>SUBROUTINE PARAMETERS</h3><p class="limits">${escapeHtml(report.routine_parameters?.contract || '')}</p><div class="chips">${Object.entries(report.routine_parameters?.calls || {}).map(([name,v])=>`<span class="chip">${escapeHtml(name)} · ${v.inputs} in / ${v.returns} out</span>`).join('') || '<span class="limits">No routine calls in this scope.</span>'}</div>
   <h3>ADD-ON INSTRUCTIONS</h3><p class="limits">${report.add_on_instructions?.definitions || 0} definitions · ${(report.add_on_instructions?.active_definitions || []).map(escapeHtml).join(', ') || 'none in execution scope'}<br>${escapeHtml(report.add_on_instructions?.local_state_policy || '')}</p>
@@ -207,6 +227,7 @@ $('process-demo').onclick=()=>loadDemo('ProcessLab');
 $('curve-demo').onclick=()=>loadDemo('CurveDelayLab');
 $('regulator-demo').onclick=()=>loadDemo('RegulatorLab');
 $('copy-demo').onclick=()=>loadDemo('CopyLab');
+$('selector-demo').onclick=()=>loadDemo('SelectorLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

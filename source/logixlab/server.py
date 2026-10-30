@@ -39,7 +39,7 @@ from .runtime import Engine
 from . import __version__
 
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
-SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab', 'TaskLab', 'BitLab', 'StringLab', 'ControlLab', 'SequenceLab', 'ConversionLab', 'MathLab', 'StatsLab', 'SystemLab', 'EventLab', 'RecordLab', 'TimerLab', 'CounterLab', 'PulseLab', 'ScaleLab', 'SignalLab', 'RateLab', 'LoopLab', 'MovingLab', 'CaptureLab', 'FilterLab', 'DigitalLab', 'AccumulatorLab', 'ProcessLab', 'CurveDelayLab', 'RegulatorLab', 'CopyLab')
+SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLab', 'StructureLab', 'LayoutLab', 'FlagLab', 'IntegerLab', 'TaskLab', 'BitLab', 'StringLab', 'ControlLab', 'SequenceLab', 'ConversionLab', 'MathLab', 'StatsLab', 'SystemLab', 'EventLab', 'RecordLab', 'TimerLab', 'CounterLab', 'PulseLab', 'ScaleLab', 'SignalLab', 'RateLab', 'LoopLab', 'MovingLab', 'CaptureLab', 'FilterLab', 'DigitalLab', 'AccumulatorLab', 'ProcessLab', 'CurveDelayLab', 'RegulatorLab', 'CopyLab', 'SelectorLab')
 
 
 def serialize_nodes(nodes):
@@ -242,7 +242,7 @@ class Application:
                 "routines": [{"key": r.key, "kind": r.kind, "problems": r.problems,
                               "active": r.key.lower() in e.active or r.program[4:] in e.addons.active,
                               'harness':not r.program.startswith('AOI:'),
-                              'lines':r.lines,
+                              'lines':r.lines,'diagram':r.diagram,
                               "rungs": [{"number": x["number"], "text": x["text"], "comment": x["comment"],
                                          "nodes": serialize_nodes(x["nodes"])} for x in r.rungs]}
                              for r in list(e.project.routines.values())+[r for a in e.project.aois.values() for r in a.routines.values()]]}

@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.155819` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.162944` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -38,9 +38,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Derivative model, partial | 1 | [ST DERV](st-process-signals.md), timed rate of change, bypass and history |
 | Curve/delay models, partial | 2 | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, sample delay queues, resizing and health recovery |
 | PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
-| No dedicated model | 184 | No dedicated bounded named runtime model |
+| FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |
+| No dedicated model | 182 | No dedicated bounded named runtime model |
 
-Thus **38 entries have dedicated bounded models**; this is not 38 fully
+Thus **40 entries have dedicated bounded models**; this is not 40 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -194,7 +195,7 @@ Every dedicated model status still requires the qualifications above.
 | 100 | `MOTION_INSTRUCTION` | Motion/axis/reference | No dedicated model | Listed |
 | 101 | `MOVING_AVERAGE` | Process/filter/drive | Moving statistics model (partial) | Listed |
 | 102 | `MOVING_STD_DEV` | Process/filter/drive | Moving statistics model (partial) | Listed |
-| 103 | `MULTIPLEXER` | Process/filter/drive | No dedicated model | Listed |
+| 103 | `MULTIPLEXER` | Process/filter/drive | FBD selector model (partial) | Listed |
 | 104 | `MUTING_FOUR_SENSOR_BIDIR` | Safety | No dedicated model | Listed |
 | 105 | `MUTING_TWO_SENSOR_ASYM` | Safety | No dedicated model | Listed |
 | 106 | `MUTING_TWO_SENSOR_SYM` | Safety | No dedicated model | Listed |
@@ -279,7 +280,7 @@ Every dedicated model status still requires the qualifications above.
 | 185 | `SAFE_STOP_2` | Safety | No dedicated model | Listed |
 | 186 | `SCALE` | Process/filter/drive | SCALE model (partial) | Listed |
 | 187 | `SEC_ORDER_CONTROLLER` | Process/filter/drive | No dedicated model | Listed |
-| 188 | `SELECT` | Process/filter/drive | No dedicated model | Listed |
+| 188 | `SELECT` | Process/filter/drive | FBD selector model (partial) | Listed |
 | 189 | `SELECTABLE_NEGATE` | Process/filter/drive | SELECTABLE_NEGATE model (partial) | Listed |
 | 190 | `SELECTED_SUMMER` | Process/filter/drive | SELECTED_SUMMER model (partial) | Listed |
 | 191 | `SELECT_ENHANCED` | Process/filter/drive | Enhanced selection model (partial) | Listed |

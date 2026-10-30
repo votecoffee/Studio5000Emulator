@@ -267,6 +267,7 @@ class Routine:
     problems: list[str] = field(default_factory=list)
     lines: list = field(default_factory=list)
     statements: list = field(default_factory=list)
+    diagram: dict = field(default_factory=dict)
 
     @property
     def key(self): return f"{self.program}/{self.name}"
@@ -386,7 +387,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -427,6 +428,16 @@ class Project:
 
     def _routine(self,r,scope,count=True):
         routine=Routine(scope,r.get('Name',''),r.get('Type','unknown'))
+        if routine.kind=='FBD':
+            if scope.startswith('AOI:'):routine.problems.append('FBD within AOIs remains unsupported');return routine
+            from .function_blocks import parse
+            try:
+                routine.diagram=parse(r)
+                if count:
+                    for node in routine.diagram['nodes']:
+                        if node['kind']=='Block':self.instruction_counts[node['type']]+=1
+            except ModelError as error:routine.problems.append(str(error))
+            return routine
         if routine.kind=='ST':
             from .structured import Parser,walk
             content=r.find('STContent')
@@ -487,6 +498,9 @@ class Project:
             return default()
         if upper in ("FUNCTION_GENERATOR","DEADTIME"):
             from .st_curves import default
+            return default(upper)
+        if upper in ("SELECT","MULTIPLEXER"):
+            from .fbd_select import default
             return default(upper)
         if upper == "PROP_INT":
             from .st_pi import default
@@ -710,8 +724,10 @@ class Memory:
                     dtype, value = "BOOL", None if value is None else bool((value >> bit) & 1)
                 else:
                     if not isinstance(value, dict): raise ModelError(f"Not a structure: {ref}")
-                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT'):
-                        if dtype.upper()=='PROP_INT':
+                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','MULTIPLEXER'):
+                        if dtype.upper()=='MULTIPLEXER':
+                            from .fbd_select import STATUS_BITS
+                        elif dtype.upper()=='PROP_INT':
                             from .st_pi import STATUS_BITS
                         elif dtype.upper() in ('FUNCTION_GENERATOR','DEADTIME'):
                             from .st_curves import STATUS_BITS as CURVE_STATUS_BITS
@@ -763,6 +779,9 @@ class Memory:
                         dtype=SCHEMAS[dtype.upper()][actual]
                     elif dtype.upper() in ('UP_DOWN_ACCUM','INTEGRATOR'):
                         from .st_accumulate import SCHEMAS
+                        dtype=SCHEMAS[dtype.upper()][actual]
+                    elif dtype.upper() in ('SELECT','MULTIPLEXER'):
+                        from .fbd_select import SCHEMAS
                         dtype=SCHEMAS[dtype.upper()][actual]
                     elif dtype.upper()=='PROP_INT':
                         from .st_pi import FIELDS

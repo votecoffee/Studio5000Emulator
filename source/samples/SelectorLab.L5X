@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SelectorLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="SelectorLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="AutomaticValue" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="ManualValue" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="25" />
+        </Data>
+      </Tag>
+      <Tag Name="ManualMode" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Channel" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectedOutput" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MultiplexedOutput" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectorStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Choice" TagType="Base" DataType="SELECT">
+        <Data Format="Decorated">
+          <Structure DataType="SELECT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectorIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ChannelChoice" TagType="Base" DataType="MULTIPLEXER">
+        <Data Format="Decorated">
+          <Structure DataType="MULTIPLEXER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In3" DataType="REAL" Value="30" />
+            <DataValueMember Name="In4" DataType="REAL" Value="40" />
+            <DataValueMember Name="In5" DataType="REAL" Value="50" />
+            <DataValueMember Name="In6" DataType="REAL" Value="60" />
+            <DataValueMember Name="In7" DataType="REAL" Value="70" />
+            <DataValueMember Name="In8" DataType="REAL" Value="80" />
+            <DataValueMember Name="Selector" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(SelectSignals,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="SelectSignals" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Manual / automatic selection feeding an eight-channel multiplexer.</Description>
+                <IRef ID="1" X="20" Y="20" Operand="AutomaticValue" />
+                <IRef ID="2" X="20" Y="130" Operand="ManualValue" />
+                <IRef ID="3" X="20" Y="240" Operand="ManualMode" />
+                <IRef ID="4" X="20" Y="460" Operand="Channel" />
+                <IRef ID="5" X="20" Y="350" Operand="BlockEnable" />
+                <Block ID="10" X="300" Y="100" Type="SEL" Operand="Choice" VisiblePins="EnableIn In1 In2 SelectorIn Out EnableOut" />
+                <Block ID="20" X="580" Y="240" Type="MUX" Operand="ChannelChoice" VisiblePins="EnableIn In1 In2 Selector Out Status EnableOut" />
+                <ORef ID="30" X="580" Y="20" Operand="SelectedOutput" />
+                <ORef ID="31" X="860" Y="240" Operand="MultiplexedOutput" />
+                <ORef ID="32" X="860" Y="370" Operand="SelectorStatus" />
+                <Wire FromID="1" FromParam="In" ToID="10" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="10" ToParam="In2" />
+                <Wire FromID="3" FromParam="In" ToID="10" ToParam="SelectorIn" />
+                <Wire FromID="5" FromParam="In" ToID="10" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="Out" ToID="20" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="20" ToParam="In2" />
+                <Wire FromID="4" FromParam="In" ToID="20" ToParam="Selector" />
+                <Wire FromID="5" FromParam="In" ToID="20" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="Out" ToID="30" ToParam="Out" />
+                <Wire FromID="20" FromParam="Out" ToID="31" ToParam="Out" />
+                <Wire FromID="20" FromParam="Status" ToID="32" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

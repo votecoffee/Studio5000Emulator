@@ -13,6 +13,7 @@ from .change_detection import ChangeDetection
 from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, numeric_copy
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
+from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
 from .calls import Calls, BreakLoop
 from .structured import Structured
@@ -61,6 +62,7 @@ class Engine:
         self.addons = AddOns(self)
         self.calls = Calls(self)
         self.structured = Structured(self)
+        self.function_blocks = FunctionBlocks(self)
         self._program_timings = {}
         self._task_measurements = None
         self._measured_task = None
@@ -301,6 +303,9 @@ class Engine:
             for p in r.problems: self.blockers.append(f"{r.key}: {p}")
             try:self.calls.validate_routine(r,entry=key in self.entries)
             except ModelError as e:self.blockers.append(str(e))
+            if r.kind=='FBD' and r.diagram:
+                try:self.function_blocks.validate(r,r.program)
+                except ModelError as e:self.blockers.append(r.key+': '+str(e))
             if r.kind=='ST':
                 try:self.structured.validate(r,r.program)
                 except ModelError as e:self.blockers.append(r.key+': '+str(e))
@@ -420,6 +425,7 @@ class Engine:
             self._prescan_routine(r,r.program,0)
 
     def _prescan_routine(self,routine,scope,depth):
+        if routine.kind=='FBD':self.function_blocks.prescan(routine,scope);return
         if routine.kind=='ST':self.structured.prescan(routine,scope,depth);return
         for rung in routine.rungs:
             for op in operations(rung['nodes']):
@@ -540,6 +546,7 @@ class Engine:
 
     def _execute_routine(self,routine,scope,depth,context=''):
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')
+        if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
         if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
         pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
         while pc<len(routine.rungs):
@@ -750,12 +757,13 @@ class Engine:
                 'ladder_loops':self.calls.loop_description(),
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
                 'structured_text':{'case':st_cases.description(),'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer/REAL)','FOR','WHILE','REPEAT','EXIT','supported calls'],
-                                   'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Mixed numeric conversions, wide FOR/CASE/index forms and FBD instructions remain unqualified.'},
+                                   'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Mixed numeric conversions, wide FOR/CASE/index forms and ST forms of FBD-only selectors remain unqualified.'},
                 'integer_execution':integer_math.description(self.project),
                 'integer_expression_execution':integer_math.expression_description(),
                 'wide_st_execution':wide_st.description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'numeric_copy':numeric_copy.description(self.project),
+                'function_blocks':fbd_description(),
                 'data_transition':data_transition.description(),
                 'file_bit_compare':file_bit_compare.description(),
                 'st_timers':st_timers.description(),
@@ -801,7 +809,7 @@ class Engine:
                            "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",
                            "Hidden saved AOI locals stay unknown until written; definition defaults are never substituted for saved values",
-                           "AOI alias/constant/nullable parameters, JSR/FOR/BRK inside AOIs, FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
+                           "AOI alias/constant/nullable parameters, JSR/FOR/BRK inside AOIs, general FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
                            "ST supports a bounded typed subset and reached-statement calls; FOR bounds/step must remain unchanged by its body; dynamic counter references are blocked",
                            "ST [:=] clears during prescan; ordinary assignments retain imported values until executed; native runtime equivalence is unverified",
                            "COP/CPS numeric byte regions use the v35 5580 profile; aggregate copies still require matching logical types; native synchronization is unqualified",

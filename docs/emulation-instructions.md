@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; numeric COP/CPS added for app `26.1030.155819`. The engine has **101 built-in
+Audited 2026-10-30; FBD selector graphs added for app `26.1030.162944`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -33,7 +33,9 @@ records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and deriva
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
 [ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
 These twenty-seven additional calls are excluded from the RLL dispatch
-count. Their FBD graph forms remain unimplemented.
+count. Their FBD graph forms remain unimplemented. A separate
+[FBD selector graph](function-blocks.md) executes SEL and MUX only; those two
+blocks are excluded from both RLL and ST-call counts.
 
 ## Instruction families
 
@@ -69,7 +71,7 @@ count. Their FBD graph forms remain unimplemented.
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
 | Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
-| Select/Limit Instructions | — | — | `MUX`, `SEL` (ST-only ESEL/HLL/SNEG/SSUM/RLIM listed above) |
+| Select/Limit Instructions | — | — | — (FBD-only SEL/MUX and ST-only ESEL/HLL/SNEG/SSUM/RLIM listed above) |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |

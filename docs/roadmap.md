@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.162944`: [FBD selector graphs](function-blocks.md),
+SEL/MUX logical records, typed acyclic wires and FBD Selector Lab. General FBD
+execution and native ordering/lifecycle/status/fault parity remain unfinished.
+
 Available in `26.1030.155819`: [numeric COP/CPS byte copies](numeric-copies.md),
 mixed numeric images, clipped regions, partial elements and Byte Copy Lab. Native
 aggregate layouts, cross-member copying and CPS synchronization remain unfinished.

@@ -37,9 +37,10 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
     candidate.change_detection=copy.deepcopy(engine.change_detection)
     candidate._apply_prescan(preview=True)
     project.instruction_counts=Counter(op.name for r in project.routines.values() for rung in r.rungs for op in operations(rung['nodes']))
+    project.instruction_counts.update(node['type'] for r in project.routines.values() for node in r.diagram.get('nodes',[]) if node['kind']=='Block')
     project.runtime_revision=base_revision+1
     project.runtime_edited_routines=tuple(sorted(set(getattr(engine.project,'runtime_edited_routines',()))|{key}))
-    content=[(key,r.kind,[x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
+    content=[(key,r.kind,r.diagram if r.kind=='FBD' else [x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
     project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
     from .accepted_routine_source import retain
     try:project.runtime_native_sources=retain(engine.project,project,key,source,native_source,native_target)

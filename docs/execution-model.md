@@ -335,9 +335,17 @@ uses a separately configured converter against a private copy. Source bytes are
 preserved and private provenance records identify the import. Native files,
 converter logs and project-specific reports are local inputs, not public fixtures.
 
+## Function block selectors
+
+[Single-sheet FBD selector graphs](function-blocks.md) sample IRefs once, execute
+SEL/MUX by wire dependency with numeric-ID ties, and publish ORefs after all
+blocks. Distinct backing records and explicit typed wires prevent ambiguous
+implicit dependencies. Enable/status/retained output and whole-advance rollback
+are modeled; native scheduling/lifecycle/status/fault parity remains unqualified.
+
 ## Boundaries
 
-FBD/SFC, general CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed
+General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed
 behavior, full native fault/status behavior and Safety execution are not complete.
 Offline model results do not establish commissioning, safety approval or native
 runtime equivalence. Local explicit messaging has a separate
