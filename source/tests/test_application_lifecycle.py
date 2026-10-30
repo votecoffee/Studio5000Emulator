@@ -232,6 +232,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['Values[4]'], 999)
         self.assertFalse(self.post('report', {})['array_statistics']['native_math_status'])
 
+    def test_stats_lab_sorting_ladder_edges_and_repeated_st_calls(self):
+        state = self.post('demo', {'sample': 'StatsLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('write', {'tag': 'Sort', 'value': True})
+        self.post('write', {'tag': 'TextSort', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'SortValues[{i}]'] for i in range(5)], [2,4,6,8,999])
+        self.assertEqual(values['SortGrid[0,1]'], 4.0)
+        self.assertEqual(values['SortGrid[1,1]'], 10.0)
+        self.post('write', {'tag': 'SortValues[0]', 'value': 10})
+        self.post('write', {'tag': 'SortGrid[0,1]', 'value': 20})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['SortValues[0]'], 10)
+        self.assertEqual(values['SortGrid[0,1]'], 10.0)
+        self.assertEqual(values['SortGrid[1,1]'], 20.0)
+        self.assertEqual(values['SortControl.POS'], 0)
+        self.assertFalse(self.post('report', {})['array_sort']['native_fault_classification'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

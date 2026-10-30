@@ -4,9 +4,9 @@ import re
 from dataclasses import dataclass,field
 from .model import ModelError,Op,literal,coerce,operand_problem
 from .st_expression import STExpression
-from . import system_values
+from . import system_values, array_sort
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','JSR','SBR','RET','GSV','SWPB'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','JSR','SBR','RET','GSV','SWPB','SRT'}
 
 
 @dataclass
@@ -181,6 +181,9 @@ class Parser:
             elif t==',' and not depth:
                 args.append(self.source[tokens[first][1]:tokens[i][1]].strip());first=i+1
         if first<len(tokens)-1:args.append(self.source[tokens[first][1]:tokens[-1][1]].strip())
+        if tokens[0][0].upper()=='SRT':
+            if len(args)!=3:raise ModelError('ST SRT requires array, dimension and CONTROL operands')
+            args+=['?','?']
         n=self.node('call',token);n.op=Op(tokens[0][0].upper(),args);return n
 
     def parse(self):
@@ -229,6 +232,7 @@ class Structured:
                 if op.name=='GSV':
                     key,parts,_=system_values.validate(self.engine,op,scope)
                     extra_writes.extend((key,part) for part in parts)
+                elif op.name=='SRT':extra_writes.extend(array_sort.write_effects(self.memory,op,scope))
                 elif op.name in self.engine.project.aois:
                     writes.append(op.args[0])
                     for p,arg in zip(self.engine.project.aois[op.name].required,op.args[1:]):
@@ -327,7 +331,9 @@ class Structured:
                         else:self.memory.write(n.target,value,scope)
                         self.trace(routine,n,context,detail=n.target+' = '+str(value))
                     elif n.kind=='call':
-                        try:self.engine._op(n.op,True,scope,depth)
+                        try:
+                            if n.op.name=='SRT':array_sort.execute_st(self.memory,n.op,scope)
+                            else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             self.trace(routine,n,context,detail='return');raise
                         self.trace(routine,n,context,detail=n.op.name)

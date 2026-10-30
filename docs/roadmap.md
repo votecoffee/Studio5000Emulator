@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available sorting increment: [dimension-wise SRT in ladder/ST](array-sort.md),
+including exact integer ordering and ST write effects. Native internal POS,
+partial states/faults, remaining file consumers and broader references stay open.
+
 Available statistics increment: [dimension-wise AVE/sample STD](array-statistics.md)
 with REAL results and logical CONTROL transitions. Partial resume, integer AVE
 results, remaining file consumers and native precision/fault/status stay open.

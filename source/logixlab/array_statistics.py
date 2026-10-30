@@ -9,8 +9,8 @@ from .real_math import real
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
 
 
-def region(memory, op, scope, count=0):
-    key, parts, dtype = controls.static_array(memory, op.args[0], scope, writable=False)
+def region(memory, op, scope, count=0, *, writable=False):
+    key, parts, dtype = controls.static_array(memory, op.args[0], scope, writable=writable)
     if not parts or not isinstance(parts[-1], int) or isinstance(memory.at(key, parts), list):
         raise ModelError('Statistics require a fully subscripted numeric array element')
     split = len(parts)

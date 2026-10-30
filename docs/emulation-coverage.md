@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; array statistics updated for app `26.1029.193708`. **Full Logix emulation is not
+Audited 2026-10-29; file sorting updated for app `26.1029.195330`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,7 +19,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 86 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 87 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension and ST call transitions | Native internal POS cursor, partial states/faults, wider types and indirect/alias/AOI starting arrays |
 | Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL results and CONTROL transitions | Partial POS/resume, integer AVE results, broader references and native precision/fault/status behavior |
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
@@ -281,5 +282,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 86 built-in RLL entries.
+added by project AOIs are counted separately from the 87 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.193708`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.195330`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 86 built-in RLL instruction entries, a bounded ST
+The current model is partial: 87 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -24,6 +24,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[File sorting](docs/array-sort.md) adds SRT in ladder and Structured Text, with
+exact integer ordering and selected array dimensions. **Stats lab** demonstrates
+ladder enable edges and ST sorting on each executed call.
 
 [Array statistics](docs/array-statistics.md) add ladder AVE and sample STD with
 REAL results and dimension selection. **Stats lab** demonstrates averages,

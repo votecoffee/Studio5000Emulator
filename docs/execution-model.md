@@ -42,6 +42,12 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[File sorting](array-sort.md) supports ladder enable edges and three-operand ST
+calls. Each executed ST call performs false then true. Integer sorting retains
+exact values; selected dimensions and member boundaries constrain the writes.
+FOR validation protects the whole selected array member when checking bound/step
+dependencies. Native internal sort-position and partial-fault behavior stay open.
+
 [Array statistics](array-statistics.md) add ladder AVE and sample STD with
 logical CONTROL. A complete qualified operation varies one declared array
 dimension, retains other subscripts, and completes within one advance. Held
