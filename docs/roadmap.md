@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.082637`: [FBC/DDT ladder bit diagnostics](file-bit-compare.md),
+all/one-mismatch modes, result-list wrapping, reference learning and Bit Lab examples.
+
 Available in `26.1030.081135`: [DINT ladder DTR](data-transition.md), including
 prescan/false reference refresh, AOI bindings, MCR interaction and Bit Lab examples.
 

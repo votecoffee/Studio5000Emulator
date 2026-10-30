@@ -560,6 +560,40 @@ class ApplicationLifecycleTests(unittest.TestCase):
         report=self.post('report', {})['data_transition']
         self.assertEqual(report['instructions'],['DTR']);self.assertFalse(report['native_runtime_parity'])
 
+    def test_bit_lab_fbc_ddt_result_wrap_learning_and_fault_recovery_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'BitLab'})['blockers'], [])
+        rows=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step', {'dt':10})
+        self.post('write', {'tag':'CompareEnable','value':True})
+        self.post('write', {'tag':'DetectEnable','value':True})
+        first=self.post('step', {'dt':10});v=rows(first)
+        self.assertEqual([v[f'MismatchBits[{i}]'] for i in range(4)],[32,39,31,999])
+        self.assertEqual((v['CompareControl.POS'],v['CompareControl.DN']),(40,True))
+        self.assertEqual((v['DetectControl.POS'],v['ChangedBits[0]'],v['LearnReference[0]']),(1,0,1))
+        held=rows(self.post('step', {'dt':10}));self.assertEqual(held['DetectControl.POS'],1)
+        self.post('write', {'tag':'DetectEnable','value':False});self.post('step', {'dt':10})
+        self.post('write', {'tag':'DetectEnable','value':True});v=rows(self.post('step', {'dt':10}))
+        self.assertEqual((v['DetectControl.POS'],v['ChangedBits[1]'],v['LearnReference[0]']),(6,5,33))
+        self.post('write', {'tag':'DetectEnable','value':False});self.post('step', {'dt':10})
+        self.post('write', {'tag':'DetectEnable','value':True})
+        before=self.post('write', {'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'FaultDivisor','value':1});v=rows(self.post('step', {'dt':10}))
+        self.assertEqual((v['DetectControl.POS'],v['ChangedBits[2]'],v['LearnReference[0]']),(32,31,-2147483615))
+        self.assertTrue(v['DetectResultControl.DN'])
+        for position in (33,40):
+            self.post('write', {'tag':'DetectEnable','value':False});self.post('step', {'dt':10})
+            self.post('write', {'tag':'DetectEnable','value':True});v=rows(self.post('step', {'dt':10}))
+            self.assertEqual(v['DetectControl.POS'],position)
+        self.assertEqual([v[f'ChangedBits[{i}]'] for i in range(4)],[32,39,31,999])
+        self.assertEqual((v['LearnReference[1]'],v['LearnReference[2]']),(1073741953,777))
+        self.assertEqual(v['CompareReference[0]'],0);self.assertEqual(v['CompareReference[1]'],0)
+        profile=self.post('report', {})['file_bit_compare']
+        self.assertEqual(profile['instructions'],['DDT','FBC']);self.assertFalse(profile['native_runtime_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

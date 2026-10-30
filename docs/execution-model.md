@@ -162,6 +162,15 @@ conditions, WHILE/REPEAT and matching AOI/routine bindings share existing contro
 flow and rollback. Mixed types, wide loop/CASE/index forms and native parity
 remain unqualified.
 
+## File bit diagnostics
+
+[FBC/DDT](file-bit-compare.md) compare DINT array bits and record relative
+offsets using separate compare/result controls. One mode resumes on enable
+edges; all mode completes the range. Full result lists wrap on the next
+mismatch. DDT changes only mismatching reference bits; FBC retains reference
+data. False/prescan rearms comparison and resets completed cursors without
+learning data. Budgets and later faults retain whole-advance rollback.
+
 ## Data transition
 
 [DTR](data-transition.md) compares a masked DINT source with the complete prior
