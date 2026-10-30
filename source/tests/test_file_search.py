@@ -166,7 +166,7 @@ class FileSearchTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
 
     def test_unsupported_modes_types_expressions_and_operands_block(self):
-        for mode in ('INC','0','-1','1.5','Incoming','2147483648','TRUE'):
+        for mode in ('BAD','0','-1','1.5','Incoming','2147483648','TRUE'):
             self.assertTrue(self.engine([f'FSC(Ctl,?,?,{mode},Queue[Ctl.POS]>Incoming);']).blockers,mode)
         for text in ('FSC(Ctl,4,0,ALL,Queue[Ctl.POS]>Incoming);','FSC(Ctl,?,?,ALL);',
                      'FSC(Ctl,?,?,ALL,Queue[Ctl.POS]+Incoming);','FSC(Ctl,?,?,ALL,FRD(Incoming)>0);'):
@@ -185,7 +185,7 @@ class FileSearchTests(unittest.TestCase):
 
     def test_report_exposes_modes_and_native_cursor_gap(self):
         e=self.checked(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>Incoming);']);report=e.report()['file_search']
-        self.assertEqual(report['modes'],['ALL','positive DINT immediate'])
+        self.assertEqual(report['modes'],['ALL','positive DINT immediate','INC'])
         self.assertFalse(report['native_cursor_parity']);self.assertFalse(report['native_fault_classification'])
 
 

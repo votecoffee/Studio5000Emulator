@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; EVENT execution updated for app `26.1029.220520`. **Full Logix emulation is not
+Audited 2026-10-29; Incremental file execution updated for app `26.1029.222513`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -23,8 +23,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations and existing Controller audit values | Runtime timing/status/fault attributes, broader classes/forms, native execution parity and SSV |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
-| File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md), indexed transforms, scalar accumulation and sequential expression writes | INC, AOI execution, broader expression types/functions and native cursor/overflow/status/partial-fault parity |
-| File search | [FSC ALL/numeric modes](file-search.md), comparison expressions, match/inhibit/resume and false-rung numeric continuation | INC, AOI execution, broader expressions/types and native cursor/status/fault parity |
+| File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed transforms, scalar accumulation and sequential writes | Saved active INC/hidden state, mixed CONTROL consumers, AOIs, broader expressions/types and native cursor/overflow/status/partial-fault parity |
+| File search | [FSC ALL/numeric modes](file-search.md) and [idle-source INC](file-incremental.md), comparisons, match/inhibit/resume and false-rung numeric continuation | Saved active INC/hidden state, mixed CONTROL consumers, AOIs, broader expressions/types and native cursor/status/fault parity |
 | File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension and ST call transitions | Native internal POS cursor, partial states/faults, wider types and indirect/alias/AOI starting arrays |
 | Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL results and CONTROL transitions | Partial POS/resume, integer AVE results, broader references and native precision/fault/status behavior |
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |

@@ -1,5 +1,6 @@
-"""Bounded ladder FSC ALL/numeric search using saved CONTROL state."""
+"""Bounded ladder FSC ALL/numeric/INC search using saved CONTROL state."""
 from . import control_operations as controls
+from . import file_incremental as incremental
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, literal
 
@@ -8,8 +9,9 @@ INSTRUCTIONS = frozenset(('FSC',))
 
 def mode(text):
     if text.upper() == 'ALL':return None
+    if text.upper() == 'INC':return 'INC'
     try:value = literal(text)
-    except ValueError as error:raise ModelError('FSC supports ALL or a positive immediate numeric mode; INC is unfinished') from error
+    except ValueError as error:raise ModelError('FSC supports ALL, INC or a positive immediate numeric mode') from error
     if type(value) is not int or value <= 0:
         raise ModelError('FSC numeric mode must be a positive DINT immediate')
     return coerce(value, 'DINT')
@@ -24,6 +26,7 @@ def validate(engine, op, scope):
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
     count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4])
+    if count=='INC':incremental.validate(engine,op,scope)
     # Type-check dynamic subscripts at a structural position, without consuming
     # unknown data or rejecting a saved final cursor before execution begins.
     previous = memory.structural
@@ -36,7 +39,10 @@ def validate(engine, op, scope):
 
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
-    memory = engine.memory;obj = controls.control(memory, op.args[0], scope)
+    memory = engine.memory
+    if count=='INC':
+        return incremental.execute(engine,op,power,scope,lambda:expression.evaluate(memory,scope),search=True)
+    obj = controls.control(memory, op.args[0], scope)
     if controls.flag(obj, 'ER') or controls.flag(obj, 'IN'):return power
     if controls.flag(obj, 'DN'):
         if not power:obj.update(EN=False, DN=False, POS=0)
@@ -72,7 +78,7 @@ def execute(engine, op, power, scope):
 
 
 def description():
-    return dict(profile='v35-5580-FSC-ALL-numeric', language='RLL', modes=['ALL','positive DINT immediate'],
+    return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
                 expressions='Existing bounded CMP grammar/types; dynamic CONTROL.POS subscripts',
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
                 cursor='Last compared position retained, including exhaustion; native final-cursor parity unverified',
@@ -80,5 +86,6 @@ def description():
                 completion='DN set at last element; false with IN clear resets EN/DN/POS and retains FD/ER',
                 prescan='No initialization', max_elements=controls.MAX_ELEMENTS,
                 native_fault_classification=False, native_cursor_parity=False,
-                remaining=['INC mode and native internal edge state', 'Additional expression types/functions',
+                incremental=incremental.description(),
+                remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
                            'AOI execution and native faults/status/invalid-state parity'])

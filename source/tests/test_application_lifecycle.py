@@ -280,6 +280,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_stats_lab_incremental_edges_match_inhibit_and_reset_through_http(self):
+        state=self.post('demo', {'sample':'StatsLab'});self.assertEqual(state['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        for flag in ('StepTransform','StepSearch'):self.post('write', {'tag':flag,'value':True})
+        first=self.post('step', {'dt':10});held=self.post('step', {'dt':10})
+        self.assertEqual(values(first)['StepValues[0]'],5)
+        self.assertEqual([values(held)[f'StepValues[{i}]'] for i in range(5)], [5,0,0,0,999])
+        self.assertEqual(values(held)['StepTransformControl.POS'],0)
+        self.assertEqual(values(held)['StepSearchControl.POS'],0)
+        for position in (1,2):
+            for flag in ('StepTransform','StepSearch'):self.post('write', {'tag':flag,'value':False})
+            self.post('step', {'dt':10})
+            for flag in ('StepTransform','StepSearch'):self.post('write', {'tag':flag,'value':True})
+            state=self.post('step', {'dt':10});row=values(state)
+            self.assertEqual(row['StepTransformControl.POS'],position)
+            self.assertEqual(row['StepSearchControl.POS'],position)
+        self.assertTrue(row['StepSearchControl.IN']);self.assertTrue(row['StepSearchControl.FD'])
+        self.assertEqual([row[f'StepValues[{i}]'] for i in range(5)], [5,9,13,0,999])
+        for flag in ('StepTransform','StepSearch'):self.post('write', {'tag':flag,'value':False})
+        self.post('write', {'tag':'Reset','value':True});state=self.post('step', {'dt':10});row=values(state)
+        for control in ('StepTransformControl','StepSearchControl'):
+            self.assertEqual(row[control+'.POS'],0);self.assertFalse(row[control+'.EN']);self.assertFalse(row[control+'.DN'])
+            self.assertEqual(row[control+'.LEN'],4)
+        self.assertFalse(row['StepSearchControl.IN'])
+        self.post('write', {'tag':'Reset','value':False});self.post('write', {'tag':'Gain','value':3})
+        for flag in ('StepTransform','StepSearch'):self.post('write', {'tag':flag,'value':True})
+        row=values(self.post('step', {'dt':10}));self.assertEqual(row['StepValues[0]'],7)
+        self.assertEqual(row['StepTransformControl.POS'],0);self.assertEqual(row['StepSearchControl.POS'],0)
+        report=self.post('report', {})
+        self.assertIn('INC',report['file_arithmetic']['modes'])
+        self.assertFalse(report['file_search']['incremental']['native_internal_state_parity'])
+
     def test_stats_lab_average_sample_deviation_dimensions_and_rearm(self):
         state = self.post('demo', {'sample': 'StatsLab'})
         self.assertEqual(state['blockers'], [])

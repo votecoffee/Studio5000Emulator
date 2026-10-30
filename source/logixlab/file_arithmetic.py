@@ -1,5 +1,6 @@
-"""Bounded ladder FAL ALL/numeric iteration with existing CPT expressions."""
+"""Bounded ladder FAL ALL/numeric/INC iteration with existing CPT expressions."""
 from . import control_operations as controls
+from . import file_incremental as incremental
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, literal
 
@@ -8,8 +9,9 @@ INSTRUCTIONS = frozenset(('FAL',))
 
 def mode(text):
     if text.upper() == 'ALL':return None
+    if text.upper() == 'INC':return 'INC'
     try:value = literal(text)
-    except ValueError as error:raise ModelError('FAL supports ALL or a positive immediate numeric mode; INC is unfinished') from error
+    except ValueError as error:raise ModelError('FAL supports ALL, INC or a positive immediate numeric mode') from error
     if type(value) is not int or value <= 0:
         raise ModelError('FAL numeric mode must be a positive DINT immediate')
     return coerce(value, 'DINT')
@@ -34,6 +36,7 @@ def validate(engine, op, scope):
         raise ModelError('FAL LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
     count = mode(op.args[3]);expression = engine.extensions.expression(op.args[5])
+    if count=='INC':incremental.validate(engine,op,scope)
     previous = memory.structural
     try:
         memory.structural = True
@@ -44,7 +47,13 @@ def validate(engine, op, scope):
 
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
-    memory = engine.memory;obj = controls.control(memory, op.args[0], scope)
+    memory = engine.memory
+    if count=='INC':
+        def operation():
+            dtype=destination(memory,op,scope)
+            memory.write(op.args[4],expression.evaluate(memory,scope,dtype),scope)
+        return incremental.execute(engine,op,power,scope,operation)
+    obj = controls.control(memory, op.args[0], scope)
     if controls.flag(obj, 'ER'):return power
     if controls.flag(obj, 'DN'):
         if not power:obj.update(EN=False, DN=False, ER=False, POS=0)
@@ -75,7 +84,7 @@ def execute(engine, op, power, scope):
 
 
 def description():
-    return dict(profile='v35-5580-FAL-ALL-numeric', language='RLL', modes=['ALL','positive DINT immediate'],
+    return dict(profile='v35-5580-FAL-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
                 types=sorted(controls.NUMERIC), expressions='Existing bounded CPT grammar, destination-indexed per iteration',
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
@@ -83,5 +92,6 @@ def description():
                 writes='Sequential live reads/writes; source/destination array overlap can propagate',
                 prescan='No initialization', max_elements=controls.MAX_ELEMENTS,
                 native_fault_classification=False, native_cursor_parity=False, native_math_status=False,
-                remaining=['INC mode and native internal edge state', 'Additional expression types/functions',
+                incremental=incremental.description(),
+                remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
                            'AOI execution and native overflow/fault/status/partial-write parity'])

@@ -48,7 +48,9 @@ No short-circuit assumption hides a required unknown value or invalid access.
 
 Existing CMP expression limits still apply. Wider/unsigned/LREAL types, BCD
 expression functions and additional native conversion forms remain unfinished.
-INC needs native internal edge-state qualification and is explicitly blocked.
+[INC mode](file-incremental.md) now supports one comparison per enable edge for
+idle-source controls, with explicit inhibit/rearming and transactional progress.
+Saved active INC controls remain blocked; native internal state stays unqualified.
 FSC inside AOIs and ST/FBD instruction calls remain unsupported. CONTROL aliases
 and constant source arrays are supported; CONTROL must be writable.
 

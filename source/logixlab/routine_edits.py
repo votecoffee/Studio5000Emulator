@@ -30,7 +30,7 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
     candidate.memory.values=copy.deepcopy(engine.memory.values)
     candidate.memory.first_scan=engine.memory.first_scan
     for name in ('scan_count','time_ms','last_timer','trace','changes','prescan_count',
-                 '_initial_prescan_pending','_program_scanned','instruction_limit','budget','_program_timings','_task_measurements','_native_fault_history_uncertain'):
+                 '_initial_prescan_pending','_program_scanned','_file_incremental','instruction_limit','budget','_program_timings','_task_measurements','_native_fault_history_uncertain'):
         setattr(candidate,name,copy.deepcopy(getattr(engine,name)))
     if candidate._task_scheduler is not None:
         candidate._task_scheduler.continue_from(engine._task_scheduler)

@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -43,6 +43,7 @@ class Engine:
         self.scan_count = 0
         self.time_ms = 0
         self.last_timer = {}
+        self._file_incremental = set()
         self.trace = []
         self.changes = []
         self._native_fault_history_uncertain = False
@@ -203,10 +204,10 @@ class Engine:
         # Preserve bindings and execution context as well as values on failure.
         before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
                               self.addons.instances,self.calls.stack,self.last_timer,
-                              self.memory.first_scan,self.trace,self.budget))
+                              self.memory.first_scan,self.trace,self.budget,self._file_incremental))
         def restore():
             (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
-             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget)=before
+             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental)=before
         self.budget=self.instruction_limit
         self.last_timer={}
         self.memory.first_scan=True
@@ -428,7 +429,7 @@ class Engine:
     def step(self, dt=10):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
-        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace)
+        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental))
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
         runs=[(due,self._task_scheduler.tasks[i].name,self._task_scheduler.tasks[i].entries) for due,i in batch.releases] if batch else [(end_ms,None,self.entries)]
@@ -473,7 +474,7 @@ class Engine:
             self._task_measurements=measured
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
-            self.time_ms, self.last_timer, self.memory.first_scan, self.trace = previous
+            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
@@ -550,7 +551,9 @@ class Engine:
         if n in file_search.INSTRUCTIONS:return file_search.execute(self,op,p,scope)
         if n in file_arithmetic.INSTRUCTIONS:return file_arithmetic.execute(self,op,p,scope)
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
-            if p:control_operations.reset(self.memory,a[0],scope)
+            if p:
+                control_operations.reset(self.memory,a[0],scope)
+                file_incremental.reset(self,a[0],scope)
             return p
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra

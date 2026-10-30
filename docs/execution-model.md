@@ -54,11 +54,16 @@ using the existing CPT expressions. Destination subscripts resolve at each
 CONTROL.POS; later iterations read earlier writes. Numeric work continues on
 false rungs. Each iteration consumes the instruction budget; errors retain
 whole-advance rollback rather than native partial-write/overflow semantics.
+[INC mode](file-incremental.md) adds one iteration per observed enable edge for
+idle-source controls. Separate canonical CONTROL progress shares rollback and
+RES, survives Run entry and is copied during routine replacement.
 
 [File search](file-search.md) adds ladder FSC ALL and numeric modes. Matches
 set FD/IN and hold the current index until IN is cleared; numeric work can
 continue while rung input is false. Each comparison consumes the instruction
-budget. Unknown data and later failures retain whole-advance rollback.
+budget. Unknown data and later failures retain whole-advance rollback. INC
+uses the same internal progress profile, with explicit false-edge rearming after
+FSC inhibit. Native saved hidden state and mixed CONTROL consumers remain open.
 
 [File sorting](array-sort.md) supports ladder enable edges and three-operand ST
 calls. Each executed ST call performs false then true. Integer sorting retains

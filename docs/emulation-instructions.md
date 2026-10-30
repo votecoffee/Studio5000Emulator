@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; EVENT execution updated for app `26.1029.220520`. The engine has **94 built-in
+Audited 2026-10-29; Incremental file execution updated for app `26.1029.222513`. The engine has **94 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -76,8 +76,8 @@ schema/behavior backlog separately from instruction names.
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
 | SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
-| FAL | [Bounded ALL/numeric ladder iteration](file-arithmetic.md) with indexed scalar destinations, sequential reads/writes and the existing CPT grammar. INC, additional types/functions, AOI execution and native cursor/overflow/status/partial-fault behavior remain unfinished. |
-| FSC | [Bounded ALL/numeric ladder search](file-search.md) with the existing comparison grammar, FD/IN and cursor resume. INC, AOI execution, additional expression forms, native cursor/status/fault parity remain unfinished. |
+| FAL | [Bounded ALL/numeric ladder iteration](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed destinations, sequential writes and the CPT grammar. Saved active INC state, additional types/functions, AOIs and native cursor/overflow/status/partial-fault behavior remain unfinished. |
+| FSC | [Bounded ALL/numeric ladder search](file-search.md) and [idle-source INC](file-incremental.md), comparison expressions and FD/IN. Saved active INC state, AOIs, additional expressions and native cursor/status/fault parity remain unfinished. |
 | SRT | [Dimension-wise ladder/ST sorting](array-sort.md), with SINT/INT/DINT/REAL arrays and three-operand ST calls. The qualified whole-region profile retains POS zero; native internal cursor, partial-state/fault behavior, broader references and types remain unfinished. |
 | AVE/STD | [Dimension-wise statistics](array-statistics.md) with SINT/INT/DINT/REAL arrays, REAL results and logical CONTROL. Partial POS/resume, integer AVE destinations, indirect/alias/AOI array starts and native precision/fault/status behavior remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |

@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.220520`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.222513`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -37,13 +37,14 @@ watchdogs in microseconds, typed priorities, names and controller settings.
 in ladder and Structured Text, including user strings and existing AOI bindings.
 **String lab** demonstrates case conversion and decimal/REAL exchange.
 
-[File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric modes for
+[File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for
 indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.
-**Stats lab** demonstrates full-array and scan-distributed transforms.
+**Stats lab** demonstrates full-array, scan-distributed and
+[incremental transforms](docs/file-incremental.md).
 
-[File search](docs/file-search.md) adds FSC ALL/numeric modes, match/inhibit
+[File search](docs/file-search.md) adds FSC ALL/numeric/INC modes, match/inhibit
 state and resumable searches using the existing comparison grammar. **Stats lab**
-shows an ALL search and a numeric search that continues on false rungs.
+shows ALL/numeric searches and one comparison per enable edge in INC mode.
 
 [File sorting](docs/array-sort.md) adds SRT in ladder and Structured Text, with
 exact integer ordering and selected array dimensions. **Stats lab** demonstrates

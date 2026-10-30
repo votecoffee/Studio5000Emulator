@@ -56,7 +56,9 @@ Constants remain read-only. Control/destination aliases are supported; a
 destination overlapping its own CONTROL record is rejected on each iteration.
 Array accesses remain within the selected member/dimension.
 
-INC mode, execution inside AOIs, and ST/FBD FAL calls are explicitly blocked.
+[INC mode](file-incremental.md) now supports one iteration per enable edge for
+idle-source controls, with separate transactional progress and RES integration.
+Saved active INC controls, AOI execution and ST/FBD FAL calls remain blocked.
 No private native edge state or target-specific fault behavior is fabricated.
 
 ## Stats Lab

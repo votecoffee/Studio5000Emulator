@@ -57,12 +57,14 @@ in ladder/ST with custom strings and AOI bindings. Native RTOS formatting, STOR
 edge forms, wider types and math/status/fault behavior remain open.
 
 Available arithmetic increment: [FAL ALL/numeric execution](file-arithmetic.md),
-including indexed transforms, scalar accumulation and sequential writes. INC,
-broader types/functions, AOI and native cursor/overflow/status behavior stay open.
+including indexed transforms, scalar accumulation and sequential writes.
+[Idle-source INC](file-incremental.md) adds one iteration per enable edge.
+Saved active INC, broader types/functions, AOIs and native cursor/status stay open.
 
 Available search increment: [FSC ALL/numeric execution](file-search.md),
-including match/inhibit/resume and numeric continuation on false rungs. INC,
-broader expressions, AOI execution and native cursor/status/fault parity stay open.
+including match/inhibit/resume and numeric continuation on false rungs.
+[Idle-source INC](file-incremental.md) adds one comparison per enable edge.
+Saved active INC, broader expressions, AOIs and native cursor/status remain open.
 
 Available sorting increment: [dimension-wise SRT in ladder/ST](array-sort.md),
 including exact integer ordering and ST write effects. Native internal POS,
