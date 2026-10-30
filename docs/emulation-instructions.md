@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; string conversions updated for app `26.1029.204443`. The engine has **93 built-in
+Audited 2026-10-29; GSV configuration updated for app `26.1029.205951`. The engine has **93 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -87,12 +87,12 @@ schema/behavior backlog separately from instruction names.
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
-| GSV | Currently only Controller AuditValue and ChangesToDetect, with an empty instance operand and LINT/two-DINT destination. All other objects/attributes remain unsupported; SSV has no execution model. |
+| GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and SSV remain unfinished. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |
 
 The exact current dispatch table is `ARITIES` in
 [model.py](../source/logixlab/model.py). Execution and operand checks live in
-[runtime.py](../source/logixlab/runtime.py), [extended.py](../source/logixlab/extended.py),
+[runtime.py](../source/logixlab/runtime.py), [gsv_configuration.py](../source/logixlab/gsv_configuration.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
 [numeric_conversions.py](../source/logixlab/numeric_conversions.py),
 [real_math.py](../source/logixlab/real_math.py),

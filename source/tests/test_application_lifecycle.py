@@ -93,6 +93,32 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [6,3,1])
         self.assertEqual(state['controller']['scan_interval_ms'], 10)
 
+    def test_system_lab_reads_typed_gsv_settings_without_changing_task_schedule(self):
+        self.assertIn('id="system-demo"', self.get('/').decode())
+        state = self.post('demo', {'sample': 'SystemLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 25})
+        values = {row['name']: row['value'] for row in state['tags']}
+        for name, expected in {'FastRate': 10000, 'SlowRate': 25000, 'FastWatchdog': 500000, 'FastPriority': 2,
+                               'SlowPriority': 5, 'CommTimeSlice': 30, 'ShareUnused': 1, 'FastInhibit': 0, 'FastNoOutput': 0}.items():
+            self.assertEqual(values[name], expected)
+        self.assertEqual(values['FastTaskName'], 'FastTask')
+        self.assertEqual(values['ControllerName'], 'SystemLab')
+        self.assertEqual(values['StSlowRate'], values['SlowRate'])
+        self.assertEqual(values['StCommTimeSlice'], values['CommTimeSlice'])
+        self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [1, 2, 1])
+        self.post('write', {'tag': 'ReadConfig', 'value': False})
+        self.post('write', {'tag': 'FastRate', 'value': -1})
+        state = self.post('step', {'dt': 25})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['FastRate'], -1)
+        self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [2, 5, 2])
+        self.post('write', {'tag': 'ReadConfig', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['FastRate'], 10000)
+        self.assertFalse(self.post('report', {})['system_values']['configuration']['native_runtime_equivalence'])
+
     def test_bit_lab_packs_values_through_http_and_reports_instruction_scope(self):
         state = self.post('demo', {'sample': 'BitLab'})
         self.assertEqual(state['blockers'], [])

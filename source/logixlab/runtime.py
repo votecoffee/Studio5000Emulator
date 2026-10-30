@@ -673,6 +673,7 @@ class Engine:
                 'bit_transfer':bit_transfer.description(),
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
+                'system_values':system_values.description(),
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
                 'numeric_conversions':numeric_conversions.description(),
@@ -704,7 +705,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports SINT/INT/DINT with documented zero-extension; wide/unsigned forms remain blocked",
-                           "GSV reads simulator Controller AuditValue/ChangesToDetect into LINT or two DINT elements; other objects/attributes and SSV are unsupported",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; runtime timing/status, other attributes and SSV remain unsupported",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

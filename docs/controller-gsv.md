@@ -7,8 +7,9 @@ CIP attributes 27 and 28. No native controller is contacted during execution.
 
 The supported form is `GSV(Controller,,attribute,destination)`: the Controller
 instance operand is empty, and the attribute is `AuditValue` or `ChangesToDetect`.
-Class and attribute names are case insensitive. Other classes/attributes and
-`SSV` remain unsupported. The Controller values and their GSV access are described
+Class and attribute names are case insensitive. Additional
+[Task/Controller configuration reads](gsv-configuration.md) have their own typed
+profile. Other classes/attributes and `SSV` remain unfinished. The Controller values and their GSV access are described
 in [1756-PM015, Change detection](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf).
 
 ## Destinations and execution
@@ -37,6 +38,9 @@ arrays, bits, constants and other element types are rejected. Indirect bounds
 are rechecked at execution. A failed read or later instruction fault rolls back
 the scan's writes. Structured Text FOR validation checks both written DINTs so
 the second word cannot overwrite a bound or step dependency.
+
+The historical native checkpoint below applies to the audit-value profile.
+Configuration GSV reads have separate software-model checks.
 
 ## Availability and validation
 

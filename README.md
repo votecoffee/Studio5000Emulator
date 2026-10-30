@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.204443`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.205951`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -24,6 +24,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[System-value reads](docs/gsv-configuration.md) add explicit Task/Controller
+configuration through GSV in ladder and ST. **System lab** shows task rates and
+watchdogs in microseconds, typed priorities, names and controller settings.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.
@@ -270,7 +274,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, name/description and read-only pass-through configuration; limited Metadata Definition discovery; security enforcement and pass-through routing remain unsupported |
 | Change detection | Explicit source mask plus a simulator-owned Audit Value; SDK mode/import updates and upload field reads verified on `.144`; State Detection signatures remain unsupported |
-| Get System Value | Ladder/ST `GSV` for Controller AuditValue/ChangesToDetect into LINT or two DINTs; native-saved fixture and live scan/CIP agreement verified on `.145`; other objects/attributes and SSV remain unsupported |
+| Get System Value | Ladder/ST audit values plus [explicit Task/Controller configuration](docs/gsv-configuration.md) with typed destinations. Prior `.145` native fixture acceptance applies to audit reads; configuration reads have separate software checks. Other attributes and SSV remain unfinished |
 | Software device metadata | Read-only location/locale and empty trusted-slot/operator state, explicitly identified as emulator defaults |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |

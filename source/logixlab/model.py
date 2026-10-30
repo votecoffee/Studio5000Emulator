@@ -326,6 +326,10 @@ class Project:
         from .component_tracking import EmptyComponentTracking
         self.component_tracking = EmptyComponentTracking.from_source(root,c,self.sha256,
             aoi_empty=self.aoi_catalog.empty,io_empty=self.io_map.empty)
+        declared_names = [key for key in c.attrib if key.rsplit('}', 1)[-1].casefold() == 'name']
+        self.source_controller_name = c.get('Name') if declared_names == ['Name'] else None
+        self.source_controller_settings = frozenset(name for name in ('TimeSlice', 'ShareUnusedTimeSlice')
+            if [key for key in c.attrib if key.rsplit('}', 1)[-1].casefold() == name.casefold()] == [name])
         self.name = c.get("Name", "Controller")
         self.version = c.get("MajorRev", root.get("SoftwareRevision", "unknown"))
         self.processor = c.get("ProcessorType", "unknown")

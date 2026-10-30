@@ -22,6 +22,10 @@ contain `task_schedule`; rung and ST traces include `task` and `release_ms`.
 The displayed scan counter counts simulation steps. Per-task counts show the
 number of task executions, which may differ from the step count.
 
+Choose **System lab** for [GSV configuration reads](gsv-configuration.md)
+alongside the same mixed task rates. These reads do not change the scheduler
+or add watchdog enforcement. Task Lab remains the scheduling-only example.
+
 ## Release rules
 
 - One to 32 Standard tasks, with at most one Continuous task. This is the

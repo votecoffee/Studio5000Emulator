@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; string conversions updated for app `26.1029.204443`. **Full Logix emulation is not
+Audited 2026-10-29; GSV configuration updated for app `26.1029.205951`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -20,6 +20,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
 | Ladder (RLL) | 93 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations and existing Controller audit values | Runtime timing/status/fault attributes, broader classes/forms, native execution parity and SSV |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md), indexed transforms, scalar accumulation and sequential expression writes | INC, AOI execution, broader expression types/functions and native cursor/overflow/status/partial-fault parity |
 | File search | [FSC ALL/numeric modes](file-search.md), comparison expressions, match/inhibit/resume and false-rung numeric continuation | INC, AOI execution, broader expressions/types and native cursor/status/fault parity |
@@ -73,8 +74,8 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 - [ ] **E05 — Faults/status:** native-style major/minor fault records, math status
   flags, handler dispatch, clear/retry behavior and effects before a fault.
   Current whole-scan rollback is a simulator policy, not controller fault parity.
-- [ ] **E06 — System objects:** broaden GSV beyond the two modeled Controller
-  attributes; implement supported SSV attributes, task/Program/module/clock/axis
+- [ ] **E06 — System objects:** extend the [Task/Controller GSV profile](gsv-configuration.md)
+  to remaining attributes; implement supported SSV, Program/module/clock/axis
   objects, state changes and access rules. Implement actual event/interrupt
   behavior before enabling EVENT/UID/UIE.
 - [ ] **E07 — Memory semantics:** aliases, scopes, constants, bit overlays,

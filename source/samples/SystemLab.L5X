@@ -1,0 +1,510 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SystemLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="SystemLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11" TimeSlice="30" ShareUnusedTimeSlice="1">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="BackgroundCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BackgroundFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastDone" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FastTimer" DataType="TIMER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="100" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ReadConfig" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastRate" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowRate" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastWatchdog" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="BackgroundWatchdog" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastInhibit" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastNoOutput" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="StSlowRate" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastPriority" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="SlowPriority" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="CommTimeSlice" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="ShareUnused" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="StCommTimeSlice" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FastTaskName" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ControllerName" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StFastTaskName" DataType="STRING" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+              <Element Index="[32]" Value="0" />
+              <Element Index="[33]" Value="0" />
+              <Element Index="[34]" Value="0" />
+              <Element Index="[35]" Value="0" />
+              <Element Index="[36]" Value="0" />
+              <Element Index="[37]" Value="0" />
+              <Element Index="[38]" Value="0" />
+              <Element Index="[39]" Value="0" />
+              <Element Index="[40]" Value="0" />
+              <Element Index="[41]" Value="0" />
+              <Element Index="[42]" Value="0" />
+              <Element Index="[43]" Value="0" />
+              <Element Index="[44]" Value="0" />
+              <Element Index="[45]" Value="0" />
+              <Element Index="[46]" Value="0" />
+              <Element Index="[47]" Value="0" />
+              <Element Index="[48]" Value="0" />
+              <Element Index="[49]" Value="0" />
+              <Element Index="[50]" Value="0" />
+              <Element Index="[51]" Value="0" />
+              <Element Index="[52]" Value="0" />
+              <Element Index="[53]" Value="0" />
+              <Element Index="[54]" Value="0" />
+              <Element Index="[55]" Value="0" />
+              <Element Index="[56]" Value="0" />
+              <Element Index="[57]" Value="0" />
+              <Element Index="[58]" Value="0" />
+              <Element Index="[59]" Value="0" />
+              <Element Index="[60]" Value="0" />
+              <Element Index="[61]" Value="0" />
+              <Element Index="[62]" Value="0" />
+              <Element Index="[63]" Value="0" />
+              <Element Index="[64]" Value="0" />
+              <Element Index="[65]" Value="0" />
+              <Element Index="[66]" Value="0" />
+              <Element Index="[67]" Value="0" />
+              <Element Index="[68]" Value="0" />
+              <Element Index="[69]" Value="0" />
+              <Element Index="[70]" Value="0" />
+              <Element Index="[71]" Value="0" />
+              <Element Index="[72]" Value="0" />
+              <Element Index="[73]" Value="0" />
+              <Element Index="[74]" Value="0" />
+              <Element Index="[75]" Value="0" />
+              <Element Index="[76]" Value="0" />
+              <Element Index="[77]" Value="0" />
+              <Element Index="[78]" Value="0" />
+              <Element Index="[79]" Value="0" />
+              <Element Index="[80]" Value="0" />
+              <Element Index="[81]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(BackgroundCount,1,BackgroundCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(BackgroundFirst,1,BackgroundFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(ReadConfig)GSV(Controller,,Name,ControllerName);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(ReadConfig)GSV(Controller,,TimeSlice,CommTimeSlice);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(ReadConfig)GSV(Controller,,ShareUnusedTimeSlice,ShareUnused);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,BackgroundTask,Watchdog,BackgroundWatchdog);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,Name,FastTaskName);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,SlowTask,Rate,SlowRate);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,SlowTask,Priority,SlowPriority);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,InhibitTask,FastInhibit);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,DisableUpdateOutputs,FastNoOutput);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(ReadConfig)JSR(ReadSettings,0);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadSettings" Type="ST">
+            <STContent>
+              <Line Number="0">GSV(Task,SlowTask,Rate,StSlowRate);</Line>
+              <Line Number="1">GSV(Controller,,TimeSlice,StCommTimeSlice);</Line>
+              <Line Number="2">GSV(Task,FastTask,Name,StFastTaskName);</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="FastProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(FastCount,1,FastCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(FastFirst,1,FastFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>TON(FastTimer,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(FastTimer.DN)OTE(FastDone);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,Rate,FastRate);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,Watchdog,FastWatchdog);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(ReadConfig)GSV(Task,FastTask,Priority,FastPriority);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(SlowCount,1,SlowCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(SlowFirst,1,SlowFirst);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="BackgroundTask" Type="CONTINUOUS" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="BackgroundProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="FastTask" Type="PERIODIC" Class="Standard" Priority="2" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="10">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="FastProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="SlowTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="25">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="SlowProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

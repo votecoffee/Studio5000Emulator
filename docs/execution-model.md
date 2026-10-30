@@ -106,8 +106,9 @@ Selected-member bounds, mask widths, unknown values and rollback remain explicit
 
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
-all bits in LINT or two DINT elements; unavailable values and other GSV/SSV forms
-remain unsupported.
+all bits in LINT or two DINT elements. [Configuration GSV](gsv-configuration.md)
+adds explicit Task/Controller settings with exact INT/DINT/string destinations.
+Unqualified values, runtime attributes and SSV remain unsupported.
 
 JSR/SBR/RET require exact parameter counts, compatible types and dimensions,
 static references and bounded call nesting. Calls cannot target a main routine;
