@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; Incremental file execution updated for app `26.1029.222513`. **Full Logix emulation is not
+Audited 2026-10-29; Wide ST execution updated for app `26.1029.224802`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -30,11 +30,11 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
-| Structured Text | Assignments, conditionals, integer CASE, bounded loops, supported expressions/calls and RLL/ST calls | Complete language/function coverage, wide/time arithmetic, integer division and aggregate assignment |
+| Structured Text | Assignments, conditionals, integer CASE, bounded loops, [homogeneous wide expressions](wide-st.md), supported calls and RLL/ST calls | Complete language/functions, mixed/wide FOR/CASE/index forms, narrow integer division, time arithmetic and aggregates |
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
 | Sequential Function Chart (SFC) | Routine kind can be identified; execution is blocked | Steps, transitions, actions, qualifiers, branches, timers, reset/pause/forcing and monitoring |
 | BOOL/SINT/INT/DINT/REAL | Saved values, scalar/member/array access and supported operations | Complete conversions, math flags, overflow and native edge cases |
-| LINT and unsigned integers | Storage/transfers plus homogeneous RLL arithmetic, comparisons and bitwise operations in the v35 5580 profile | Mixed types/conversions, wide ST/CPT/CMP/MEQ, math flags and other target profiles |
+| LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
@@ -97,8 +97,9 @@ backlog, not a source of invented schemas or automatically enabled behavior.
 - [ ] **D01 — Full numeric operations:** extend the implemented homogeneous
   [LINT/unsigned RLL profile](integer-execution.md) to mixed types, expressions,
   conversions and all qualified targets. Add LREAL storage and operations,
-  complete signed/unsigned boundaries and promotion. Wide ST/CPT/CMP/MEQ and
-  native status semantics remain unfinished.
+  complete signed/unsigned boundaries and promotion. [Homogeneous wide ST](wide-st.md)
+  covers bounded assignments/conditions; remaining ST forms, wide CPT/CMP/MEQ
+  and native status semantics remain unfinished.
 - [ ] **D02 — Numeric edge behavior:** overflow/truncation, carry and math flags,
   divide-by-zero, rounding, REAL/LREAL NaN/infinity/subnormal handling and
   conversions. The current engine rejects nonfinite REAL values.

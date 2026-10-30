@@ -5,6 +5,7 @@ from dataclasses import dataclass,field
 from .model import ModelError,Op,literal,coerce,operand_problem
 from .st_expression import STExpression
 from . import system_values, array_sort
+from .integer_math import WIDE_TYPES
 
 ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SWPB','SRT'}
 
@@ -200,9 +201,9 @@ class Structured:
         if text not in self.expressions:self.expressions[text]=STExpression(text)
         return self.expressions[text]
 
-    def type(self,text,scope):return self.expression(text).analyze(self.memory,scope)[0]
+    def type(self,text,scope,dtype=None):return self.expression(text).analyze(self.memory,scope,dtype)[0]
 
-    def value(self,text,scope):return self.expression(text).evaluate(self.memory,scope)
+    def value(self,text,scope,dtype=None):return self.expression(text).evaluate(self.memory,scope,dtype)
 
     def boolean(self,text,scope):
         result=self.value(text,scope)
@@ -254,12 +255,12 @@ class Structured:
             for n in nodes:
                 try:
                     if n.kind=='assign':
-                        _,_,dtype=self.memory.check_writable(n.target,scope);result=self.type(n.expr,scope)
+                        _,_,dtype=self.memory.check_writable(n.target,scope);result=self.type(n.expr,scope,dtype)
                         if isinstance(self.memory.read(n.target,scope),list):raise ModelError('Whole-array ST assignment is unsupported; use COP')
                         if dtype=='BOOL':
                             tree=self.expression(n.expr).tree
                             if result!='bool' and not(tree[0]=='literal' and type(tree[1]) is int and tree[1] in (0,1)):raise ModelError('BOOL assignment requires BOOL or literal 0/1')
-                        elif dtype in ('SINT','INT','DINT','REAL'):
+                        elif dtype in ('SINT','INT','DINT','REAL',*WIDE_TYPES):
                             if result!='number':raise ModelError('Numeric assignment requires a numeric expression')
                         elif self.engine.project.string_capacity(dtype) is not None:
                             if result!='string':raise ModelError('String assignment requires a string expression')
@@ -287,7 +288,7 @@ class Structured:
                     elif n.kind=='for':
                         if self.memory.check_writable(n.target,scope)[2] not in ('SINT','INT','DINT'):raise ModelError('FOR counter requires SINT/INT/DINT')
                         for expr in (n.start,n.limit,n.step):
-                            t,real,_=self.expression(expr).analyze(self.memory,scope)
+                            t,real,_=self.expression(expr).analyze(self.memory,scope,self.memory.resolve(n.target,scope)[2])
                             if t!='number' or real:raise ModelError('FOR bounds and step must be integers')
                         self.loop_contract(n,scope)
                         check(n.body,loops+1)
@@ -295,6 +296,8 @@ class Structured:
                         if self.type(n.expr,scope)!='bool':raise ModelError('Loop condition requires BOOL')
                         check(n.body,loops+1)
                     elif n.kind=='case':
+                        if any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in self.expression(n.expr).refs):
+                            raise ModelError('Wide ST CASE selectors remain unqualified')
                         t,real,_=self.expression(n.expr).analyze(self.memory,scope)
                         if t!='number' or real:raise ModelError('CASE currently requires integer values')
                         for _,body in n.cases:check(body,loops)
@@ -321,7 +324,7 @@ class Structured:
                 self.tick()
                 try:
                     if n.kind=='assign':
-                        value=self.value(n.expr,scope);key,parts,dtype=self.memory.check_writable(n.target,scope)
+                        key,parts,dtype=self.memory.check_writable(n.target,scope);value=self.value(n.expr,scope,dtype)
                         if isinstance(value,str):
                             tree=self.expression(n.expr).tree
                             if tree[0]=='ref':

@@ -13,9 +13,11 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The twenty-root, nine-rung fixture demonstrates exact 64-bit addition, division
-and remainder, an unsigned complement and all four unsigned widths. Values
-beyond browser-safe integer precision remain decimal text in the tag watch.
+The 32-root fixture combines eleven ladder rungs with nine called ST statements.
+It demonstrates exact 64-bit addition, division/remainder, an unsigned complement
+and all four unsigned widths. StAllMatches compares the results across languages.
+Values beyond browser-safe integer precision remain decimal text in the tag watch.
+See the [ST profile and independent demo inputs](wide-st.md).
 
 ## Supported operations
 
@@ -72,8 +74,9 @@ integer precision, signed/unsigned limits, exact quotient/remainder, comparisons
 wrapped LIM ranges, complements, false rungs, unknown data, rollback, mixed-type
 rejections and the processor/firmware gate. These are model-level checks.
 
-Wide/unsigned ST and CPT/CMP expressions, MEQ forms, mixed-type promotions,
-complete conversions, math flags, LREAL and time types remain unfinished.
+[Homogeneous wide ST](wide-st.md) now supports bounded assignments, arithmetic,
+comparisons and bitwise expressions. Wide CPT/CMP/MEQ, remaining ST forms,
+mixed-type promotions, conversions, flags, LREAL and time types remain unfinished.
 Other controller families need explicit qualification. See the
 [full capability checklist](emulation-coverage.md) and
 [implementation](../source/logixlab/integer_math.py).

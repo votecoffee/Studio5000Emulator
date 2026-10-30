@@ -3,6 +3,7 @@ import math
 from .expressions import Expression
 from .conditions import RELATIONS
 from .model import ModelError,coerce
+from . import wide_st
 
 
 class STExpression(Expression):
@@ -10,7 +11,9 @@ class STExpression(Expression):
         try:super().__init__(text,condition=True,structured=True)
         except (ValueError,IndexError) as e:raise ModelError('Malformed ST expression') from e
 
-    def analyze(self,memory,scope=''):
+    def analyze(self,memory,scope='',destination_type=None):
+        wide=wide_st.analyze(self,memory,scope,destination_type)
+        if wide is not None:return wide[1],False,wide[2]
         real=False;types={};numeric_refs={}
         for ref in self.refs:
             dtype=memory.resolve(ref,scope)[2]
@@ -50,7 +53,9 @@ class STExpression(Expression):
         if not real and '/' in self.operators:raise ModelError('Integer ST division is unsupported; use an explicit REAL operand')
         return result,real,types
 
-    def evaluate(self,memory,scope=''):
+    def evaluate(self,memory,scope='',destination_type=None):
+        wide=wide_st.analyze(self,memory,scope,destination_type)
+        if wide is not None:return wide_st.evaluate(self,memory,scope,wide)
         _,real,types=self.analyze(memory,scope)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
         def visit(node):

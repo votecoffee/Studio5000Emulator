@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -691,6 +691,7 @@ class Engine:
                 'structured_text':{'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer)','FOR','WHILE','REPEAT','EXIT','supported calls'],
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
                 'integer_execution':integer_math.description(self.project),
+                'wide_st_execution':wide_st.description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
@@ -713,7 +714,7 @@ class Engine:
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
                            "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
-                           "v35 5580 RLL integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide ST/CPT/CMP and math status remain unsupported",
+                           "v35 5580 RLL/ST integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide CPT/CMP and native math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
                            "JSR calls are bounded to 25 levels and 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",

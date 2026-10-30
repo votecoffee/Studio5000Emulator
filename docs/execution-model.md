@@ -136,6 +136,15 @@ instance members. Hidden saved locals omitted by an export remain unknown;
 definition defaults do not substitute for missing instance state. Unsupported
 AOI forms and Safety AOIs are blocked.
 
+## Wide ST integers
+
+[Wide ST](wide-st.md) uses exact homogeneous LINT/unsigned operands and
+destination-aware typing for assignments. Every numeric intermediate is bounded;
+division/remainder use exact integers and bitwise operations retain width. BOOL
+conditions, WHILE/REPEAT and matching AOI/routine bindings share existing control
+flow and rollback. Mixed types, wide loop/CASE/index forms and native parity
+remain unqualified.
+
 ## Structured Text
 
 Supported forms include assignments, non-retentive `[:=]`, IF/ELSIF/ELSE, integer
@@ -146,8 +155,9 @@ is checked even in unreachable branches.
 
 Typed numeric expressions currently focus on SINT/INT/DINT/REAL, BOOL and
 single-byte strings. REAL operations use modeled float32 rules; conversions,
-overflow and operand restrictions are explicit. Wide/unsigned arithmetic and
-whole-array/UDT assignment have narrower support than storage/copy operations.
+overflow and operand restrictions are explicit. [Homogeneous wide ST](wide-st.md)
+has a separate v35 5580 profile. Mixed conversions, remaining wide forms and
+whole-array/UDT assignment remain unfinished.
 
 All expression operands are evaluated eagerly. Unknown data or faults cannot be
 hidden by an assumed short-circuit path. Loop bounds, static/indirect references,
@@ -171,7 +181,7 @@ converter logs and project-specific reports are local inputs, not public fixture
 
 ## Boundaries
 
-FBD/SFC, preemptive/event/Safety-task execution, motion, physical I/O, produced/consumed
+FBD/SFC, general CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed
 behavior, full native fault/status behavior and Safety execution are not complete.
 Offline model results do not establish commissioning, safety approval or native
 runtime equivalence. Local explicit messaging has a separate

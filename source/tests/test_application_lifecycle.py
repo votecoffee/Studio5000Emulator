@@ -280,6 +280,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_integer_lab_wide_st_matches_ladder_with_exact_http_values(self):
+        state=self.post('demo', {'sample':'IntegerLab'});self.assertEqual(state['blockers'], [])
+        state=self.post('step', {'dt':10});values={row['name']:row['value'] for row in state['tags']}
+        self.assertEqual(values['StSignedSum'],'9007199254740995')
+        self.assertEqual(values['StUnsignedSum'],'18446744073709551615')
+        self.assertEqual(values['StUnsignedComplement'],'1');self.assertTrue(values['StAllMatches'])
+        self.assertTrue(any(row.get('language')=='ST' for row in state['trace']))
+        self.post('write', {'tag':'StDelta','value':'3'})
+        state=self.post('step', {'dt':10});values={row['name']:row['value'] for row in state['tags']}
+        self.assertEqual(values['StSignedSum'],'9007199254740996');self.assertFalse(values['StAllMatches'])
+        self.post('write', {'tag':'StDelta','value':'2'})
+        state=self.post('step', {'dt':10});values={row['name']:row['value'] for row in state['tags']}
+        self.assertTrue(values['StAllMatches'])
+        report=self.post('report', {})['wide_st_execution']
+        self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
+        self.assertFalse(report['mixed_numeric_types'])
+
     def test_stats_lab_incremental_edges_match_inhibit_and_reset_through_http(self):
         state=self.post('demo', {'sample':'StatsLab'});self.assertEqual(state['blockers'], [])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

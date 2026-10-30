@@ -93,7 +93,9 @@ profile. General CPU preemption, other event sources and watchdog enforcement re
 
 Available numeric increment: [homogeneous wide-integer RLL execution](integer-execution.md)
 for v35 ControlLogix 5580, with exact division and explicit type/profile limits.
-Mixed types, wide ST expressions, flags and other target profiles remain open.
+[Homogeneous wide ST](wide-st.md) adds exact arithmetic and comparisons in
+assignments/conditions with matching AOI and routine bindings. Mixed types,
+broader expressions/loop forms, native flags and other targets remain open.
 
 Acceptance: focused fixtures for every type/operation/scan-mode boundary;
 mixed-task ordering and fault-handler tests; unchanged saved values and clear

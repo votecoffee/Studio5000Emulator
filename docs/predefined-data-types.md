@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1029.190232` on 2026-10-29. Every supplied entry appears below in its original
+`26.1029.224802` on 2026-10-29. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -17,7 +17,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Dedicated model category | Entries | Meaning |
 | --- | --- | --- |
 | Numeric model, bounded | 5 | BOOL, SINT, INT, DINT, REAL storage and supported operations; incomplete conversions/status/native parity |
-| Wide RLL profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous ladder operations; [profile restrictions](integer-execution.md) apply |
+| Wide integer profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous [ladder](integer-execution.md) and [ST](wide-st.md) operations; profile restrictions apply |
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
@@ -163,7 +163,7 @@ Every dedicated model status still requires the qualifications above.
 | 86 | `LEAD_LAG` | Process/filter/drive | No dedicated model | Listed |
 | 87 | `LEAD_LAG_SEC_ORDER` | Process/filter/drive | No dedicated model | Listed |
 | 88 | `LIGHT_CURTAIN` | Safety | No dedicated model | Listed |
-| 89 | `LINT` | Atomic numeric/BOOL | Wide RLL profile (bounded) | Listed |
+| 89 | `LINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 | 90 | `LREAL` | Atomic numeric/BOOL | No dedicated model | Listed |
 | 91 | `LTIME` | Time/date | No dedicated model | Listed |
 | 92 | `MAIN_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
@@ -292,11 +292,11 @@ Every dedicated model status still requires the qualifications above.
 | 215 | `TIMER` | Timers/counters | Timer/counter model (partial) | Listed |
 | 216 | `TOTALIZER` | Process/filter/drive | No dedicated model | Listed |
 | 217 | `TWO_HAND_RUN_STATION` | Safety | No dedicated model | Listed |
-| 218 | `UDINT` | Atomic numeric/BOOL | Wide RLL profile (bounded) | Listed |
-| 219 | `UINT` | Atomic numeric/BOOL | Wide RLL profile (bounded) | Listed |
-| 220 | `ULINT` | Atomic numeric/BOOL | Wide RLL profile (bounded) | Listed |
+| 218 | `UDINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
+| 219 | `UINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
+| 220 | `ULINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 | 221 | `UP_DOWN_ACCUM` | Process/filter/drive | No dedicated model | Listed |
-| 222 | `USINT` | Atomic numeric/BOOL | Wide RLL profile (bounded) | Listed |
+| 222 | `USINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 
 ## Remaining family work
 

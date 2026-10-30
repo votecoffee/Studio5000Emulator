@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-29",
-  "audited_app_version": "26.1029.190232",
+  "audited_app_version": "26.1029.224802",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -29,8 +29,8 @@
       "source": "source/logixlab/model.py"
     },
     "wide_rll_profile": {
-      "label": "Wide RLL profile (bounded)",
-      "remaining": "Mixed types, wide ST/CPT/CMP/MEQ, math flags and additional target qualification.",
+      "label": "Wide integer profile (bounded)",
+      "remaining": "Mixed types, additional ST forms, wide CPT/CMP/MEQ, math flags and native/target qualification.",
       "source": "source/logixlab/integer_math.py"
     },
     "timer_counter_model": {

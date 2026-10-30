@@ -105,6 +105,66 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="StSignedSum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StSignedQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StSignedRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StUnsignedSum" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StUnsignedComplement" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StByteSum" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StWordSum" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StDwordSum" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StExactComparison" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StAllMatches" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StDelta" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -139,7 +199,26 @@
               <Rung Number="8" Type="N">
                 <Text>GRT(SignedSum,SignedInput)OTE(ExactComparison);</Text>
               </Rung>
+              <Rung Number="9" Type="N">
+                <Text>JSR(WideText,0);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>EQU(SignedSum,StSignedSum)EQU(SignedQuotient,StSignedQuotient)EQU(SignedRemainder,StSignedRemainder)EQU(UnsignedSum,StUnsignedSum)EQU(UnsignedComplement,StUnsignedComplement)EQU(ByteSum,StByteSum)EQU(WordSum,StWordSum)EQU(DwordSum,StDwordSum)XIC(StExactComparison)OTE(StAllMatches);</Text>
+              </Rung>
             </RLLContent>
+          </Routine>
+          <Routine Name="WideText" Type="ST">
+            <STContent>
+              <Line Number="0">StSignedSum:=SignedInput+StDelta;</Line>
+              <Line Number="1">StSignedQuotient:=SignedInput/StDivisor;</Line>
+              <Line Number="2">StSignedRemainder:=SignedInput MOD StDivisor;</Line>
+              <Line Number="3">StUnsignedSum:=UnsignedInput+UnsignedOne;</Line>
+              <Line Number="4">StUnsignedComplement:=NOT UnsignedInput;</Line>
+              <Line Number="5">StByteSum:=ByteInput+ByteStep;</Line>
+              <Line Number="6">StWordSum:=WordInput+WordStep;</Line>
+              <Line Number="7">StDwordSum:=DwordInput+DwordStep;</Line>
+              <Line Number="8">StExactComparison:=StSignedSum&gt;SignedInput;</Line>
+            </STContent>
           </Routine>
         </Routines>
       </Program>

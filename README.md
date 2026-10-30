@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.222513`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.224802`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -82,11 +82,11 @@ in the header to try the 10/25 ms example and inspect per-task counts in
 Coverage. [Instruction-only EVENT tasks](docs/event-tasks.md) have a separate
 bounded profile. General CPU preemption, other event sources and Safety remain unfinished.
 
-[Wide integer ladder execution](docs/integer-execution.md) now supports
-homogeneous LINT and unsigned arithmetic, comparisons and bitwise operations
-for the v35 ControlLogix 5580 model. Integer DIV uses exact truncation toward
-zero. Mixed-type arithmetic, wide ST expressions and native math flags remain
-unfinished.
+[Wide integer ladder execution](docs/integer-execution.md) and
+[wide Structured Text](docs/wide-st.md) support homogeneous LINT/unsigned
+arithmetic, comparisons and bitwise operations for the v35 ControlLogix 5580
+model. **Integer lab** compares RLL and ST results. Mixed-type arithmetic,
+additional expression forms and native math flags remain unfinished.
 
 ## Table of Contents
 
