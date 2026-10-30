@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.142312`: [ST Boolean memory](st-digital-memory.md),
+DFF/JKFF/RESD/SETD logical records, edges/dominance/rollback and Digital Lab.
+
 Available in `26.1030.140207`: [ST LPF software model](st-low-pass-filter.md),
 bilinear orders 1/2/3, timed filtering/diagnostics and Filter Lab. Native discrete
 recurrence and numerical parity remain open.

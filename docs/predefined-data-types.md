@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.140207` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.142312` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -32,9 +32,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Moving statistics models, partial | 2 | [ST MAVE/MSTD](st-moving-statistics.md), finite REAL queues and uniform/weighted averages/population deviation |
 | Capture models, partial | 2 | [ST MAXC/MINC](st-capture.md), retained finite REAL extrema and reset baselines |
 | LPF software model, partial | 1 | [ST LPF](st-low-pass-filter.md), explicit bilinear sections; native numerical recurrence remains unverified |
-| No dedicated model | 195 | No dedicated bounded named runtime model |
+| Boolean memory models, partial | 4 | [ST DFF/JKFF/RESD/SETD](st-digital-memory.md), sampled clocks, dominant latches, complements and history |
+| No dedicated model | 191 | No dedicated bounded named runtime model |
 
-Thus **27 entries have dedicated bounded models**; this is not 27 fully
+Thus **31 entries have dedicated bounded models**; this is not 31 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -130,8 +131,8 @@ Every dedicated model status still requires the qualifications above.
 | 42 | `DISCRETE_2STATE` | Process/filter/drive | No dedicated model | Listed |
 | 43 | `DISCRETE_3STATE` | Process/filter/drive | No dedicated model | Listed |
 | 44 | `DIVERSE_INPUT` | Safety | No dedicated model | Listed |
-| 45 | `DOMINANT_RESET` | FBD state/logic | No dedicated model | Listed |
-| 46 | `DOMINANT_SET` | FBD state/logic | No dedicated model | Listed |
+| 45 | `DOMINANT_RESET` | FBD state/logic | Boolean memory model (partial) | Listed |
+| 46 | `DOMINANT_SET` | FBD state/logic | Boolean memory model (partial) | Listed |
 | 47 | `DT` | Time/date | No dedicated model | Listed |
 | 48 | `DYNAMICS_DATA` | Motion/axis/reference | No dedicated model | Listed |
 | 49 | `EIGHT_POS_MODE_SELECTOR` | Safety | No dedicated model | Listed |
@@ -162,8 +163,8 @@ Every dedicated model status still requires the qualifications above.
 | 74 | `FILTER_LOW_PASS` | Process/filter/drive | LPF software model (partial) | Listed |
 | 75 | `FILTER_NOTCH` | Process/filter/drive | No dedicated model | Listed |
 | 76 | `FIVE_POS_MODE_SELECTOR` | Safety | No dedicated model | Listed |
-| 77 | `FLIP_FLOP_D` | FBD state/logic | No dedicated model | Listed |
-| 78 | `FLIP_FLOP_JK` | FBD state/logic | No dedicated model | Listed |
+| 77 | `FLIP_FLOP_D` | FBD state/logic | Boolean memory model (partial) | Listed |
+| 78 | `FLIP_FLOP_JK` | FBD state/logic | Boolean memory model (partial) | Listed |
 | 79 | `FUNCTION_GENERATOR` | Process/filter/drive | No dedicated model | Listed |
 | 80 | `HL_LIMIT` | Process/filter/drive | HL_LIMIT model (partial) | Listed |
 | 81 | `HMIBC` | HMI button control | No dedicated model | Listed |

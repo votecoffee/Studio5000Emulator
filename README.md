@@ -156,6 +156,10 @@ filter orders with periodic/oversample timing, diagnostics and rollback. Its
 bilinear recurrence is a documented software approximation; native numerical
 parity remains unverified. Choose **Filter lab** to try step responses.
 
+[Structured Text Boolean memory](docs/st-digital-memory.md) adds DFF/JKFF clocked
+state and reset-/set-dominant latches with complements and transactional history.
+Choose **Digital lab** to try clock edges, Clear, dominance and skipped calls.
+
 ## Table of Contents
 
 - [Background](#background)

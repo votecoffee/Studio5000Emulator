@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST LPF software model added for app `26.1030.140207`. **Full Logix emulation is not
+Audited 2026-10-30; ST Boolean memory added for app `26.1030.142312`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -39,6 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
+| FLIP_FLOP_D/FLIP_FLOP_JK/DOMINANT_RESET/DOMINANT_SET | [ST Boolean memory](st-digital-memory.md), clocked data/toggle state, Clear priority, dominance, complements and transactional history | FBD graphs, packed layouts, other profiles and native startup/Run/skip/postscan/output-write/status/fault parity |
 | FILTER_LOW_PASS software model | [ST LPF](st-low-pass-filter.md), explicitly chosen bilinear orders 1/2/3, Periodic/elapsed/oversample timing, bounds/status and section rollback | Native discrete recurrence/coefficients/precision/transitions, RTS, FBD graphs, packed layouts, other profiles and full lifecycle/status/fault parity |
 | MAXIMUM_CAPTURE/MINIMUM_CAPTURE | [ST MAXC/MINC](st-capture.md), finite REAL extrema, held reset baselines, per-record history, skip/Run/rollback behavior | FBD graphs, packed layouts, other profiles and native initialization/reset/skip/postscan/precision/status/fault parity |
 | MOVING_AVERAGE/MOVING_STD_DEV | [ST MAVE/MSTD](st-moving-statistics.md), uniform/direct-weighted averages, population deviation, REAL queues, sampling/initialization, resize/status and transactional count | FBD graphs, packed layouts, native queue/resize/hold/lifecycle/precision/status/fault parity |

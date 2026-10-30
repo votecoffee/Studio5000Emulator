@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST Boolean memory](st-digital-memory.md) samples flip-flop clocks/data and
+applies reset-/set-dominant latch rules with complementary outputs. Per-record
+clock/output history shares rollback, Run entry and detached routine replacement.
+Initial high clocks are suppressed; Clear still samples Clock.
+
 [ST LPF](st-low-pass-filter.md) uses explicitly chosen bilinear sections for
 orders 1/2/3, host-double histories and float32 public values. It is a software
 approximation, not a verified native recurrence. Periodic/elapsed/oversample

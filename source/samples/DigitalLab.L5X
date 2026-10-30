@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="DigitalLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="DigitalLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Clock" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DInput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Clear" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SetInput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetInput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallLogic" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="DOutput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DComplement" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ToggleOutput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ToggleComplement" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetDominantOutput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetComplement" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SetDominantOutput" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SetComplement" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DState" TagType="Base" DataType="FLIP_FLOP_D">
+        <Data Format="Decorated">
+          <Structure DataType="FLIP_FLOP_D">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="D" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clear" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clock" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Q" DataType="BOOL" Value="0" />
+            <DataValueMember Name="QNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ToggleState" TagType="Base" DataType="FLIP_FLOP_JK">
+        <Data Format="Decorated">
+          <Structure DataType="FLIP_FLOP_JK">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Clear" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clock" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Q" DataType="BOOL" Value="0" />
+            <DataValueMember Name="QNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ResetState" TagType="Base" DataType="DOMINANT_RESET">
+        <Data Format="Decorated">
+          <Structure DataType="DOMINANT_RESET">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Set" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SetState" TagType="Base" DataType="DOMINANT_SET">
+        <Data Format="Decorated">
+          <Structure DataType="DOMINANT_SET">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Set" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="1" />
+            <DataValueMember Name="OutNot" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallLogic THEN</Line>
+              <Line Number="1">DState.D := DInput;</Line>
+              <Line Number="2">DState.Clear := Clear;</Line>
+              <Line Number="3">ToggleState.Clear := Clear;</Line>
+              <Line Number="4">DState.Clock := Clock;</Line>
+              <Line Number="5">ToggleState.Clock := Clock;</Line>
+              <Line Number="6">ResetState.Set := SetInput;</Line>
+              <Line Number="7">ResetState.Reset := ResetInput;</Line>
+              <Line Number="8">SetState.Set := SetInput;</Line>
+              <Line Number="9">SetState.Reset := ResetInput;</Line>
+              <Line Number="10">DFF(DState);</Line>
+              <Line Number="11">JKFF(ToggleState);</Line>
+              <Line Number="12">RESD(ResetState);</Line>
+              <Line Number="13">SETD(SetState);</Line>
+              <Line Number="14">CallCount := CallCount + 1;</Line>
+              <Line Number="15">END_IF;</Line>
+              <Line Number="16">DOutput := DState.Q;</Line>
+              <Line Number="17">DComplement := DState.QNot;</Line>
+              <Line Number="18">ToggleOutput := ToggleState.Q;</Line>
+              <Line Number="19">ToggleComplement := ToggleState.QNot;</Line>
+              <Line Number="20">ResetDominantOutput := ResetState.Out;</Line>
+              <Line Number="21">ResetComplement := ResetState.OutNot;</Line>
+              <Line Number="22">SetDominantOutput := SetState.Out;</Line>
+              <Line Number="23">SetComplement := SetState.OutNot;</Line>
+              <Line Number="24">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

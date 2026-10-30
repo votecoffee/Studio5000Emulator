@@ -265,7 +265,7 @@ class StructuredFilterTests(unittest.TestCase):
         candidate.memory.write('T.In',0);self.assertEqual(self.step(candidate)['Out'],5)
 
     def test_counts_classification_and_report_expose_software_solver(self):
-        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),16)
+        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),20)
         self.assertNotIn('FILTER_LOW_PASS',e.project.data_only_types);self.assertEqual(set(e.memory.read('T')),set(FIELDS))
         profile=e.report()['st_filter'];self.assertEqual(profile['instructions'],['LPF']);self.assertFalse(profile['native_runtime_parity'])
         self.assertIn('software approximation',profile['solver'])

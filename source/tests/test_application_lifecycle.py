@@ -79,6 +79,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_digital_lab_startup_edges_dominance_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'DigitalLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(expected):
+            state=self.post('step',{'dt':10});v=values(state)
+            self.assertEqual(tuple(v[n] for n in ('DOutput','ToggleOutput','ResetDominantOutput','SetDominantOutput')),expected)
+            self.assertEqual(tuple(v[n] for n in ('DComplement','ToggleComplement','ResetComplement','SetComplement')),tuple(not x for x in expected));return state
+        write('Clock',True);write('DInput',True);step((False,False,False,True))
+        write('Clock',False);step((False,False,False,True));write('Clock',True);write('SetInput',True);write('ResetInput',True)
+        step((True,True,False,True));write('DInput',False);step((True,True,False,True))
+        write('Clear',True);step((False,False,False,True));write('Clear',False);step((False,False,False,True))
+        write('Clock',False);write('SetInput',False);write('ResetInput',False);step((False,False,False,True))
+        write('Clock',True);write('DInput',True);write('SetInput',True);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':10})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);state=step((True,True,True,True));self.assertEqual(state['scan'],before['scan']+1)
+        write('CallLogic',False);write('Clear',True);write('ResetInput',True);step((True,True,True,True))
+        report=self.post('report',{});self.assertEqual(report['st_digital']['instructions'],['DFF','JKFF','RESD','SETD'])
+        self.assertFalse(report['st_digital']['native_runtime_parity']);self.assertIn('digital-demo',self.get('/').decode())
+
     def test_filter_lab_orders_timing_diagnostics_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'FilterLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

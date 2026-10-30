@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.140207",
+  "audited_app_version": "26.1030.142312",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -102,6 +102,11 @@
       "label": "LPF software model (partial)",
       "remaining": "Explicit bilinear ST LPF orders 1/2/3; native recurrence/coefficient/precision/transition parity, RTS, FBD graphs, packed layouts and full lifecycle/status/fault behavior remain unfinished.",
       "source": "source/logixlab/st_filter.py"
+    },
+    "digital_memory_model": {
+      "label": "Boolean memory model (partial)",
+      "remaining": "Bounded ST DFF/JKFF/RESD/SETD sampled clock/output state; FBD graphs, packed layouts and native startup/Run/skip/postscan/output-write/status/fault parity remain unfinished.",
+      "source": "source/logixlab/st_digital.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -223,10 +228,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 27,
-    "no_dedicated_model": 195,
+    "dedicated_bounded_models": 31,
+    "no_dedicated_model": 191,
     "status_counts": {
-      "no_dedicated_model": 195,
+      "no_dedicated_model": 191,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -242,7 +247,8 @@
       "rate_limiter_model": 1,
       "moving_statistics_model": 2,
       "capture_model": 2,
-      "low_pass_software_model": 1
+      "low_pass_software_model": 1,
+      "digital_memory_model": 4
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -786,7 +792,7 @@
       "identifier_candidate": "DOMINANT_RESET",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "digital_memory_model",
       "v35_listing": "exact",
       "v35_catalog_name": "DOMINANT_RESET",
       "notes": []
@@ -798,7 +804,7 @@
       "identifier_candidate": "DOMINANT_SET",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "digital_memory_model",
       "v35_listing": "exact",
       "v35_catalog_name": "DOMINANT_SET",
       "notes": []
@@ -1170,7 +1176,7 @@
       "identifier_candidate": "FLIP_FLOP_D",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "digital_memory_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FLIP_FLOP_D",
       "notes": []
@@ -1182,7 +1188,7 @@
       "identifier_candidate": "FLIP_FLOP_JK",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "digital_memory_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FLIP_FLOP_JK",
       "notes": []
