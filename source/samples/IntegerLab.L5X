@@ -165,6 +165,46 @@
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
         </Data>
       </Tag>
+      <Tag Name="StLiteralSigned" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralUnsigned" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralDword" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralNot" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralCheck" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralOffset" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralDivisor" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="StLiteralQuotient" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -218,6 +258,12 @@
               <Line Number="6">StWordSum:=WordInput+WordStep;</Line>
               <Line Number="7">StDwordSum:=DwordInput+DwordStep;</Line>
               <Line Number="8">StExactComparison:=StSignedSum&gt;SignedInput;</Line>
+              <Line Number="9">StLiteralSigned:=-9223372036854775808L+StLiteralOffset;</Line>
+              <Line Number="10">StLiteralUnsigned:=18446744073709551615UL;</Line>
+              <Line Number="11">StLiteralDword:=4294967295U;</Line>
+              <Line Number="12">StLiteralNot:=NOT 0UL;</Line>
+              <Line Number="13">StLiteralQuotient:=18446744073709551615UL/StLiteralDivisor;</Line>
+              <Line Number="14">StLiteralCheck:=StLiteralSigned=-9223372036854775808L;</Line>
             </STContent>
           </Routine>
         </Routines>

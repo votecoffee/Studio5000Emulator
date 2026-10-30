@@ -144,6 +144,14 @@ REAL promotion rules remain distinct: CPT includes its destination type, while
 ST evaluates its expression before destination conversion. Per-node bounds,
 eager evaluation, whole-advance rollback and INC retry preserve existing limits.
 
+## Typed ST integer constants
+
+[Decimal L/U/UL literals](st-integer-literals.md) retain their declared type in
+the ST syntax tree. They select the existing wide profile even without numeric
+tag operands. Signs and ranges are checked together; matching type, per-node
+arithmetic bounds, eager evaluation and whole-advance rollback remain explicit.
+Other literal formats, instruction arguments and mixed conversions stay open.
+
 ## Wide ST integers
 
 [Wide ST](wide-st.md) uses exact homogeneous LINT/unsigned operands and

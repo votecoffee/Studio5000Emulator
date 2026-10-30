@@ -4,6 +4,7 @@ from .integer_math import quotient
 import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
+from .st_literals import scan as typed_integer
 
 FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.trunc,
              'TRUNC': math.trunc, 'LN': math.log, 'LOG': math.log10,
@@ -30,6 +31,7 @@ class Expression:
         self.refs = []
         self.functions = set()
         self.operators = set()
+        self.typed_types = set()
         pos = 0
         while pos < len(text):
             if text[pos].isspace(): pos += 1; continue
@@ -43,6 +45,9 @@ class Expression:
                 self.tokens.append(('string',bytes(x&255 for x in ascii_bytes(text[start:pos].replace('$I','$L').replace('$i','$L'))).decode('latin-1')))
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
+            typed=typed_integer(text,pos) if structured else None
+            if typed is not None:
+                pos,value=typed;self.tokens.append(('typed',value));continue
             number = re.match(r'(?:2|8|16)#[0-9a-fA-F_]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', text[pos:])
             if number:
                 value = number[0]
@@ -87,6 +92,8 @@ class Expression:
         if depth > 64: raise ModelError('Expression nesting limit exceeded')
         kind, value = self.tokens[self.pos]; self.pos += 1
         if kind == 'number': node = ('literal', literal(value))
+        elif kind=='typed':
+            node=('typed_literal',*value);self.typed_types.add(value[1])
         elif kind=='string':node=('string',value)
         elif kind in ('+','-','NOT','!'):
             self.operators.add(kind)

@@ -13,11 +13,12 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 32-root fixture combines eleven ladder rungs with nine called ST statements.
+The 40-root fixture combines eleven ladder rungs with fifteen called ST statements.
 It demonstrates exact 64-bit addition, division/remainder, an unsigned complement
 and all four unsigned widths. StAllMatches compares the results across languages.
 Values beyond browser-safe integer precision remain decimal text in the tag watch.
-See the [ST profile and independent demo inputs](wide-st.md).
+See the [ST profile and independent demo inputs](wide-st.md), including
+[typed full-width constants](st-integer-literals.md).
 
 ## Supported operations
 

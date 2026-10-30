@@ -6,7 +6,7 @@ from .model import ModelError,coerce
 
 def analyze(expression,memory,scope='',destination_type=None):
     declared={ref:memory.resolve(ref,scope)[2] for ref in expression.refs}
-    wide=set(declared.values())&WIDE_TYPES
+    wide=(set(declared.values())&WIDE_TYPES)|expression.typed_types
     if destination_type in WIDE_TYPES:wide.add(destination_type)
     if not wide:return None
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
@@ -31,11 +31,16 @@ def analyze(expression,memory,scope='',destination_type=None):
         if kind=='literal':
             if type(value) is bool:return 'bool'
             immediate(value);return 'number'
+        if kind=='typed_literal':
+            coerce(value,node[2]);return 'number'
         if kind=='ref':return types[value]
         if kind=='string':raise ModelError('Wide ST string forms remain unqualified')
         if kind=='unary':
-            if value in ('+','-') and node[2][0]=='literal' and type(node[2][1]) is int:
-                immediate(node[2][1] if value=='+' else -node[2][1]);return 'number'
+            if value in ('+','-') and node[2][0] in ('literal','typed_literal') and type(node[2][1]) is int:
+                signed=node[2][1] if value=='+' else -node[2][1]
+                if node[2][0]=='typed_literal':coerce(signed,node[2][2])
+                else:immediate(signed)
+                return 'number'
             result=infer(node[2])
             if value=='NOT' and result=='bool':return 'bool'
             if result!='number' or value=='!':raise ModelError('Invalid wide ST unary operand')
@@ -60,11 +65,12 @@ def evaluate(expression,memory,scope,profile):
     def visit(node):
         kind,value=node[:2]
         if kind=='literal':return value if type(value) is bool else number(value)
+        if kind=='typed_literal':return number(value)
         if kind=='ref':
             item=memory.read(value,scope)
             return bool(item) if types[value]=='bool' else number(item)
         if kind=='unary':
-            if value in ('+','-') and node[2][0]=='literal' and type(node[2][1]) is int:
+            if value in ('+','-') and node[2][0] in ('literal','typed_literal') and type(node[2][1]) is int:
                 return number(node[2][1] if value=='+' else -node[2][1])
             item=visit(node[2])
             if value=='NOT' and type(item) is bool:return not item
@@ -91,10 +97,10 @@ def description(project):
     return dict(profile='v35-5580-homogeneous-wide-ST',types=sorted(WIDE_TYPES),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
-                literals='Signed DINT integers representable in the selected type; larger constants require declared tags',
+                literals='Untyped signed DINT integers or matching decimal L/U/UL literals within declared range',
                 arithmetic='Exact integers, quotient toward zero; every numeric intermediate must fit its declared type',
                 conditions='Wide comparisons with BOOL operands/logic; eager operand evaluation',
                 mixed_numeric_types=False,native_runtime_parity=False,
-                remaining=['Mixed numeric types/conversions and typed or wide literals','Power/other functions',
+                remaining=['Mixed numeric types/conversions, typed radix literals and typed instruction arguments','Power/other functions',
                            'Wide FOR/CASE/index forms','CPT/CMP/MEQ and file-expression consumers',
                            'Native math/status/fault/overflow/intermediate parity'])

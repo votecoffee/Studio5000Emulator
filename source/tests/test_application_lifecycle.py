@@ -280,6 +280,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_integer_lab_typed_st_literals_retain_full_ranges_through_http(self):
+        state=self.post('demo', {'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        row=values(self.post('step', {'dt':10}))
+        self.assertEqual(row['StLiteralSigned'],'-9223372036854775808')
+        self.assertEqual(row['StLiteralUnsigned'],'18446744073709551615')
+        self.assertEqual(row['StLiteralDword'],4294967295)
+        self.assertEqual(row['StLiteralNot'],'18446744073709551615')
+        self.assertEqual(row['StLiteralQuotient'],'6148914691236517205')
+        self.assertTrue(row['StLiteralCheck']);self.assertTrue(row['StAllMatches'])
+        self.post('write', {'tag':'StLiteralOffset','value':'1'})
+        row=values(self.post('step', {'dt':10}));self.assertEqual(row['StLiteralSigned'],'-9223372036854775807');self.assertFalse(row['StLiteralCheck'])
+        self.post('write', {'tag':'StLiteralOffset','value':'0'})
+        row=values(self.post('step', {'dt':10}));self.assertTrue(row['StLiteralCheck']);self.assertTrue(row['StAllMatches'])
+        report=self.post('report', {})['wide_st_execution'];self.assertIn('L/U/UL',report['literals']);self.assertFalse(report['native_runtime_parity'])
+
     def test_math_lab_integer_division_and_real_promotion_through_http(self):
         state=self.post('demo', {'sample':'MathLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

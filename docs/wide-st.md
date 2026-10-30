@@ -15,10 +15,11 @@ IF Enable AND (SignedSum>SignedInput) THEN SignedResult:=SignedSum; END_IF;
 
 All numeric tag operands in an expression must have one matching declared type.
 A numeric assignment destination must match that type. Literal-only assignments
-use the destination's declared wide type. Immediates are signed DINT integers
-representable in the selected type; larger constants require a declared tag.
-Typed/wide literals, REAL operands and implicit signed/unsigned promotions remain
-blocked, including expressions in unreachable branches.
+use the destination's declared wide type. Untyped immediates are signed DINT
+integers representable in the selected type. [Decimal L/U/UL literals](st-integer-literals.md)
+now provide full-width constants with matching declared types. REAL operands,
+mixed signed/unsigned promotions and additional literal forms remain blocked,
+including expressions in unreachable branches.
 
 Supported operations are addition, subtraction, multiplication, exact integer
 division/remainder, unary plus/minus, ABS, AND/OR/XOR/NOT and comparisons. Every
@@ -64,7 +65,7 @@ See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 Wide FOR counters/bounds, CASE selectors and array-index expressions remain
 blocked. [Narrow ST/CPT/CMP integer division](integer-expressions.md) has a
 separate DINT-intermediate profile. Power/other wide math functions, mixed
-conversions, wide CPT/CMP/MEQ and file-expression consumers, LREAL/time types
+conversions, additional literal forms, wide CPT/CMP/MEQ and file-expression consumers, LREAL/time types
 and native intermediate/status/fault parity remain unfinished. The controller
 gate is an explicit software profile; native Studio/controller acceptance of
 these new ST forms has not been demonstrated.

@@ -296,7 +296,7 @@ class Structured:
                         if self.type(n.expr,scope)!='bool':raise ModelError('Loop condition requires BOOL')
                         check(n.body,loops+1)
                     elif n.kind=='case':
-                        if any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in self.expression(n.expr).refs):
+                        if self.expression(n.expr).typed_types or any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in self.expression(n.expr).refs):
                             raise ModelError('Wide ST CASE selectors remain unqualified')
                         t,real,_=self.expression(n.expr).analyze(self.memory,scope)
                         if t!='number' or real:raise ModelError('CASE currently requires integer values')

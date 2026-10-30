@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; Integer expression division updated for app `26.1029.231505`. The engine has **94 built-in
+Audited 2026-10-29; ST integer literals updated for app `26.1029.234052`. The engine has **94 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -70,7 +70,7 @@ schema/behavior backlog separately from instruction names.
 
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
-| Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned operations have bounded [RLL](integer-execution.md) and [ST](wide-st.md) profiles. Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
+| Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned operations have bounded [RLL](integer-execution.md) and [ST](wide-st.md) profiles, including [decimal ST L/U/UL literals](st-integer-literals.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
 | SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite REAL-result ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources. Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/status/nonfinite behavior remain unfinished. |
 | FRD/TOD/SWPB | [DINT BCD and INT/DINT byte-order forms](numeric-conversions.md) for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Other BCD types, mixed conversions, BCD expressions/FBD and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |

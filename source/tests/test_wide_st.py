@@ -118,8 +118,8 @@ class WideStructuredTests(unittest.TestCase):
         for source in ('WideDest:=SpeedCommand;','SpeedCommand:=WideA;','WideDest:=TRUE;','WideDest:=WideA+StartPB;'):
             self.assertTrue(self.engine(source).blockers,source)
 
-    def test_wide_real_typed_and_out_of_dint_immediates_remain_unqualified(self):
-        for expr in ('2147483648','9007199254740993','1.0','1L','WideA+2147483648','WideA+1.0'):
+    def test_wide_real_malformed_and_untyped_out_of_dint_immediates_remain_unqualified(self):
+        for expr in ('2147483648','9007199254740993','1.0','1LU','WideA+2147483648','WideA+1.0'):
             self.assertTrue(self.engine('WideDest:='+expr+';').blockers,expr)
         for expr in ('-1','WideA+(-1)'):
             self.assertTrue(self.engine('WideDest:='+expr+';',dtype='ULINT').blockers,expr)
