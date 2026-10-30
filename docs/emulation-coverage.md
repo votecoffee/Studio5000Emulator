@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; runtime task inhibition updated for app `26.1030.001741`. **Full Logix emulation is not
+Audited 2026-10-30; aggregate FIFO/LIFO updated for app `26.1030.070834`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -38,7 +38,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
-| CONTROL | [Logical members, shifts, numeric FIFO/LIFO and RES](control-operations.md); [DINT sequencers](sequencer-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
+| CONTROL | [Logical members, shifts, FIFO/LIFO and RES](control-operations.md); [matching string/UDT records](record-queues.md); [DINT sequencers](sequencer-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), [ASCII case and REAL conversions](string-conversions.md) | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |

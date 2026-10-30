@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.001741`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.070834`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -67,7 +67,8 @@ INT/DINT SWPB byte ordering in ladder, with SWPB also available in ST. Choose
 **Conversion lab** to inspect packed BCD, byte orders and sign extension.
 
 [CONTROL, bit shifts and FIFO](docs/control-operations.md) add BSL/BSR, numeric
-FFL/FFU, numeric LFL/LFU and CONTROL reset with explicit edge and bounds rules.
+FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules;
+[matching string/UDT payloads](docs/record-queues.md) extend the queue forms.
 Choose **Control lab** to inspect shifts and queues. **Sequence lab** demonstrates
 a stack plus [DINT SQO/SQI/SQL](docs/sequencer-operations.md) for masked pattern
 outputs, feedback comparison and teaching a table.
@@ -100,6 +101,10 @@ demonstrates float32 comparisons, overlapping ranges and late-fault rollback.
 [Runtime task inhibition](docs/task-inhibition.md) adds SSV Task InhibitTask in
 ladder and ST, live GSV readback, and rollback with task progress. **System lab**
 provides independent controls for its Fast and Slow tasks.
+
+[String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
+matching records, including custom strings, arrays and exact 64-bit fields.
+Choose **Record lab** to try part tracking, a stack and a text FIFO.
 
 ## Table of Contents
 

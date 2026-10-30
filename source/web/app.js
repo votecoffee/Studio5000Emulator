@@ -200,6 +200,7 @@ $('call-demo').onclick=()=>loadDemo('CallLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');
+$('record-demo').onclick=()=>loadDemo('RecordLab');
 $('sequence-demo').onclick=()=>loadDemo('SequenceLab');
 $('conversion-demo').onclick=()=>loadDemo('ConversionLab');
 $('math-demo').onclick=()=>loadDemo('MathLab');

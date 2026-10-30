@@ -1,0 +1,672 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="RecordLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="RecordLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <Description>Typed part-record FIFO/LIFO and custom-string FIFO; independent edge controls and late-fault rollback.</Description>
+    <DataTypes>
+      <DataType Name="LabelText" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="LEN" DataType="DINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="DATA" DataType="SINT" Dimension="16" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+      <DataType Name="PartRecord" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Id" DataType="DINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Lot" DataType="LINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Accepted" DataType="BOOL" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Name" DataType="LabelText" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Readings" DataType="REAL" Dimension="2" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="IncomingPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PartRecord">
+            <DataValueMember Name="Id" DataType="DINT" Value="101" />
+            <DataValueMember Name="Lot" DataType="LINT" Value="9007199254740993" />
+            <DataValueMember Name="Accepted" DataType="BOOL" Value="1" />
+            <StructureMember DataType="LabelText" Name="Name">
+              <DataValueMember Name="LEN" DataType="DINT" Value="6" />
+              <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                <Element Index="[0]" Value="80" />
+                <Element Index="[1]" Value="65" />
+                <Element Index="[2]" Value="82" />
+                <Element Index="[3]" Value="84" />
+                <Element Index="[4]" Value="45" />
+                <Element Index="[5]" Value="65" />
+                <Element Index="[6]" Value="0" />
+                <Element Index="[7]" Value="0" />
+                <Element Index="[8]" Value="0" />
+                <Element Index="[9]" Value="0" />
+                <Element Index="[10]" Value="0" />
+                <Element Index="[11]" Value="0" />
+                <Element Index="[12]" Value="0" />
+                <Element Index="[13]" Value="0" />
+                <Element Index="[14]" Value="0" />
+                <Element Index="[15]" Value="0" />
+              </ArrayMember>
+            </StructureMember>
+            <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+              <Element Index="[0]" Value="1.25" />
+              <Element Index="[1]" Value="2.5" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OutgoingPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PartRecord">
+            <DataValueMember Name="Id" DataType="DINT" Value="0" />
+            <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+            <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+            <StructureMember DataType="LabelText" Name="Name">
+              <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+              <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                <Element Index="[0]" Value="0" />
+                <Element Index="[1]" Value="0" />
+                <Element Index="[2]" Value="0" />
+                <Element Index="[3]" Value="0" />
+                <Element Index="[4]" Value="0" />
+                <Element Index="[5]" Value="0" />
+                <Element Index="[6]" Value="0" />
+                <Element Index="[7]" Value="0" />
+                <Element Index="[8]" Value="0" />
+                <Element Index="[9]" Value="0" />
+                <Element Index="[10]" Value="0" />
+                <Element Index="[11]" Value="0" />
+                <Element Index="[12]" Value="0" />
+                <Element Index="[13]" Value="0" />
+                <Element Index="[14]" Value="0" />
+                <Element Index="[15]" Value="0" />
+              </ArrayMember>
+            </StructureMember>
+            <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+              <Element Index="[0]" Value="0.0" />
+              <Element Index="[1]" Value="0.0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PoppedPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PartRecord">
+            <DataValueMember Name="Id" DataType="DINT" Value="0" />
+            <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+            <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+            <StructureMember DataType="LabelText" Name="Name">
+              <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+              <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                <Element Index="[0]" Value="0" />
+                <Element Index="[1]" Value="0" />
+                <Element Index="[2]" Value="0" />
+                <Element Index="[3]" Value="0" />
+                <Element Index="[4]" Value="0" />
+                <Element Index="[5]" Value="0" />
+                <Element Index="[6]" Value="0" />
+                <Element Index="[7]" Value="0" />
+                <Element Index="[8]" Value="0" />
+                <Element Index="[9]" Value="0" />
+                <Element Index="[10]" Value="0" />
+                <Element Index="[11]" Value="0" />
+                <Element Index="[12]" Value="0" />
+                <Element Index="[13]" Value="0" />
+                <Element Index="[14]" Value="0" />
+                <Element Index="[15]" Value="0" />
+              </ArrayMember>
+            </StructureMember>
+            <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+              <Element Index="[0]" Value="0.0" />
+              <Element Index="[1]" Value="0.0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PartQueue" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write" Dimensions="4">
+        <Data Format="Decorated">
+          <Array DataType="PartRecord" Dimensions="4">
+            <Element Index="[0]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[2]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[3]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="999" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="71" />
+                    <Element Index="[1]" Value="85" />
+                    <Element Index="[2]" Value="65" />
+                    <Element Index="[3]" Value="82" />
+                    <Element Index="[4]" Value="68" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="PartStack" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write" Dimensions="4">
+        <Data Format="Decorated">
+          <Array DataType="PartRecord" Dimensions="4">
+            <Element Index="[0]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[2]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="0" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="0" />
+                    <Element Index="[1]" Value="0" />
+                    <Element Index="[2]" Value="0" />
+                    <Element Index="[3]" Value="0" />
+                    <Element Index="[4]" Value="0" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[3]">
+              <Structure DataType="PartRecord">
+                <DataValueMember Name="Id" DataType="DINT" Value="888" />
+                <DataValueMember Name="Lot" DataType="LINT" Value="0" />
+                <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
+                <StructureMember DataType="LabelText" Name="Name">
+                  <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+                  <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                    <Element Index="[0]" Value="71" />
+                    <Element Index="[1]" Value="85" />
+                    <Element Index="[2]" Value="65" />
+                    <Element Index="[3]" Value="82" />
+                    <Element Index="[4]" Value="68" />
+                    <Element Index="[5]" Value="0" />
+                    <Element Index="[6]" Value="0" />
+                    <Element Index="[7]" Value="0" />
+                    <Element Index="[8]" Value="0" />
+                    <Element Index="[9]" Value="0" />
+                    <Element Index="[10]" Value="0" />
+                    <Element Index="[11]" Value="0" />
+                    <Element Index="[12]" Value="0" />
+                    <Element Index="[13]" Value="0" />
+                    <Element Index="[14]" Value="0" />
+                    <Element Index="[15]" Value="0" />
+                  </ArrayMember>
+                </StructureMember>
+                <ArrayMember Name="Readings" DataType="REAL" Dimensions="2">
+                  <Element Index="[0]" Value="0.0" />
+                  <Element Index="[1]" Value="0.0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IncomingText" TagType="Base" DataType="LabelText" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabelText">
+            <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+              <Element Index="[0]" Value="65" />
+              <Element Index="[1]" Value="76" />
+              <Element Index="[2]" Value="80" />
+              <Element Index="[3]" Value="72" />
+              <Element Index="[4]" Value="65" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OutgoingText" TagType="Base" DataType="LabelText" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabelText">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TextQueue" TagType="Base" DataType="LabelText" Constant="false" ExternalAccess="Read/Write" Dimensions="4">
+        <Data Format="Decorated">
+          <Array DataType="LabelText" Dimensions="4">
+            <Element Index="[0]">
+              <Structure DataType="LabelText">
+                <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="0" />
+                  <Element Index="[2]" Value="0" />
+                  <Element Index="[3]" Value="0" />
+                  <Element Index="[4]" Value="0" />
+                  <Element Index="[5]" Value="0" />
+                  <Element Index="[6]" Value="0" />
+                  <Element Index="[7]" Value="0" />
+                  <Element Index="[8]" Value="0" />
+                  <Element Index="[9]" Value="0" />
+                  <Element Index="[10]" Value="0" />
+                  <Element Index="[11]" Value="0" />
+                  <Element Index="[12]" Value="0" />
+                  <Element Index="[13]" Value="0" />
+                  <Element Index="[14]" Value="0" />
+                  <Element Index="[15]" Value="0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[1]">
+              <Structure DataType="LabelText">
+                <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="0" />
+                  <Element Index="[2]" Value="0" />
+                  <Element Index="[3]" Value="0" />
+                  <Element Index="[4]" Value="0" />
+                  <Element Index="[5]" Value="0" />
+                  <Element Index="[6]" Value="0" />
+                  <Element Index="[7]" Value="0" />
+                  <Element Index="[8]" Value="0" />
+                  <Element Index="[9]" Value="0" />
+                  <Element Index="[10]" Value="0" />
+                  <Element Index="[11]" Value="0" />
+                  <Element Index="[12]" Value="0" />
+                  <Element Index="[13]" Value="0" />
+                  <Element Index="[14]" Value="0" />
+                  <Element Index="[15]" Value="0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[2]">
+              <Structure DataType="LabelText">
+                <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+                <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                  <Element Index="[0]" Value="0" />
+                  <Element Index="[1]" Value="0" />
+                  <Element Index="[2]" Value="0" />
+                  <Element Index="[3]" Value="0" />
+                  <Element Index="[4]" Value="0" />
+                  <Element Index="[5]" Value="0" />
+                  <Element Index="[6]" Value="0" />
+                  <Element Index="[7]" Value="0" />
+                  <Element Index="[8]" Value="0" />
+                  <Element Index="[9]" Value="0" />
+                  <Element Index="[10]" Value="0" />
+                  <Element Index="[11]" Value="0" />
+                  <Element Index="[12]" Value="0" />
+                  <Element Index="[13]" Value="0" />
+                  <Element Index="[14]" Value="0" />
+                  <Element Index="[15]" Value="0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+            <Element Index="[3]">
+              <Structure DataType="LabelText">
+                <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+                <ArrayMember Name="DATA" DataType="SINT" Dimensions="16">
+                  <Element Index="[0]" Value="75" />
+                  <Element Index="[1]" Value="69" />
+                  <Element Index="[2]" Value="69" />
+                  <Element Index="[3]" Value="80" />
+                  <Element Index="[4]" Value="0" />
+                  <Element Index="[5]" Value="0" />
+                  <Element Index="[6]" Value="0" />
+                  <Element Index="[7]" Value="0" />
+                  <Element Index="[8]" Value="0" />
+                  <Element Index="[9]" Value="0" />
+                  <Element Index="[10]" Value="0" />
+                  <Element Index="[11]" Value="0" />
+                  <Element Index="[12]" Value="0" />
+                  <Element Index="[13]" Value="0" />
+                  <Element Index="[14]" Value="0" />
+                  <Element Index="[15]" Value="0" />
+                </ArrayMember>
+              </Structure>
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="PartControl" TagType="Base" DataType="CONTROL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StackControl" TagType="Base" DataType="CONTROL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TextControl" TagType="Base" DataType="CONTROL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LoadPart" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnloadPart" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PushPart" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PopPart" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LoadText" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnloadText" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(LoadPart)FFL(IncomingPart,PartQueue[0],PartControl,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(UnloadPart)FFU(PartQueue[0],OutgoingPart,PartControl,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(PushPart)LFL(IncomingPart,PartStack[0],StackControl,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(PopPart)LFU(PartStack[0],PoppedPart,StackControl,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(LoadText)FFL(IncomingText,TextQueue[0],TextControl,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(UnloadText)FFU(TextQueue[0],OutgoingText,TextControl,?,?);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

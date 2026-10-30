@@ -44,16 +44,18 @@ DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
 status bits without data movement. POS beyond LEN remains outside the qualified
 profile and stops execution. Exact native invalid-state/edge parity remains open.
 
-This increment supports matching scalar SINT/INT/DINT/REAL sources, destinations
-and arrays, plus representable numeric source immediates. The array region is
-limited to its selected member. FIFO strings/structures, conversions, indirect
-or alias array starts and AOI array bindings remain unfinished. FFU/LFU
+Matching scalar SINT/INT/DINT/REAL sources, destinations and arrays retain
+representable numeric source immediates. [Matching strings and explicit UDT
+records](record-queues.md) add whole logical copies and typed zero clearing for
+the v35 5580 profile. The array region stays within its selected member. Mixed
+conversions, broader predefined/AOI records, indirect or alias array starts and
+AOI array bindings remain unfinished. FFU/LFU
 destinations cannot share their array base tag. Shift SourceBit
 cannot overlap its CONTROL. These restrictions are checked before execution.
 
 ## LIFO pair
 
-LFL/LFU use the same numeric types, bounds and independent EN/EU edge latches
+LFL/LFU use the same qualified numeric/string/UDT types, bounds and EN/EU edges
 as FIFO. LFL loads at POS and increments it. LFU returns the newest value at
 POS-1, zeroes only that slot and decrements POS; lower entries do not shift.
 An empty unload edge writes zero. Held true does not repeat either operation.
@@ -73,8 +75,9 @@ ordinary symbolic CIP access covers individual atomic members. Native CONTROL
 templates, packed byte layouts and whole-record wire transfers remain withheld.
 
 All operations stay within a 4096-element software bound. Array starts use static
-literal indices. Known words are required for shifts and configured FIFO unload
-regions. Unknown data, bounds and conversion failures roll back data, control
+literal indices. Known words are required for shifts and numeric FIFO unload regions. Aggregate
+copies preserve represented unknown fields/backing bytes; reached unknown whole
+sources still fault. Bounds, source and conversion failures roll back data, control
 state, time and task scheduling. Native fault records, partial side effects and
 controller timing are separate work. These are RLL forms; ST/FBD calls remain
 blocked and Safety execution is unsupported.

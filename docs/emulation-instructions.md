@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; runtime task inhibition updated for app `26.1030.001741`. The engine has **95 built-in
+Audited 2026-10-30; aggregate FIFO/LIFO updated for app `26.1030.070834`. The engine has **95 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -77,7 +77,7 @@ schema/behavior backlog separately from instruction names.
 | SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite REAL-result ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources. Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/status/nonfinite behavior remain unfinished. |
 | FRD/TOD/SWPB | [DINT BCD and INT/DINT byte-order forms](numeric-conversions.md) for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Other BCD types, mixed conversions, BCD expressions/FBD and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
-| BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts/numeric FIFO/LIFO](control-operations.md) and logical CONTROL state. Native layout/status parity, string/structure transfers, conversions and indirect/AOI array starts remain unfinished. |
+| BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching string/explicit UDT records](record-queues.md). Native layout/status parity, mixed conversions, operational/AOI records and indirect/AOI array starts remain unfinished. |
 | SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
 | FAL | [Bounded ALL/numeric ladder iteration](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed destinations, sequential writes and the CPT grammar. Saved active INC state, additional types/functions, AOIs and native cursor/overflow/status/partial-fault behavior remain unfinished. |
 | FSC | [Bounded ALL/numeric ladder search](file-search.md) and [idle-source INC](file-incremental.md), comparison expressions and FD/IN. Saved active INC state, AOIs, additional expressions and native cursor/status/fault parity remain unfinished. |

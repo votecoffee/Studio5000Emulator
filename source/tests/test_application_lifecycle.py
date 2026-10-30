@@ -280,6 +280,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_record_lab_fifo_values_guards_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'RecordLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step',{'dt':10});self.post('write',{'tag':'LoadPart','value':True})
+        row=values(self.post('step',{'dt':10}))
+        self.assertEqual((row['PartQueue[0].Id'],row['PartQueue[0].Name'],row['PartQueue[0].Lot']),(101,'PART-A','9007199254740993'))
+        self.post('write',{'tag':'IncomingPart.Id','value':202});self.post('write',{'tag':'IncomingPart.Name','value':'BETA'})
+        row=values(self.post('step',{'dt':10}));self.assertEqual((row['PartControl.POS'],row['PartQueue[0].Id']),(1,101))
+        self.post('write',{'tag':'LoadPart','value':False});self.post('step',{'dt':10});self.post('write',{'tag':'LoadPart','value':True});self.post('step',{'dt':10})
+        self.post('write',{'tag':'UnloadPart','value':True});row=values(self.post('step',{'dt':10}))
+        self.assertEqual((row['OutgoingPart.Id'],row['OutgoingPart.Name'],row['PartQueue[0].Id'],row['PartQueue[2].Lot']),(101,'PART-A',202,'0'))
+        self.assertEqual(row['PartQueue[3].Id'],999)
+        self.post('write',{'tag':'LoadPart','value':False});self.post('write',{'tag':'UnloadPart','value':False});self.post('step',{'dt':10})
+        self.post('write',{'tag':'LoadPart','value':True});before=self.post('write',{'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as context:self.post('step',{'dt':10})
+        self.assertEqual(context.exception.code,400);context.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'FaultDivisor','value':1});row=values(self.post('step',{'dt':10}));self.assertEqual(row['PartControl.POS'],2)
+        self.assertIn('UDT',self.post('report',{})['control_operations']['fifo'])
+
     def test_system_lab_ssv_controls_and_atomic_rollback_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

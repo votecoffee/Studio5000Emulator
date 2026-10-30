@@ -11,7 +11,7 @@ from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit
-from .model import ARITIES, Branch, Memory, ModelError, Op, operations
+from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
 from .calls import Calls
@@ -488,6 +488,7 @@ class Engine:
         finally:self._event_dispatch=None
         changes = []
         def compare(path, old, new):
+            if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)
             if isinstance(new, dict):
                 for k in new: compare(f"{path}.{k}", old[k], new[k])
             elif isinstance(new, list):

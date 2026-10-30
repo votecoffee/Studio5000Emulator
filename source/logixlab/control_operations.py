@@ -1,4 +1,4 @@
-"""Logical CONTROL state with bounded ladder shifts and numeric FIFO/LIFO pairs.
+"""Logical CONTROL state with bounded ladder shifts and typed FIFO/LIFO pairs.
 
 No native CONTROL byte layout, fault record or unimplemented consumer is implied.
 Length/position pseudo-operands use saved LEN/POS, never per-scan initialization.
@@ -6,6 +6,7 @@ Length/position pseudo-operands use saved LEN/POS, never per-scan initialization
 import re
 
 from .model import ModelError, coerce, literal
+from . import fifo_values
 
 FLAGS = ('EN', 'EU', 'DN', 'EM', 'ER', 'UL', 'IN', 'FD')
 INSTRUCTIONS = frozenset(('BSL', 'BSR', 'FFL', 'FFU', 'LFL', 'LFU'))
@@ -54,7 +55,7 @@ def static_array(memory, ref, scope, *, writable=True):
     if tag is not None and tag.alias:
         raise ModelError('Alias starting arrays are not yet qualified for shifts/FIFO')
     key, parts, dtype = (memory.check_writable if writable else memory.resolve)(ref, scope)
-    if dtype not in NUMERIC:raise ModelError('Shift/FIFO operand requires a supported numeric array')
+    if not fifo_values.supported(memory,dtype):raise ModelError('Shift/FIFO operand requires a qualified numeric, string or explicit UDT array')
     value = memory.at(key, parts)
     if not isinstance(value, list) and not any(isinstance(memory.at(key, parts[:i]), list)
                                              for i, part in enumerate(parts) if isinstance(part, int)):
@@ -76,14 +77,15 @@ def scalar(memory, ref, scope, dtype, *, destination=False):
         except ValueError:
             pass
         else:
-            if type(value) not in (int, float) or isinstance(value, float) and dtype != 'REAL':
+            if dtype not in NUMERIC or type(value) not in (int, float) or isinstance(value, float) and dtype != 'REAL':
                 raise ModelError('FIFO immediate must match its numeric element type')
             if type(value) is int:coerce(value, 'DINT')
             coerce(value, dtype)
             return
     key, parts, kind = (memory.check_writable if destination else memory.resolve)(ref, scope)
-    if kind != dtype or isinstance(memory.at(key, parts), (dict, list)):
-        raise ModelError('FIFO currently requires matching scalar SINT/INT/DINT/REAL types')
+    value=memory.at(key,parts)
+    if kind!=dtype or isinstance(value,list) or value is not None and isinstance(value,dict) is not fifo_values.aggregate(dtype):
+        raise ModelError('FIFO requires one element with the exact matching declared numeric, string or UDT type')
 
 
 def validate(memory, op, scope):
@@ -106,9 +108,14 @@ def validate(memory, op, scope):
         if bk == ck and (bp[:len(cp)] == cp or cp[:len(bp)] == bp):
             raise ModelError('Shift source must not overlap its CONTROL record')
     else:
-        if dtype not in NUMERIC:raise ModelError('FIFO currently supports SINT/INT/DINT/REAL arrays')
+        if not fifo_values.supported(memory,dtype):raise ModelError('FIFO element type remains unqualified')
+        if fifo_values.aggregate(dtype) and ck==key:
+            raise ModelError('Aggregate FIFO array and CONTROL cannot share a base tag')
         value = a[0] if n in ('FFL', 'LFL') else a[1]
         scalar(memory, value, scope, dtype, destination=n in ('FFU', 'LFU'))
+        vk,vp,_=memory.resolve(value,scope) if fifo_values.aggregate(dtype) else (None,[],None)
+        if fifo_values.aggregate(dtype) and vk==ck and (vp[:len(cp)]==cp or cp[:len(vp)]==vp):
+            raise ModelError('Aggregate FIFO payload and CONTROL storage cannot overlap')
         if n in ('FFU', 'LFU'):
             dk, dp, _ = memory.resolve(value, scope)
             if dk == key:
@@ -188,21 +195,20 @@ def fifo(memory, op, power, scope):
     array = a[1] if n in ('FFL', 'LFL') else a[0]
     key, paths, dtype = array_region(memory, array, length, scope)
     if n in ('FFL', 'LFL'):
-        source = memory.read(a[0], scope)
-        memory.store(key, paths[position], coerce(source, dtype))
+        source = fifo_values.read(memory,a[0],scope,dtype)
+        memory.store(key, paths[position], source)
         obj['POS'] += 1
     elif position == 0:
-        memory.write(a[1], 0, scope)
+        fifo_values.write(memory,a[1],scope,dtype,fifo_values.zero(memory,dtype))
     elif n == 'LFU':
-        value = memory.read(memory.address(key, paths[position - 1]))
-        memory.store(key, paths[position - 1], coerce(0, dtype))
-        memory.write(a[1], value, scope)
+        value = fifo_values.read(memory,memory.address(key,paths[position-1]),'',dtype)
+        memory.store(key, paths[position - 1], fifo_values.zero(memory,dtype))
+        fifo_values.write(memory,a[1],scope,dtype,value)
         obj['POS'] -= 1
     else:
-        values = [memory.read(memory.address(key, path)) for path in paths]
-        if any(type(value) not in (int, float) for value in values):raise ModelError('FIFO array contains unknown numeric data')
-        for path, value in zip(paths, values[1:] + [0]):memory.store(key, path, coerce(value, dtype))
-        memory.write(a[1], values[0], scope)
+        values = [fifo_values.read(memory,memory.address(key,path),'',dtype) for path in paths]
+        for path,value in zip(paths,values[1:]+[fifo_values.zero(memory,dtype)]):memory.store(key,path,value)
+        fifo_values.write(memory,a[1],scope,dtype,values[0])
         obj['POS'] -= 1
     fifo_status(obj)
     return True
@@ -216,9 +222,10 @@ def execute(memory, op, power, scope):
 def description():
     return dict(instructions=sorted(INSTRUCTIONS), language='RLL', control_fields=['LEN', 'POS', *FLAGS],
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
-                fifo='Matching SINT/INT/DINT/REAL, rising EN/EU, saved LEN/POS, selected-member bounds',
-                fifo_empty='Empty unload writes zero once per qualified rising edge',
+                fifo='Matching SINT/INT/DINT/REAL plus qualified v35 5580 strings/explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
+                fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
+                aggregate_values='Whole logical records including backing bytes; unknown represented fields remain unknown; no native byte-layout claim',
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
-                remaining=['FIFO structures/strings/conversions', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
+                remaining=['FIFO scalar wide/unsigned types, mixed conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
                            'Indirect/alias/AOI starting arrays', 'Native invalid-state and scan parity'])

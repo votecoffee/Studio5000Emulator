@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.070834`: [string and explicit UDT FIFO/LIFO](record-queues.md)
+with whole-record copies, typed clearing, unknown-field preservation and Record Lab.
+
 Available in `26.1030.001741`: [SSV runtime task inhibition](task-inhibition.md)
 with live GSV feedback, release-boundary control, prescan correction and System Lab examples.
 
@@ -41,8 +44,9 @@ data-manipulation, array/shift/sequencer, math and string instructions.
 
 Available CONTROL increment: [BSL/BSR and numeric FIFO/LIFO](control-operations.md)
 with logical CONTROL members, saved LEN/POS and reset.
+[Matching string/UDT payloads](record-queues.md) extend the queue profile.
 [DINT SQO/SQI/SQL](sequencer-operations.md) add cyclic output, comparison and
-teaching. Aggregate transfers, mixed types, remaining file consumers and native
+teaching. Sequencer aggregate transfers, mixed types, remaining file consumers and native
 layout/status parity stay open.
 
 Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operations.md)

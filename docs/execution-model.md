@@ -201,6 +201,15 @@ destinations clear during modeled prescan, including inside conditional code.
 Prescan walks lexical ST sites rather than executing normal loop iterations.
 Native prescan-order and iteration parity have not been established.
 
+## Aggregate queue payloads
+
+[String and explicit UDT FIFO/LIFO](record-queues.md) move exact matching logical
+elements, preserving represented fields and unknown backing data. Unloads clear
+typed zero elements. Copies are detached, bounds/overlap restrictions are checked
+and later faults retain whole-advance rollback. Establishing an unknown record
+now records per-leaf changes without assuming an earlier dictionary shape.
+Native byte layouts, mixed conversions and operational/AOI records stay open.
+
 ## Data and imports
 
 COP/CPS operate on matching declared element types within modeled array/member
