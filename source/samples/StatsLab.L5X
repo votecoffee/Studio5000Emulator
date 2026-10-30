@@ -244,6 +244,80 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="Transform" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BatchTransform" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Gain" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="Bias" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="MappedValues" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="BatchValues" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="TransformControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="BatchTransformControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -252,7 +326,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Reset)RES(MeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl)RES(SearchControl)RES(BatchControl);</Text>
+                <Text>XIC(Reset)RES(MeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl)RES(SearchControl)RES(BatchControl)RES(TransformControl)RES(BatchTransformControl);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(Calculate)AVE(Values[0],0,Average,MeanControl,?,?);</Text>
@@ -280,6 +354,12 @@
               </Rung>
               <Rung Number="9" Type="N">
                 <Text>XIC(BatchSearch)FSC(BatchControl,?,?,2,Values[BatchControl.POS]&gt;=BatchLimit);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>XIC(Transform)FAL(TransformControl,?,?,ALL,MappedValues[TransformControl.POS],Values[TransformControl.POS]*Gain+Bias);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(BatchTransform)FAL(BatchTransformControl,?,?,2,BatchValues[BatchTransformControl.POS],Values[BatchTransformControl.POS]*Gain+Bias);</Text>
               </Rung>
             </RLLContent>
           </Routine>

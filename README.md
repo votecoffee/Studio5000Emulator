@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.201231`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.203308`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 88 built-in RLL instruction entries, a bounded ST
+The current model is partial: 89 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -24,6 +24,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric modes for
+indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.
+**Stats lab** demonstrates full-array and scan-distributed transforms.
 
 [File search](docs/file-search.md) adds FSC ALL/numeric modes, match/inhibit
 state and resumable searches using the existing comparison grammar. **Stats lab**

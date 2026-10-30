@@ -276,6 +276,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['BatchControl.FD'])
         self.assertFalse(self.post('report', {})['file_search']['native_cursor_parity'])
 
+    def test_stats_lab_file_arithmetic_all_and_numeric_false_scan(self):
+        state = self.post('demo', {'sample': 'StatsLab'})
+        self.assertEqual(state['blockers'], [])
+        self.post('write', {'tag': 'Transform', 'value': True})
+        self.post('write', {'tag': 'BatchTransform', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'MappedValues[{i}]'] for i in range(5)], [5, 9, 13, 17, 999])
+        self.assertEqual([values[f'BatchValues[{i}]'] for i in range(5)], [5, 9, 0, 0, 999])
+        self.assertEqual(values['TransformControl.POS'], 3)
+        self.assertTrue(values['TransformControl.DN'])
+        self.assertFalse(values['BatchTransformControl.DN'])
+        self.post('write', {'tag': 'BatchTransform', 'value': False})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'BatchValues[{i}]'] for i in range(5)], [5, 9, 13, 17, 999])
+        self.assertTrue(values['BatchTransformControl.DN'])
+        self.assertFalse(values['BatchTransformControl.EN'])
+        self.assertFalse(self.post('report', {})['file_arithmetic']['native_cursor_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})

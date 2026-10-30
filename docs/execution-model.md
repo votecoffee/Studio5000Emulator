@@ -42,6 +42,12 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[File arithmetic](file-arithmetic.md) adds ladder FAL ALL and numeric modes
+using the existing CPT expressions. Destination subscripts resolve at each
+CONTROL.POS; later iterations read earlier writes. Numeric work continues on
+false rungs. Each iteration consumes the instruction budget; errors retain
+whole-advance rollback rather than native partial-write/overflow semantics.
+
 [File search](file-search.md) adds ladder FSC ALL and numeric modes. Matches
 set FD/IN and hold the current index until IN is cleared; numeric work can
 continue while rung input is false. Each comparison consumes the instruction
