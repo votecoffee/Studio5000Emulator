@@ -1,9 +1,10 @@
 # Structured Text signal conditioning
 
 App `26.1030.100100` adds HLL, SNEG and SSUM for the bounded v35 ControlLogix
-5580 profile. These are three ST-only calls using logical HL_LIMIT,
-SELECTABLE_NEGATE and SELECTED_SUMMER records. The RLL dispatch count stays 99.
-FBD graph execution remains unfinished.
+5580 profile, using logical HL_LIMIT, SELECTABLE_NEGATE and SELECTED_SUMMER
+records. These models now also execute in the limited [FBD graph](function-blocks.md)
+with connected-enable gating and BOOL status-alias outputs. General FBD and
+native precision/lifecycle/status/fault parity remain unfinished.
 
 ```text
 Limiter.In := RawValue;

@@ -1,8 +1,9 @@
 # Structured Text analog scaling
 
 App `26.1030.094109` adds SCL over logical SCALE records in the bounded v35
-ControlLogix 5580 profile. This is an ST-only call; the RLL dispatch count stays
-99. FBD graph execution remains unfinished.
+ControlLogix 5580 profile. The same numerical/status model now also executes in
+the limited [FBD graph](function-blocks.md), with connected-enable gating. Native
+FBD first-scan/postscan, precision and complete lifecycle parity remain unqualified.
 
 ```text
 Channel.In := RawInput;

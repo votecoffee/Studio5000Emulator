@@ -2,16 +2,16 @@
 
 An experimental offline Logix v35 emulator with a browser UI and local EtherNet/IP endpoint.
 
-Execute supported ladder, Structured Text and FBD selector logic, inspect scan
+Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.162944`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.164452`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
 The current model is partial: 101 built-in RLL instruction entries, a bounded ST
-subset, supported AOIs/UDTs, explicit custom strings and a limited FBD selector
+subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -184,6 +184,10 @@ images, clipped lengths and preserved partial destination elements. Choose
 [FBD selector graphs](docs/function-blocks.md) add SEL/MUX, typed wires and
 manual/automatic selection. Choose **FBD selector lab** to switch signal sources
 and inspect the executing graph.
+
+[FBD signal conditioning](docs/function-blocks.md) adds SCL, HLL, SNEG and SSUM
+with connected enables and BOOL diagnostic outputs. Choose **FBD signal lab**
+for a scale/limit/negate/sum chain.
 
 ## Table of Contents
 

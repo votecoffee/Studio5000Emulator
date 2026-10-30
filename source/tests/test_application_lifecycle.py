@@ -1020,8 +1020,32 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'ManualValue','value':33});self.post('write',{'tag':'FaultDivisor','value':1})
         state=self.post('step',{'dt':10});self.assertEqual(values(state)['MultiplexedOutput'],33)
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),2)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['MUX','SEL'])
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['HLL','MUX','SCL','SEL','SNEG','SSUM'])
         self.assertFalse(profile['native_runtime_parity'])
+
+    def test_fbd_signal_lab_diagnostic_wires_enables_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'FBDSignalLab'});self.assertEqual(state['blockers'],[])
+        graph=next(row for row in state['routines'] if row['kind']=='FBD')['diagram']
+        self.assertEqual((len(graph['nodes']),len(graph['wires'])),(33,35))
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Scaled'],v['Limited'],v['Negated'],v['Summed']),(50,50,50,53))
+        self.post('write',{'tag':'RawMax','value':0});self.post('write',{'tag':'LimitMode','value':9})
+        v=values(self.post('step',{'dt':10}));self.assertTrue(v['ScaleFault']);self.assertTrue(v['RangeInvalid']);self.assertTrue(v['ModeInvalid'])
+        self.post('write',{'tag':'BlockEnable','value':False});self.post('write',{'tag':'RawMax','value':10})
+        v=values(self.post('step',{'dt':10}));self.assertTrue(v['RangeInvalid']);self.assertFalse(v['Scaler.EnableOut'])
+        self.post('write',{'tag':'BlockEnable','value':True});self.post('write',{'tag':'LimitMode','value':0})
+        self.post('write',{'tag':'Negate','value':True});v=values(self.post('step',{'dt':10}));self.assertEqual(v['Summed'],-47)
+        self.assertFalse(v['ScaleFault']);self.assertFalse(v['ModeInvalid'])
+        self.post('write',{'tag':'RawInput','value':8});before=self.post('write',{'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write',{'tag':'RawInput','value':2});self.post('write',{'tag':'FaultDivisor','value':1})
+        state=self.post('step',{'dt':10});self.assertEqual(values(state)['Summed'],-17)
+        self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),4)
+        profile=self.post('report',{})['function_blocks'];self.assertFalse(profile['native_runtime_parity'])
+        self.assertEqual(profile['blocks']['status_aliases']['SCALE']['InRawRangeInv'],'Status.1')
 
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})

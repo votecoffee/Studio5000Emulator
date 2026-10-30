@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.162944",
+  "audited_app_version": "26.1030.164452",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -65,22 +65,22 @@
     },
     "scale_model": {
       "label": "SCALE model (partial)",
-      "remaining": "Bounded finite-REAL ST SCL; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded finite-REAL ST/FBD SCL; general FBD, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_scale.py"
     },
     "hl_limit_model": {
       "label": "HL_LIMIT model (partial)",
-      "remaining": "Bounded ST HLL limits, alarms and status; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD HLL limits, alarms and status; general FBD, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_signal.py"
     },
     "selectable_negate_model": {
       "label": "SELECTABLE_NEGATE model (partial)",
-      "remaining": "Bounded ST SNEG selectable finite-REAL negation; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD SNEG selectable finite-REAL negation; general FBD, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_signal.py"
     },
     "selected_summer_model": {
       "label": "SELECTED_SUMMER model (partial)",
-      "remaining": "Bounded ST SSUM selected weighted inputs and bias; FBD graphs, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD SSUM selected weighted inputs and bias; general FBD, native precision/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_signal.py"
     },
     "rate_limiter_model": {

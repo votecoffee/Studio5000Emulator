@@ -1,0 +1,356 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDSignalLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDSignalLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="RawInput" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="RawMax" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="RawMin" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="EUMax" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="100" />
+        </Data>
+      </Tag>
+      <Tag Name="EUMin" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Limiting" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighLimit" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="80" />
+        </Data>
+      </Tag>
+      <Tag Name="LowLimit" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitMode" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Negate" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IncludePrimary" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="IncludeTrim" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Trim" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="Gain" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Bias" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Scaled" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Limited" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Negated" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Summed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighAlarm" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LowAlarm" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ScaleStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ScaleFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RangeInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitsInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ModeInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Scaler" TagType="Base" DataType="SCALE">
+        <Data Format="Decorated">
+          <Structure DataType="SCALE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InRawMax" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InRawMin" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InEUMax" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InEUMin" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Limiting" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MaxAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="MinAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Limiter" TagType="Base" DataType="HL_LIMIT">
+        <Data Format="Decorated">
+          <Structure DataType="HL_LIMIT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighLimit" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="LowLimit" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectLimit" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LowAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Sign" TagType="Base" DataType="SELECTABLE_NEGATE">
+        <Data Format="Decorated">
+          <Structure DataType="SELECTABLE_NEGATE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="NegateEnable" DataType="BOOL" Value="1" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Summer" TagType="Base" DataType="SELECTED_SUMMER">
+        <Data Format="Decorated">
+          <Structure DataType="SELECTED_SUMMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain1" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select1" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain2" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select2" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In3" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain3" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select3" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In4" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain4" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select4" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In5" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain5" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select5" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In6" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain6" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select6" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In7" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain7" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select7" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In8" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain8" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Select8" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Bias" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(ConditionSignals,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ConditionSignals" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Scale, limit, select sign and sum signals with typed status-bit outputs.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="RawInput" />
+                <IRef ID="2" X="20" Y="105" Operand="RawMax" />
+                <IRef ID="3" X="20" Y="210" Operand="RawMin" />
+                <IRef ID="4" X="20" Y="315" Operand="EUMax" />
+                <IRef ID="5" X="20" Y="420" Operand="EUMin" />
+                <IRef ID="6" X="20" Y="525" Operand="Limiting" />
+                <IRef ID="7" X="20" Y="630" Operand="HighLimit" />
+                <IRef ID="8" X="20" Y="735" Operand="LowLimit" />
+                <IRef ID="9" X="20" Y="840" Operand="LimitMode" />
+                <IRef ID="10" X="20" Y="945" Operand="Negate" />
+                <IRef ID="11" X="20" Y="1050" Operand="IncludePrimary" />
+                <IRef ID="12" X="20" Y="1155" Operand="IncludeTrim" />
+                <IRef ID="13" X="20" Y="1260" Operand="Trim" />
+                <IRef ID="14" X="20" Y="1365" Operand="Gain" />
+                <IRef ID="15" X="20" Y="1470" Operand="Bias" />
+                <IRef ID="16" X="20" Y="1575" Operand="BlockEnable" />
+                <Block ID="100" X="320" Y="100" Type="SCL" Operand="Scaler" VisiblePins="EnableIn In InRawMax InRawMin InEUMax InEUMin Limiting EnableOut Out MaxAlarm MinAlarm Status" />
+                <Block ID="200" X="640" Y="350" Type="HLL" Operand="Limiter" VisiblePins="EnableIn In HighLimit LowLimit SelectLimit EnableOut Out HighAlarm LowAlarm Status" />
+                <Block ID="300" X="960" Y="600" Type="SNEG" Operand="Sign" VisiblePins="EnableIn In NegateEnable EnableOut Out" />
+                <Block ID="400" X="1280" Y="850" Type="SSUM" Operand="Summer" VisiblePins="EnableIn In1 Gain1 Select1 In2 Gain2 Select2 In3 Gain3 Select3 In4 Gain4 Select4 In5 Gain5 Select5 In6 Gain6 Select6 In7 Gain7 Select7 In8 Gain8 Select8 Bias EnableOut Out" />
+                <ORef ID="500" X="1600" Y="0" Operand="Scaled" />
+                <ORef ID="501" X="1600" Y="105" Operand="Limited" />
+                <ORef ID="502" X="1600" Y="210" Operand="Negated" />
+                <ORef ID="503" X="1600" Y="315" Operand="Summed" />
+                <ORef ID="504" X="1600" Y="420" Operand="HighAlarm" />
+                <ORef ID="505" X="1600" Y="525" Operand="LowAlarm" />
+                <ORef ID="506" X="1600" Y="630" Operand="ScaleStatus" />
+                <ORef ID="507" X="1600" Y="735" Operand="LimitStatus" />
+                <ORef ID="508" X="1600" Y="840" Operand="ScaleFault" />
+                <ORef ID="509" X="1600" Y="945" Operand="RangeInvalid" />
+                <ORef ID="510" X="1600" Y="1050" Operand="LimitFault" />
+                <ORef ID="511" X="1600" Y="1155" Operand="LimitsInvalid" />
+                <ORef ID="512" X="1600" Y="1260" Operand="ModeInvalid" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="In" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="InRawMax" />
+                <Wire FromID="3" FromParam="In" ToID="100" ToParam="InRawMin" />
+                <Wire FromID="4" FromParam="In" ToID="100" ToParam="InEUMax" />
+                <Wire FromID="5" FromParam="In" ToID="100" ToParam="InEUMin" />
+                <Wire FromID="6" FromParam="In" ToID="100" ToParam="Limiting" />
+                <Wire FromID="16" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="200" ToParam="In" />
+                <Wire FromID="7" FromParam="In" ToID="200" ToParam="HighLimit" />
+                <Wire FromID="8" FromParam="In" ToID="200" ToParam="LowLimit" />
+                <Wire FromID="9" FromParam="In" ToID="200" ToParam="SelectLimit" />
+                <Wire FromID="16" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="200" FromParam="Out" ToID="300" ToParam="In" />
+                <Wire FromID="10" FromParam="In" ToID="300" ToParam="NegateEnable" />
+                <Wire FromID="16" FromParam="In" ToID="300" ToParam="EnableIn" />
+                <Wire FromID="300" FromParam="Out" ToID="400" ToParam="In1" />
+                <Wire FromID="11" FromParam="In" ToID="400" ToParam="Select1" />
+                <Wire FromID="13" FromParam="In" ToID="400" ToParam="In2" />
+                <Wire FromID="14" FromParam="In" ToID="400" ToParam="Gain2" />
+                <Wire FromID="12" FromParam="In" ToID="400" ToParam="Select2" />
+                <Wire FromID="15" FromParam="In" ToID="400" ToParam="Bias" />
+                <Wire FromID="16" FromParam="In" ToID="400" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="500" ToParam="Out" />
+                <Wire FromID="200" FromParam="Out" ToID="501" ToParam="Out" />
+                <Wire FromID="300" FromParam="Out" ToID="502" ToParam="Out" />
+                <Wire FromID="400" FromParam="Out" ToID="503" ToParam="Out" />
+                <Wire FromID="200" FromParam="HighAlarm" ToID="504" ToParam="Out" />
+                <Wire FromID="200" FromParam="LowAlarm" ToID="505" ToParam="Out" />
+                <Wire FromID="100" FromParam="Status" ToID="506" ToParam="Out" />
+                <Wire FromID="200" FromParam="Status" ToID="507" ToParam="Out" />
+                <Wire FromID="100" FromParam="InstructFault" ToID="508" ToParam="Out" />
+                <Wire FromID="100" FromParam="InRawRangeInv" ToID="509" ToParam="Out" />
+                <Wire FromID="200" FromParam="InstructFault" ToID="510" ToParam="Out" />
+                <Wire FromID="200" FromParam="LimitsInv" ToID="511" ToParam="Out" />
+                <Wire FromID="200" FromParam="SelectLimitInv" ToID="512" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

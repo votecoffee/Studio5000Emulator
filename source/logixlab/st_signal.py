@@ -82,5 +82,5 @@ def description():
                 prescan='Clear EnableIn/EnableOut only; no hidden execution history',
                 failures='Unknown required inputs and nonfinite/overflow results stop and roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['FBD graph execution','Native precision/intermediate overflow/nonfinite/status/fault/lifecycle/layout parity',
+                remaining=['General FBD outside the qualified single-sheet typed graph','Native precision/intermediate overflow/nonfinite/status/fault/lifecycle/layout parity',
                            'Other controller profiles','SEL/MUX language qualification and remaining select/limit instructions'])

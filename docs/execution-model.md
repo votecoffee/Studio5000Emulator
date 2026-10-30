@@ -335,10 +335,11 @@ uses a separately configured converter against a private copy. Source bytes are
 preserved and private provenance records identify the import. Native files,
 converter logs and project-specific reports are local inputs, not public fixtures.
 
-## Function block selectors
+## Function block signals
 
 [Single-sheet FBD selector graphs](function-blocks.md) sample IRefs once, execute
-SEL/MUX by wire dependency with numeric-ID ties, and publish ORefs after all
+SEL/MUX/SCL/HLL/SNEG/SSUM by wire dependency with numeric-ID ties, and publish
+ORefs after all
 blocks. Distinct backing records and explicit typed wires prevent ambiguous
 implicit dependencies. Enable/status/retained output and whole-advance rollback
 are modeled; native scheduling/lifecycle/status/fault parity remains unqualified.

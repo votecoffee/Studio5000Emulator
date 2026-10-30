@@ -1,14 +1,17 @@
-# Function block selector execution
+# Function block signal execution
 
 The v35 ControlLogix 5580 software profile executes a limited FBD graph containing
-`SEL` and `MUX`. Choose **FBD selector lab** to try manual/automatic selection
-feeding an eight-channel selector. This is the first graph execution profile;
-other FBD instructions and complete native graph semantics remain unfinished.
+`SEL`, `MUX`, `SCL`, `HLL`, `SNEG` and `SSUM`. Choose **FBD selector lab** for
+manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
+Other FBD instructions and complete native graph semantics remain unfinished.
 
 ## Supported graph
 
 One unprotected `FBDContent` containing one `Sheet` supports `IRef`, `ORef`,
 `Block` and `Wire`. SEL uses a logical `SELECT` record; MUX uses `MULTIPLEXER`.
+SCL uses `SCALE`; HLL/SNEG/SSUM reuse `HL_LIMIT`, `SELECTABLE_NEGATE` and
+`SELECTED_SUMMER`. Their numerical/status calculations are shared with the
+[existing ST models](st-signals.md), including [scaling](st-scaling.md).
 Drawing IDs must be unique unsigned integers. Coordinates are bounded to 10000;
 admission is limited to 512 nodes and 4096 wires. Descriptions do not affect execution.
 
@@ -25,13 +28,22 @@ policy has not been compared with native execution order. Backing records must
 be distinct. Output references cannot overlap one another, inputs or backing
 records; implicit dependencies through backing-tag reads are rejected.
 
-## Selector behavior
+## Block behavior
 
 | Block | Behavior |
 | --- | --- |
 | SEL | SelectorIn false selects In1; true selects In2. |
 | MUX | Selector 1 through 8 selects the corresponding REAL input. Invalid selectors set Status to 3 and retain the previous enabled output. |
+| SCL | Scale raw values into engineering units, optionally clamp raw excursions, and report strict raw-limit alarms/invalid ranges. |
+| HLL | Both/high/low limiting with inclusive active alarms and selector/range diagnostics. |
+| SNEG | Select the input or its negation. |
+| SSUM | Sum selected input/gain pairs in index order, then add Bias. |
 | Connected EnableIn false | Clear enables and retain outputs, status and hidden output history. |
+
+Status aliases are BOOL source pins: MUX InstructFault/SelectorInv; SCL
+InstructFault/InRawRangeInv; HLL InstructFault/LimitsInv/SelectLimitInv. They can
+drive BOOL ORefs or downstream BOOL inputs. They cannot be driven as inputs.
+Unknown Status bits remain unknown and cannot be published as FALSE.
 
 An enabled invalid MUX selector uses zero before its first enabled execution.
 Subsequent invalid selectors use retained internal output, independently of
@@ -63,6 +75,23 @@ The webpage displays the graph and highlights enabled blocks from the last scan.
 This sample validates the software importer/runtime and HTTP app. Native Studio
 import/Verify, controller execution, upload/download and FBD online edits have
 not been tested by this increment.
+
+## Signal lab
+
+`FBDSignalLab.L5X` contains 37 root tags, four blocks, 33 drawing nodes and 35
+wires. RawInput 5 in the raw range 0–10 maps to Scaled 50 in the engineering
+range 0–100. Limits 20/80 leave it unchanged; Negate false passes 50; selected
+Trim 2 with Gain 1 and Bias 1 produces Summed 53. Change Negate, selection bits,
+limits, ranges, gains and bias to exercise the chain. RawMax 0 holds the prior
+scaled output and asserts BOOL diagnostics; invalid LimitMode asserts ModeInvalid.
+BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
+zero demonstrates whole-advance rollback. Restore it to 1 to retry.
+
+These four adapters add FBD forms to existing models; the 222-type inventory
+stays at 40 bounded models. There are six FBD blocks, with four names shared
+with the existing twenty-seven ST-only-call dispatch entries. RLL remains 101.
+Native startup/output-write/disabled/postscan behavior, intermediate precision
+and full controller fault/status parity remain unqualified.
 
 ## Remaining work and references
 

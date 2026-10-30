@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.164452`: [FBD signal conditioning](function-blocks.md),
+SCL/HLL/SNEG/SSUM, typed BOOL diagnostic wires and FBD Signal Lab. Existing ST
+numerical models are shared; native FBD lifecycle/precision parity remains unqualified.
+
 Available in `26.1030.162944`: [FBD selector graphs](function-blocks.md),
 SEL/MUX logical records, typed acyclic wires and FBD Selector Lab. General FBD
 execution and native ordering/lifecycle/status/fault parity remain unfinished.
