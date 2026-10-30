@@ -6,7 +6,7 @@ from .model import ModelError,Op,literal,coerce,operand_problem
 from .st_expression import STExpression
 from . import system_values, array_sort
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','JSR','SBR','RET','GSV','SWPB','SRT'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SWPB','SRT'}
 
 
 @dataclass
@@ -228,6 +228,7 @@ class Structured:
             if item.kind in ('assign','for'):writes.append(item.target)
             elif item.kind=='call':
                 op=item.op
+                if op.name=='EVENT':raise ModelError('EVENT inside FOR remains unqualified because task logic may change the loop counter/bounds')
                 if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
                 if op.name=='GSV':
                     key,parts,_=system_values.validate(self.engine,op,scope)

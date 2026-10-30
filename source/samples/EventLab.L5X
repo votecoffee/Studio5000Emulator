@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="EventLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="EventLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="TriggerRLL" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TriggerST" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelfTrigger" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ProducerCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BackgroundCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="EventCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ProducerFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BackgroundFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="EventFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RllSeen" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StSeen" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="EventTimer" DataType="TIMER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="100" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="ProducerProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(ProducerCount,1,ProducerCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(ProducerFirst,1,ProducerFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(TriggerRLL)EVENT(WorkEvent);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>MOV(EventCount,RllSeen);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="ST">
+            <STContent>
+              <Line Number="0">BackgroundCount:=BackgroundCount+1;</Line>
+              <Line Number="1">IF S:FS THEN BackgroundFirst:=BackgroundFirst+1; END_IF;</Line>
+              <Line Number="2">IF TriggerST THEN EVENT(WorkEvent); END_IF;</Line>
+              <Line Number="3">StSeen:=EventCount;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+      <Program Name="EventProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(EventCount,1,EventCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(EventFirst,1,EventFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>TON(EventTimer,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(SelfTrigger)EVENT(WorkEvent);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="ProducerTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="10">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="ProducerProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="BackgroundTask" Type="CONTINUOUS" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="BackgroundProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="WorkEvent" Type="EVENT" Class="Standard" Priority="1" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="true">
+        <EventInfo EventTrigger="EVENT Instruction Only" EnableTimeout="false" />
+        <ScheduledPrograms>
+          <ScheduledProgram Name="EventProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

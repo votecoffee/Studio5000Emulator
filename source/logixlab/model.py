@@ -56,7 +56,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "JMP": 1, "LBL": 1, "TND": 0,
            "CONCAT": 3, "MID": 4, "DTOS": 2, "STOD": 2, "TRN": 2,
            'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4,'BSL':4,'BSR':4,'FFL':5,'FFU':5,'LFL':5,'LFU':5,'SQO':6,'SQI':6,'SQL':5,'FRD':2,'TOD':2,'SWPB':3,
-           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2}
+           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1}
 
 
 def operand_problem(op):
@@ -408,12 +408,14 @@ class Project:
             for r in p.findall("./Routines/Routine"):
                 routine = self._routine(r,name)
                 self.routines[routine.key.lower()] = routine
+        from .event_tasks import specification as event_specification
         for t in c.findall("./Tasks/Task"):
             self.tasks.append({"name": t.get("Name"), "type": t.get("Type", "").title(),
                                "rate": t.get("Rate", "10"), "priority": t.get("Priority", "10"),
                                "inhibited": t.get("InhibitTask", "false").lower() == "true",
                                "class": t.get("Class", "Standard"),
                                "programs": [p.get("Name") for p in t.findall("./ScheduledPrograms/ScheduledProgram")]})
+            if self.tasks[-1]["type"]=="Event":self.tasks[-1]["event"]=event_specification(t)
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
 
     def _routine(self,r,scope,count=True):

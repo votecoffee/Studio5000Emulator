@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -63,6 +63,7 @@ class Engine:
         self._task_scheduler = None
         self._program_scanned = set()
         self._executing_task = None
+        self._event_dispatch = None
         self._plan()
         if not self.blockers:
             try:self._apply_prescan(preview=defer_prescan,report_fault=False)
@@ -100,8 +101,8 @@ class Engine:
         return self.project.component_tracking.attributes(self.project.sha256,idle=idle)
 
     def task_status_attributes(self,task,*,source_sha256):
-        # This runner executes one complete Task serially. It has no EVENT or
-        # timeout trigger and never dispatches a second overlapping execution.
+        # This native-status profile is limited to one non-Event Task. It has
+        # no timeout trigger or second overlapping execution.
         # Do not classify a simulator failure as a native Task fault/status.
         if (not self._task_runtime_available(task,source_sha256) or self.fault
                 or self._native_fault_history_uncertain):return {}
@@ -240,9 +241,12 @@ class Engine:
         elif self.mode == "project":
             self.blockers.extend(self.project.issues)
             task_entries={}
+            if any(t["type"]=="Event" for t in self.project.tasks):
+                try:event_tasks.profile(self.project)
+                except ModelError as error:self.blockers.append(str(error))
             for task in self.project.tasks:
                 local_entries=[];task_entries[str(task['name']).casefold()]=local_entries
-                if task["type"] not in ("Continuous", "Periodic") or task["class"] != "Standard":
+                if task["type"] not in ("Continuous", "Periodic", "Event") or task["class"] != "Standard":
                     self.blockers.append(f"Task {task['name']}: {task['class']} {task['type']} task is unsupported")
                 for name in task["programs"]:
                     program = self.project.programs.get(name)
@@ -336,6 +340,7 @@ class Engine:
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
+        if n=='EVENT':event_tasks.target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
         if n in sequencer_operations.INSTRUCTIONS:sequencer_operations.validate(self.memory,op,scope);return
@@ -434,21 +439,26 @@ class Engine:
             task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
             task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
             scanned=set(self._program_scanned)
-            for due,task,entries in runs:
+            def run_task(due,task,entries):
+                previous_task,previous_first=self._executing_task,self.memory.first_scan
                 self.time_ms=due;self._executing_task=task
-                for entry in entries:
-                    name=self.project.routines[entry].program.casefold()
-                    if self.mode=='project':self.memory.first_scan=name not in scanned
-                    if name in timings:
-                        start=perf_counter_ns()
-                        self._routine(entry, 0)
-                        timings[name]=timings[name].record(perf_counter_ns()-start)
-                    else:self._routine(entry, 0)
-                    scanned.add(name)
+                try:
+                    for entry in entries:
+                        name=self.project.routines[entry].program.casefold()
+                        if self.mode=='project':self.memory.first_scan=name not in scanned
+                        if name in timings:
+                            start=perf_counter_ns()
+                            self._routine(entry, 0)
+                            timings[name]=timings[name].record(perf_counter_ns()-start)
+                        else:self._routine(entry, 0)
+                        scanned.add(name)
+                finally:self._executing_task,self.memory.first_scan=previous_task,previous_first
+            self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
+            for due,task,entries in runs:run_task(due,task,entries)
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch)
+            if batch:self._task_scheduler.commit(batch,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -461,6 +471,7 @@ class Engine:
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
+        finally:self._event_dispatch=None
         changes = []
         def compare(path, old, new):
             if isinstance(new, dict):
@@ -517,6 +528,7 @@ class Engine:
     def _op(self, op, p, scope, depth):
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
+        if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n=='GSV':
             if p:system_values.execute(self,op,scope)
             return p
@@ -674,6 +686,7 @@ class Engine:
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
+                'event_execution':event_tasks.description(),
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
                 'numeric_conversions':numeric_conversions.description(),
@@ -690,7 +703,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "Standard Continuous/Periodic tasks use deterministic serial releases; no CPU preemption, event/Safety execution or watchdog enforcement",
+                           "Standard task releases are deterministic; qualified higher-priority EVENT calls dispatch synchronously, without general CPU timing, other event sources, Safety or watchdog enforcement",
                            "v35 5580 RLL integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide ST/CPT/CMP and math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",

@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available event increment: [higher-priority EVENT execution](event-tasks.md)
+with instruction-only source, RLL/ST context, overlap suppression and rollback.
+Deferred priorities, external triggers/timeouts and native CPU/status remain open.
+
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and
 controller settings. Runtime status/fault/timing and SSV remain open.
@@ -81,7 +85,8 @@ parity and distinct language variants remain open.
 
 Available scheduler increment: [mixed Continuous/Periodic execution](task-scheduling.md)
 with deterministic serial releases, per-Program first scans and transactional
-rollback. CPU preemption, event tasks and watchdog enforcement remain open.
+rollback. [Instruction-only EVENT tasks](event-tasks.md) add a separate bounded
+profile. General CPU preemption, other event sources and watchdog enforcement remain open.
 
 Available numeric increment: [homogeneous wide-integer RLL execution](integer-execution.md)
 for v35 ControlLogix 5580, with exact division and explicit type/profile limits.

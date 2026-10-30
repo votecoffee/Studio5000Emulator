@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.205951`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.212144`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 93 built-in RLL instruction entries, a bounded ST
+The current model is partial: 94 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -24,6 +24,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[Event tasks](docs/event-tasks.md) add EVENT calls in ladder/ST for qualified
+higher-priority, instruction-only tasks. **Event lab** demonstrates immediate
+logical dispatch, first scans and discarded active self-requests.
 
 [System-value reads](docs/gsv-configuration.md) add explicit Task/Controller
 configuration through GSV in ladder and ST. **System lab** shows task rates and
@@ -74,7 +78,8 @@ Choose **Bit lab** to try packing and extracting data.
 [Continuous/periodic scheduling](docs/task-scheduling.md) now runs mixed
 Standard tasks at deterministic simulated release times. Choose **Task lab**
 in the header to try the 10/25 ms example and inspect per-task counts in
-Coverage. CPU preemption, event tasks and Safety execution remain unfinished.
+Coverage. [Higher-priority EVENT tasks](docs/event-tasks.md) have a separate
+bounded profile. General CPU preemption, other event sources and Safety remain unfinished.
 
 [Wide integer ladder execution](docs/integer-execution.md) now supports
 homogeneous LINT and unsigned arithmetic, comparisons and bitwise operations
@@ -254,7 +259,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Area | Available behavior |
 | --- | --- |
 | Projects | v35 L5X import; optional native ACD-to-L5X conversion on a copy |
-| Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic serial Continuous/Periodic task scheduling |
+| Execution | Supported RLL/ST forms, routine calls, AOIs and deterministic Continuous/Periodic releases and qualified higher-priority EVENT dispatch |
 | Inspection | Coverage checks, tag watch, traces, snapshots and routine harnesses |
 | EtherNet/IP | Unicast and Linux broadcast discovery, sessions, Class 3 messaging and atomic tag services |
 | Connected reply sizes | Standard/Large Forward Open replies use their negotiated size up to 4,000 bytes, including sequence and signed-message overhead |

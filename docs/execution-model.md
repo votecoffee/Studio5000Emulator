@@ -6,7 +6,8 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
-Whole-project execution supports one to 32 Standard Continuous/Periodic tasks,
+Whole-project execution supports one to 32 Standard Continuous/Periodic and
+qualified [instruction-only Event tasks](event-tasks.md),
 with at most one Continuous task. Periodic releases follow integral-millisecond
 rates and priority ordering at coincident times; each task executes serially.
 Continuous logic runs once per simulation step after due Periodic work. An
@@ -103,6 +104,12 @@ CONTROL layouts and whole-record wire transfers remain unsupported.
 SQO and SQL advance on an edge and apply the current row while held true.
 SQI compares without advancing; cyclic rows 1..LEN follow startup row zero.
 Selected-member bounds, mask widths, unknown values and rollback remain explicit.
+
+[EVENT execution](event-tasks.md) can synchronously run a higher-priority task
+before the caller's next instruction. Task/time/first-scan context is restored
+on return. Accepted event releases and active self-request diagnostics share
+the advance's limits and commit with the complete scheduler transaction.
+General CPU timing, deferred priorities and external event sources remain open.
 
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve

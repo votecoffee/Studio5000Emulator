@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; GSV configuration updated for app `26.1029.205951`. **Full Logix emulation is not
+Audited 2026-10-29; EVENT execution updated for app `26.1029.212144`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,7 +19,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 93 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 94 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Event tasks | [Higher-priority EVENT instruction dispatch](event-tasks.md), RLL/ST, first scans, active self-request suppression and transaction-wide limits/rollback | Lower/equal-priority queued dispatch, external triggers/timeouts, AOI/harness/FOR forms and native CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations and existing Controller audit values | Runtime timing/status/fault attributes, broader classes/forms, native execution parity and SSV |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md), indexed transforms, scalar accumulation and sequential expression writes | INC, AOI execution, broader expression types/functions and native cursor/overflow/status/partial-fault parity |
@@ -42,7 +43,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), [ASCII case and REAL conversions](string-conversions.md) | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
 | AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
-| Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | CPU preemption/time slicing, event triggers, watchdogs, full fault handlers, restart/retention |
+| Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | General CPU preemption/time slicing, other event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
 | I/O modules | Limited local-controller metadata; ordinary tags can be driven externally | Module backplane/adapters, cyclic I/O, channel behavior, diagnostics, forces and failures |
 | POINT I/O | No POINT I/O device model | Adapter, rack/slot/channel configuration, digital/analog/specialty modules and connection lifecycle |
@@ -61,7 +62,7 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 
 - [ ] **E01 — Multiple tasks:** [Continuous/Periodic serial scheduling](task-scheduling.md)
   now honors modeled releases, coincident priorities, inhibition and Program order.
-  Add Event tasks, eligible triggers/queues, CPU preemption/time slicing and
+  Extend [instruction-only Event tasks](event-tasks.md) to remaining triggers/queues, CPU preemption/time slicing and
   deadline behavior. Full native scheduler parity remains unfinished.
 - [ ] **E02 — Simulation time:** one deterministic clock shared by instructions,
   tasks, motion, device adapters and external simulation. Support pause, step,
@@ -77,7 +78,7 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
 - [ ] **E06 — System objects:** extend the [Task/Controller GSV profile](gsv-configuration.md)
   to remaining attributes; implement supported SSV, Program/module/clock/axis
   objects, state changes and access rules. Implement actual event/interrupt
-  behavior before enabling EVENT/UID/UIE.
+  behavior before enabling the remaining event forms and UID/UIE.
 - [ ] **E07 — Memory semantics:** aliases, scopes, constants, bit overlays,
   indirect indexing, parameter binding and asynchronous I/O updates across all
   supported types; distinguish ordinary COP from synchronous CPS behavior.
@@ -286,5 +287,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 93 built-in RLL entries.
+added by project AOIs are counted separately from the 94 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

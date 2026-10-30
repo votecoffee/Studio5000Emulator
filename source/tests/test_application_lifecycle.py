@@ -93,6 +93,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual([t['executions'] for t in state['task_schedule']['tasks']], [6,3,1])
         self.assertEqual(state['controller']['scan_interval_ms'], 10)
 
+    def test_event_lab_priority_dispatch_overlap_and_task_context_through_http(self):
+        self.assertIn('id="event-demo"', self.get('/').decode())
+        state = self.post('demo', {'sample': 'EventLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['EventCount'], 0)
+        self.assertTrue(state['controller']['first_scan_pending'])
+        self.post('write', {'tag': 'TriggerRLL', 'value': True})
+        self.post('write', {'tag': 'TriggerST', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual((values['EventCount'], values['RllSeen'], values['StSeen']), (2, 1, 2))
+        self.assertEqual(values['EventFirst'], 1)
+        self.assertFalse(state['controller']['first_scan_pending'])
+        self.post('write', {'tag': 'SelfTrigger', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['EventCount'], 4)
+        self.assertEqual(state['task_schedule']['tasks'][2]['event_instruction_overlaps'], 2)
+        self.assertEqual(state['task_schedule']['tasks'][2]['executions'], 4)
+        self.assertFalse(self.post('report', {})['event_execution']['native_cpu_timing'])
+
     def test_system_lab_reads_typed_gsv_settings_without_changing_task_schedule(self):
         self.assertIn('id="system-demo"', self.get('/').decode())
         state = self.post('demo', {'sample': 'SystemLab'})

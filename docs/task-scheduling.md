@@ -3,7 +3,8 @@
 App `26.1029.080759` executes mixed Standard Continuous and Periodic tasks using
 a deterministic, serial simulation clock. This supports common multi-task
 projects without assigning invented CPU durations or claiming native scheduler
-equivalence. Event tasks and Safety execution remain blocked.
+equivalence. A separate [higher-priority EVENT profile](event-tasks.md) now
+supports instruction-only Event tasks. Safety execution remains blocked.
 
 ## Try Task Lab
 
@@ -85,7 +86,7 @@ the software model; native controller timing and SDK acceptance are separate.
 ## Remaining scheduler work
 
 CPU instruction-level preemption, equal-priority time slicing, execution costs,
-deadline overlaps, watchdog enforcement, event triggers/queues, system overhead
+deadline overlaps, watchdog enforcement, other event triggers/queues, system overhead
 and Safety scheduling remain unfinished. Periodic releases are instantaneous
 serial executions at their timestamps. First-release phase, Continuous frequency
 and tie ordering are explicit model policies requiring independent native
