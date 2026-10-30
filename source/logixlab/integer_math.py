@@ -25,6 +25,18 @@ def description(project):
                 overflow='Stop and roll back modeled scan; native status/fault flags not emulated')
 
 
+def expression_description():
+    return dict(types=['SINT','INT','DINT'],intermediate_type='DINT',consumers=['ST','CPT','CMP','FAL','FSC'],
+                integer='Exact quotient truncated toward zero; remainder has the dividend sign',
+                cpt_real='REAL operand/function or REAL destination promotes the whole expression',
+                st_real='REAL operand/function promotes expression; a REAL destination alone does not',
+                cmp_real='REAL operand/function promotes the comparison expression',
+                failures='Whole advance rolls back on zero divisor, required unknown data or overflow',
+                native_status_parity=False,
+                remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
+                           'Division in array indices','Native intermediate/status/fault/partial-effect parity'])
+
+
 def quotient(a, b):
     """Truncate integer division toward zero without a floating-point round trip."""
     if not b:

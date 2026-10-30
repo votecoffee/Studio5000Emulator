@@ -91,6 +91,10 @@ with deterministic serial releases, per-Program first scans and transactional
 rollback. [Instruction-only EVENT tasks](event-tasks.md) add a separate bounded
 profile. General CPU preemption, other event sources and watchdog enforcement remain open.
 
+Available expression increment: [narrow ST/CPT/CMP division](integer-expressions.md)
+with exact quotients/remainders, explicit REAL promotion and FAL/FSC integration.
+The complete conversion matrix and native status/fault behavior remain open.
+
 Available numeric increment: [homogeneous wide-integer RLL execution](integer-execution.md)
 for v35 ControlLogix 5580, with exact division and explicit type/profile limits.
 [Homogeneous wide ST](wide-st.md) adds exact arithmetic and comparisons in

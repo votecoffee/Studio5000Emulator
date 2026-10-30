@@ -1,5 +1,6 @@
 """Typed CMP expressions using the same bounded parser as CPT."""
 import math
+from .integer_math import quotient
 import operator
 from .expressions import Expression, FUNCTIONS
 from .model import ModelError, coerce
@@ -53,8 +54,8 @@ class Condition(Expression):
         if infer(self.tree)!='bool':raise ModelError('CMP requires a BOOL result or comparison')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Mixed REAL and bitwise CMP expressions are unsupported')
-        if not real and self.operators & {'/','**'}:
-            raise ModelError('Integer CMP division/power is unsupported; use a REAL operand')
+        if not real and '**' in self.operators:
+            raise ModelError('Integer CMP power is unsupported; use a REAL operand')
         return real,types
 
     def evaluate(self,memory,scope=''):
@@ -68,6 +69,7 @@ class Condition(Expression):
                 x=memory.read(value,scope);return number(x) if types[value]=='number' else bool(x)
             if kind=='call':return number(FUNCTIONS[value](visit(node[2])))
             if kind=='unary':
+                if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2])
                 if value=='!' or value=='NOT' and isinstance(x,bool):return not x
                 return number(x if value=='+' else -x if value=='-' else ~x)
@@ -81,8 +83,8 @@ class Condition(Expression):
             if value=='+':result=x+y
             elif value=='-':result=x-y
             elif value=='*':result=x*y
-            elif value=='/':result=x/y
-            elif value=='MOD':result=math.fmod(x,y) if real else x-(abs(x)//abs(y)*(-1 if (x<0)!=(y<0) else 1))*y
+            elif value=='/':result=x/y if real else quotient(x,y)
+            elif value=='MOD':result=math.fmod(x,y) if real else x-quotient(x,y)*y
             elif value=='**':result=x**y
             elif value=='AND':result=x&y
             elif value=='OR':result=x|y

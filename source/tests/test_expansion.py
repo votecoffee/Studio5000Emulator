@@ -123,7 +123,7 @@ class ExpansionTests(unittest.TestCase):
     def test_cpt_functions_and_integer_division_boundary(self):
         e=self.engine(['CPT(Scaled,SQR(16.0)+ABS(-3.0));']);e.step()
         self.assertEqual(e.memory.read('Scaled'),7.0)
-        self.assertTrue(self.engine(['CPT(ParsedNumber,7/2);']).blockers)
+        e=self.engine(['CPT(ParsedNumber,7/2);']);self.assertEqual(e.blockers,[]);e.step();self.assertEqual(e.memory.read('ParsedNumber'),3)
 
     def test_expression_unknowns_and_code_syntax_are_blocked(self):
         for expression in ['Missing+1','__import__(os)','Source.__class__','2;3','open(1)']:

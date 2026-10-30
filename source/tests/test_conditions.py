@@ -48,7 +48,7 @@ class ConditionTests(unittest.TestCase):
 
     def test_unsupported_or_wrongly_typed_conditions_block_even_false(self):
         for expr in ('InputValue','InputValue&&Enabled','Enabled+1=2','InputValue<8<9','RealInput AND 1=1',
-                     'InputValue/2=3','UNKNOWN=1','__import__(os)=1','InputValue==7','Enabled>EarlyReturn'):
+                     'InputValue**2=3','UNKNOWN=1','__import__(os)=1','InputValue==7','Enabled>EarlyReturn'):
             with self.subTest(expr=expr):self.assertTrue(self.engine([f'AFI()CMP({expr})OTE(CompareOK);']).blockers)
 
     def test_relational_syntax_remains_unavailable_to_cpt(self):

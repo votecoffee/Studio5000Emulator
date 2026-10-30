@@ -136,6 +136,14 @@ instance members. Hidden saved locals omitted by an export remain unknown;
 definition defaults do not substitute for missing instance state. Unsupported
 AOI forms and Safety AOIs are blocked.
 
+## Integer expression division
+
+[Narrow integer expressions](integer-expressions.md) now use exact truncated
+quotients in ST/CPT/CMP, with the same evaluator behavior in FAL/FSC. Existing
+REAL promotion rules remain distinct: CPT includes its destination type, while
+ST evaluates its expression before destination conversion. Per-node bounds,
+eager evaluation, whole-advance rollback and INC retry preserve existing limits.
+
 ## Wide ST integers
 
 [Wide ST](wide-st.md) uses exact homogeneous LINT/unsigned operands and

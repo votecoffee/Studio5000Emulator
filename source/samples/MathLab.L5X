@@ -120,6 +120,76 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="Dividend" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-7" />
+        </Data>
+      </Tag>
+      <Tag Name="Divisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="StDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="LadderQuotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CptQuotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StQuotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LadderRemainder" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CptRemainder" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StRemainder" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CptRealQuotient" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StRealDestination" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StRealQuotient" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CmpMatches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegerMathMatches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -154,12 +224,29 @@
               <Rung Number="8" Type="N">
                 <Text>EQU(Root,CptRoot)EQU(Root,StRoot)EQU(Radians,StAngle)OTE(AllOK);</Text>
               </Rung>
+              <Rung Number="9" Type="N">
+                <Text>DIV(Dividend,Divisor,LadderQuotient)MOD(Dividend,Divisor,LadderRemainder)CPT(CptQuotient,Dividend/Divisor)CPT(CptRemainder,Dividend MOD Divisor)CPT(CptRealQuotient,Dividend/Divisor)CMP(Dividend/Divisor=LadderQuotient&amp;&amp;Dividend MOD Divisor=LadderRemainder)OTE(CmpMatches);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>JSR(DivideText,0);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>EQU(LadderQuotient,CptQuotient)EQU(LadderQuotient,StQuotient)EQU(LadderRemainder,CptRemainder)EQU(LadderRemainder,StRemainder)EQU(CptRealQuotient,StRealQuotient)XIC(CmpMatches)OTE(IntegerMathMatches);</Text>
+              </Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MathText" Type="ST">
             <STContent>
               <Line Number="0">StRoot:=SQRT(Input);</Line>
               <Line Number="1">StAngle:=RAD(Degrees);</Line>
+            </STContent>
+          </Routine>
+          <Routine Name="DivideText" Type="ST">
+            <STContent>
+              <Line Number="0">StQuotient:=Dividend/StDivisor;</Line>
+              <Line Number="1">StRemainder:=Dividend MOD StDivisor;</Line>
+              <Line Number="2">StRealDestination:=Dividend/StDivisor;</Line>
+              <Line Number="3">StRealQuotient:=(Dividend+0.0)/StDivisor;</Line>
             </STContent>
           </Routine>
         </Routines>

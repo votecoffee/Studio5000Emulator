@@ -138,8 +138,8 @@ class StructuredTests(unittest.TestCase):
         e=self.engine('State := -2147483648; Sum := -7 MOD 3;');e.step()
         self.assertEqual(e.memory.read('State'),-2147483648);self.assertEqual(e.memory.read('Sum'),-1)
 
-    def test_narrow_integer_division_stays_blocked_while_wide_assignment_uses_its_profile(self):
-        self.assertTrue(self.engine('State:=7/2;').blockers)
+    def test_narrow_integer_division_and_wide_assignment_use_their_profiles(self):
+        e=self.engine('State:=7/2;');self.assertEqual(e.blockers,[]);e.step();self.assertEqual(e.memory.read('State'),3)
         t=self.root.find('./Controller/Tags/Tag[@Name="State"]');t.set('DataType','LINT');t.find('Data/DataValue').set('DataType','LINT')
         e=self.engine('State:=1;');self.assertEqual(e.blockers,[]);e.step();self.assertEqual(e.memory.read('State'),1)
 

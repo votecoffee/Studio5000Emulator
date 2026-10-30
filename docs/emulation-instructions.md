@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; Wide ST execution updated for app `26.1029.224802`. The engine has **94 built-in
+Audited 2026-10-29; Integer expression division updated for app `26.1029.231505`. The engine has **94 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -82,7 +82,7 @@ schema/behavior backlog separately from instruction names.
 | AVE/STD | [Dimension-wise statistics](array-statistics.md) with SINT/INT/DINT/REAL arrays, REAL results and logical CONTROL. Partial POS/resume, integer AVE destinations, indirect/alias/AOI array starts and native precision/fault/status behavior remain unfinished. |
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
-| CPT/CMP/MEQ | Complete expression/type/conversion matrix. MEQ currently covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |

@@ -691,6 +691,7 @@ class Engine:
                 'structured_text':{'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer)','FOR','WHILE','REPEAT','EXIT','supported calls'],
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
                 'integer_execution':integer_math.description(self.project),
+                'integer_expression_execution':integer_math.expression_description(),
                 'wide_st_execution':wide_st.description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'string_operations':string_operations.description(),

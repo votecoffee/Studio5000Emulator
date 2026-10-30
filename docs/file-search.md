@@ -46,6 +46,7 @@ arrays, including paired arrays in the same expression. Type-checking uses a
 structural cursor, so unknown saved data is consumed only when actually compared.
 No short-circuit assumption hides a required unknown value or invalid access.
 
+Integer division now follows the [narrow expression profile](integer-expressions.md).
 Existing CMP expression limits still apply. Wider/unsigned/LREAL types, BCD
 expression functions and additional native conversion forms remain unfinished.
 [INC mode](file-incremental.md) now supports one comparison per enable edge for

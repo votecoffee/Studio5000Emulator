@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.224802`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1029.231505`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -53,6 +53,10 @@ ladder enable edges and ST sorting on each executed call.
 [Array statistics](docs/array-statistics.md) add ladder AVE and sample STD with
 REAL results and dimension selection. **Stats lab** demonstrates averages,
 deviation, row/column selection and CONTROL rearming.
+
+[Integer expressions](docs/integer-expressions.md) add exact narrow division in
+ST/CPT/CMP and FAL/FSC consumers. **Math lab** compares truncation, remainder,
+REAL promotion and cross-language results.
 
 [Common REAL math](docs/math-operations.md) adds ladder SQR, XPY, logs, angle
 conversions and trigonometry. **Math lab** compares ladder, CPT and ST values,

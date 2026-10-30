@@ -1,5 +1,6 @@
 """Typed ST expression subset with ST's own operator precedence."""
 import math
+from .integer_math import quotient
 from .expressions import Expression
 from .conditions import RELATIONS
 from .model import ModelError,coerce
@@ -50,7 +51,6 @@ class STExpression(Expression):
         result=infer(self.tree)
         if bitwise and (real or any(t!='DINT' for t in numeric_refs.values())):
             raise ModelError('Numeric ST bitwise expressions currently require DINT operands')
-        if not real and '/' in self.operators:raise ModelError('Integer ST division is unsupported; use an explicit REAL operand')
         return result,real,types
 
     def evaluate(self,memory,scope='',destination_type=None):
@@ -81,8 +81,8 @@ class STExpression(Expression):
             if value=='+':z=x+y
             elif value=='-':z=x-y
             elif value=='*':z=x*y
-            elif value=='/':z=x/y
-            elif value=='MOD':z=math.fmod(x,y) if real else x-(abs(x)//abs(y)*(-1 if (x<0)!=(y<0) else 1))*y
+            elif value=='/':z=x/y if real else quotient(x,y)
+            elif value=='MOD':z=math.fmod(x,y) if real else x-quotient(x,y)*y
             elif value=='**':z=x**y
             elif value=='AND':z=x&y
             elif value=='OR':z=x|y

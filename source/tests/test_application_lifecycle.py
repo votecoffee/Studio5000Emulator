@@ -280,6 +280,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_math_lab_integer_division_and_real_promotion_through_http(self):
+        state=self.post('demo', {'sample':'MathLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        row=values(self.post('step', {'dt':10}))
+        for name in ('LadderQuotient','CptQuotient','StQuotient'):self.assertEqual(row[name],-2)
+        for name in ('LadderRemainder','CptRemainder','StRemainder'):self.assertEqual(row[name],-1)
+        self.assertTrue(row['CmpMatches']);self.assertTrue(row['IntegerMathMatches'])
+        self.assertEqual(row['StRealDestination'],-2.0);self.assertAlmostEqual(row['CptRealQuotient'],-7/3,places=6)
+        self.assertEqual(row['CptRealQuotient'],row['StRealQuotient'])
+        self.post('write', {'tag':'StDivisor','value':2});row=values(self.post('step', {'dt':10}))
+        self.assertEqual(row['StQuotient'],-3);self.assertFalse(row['IntegerMathMatches'])
+        self.post('write', {'tag':'StDivisor','value':3});row=values(self.post('step', {'dt':10}))
+        self.assertTrue(row['IntegerMathMatches']);self.assertTrue(row['AllOK'])
+        report=self.post('report', {})['integer_expression_execution']
+        self.assertEqual(report['intermediate_type'],'DINT');self.assertFalse(report['native_status_parity'])
+
     def test_integer_lab_wide_st_matches_ladder_with_exact_http_values(self):
         state=self.post('demo', {'sample':'IntegerLab'});self.assertEqual(state['blockers'], [])
         state=self.post('step', {'dt':10});values={row['name']:row['value'] for row in state['tags']}

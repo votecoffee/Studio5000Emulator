@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; Wide ST execution updated for app `26.1029.224802`. **Full Logix emulation is not
+Audited 2026-10-29; Integer expression division updated for app `26.1029.231505`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -30,7 +30,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
-| Structured Text | Assignments, conditionals, integer CASE, bounded loops, [homogeneous wide expressions](wide-st.md), supported calls and RLL/ST calls | Complete language/functions, mixed/wide FOR/CASE/index forms, narrow integer division, time arithmetic and aggregates |
+| Structured Text | Assignments, conditionals, integer CASE, bounded loops, [homogeneous wide expressions](wide-st.md), supported calls and RLL/ST calls | Complete language/functions, mixed/wide FOR/CASE/index forms, full numeric promotion, time arithmetic and aggregates |
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
 | Sequential Function Chart (SFC) | Routine kind can be identified; execution is blocked | Steps, transitions, actions, qualifiers, branches, timers, reset/pause/forcing and monitoring |
 | BOOL/SINT/INT/DINT/REAL | Saved values, scalar/member/array access and supported operations | Complete conversions, math flags, overflow and native edge cases |
@@ -141,7 +141,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   existing ones. Verify rung-in/out, false scan, prescan, duplicate/shared
   operands, branches, jumps, skipped calls and status side effects per family.
 - [ ] **L02 — ST:** complete target-version statements/operators/functions,
-  integer division, wide/unsigned/time expressions, aggregate operations and
+  the complete division/promotion matrix, remaining wide/time expressions, aggregate operations and
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
 - [ ] **L03 — FBD execution:** parse sheets/blocks/wires/connectors, assign

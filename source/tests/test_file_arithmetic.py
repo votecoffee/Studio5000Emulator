@@ -178,7 +178,7 @@ class FileArithmeticTests(unittest.TestCase):
             self.assertTrue(self.engine([f'FAL(Ctl,?,?,{mode},Outgoing,Incoming);']).blockers,mode)
         for text in ('FAL(Ctl,4,0,ALL,Outgoing,Incoming);','FAL(Ctl,?,?,ALL,Queue,Incoming);',
                      'FAL(Ctl,?,?,ALL,Ctl.POS,1);','FAL(Ctl,?,?,ALL,RunLatch,Incoming);',
-                     'FAL(Ctl,?,?,ALL,Outgoing,FRD(Incoming));','FAL(Ctl,?,?,ALL,Outgoing,Incoming/2);',
+                     'FAL(Ctl,?,?,ALL,Outgoing,FRD(Incoming));','FAL(Ctl,?,?,ALL,Outgoing,Incoming**2);',
                      'FAL(Ctl,?,?,ALL,Outgoing,Incoming>1);','FAL(Ctl,?,?,ALL,Outgoing);'):
             self.assertTrue(self.engine([text]).blockers,text)
         for dtype in ('LINT','USINT','UINT','UDINT','ULINT','LREAL'):

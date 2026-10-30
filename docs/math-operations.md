@@ -66,6 +66,9 @@ negative input. Inspect logarithms, power, degree/radian round trips, ordinary
 trigonometry and inverse trigonometry. AllOK compares the ladder/CPT/ST root
 and angle results. Disable Enable and change inputs to retain ladder values
 while the called ST routine continues; re-enable to update ladder results.
+The same sample now compares [integer division and REAL promotion](integer-expressions.md)
+through ladder, CPT/CMP and a called ST routine. Independent StDivisor can
+diverge from Divisor and demonstrates later-ST failure/recovery.
 See [MathLab.L5X](../source/samples/MathLab.L5X) and
 [implementation](../source/logixlab/real_math.py).
 

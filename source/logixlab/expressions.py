@@ -1,5 +1,6 @@
 """Bounded expression parser. No Python eval, attribute lookup, or function dispatch."""
 import math
+from .integer_math import quotient
 import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
@@ -127,8 +128,8 @@ class Expression:
         real |= bool(self.functions - {'ABS','TRN','TRUNC'})
         if index and (real or self.operators - {'+','-','*'} or self.functions):
             raise ModelError('Array index expressions support integer +, -, * and parentheses only')
-        if not real and self.operators & {'/','**'}:
-            raise ModelError('Integer CPT division/power is not modeled; use a REAL operand or destination')
+        if not real and '**' in self.operators:
+            raise ModelError('Integer CPT power is not modeled; use a REAL operand or destination')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Bitwise CPT operators require integer expressions')
         return real
@@ -141,6 +142,7 @@ class Expression:
             if kind == 'literal': return number(value)
             if kind == 'ref': return number(memory.read(value,scope))
             if kind == 'unary':
+                if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2]);return number(x if value=='+' else -x if value=='-' else ~x)
             if kind == 'call': return number(FUNCTIONS[value](visit(node[2])))
             x,y=visit(node[2]),visit(node[3])
@@ -149,8 +151,8 @@ class Expression:
             if value=='+': result=x+y
             elif value=='-': result=x-y
             elif value=='*': result=x*y
-            elif value=='/': result=x/y
-            elif value=='MOD': result=math.fmod(x,y) if real else x-(abs(x)//abs(y)*(-1 if (x<0)!=(y<0) else 1))*y
+            elif value=='/': result=x/y if real else quotient(x,y)
+            elif value=='MOD': result=math.fmod(x,y) if real else x-quotient(x,y)*y
             elif value=='**': result=x**y
             elif value=='AND': result=x&y
             elif value=='OR': result=x|y
