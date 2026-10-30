@@ -105,11 +105,14 @@ SQO and SQL advance on an edge and apply the current row while held true.
 SQI compares without advancing; cyclic rows 1..LEN follow startup row zero.
 Selected-member bounds, mask widths, unknown values and rollback remain explicit.
 
-[EVENT execution](event-tasks.md) can synchronously run a higher-priority task
-before the caller's next instruction. Task/time/first-scan context is restored
-on return. Accepted event releases and active self-request diagnostics share
-the advance's limits and commit with the complete scheduler transaction.
-General CPU timing, deferred priorities and external event sources remain open.
+[EVENT execution](event-tasks.md) synchronously runs a higher-priority task before
+the caller's next instruction. Lower/equal-priority requests wait for task returns
+and drain by priority, with FIFO Event ties and base releases first at equal
+priority. There is one pending execution per Event task; repeated pending requests
+coalesce with a diagnostic separate from active overlaps. Queues drain before the
+simulation clock advances. Event first scans, diagnostics and writes share the
+advance's transaction and budgets. Native time slicing/pending-duplicate semantics,
+general CPU timing and external event sources remain open.
 
 [Controller GSV reads](controller-gsv.md) expose the simulator AuditValue and
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve

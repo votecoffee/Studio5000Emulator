@@ -18,11 +18,17 @@ Instruction Only" and EnableTimeout="false". Priority and inhibition must be
 explicit and unambiguous. Other trigger kinds, timeouts, Safety and incomplete
 source are blocked. The target name is a literal configured task name.
 
-A supported target has a higher priority than its caller. It runs synchronously
-at the EVENT instruction, at the same simulated timestamp, before the caller's
-next instruction. This provides a logical priority boundary without inventing
-CPU execution costs or interrupt latency. Nested calls to still higher-priority
-Event tasks are supported; task/first-scan context is restored on return.
+A higher-priority target runs synchronously at the EVENT instruction, at the
+same simulated timestamp, before the caller's next instruction. Lower/equal-
+priority targets wait for a task return. Ready Event tasks drain by priority,
+then FIFO request order. Coincident Periodic releases precede queued Events at
+equal priority; higher-priority queued Events run before lower-priority base work.
+All pending work drains before moving to the next timestamp.
+
+After a nested higher-priority task returns, newly eligible queued work runs
+before the restored caller resumes. Task and first-scan context are preserved.
+These are logical boundaries with zero simulated execution cost. Equal-priority
+CPU time slicing and native interrupt latency are not modeled.
 
 ```mermaid
 sequenceDiagram
@@ -35,16 +41,23 @@ sequenceDiagram
 
 Each executed true EVENT requests an execution; there is no implicit one-shot.
 Use an explicit ONS or ST edge condition when needed. False rungs, skipped ST
-branches and prescan do not trigger. A supported active self-request increments
-the modeled overlap diagnostic and is discarded, avoiding recursive execution.
-An inhibited Event task is ignored. Naming an existing Continuous/Periodic task
-is a no-op and does not reschedule it.
+branches and prescan do not trigger. A request for an already active task is
+discarded and increments the modeled overlap diagnostic, including cross-task
+retriggering from a preempting task.
 
-Lower/equal-priority other-task targets need deferred dispatch and remain
-explicitly blocked. EVENT inside AOIs, routine harnesses and ST FOR loops is
-also unqualified. WHILE/REPEAT calls share the instruction budget and can observe
-the Event task's writes. Task logic can alter loop data, so FOR calls are withheld
-until full write-effect analysis is available.
+The software queue holds at most one pending execution per task. Duplicate
+requests while pending coalesce and increment a separate diagnostic. This is an
+explicit software policy; native pending-duplicate behavior is unverified. Once
+the task completes, it can be requested again in the same advance. An inhibited
+Event task is ignored. Naming an existing Continuous/Periodic task is a no-op
+and does not reschedule it.
+
+EVENT inside AOIs, routine harnesses and ST FOR loops remains unqualified.
+WHILE/REPEAT calls share the instruction budget. Higher-priority Event writes
+are visible immediately; waiting on a deferred Event from inside a caller loop
+cannot make progress until that caller returns and will exhaust the budget.
+Task logic can alter loop data, so FOR calls are withheld until full write-effect
+analysis is available.
 
 ## State, limits and timing
 
@@ -56,13 +69,17 @@ limitation described in [task scheduling](task-scheduling.md).
 
 Periodic/Continuous and Event releases share the 4096-release limit per advance
 and the global instruction budget. Writes, timer/first-scan state, execution
-counts and modeled overlap diagnostics commit only when the entire advance
-succeeds. Event faults or later caller/task faults roll everything back. Run
+counts and active/pending diagnostics commit only when the entire advance succeeds.
+Queues are transient to the advance. Faults before draining, inside deferred work
+or in later base tasks roll everything back and discard the queue. Deferred
+cycles share the same limits and cannot bypass them through queueing. Run
 entry rearms first scans and resets scheduler diagnostic counts.
 
 Coverage distinguishes Event tasks, their priority, execution count and
-event_instruction_overlaps. They have no periodic next-release time. These
-diagnostics do not implement native GSV Status/OverlapCount or SSV clearing.
+event_instruction_overlaps (active requests discarded) and
+event_pending_requests_coalesced (pending duplicates merged). They have no
+periodic next-release time. These diagnostics do not implement native GSV
+Status/OverlapCount or SSV clearing.
 Native interrupt latency, CPU preemption/time slicing, deadlines, watchdogs,
 external I/O/motion/consumed triggers and timeout queues remain unfinished.
 
@@ -76,12 +93,21 @@ caller instruction. EventFirst increments only on its first execution.
 
 Set SelfTrigger true to request WorkEvent from within itself. EventCount still
 increments once per producer request; modeled overlaps increase once per active
-self-request. Turn the producer flags off to stop new event executions.
+self-request.
+
+Set TriggerDeferred true to make the priority-5 Periodic producer request the
+priority-10 DeferredEvent twice. One execution remains pending until the producer
+finishes. After the first 10 ms step, DeferredCount is 1, RllDeferredSeen is 0 and
+StDeferredSeen is 1: the producer read the old value while the later Continuous
+Program read the completed Event's value. The pending-duplicate count increases
+once per producer release. DeferredFirst increments once and DeferredTimer uses
+release timestamps. Turn the producer flags off to stop new Event executions.
 See [EventLab.L5X](../source/samples/EventLab.L5X) and
 [implementation](../source/logixlab/event_tasks.py).
 
 The baseline uses installed v35 help 14708/19549. Rockwell's published
 [EVENT reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/program-control-instructions/trigger-event-task--event-.html)
-and [Import/Export task definitions](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+and [task scheduling manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm005_-en-p.pdf),
+alongside the [Import/Export task definitions](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 provide context. Software checks do not establish native controller/Studio
 acceptance or complete event-task semantics.

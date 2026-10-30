@@ -43,9 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
-Available event increment: [higher-priority EVENT execution](event-tasks.md)
-with instruction-only source, RLL/ST context, overlap suppression and rollback.
-Deferred priorities, external triggers/timeouts and native CPU/status remain open.
+Available event increment: [instruction-only EVENT execution](event-tasks.md)
+with immediate higher priorities, deferred lower/equal priorities, RLL/ST context,
+separate active/pending diagnostics and rollback. Native time slicing and
+pending-duplicate semantics, external triggers/timeouts and CPU/status remain open.
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and

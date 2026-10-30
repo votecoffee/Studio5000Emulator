@@ -103,10 +103,13 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(state['controller']['first_scan_pending'])
         self.post('write', {'tag': 'TriggerRLL', 'value': True})
         self.post('write', {'tag': 'TriggerST', 'value': True})
+        self.post('write', {'tag': 'TriggerDeferred', 'value': True})
         state = self.post('step', {'dt': 10})
         values = {row['name']: row['value'] for row in state['tags']}
         self.assertEqual((values['EventCount'], values['RllSeen'], values['StSeen']), (2, 1, 2))
         self.assertEqual(values['EventFirst'], 1)
+        self.assertEqual([values[k] for k in ('DeferredCount','RllDeferredSeen','StDeferredSeen')], [1,0,1])
+        self.assertEqual(state['task_schedule']['tasks'][3]['event_pending_requests_coalesced'], 1)
         self.assertFalse(state['controller']['first_scan_pending'])
         self.post('write', {'tag': 'SelfTrigger', 'value': True})
         state = self.post('step', {'dt': 10})

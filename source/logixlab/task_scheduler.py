@@ -77,6 +77,7 @@ class TaskScheduler:
         self.counts = {i: 0 for i in range(len(self.tasks))}
         self.last = {i: None for i in range(len(self.tasks))}
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
+        self.coalesced = dict(self.overlaps)
 
     def prepare(self, end):
         if self.source != self.configuration:
@@ -104,16 +105,17 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
-    def commit(self, batch, *, events=(), overlaps=None):
+    def commit(self, batch, *, events=(), overlaps=None, coalesced=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
         if (len(batch.releases)+len(events)>MAX_RELEASES or
                 any(type(i) is not int or not 0<=i<len(self.tasks) or self.tasks[i].kind!='Event'
                     or self.tasks[i].inhibited or not batch.start<due<=batch.end for due,i in events)
-                or any(i not in self.overlaps or type(n) is not int or n<0 for i,n in (overlaps or {}).items())):
+                or any(i not in self.overlaps or type(n) is not int or n<0
+                       for counts in (overlaps,coalesced) for i,n in (counts or {}).items())):
             raise ModelError('Invalid Event task completion batch')
         self.clock = batch.end
         self.next_due = dict(batch.next_due)
@@ -121,16 +123,18 @@ class TaskScheduler:
             self.counts[i] += 1
             self.last[i] = due
         for i,n in (overlaps or {}).items():self.overlaps[i]+=n
+        for i,n in (coalesced or {}).items():self.coalesced[i]+=n
 
     def description(self):
         return dict(policy='Periodic releases in simulated time; Continuous once per step, after due Periodic tasks',
                     clock_ms=self.clock, run_epoch_ms=self.origin, preemptive=False, event_tasks=any(t.kind=='Event' for t in self.tasks), safety_tasks=False,
-                    event_dispatch='Synchronous higher-priority EVENT; no CPU timing/preemption model',
+                    event_dispatch='Immediate higher-priority EVENT; deferred lower/equal at task returns; no CPU timing/preemption model',
                     watchdog_enforced=False, release_limit=MAX_RELEASES,
-                    equal_priority='Configured source order at coincident releases',
+                    equal_priority='Base releases use source order and precede queued Events; Event ties use request order',
                     first_periodic_release='One configured period after Run entry',
                     tasks=[dict(name=t.name, kind=t.kind, priority=t.priority if t.kind!='Continuous' else None, rate_ms=t.period,
                                 inhibited=t.inhibited, executions=self.counts[i],
                                 last_release_ms=self.last[i], next_release_ms=self.next_due.get(i),
-                                **({'event_instruction_overlaps':self.overlaps[i]} if t.kind=='Event' else {}))
+                                **({'event_instruction_overlaps':self.overlaps[i],
+                                    'event_pending_requests_coalesced':self.coalesced[i]} if t.kind=='Event' else {}))
                            for i, t in enumerate(self.tasks)])

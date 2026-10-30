@@ -1,10 +1,11 @@
 # Continuous and periodic task scheduling
 
-App `26.1029.080759` executes mixed Standard Continuous and Periodic tasks using
+App `26.1029.220520` executes mixed Standard Continuous and Periodic tasks using
 a deterministic, serial simulation clock. This supports common multi-task
 projects without assigning invented CPU durations or claiming native scheduler
-equivalence. A separate [higher-priority EVENT profile](event-tasks.md) now
-supports instruction-only Event tasks. Safety execution remains blocked.
+equivalence. A separate [instruction-only EVENT profile](event-tasks.md) now
+supports immediate higher-priority and deferred lower/equal-priority Event tasks
+at logical task boundaries. Safety execution remains blocked.
 
 ## Try Task Lab
 
@@ -76,12 +77,11 @@ Program host-time measurements remain separate from simulated release times.
 
 ## Validation checkpoint
 
-The scheduler has 23 focused cases covering mixed rates, coincident priorities,
-Program order/first scans, inhibition, timer elapsed values, ST trace context,
-source guards, budgets, rollback and routine-replacement state preservation.
-The milestone suite runs 2,344 tests with two platform checks skipped. Real
-HTTP lifecycle tests also exercise the bundled Task Lab. These checks validate
-the software model; native controller timing and SDK acceptance are separate.
+Focused scheduler and Event cases cover mixed rates, priority/FIFO ordering,
+Program first scans, inhibition, timer elapsed values, ST trace context, source
+guards, budgets, rollback and routine-replacement state preservation. Real HTTP
+lifecycle checks exercise Task Lab and Event Lab. These checks validate the
+software model; native controller timing and SDK acceptance are separate.
 
 ## Remaining scheduler work
 

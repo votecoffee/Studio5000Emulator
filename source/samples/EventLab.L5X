@@ -71,6 +71,42 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="TriggerDeferred" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DeferredCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DeferredFirst" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RllDeferredSeen" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StDeferredSeen" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DeferredTimer" DataType="TIMER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="100" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="ProducerProgram" MainRoutineName="Main" Class="Standard">
@@ -90,6 +126,15 @@
               <Rung Number="3" Type="N">
                 <Text>MOV(EventCount,RllSeen);</Text>
               </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>MOV(DeferredCount,RllDeferredSeen);</Text>
+              </Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -103,6 +148,7 @@
               <Line Number="1">IF S:FS THEN BackgroundFirst:=BackgroundFirst+1; END_IF;</Line>
               <Line Number="2">IF TriggerST THEN EVENT(WorkEvent); END_IF;</Line>
               <Line Number="3">StSeen:=EventCount;</Line>
+              <Line Number="4">StDeferredSeen:=DeferredCount;</Line>
             </STContent>
           </Routine>
         </Routines>
@@ -128,6 +174,24 @@
           </Routine>
         </Routines>
       </Program>
+      <Program Name="DeferredProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(DeferredCount,1,DeferredCount);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(S:FS)ADD(DeferredFirst,1,DeferredFirst);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>TON(DeferredTimer,?,?);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
     </Programs>
     <Tasks>
       <Task Name="ProducerTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="10">
@@ -144,6 +208,12 @@
         <EventInfo EventTrigger="EVENT Instruction Only" EnableTimeout="false" />
         <ScheduledPrograms>
           <ScheduledProgram Name="EventProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="DeferredEvent" Type="EVENT" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="true">
+        <EventInfo EventTrigger="EVENT Instruction Only" EnableTimeout="false" />
+        <ScheduledPrograms>
+          <ScheduledProgram Name="DeferredProgram" />
         </ScheduledPrograms>
       </Task>
     </Tasks>

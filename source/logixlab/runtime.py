@@ -454,11 +454,17 @@ class Engine:
                         scanned.add(name)
                 finally:self._executing_task,self.memory.first_scan=previous_task,previous_first
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
-            for due,task,entries in runs:run_task(due,task,entries)
+            for position,(due,task,entries) in enumerate(runs):
+                run_task(due,task,entries)
+                if batch:
+                    following=batch.releases[position+1] if position+1<len(batch.releases) else None
+                    ceiling=(self._task_scheduler.tasks[following[1]].priority
+                             if following and following[0]==due else 17)
+                    self._event_dispatch.drain(ceiling)
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps)
+            if batch:self._task_scheduler.commit(batch,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -703,7 +709,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "Standard task releases are deterministic; qualified higher-priority EVENT calls dispatch synchronously, without general CPU timing, other event sources, Safety or watchdog enforcement",
+                           "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
                            "v35 5580 RLL integer math supports homogeneous LINT/unsigned operands and bounded DINT literals; mixed types, wide ST/CPT/CMP and math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
