@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.142312` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.144653` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -33,9 +33,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Capture models, partial | 2 | [ST MAXC/MINC](st-capture.md), retained finite REAL extrema and reset baselines |
 | LPF software model, partial | 1 | [ST LPF](st-low-pass-filter.md), explicit bilinear sections; native numerical recurrence remains unverified |
 | Boolean memory models, partial | 4 | [ST DFF/JKFF/RESD/SETD](st-digital-memory.md), sampled clocks, dominant latches, complements and history |
-| No dedicated model | 191 | No dedicated bounded named runtime model |
+| Accumulation models, partial | 2 | [ST UPDN/INTG](st-accumulation.md), finite REAL totals, timed integration, holds, limits and history |
+| No dedicated model | 189 | No dedicated bounded named runtime model |
 
-Thus **31 entries have dedicated bounded models**; this is not 31 fully
+Thus **33 entries have dedicated bounded models**; this is not 33 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -170,7 +171,7 @@ Every dedicated model status still requires the qualifications above.
 | 81 | `HMIBC` | HMI button control | No dedicated model | Listed |
 | 82 | `IMC` | Process/filter/drive | No dedicated model | Listed |
 | 83 | `INT` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
-| 84 | `INTEGRATOR` | Process/filter/drive | No dedicated model | Listed |
+| 84 | `INTEGRATOR` | Process/filter/drive | Accumulation model (partial) | Listed |
 | 85 | `LDT` | Time/date | No dedicated model | Listed |
 | 86 | `LEAD_LAG` | Process/filter/drive | No dedicated model | Listed |
 | 87 | `LEAD_LAG_SEC_ORDER` | Process/filter/drive | No dedicated model | Listed |
@@ -307,7 +308,7 @@ Every dedicated model status still requires the qualifications above.
 | 218 | `UDINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 | 219 | `UINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 | 220 | `ULINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
-| 221 | `UP_DOWN_ACCUM` | Process/filter/drive | No dedicated model | Listed |
+| 221 | `UP_DOWN_ACCUM` | Process/filter/drive | Accumulation model (partial) | Listed |
 | 222 | `USINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 
 ## Remaining family work

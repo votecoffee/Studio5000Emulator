@@ -160,6 +160,10 @@ parity remains unverified. Choose **Filter lab** to try step responses.
 state and reset-/set-dominant latches with complements and transactional history.
 Choose **Digital lab** to try clock edges, Clear, dominance and skipped calls.
 
+[Structured Text accumulation](docs/st-accumulation.md) adds UPDN totals and
+INTG timed integration with hold, initialization, limits, alarms and rollback.
+Choose **Accumulator lab** to try both instructions.
+
 ## Table of Contents
 
 - [Background](#background)

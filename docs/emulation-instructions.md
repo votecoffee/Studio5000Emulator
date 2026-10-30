@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST Boolean memory added for app `26.1030.142312`. The engine has **101 built-in
+Audited 2026-10-30; ST accumulation added for app `26.1030.144653`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -28,7 +28,8 @@ RATE_LIMITER. [ST MAVE/MSTD](st-moving-statistics.md) add MOVING_AVERAGE and
 MOVING_STD_DEV. [ST MAXC/MINC](st-capture.md) add MAXIMUM_CAPTURE and
 MINIMUM_CAPTURE. [ST LPF](st-low-pass-filter.md) adds a FILTER_LOW_PASS software
 model. [ST Boolean memory](st-digital-memory.md) adds DFF/JKFF/RESD/SETD and
-four logical records. These twenty additional calls are excluded from the RLL dispatch
+four logical records. [ST UPDN/INTG](st-accumulation.md) add two accumulation
+records. These twenty-two additional calls are excluded from the RLL dispatch
 count. Their FBD graph forms remain unimplemented.
 
 ## Instruction families
@@ -45,7 +46,7 @@ count. Their FBD graph forms remain unimplemented.
 | Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST-only OSRI/OSFI listed above) |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
-| Drives Instructions | — | — | `HMIBC`, `INTG`, `PI`, `PMUL`, `SCRV`, `SOC`, `UPDN` |
+| Drives Instructions | — | — | `HMIBC`, `PI`, `PMUL`, `SCRV`, `SOC` (ST-only INTG/UPDN listed above) |
 | Drive Safety Instructions | — | — | `SBC`, `SDI`, `SFX`, `SLP`, `SLS`, `SOS`, `SS1`, `SS2` |
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
@@ -97,6 +98,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| UPDN/INTG (ST only) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, FBD graphs and packed layouts remain unfinished. |
 | DFF/JKFF/RESD/SETD (ST only) | [Logical Boolean memory](st-digital-memory.md), sampled clock/data/toggle behavior, Clear priority, latch dominance, complements and rollback. FBD graphs, layouts and native lifecycle/output-write/status/fault parity remain unfinished. |
 | LPF (ST only, software solver) | [Logical FILTER_LOW_PASS](st-low-pass-filter.md), explicit bilinear orders 1/2/3, elapsed/Periodic/oversample timing, bounds/status and transactional sections. Native recurrence/coefficients/precision/transitions, RTS, FBD/layout/lifecycle/fault parity remain unfinished. |
 | MAXC/MINC (ST only) | [Logical capture records](st-capture.md), retained finite REAL extrema, held reset baselines, skipped calls and rollback. FBD graphs, packed layouts and native lifecycle/precision/nonfinite/status/fault parity remain unfinished. |

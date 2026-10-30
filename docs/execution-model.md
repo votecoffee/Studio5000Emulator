@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST accumulation](st-accumulation.md) maintains per-record UPDN totals and INTG
+input/output histories. Reached calls, Periodic/elapsed/oversample time, directional
+holds and rollback follow its explicit finite software profile. Native startup,
+rounding and interacting-condition precedence remain unqualified.
+
 [ST Boolean memory](st-digital-memory.md) samples flip-flop clocks/data and
 applies reset-/set-dominant latch rules with complementary outputs. Per-record
 clock/output history shares rollback, Run entry and detached routine replacement.

@@ -202,6 +202,7 @@ $('moving-demo').onclick=()=>loadDemo('MovingLab');
 $('capture-demo').onclick=()=>loadDemo('CaptureLab');
 $('filter-demo').onclick=()=>loadDemo('FilterLab');
 $('digital-demo').onclick=()=>loadDemo('DigitalLab');
+$('accumulator-demo').onclick=()=>loadDemo('AccumulatorLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

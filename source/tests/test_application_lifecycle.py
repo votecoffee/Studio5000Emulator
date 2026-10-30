@@ -79,6 +79,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_accumulator_lab_totals_integration_holds_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'AccumulatorLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(total,integral):
+            state=self.post('step',{'dt':250});v=values(state)
+            self.assertEqual((v['Total'],v['Integral']),(total,integral));return state
+        step(1,0);step(2,0.25);step(3,0.75)
+        write('HoldTotal',True);write('HoldHigh',True);step(3,0.75)
+        write('InitializeTotal',True);write('InitialTotal',10);write('InitializeIntegral',True);write('InitialIntegral',4)
+        step(10,4);write('InitializeTotal',False);write('InitializeIntegral',False);write('HoldTotal',False);write('HoldHigh',False)
+        step(11,4.5);state=step(12,5);self.assertTrue(values(state)['HighAlarm'])
+        write('Input',-2);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':250})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);step(13,5);step(14,4.5)
+        write('SampleTime',-1);state=step(15,4.5);self.assertEqual(values(state)['IntegralState.Status'],-2147483647)
+        report=self.post('report',{});self.assertEqual(report['st_accumulate']['instructions'],['INTG','UPDN'])
+        self.assertFalse(report['st_accumulate']['native_runtime_parity']);self.assertIn('accumulator-demo',self.get('/').decode())
+
     def test_digital_lab_startup_edges_dominance_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DigitalLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
