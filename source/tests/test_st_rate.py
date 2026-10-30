@@ -285,7 +285,7 @@ class StructuredRateTests(unittest.TestCase):
     def test_builtin_classification_instruction_counts_and_report_are_qualified(self):
         e=self.checked();self.assertNotIn('RATE_LIMITER',e.project.data_only_types);self.assertNotIn('rate_limiter',e.project.udts)
         self.assertEqual(set(e.memory.read('T')),set(FIELDS));self.assertEqual(len(ARITIES),101)
-        self.assertEqual(set(ST_ONLY_ARITIES),{'TONR','TOFR','RTOR','CTUD','OSRI','OSFI','SCL','HLL','SNEG','SSUM','RLIM','MAVE','MSTD'})
+        self.assertEqual(set(ST_ONLY_ARITIES),{'TONR','TOFR','RTOR','CTUD','OSRI','OSFI','SCL','HLL','SNEG','SSUM','RLIM','MAVE','MSTD','MAXC','MINC'})
         profile=e.report()['st_rate'];self.assertEqual(profile['instructions'],['RLIM']);self.assertFalse(profile['native_runtime_parity'])
         self.assertEqual(profile['status_aliases']['DeltaTInv'],'Status.31')
 

@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="CaptureLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="CaptureLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetCapture" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetHigh" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetLow" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCapture" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Maximum" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="Minimum" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighState" TagType="Base" DataType="MAXIMUM_CAPTURE">
+        <Data Format="Decorated">
+          <Structure DataType="MAXIMUM_CAPTURE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ResetValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LowState" TagType="Base" DataType="MINIMUM_CAPTURE">
+        <Data Format="Decorated">
+          <Structure DataType="MINIMUM_CAPTURE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ResetValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallCapture THEN</Line>
+              <Line Number="1">HighState.In := Input;</Line>
+              <Line Number="2">LowState.In := Input;</Line>
+              <Line Number="3">HighState.Reset := ResetCapture;</Line>
+              <Line Number="4">LowState.Reset := ResetCapture;</Line>
+              <Line Number="5">HighState.ResetValue := ResetHigh;</Line>
+              <Line Number="6">LowState.ResetValue := ResetLow;</Line>
+              <Line Number="7">MAXC(HighState);</Line>
+              <Line Number="8">MINC(LowState);</Line>
+              <Line Number="9">CallCount := CallCount + 1;</Line>
+              <Line Number="10">END_IF;</Line>
+              <Line Number="11">Maximum := HighState.Out;</Line>
+              <Line Number="12">Minimum := LowState.Out;</Line>
+              <Line Number="13">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST MAXC/MINC](st-capture.md) retain finite REAL extrema separately from visible
+Out fields. Held Reset supplies a new baseline; skipped calls retain history.
+Run entry clears the history, detached routine replacement preserves it, and
+failed scans/prescans restore extrema along with ordinary values.
+
 [ST MAVE/MSTD](st-moving-statistics.md) keep samples in visible REAL queues and
 the active count in transactional per-record history. Sampling, initialization,
 input health and length diagnostics control updates; Run entry resets the count.

@@ -274,7 +274,7 @@ class StructuredMovingTests(unittest.TestCase):
         self.assertEqual(self.push(candidate,6)[0]['Out'],4.0)
 
     def test_instruction_counts_and_logical_type_classification(self):
-        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),13)
+        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),15)
         self.assertTrue({'MOVING_AVERAGE','MOVING_STD_DEV'}.isdisjoint(e.project.data_only_types))
         self.assertEqual(e.report()['st_moving']['instructions'],['MAVE','MSTD']);self.assertFalse(e.report()['st_moving']['native_runtime_parity'])
 

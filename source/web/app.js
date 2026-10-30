@@ -199,6 +199,7 @@ $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('dat
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('loop-demo').onclick=()=>loadDemo('LoopLab');
 $('moving-demo').onclick=()=>loadDemo('MovingLab');
+$('capture-demo').onclick=()=>loadDemo('CaptureLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

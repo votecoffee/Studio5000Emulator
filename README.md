@@ -147,6 +147,10 @@ uniform/weighted averages and MSTD population deviation with logical records and
 visible REAL sample queues. Choose **Moving statistics lab** to try sampling,
 window changes, initialization and fault recovery.
 
+[Structured Text maximum/minimum capture](docs/st-capture.md) adds MAXC/MINC
+with retained extrema, reset baselines and transactional history. Choose
+**Capture lab** to try extrema, held resets, skipped calls and fault recovery.
+
 ## Table of Contents
 
 - [Background](#background)

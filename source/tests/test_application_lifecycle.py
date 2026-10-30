@@ -79,6 +79,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_capture_lab_extrema_resets_skip_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'CaptureLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(expected):
+            state=self.post('step',{'dt':10});v=values(state);self.assertEqual((v['Maximum'],v['Minimum']),expected);return state
+        write('Input',-7);step((-7.0,-7.0));write('Input',-3);step((-3.0,-7.0))
+        write('Input',-12);step((-3.0,-12.0));write('CallCapture',False);write('Input',100);step((-3.0,-12.0))
+        write('CallCapture',True);write('ResetCapture',True);write('ResetHigh',5);write('ResetLow',-5);step((5.0,-5.0))
+        write('ResetHigh',2);write('ResetLow',-2);step((2.0,-2.0));write('ResetCapture',False);write('Input',0);step((2.0,-2.0))
+        write('HighState.Out',-100);write('LowState.Out',100);step((2.0,-2.0))
+        write('Input',10);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':10})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);write('Input',1);state=step((2.0,-2.0))
+        self.assertEqual(state['scan'],before['scan']+1);self.assertEqual(values(state)['CallCount'],8)
+        report=self.post('report',{});self.assertEqual(report['st_capture']['instructions'],['MAXC','MINC'])
+        self.assertFalse(report['st_capture']['native_runtime_parity']);self.assertIn('capture-demo',self.get('/').decode())
+
     def test_moving_lab_samples_weights_resize_diagnostics_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'MovingLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

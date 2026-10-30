@@ -59,7 +59,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9}
 
 
-ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2}
+ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1}
 
 
 def operand_problem(op):
@@ -384,7 +384,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -471,6 +471,9 @@ class Project:
         if upper in ("HL_LIMIT","SELECTABLE_NEGATE","SELECTED_SUMMER"):
             from .st_signal import default
             return default(upper)
+        if upper in ("MAXIMUM_CAPTURE","MINIMUM_CAPTURE"):
+            from .st_capture import default
+            return default()
         if upper in ("MOVING_AVERAGE","MOVING_STD_DEV"):
             from .st_moving import default
             return default(upper)
@@ -719,6 +722,9 @@ class Memory:
                     elif dtype.upper() in ('HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER'):
                         from .st_signal import SCHEMAS
                         dtype=SCHEMAS[dtype.upper()][actual]
+                    elif dtype.upper() in ('MAXIMUM_CAPTURE','MINIMUM_CAPTURE'):
+                        from .st_capture import FIELDS
+                        dtype=FIELDS[actual]
                     elif dtype.upper() in ('MOVING_AVERAGE','MOVING_STD_DEV'):
                         from .st_moving import SCHEMAS
                         dtype=SCHEMAS[dtype.upper()][actual]

@@ -4,10 +4,10 @@ import re
 from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem
 from .st_expression import STExpression
-from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving
+from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture
 from .integer_math import WIDE_TYPES
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS,*st_capture.INSTRUCTIONS}
 
 
 @dataclass
@@ -227,7 +227,7 @@ class Structured:
                     extra_writes.extend((key,part) for part in parts)
                 elif op.name=='SRT':extra_writes.extend(array_sort.write_effects(self.memory,op,scope))
                 elif op.name in st_moving.INSTRUCTIONS:writes.extend(op.args[:2])
-                elif op.name in st_timers.INSTRUCTIONS|st_counter.INSTRUCTIONS|st_oneshot.INSTRUCTIONS|st_scale.INSTRUCTIONS|st_signal.INSTRUCTIONS|st_rate.INSTRUCTIONS:writes.append(op.args[0])
+                elif op.name in st_timers.INSTRUCTIONS|st_counter.INSTRUCTIONS|st_oneshot.INSTRUCTIONS|st_scale.INSTRUCTIONS|st_signal.INSTRUCTIONS|st_rate.INSTRUCTIONS|st_capture.INSTRUCTIONS:writes.append(op.args[0])
                 elif op.name in self.engine.project.aois:
                     writes.append(op.args[0])
                     for p,arg in zip(self.engine.project.aois[op.name].required,op.args[1:]):
@@ -343,6 +343,7 @@ class Structured:
                             elif n.op.name in st_signal.INSTRUCTIONS:st_signal.execute(self.engine,n.op,scope)
                             elif n.op.name in st_rate.INSTRUCTIONS:st_rate.execute(self.engine,n.op,scope)
                             elif n.op.name in st_moving.INSTRUCTIONS:st_moving.execute(self.engine,n.op,scope)
+                            elif n.op.name in st_capture.INSTRUCTIONS:st_capture.execute(self.engine,n.op,scope)
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             self.trace(routine,n,context,detail='return');raise
@@ -398,5 +399,6 @@ class Structured:
             elif n.kind=='call' and n.op.name in st_signal.INSTRUCTIONS:st_signal.prescan(self.engine,n.op,scope)
             elif n.kind=='call' and n.op.name in st_rate.INSTRUCTIONS:st_rate.prescan(self.engine,n.op,scope)
             elif n.kind=='call' and n.op.name in st_moving.INSTRUCTIONS:st_moving.prescan(self.engine,n.op,scope)
+            elif n.kind=='call' and n.op.name in st_capture.INSTRUCTIONS:st_capture.prescan(self.engine,n.op,scope)
             elif n.kind=='call' and n.op.name in self.engine.project.aois:
                 self.engine.addons.call(n.op,False,scope,depth+1,prescan=True)

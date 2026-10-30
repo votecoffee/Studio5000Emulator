@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.134503`: [ST MAXC/MINC](st-capture.md), logical capture
+records, retained extrema/reset baselines and Capture Lab.
+
 Available in `26.1030.132924`: [ST MAVE/MSTD](st-moving-statistics.md), logical
 moving-statistics records, REAL queues, sampling/resize/diagnostics and Moving Lab.
 
