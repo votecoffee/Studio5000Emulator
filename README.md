@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.074205`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.081135`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 96 built-in RLL instruction entries, a bounded ST
+The current model is partial: 97 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -80,6 +80,8 @@ Choose **String lab** for a combined ladder/ST example.
 [Masked moves and bit fields](docs/bit-transfer.md) add ladder MVM/BTD for
 SINT/INT/DINT values, including mixed widths and scalar/member/array operands.
 Choose **Bit lab** to try packing and extracting data.
+[Data transition](docs/data-transition.md) adds DINT DTR change detection,
+including reference updates during prescan and false scans.
 
 [Continuous/periodic scheduling](docs/task-scheduling.md) now runs mixed
 Standard tasks at deterministic simulated release times. Choose **Task lab**

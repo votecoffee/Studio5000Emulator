@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; paired MCR zones updated for app `26.1030.074205`. The engine has **96 built-in
+Audited 2026-10-30; DTR reference updates added for app `26.1030.081135`. The engine has **97 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -57,7 +57,7 @@ separate language family, not RLL mnemonics.
 | Select/Limit Instructions | — | — | `ESEL`, `HLL`, `MUX`, `RLIM`, `SEL`, `SNEG`, `SSUM` |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
-| Special Instructions | — | — | `DDT`, `DTR`, `FBC`, `PID` |
+| Special Instructions | `DTR` | — | `DDT`, `FBC`, `PID` |
 | Statistical Instructions | — | — | `MAVE`, `MAXC`, `MINC`, `MSTD` |
 | Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | `CTUD`, `RTOR`, `TOFR`, `TONR` |
 | Trigonometric Instructions | `ACS`, `ASN`, `ATN`, `COS`, `SIN`, `TAN` | `ACOS`, `ASIN`, `ATAN` | — |
@@ -87,6 +87,7 @@ schema/behavior backlog separately from instruction names.
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
+| DTR | [DINT ladder data transition](data-transition.md), complete prior-reference comparison, true/false writes and lexical prescan, including existing AOI bindings. Other profiles and native operand/status/fault parity remain unfinished. |
 | MCR | [Paired ladder zones](master-control.md), false scanning, unconditional endings, routine/AOI isolation and trace markers. Open-ended/conditional/nested zones, cross-boundary jumps and native scan/fault/CPU parity remain unfinished. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
@@ -100,6 +101,7 @@ The exact current dispatch table is `ARITIES` in
 [model.py](../source/logixlab/model.py). Execution and operand checks live in
 [runtime.py](../source/logixlab/runtime.py), [event_tasks.py](../source/logixlab/event_tasks.py), [gsv_configuration.py](../source/logixlab/gsv_configuration.py), [extended.py](../source/logixlab/extended.py),
 [bit_transfer.py](../source/logixlab/bit_transfer.py),
+[data_transition.py](../source/logixlab/data_transition.py),
 [numeric_conversions.py](../source/logixlab/numeric_conversions.py),
 [real_math.py](../source/logixlab/real_math.py),
 [array_statistics.py](../source/logixlab/array_statistics.py),

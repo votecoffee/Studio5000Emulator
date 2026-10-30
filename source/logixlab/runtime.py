@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
@@ -345,6 +345,7 @@ class Engine:
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
         if n=='MCR':mcr.profile(self.project);return
+        if n=='DTR':data_transition.validate(self.memory,op,scope);return
         if n=='SSV':task_inhibit.validate(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -408,6 +409,7 @@ class Engine:
                 elif n in control_operations.INSTRUCTIONS:control_operations.prescan(self.memory,op,scope)
                 elif n in sequencer_operations.INSTRUCTIONS:sequencer_operations.prescan(self.memory,op,scope)
                 elif n in array_statistics.INSTRUCTIONS:array_statistics.prescan(self.memory,op,scope)
+                elif n=='DTR':data_transition.execute(self.memory,op,False,scope)
                 elif n=='OTE':w('',False)
                 elif n in ('ONS','OSR','OSF'):
                     w('',n!='OSF')
@@ -554,6 +556,7 @@ class Engine:
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
         if n=='MCR':return p
+        if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n=='SSV':return task_inhibit.execute(self,op,p,scope)
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n=='GSV':
@@ -717,6 +720,7 @@ class Engine:
                 'integer_expression_execution':integer_math.expression_description(),
                 'wide_st_execution':wide_st.description(self.project),
                 'bit_transfer':bit_transfer.description(),
+                'data_transition':data_transition.description(),
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),

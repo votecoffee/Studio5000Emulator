@@ -162,6 +162,15 @@ conditions, WHILE/REPEAT and matching AOI/routine bindings share existing contro
 flow and rollback. Mixed types, wide loop/CASE/index forms and native parity
 remain unqualified.
 
+## Data transition
+
+[DTR](data-transition.md) compares a masked DINT source with the complete prior
+reference. A true comparison pulses on change and replaces the reference; false
+execution and prescan also refresh it. Disabled MCR bodies therefore update
+references while suppressing pulses. Aliases and existing AOI bindings use
+ordinary scan order; later faults roll back reference and downstream writes.
+Required unknowns fault and native operand/status parity stays unqualified.
+
 ## Paired MCR zones
 
 [Master control reset](master-control.md) plans paired ladder zones and forces

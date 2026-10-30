@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.081135`: [DINT ladder DTR](data-transition.md), including
+prescan/false reference refresh, AOI bindings, MCR interaction and Bit Lab examples.
+
 Available in `26.1030.074205`: [paired MCR zones](master-control.md), including
 false scanning, local routine/AOI scope, validated jumps and Control Lab examples.
 

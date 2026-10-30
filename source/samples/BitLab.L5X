@@ -65,6 +65,46 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="TransitionSource" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TransitionMask" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="255" />
+        </Data>
+      </Tag>
+      <Tag Name="TransitionReference" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TransitionEnable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="TransitionPulse" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TransitionCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -95,6 +135,15 @@
               </Rung>
               <Rung Number="7" Type="N">
                 <Text>MEQ(Status,Mask,SourceByte)OTE(BitOK);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(TransitionEnable)DTR(TransitionSource,TransitionMask,TransitionReference)OTE(TransitionPulse);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(TransitionPulse)ADD(TransitionCount,1,TransitionCount);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
               </Rung>
             </RLLContent>
           </Routine>
