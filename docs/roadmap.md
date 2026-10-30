@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.084708`: [ST TONR/TOFR/RTOR timers](st-timers.md), logical
+FBD_TIMER records, elapsed-time/retention/reset/status behavior and Timer Lab.
+
 Available in `26.1030.082637`: [FBC/DDT ladder bit diagnostics](file-bit-compare.md),
 all/one-mismatch modes, result-list wrapping, reference learning and Bit Lab examples.
 

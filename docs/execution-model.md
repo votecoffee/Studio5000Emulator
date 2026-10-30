@@ -199,6 +199,15 @@ advance progress. Run entry retains flags; reset/reload restores source settings
 Inhibited tasks are still validated and prescanned. Native phase/abort parity
 remains unqualified.
 
+## Structured Text timers
+
+[TONR/TOFR/RTOR](st-timers.md) add three ST-only calls and logical FBD_TIMER
+records. Per-record history uses the simulated task-release clock; repeated
+calls at one timestamp add no duplicate elapsed time. Reset/retention, skipped
+calls and bounded instruction status are explicit. Values and clocks roll back
+together, including on prescan failure. FBD graph and native clock/layout parity
+remain unqualified.
+
 ## Structured Text
 
 Supported forms include assignments, non-retentive `[:=]`, IF/ELSIF/ELSE,

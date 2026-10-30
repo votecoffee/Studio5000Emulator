@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
-  "audited_date": "2026-10-29",
-  "audited_app_version": "26.1029.224802",
+  "audited_date": "2026-10-30",
+  "audited_app_version": "26.1030.084708",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -47,6 +47,11 @@
       "label": "CONTROL model (partial)",
       "remaining": "Native layouts/transfers, remaining consumers/forms and full scan/status/fault parity.",
       "source": "source/logixlab/control_operations.py"
+    },
+    "fbd_timer_model": {
+      "label": "FBD_TIMER model (partial)",
+      "remaining": "Bounded ST TONR/TOFR/RTOR; FBD graphs, native clock/status/fault/layout parity and other profiles remain unfinished.",
+      "source": "source/logixlab/st_timers.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -168,15 +173,16 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 14,
-    "no_dedicated_model": 208,
+    "dedicated_bounded_models": 15,
+    "no_dedicated_model": 207,
     "status_counts": {
-      "no_dedicated_model": 208,
+      "no_dedicated_model": 207,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
       "string_model": 1,
-      "control_model": 1
+      "control_model": 1,
+      "fbd_timer_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1032,7 +1038,7 @@
       "identifier_candidate": "FBD_TIMER",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_timer_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_TIMER",
       "notes": []

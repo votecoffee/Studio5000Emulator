@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.082637`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.084708`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -113,6 +113,10 @@ Choose **Record lab** to try part tracking, a stack and a text FIFO.
 [Paired MCR zones](docs/master-control.md) add controlled false scanning in
 ladder and supported RLL AOIs. **Control lab** shows output clearing, retained
 values, timer/counter behavior and whole-advance rollback.
+
+[Structured Text timers](docs/st-timers.md) add TONR, TOFR and RTOR with logical
+FBD_TIMER records, reset/retention, status bits and simulated elapsed time.
+Choose **Timer lab** to compare on/off delays, pause/resume and fault rollback.
 
 ## Table of Contents
 

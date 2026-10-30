@@ -4,10 +4,10 @@ import re
 from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem
 from .st_expression import STExpression
-from . import system_values, array_sort, st_cases
+from . import system_values, array_sort, st_cases, st_timers
 from .integer_math import WIDE_TYPES
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS}
 
 
 @dataclass
@@ -226,6 +226,7 @@ class Structured:
                     key,parts,_=system_values.validate(self.engine,op,scope)
                     extra_writes.extend((key,part) for part in parts)
                 elif op.name=='SRT':extra_writes.extend(array_sort.write_effects(self.memory,op,scope))
+                elif op.name in st_timers.INSTRUCTIONS:writes.append(op.args[0])
                 elif op.name in self.engine.project.aois:
                     writes.append(op.args[0])
                     for p,arg in zip(self.engine.project.aois[op.name].required,op.args[1:]):
@@ -333,6 +334,7 @@ class Structured:
                     elif n.kind=='call':
                         try:
                             if n.op.name=='SRT':array_sort.execute_st(self.memory,n.op,scope)
+                            elif n.op.name in st_timers.INSTRUCTIONS:st_timers.execute(self.engine,n.op,scope)
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             self.trace(routine,n,context,detail='return');raise
@@ -379,5 +381,6 @@ class Structured:
                 dtype=self.memory.resolve(n.target,scope)[2]
                 if self.engine.project.string_capacity(dtype) is not None:self.memory.write_string(n.target,'',scope)
                 else:self.memory.write(n.target,False if dtype=='BOOL' else 0,scope)
+            elif n.kind=='call' and n.op.name in st_timers.INSTRUCTIONS:st_timers.prescan(self.engine,n.op,scope)
             elif n.kind=='call' and n.op.name in self.engine.project.aois:
                 self.engine.addons.call(n.op,False,scope,depth+1,prescan=True)

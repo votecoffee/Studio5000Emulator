@@ -594,6 +594,32 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['file_bit_compare']
         self.assertEqual(profile['instructions'],['DDT','FBC']);self.assertFalse(profile['native_runtime_parity'])
 
+    def test_timer_lab_st_delays_retention_status_and_clock_rollback_through_http(self):
+        state=self.post('demo', {'sample':'TimerLab'});self.assertEqual(state['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step', {'dt':10});v=values(self.post('step', {'dt':10}))
+        self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(10,10,0))
+        self.post('write', {'tag':'TimerEnable','value':False})
+        self.post('step', {'dt':10});v=values(self.post('step', {'dt':10}))
+        self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(0,10,10))
+        self.assertTrue(v['Off.DN']);self.assertFalse(v['On.DN'])
+        self.post('write', {'tag':'TimerEnable','value':True})
+        before=self.post('write', {'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}))
+        self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(0,10,0))
+        v=values(self.post('step', {'dt':10}));self.assertEqual((v['On.ACC'],v['Retained.ACC']),(10,20))
+        self.post('write', {'tag':'Preset','value':-1});v=values(self.post('step', {'dt':10}))
+        self.assertTrue(v['AnyFault']);self.assertEqual(v['On.Status'],3);self.assertFalse(v['On.EnableOut'])
+        self.post('write', {'tag':'Preset','value':30});self.post('write', {'tag':'ResetTimers','value':True})
+        v=values(self.post('step', {'dt':10}));self.assertFalse(v['AnyFault'])
+        self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(0,0,30))
+        profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):
         self.post('demo', {'sample': 'ConveyorDemo'})
         state = self.post('connectivity-start', {'port': 0})
