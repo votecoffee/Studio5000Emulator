@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.155819`: [numeric COP/CPS byte copies](numeric-copies.md),
+mixed numeric images, clipped regions, partial elements and Byte Copy Lab. Native
+aggregate layouts, cross-member copying and CPS synchronization remain unfinished.
+
 Available in `26.1030.153352`: [ST PI software regulation](st-pi-regulation.md),
 linear/shaped gains, holds, limits and Regulator Lab with a synthetic closed loop.
 Native coefficients/thresholds/rounding/ordering remain unqualified.

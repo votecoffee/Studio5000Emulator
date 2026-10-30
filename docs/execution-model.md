@@ -323,9 +323,12 @@ Native byte layouts, mixed conversions and operational/AOI records stay open.
 
 ## Data and imports
 
-COP/CPS operate on matching declared element types within modeled array/member
-regions. Raw byte layouts and cross-type reinterpretation are blocked. Strings
-retain represented LEN/DATA values, including unknown backing bytes.
+[Numeric COP/CPS byte copies](numeric-copies.md) use little-endian regions in the
+v35 5580 profile. Actual bytes are clipped by both numeric regions; partial final
+elements preserve uncopied bytes. Byte work is budgeted and whole-advance rollback
+restores prior writes. Native aggregate ABI/cross-member copying and CPS
+synchronization remain unfinished. Matching aggregate copies retain their logical
+profile. Strings retain LEN/DATA values, including unknown backing bytes.
 
 L5X files must contain the required project context and saved data. ACD conversion
 uses a separately configured converter against a private copy. Source bytes are

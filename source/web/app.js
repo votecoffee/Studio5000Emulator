@@ -206,6 +206,7 @@ $('accumulator-demo').onclick=()=>loadDemo('AccumulatorLab');
 $('process-demo').onclick=()=>loadDemo('ProcessLab');
 $('curve-demo').onclick=()=>loadDemo('CurveDelayLab');
 $('regulator-demo').onclick=()=>loadDemo('RegulatorLab');
+$('copy-demo').onclick=()=>loadDemo('CopyLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

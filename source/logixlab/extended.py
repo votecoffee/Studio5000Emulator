@@ -3,7 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions
+from . import string_operations, string_conversions, numeric_copy
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
@@ -61,6 +61,11 @@ class Extensions:
         n,a=op.name,op.args
         count=self.integer(a[2],scope)
         self.memory.check_writable(a[1],scope)
+        if n in ('COP','CPS'):
+            specification=numeric_copy.plan(self.engine,op,scope,count)
+            if specification is not None:
+                if execute:numeric_copy.execute(self.engine,specification)
+                return
         dk,dparts,dt=self.memory.region(a[1],count,scope)
         if n in ('COP','CPS'):
             sk,sparts,st=self.memory.region(a[0],count,scope)

@@ -79,6 +79,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_copy_lab_bit_images_partial_elements_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'CopyLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step():return self.post('step',{'dt':10})
+        v=values(step());self.assertEqual((v['BitPattern'],v['FloatOutput'],v['Roundtrip']),(1065353216,1,1))
+        self.assertEqual([v['Packed['+str(i)+']'] for i in range(3)],[0x04030201,0x11223305,0x55667788])
+        self.assertEqual([v['DecodedBytes['+str(i)+']'] for i in range(8)],[1,2,3,4,5,51,34,17])
+        write('FloatInput',2);write('CopyLength',-1);before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('CopyLength',20);v=values(step());self.assertEqual((v['BitPattern'],v['Roundtrip']),(1073741824,2))
+        write('IntegerInput',2143289344);before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now();self.assertEqual(after['tags'],before['tags'])
+        write('IntegerInput',-1071644672);v=values(step());self.assertEqual(v['FloatOutput'],-2.5)
+        report=self.post('report',{});self.assertTrue(report['numeric_copy']['available']);self.assertFalse(report['numeric_copy']['native_runtime_parity'])
+        self.assertIn('copy-demo',self.get('/').decode())
+
     def test_regulator_lab_closed_loop_disabled_timing_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'RegulatorLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

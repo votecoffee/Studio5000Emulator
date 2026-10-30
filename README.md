@@ -176,6 +176,10 @@ switching, buffer timing/resizing, health recovery and transactional faults.
 regulator with gain shaping, holds and output limits. Choose **Regulator lab**
 for a closed-loop step response or externally supplied process feedback.
 
+[Numeric COP/CPS byte copies](docs/numeric-copies.md) add mixed integer/REAL bit
+images, clipped lengths and preserved partial destination elements. Choose
+**Byte copy lab** to inspect a packed packet and REAL/DINT roundtrips.
+
 ## Table of Contents
 
 - [Background](#background)

@@ -39,14 +39,16 @@ class ExpansionTests(unittest.TestCase):
                 e=self.engine([f'{instruction}(Source[0],Source[1],5);']);e.step()
                 self.assertEqual(e.memory.read('Source'),[10]*6)
 
-    def test_copy_bounds_and_type_mismatch_are_blocked(self):
-        for rung in ('COP(Source[0],Grid[0,0],7);','COP(WideSource,Columns,1);'):
-            with self.subTest(rung=rung):self.assertTrue(self.engine([rung]).blockers)
+    def test_numeric_copy_clips_to_boundaries_and_reinterprets_types(self):
+        e=self.engine(['COP(Source[0],Grid[0,0],7);']);self.assertEqual(e.blockers,[]);e.step()
+        self.assertEqual(e.memory.read('Grid'),[[10,20,30],[40,50,60]])
+        e=self.engine(['COP(WideSource,Columns,1);']);self.assertEqual(e.blockers,[]);e.step()
+        self.assertEqual(e.memory.read('Columns'),-2)
 
     def test_dynamic_block_length_fault_rolls_back_prior_writes(self):
         e=self.engine(['MOV(99,ParsedNumber);','COP(Source[0],Buffer[0],Columns);'])
-        self.assertEqual(e.blockers,[]);e.memory.write('Columns',7)
-        with self.assertRaisesRegex(ModelError,'boundary'):e.step()
+        self.assertEqual(e.blockers,[]);e.memory.write('Columns',-1)
+        with self.assertRaisesRegex(ModelError,'length'):e.step()
         self.assertEqual(e.memory.read('ParsedNumber'),0)
         self.assertEqual(e.memory.read('Buffer'),[0]*6)
 

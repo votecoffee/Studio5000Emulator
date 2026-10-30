@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="CopyLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="CopyLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="FloatInput" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegerInput" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1065353216" />
+        </Data>
+      </Tag>
+      <Tag Name="BitPattern" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FloatOutput" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Roundtrip" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CopyLength" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="EnableCopy" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Bytes" TagType="Base" DataType="SINT" Dimensions="5">
+        <Data Format="Decorated">
+          <Array DataType="SINT" Dimensions="5">
+            <Element Index="[0]">
+              <DataValue DataType="SINT" Value="1" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="SINT" Value="2" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="SINT" Value="3" />
+            </Element>
+            <Element Index="[3]">
+              <DataValue DataType="SINT" Value="4" />
+            </Element>
+            <Element Index="[4]">
+              <DataValue DataType="SINT" Value="5" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Packed" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+            <Element Index="[0]">
+              <DataValue DataType="DINT" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="DINT" Value="287454020" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="DINT" Value="1432778632" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="DecodedBytes" TagType="Base" DataType="SINT" Dimensions="8">
+        <Data Format="Decorated">
+          <Array DataType="SINT" Dimensions="8">
+            <Element Index="[0]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[3]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[4]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[5]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[6]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+            <Element Index="[7]">
+              <DataValue DataType="SINT" Value="0" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="UnpackedWords" TagType="Base" DataType="INT" Dimensions="4">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="4">
+            <Element Index="[0]">
+              <DataValue DataType="INT" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="INT" Value="0" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="INT" Value="0" />
+            </Element>
+            <Element Index="[3]">
+              <DataValue DataType="INT" Value="0" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF EnableCopy THEN</Line>
+              <Line Number="1">COP(FloatInput,BitPattern,1); CPS(IntegerInput,FloatOutput,1);</Line>
+              <Line Number="2">COP(Bytes[0],Packed[0],CopyLength);</Line>
+              <Line Number="3">COP(Packed[0],DecodedBytes[0],8);</Line>
+              <Line Number="4">CPS(Packed[0],UnpackedWords[0],4);</Line>
+              <Line Number="5">COP(BitPattern,Roundtrip,1); CallCount:=CallCount+1;</Line>
+              <Line Number="6">END_IF;</Line>
+              <Line Number="7">GuardResult:=1/FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

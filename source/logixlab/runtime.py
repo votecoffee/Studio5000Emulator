@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, numeric_copy
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
@@ -755,6 +755,7 @@ class Engine:
                 'integer_expression_execution':integer_math.expression_description(),
                 'wide_st_execution':wide_st.description(self.project),
                 'bit_transfer':bit_transfer.description(),
+                'numeric_copy':numeric_copy.description(self.project),
                 'data_transition':data_transition.description(),
                 'file_bit_compare':file_bit_compare.description(),
                 'st_timers':st_timers.description(),
@@ -803,7 +804,7 @@ class Engine:
                            "AOI alias/constant/nullable parameters, JSR/FOR/BRK inside AOIs, FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
                            "ST supports a bounded typed subset and reached-statement calls; FOR bounds/step must remain unchanged by its body; dynamic counter references are blocked",
                            "ST [:=] clears during prescan; ordinary assignments retain imported values until executed; native runtime equivalence is unverified",
-                           "COP/CPS require matching types and stay inside modeled array/member boundaries; no raw layout reinterpretation",
+                           "COP/CPS numeric byte regions use the v35 5580 profile; aggregate copies still require matching logical types; native synchronization is unqualified",
                            "FLL supports numeric arrays and DINT-zero structure fills; narrowing overflow is blocked",
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",

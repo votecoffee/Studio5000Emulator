@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST PI regulation added for app `26.1030.153352`. **Full Logix emulation is not
+Audited 2026-10-30; numeric COP/CPS added for app `26.1030.155819`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -31,6 +31,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
 | Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists and selective reference updates | AOI/indirect/alias array starts, broader profiles and native cursor/status/fault parity |
 | Data transition | [DINT RLL DTR](data-transition.md), masked comparison, true/false reference updates, lexical prescan and existing AOI bindings | Other controller profiles and native operand/status/fault parity |
+| Numeric COP/CPS | [Little-endian byte copies](numeric-copies.md) across nine numeric types, clipped lengths, preserved partial elements, row-major/member arrays, budget/rollback and ST loop write effects | Native aggregate/BOOL/string/LREAL layouts, cross-member/base-tag copying, synchronization and fault/partial-effect parity |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
 | Structured Text | Assignments, conditionals, [integer/REAL CASE](st-case-selection.md), bounded loops, [homogeneous wide expressions](wide-st.md), [decimal typed constants](st-integer-literals.md), supported calls and RLL/ST calls | Complete language/functions, mixed/wide FOR/CASE/index forms, full numeric promotion, time arithmetic and aggregates |
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |

@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST PI regulation added for app `26.1030.153352`. The engine has **101 built-in
+Audited 2026-10-30; numeric COP/CPS added for app `26.1030.155819`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -98,7 +98,7 @@ schema/behavior backlog separately from instruction names.
 | FSC | [Bounded ALL/numeric ladder search](file-search.md) and [idle-source INC](file-incremental.md), comparison expressions and FD/IN. Saved active INC state, AOIs, additional expressions and native cursor/status/fault parity remain unfinished. |
 | SRT | [Dimension-wise ladder/ST sorting](array-sort.md), with SINT/INT/DINT/REAL arrays and three-operand ST calls. The qualified whole-region profile retains POS zero; native internal cursor, partial-state/fault behavior, broader references and types remain unfinished. |
 | AVE/STD | [Dimension-wise statistics](array-statistics.md) with SINT/INT/DINT/REAL arrays, REAL results and logical CONTROL. Partial POS/resume, integer AVE destinations, indirect/alias/AOI array starts and native precision/fault/status behavior remain unfinished. |
-| COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
+| COP/CPS | [Numeric byte regions](numeric-copies.md) support SINT/INT/DINT/LINT, unsigned integers and finite REAL in RLL/ST: destination-sized requests, clipped numeric-region bounds, partial destination preservation and forward overlap. Aggregate/BOOL/string/LREAL layouts, cross-member/base-tag forms, native synchronization and fault/partial-effect parity remain unfinished. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; PID/PIDE are separate. |
