@@ -79,6 +79,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_curve_delay_lab_interpolation_resize_health_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'CurveDelayLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(curve,delay):
+            state=self.post('step',{'dt':250});v=values(state)
+            self.assertEqual((v['CurveOutput'],v['DelayedOutput']),(curve,delay));return state
+        step(0,0);write('Input',5);step(50,0);write('Input',10);step(100,0);write('Input',15);step(75,50)
+        write('DelaySeconds',0.75);step(75,100);write('InputFault',True);step(75,100)
+        write('InputFault',False);write('Input',20);step(50,50);write('SelectSecond',True);write('Input',10);step(200,50)
+        write('Input',20);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':250})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);step(400,50);write('DelaySeconds',0);step(400,400)
+        write('X2[1]',0);state=step(400,400);self.assertEqual(values(state)['CurveState.Status'],9)
+        write('X2[1]',10);state=step(400,400);self.assertEqual(values(state)['CurveState.Status'],0)
+        report=self.post('report',{});self.assertEqual(report['st_curves']['instructions'],['DEDT','FGEN'])
+        self.assertFalse(report['st_curves']['native_runtime_parity']);self.assertIn('curve-demo',self.get('/').decode())
+
     def test_process_lab_selection_derivative_requests_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'ProcessLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

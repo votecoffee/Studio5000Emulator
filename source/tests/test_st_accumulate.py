@@ -205,7 +205,7 @@ class StructuredAccumulationTests(unittest.TestCase):
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+member)[2],kind)
         e.memory.write('i.deltatinv',True);self.assertEqual(e.memory.read('I.Status'),-2147483648)
         self.step(e);self.assertFalse(e.memory.read('I.DeltaTInv'))
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,24))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,26))
         self.assertFalse(e.report()['st_accumulate']['native_runtime_parity'])
 
     def test_invalid_shapes_constants_redefinitions_arity_and_rll_forms_block(self):

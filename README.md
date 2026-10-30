@@ -168,6 +168,10 @@ Choose **Accumulator lab** to try both instructions.
 selection and DERV rate of change. Choose **Process lab** to try selection modes,
 Program/Operator requests, bypass, timing and fault recovery.
 
+[Structured Text curves and delay](docs/st-curves-delay.md) adds FGEN piecewise
+conversion and DEDT transport delay. Choose **Curve and delay lab** to try table
+switching, buffer timing/resizing, health recovery and transactional faults.
+
 ## Table of Contents
 
 - [Background](#background)

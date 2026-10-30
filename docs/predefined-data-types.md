@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.145913` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.151533` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -36,9 +36,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Accumulation models, partial | 2 | [ST UPDN/INTG](st-accumulation.md), finite REAL totals, timed integration, holds, limits and history |
 | Enhanced selection model, partial | 1 | [ST ESEL](st-process-signals.md), healthy/manual selection, control requests and diagnostics |
 | Derivative model, partial | 1 | [ST DERV](st-process-signals.md), timed rate of change, bypass and history |
-| No dedicated model | 187 | No dedicated bounded named runtime model |
+| Curve/delay models, partial | 2 | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, sample delay queues, resizing and health recovery |
+| No dedicated model | 185 | No dedicated bounded named runtime model |
 
-Thus **35 entries have dedicated bounded models**; this is not 35 fully
+Thus **37 entries have dedicated bounded models**; this is not 37 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -128,7 +129,7 @@ Every dedicated model status still requires the qualifications above.
 | 36 | `DCI_STOP_TEST` | Safety | No dedicated model | Listed |
 | 37 | `DCI_STOP_TEST_LOCK` | Safety | No dedicated model | Listed |
 | 38 | `DCI_STOP_TEST_MUTE` | Safety | No dedicated model | Listed |
-| 39 | `DEADTIME` | Process/filter/drive | No dedicated model | Listed |
+| 39 | `DEADTIME` | Process/filter/drive | Curve/delay model (partial) | Listed |
 | 40 | `DERIVATIVE` | Process/filter/drive | Derivative model (partial) | Listed |
 | 41 | `DINT` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
 | 42 | `DISCRETE_2STATE` | Process/filter/drive | No dedicated model | Listed |
@@ -168,7 +169,7 @@ Every dedicated model status still requires the qualifications above.
 | 76 | `FIVE_POS_MODE_SELECTOR` | Safety | No dedicated model | Listed |
 | 77 | `FLIP_FLOP_D` | FBD state/logic | Boolean memory model (partial) | Listed |
 | 78 | `FLIP_FLOP_JK` | FBD state/logic | Boolean memory model (partial) | Listed |
-| 79 | `FUNCTION_GENERATOR` | Process/filter/drive | No dedicated model | Listed |
+| 79 | `FUNCTION_GENERATOR` | Process/filter/drive | Curve/delay model (partial) | Listed |
 | 80 | `HL_LIMIT` | Process/filter/drive | HL_LIMIT model (partial) | Listed |
 | 81 | `HMIBC` | HMI button control | No dedicated model | Listed |
 | 82 | `IMC` | Process/filter/drive | No dedicated model | Listed |

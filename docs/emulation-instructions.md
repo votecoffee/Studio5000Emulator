@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST process signals added for app `26.1030.145913`. The engine has **101 built-in
+Audited 2026-10-30; ST curves/delay added for app `26.1030.151533`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -30,7 +30,8 @@ MINIMUM_CAPTURE. [ST LPF](st-low-pass-filter.md) adds a FILTER_LOW_PASS software
 model. [ST Boolean memory](st-digital-memory.md) adds DFF/JKFF/RESD/SETD and
 four logical records. [ST UPDN/INTG](st-accumulation.md) add two accumulation
 records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
-records. These twenty-four additional calls are excluded from the RLL dispatch
+records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
+These twenty-six additional calls are excluded from the RLL dispatch
 count. Their FBD graph forms remain unimplemented.
 
 ## Instruction families
@@ -64,7 +65,7 @@ count. Their FBD graph forms remain unimplemented.
 | Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | `BAND`, `BNOT`, `BOR`, `BTDT`, `BXOR`, `MVMT` (ST-only DFF/JKFF/RESD/SETD listed above) |
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
-| Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `DEDT`, `FGEN`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
+| Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
 | Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
 | Select/Limit Instructions | — | — | `MUX`, `SEL` (ST-only ESEL/HLL/SNEG/SSUM/RLIM listed above) |
@@ -99,6 +100,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
 | ESEL/DERV (ST only) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, FBD graphs and packed layouts remain unfinished. |
 | UPDN/INTG (ST only) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, FBD graphs and packed layouts remain unfinished. |
 | DFF/JKFF/RESD/SETD (ST only) | [Logical Boolean memory](st-digital-memory.md), sampled clock/data/toggle behavior, Clear priority, latch dominance, complements and rollback. FBD graphs, layouts and native lifecycle/output-write/status/fault parity remain unfinished. |

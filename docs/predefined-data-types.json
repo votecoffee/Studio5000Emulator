@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.145913",
+  "audited_app_version": "26.1030.151533",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -117,6 +117,11 @@
       "label": "Derivative model (partial)",
       "remaining": "Bounded ST DERV finite REAL rate of change and bypass; native startup/timing transitions/rounding, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_derivative.py"
+    },
+    "curve_delay_model": {
+      "label": "Curve/delay model (partial)",
+      "remaining": "Bounded ST FGEN selected piecewise curves and DEDT sampled transport delay; native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
+      "source": "source/logixlab/st_curves.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -243,10 +248,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 35,
-    "no_dedicated_model": 187,
+    "dedicated_bounded_models": 37,
+    "no_dedicated_model": 185,
     "status_counts": {
-      "no_dedicated_model": 187,
+      "no_dedicated_model": 185,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -266,7 +271,8 @@
       "digital_memory_model": 4,
       "accumulation_model": 2,
       "enhanced_select_model": 1,
-      "derivative_model": 1
+      "derivative_model": 1,
+      "curve_delay_model": 2
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -738,7 +744,7 @@
       "identifier_candidate": "DEADTIME",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "curve_delay_model",
       "v35_listing": "exact",
       "v35_catalog_name": "DEADTIME",
       "notes": []
@@ -1218,7 +1224,7 @@
       "identifier_candidate": "FUNCTION_GENERATOR",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "curve_delay_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FUNCTION_GENERATOR",
       "notes": []

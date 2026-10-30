@@ -1,0 +1,238 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="CurveDelayLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="CurveDelayLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectSecond" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Table1Points" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="Table2Points" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="DelaySeconds" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0.5" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0.25" />
+        </Data>
+      </Tag>
+      <Tag Name="ProcessGain" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ProcessBias" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputFault" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallLogic" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="CurveOutput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DelayedOutput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CurveState" TagType="Base" DataType="FUNCTION_GENERATOR">
+        <Data Format="Decorated">
+          <Structure DataType="FUNCTION_GENERATOR">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="XY1Size" DataType="DINT" Value="1" />
+            <DataValueMember Name="XY2Size" DataType="DINT" Value="0" />
+            <DataValueMember Name="Select" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DelayState" TagType="Base" DataType="DEADTIME">
+        <Data Format="Decorated">
+          <Structure DataType="DEADTIME">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InFault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Deadtime" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="Bias" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="X1" TagType="Base" DataType="REAL" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+            <Element Index="[0]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="REAL" Value="10" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="REAL" Value="20" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Y1" TagType="Base" DataType="REAL" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+            <Element Index="[0]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="REAL" Value="100" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="REAL" Value="50" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="X2" TagType="Base" DataType="REAL" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+            <Element Index="[0]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="REAL" Value="10" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="REAL" Value="20" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="Y2" TagType="Base" DataType="REAL" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+            <Element Index="[0]">
+              <DataValue DataType="REAL" Value="100" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="REAL" Value="200" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="REAL" Value="400" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="DelayBuffer" TagType="Base" DataType="REAL" Dimensions="8">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="8">
+            <Element Index="[0]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[1]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[2]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[3]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[4]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[5]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[6]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+            <Element Index="[7]">
+              <DataValue DataType="REAL" Value="0" />
+            </Element>
+          </Array>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallLogic THEN</Line>
+              <Line Number="1">CurveState.In:=Input; CurveState.Select:=SelectSecond;</Line>
+              <Line Number="2">CurveState.XY1Size:=Table1Points; CurveState.XY2Size:=Table2Points;</Line>
+              <Line Number="3">FGEN(CurveState,X1,Y1,X2,Y2);</Line>
+              <Line Number="4">DelayState.In:=CurveState.Out; DelayState.InFault:=InputFault;</Line>
+              <Line Number="5">DelayState.Deadtime:=DelaySeconds; DelayState.Gain:=ProcessGain; DelayState.Bias:=ProcessBias;</Line>
+              <Line Number="6">DelayState.TimingMode:=1; DelayState.OversampleDT:=SampleTime;</Line>
+              <Line Number="7">DEDT(DelayState,DelayBuffer); CallCount:=CallCount+1;</Line>
+              <Line Number="8">END_IF;</Line>
+              <Line Number="9">CurveOutput:=CurveState.Out; DelayedOutput:=DelayState.Out;</Line>
+              <Line Number="10">GuardResult:=1/FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST curves and delay](st-curves-delay.md) read selected piecewise tables and
+update active REAL delay-buffer prefixes. Point/sample work is budgeted; array
+changes, delay length/binding, pending recovery, time and scheduler state share
+whole-advance rollback. Native startup/resize/recovery policies remain unqualified.
+
 [ST process signals](st-process-signals.md) adds ESEL control ownership and DERV
 input/clock/output histories. Consumed requests and both histories participate in
 whole-advance rollback. Native startup and interacting-condition policies remain

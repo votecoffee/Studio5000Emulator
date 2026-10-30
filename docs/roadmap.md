@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.151533`: [ST curves and delay](st-curves-delay.md),
+FGEN piecewise conversion and DEDT sampled delay with Curve and Delay Lab. Native
+startup/precision/conditional diagnostics/resize/recovery remain unqualified.
+
 Available in `26.1030.145913`: [ST process signals](st-process-signals.md),
 ESEL selection/control requests and DERV rate of change with Process Lab. Native
 startup/request/health/timing/rounding qualification remains unfinished.

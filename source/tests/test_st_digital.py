@@ -249,7 +249,7 @@ class StructuredDigitalTests(unittest.TestCase):
         self.assertEqual(self.step(candidate),(True,True,True,True))
 
     def test_count_classification_schemas_and_report_are_qualified(self):
-        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),24)
+        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),26)
         self.assertTrue(set(TAGS.values()).isdisjoint(e.project.data_only_types))
         for name,dtype in TAGS.items():
             self.assertEqual(set(e.memory.read(name)),set(SCHEMAS[dtype]))
