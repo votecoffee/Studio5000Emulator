@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -255,7 +255,7 @@ class Engine:
                         self.blockers.append(f"Scheduled program {name} is missing")
                     elif program['use_as_folder']:
                         self.blockers.append(f"Program {name} is a folder and cannot be scheduled")
-                    elif not program["disabled"] and not task['inhibited']:
+                    elif not program["disabled"]:
                         if (not program['main'] and self.project.program_diagnostics.has_no_main(
                                 name,source_sha256=self.project.sha256)):
                             self._no_main_programs.add(name.casefold())
@@ -341,6 +341,7 @@ class Engine:
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
+        if n=='SSV':task_inhibit.validate(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
@@ -436,6 +437,8 @@ class Engine:
         self.trace = []
         self.budget = self.instruction_limit
         timings=dict(self._program_timings)
+        inhibitions=dict(self._task_scheduler.inhibitions) if batch else None
+        completed=[]
         try:
             task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
             task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
@@ -456,7 +459,10 @@ class Engine:
                 finally:self._executing_task,self.memory.first_scan=previous_task,previous_first
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
             for position,(due,task,entries) in enumerate(runs):
-                run_task(due,task,entries)
+                index=batch.releases[position][1] if batch else None
+                if not batch or not self._task_scheduler.inhibitions[index]:
+                    run_task(due,task,entries)
+                    if batch:completed.append((due,index))
                 if batch:
                     following=batch.releases[position+1] if position+1<len(batch.releases) else None
                     ceiling=(self._task_scheduler.tasks[following[1]].priority
@@ -465,7 +471,7 @@ class Engine:
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced)
+            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -474,6 +480,7 @@ class Engine:
             self._task_measurements=measured
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
+            if batch:self._task_scheduler.inhibitions=inhibitions
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
@@ -535,6 +542,7 @@ class Engine:
     def _op(self, op, p, scope, depth):
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
+        if n=='SSV':return task_inhibit.execute(self,op,p,scope)
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n=='GSV':
             if p:system_values.execute(self,op,scope)
@@ -675,6 +683,9 @@ class Engine:
         if self.mode=='routine':return self.memory.first_scan
         return any(self.project.routines[key].program.casefold() not in self._program_scanned for key in self.entries)
 
+    def task_inhibition_attributes(self,name,*,source_sha256):
+        return task_inhibit.attributes(self,name,source_sha256=source_sha256)
+
     def scheduler_description(self):
         return self._task_scheduler.description() if self._task_scheduler is not None else dict(policy='Isolated routine; task scheduling bypassed' if self.mode=='routine' else 'No executable task schedule; inspect blockers',tasks=[],preemptive=False)
 
@@ -729,7 +740,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports SINT/INT/DINT with documented zero-extension; wide/unsigned forms remain blocked",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; runtime timing/status, other attributes and SSV remain unsupported",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports Standard Continuous/Periodic Task InhibitTask only; runtime timing/status and broader system attributes remain unsupported",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

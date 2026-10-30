@@ -58,7 +58,8 @@ supported event bits, update count and simulator provenance. It omits the value,
 mask, source digest and source contents. Static `controller_configuration`
 continues to describe source settings only. No archived controller audit value
 is imported, and no event log, physical memory percentage or State Detection
-signature is generated. Configuration writes and GSV/SSV remain unsupported.
+signature is generated. Controller audit/mask writes remain unsupported. Current [GSV reads](controller-gsv.md)
+and [SSV Task InhibitTask](task-inhibition.md) have separate bounded profiles.
 
 ## Validation scope
 

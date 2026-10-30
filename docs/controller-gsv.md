@@ -9,7 +9,7 @@ The supported form is `GSV(Controller,,attribute,destination)`: the Controller
 instance operand is empty, and the attribute is `AuditValue` or `ChangesToDetect`.
 Class and attribute names are case insensitive. Additional
 [Task/Controller configuration reads](gsv-configuration.md) have their own typed
-profile. Other classes/attributes and `SSV` remain unfinished. The Controller values and their GSV access are described
+profile. Bounded [SSV Task InhibitTask](task-inhibition.md) has a separate runtime profile; other classes/attributes remain unfinished. The Controller values and their GSV access are described
 in [1756-PM015, Change detection](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf).
 
 ## Destinations and execution

@@ -46,7 +46,8 @@ AOI output/InOut bindings retain normal memory rules. Unknown destinations can
 be established; strings preserve unused destination bytes.
 
 Prescan, false ladder rungs and skipped ST branches retain outputs. Each reached
-call reads the loaded configuration; changing a disk file is not a project
+call reads the loaded configuration, with project-mode InhibitTask following the
+[live runtime flag](task-inhibition.md); changing a disk file is not a project
 reload. Bound metadata with a different source hash is rejected. ST FOR checks
 track every destination, including a string's LEN/DATA region. Capacity/bounds
 errors and later failures retain whole-advance rollback of data and scheduling.
@@ -54,7 +55,7 @@ errors and later failures retain whole-advance rollback of data and scheduling.
 These instructions read configuration. They do not change task rate/inhibition,
 drive output I/O, enforce watchdogs, allocate CPU timeslices or measure execution
 time. Native scan times, intervals, status/fault attributes, other system objects
-and SSV remain unfinished. Existing protocol metadata and software task counters
+and broader SSV remain unfinished. Bounded [Task InhibitTask SSV](task-inhibition.md) is available separately. Existing protocol metadata and software task counters
 do not establish native controller execution parity.
 
 ## System Lab

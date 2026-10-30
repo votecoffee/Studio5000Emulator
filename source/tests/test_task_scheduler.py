@@ -88,13 +88,13 @@ class TaskSchedulerTests(unittest.TestCase):
         e.step(1); self.assertEqual(self.counts(e), [3, 1, 0])
         self.assertEqual(e.time_ms, 17)
 
-    def test_inhibited_task_has_no_execution_or_prescan_effect(self):
+    def test_inhibited_task_is_prescanned_without_normal_execution(self):
         def initial(root):
             root.find("./Controller/Tags/Tag[@Name='StartDelay']/Data/Structure/DataValueMember[@Name='ACC']").set('Value', '123')
         e = self.engine([dict(Type='CONTINUOUS'), dict(InhibitTask='true')],
                         [['NOP();'], ['TON(StartDelay,?,?);']], mutate=initial)
         self.assertEqual(e.blockers, []); e.step(20)
-        self.assertEqual(e.memory.read('StartDelay.ACC'), 123)
+        self.assertEqual(e.memory.read('StartDelay.ACC'), 0)
         self.assertEqual(e.scheduler_description()['tasks'][1]['executions'], 0)
 
     def test_all_inhibited_tasks_can_advance_clock_without_executing(self):

@@ -207,7 +207,7 @@ class GsvConfigurationTests(unittest.TestCase):
 
     def test_report_keeps_configuration_separate_from_native_runtime_and_ssv(self):
         e=self.checked(['GSV(Task,FastTask,Rate,Out);']);report=e.report()['system_values']
-        self.assertFalse(report['ssv']);self.assertFalse(report['configuration']['native_runtime_equivalence'])
+        self.assertTrue(report['ssv']);self.assertFalse(report['configuration']['native_runtime_equivalence'])
         self.assertIn('Microseconds',report['configuration']['times'])
 
     def test_aoi_typed_output_and_string_inout_bindings_in_rll_and_st(self):

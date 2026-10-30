@@ -6,11 +6,11 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.000222`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.001741`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
-The current model is partial: 94 built-in RLL instruction entries, a bounded ST
+The current model is partial: 95 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs and explicit custom strings. FBD, SFC, motion,
 cyclic module I/O and EDS-driven device models remain unimplemented.
 See the [comprehensive capability checklist](docs/emulation-coverage.md),
@@ -96,6 +96,10 @@ additional expression forms and native math flags remain unfinished.
 [Numeric CASE selection](docs/st-case-selection.md) supports integer and REAL
 expressions with immediate lists/ranges and first-match execution. **Text lab**
 demonstrates float32 comparisons, overlapping ranges and late-fault rollback.
+
+[Runtime task inhibition](docs/task-inhibition.md) adds SSV Task InhibitTask in
+ladder and ST, live GSV readback, and rollback with task progress. **System lab**
+provides independent controls for its Fast and Slow tasks.
 
 ## Table of Contents
 
@@ -289,7 +293,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, name/description and read-only pass-through configuration; limited Metadata Definition discovery; security enforcement and pass-through routing remain unsupported |
 | Change detection | Explicit source mask plus a simulator-owned Audit Value; SDK mode/import updates and upload field reads verified on `.144`; State Detection signatures remain unsupported |
-| Get System Value | Ladder/ST audit values plus [explicit Task/Controller configuration](docs/gsv-configuration.md) with typed destinations. Prior `.145` native fixture acceptance applies to audit reads; configuration reads have separate software checks. Other attributes and SSV remain unfinished |
+| Get System Value | Ladder/ST audit values plus [explicit Task/Controller configuration](docs/gsv-configuration.md) with typed destinations. Prior `.145` native fixture acceptance applies to audit reads; configuration reads have separate software checks. [SSV Task InhibitTask](docs/task-inhibition.md) controls bounded Standard tasks; broader attributes/classes remain unfinished |
 | Software device metadata | Read-only location/locale and empty trusted-slot/operator state, explicitly identified as emulator defaults |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |

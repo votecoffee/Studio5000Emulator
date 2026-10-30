@@ -1638,6 +1638,7 @@ class Router:
                 task['name'],source_sha256=self.app.engine.project.sha256))
             attributes.update(self.app.engine.project.task_timing.attributes(
                 task['name'],source_sha256=self.app.engine.project.sha256))
+            attributes.update(self.app.engine.task_inhibition_attributes(task['name'],source_sha256=self.app.engine.project.sha256))
             measured=self.app.engine.task_measurement_attributes(task['name'],source_sha256=self.app.engine.project.sha256)
             attributes.update(measured)
             attributes.update(self.app.engine.task_status_attributes(task['name'],source_sha256=self.app.engine.project.sha256))

@@ -48,6 +48,11 @@ def source(engine, op):
     values.update(configuration.attributes(name,source_sha256=project.sha256))
     raw=values.get(number)
     if raw is None:raise ModelError('GSV Task attribute is unavailable from explicit source settings')
+    if attribute=='inhibittask' and engine._task_scheduler is not None:
+        scheduler=engine._task_scheduler
+        if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
+        index=next(i for i,t in enumerate(scheduler.tasks) if t.name==name)
+        return dtype,int(scheduler.inhibitions[index])
     return dtype,struct.unpack('<h' if dtype=='INT' else '<i',raw)[0]
 
 
@@ -80,7 +85,7 @@ def description():
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact source milliseconds; no inferred defaults',
-                state='Configuration reads only; no task, watchdog, I/O or CPU timeslice side effects',
-                native_runtime_equivalence=False, ssv=False,
+                state='Source configuration; Task InhibitTask reads live runtime inhibition in project mode',
+                native_runtime_equivalence=False, ssv=True,
                 remaining=['Task current/THIS/empty instance and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
-                           'Scan-time/interval/status/fault attributes','Other classes/attributes and SSV'])
+                           'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

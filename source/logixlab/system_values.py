@@ -1,7 +1,7 @@
 """Bounded GSV audit values and explicit source-configuration reads."""
 import struct
 from .model import ModelError
-from . import gsv_configuration
+from . import gsv_configuration, task_inhibit
 
 
 def source(engine,op):
@@ -56,4 +56,4 @@ def execute(engine,op,scope):
 
 def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
-                configuration=gsv_configuration.description(), ssv=False)
+                configuration=gsv_configuration.description(), ssv=True, task_inhibition=task_inhibit.description())

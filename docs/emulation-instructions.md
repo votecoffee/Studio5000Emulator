@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; numeric ST CASE updated for app `26.1030.000222`. The engine has **94 built-in
+Audited 2026-10-30; runtime task inhibition updated for app `26.1030.001741`. The engine has **95 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -40,7 +40,7 @@ separate language family, not RLL mnemonics.
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
 | Filter Instructions | — | — | `DERV`, `HPF`, `LDL2`, `LPF`, `NTCH` |
 | For Break Instructions | — | — | `BRK`, `FOR` |
-| Input/Output Instructions | `GSV` | — | `IOT`, `MSG`, `SSV` |
+| Input/Output Instructions | `GSV`, `SSV` | — | `IOT`, `MSG` |
 | License Instructions | — | — | `LV` |
 | Math Conversion Instructions | `DEG`, `FRD`, `RAD`, `TOD`, `TRN` | — | — |
 | Metal Form Instructions | — | — | `AVC`, `CBCM`, `CBIM`, `CBSSM`, `CPM`, `CSM`, `EPMS`, `MMVC`, `MVC` |
@@ -91,7 +91,8 @@ schema/behavior backlog separately from instruction names.
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
 | EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/FOR forms and CPU/status parity remain unfinished. |
-| GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and SSV remain unfinished. |
+| GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and broader SSV remain unfinished. |
+| SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. Other classes/attributes, Event/Safety targets, AOIs and harness calls remain unfinished. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |
 
 The exact current dispatch table is `ARITIES` in

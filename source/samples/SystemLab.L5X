@@ -389,6 +389,46 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="ControlTasks" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TaskInhibitCommand" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StApplyInhibit" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StTaskInhibitCommand" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LiveFastInhibit" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="StSlowInhibit" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="ControlDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ControlResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -432,6 +472,15 @@
               <Rung Number="11" Type="N">
                 <Text>XIC(ReadConfig)JSR(ReadSettings,0);</Text>
               </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(ControlTasks)SSV(Task,FastTask,InhibitTask,TaskInhibitCommand);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>GSV(Task,FastTask,InhibitTask,LiveFastInhibit);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(ControlTasks)DIV(1,ControlDivisor,ControlResult);</Text>
+              </Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
@@ -439,6 +488,8 @@
               <Line Number="0">GSV(Task,SlowTask,Rate,StSlowRate);</Line>
               <Line Number="1">GSV(Controller,,TimeSlice,StCommTimeSlice);</Line>
               <Line Number="2">GSV(Task,FastTask,Name,StFastTaskName);</Line>
+              <Line Number="3">IF StApplyInhibit THEN SSV(Task,SlowTask,InhibitTask,StTaskInhibitCommand); END_IF;</Line>
+              <Line Number="4">GSV(Task,SlowTask,InhibitTask,StSlowInhibit);</Line>
             </STContent>
           </Routine>
         </Routines>

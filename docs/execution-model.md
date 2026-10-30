@@ -123,7 +123,8 @@ general CPU timing and external event sources remain open.
 source ChangesToDetect mask in RLL and ST. They share the CIP values and preserve
 all bits in LINT or two DINT elements. [Configuration GSV](gsv-configuration.md)
 adds explicit Task/Controller settings with exact INT/DINT/string destinations.
-Unqualified values, runtime attributes and SSV remain unsupported.
+Unqualified values, runtime attributes and broader SSV remain unsupported;
+[Task InhibitTask](task-inhibition.md) has a separate runtime profile.
 
 JSR/SBR/RET require exact parameter counts, compatible types and dimensions,
 static references and bounded call nesting. Calls cannot target a main routine;
@@ -160,6 +161,16 @@ division/remainder use exact integers and bitwise operations retain width. BOOL
 conditions, WHILE/REPEAT and matching AOI/routine bindings share existing control
 flow and rollback. Mixed types, wide loop/CASE/index forms and native parity
 remain unqualified.
+
+## Runtime task inhibition
+
+[SSV Task InhibitTask](task-inhibition.md) changes a separate runtime flag. Each
+base release checks it before starting; the current body completes. Periodic
+phase continues while inhibited, with missed releases discarded. GSV and exposed
+Task read attribute 19 follow the live flag. Later faults roll it back with all
+advance progress. Run entry retains flags; reset/reload restores source settings.
+Inhibited tasks are still validated and prescanned. Native phase/abort parity
+remains unqualified.
 
 ## Structured Text
 

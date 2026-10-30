@@ -67,13 +67,14 @@ class TaskScheduler:
                 priority = int(raw)
             tasks.append(Task(name, row['type'], priority, period, row['inhibited'], tuple(entries.get(name.casefold(), ()))))
         self.tasks = tuple(tasks)
+        self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
         self.reset(0)
 
     def reset(self, now):
         self.origin = now
         self.clock = now
         self.next_due = {i: now + task.period for i, task in enumerate(self.tasks)
-                         if task.period is not None and not task.inhibited}
+                         if task.period is not None}
         self.counts = {i: 0 for i in range(len(self.tasks))}
         self.last = {i: None for i in range(len(self.tasks))}
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
@@ -95,7 +96,7 @@ class TaskScheduler:
             next_due[i] = due + self.tasks[i].period
             heapq.heappush(heap, (next_due[i], self.tasks[i].priority, i))
         for i, task in enumerate(self.tasks):
-            if task.kind == 'Continuous' and not task.inhibited:
+            if task.kind == 'Continuous':
                 if len(releases) >= MAX_RELEASES:
                     raise ModelError('Task release budget exceeded; use a smaller simulation step')
                 releases.append((end, i))
@@ -105,10 +106,10 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
-    def commit(self, batch, *, events=(), overlaps=None, coalesced=None):
+    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
         if (len(batch.releases)+len(events)>MAX_RELEASES or
@@ -117,9 +118,13 @@ class TaskScheduler:
                 or any(i not in self.overlaps or type(n) is not int or n<0
                        for counts in (overlaps,coalesced) for i,n in (counts or {}).items())):
             raise ModelError('Invalid Event task completion batch')
+        executed=tuple((due,i) for due,i in batch.releases if not self.inhibitions[i]) if executed is None else tuple(executed)
+        positions={release:i for i,release in enumerate(batch.releases)}
+        order=[positions.get(release,-1) for release in executed]
+        if any(i<0 for i in order) or order!=sorted(set(order)):raise ModelError('Invalid completed base-task releases')
         self.clock = batch.end
         self.next_due = dict(batch.next_due)
-        for due, i in (*batch.releases,*events):
+        for due, i in (*executed,*events):
             self.counts[i] += 1
             self.last[i] = due
         for i,n in (overlaps or {}).items():self.overlaps[i]+=n
@@ -130,11 +135,13 @@ class TaskScheduler:
                     clock_ms=self.clock, run_epoch_ms=self.origin, preemptive=False, event_tasks=any(t.kind=='Event' for t in self.tasks), safety_tasks=False,
                     event_dispatch='Immediate higher-priority EVENT; deferred lower/equal at task returns; no CPU timing/preemption model',
                     watchdog_enforced=False, release_limit=MAX_RELEASES,
+                    inhibition='Live at each release; current body completes; periodic phase continues without catch-up',
+                    release_budget='Counts potential release slots, including inhibited tasks',
                     equal_priority='Base releases use source order and precede queued Events; Event ties use request order',
                     first_periodic_release='One configured period after Run entry',
                     tasks=[dict(name=t.name, kind=t.kind, priority=t.priority if t.kind!='Continuous' else None, rate_ms=t.period,
-                                inhibited=t.inhibited, executions=self.counts[i],
-                                last_release_ms=self.last[i], next_release_ms=self.next_due.get(i),
+                                inhibited=self.inhibitions[i], source_inhibited=t.inhibited, executions=self.counts[i],
+                                last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i),
                                 **({'event_instruction_overlaps':self.overlaps[i],
                                     'event_pending_requests_coalesced':self.coalesced[i]} if t.kind=='Event' else {}))
                            for i, t in enumerate(self.tasks)])

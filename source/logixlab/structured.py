@@ -7,7 +7,7 @@ from .st_expression import STExpression
 from . import system_values, array_sort, st_cases
 from .integer_math import WIDE_TYPES
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SWPB','SRT'}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT'}
 
 
 @dataclass

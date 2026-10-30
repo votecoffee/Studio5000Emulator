@@ -7,6 +7,13 @@ equivalence. A separate [instruction-only EVENT profile](event-tasks.md) now
 supports immediate higher-priority and deferred lower/equal-priority Event tasks
 at logical task boundaries. Safety execution remains blocked.
 
+## Runtime inhibition
+
+[SSV Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic
+releases. Runtime flags are checked at each boundary; the current body completes,
+phase continues while inhibited and missed releases are discarded. GSV reads the
+live flag. System Lab exposes ladder and ST controls. Other SSV forms remain open.
+
 ## Try Task Lab
 
 Choose **Task lab** in the header, then **Step scan**. The example contains one
@@ -42,16 +49,18 @@ or add watchdog enforcement. Task Lab remains the scheduling-only example.
 - The Continuous task executes one complete pass at the end of each advance,
   after due Periodic tasks. Its run frequency therefore depends on step size.
 - Programs execute in each task's configured order. A Program may be scheduled
-  only once. Inhibited tasks retain configuration and execute no logic or
-  prescan. A project with all tasks inhibited can advance time without logic.
+  only once. Inhibited tasks retain configuration and execute no normal logic,
+  but are validated and prescanned at Run entry. A project with all tasks
+  inhibited can advance time without normal execution, within the release budget.
 - A single active Periodic task retains the existing interface contract: each
   step must equal its configured rate. Mixed/multiple-task projects accept any
   supported whole-millisecond step and dispatch releases within that interval.
-- At most 4,096 task releases are permitted in one advance, sharing the engine's
+- At most 4,096 potential task releases, including inhibited slots, are permitted
+  in one advance, sharing the engine's
   instruction budget. Excessive advances are rejected; releases are not silently
   dropped. Use smaller steps for fast task rates.
 
-Prescan initializes enabled scheduled Programs at Run entry. `S:FS` is true for
+Prescan initializes scheduled Programs, including inhibited tasks, at Run entry. `S:FS` is true for
 each Program's first actual execution after that entry, including a Periodic
 Program that does not run during the first simulation step. A Program-to-Run
 transition rearms first scans and restarts Periodic phase at the current

@@ -280,6 +280,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_system_lab_ssv_controls_and_atomic_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step',{'dt':25})
+        for tag,value in (('ControlTasks',True),('StApplyInhibit',True),('TaskInhibitCommand',1),('StTaskInhibitCommand',-1)):
+            self.post('write',{'tag':tag,'value':value})
+        self.post('step',{'dt':25});state=self.post('step',{'dt':25});row=values(state)
+        self.assertEqual((row['FastCount'],row['SlowCount'],row['LiveFastInhibit'],row['StSlowInhibit']),(5,2,1,1))
+        self.assertTrue(all(t['inhibited'] for t in state['task_schedule']['tasks'][1:]))
+        self.post('write',{'tag':'TaskInhibitCommand','value':0});self.post('write',{'tag':'StTaskInhibitCommand','value':0})
+        state=self.post('step',{'dt':25});self.assertFalse(any(t['inhibited'] for t in state['task_schedule']['tasks']))
+        self.post('write',{'tag':'TaskInhibitCommand','value':1});before=self.post('write',{'tag':'ControlDivisor','value':0})
+        with self.assertRaises(HTTPError) as context:self.post('step',{'dt':25})
+        self.assertEqual(context.exception.code,400);context.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'ControlDivisor','value':1});state=self.post('step',{'dt':25})
+        self.assertEqual(values(state)['LiveFastInhibit'],1)
+        profile=self.post('report',{})['system_values']['task_inhibition'];self.assertFalse(profile['native_runtime_parity'])
+
     def test_text_lab_real_case_selection_and_late_fault_recovery_through_http(self):
         state=self.post('demo', {'sample':'TextLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

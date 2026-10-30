@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.001741`: [SSV runtime task inhibition](task-inhibition.md)
+with live GSV feedback, release-boundary control, prescan correction and System Lab examples.
+
 Available in `26.1030.000222`: [integer/REAL ST CASE](st-case-selection.md) with
 finite float32 labels, lists/ranges, first-match execution and Text Lab examples.
 
@@ -53,7 +56,7 @@ pending-duplicate semantics, external triggers/timeouts and CPU/status remain op
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and
-controller settings. Runtime status/fault/timing and SSV remain open.
+controller settings. Runtime status/fault/timing and broader SSV remain open; [InhibitTask control](task-inhibition.md) is available for bounded Standard tasks.
 
 Available conversion increment: [LOWER/UPPER and STOR/RTOS](string-conversions.md)
 in ladder/ST with custom strings and AOI bindings. Native RTOS formatting, STOR
