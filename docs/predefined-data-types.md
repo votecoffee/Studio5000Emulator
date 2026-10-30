@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.084708` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.090800` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -22,9 +22,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
 | FBD_TIMER model, partial | 1 | [ST TONR/TOFR/RTOR](st-timers.md), logical fields and deterministic elapsed time; FBD graphs and native parity remain unfinished |
-| No dedicated model | 207 | No dedicated bounded named runtime model |
+| FBD_COUNTER model, partial | 1 | [ST CTUD](st-counter.md), sampled edges and logical up/down state; FBD graphs and native parity remain unfinished |
+| No dedicated model | 206 | No dedicated bounded named runtime model |
 
-Thus **15 entries have dedicated bounded models**; this is not 15 fully
+Thus **16 entries have dedicated bounded models**; this is not 16 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -138,7 +139,7 @@ Every dedicated model status still requires the qualifications above.
 | 60 | `FBD_BOOLEAN_XOR` | FBD state/logic | No dedicated model | Listed |
 | 61 | `FBD_COMPARE` | FBD state/logic | No dedicated model | Listed |
 | 62 | `FBD_CONVERT` | FBD state/logic | No dedicated model | Listed |
-| 63 | `FBD_COUNTER` | FBD state/logic | No dedicated model | Listed |
+| 63 | `FBD_COUNTER` | FBD state/logic | FBD_COUNTER model (partial) | Listed |
 | 64 | `FBD_LIMIT` | FBD state/logic | No dedicated model | Listed |
 | 65 | `FBD_LOGICAL` | FBD state/logic | No dedicated model | Listed |
 | 66 | `FBD_MASKED_MOVE` | FBD state/logic | No dedicated model | Listed |

@@ -199,6 +199,15 @@ advance progress. Run entry retains flags; reset/reload restores source settings
 Inhibited tasks are still validated and prescanned. Native phase/abort parity
 remains unqualified.
 
+## Structured Text counter
+
+[CTUD](st-counter.md) adds a logical FBD_COUNTER record and per-record sampled
+edge history. The first reached call primes inputs; later up/down edges count
+in that order. Reset consumes held inputs. Run entry primes again, while
+skipped calls retain history. Values and edges share advance/prescan rollback
+and detached routine-replacement preservation. Native flag/layout parity stays
+unqualified; FBD graph and ladder forms remain blocked.
+
 ## Structured Text timers
 
 [TONR/TOFR/RTOR](st-timers.md) add three ST-only calls and logical FBD_TIMER

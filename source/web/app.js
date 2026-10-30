@@ -195,7 +195,7 @@ $('file').onchange=async()=>{
   $('busy-text').textContent='Importing ' + file.name + '…';$('busy').hidden=false;
   try{const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});selected='';await accept(await api('load',{name:file.name,content}),true);$('mode').value='project';const task=state.tasks[0];if(state.tasks.length===1&&task?.type==='Periodic'&&!task.inhibited)$('dt').value=Number(task.rate);render();if(state.blockers.length)selectTab('coverage');}catch(e){error(e);}finally{$('busy').hidden=true;}
 };
-$('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('system-demo').onclick=()=>loadDemo('SystemLab');$('timer-demo').onclick=()=>loadDemo('TimerLab');$('event-demo').onclick=()=>loadDemo('EventLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
+$('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('system-demo').onclick=()=>loadDemo('SystemLab');$('timer-demo').onclick=()=>loadDemo('TimerLab');$('counter-demo').onclick=()=>loadDemo('CounterLab');$('event-demo').onclick=()=>loadDemo('EventLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');

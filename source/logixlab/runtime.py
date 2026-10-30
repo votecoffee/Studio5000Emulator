@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .addons import AddOns
@@ -45,6 +45,7 @@ class Engine:
         self.time_ms = 0
         self.last_timer = {}
         self._file_incremental = set()
+        self._st_counter_edges = {}
         self.trace = []
         self.changes = []
         self._native_fault_history_uncertain = False
@@ -205,12 +206,13 @@ class Engine:
         # Preserve bindings and execution context as well as values on failure.
         before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
                               self.addons.instances,self.calls.stack,self.last_timer,
-                              self.memory.first_scan,self.trace,self.budget,self._file_incremental))
+                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges))
         def restore():
             (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
-             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental)=before
+             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges)=before
         self.budget=self.instruction_limit
         self.last_timer={}
+        self._st_counter_edges={}
         self.memory.first_scan=True
         self.trace=[]
         try:self._prescan()
@@ -341,6 +343,7 @@ class Engine:
         if n in ('JSR','SBR','RET'):
             self.calls.validate_operands(op,scope);return
         if n in st_timers.INSTRUCTIONS:st_timers.validate(self,op,scope);return
+        if n in st_counter.INSTRUCTIONS:st_counter.validate(self,op,scope);return
         if n not in ARITIES or len(a) != ARITIES[n]: return
         if n in ('JMP','LBL'):
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
@@ -439,7 +442,7 @@ class Engine:
     def step(self, dt=10):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
-        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental))
+        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges))
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
         runs=[(due,self._task_scheduler.tasks[i].name,self._task_scheduler.tasks[i].entries) for due,i in batch.releases] if batch else [(end_ms,None,self.entries)]
@@ -490,7 +493,7 @@ class Engine:
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             if batch:self._task_scheduler.inhibitions=inhibitions
-            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental = previous
+            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
@@ -727,6 +730,7 @@ class Engine:
                 'data_transition':data_transition.description(),
                 'file_bit_compare':file_bit_compare.description(),
                 'st_timers':st_timers.description(),
+                'st_counter':st_counter.description(),
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),

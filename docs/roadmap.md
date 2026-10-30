@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.090800`: [ST CTUD](st-counter.md), logical FBD_COUNTER
+records, sampled-edge/reset/wrap behavior and Counter Lab.
+
 Available in `26.1030.084708`: [ST TONR/TOFR/RTOR timers](st-timers.md), logical
 FBD_TIMER records, elapsed-time/retention/reset/status behavior and Timer Lab.
 

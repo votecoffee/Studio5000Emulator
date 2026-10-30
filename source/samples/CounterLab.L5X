@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="CounterLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="CounterLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="UpInput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DownInput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetCounter" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCounter" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Preset" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Count" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Done" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Overflow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Underflow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Counter" DataType="FBD_COUNTER" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_COUNTER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="CUEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CDEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="3" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="CU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CD" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OV" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallCounter THEN</Line>
+              <Line Number="1">    Counter.PRE := Preset;</Line>
+              <Line Number="2">    Counter.CUEnable := UpInput;</Line>
+              <Line Number="3">    Counter.CDEnable := DownInput;</Line>
+              <Line Number="4">    Counter.Reset := ResetCounter;</Line>
+              <Line Number="5">    CTUD(Counter);</Line>
+              <Line Number="6">    CallCount := CallCount + 1;</Line>
+              <Line Number="7">END_IF;</Line>
+              <Line Number="8">Count := Counter.ACC;</Line>
+              <Line Number="9">Done := Counter.DN;</Line>
+              <Line Number="10">Overflow := Counter.OV;</Line>
+              <Line Number="11">Underflow := Counter.UN;</Line>
+              <Line Number="12">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

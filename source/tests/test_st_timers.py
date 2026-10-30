@@ -212,7 +212,7 @@ class StructuredTimerTests(unittest.TestCase):
             self.assertTrue(self.engine(mutate=profile).blockers)
 
     def test_rll_forms_are_blocked_and_do_not_inflate_rll_dispatch_count(self):
-        self.assertEqual(len(ARITIES),99);self.assertEqual(set(ST_ONLY_ARITIES),{'TONR','RTOR','TOFR'})
+        self.assertEqual(len(ARITIES),99);self.assertTrue({'TONR','RTOR','TOFR'}<=set(ST_ONLY_ARITIES))
         def ladder(root):
             r=root.find('./Controller/Programs/Program/Routines/Routine');r.set('Type','RLL');r.remove(r.find('STContent'))
             E.SubElement(E.SubElement(E.SubElement(r,'RLLContent'),'Rung',Number='0',Type='N'),'Text').text='TONR(T);'

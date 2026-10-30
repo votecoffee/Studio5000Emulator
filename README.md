@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.084708`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.090800`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -117,6 +117,10 @@ values, timer/counter behavior and whole-advance rollback.
 [Structured Text timers](docs/st-timers.md) add TONR, TOFR and RTOR with logical
 FBD_TIMER records, reset/retention, status bits and simulated elapsed time.
 Choose **Timer lab** to compare on/off delays, pause/resume and fault rollback.
+
+[Structured Text up/down counting](docs/st-counter.md) adds CTUD with logical
+FBD_COUNTER records, sampled edges, reset, signed wraparound and rollback.
+Choose **Counter lab** to try the count inputs and outputs.
 
 ## Table of Contents
 

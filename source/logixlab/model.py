@@ -59,7 +59,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9}
 
 
-ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1}
+ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1}
 
 
 def operand_problem(op):
@@ -382,7 +382,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -466,6 +466,9 @@ class Project:
         upper = dtype.upper()
         if upper in INT_BITS or upper == "REAL": return 0.0 if upper == "REAL" else 0
         if upper == "BOOL": return False
+        if upper == "FBD_COUNTER":
+            from .st_counter import default
+            return default()
         if upper == "FBD_TIMER":
             from .st_timers import default
             return default()
@@ -677,6 +680,9 @@ class Memory:
                         dtype = "DINT" if actual in ("PRE", "ACC", "LEN", "POS") else "BOOL"
                     elif dtype.upper()=='FBD_TIMER':
                         from .st_timers import FIELDS
+                        dtype=FIELDS[actual]
+                    elif dtype.upper()=='FBD_COUNTER':
+                        from .st_counter import FIELDS
                         dtype=FIELDS[actual]
                     elif self.project.string_capacity(dtype) is not None:
                         dtype='DINT' if actual=='LEN' else 'SINT'
