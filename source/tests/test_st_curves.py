@@ -229,7 +229,7 @@ class StructuredCurveTests(unittest.TestCase):
         e.memory.write('F.XisOutofOrder',True);self.assertEqual(e.memory.read('F.Status'),8)
         e.memory.write('D.TimingModeInv',True);self.assertEqual(e.memory.read('D.Status'),134217728)
         self.assertEqual(e.memory.resolve('D.TimingMode')[2],'DINT')
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,26))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
         self.assertFalse(operand_problem(Op('FGEN',['F','X1','Y1'])))
         self.assertTrue(operand_problem(Op('FGEN',['F','X1','Y1','X2'])))
         self.assertFalse(e.report()['st_curves']['native_runtime_parity'])

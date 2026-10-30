@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST curves/delay added for app `26.1030.151533`. **Full Logix emulation is not
+Audited 2026-10-30; ST PI regulation added for app `26.1030.153352`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -39,6 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
+| PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles and separate PID/PIDE families |
 | FUNCTION_GENERATOR/DEADTIME | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, selected tables, sampled transport delay, resizing, health recovery and transactional arrays | Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and other profiles |
 | SELECT_ENHANCED/DERIVATIVE | [ST ESEL/DERV](st-process-signals.md), healthy high/low/median/mean/manual selection, control requests, timed rate of change, bypass and rollback | Native startup/request/health/timing/rounding qualification, RTS, FBD graphs, packed layouts and other profiles |
 | UP_DOWN_ACCUM/INTEGRATOR | [ST UPDN/INTG](st-accumulation.md), per-call totals, timed integration, initialization, directional holds, limits, alarms and transactional history | Native startup/rounding/precedence, RTS, FBD graphs, packed layouts and other controller profiles |

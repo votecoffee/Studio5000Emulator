@@ -79,6 +79,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_regulator_lab_closed_loop_disabled_timing_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'RegulatorLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step():return self.post('step',{'dt':125})
+        self.assertEqual(values(step())['ControlOutput'],0);v=values(step());self.assertEqual((v['ControlOutput'],v['Feedback']),(10,1.25))
+        write('Setpoint',8);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);v=values(step());self.assertEqual((v['ControlOutput'],v['Feedback']),(10,2.34375))
+        feedback=v['Feedback'];write('SampleTime',0);v=values(step());self.assertEqual((v['ControlOutput'],v['Feedback']),(10,feedback))
+        write('SampleTime',-1);v=values(step());self.assertEqual((v['Feedback'],v['PIState.Status']),(feedback,-2147483647))
+        write('SampleTime',0.125);write('CallLogic',False);v=values(step());self.assertEqual(v['Feedback'],feedback)
+        report=self.post('report',{});self.assertEqual(report['st_pi']['instructions'],['PI'])
+        self.assertFalse(report['st_pi']['native_runtime_parity']);self.assertIn('regulator-demo',self.get('/').decode())
+
     def test_curve_delay_lab_interpolation_resize_health_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'CurveDelayLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.153352`: [ST PI software regulation](st-pi-regulation.md),
+linear/shaped gains, holds, limits and Regulator Lab with a synthetic closed loop.
+Native coefficients/thresholds/rounding/ordering remain unqualified.
+
 Available in `26.1030.151533`: [ST curves and delay](st-curves-delay.md),
 FGEN piecewise conversion and DEDT sampled delay with Curve and Delay Lab. Native
 startup/precision/conditional diagnostics/resize/recovery remain unqualified.

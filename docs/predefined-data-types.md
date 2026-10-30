@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.151533` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.153352` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -37,9 +37,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Enhanced selection model, partial | 1 | [ST ESEL](st-process-signals.md), healthy/manual selection, control requests and diagnostics |
 | Derivative model, partial | 1 | [ST DERV](st-process-signals.md), timed rate of change, bypass and history |
 | Curve/delay models, partial | 2 | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, sample delay queues, resizing and health recovery |
-| No dedicated model | 185 | No dedicated bounded named runtime model |
+| PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
+| No dedicated model | 184 | No dedicated bounded named runtime model |
 
-Thus **37 entries have dedicated bounded models**; this is not 37 fully
+Thus **38 entries have dedicated bounded models**; this is not 38 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -209,7 +210,7 @@ Every dedicated model status still requires the qualifications above.
 | 116 | `PID_ENHANCED` | Process/filter/drive | No dedicated model | Listed |
 | 117 | `POSITION_DATA` | Motion/axis/reference | No dedicated model | Listed |
 | 118 | `POSITION_PROP` | Process/filter/drive | No dedicated model | Listed |
-| 119 | `PROP_INT` | Process/filter/drive | No dedicated model | Listed |
+| 119 | `PROP_INT` | Process/filter/drive | PI software model (partial) | Listed |
 | 120 | `P_ANALOG_FANOUT*` | PlantPAx/bus | No dedicated model | Listed |
 | 121 | `P_ANALOG_HART*` | PlantPAx/bus | No dedicated model | Listed |
 | 122 | `P_ANALOG_INPUT*` | PlantPAx/bus | No dedicated model | Listed |

@@ -277,7 +277,7 @@ class StructuredCaptureTests(unittest.TestCase):
         self.assertEqual(self.push(candidate,5),(8,2))
 
     def test_builtin_fields_instruction_counts_and_report_are_qualified(self):
-        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),26)
+        e=self.checked();self.assertEqual(len(ARITIES),101);self.assertEqual(len(ST_ONLY_ARITIES),27)
         self.assertTrue({'MAXIMUM_CAPTURE','MINIMUM_CAPTURE'}.isdisjoint(e.project.data_only_types))
         for root in ('M','N'):
             self.assertEqual(set(e.memory.read(root)),set(FIELDS))

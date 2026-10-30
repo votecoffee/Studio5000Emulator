@@ -59,7 +59,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9}
 
 
-ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2}
+ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1}
 
 
 def operand_problem(op):
@@ -386,7 +386,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -488,6 +488,9 @@ class Project:
         if upper in ("FUNCTION_GENERATOR","DEADTIME"):
             from .st_curves import default
             return default(upper)
+        if upper == "PROP_INT":
+            from .st_pi import default
+            return default()
         if upper == "FILTER_LOW_PASS":
             from .st_filter import default
             return default()
@@ -707,8 +710,10 @@ class Memory:
                     dtype, value = "BOOL", None if value is None else bool((value >> bit) & 1)
                 else:
                     if not isinstance(value, dict): raise ModelError(f"Not a structure: {ref}")
-                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME'):
-                        if dtype.upper() in ('FUNCTION_GENERATOR','DEADTIME'):
+                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT'):
+                        if dtype.upper()=='PROP_INT':
+                            from .st_pi import STATUS_BITS
+                        elif dtype.upper() in ('FUNCTION_GENERATOR','DEADTIME'):
                             from .st_curves import STATUS_BITS as CURVE_STATUS_BITS
                             STATUS_BITS=CURVE_STATUS_BITS[dtype.upper()]
                         elif dtype.upper()=='SELECT_ENHANCED':
@@ -759,6 +764,9 @@ class Memory:
                     elif dtype.upper() in ('UP_DOWN_ACCUM','INTEGRATOR'):
                         from .st_accumulate import SCHEMAS
                         dtype=SCHEMAS[dtype.upper()][actual]
+                    elif dtype.upper()=='PROP_INT':
+                        from .st_pi import FIELDS
+                        dtype=FIELDS[actual]
                     elif dtype.upper() in ('FUNCTION_GENERATOR','DEADTIME'):
                         from .st_curves import SCHEMAS
                         dtype=SCHEMAS[dtype.upper()][actual]

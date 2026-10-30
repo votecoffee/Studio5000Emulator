@@ -194,7 +194,7 @@ class StructuredProcessTests(unittest.TestCase):
         e.memory.write('S.InsFaulted',True);self.assertEqual(e.memory.read('S.Status'),2)
         e.memory.write('d.deltatinv',True);self.assertEqual(e.memory.read('D.Status'),-2147483648)
         self.step(e);self.assertEqual((e.memory.read('S.Status'),e.memory.read('D.Status')),(0,0))
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,26))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
         for name in ('st_select','st_derivative'):self.assertFalse(e.report()[name]['native_runtime_parity'])
 
     def test_enables_are_forced_and_skipped_calls_retain_requests_and_history(self):

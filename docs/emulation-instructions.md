@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST curves/delay added for app `26.1030.151533`. The engine has **101 built-in
+Audited 2026-10-30; ST PI regulation added for app `26.1030.153352`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -31,7 +31,8 @@ model. [ST Boolean memory](st-digital-memory.md) adds DFF/JKFF/RESD/SETD and
 four logical records. [ST UPDN/INTG](st-accumulation.md) add two accumulation
 records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
-These twenty-six additional calls are excluded from the RLL dispatch
+[ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
+These twenty-seven additional calls are excluded from the RLL dispatch
 count. Their FBD graph forms remain unimplemented.
 
 ## Instruction families
@@ -48,7 +49,7 @@ count. Their FBD graph forms remain unimplemented.
 | Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST-only OSRI/OSFI listed above) |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
-| Drives Instructions | — | — | `HMIBC`, `PI`, `PMUL`, `SCRV`, `SOC` (ST-only INTG/UPDN listed above) |
+| Drives Instructions | — | — | `HMIBC`, `PMUL`, `SCRV`, `SOC` (ST-only PI/INTG/UPDN listed above) |
 | Drive Safety Instructions | — | — | `SBC`, `SDI`, `SFX`, `SLP`, `SLS`, `SOS`, `SS1`, `SS2` |
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
@@ -100,6 +101,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; PID/PIDE are separate. |
 | FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
 | ESEL/DERV (ST only) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, FBD graphs and packed layouts remain unfinished. |
 | UPDN/INTG (ST only) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, FBD graphs and packed layouts remain unfinished. |

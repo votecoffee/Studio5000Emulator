@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST PI regulation](st-pi-regulation.md) retains integral, prior input, held output
+and clock per resolved record. Holds and saturation affect the integral; Run
+resets it, while whole-advance rollback and detached replacement preserve it.
+Gain-shaping coefficients and other numerical choices remain native-unqualified.
+
 [ST curves and delay](st-curves-delay.md) read selected piecewise tables and
 update active REAL delay-buffer prefixes. Point/sample work is budgeted; array
 changes, delay length/binding, pending recovery, time and scheduler state share

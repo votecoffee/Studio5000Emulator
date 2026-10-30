@@ -172,6 +172,10 @@ Program/Operator requests, bypass, timing and fault recovery.
 conversion and DEDT transport delay. Choose **Curve and delay lab** to try table
 switching, buffer timing/resizing, health recovery and transactional faults.
 
+[Structured Text PI regulation](docs/st-pi-regulation.md) adds a bounded software
+regulator with gain shaping, holds and output limits. Choose **Regulator lab**
+for a closed-loop step response or externally supplied process feedback.
+
 ## Table of Contents
 
 - [Background](#background)

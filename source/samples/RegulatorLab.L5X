@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="RegulatorLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="RegulatorLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Setpoint" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="Feedback" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Error" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ProportionalGain" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegralFrequency" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="HighLimit" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="LowLimit" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="-10" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0.125" />
+        </Data>
+      </Tag>
+      <Tag Name="InitializeRegulator" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InitialOutput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldHigh" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldLow" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallLogic" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SimulatePlant" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="PlantGain" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="PlantTimeConstant" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ControlOutput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PIState" TagType="Base" DataType="PROP_INT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PROP_INT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Initialize" DataType="BOOL" Value="0" />
+            <DataValueMember Name="InitialValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Kp" DataType="REAL" Value="1.1754943508222875e-38" />
+            <DataValueMember Name="Wld" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighLimit" DataType="REAL" Value="3.4028234663852886e+38" />
+            <DataValueMember Name="LowLimit" DataType="REAL" Value="-3.4028234663852886e+38" />
+            <DataValueMember Name="HoldHigh" DataType="BOOL" Value="0" />
+            <DataValueMember Name="HoldLow" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ShapeKpPlus" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="ShapeKpMinus" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="KpInRange" DataType="REAL" Value="3.4028234663852886e+38" />
+            <DataValueMember Name="ShapeWldPlus" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="ShapeWldMinus" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="WldInRange" DataType="REAL" Value="3.4028234663852886e+38" />
+            <DataValueMember Name="NonLinearMode" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ParabolicLinear" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LowAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallLogic THEN</Line>
+              <Line Number="1">Error:=Setpoint-Feedback; PIState.In:=Error;</Line>
+              <Line Number="2">PIState.Kp:=ProportionalGain; PIState.Wld:=IntegralFrequency;</Line>
+              <Line Number="3">PIState.HighLimit:=HighLimit; PIState.LowLimit:=LowLimit;</Line>
+              <Line Number="4">PIState.Initialize:=InitializeRegulator; PIState.InitialValue:=InitialOutput;</Line>
+              <Line Number="5">PIState.HoldHigh:=HoldHigh; PIState.HoldLow:=HoldLow;</Line>
+              <Line Number="6">PIState.TimingMode:=1; PIState.OversampleDT:=SampleTime;</Line>
+              <Line Number="7">PI(PIState); ControlOutput:=PIState.Out;</Line>
+              <Line Number="8">IF SimulatePlant AND PIState.DeltaT&gt;0 THEN Feedback:=Feedback+(ControlOutput*PlantGain-Feedback)*PIState.DeltaT/PlantTimeConstant; END_IF;</Line>
+              <Line Number="9">CallCount:=CallCount+1;</Line>
+              <Line Number="10">END_IF;</Line>
+              <Line Number="11">GuardResult:=1/FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>
