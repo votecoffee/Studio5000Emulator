@@ -70,5 +70,5 @@ def description():
                 reads='Clock and Clear always required for flip-flops; D only on an uncleared rising edge; dominant latch input may bypass subordinate input',
                 lifecycle='Prescan clears enables; Run resets history; first reached call applies startup then inputs; rollback/replacement preserve state',
                 native_runtime_parity=False,
-                remaining=['FBD graphs, packed layouts and other controller profiles','Native startup/Run/skip/postscan and output-write qualification',
+                remaining=['General FBD outside the qualified single-sheet profile, packed layouts and other controllers','Native startup/Run/skip/postscan and output-write qualification',
                            'Native unknown-input, lifecycle, status and fault parity'])

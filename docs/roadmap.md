@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.172212`: [Boolean FBD logic](fbd-boolean.md),
+BAND/BOR/BNOT/BXOR plus DFF/JKFF/RESD/SETD, with FBD Boolean Lab. Logical records
+and shared retained state; native layout/lifecycle parity remains unqualified.
+
 Available in `26.1030.170127`: [stateful FBD blocks](fbd-stateful.md),
 TONR/TOFR/RTOR, CTUD and OSRI/OSFI, with FBD Timer/Counter Lab. Shared clocks/edges,
 connected enables and whole-advance rollback; native FBD timing remains unqualified.

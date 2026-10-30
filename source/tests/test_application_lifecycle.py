@@ -1020,7 +1020,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'ManualValue','value':33});self.post('write',{'tag':'FaultDivisor','value':1})
         state=self.post('step',{'dt':10});self.assertEqual(values(state)['MultiplexedOutput'],33)
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),2)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['CTUD','HLL','MUX','OSFI','OSRI','RTOR','SCL','SEL','SNEG','SSUM','TOFR','TONR'])
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','JKFF','MUX','OSFI','OSRI','RESD','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_fbd_signal_lab_diagnostic_wires_enables_and_rollback_through_http(self):
@@ -1073,7 +1073,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(v['OnDelay.EnableOut'])
         self.post('write',{'tag':'OnPreset','value':100});state=self.post('step',{'dt':10});self.assertFalse(values(state)['OnFault'])
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),6)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),12)
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),20)
         self.assertFalse(profile['native_runtime_parity']);self.assertIn('elapsed',profile['blocks']['timing'])
 
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):

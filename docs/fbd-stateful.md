@@ -1,7 +1,7 @@
 # Stateful function blocks
 
 The bounded v35 ControlLogix 5580 graph executes TONR, TOFR, RTOR, CTUD, OSRI and
-OSFI alongside the existing selector/signal blocks. Their logical records and
+OSFI alongside the existing selector/signal and [Boolean blocks](fbd-boolean.md). Their logical records and
 algorithms are shared with the [ST timers](st-timers.md), [counter](st-counter.md)
 and [one-shots](st-oneshot.md). This adds FBD forms without adding data types or
 changing the RLL/ST dispatch counts. Native controller equivalence is unverified.

@@ -13,6 +13,10 @@ RESD(ResetState);
 SETD(SetState);
 ```
 
+These four models also execute in the limited [FBD graph](fbd-boolean.md)
+with connected-enable gating and shared history. General FBD and native
+initialization/postscan/layout/fault qualification remain unfinished.
+
 ## Logical records
 
 Every member below is BOOL. EnableIn is true in the default shape; inputs default

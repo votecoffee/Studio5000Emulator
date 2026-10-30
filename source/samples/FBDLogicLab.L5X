@@ -1,0 +1,333 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDLogicLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDLogicLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="A" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="B" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SetInput" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetInput" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Clock" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DInput" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Clear" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NotOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AndOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OrOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="XorOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DNot" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ToggleOut" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ToggleNot" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetLatch" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetLatchNot" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SetLatch" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SetLatchNot" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NotGate" TagType="Base" DataType="FBD_BOOLEAN_NOT">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BOOLEAN_NOT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="BOOL" Value="1" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="AndGate" TagType="Base" DataType="FBD_BOOLEAN_AND">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BOOLEAN_AND">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In2" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In3" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In4" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In5" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In6" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In7" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In8" DataType="BOOL" Value="1" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OrGate" TagType="Base" DataType="FBD_BOOLEAN_OR">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BOOLEAN_OR">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In1" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In3" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In4" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In5" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In6" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In7" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In8" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="XorGate" TagType="Base" DataType="FBD_BOOLEAN_XOR">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BOOLEAN_XOR">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DState" TagType="Base" DataType="FLIP_FLOP_D">
+        <Data Format="Decorated">
+          <Structure DataType="FLIP_FLOP_D">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="D" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clear" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clock" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Q" DataType="BOOL" Value="0" />
+            <DataValueMember Name="QNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ToggleState" TagType="Base" DataType="FLIP_FLOP_JK">
+        <Data Format="Decorated">
+          <Structure DataType="FLIP_FLOP_JK">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Clear" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Clock" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Q" DataType="BOOL" Value="0" />
+            <DataValueMember Name="QNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ResetState" TagType="Base" DataType="DOMINANT_RESET">
+        <Data Format="Decorated">
+          <Structure DataType="DOMINANT_RESET">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Set" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutNot" DataType="BOOL" Value="1" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SetState" TagType="Base" DataType="DOMINANT_SET">
+        <Data Format="Decorated">
+          <Structure DataType="DOMINANT_SET">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Set" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="BOOL" Value="1" />
+            <DataValueMember Name="OutNot" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(BooleanLogic,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="BooleanLogic" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Boolean truth tables, a negated reset permissive, sampled clocks and dominant latches.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="A" />
+                <IRef ID="2" X="20" Y="110" Operand="B" />
+                <IRef ID="3" X="20" Y="220" Operand="SetInput" />
+                <IRef ID="4" X="20" Y="330" Operand="ResetInput" />
+                <IRef ID="5" X="20" Y="440" Operand="Clock" />
+                <IRef ID="6" X="20" Y="550" Operand="DInput" />
+                <IRef ID="7" X="20" Y="660" Operand="Clear" />
+                <IRef ID="8" X="20" Y="770" Operand="BlockEnable" />
+                <Block ID="100" X="320" Y="70" Type="BNOT" Operand="NotGate" VisiblePins="EnableIn In EnableOut Out" />
+                <Block ID="200" X="600" Y="190" Type="BAND" Operand="AndGate" VisiblePins="EnableIn In1 In2 In3 In4 In5 In6 In7 In8 EnableOut Out" />
+                <Block ID="300" X="880" Y="310" Type="BOR" Operand="OrGate" VisiblePins="EnableIn In1 In2 In3 In4 In5 In6 In7 In8 EnableOut Out" />
+                <Block ID="400" X="1160" Y="430" Type="BXOR" Operand="XorGate" VisiblePins="EnableIn In1 In2 EnableOut Out" />
+                <Block ID="500" X="320" Y="720" Type="DFF" Operand="DState" VisiblePins="EnableIn D Clear Clock EnableOut Q QNot" />
+                <Block ID="600" X="600" Y="840" Type="JKFF" Operand="ToggleState" VisiblePins="EnableIn Clear Clock EnableOut Q QNot" />
+                <Block ID="700" X="880" Y="960" Type="RESD" Operand="ResetState" VisiblePins="EnableIn Set Reset EnableOut Out OutNot" />
+                <Block ID="800" X="1160" Y="1080" Type="SETD" Operand="SetState" VisiblePins="EnableIn Set Reset EnableOut Out OutNot" />
+                <ORef ID="900" X="1500" Y="0" Operand="NotOut" />
+                <ORef ID="901" X="1500" Y="110" Operand="AndOut" />
+                <ORef ID="902" X="1500" Y="220" Operand="OrOut" />
+                <ORef ID="903" X="1500" Y="330" Operand="XorOut" />
+                <ORef ID="904" X="1500" Y="440" Operand="DOut" />
+                <ORef ID="905" X="1500" Y="550" Operand="DNot" />
+                <ORef ID="906" X="1500" Y="660" Operand="ToggleOut" />
+                <ORef ID="907" X="1500" Y="770" Operand="ToggleNot" />
+                <ORef ID="908" X="1500" Y="880" Operand="ResetLatch" />
+                <ORef ID="909" X="1500" Y="990" Operand="ResetLatchNot" />
+                <ORef ID="910" X="1500" Y="1100" Operand="SetLatch" />
+                <ORef ID="911" X="1500" Y="1210" Operand="SetLatchNot" />
+                <Wire FromID="4" FromParam="In" ToID="100" ToParam="In" />
+                <Wire FromID="1" FromParam="In" ToID="200" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="200" ToParam="In2" />
+                <Wire FromID="100" FromParam="Out" ToID="200" ToParam="In3" />
+                <Wire FromID="1" FromParam="In" ToID="300" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="300" ToParam="In2" />
+                <Wire FromID="1" FromParam="In" ToID="400" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="400" ToParam="In2" />
+                <Wire FromID="6" FromParam="In" ToID="500" ToParam="D" />
+                <Wire FromID="5" FromParam="In" ToID="500" ToParam="Clock" />
+                <Wire FromID="7" FromParam="In" ToID="500" ToParam="Clear" />
+                <Wire FromID="5" FromParam="In" ToID="600" ToParam="Clock" />
+                <Wire FromID="7" FromParam="In" ToID="600" ToParam="Clear" />
+                <Wire FromID="3" FromParam="In" ToID="700" ToParam="Set" />
+                <Wire FromID="4" FromParam="In" ToID="700" ToParam="Reset" />
+                <Wire FromID="3" FromParam="In" ToID="800" ToParam="Set" />
+                <Wire FromID="4" FromParam="In" ToID="800" ToParam="Reset" />
+                <Wire FromID="8" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="300" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="400" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="500" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="600" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="700" ToParam="EnableIn" />
+                <Wire FromID="8" FromParam="In" ToID="800" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="900" ToParam="Out" />
+                <Wire FromID="200" FromParam="Out" ToID="901" ToParam="Out" />
+                <Wire FromID="300" FromParam="Out" ToID="902" ToParam="Out" />
+                <Wire FromID="400" FromParam="Out" ToID="903" ToParam="Out" />
+                <Wire FromID="500" FromParam="Q" ToID="904" ToParam="Out" />
+                <Wire FromID="500" FromParam="QNot" ToID="905" ToParam="Out" />
+                <Wire FromID="600" FromParam="Q" ToID="906" ToParam="Out" />
+                <Wire FromID="600" FromParam="QNot" ToID="907" ToParam="Out" />
+                <Wire FromID="700" FromParam="Out" ToID="908" ToParam="Out" />
+                <Wire FromID="700" FromParam="OutNot" ToID="909" ToParam="Out" />
+                <Wire FromID="800" FromParam="Out" ToID="910" ToParam="Out" />
+                <Wire FromID="800" FromParam="OutNot" ToID="911" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

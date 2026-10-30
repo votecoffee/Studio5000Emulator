@@ -29,6 +29,9 @@ policy has not been compared with native execution order. Backing records must
 be distinct. Output references cannot overlap one another, inputs or backing
 records; implicit dependencies through backing-tag reads are rejected.
 
+[Boolean logic and memory](fbd-boolean.md) adds BAND/BOR/BNOT/BXOR and
+DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
+
 ## Block behavior
 
 | Block | Behavior |
@@ -93,7 +96,7 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-stays at 40 bounded models. There are twelve FBD blocks, with ten names shared
+now contains 44 bounded models. There are twenty FBD blocks, with fourteen names shared
 with the existing twenty-seven ST-call dispatch entries. RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.

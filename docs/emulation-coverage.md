@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; stateful FBD blocks added for app `26.1030.170127`. **Full Logix emulation is not
+Audited 2026-10-30; Boolean FBD blocks added for app `26.1030.172212`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development now prioritizes execution, data and simulated devices; further
@@ -20,7 +20,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Function blocks | [Single-sheet signal graphs](function-blocks.md), Twelve blocks including timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
+| FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
+| Function blocks | [Single-sheet signal graphs](function-blocks.md), Twenty blocks including Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
@@ -164,7 +165,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
 - [ ] **L03 — FBD execution:** [Single-sheet signal graphs](function-blocks.md)
-  now execute twelve blocks over typed acyclic wires with enable/status/rollback. Complete multiple
+  now execute twenty blocks over typed acyclic wires with enable/status/rollback. Complete multiple
   sheets, connectors, feedback, native execution order, retained state, sample
   periods, other FBD instructions/functions/AOIs and native transfer/edit support.
 - [ ] **L04 — SFC execution:** active steps and transitions, selection/parallel

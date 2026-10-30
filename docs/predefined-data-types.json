@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.170127",
+  "audited_app_version": "26.1030.172212",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -105,7 +105,7 @@
     },
     "digital_memory_model": {
       "label": "Boolean memory model (partial)",
-      "remaining": "Bounded ST DFF/JKFF/RESD/SETD sampled clock/output state; FBD graphs, packed layouts and native startup/Run/skip/postscan/output-write/status/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD DFF/JKFF/RESD/SETD sampled clock/output state; general FBD, packed layouts and native startup/Run/skip/postscan/output-write/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_digital.py"
     },
     "enhanced_select_model": {
@@ -132,6 +132,11 @@
       "label": "FBD selector model (partial)",
       "remaining": "Bounded single-sheet SEL/MUX logical records and acyclic typed wires; native ordering/lifecycle/status/fault, packed layouts, general FBD and transfer/edit parity remain unfinished.",
       "source": "source/logixlab/fbd_select.py"
+    },
+    "fbd_boolean_model": {
+      "label": "FBD Boolean model (partial)",
+      "remaining": "BAND/BOR/BNOT/BXOR logical BOOL records and Block execution; tagless Function forms, native initialization/layout/lifecycle/status/fault parity and other profiles remain unfinished.",
+      "source": "source/logixlab/fbd_boolean.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -258,10 +263,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 40,
-    "no_dedicated_model": 182,
+    "dedicated_bounded_models": 44,
+    "no_dedicated_model": 178,
     "status_counts": {
-      "no_dedicated_model": 182,
+      "no_dedicated_model": 178,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -284,7 +289,8 @@
       "derivative_model": 1,
       "curve_delay_model": 2,
       "pi_software_model": 1,
-      "fbd_selector_model": 2
+      "fbd_selector_model": 2,
+      "fbd_boolean_model": 4
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -972,7 +978,7 @@
       "identifier_candidate": "FBD_BOOLEAN_AND",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_boolean_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_BOOLEAN_AND",
       "notes": []
@@ -984,7 +990,7 @@
       "identifier_candidate": "FBD_BOOLEAN_NOT",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_boolean_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_BOOLEAN_NOT",
       "notes": []
@@ -996,7 +1002,7 @@
       "identifier_candidate": "FBD_BOOLEAN_OR",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_boolean_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_BOOLEAN_OR",
       "notes": []
@@ -1008,7 +1014,7 @@
       "identifier_candidate": "FBD_BOOLEAN_XOR",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_boolean_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_BOOLEAN_XOR",
       "notes": []

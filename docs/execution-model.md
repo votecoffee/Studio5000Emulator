@@ -341,6 +341,11 @@ timers include elapsed gaps when resumed. TimerEnable false executes its
 separate reset/pause/off-delay path. Values, clocks and edges commit or roll
 back with the complete advance. Native FBD timing parity remains unqualified.
 
+[FBD Boolean logic and memory](fbd-boolean.md) add strict BOOL truth tables and
+shared digital clock/latch state. Unknown enabled operands fault without
+short-circuit inference. Disabled/skipped calls retain outputs/history; Run
+resets history and whole-advance rollback preserves it on failure.
+
 ## Function block signals
 
 [Single-sheet FBD selector graphs](function-blocks.md) sample IRefs once, execute

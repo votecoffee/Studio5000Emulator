@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.170127` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.172212` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -39,9 +39,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Curve/delay models, partial | 2 | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, sample delay queues, resizing and health recovery |
 | PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
 | FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |
-| No dedicated model | 182 | No dedicated bounded named runtime model |
+| FBD Boolean models, partial | 4 | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL records and graph execution |
+| No dedicated model | 178 | No dedicated bounded named runtime model |
 
-Thus **40 entries have dedicated bounded models**; this is not 40 fully
+Thus **44 entries have dedicated bounded models**; this is not 44 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -149,10 +150,10 @@ Every dedicated model status still requires the qualifications above.
 | 54 | `EXT_ROUTINE_CONTROL` | External routine | No dedicated model | Listed |
 | 55 | `EXT_ROUTINE_PARAMETERS` | External routine | No dedicated model | Listed |
 | 56 | `FBD_BIT_FIELD_DISTRIBUTE` | FBD state/logic | No dedicated model | Listed |
-| 57 | `FBD_BOOLEAN_AND` | FBD state/logic | No dedicated model | Listed |
-| 58 | `FBD_BOOLEAN_NOT` | FBD state/logic | No dedicated model | Listed |
-| 59 | `FBD_BOOLEAN_OR` | FBD state/logic | No dedicated model | Listed |
-| 60 | `FBD_BOOLEAN_XOR` | FBD state/logic | No dedicated model | Listed |
+| 57 | `FBD_BOOLEAN_AND` | FBD state/logic | FBD Boolean model (partial) | Listed |
+| 58 | `FBD_BOOLEAN_NOT` | FBD state/logic | FBD Boolean model (partial) | Listed |
+| 59 | `FBD_BOOLEAN_OR` | FBD state/logic | FBD Boolean model (partial) | Listed |
+| 60 | `FBD_BOOLEAN_XOR` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 61 | `FBD_COMPARE` | FBD state/logic | No dedicated model | Listed |
 | 62 | `FBD_CONVERT` | FBD state/logic | No dedicated model | Listed |
 | 63 | `FBD_COUNTER` | FBD state/logic | FBD_COUNTER model (partial) | Listed |

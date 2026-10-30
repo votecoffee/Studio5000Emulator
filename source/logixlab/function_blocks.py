@@ -175,7 +175,7 @@ class FunctionBlocks:
 
 def description():
     return dict(profile='v35-5580-single-sheet-signals',instructions=sorted(fbd_blocks.TYPES),
-                graph='One FBDContent/Sheet; IRef, ORef, SEL/MUX/signal/timer/counter/one-shot Block and typed acyclic Wire',
+                graph='One FBDContent/Sheet; IRef, ORef, Qualified Boolean/selector/signal/stateful Block and typed acyclic Wire',
                 ordering='IRefs sampled once; dependency order with numeric-ID ties; ORefs written after all blocks',
                 references='Static scalar BOOL/DINT/REAL; exact wire types; distinct backing records; no ORef/input/record overlap',
                 limits=dict(nodes=MAX_NODES,wires=MAX_WIRES),blocks=fbd_blocks.description(),selectors=fbd_blocks.selector_description(),

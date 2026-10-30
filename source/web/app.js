@@ -230,6 +230,7 @@ $('copy-demo').onclick=()=>loadDemo('CopyLab');
 $('selector-demo').onclick=()=>loadDemo('SelectorLab');
 $('fbd-signal-demo').onclick=()=>loadDemo('FBDSignalLab');
 $('fbd-state-demo').onclick=()=>loadDemo('FBDStateLab');
+$('fbd-logic-demo').onclick=()=>loadDemo('FBDLogicLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');
