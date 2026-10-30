@@ -164,6 +164,10 @@ Choose **Digital lab** to try clock edges, Clear, dominance and skipped calls.
 INTG timed integration with hold, initialization, limits, alarms and rollback.
 Choose **Accumulator lab** to try both instructions.
 
+[Structured Text process signals](docs/st-process-signals.md) adds ESEL healthy-input
+selection and DERV rate of change. Choose **Process lab** to try selection modes,
+Program/Operator requests, bypass, timing and fault recovery.
+
 ## Table of Contents
 
 - [Background](#background)

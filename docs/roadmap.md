@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.145913`: [ST process signals](st-process-signals.md),
+ESEL selection/control requests and DERV rate of change with Process Lab. Native
+startup/request/health/timing/rounding qualification remains unfinished.
+
 Available in `26.1030.144653`: [ST accumulation](st-accumulation.md), UPDN and
 INTG logical records, totals/integration/holds/diagnostics and Accumulator Lab.
 Native startup, rounding and interacting-condition precedence remain unqualified.

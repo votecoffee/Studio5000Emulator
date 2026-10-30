@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="ProcessLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="ProcessLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Sensor1" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault1" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Sensor2" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault2" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Sensor3" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="30" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault3" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Sensor4" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault4" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Sensor5" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault5" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Sensor6" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault6" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UsedInputs" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectMode" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="OperatorChoice" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ProgramChoice" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0.25" />
+        </Data>
+      </Tag>
+      <Tag Name="DerivativeGain" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="BypassDerivative" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallLogic" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectedValue" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectedInput" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ChangePerSecond" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectorState" TagType="Base" DataType="SELECT_ENHANCED" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="SELECT_ENHANCED">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In3" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In4" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In5" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In6" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In1Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In3Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In4Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In5Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In6Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="InsUsed" DataType="DINT" Value="1" />
+            <DataValueMember Name="SelectorMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgSelector" DataType="DINT" Value="0" />
+            <DataValueMember Name="OperSelector" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgProgReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgOperReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgOverrideReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OperProgReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OperOperReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgValueReset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectedIn" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgOper" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Override" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DerivativeState" TagType="Base" DataType="DERIVATIVE" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="DERIVATIVE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="ByPass" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallLogic THEN</Line>
+              <Line Number="1">SelectorState.In1:=Sensor1; SelectorState.In1Fault:=Fault1;</Line>
+              <Line Number="2">SelectorState.In2:=Sensor2; SelectorState.In2Fault:=Fault2;</Line>
+              <Line Number="3">SelectorState.In3:=Sensor3; SelectorState.In3Fault:=Fault3;</Line>
+              <Line Number="4">SelectorState.In4:=Sensor4; SelectorState.In4Fault:=Fault4;</Line>
+              <Line Number="5">SelectorState.In5:=Sensor5; SelectorState.In5Fault:=Fault5;</Line>
+              <Line Number="6">SelectorState.In6:=Sensor6; SelectorState.In6Fault:=Fault6;</Line>
+              <Line Number="7">SelectorState.InsUsed:=UsedInputs; SelectorState.SelectorMode:=SelectMode;</Line>
+              <Line Number="8">SelectorState.OperSelector:=OperatorChoice; SelectorState.ProgSelector:=ProgramChoice;</Line>
+              <Line Number="9">ESEL(SelectorState);</Line>
+              <Line Number="10">DerivativeState.In:=SelectorState.Out; DerivativeState.Gain:=DerivativeGain; DerivativeState.ByPass:=BypassDerivative;</Line>
+              <Line Number="11">DerivativeState.TimingMode:=1; DerivativeState.OversampleDT:=SampleTime;</Line>
+              <Line Number="12">DERV(DerivativeState); CallCount:=CallCount+1;</Line>
+              <Line Number="13">END_IF;</Line>
+              <Line Number="14">SelectedValue:=SelectorState.Out; SelectedInput:=SelectorState.SelectedIn; ChangePerSecond:=DerivativeState.Out;</Line>
+              <Line Number="15">GuardResult:=1/FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.144653` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.145913` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -34,9 +34,11 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | LPF software model, partial | 1 | [ST LPF](st-low-pass-filter.md), explicit bilinear sections; native numerical recurrence remains unverified |
 | Boolean memory models, partial | 4 | [ST DFF/JKFF/RESD/SETD](st-digital-memory.md), sampled clocks, dominant latches, complements and history |
 | Accumulation models, partial | 2 | [ST UPDN/INTG](st-accumulation.md), finite REAL totals, timed integration, holds, limits and history |
-| No dedicated model | 189 | No dedicated bounded named runtime model |
+| Enhanced selection model, partial | 1 | [ST ESEL](st-process-signals.md), healthy/manual selection, control requests and diagnostics |
+| Derivative model, partial | 1 | [ST DERV](st-process-signals.md), timed rate of change, bypass and history |
+| No dedicated model | 187 | No dedicated bounded named runtime model |
 
-Thus **33 entries have dedicated bounded models**; this is not 33 fully
+Thus **35 entries have dedicated bounded models**; this is not 35 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -127,7 +129,7 @@ Every dedicated model status still requires the qualifications above.
 | 37 | `DCI_STOP_TEST_LOCK` | Safety | No dedicated model | Listed |
 | 38 | `DCI_STOP_TEST_MUTE` | Safety | No dedicated model | Listed |
 | 39 | `DEADTIME` | Process/filter/drive | No dedicated model | Listed |
-| 40 | `DERIVATIVE` | Process/filter/drive | No dedicated model | Listed |
+| 40 | `DERIVATIVE` | Process/filter/drive | Derivative model (partial) | Listed |
 | 41 | `DINT` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
 | 42 | `DISCRETE_2STATE` | Process/filter/drive | No dedicated model | Listed |
 | 43 | `DISCRETE_3STATE` | Process/filter/drive | No dedicated model | Listed |
@@ -278,7 +280,7 @@ Every dedicated model status still requires the qualifications above.
 | 188 | `SELECT` | Process/filter/drive | No dedicated model | Listed |
 | 189 | `SELECTABLE_NEGATE` | Process/filter/drive | SELECTABLE_NEGATE model (partial) | Listed |
 | 190 | `SELECTED_SUMMER` | Process/filter/drive | SELECTED_SUMMER model (partial) | Listed |
-| 191 | `SELECT_ENHANCED` | Process/filter/drive | No dedicated model | Listed |
+| 191 | `SELECT_ENHANCED` | Process/filter/drive | Enhanced selection model (partial) | Listed |
 | 192 | `SEQUENCE` | Phase/sequence | No dedicated model | Listed |
 | 193 | `SEQ_BOOL` | Phase/sequence | No dedicated model | Spelling variant |
 | 194 | `SEQ_DINT` | Phase/sequence | No dedicated model | Spelling variant |

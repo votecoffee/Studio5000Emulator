@@ -79,6 +79,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_process_lab_selection_derivative_requests_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'ProcessLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(selected,rate):
+            state=self.post('step',{'dt':250});v=values(state)
+            self.assertEqual((v['SelectedValue'],v['ChangePerSecond']),(selected,rate));return state
+        step(30,0);write('Sensor2',40);step(40,40);write('Fault2',True);step(30,-40)
+        write('SelectMode',2);step(10,-80);write('SelectMode',4);step(20,40)
+        write('SelectMode',0);write('SelectorState.OperProgReq',True);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':250})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);state=step(30,40);v=values(state)
+        self.assertTrue(v['SelectorState.ProgOper']);self.assertFalse(v['SelectorState.OperProgReq'])
+        write('BypassDerivative',True);step(30,30);write('SampleTime',-1);state=step(30,30)
+        self.assertEqual(values(state)['DerivativeState.Status'],-2147483647)
+        report=self.post('report',{});self.assertEqual(report['st_select']['instructions'],['ESEL']);self.assertEqual(report['st_derivative']['instructions'],['DERV'])
+        self.assertFalse(report['st_select']['native_runtime_parity']);self.assertIn('process-demo',self.get('/').decode())
+
     def test_accumulator_lab_totals_integration_holds_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'AccumulatorLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
