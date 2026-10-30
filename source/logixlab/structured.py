@@ -2,9 +2,9 @@
 import copy
 import re
 from dataclasses import dataclass,field
-from .model import ModelError,Op,literal,coerce,operand_problem
+from .model import ModelError,Op,operand_problem
 from .st_expression import STExpression
-from . import system_values, array_sort
+from . import system_values, array_sort, st_cases
 from .integer_math import WIDE_TYPES
 
 ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SWPB','SRT'}
@@ -113,7 +113,7 @@ class Parser:
         while cursor<len(self.tokens):
             word=self.tokens[cursor][0]
             if word==':':return True
-            if not re.fullmatch(r'[+\-]|\.\.|,|(?:2|8|16)#[0-9a-fA-F_]+|\d+',word):return False
+            if not re.fullmatch(r'[+\-]|\.\.|,|'+st_cases.NUMBER,word):return False
             cursor+=1
         return False
 
@@ -153,16 +153,7 @@ class Parser:
         if word=='CASE':
             self.pos+=1;n=self.node('case',token);n.expr=self.capture({'OF'});self.expect('OF')
             while self.word() not in ('ELSE','END_CASE','<END>'):
-                labels=self.capture({':'});self.expect(':');ranges=[]
-                for item in labels.split(','):
-                    pair=item.split('..')
-                    try:values=[literal(v.replace(' ','')) for v in pair]
-                    except ValueError as e:raise ModelError('CASE selectors must be integer literals') from e
-                    if len(values)>2 or any(isinstance(v,bool) or not isinstance(v,int) for v in values):raise ModelError('CASE selectors must be integer literals')
-                    lo,hi=values[0],values[-1]
-                    coerce(lo,'DINT');coerce(hi,'DINT')
-                    if lo>hi:raise ModelError('Descending CASE range is unsupported')
-                    ranges.append((lo,hi))
+                labels=self.capture({':'});self.expect(':');ranges=st_cases.labels(labels)
                 n.cases.append((ranges,self.block({'ELSE','END_CASE'},case=True)))
             if self.word()=='ELSE':self.pos+=1;n.otherwise=self.block({'END_CASE'})
             self.expect('END_CASE');self.expect(';');return n
@@ -212,7 +203,7 @@ class Structured:
 
     def integer(self,text,scope):
         value=self.value(text,scope)
-        if isinstance(value,bool) or not isinstance(value,int):raise ModelError('ST loop/CASE operand requires an integer')
+        if isinstance(value,bool) or not isinstance(value,int):raise ModelError('ST loop operand requires an integer')
         return value
 
     def loop_contract(self,node,scope):
@@ -296,16 +287,21 @@ class Structured:
                         if self.type(n.expr,scope)!='bool':raise ModelError('Loop condition requires BOOL')
                         check(n.body,loops+1)
                     elif n.kind=='case':
-                        if self.expression(n.expr).typed_types or any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in self.expression(n.expr).refs):
-                            raise ModelError('Wide ST CASE selectors remain unqualified')
-                        t,real,_=self.expression(n.expr).analyze(self.memory,scope)
-                        if t!='number' or real:raise ModelError('CASE currently requires integer values')
+                        self.case_contract(n,scope)
                         for _,body in n.cases:check(body,loops)
                         check(n.otherwise,loops)
                     elif n.kind=='exit' and not loops:raise ModelError('EXIT requires a surrounding loop')
                 except ModelError as e:raise ModelError(f'ST line {n.line+1}: {e}') from e
         try:check(routine.statements)
         finally:self.memory.structural,self.memory.validating=previous
+
+    def case_contract(self,node,scope):
+        expression=self.expression(node.expr)
+        if expression.typed_types or any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in expression.refs):
+            raise ModelError('Wide ST CASE selectors remain unqualified')
+        kind,real,_=expression.analyze(self.memory,scope)
+        if kind!='number':raise ModelError('CASE requires a numeric expression')
+        return [(st_cases.normalize(ranges,real),body) for ranges,body in node.cases]
 
     def tick(self):
         self.engine.budget-=1
@@ -347,8 +343,8 @@ class Structured:
                             if self.boolean(expr,scope):chosen=body;result=True;break
                         self.trace(routine,n,context,result,detail='branch selected' if result else 'else / no branch');run(chosen)
                     elif n.kind=='case':
-                        value=self.integer(n.expr,scope);chosen=n.otherwise
-                        for ranges,body in n.cases:
+                        cases=self.case_contract(n,scope);value=self.value(n.expr,scope);chosen=n.otherwise
+                        for ranges,body in cases:
                             if any(lo<=value<=hi for lo,hi in ranges):chosen=body;break
                         self.trace(routine,n,context,detail=value);run(chosen)
                     elif n.kind=='for':

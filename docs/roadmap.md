@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.000222`: [integer/REAL ST CASE](st-case-selection.md) with
+finite float32 labels, lists/ranges, first-match execution and Text Lab examples.
+
 ## Current priority: emulation first
 
 As of 2026-10-29, build the runtime toward complete, explicitly qualified Logix

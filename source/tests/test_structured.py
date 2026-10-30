@@ -122,8 +122,8 @@ class StructuredTests(unittest.TestCase):
     def test_case_without_match_retains_value(self):
         e=self.engine('CASE Selector OF 9: State:=4; END_CASE;');e.memory.write('State',8);e.step();self.assertEqual(e.memory.read('State'),8)
 
-    def test_case_rejects_real_dynamic_and_descending_selectors(self):
-        for text in ('CASE 1.0 OF 1: State:=1; END_CASE;','CASE Selector OF Step: State:=1; END_CASE;','CASE Selector OF 5..1: State:=1; END_CASE;'):
+    def test_case_rejects_bool_dynamic_and_descending_selectors(self):
+        for text in ('CASE TRUE OF 1: State:=1; END_CASE;','CASE Selector OF Step: State:=1; END_CASE;','CASE Selector OF 5..1: State:=1; END_CASE;'):
             with self.subTest(text=text):self.assertTrue(self.engine(text).blockers)
 
     def test_st_precedence_relations_before_and_and_equality(self):

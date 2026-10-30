@@ -1,9 +1,12 @@
 # Instruction execution inventory
 
-Audited 2026-10-29; ST integer literals updated for app `26.1029.234052`. The engine has **94 built-in
+Audited 2026-10-30; numeric ST CASE updated for app `26.1030.000222`. The engine has **94 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
+
+[ST CASE](st-case-selection.md) supports narrow integer and REAL expression
+profiles with immediate values, lists and ranges; wide forms remain unqualified.
 
 This table covers the installed v35 instruction-set overview and A–Z indexes.
 It includes language aliases and product-specific families, so it must not be

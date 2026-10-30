@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -688,8 +688,8 @@ class Engine:
                 'entry_routines':self.entries,
                 'task_schedule':self.scheduler_description(),
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
-                'structured_text':{'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer)','FOR','WHILE','REPEAT','EXIT','supported calls'],
-                                   'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Integer division, wide arithmetic and FBD instructions remain blocked.'},
+                'structured_text':{'case':st_cases.description(),'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer/REAL)','FOR','WHILE','REPEAT','EXIT','supported calls'],
+                                   'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Mixed numeric conversions, wide FOR/CASE/index forms and FBD instructions remain unqualified.'},
                 'integer_execution':integer_math.description(self.project),
                 'integer_expression_execution':integer_math.expression_description(),
                 'wide_st_execution':wide_st.description(self.project),

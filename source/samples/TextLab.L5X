@@ -203,6 +203,26 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="RealCaseInput" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="2.5" />
+        </Data>
+      </Tag>
+      <Tag Name="RealCaseDivisor" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="RealCaseResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RealCaseVisits" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -257,6 +277,11 @@
               <Line Number="44">END_FOR;</Line>
               <Line Number="45">Done := Enable AND (Sum = 30);</Line>
               <Line Number="46">Truth := TRUE;</Line>
+              <Line Number="47">CASE RealCaseInput / RealCaseDivisor OF</Line>
+              <Line Number="48">    -1.0..1.0: RealCaseResult := 10; RealCaseVisits := RealCaseVisits + 1;</Line>
+              <Line Number="49">    1.0..3.0, 5e0: RealCaseResult := 20; RealCaseVisits := RealCaseVisits + 1;</Line>
+              <Line Number="50">    ELSE RealCaseResult := -1; RealCaseVisits := RealCaseVisits + 1;</Line>
+              <Line Number="51">END_CASE;</Line>
             </STContent>
           </Routine>
           <Routine Name="LadderScale" Type="RLL">

@@ -6,7 +6,7 @@ Execute supported ladder and Structured Text logic, drive inputs, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1029.234052`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.000222`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -92,6 +92,10 @@ arithmetic, comparisons and bitwise operations for the v35 ControlLogix 5580
 model. **Integer lab** compares RLL/ST results and demonstrates exact
 [L/U/UL integer literals](docs/st-integer-literals.md). Mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
+
+[Numeric CASE selection](docs/st-case-selection.md) supports integer and REAL
+expressions with immediate lists/ranges and first-match execution. **Text lab**
+demonstrates float32 comparisons, overlapping ranges and late-fault rollback.
 
 ## Table of Contents
 

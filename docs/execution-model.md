@@ -163,11 +163,17 @@ remain unqualified.
 
 ## Structured Text
 
-Supported forms include assignments, non-retentive `[:=]`, IF/ELSIF/ELSE, integer
-CASE selectors/ranges, FOR/BY, WHILE, REPEAT/UNTIL, nearest-loop EXIT, supported
+Supported forms include assignments, non-retentive `[:=]`, IF/ELSIF/ELSE,
+[integer/REAL CASE](st-case-selection.md) selectors/ranges, FOR/BY, WHILE,
+REPEAT/UNTIL, nearest-loop EXIT, supported
 instruction/AOI calls and mixed ST/RLL subroutine calls. ST is case-insensitive.
 Supported comments include `//`, `(* ... *)` and `/* ... */`; unsupported syntax
 is checked even in unreachable branches.
+
+CASE evaluates its expression once and executes only the first matching body.
+Integer labels retain DINT bounds. REAL expressions and labels use float32
+comparison with no added tolerance; labels do not promote an integer expression.
+Invalid labels block execution; unknown/faulting selectors roll back an advance.
 
 Typed numeric expressions currently focus on SINT/INT/DINT/REAL, BOOL and
 single-byte strings. REAL operations use modeled float32 rules; conversions,

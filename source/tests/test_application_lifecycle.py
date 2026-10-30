@@ -280,6 +280,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(values['AllOK'])
         self.assertFalse(self.post('report', {})['real_math']['native_math_status'])
 
+    def test_text_lab_real_case_selection_and_late_fault_recovery_through_http(self):
+        state=self.post('demo', {'sample':'TextLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        row=values(self.post('step', {'dt':10}));self.assertEqual((row['RealCaseResult'],row['RealCaseVisits']),(20,1))
+        self.post('write', {'tag':'RealCaseInput','value':1.0})
+        row=values(self.post('step', {'dt':10}));self.assertEqual((row['RealCaseResult'],row['RealCaseVisits']),(10,2))
+        before=self.post('write', {'tag':'RealCaseDivisor','value':0.0})
+        def current_state():
+            request=Request(self.url+'/api/state',headers={'X-Logix-Token':self.token})
+            with urlopen(request,timeout=3) as response:return json.load(response)
+        with self.assertRaises(HTTPError) as context:self.post('step', {'dt':10})
+        self.assertEqual(context.exception.code,400);context.exception.close();after=current_state()
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write', {'tag':'RealCaseDivisor','value':1.0})
+        row=values(self.post('step', {'dt':10}));self.assertEqual((row['RealCaseResult'],row['RealCaseVisits'],row['ScanTotal']),(10,3,3))
+        profile=self.post('report',{})['structured_text']['case'];self.assertIn('REAL',profile['numeric_types']);self.assertFalse(profile['native_runtime_parity'])
+
     def test_integer_lab_typed_st_literals_retain_full_ranges_through_http(self):
         state=self.post('demo', {'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
