@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; RLL FOR/BRK added for app `26.1030.105135`. The engine has **101 built-in
+Audited 2026-10-30; ST MAVE/MSTD added for app `26.1030.132924`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -24,7 +24,8 @@ separate language family, not RLL mnemonics.
 [ST CTUD](st-counter.md) uses FBD_COUNTER and [ST OSRI/OSFI](st-oneshot.md) use
 FBD_ONESHOT. [ST SCL](st-scaling.md) uses SCALE; [ST HLL/SNEG/SSUM](st-signals.md)
 add three signal-conditioning records. [ST RLIM](st-rate-limiter.md) uses
-RATE_LIMITER. These eleven additional calls are excluded from the RLL dispatch
+RATE_LIMITER. [ST MAVE/MSTD](st-moving-statistics.md) add MOVING_AVERAGE and
+MOVING_STD_DEV. These thirteen additional calls are excluded from the RLL dispatch
 count. Their FBD graph forms remain unimplemented.
 
 ## Instruction families
@@ -65,7 +66,7 @@ count. Their FBD graph forms remain unimplemented.
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |
-| Statistical Instructions | — | — | `MAVE`, `MAXC`, `MINC`, `MSTD` |
+| Statistical Instructions | — | — | `MAXC`, `MINC` (ST-only MAVE/MSTD listed above) |
 | Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | — (ST-only variants listed above) |
 | Trigonometric Instructions | `ACS`, `ASN`, `ATN`, `COS`, `SIN`, `TAN` | `ACOS`, `ASIN`, `ATAN` | — |
 | Additional alphabetical entries | — | `TRUNC` | `BPT`, `PCE`, `TPT` |
@@ -93,6 +94,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| MAVE/MSTD (ST only) | [Logical moving-statistics records](st-moving-statistics.md), uniform/direct-weighted means, population deviation, active queue fill/resize, initialization, diagnostics and rollback. FBD graphs and native queue/layout/precision/lifecycle/status/fault parity remain unfinished. |
 | RLIM (ST only) | [Logical RATE_LIMITER](st-rate-limiter.md), separate rates, bypass, Periodic/elapsed and oversample timing, status aliases and transactional history. Module timestamp mode, FBD graphs and native timing/precision/status/fault/layout parity remain unfinished. |
 | HLL/SNEG/SSUM (ST only) | [Logical signal records](st-signals.md), both/one-sided limits, inclusive alarms, status aliases, selectable negation and eight weighted input pairs plus bias. FBD graphs and native precision/overflow/status/layout/fault parity remain unfinished. |
 | SCL (ST only) | [Logical SCALE](st-scaling.md), finite REAL scaling, extrapolation/limiting, raw alarms, invalid-range status and rollback. FBD graphs and native precision/overflow/status/layout/fault parity remain unfinished. |

@@ -247,7 +247,7 @@ class StructuredOneshotTests(unittest.TestCase):
     def test_builtin_classification_and_instruction_counts_are_explicit(self):
         e=self.checked();self.assertNotIn('FBD_ONESHOT',e.project.data_only_types);self.assertNotIn('fbd_oneshot',e.project.udts)
         self.assertEqual(set(e.memory.read('T')),set(FIELDS));self.assertEqual(e.memory.resolve('T.OutputBit')[2],'BOOL')
-        self.assertEqual(len(ARITIES),99);self.assertTrue({'TONR','TOFR','RTOR','CTUD','OSRI','OSFI'}<=set(ST_ONLY_ARITIES))
+        self.assertEqual(len(ARITIES),101);self.assertTrue({'TONR','TOFR','RTOR','CTUD','OSRI','OSFI'}<=set(ST_ONLY_ARITIES))
 
     def test_report_qualifies_pulses_initialization_skips_and_rollback(self):
         profile=self.checked().report()['st_oneshot'];self.assertEqual(profile['instructions'],['OSFI','OSRI'])

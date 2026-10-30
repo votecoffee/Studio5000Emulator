@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST MAVE/MSTD](st-moving-statistics.md) keep samples in visible REAL queues and
+the active count in transactional per-record history. Sampling, initialization,
+input health and length diagnostics control updates; Run entry resets the count.
+Queue writes and count roll back together. Native queue order, resize/hold,
+precision, lifecycle and packed-layout parity remain unverified.
+
 [ST RLIM](st-rate-limiter.md) adds rate limiting with per-record previous output
 and call time in transactional history. Periodic calls use the configured task
 period; Continuous/harness calls use elapsed simulated time; oversample calls

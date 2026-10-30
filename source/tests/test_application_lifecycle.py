@@ -79,6 +79,31 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_moving_lab_samples_weights_resize_diagnostics_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'MovingLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(expected):
+            state=self.post('step',{'dt':10});v=values(state)
+            self.assertEqual((v['Average'],v['PopulationMean'],v['Deviation']),expected);return v
+        write('Input',2);step((2.0,2.0,0.0));write('Input',4);step((3.0,3.0,1.0))
+        write('TakeSample',False);write('Input',100);step((3.0,3.0,1.0))
+        write('ResetStatistics',True);write('Input',10);step((10.0,10.0,0.0))
+        write('ResetStatistics',False);write('TakeSample',True);write('Input',6);step((6.0,6.0,0.0))
+        write('Weighted',True);write('Input',8);step((5.5,7.0,1.0))
+        write('Window',0);v=step((5.5,7.0,1.0))
+        self.assertTrue(v['LengthInvalid']);self.assertTrue(v['InstructionFault']);self.assertEqual(v['MeanState.Status'],5)
+        write('Window',2);write('Weighted',False);write('Input',10);step((10.0,10.0,0.0))
+        write('Input',14);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':10})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);v=step((12.0,12.0,2.0));self.assertFalse(v['InstructionFault'])
+        report=self.post('report',{});self.assertEqual(report['st_moving']['instructions'],['MAVE','MSTD'])
+        self.assertFalse(report['st_moving']['native_runtime_parity']);self.assertIn('moving-demo',self.get('/').decode())
+
     def test_loop_lab_ranges_breaks_false_calls_and_late_fault_through_http(self):
         state=self.post('demo',{'sample':'LoopLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

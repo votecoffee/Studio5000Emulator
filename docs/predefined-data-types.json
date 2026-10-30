@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.102258",
+  "audited_app_version": "26.1030.132924",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -87,6 +87,11 @@
       "label": "RATE_LIMITER model (partial)",
       "remaining": "Bounded ST RLIM period/oversample ramps; module timestamp timing, FBD graphs and native timing/precision/status/layout/fault parity remain unfinished.",
       "source": "source/logixlab/st_rate.py"
+    },
+    "moving_statistics_model": {
+      "label": "Moving statistics model (partial)",
+      "remaining": "Bounded ST MAVE/MSTD finite REAL queues; FBD graphs, packed layouts and native queue/resize/hold/lifecycle/precision/status/fault parity remain unfinished.",
+      "source": "source/logixlab/st_moving.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -208,10 +213,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 22,
-    "no_dedicated_model": 200,
+    "dedicated_bounded_models": 24,
+    "no_dedicated_model": 198,
     "status_counts": {
-      "no_dedicated_model": 200,
+      "no_dedicated_model": 198,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -224,7 +229,8 @@
       "hl_limit_model": 1,
       "selectable_negate_model": 1,
       "selected_summer_model": 1,
-      "rate_limiter_model": 1
+      "rate_limiter_model": 1,
+      "moving_statistics_model": 2
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1440,7 +1446,7 @@
       "identifier_candidate": "MOVING_AVERAGE",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "moving_statistics_model",
       "v35_listing": "exact",
       "v35_catalog_name": "MOVING_AVERAGE",
       "notes": []
@@ -1452,7 +1458,7 @@
       "identifier_candidate": "MOVING_STD_DEV",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "moving_statistics_model",
       "v35_listing": "exact",
       "v35_catalog_name": "MOVING_STD_DEV",
       "notes": []

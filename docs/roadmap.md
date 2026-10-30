@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.132924`: [ST MAVE/MSTD](st-moving-statistics.md), logical
+moving-statistics records, REAL queues, sampling/resize/diagnostics and Moving Lab.
+
 Available in `26.1030.105135`: [ladder FOR/BRK](ladder-loops.md), inclusive
 indexed routine loops, nested early exits, Event isolation and Loop Lab.
 

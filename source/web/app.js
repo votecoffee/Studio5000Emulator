@@ -198,6 +198,7 @@ $('file').onchange=async()=>{
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('system-demo').onclick=()=>loadDemo('SystemLab');$('timer-demo').onclick=()=>loadDemo('TimerLab');$('counter-demo').onclick=()=>loadDemo('CounterLab');$('pulse-demo').onclick=()=>loadDemo('PulseLab');$('scale-demo').onclick=()=>loadDemo('ScaleLab');$('signal-demo').onclick=()=>loadDemo('SignalLab');$('rate-demo').onclick=()=>loadDemo('RateLab');$('event-demo').onclick=()=>loadDemo('EventLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('loop-demo').onclick=()=>loadDemo('LoopLab');
+$('moving-demo').onclick=()=>loadDemo('MovingLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.102258` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.132924` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -29,9 +29,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | SELECTABLE_NEGATE model, partial | 1 | [ST SNEG](st-signals.md), finite REAL selectable negation |
 | SELECTED_SUMMER model, partial | 1 | [ST SSUM](st-signals.md), eight weighted input pairs and bias |
 | RATE_LIMITER model, partial | 1 | [ST RLIM](st-rate-limiter.md), ramps/bypass and Periodic/oversample timing; RTS/FBD/native parity remain unfinished |
-| No dedicated model | 200 | No dedicated bounded named runtime model |
+| Moving statistics models, partial | 2 | [ST MAVE/MSTD](st-moving-statistics.md), finite REAL queues and uniform/weighted averages/population deviation |
+| No dedicated model | 198 | No dedicated bounded named runtime model |
 
-Thus **22 entries have dedicated bounded models**; this is not 22 fully
+Thus **24 entries have dedicated bounded models**; this is not 24 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -183,8 +184,8 @@ Every dedicated model status still requires the qualifications above.
 | 98 | `MODULE` | Module/connection | No dedicated model | Listed |
 | 99 | `MOTION_GROUP` | Motion/axis/reference | No dedicated model | Listed |
 | 100 | `MOTION_INSTRUCTION` | Motion/axis/reference | No dedicated model | Listed |
-| 101 | `MOVING_AVERAGE` | Process/filter/drive | No dedicated model | Listed |
-| 102 | `MOVING_STD_DEV` | Process/filter/drive | No dedicated model | Listed |
+| 101 | `MOVING_AVERAGE` | Process/filter/drive | Moving statistics model (partial) | Listed |
+| 102 | `MOVING_STD_DEV` | Process/filter/drive | Moving statistics model (partial) | Listed |
 | 103 | `MULTIPLEXER` | Process/filter/drive | No dedicated model | Listed |
 | 104 | `MUTING_FOUR_SENSOR_BIDIR` | Safety | No dedicated model | Listed |
 | 105 | `MUTING_TWO_SENSOR_ASYM` | Safety | No dedicated model | Listed |

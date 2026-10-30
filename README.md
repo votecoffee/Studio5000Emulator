@@ -142,6 +142,11 @@ Choose **Rate lab** to try ramps, timing diagnostics and clock rollback.
 early exits, shared limits and transactional rollback. Choose **Loop lab** to try
 ascending/descending ranges and conditional breaks.
 
+[Structured Text moving statistics](docs/st-moving-statistics.md) adds MAVE
+uniform/weighted averages and MSTD population deviation with logical records and
+visible REAL sample queues. Choose **Moving statistics lab** to try sampling,
+window changes, initialization and fault recovery.
+
 ## Table of Contents
 
 - [Background](#background)

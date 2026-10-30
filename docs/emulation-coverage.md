@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; RLL FOR/BRK added for app `26.1030.105135`. **Full Logix emulation is not
+Audited 2026-10-30; ST MAVE/MSTD added for app `26.1030.132924`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -39,6 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
+| MOVING_AVERAGE/MOVING_STD_DEV | [ST MAVE/MSTD](st-moving-statistics.md), uniform/direct-weighted averages, population deviation, REAL queues, sampling/initialization, resize/status and transactional count | FBD graphs, packed layouts, native queue/resize/hold/lifecycle/precision/status/fault parity |
 | RATE_LIMITER and ST RLIM | [Rate limiting](st-rate-limiter.md), separate rates, bypass, Periodic/elapsed and explicit oversample timing, status aliases and rollback | Module timestamp mode/RTS diagnostics, FBD graphs and native timing/precision/status/layout/fault parity |
 | ST signal conditioning | [HLL/SNEG/SSUM](st-signals.md), logical HL_LIMIT/SELECTABLE_NEGATE/SELECTED_SUMMER, inclusive limit alarms, selector diagnostics and weighted sums | FBD graph forms and native precision/overflow/status/layout/fault parity |
 | SCALE and ST SCL | [Analog scaling](st-scaling.md), finite REAL interpolation/extrapolation, limiting, raw alarms and status aliases | FBD graph forms and native precision/overflow/status/layout/fault parity |
