@@ -42,6 +42,12 @@ unsigned arithmetic, comparisons and bitwise operations for v35 ControlLogix
 conversion. Mixed-type wide operations and native math flags remain blocked;
 overflow and divide faults retain modeled scan rollback.
 
+[String conversions](string-conversions.md) add ASCII-only LOWER/UPPER, decimal
+STOR and a documented fixed-decimal RTOS software format. Source reads precede
+writes; active data must be known and capacities enforced. RLL false calls and
+skipped ST branches retain outputs. New ST calls track destination writes in
+FOR dependency checks and share existing AOI string/REAL bindings.
+
 [File arithmetic](file-arithmetic.md) adds ladder FAL ALL and numeric modes
 using the existing CPT expressions. Destination subscripts resolve at each
 CONTROL.POS; later iterations read earlier writes. Numeric work continues on

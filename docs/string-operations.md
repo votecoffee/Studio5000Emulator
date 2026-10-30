@@ -45,13 +45,15 @@ Unknown active bytes/lengths, invalid ranges, result-capacity overflow and a FIN
 position that cannot fit its result type stop and roll back the entire modeled
 advance. Earlier data, AOI writes, time and scheduler state are restored. Native
 minor-fault records, continuation and math/status behavior are separate work.
-FBD execution and broader string conversion/encoding support remain unfinished.
+See [LOWER/UPPER and STOR/RTOS](string-conversions.md) for case and REAL
+conversions. FBD execution and broader conversion/encoding behavior remain unfinished.
 
 ## String Lab
 
 Choose **String lab** in the webpage and **Step scan**. The authored
 [StringLab.L5X](../source/samples/StringLab.L5X) combines ladder search/editing
-with a called ST routine and an explicit 32-byte user string.
+with a called ST routine and an explicit 32-byte user string. It also includes
+[case and REAL conversion examples](string-conversions.md#string-lab).
 
 | Tag | Expected first-scan result |
 | --- | --- |

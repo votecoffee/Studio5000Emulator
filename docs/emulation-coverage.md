@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-29; file arithmetic updated for app `26.1029.203308`. **Full Logix emulation is not
+Audited 2026-10-29; string conversions updated for app `26.1029.204443`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -19,7 +19,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Ladder (RLL) | 89 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 93 built-in dispatch entries, branches, bounded calls, traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md), indexed transforms, scalar accumulation and sequential expression writes | INC, AOI execution, broader expression types/functions and native cursor/overflow/status/partial-fault parity |
 | File search | [FSC ALL/numeric modes](file-search.md), comparison expressions, match/inhibit/resume and false-rung numeric continuation | INC, AOI execution, broader expressions/types and native cursor/status/fault parity |
 | File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension and ST call transitions | Native internal POS cursor, partial states/faults, wider types and indirect/alias/AOI starting arrays |
@@ -38,7 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | CONTROL | [Logical members, shifts, numeric FIFO/LIFO and RES](control-operations.md); [DINT sequencers](sequencer-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
-| STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), selected conversions | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
+| STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), [ASCII case and REAL conversions](string-conversions.md) | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
 | AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
 | Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | CPU preemption/time slicing, event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
@@ -284,5 +285,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 89 built-in RLL entries.
+added by project AOIs are counted separately from the 93 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

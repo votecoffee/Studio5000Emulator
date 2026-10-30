@@ -130,6 +130,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['AllOK'])
         self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
 
+    def test_string_lab_case_and_real_conversions_in_rll_and_st(self):
+        state = self.post('demo', {'sample': 'StringLab'})
+        self.assertEqual(state['blockers'], [])
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        for prefix in ('', 'St'):
+            self.assertEqual(values[prefix + 'Lowered'], 'abc 09')
+            self.assertEqual(values[prefix + 'Uppered'], 'ABC 09')
+            self.assertEqual(values[prefix + 'ParsedReal'], -12.5)
+            self.assertEqual(values[prefix + 'FormattedReal'], '15.3001003')
+        self.post('write', {'tag': 'Convert', 'value': False})
+        self.post('write', {'tag': 'CaseText', 'value': 'new'})
+        self.post('write', {'tag': 'NumericText', 'value': 'invalid'})
+        state = self.post('step', {'dt': 10})
+        held = {row['name']: row['value'] for row in state['tags']}
+        for name in ('Lowered', 'Uppered', 'ParsedReal', 'FormattedReal', 'StLowered', 'StUppered', 'StParsedReal', 'StFormattedReal'):
+            self.assertEqual(held[name], values[name])
+        report = self.post('report', {})['string_conversions']
+        self.assertEqual(report['instructions'], ['LOWER', 'RTOS', 'STOR', 'UPPER'])
+        self.assertFalse(report['native_formatting_parity'])
+
     def test_control_lab_shifts_and_fifo_edges_through_http(self):
         state = self.post('demo', {'sample': 'ControlLab'})
         self.assertEqual(state['blockers'], [])

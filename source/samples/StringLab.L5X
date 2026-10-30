@@ -634,6 +634,354 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="Convert" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="RealSource" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="15.3001" />
+        </Data>
+      </Tag>
+      <Tag Name="ParsedReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="StParsedReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CaseText" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="6" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="97" />
+              <Element Index="[1]" Value="66" />
+              <Element Index="[2]" Value="99" />
+              <Element Index="[3]" Value="32" />
+              <Element Index="[4]" Value="48" />
+              <Element Index="[5]" Value="57" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Lowered" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Uppered" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StLowered" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StUppered" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="NumericText" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="10" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="87" />
+              <Element Index="[1]" Value="61" />
+              <Element Index="[2]" Value="45" />
+              <Element Index="[3]" Value="49" />
+              <Element Index="[4]" Value="50" />
+              <Element Index="[5]" Value="46" />
+              <Element Index="[6]" Value="53" />
+              <Element Index="[7]" Value="32" />
+              <Element Index="[8]" Value="107" />
+              <Element Index="[9]" Value="103" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="FormattedReal" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StFormattedReal" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="0" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="0" />
+              <Element Index="[6]" Value="0" />
+              <Element Index="[7]" Value="0" />
+              <Element Index="[8]" Value="0" />
+              <Element Index="[9]" Value="0" />
+              <Element Index="[10]" Value="0" />
+              <Element Index="[11]" Value="0" />
+              <Element Index="[12]" Value="0" />
+              <Element Index="[13]" Value="0" />
+              <Element Index="[14]" Value="0" />
+              <Element Index="[15]" Value="0" />
+              <Element Index="[16]" Value="0" />
+              <Element Index="[17]" Value="0" />
+              <Element Index="[18]" Value="0" />
+              <Element Index="[19]" Value="0" />
+              <Element Index="[20]" Value="0" />
+              <Element Index="[21]" Value="0" />
+              <Element Index="[22]" Value="0" />
+              <Element Index="[23]" Value="0" />
+              <Element Index="[24]" Value="0" />
+              <Element Index="[25]" Value="0" />
+              <Element Index="[26]" Value="0" />
+              <Element Index="[27]" Value="0" />
+              <Element Index="[28]" Value="0" />
+              <Element Index="[29]" Value="0" />
+              <Element Index="[30]" Value="0" />
+              <Element Index="[31]" Value="0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -659,6 +1007,18 @@
               <Rung Number="5" Type="N">
                 <Text>EQU(Location,10)EQU(StPosition,10)EQU(MissingPos,0)EQU(SourceText,Cleaned)OTE(AllOK);</Text>
               </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(Convert)LOWER(CaseText,Lowered);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(Convert)UPPER(CaseText,Uppered);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(Convert)STOR(NumericText,ParsedReal);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(Convert)RTOS(RealSource,FormattedReal);</Text>
+              </Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">
@@ -666,6 +1026,12 @@
               <Line Number="0">INSERT(SourceText,Addition,1,StEdited);</Line>
               <Line Number="1">DELETE(StEdited,Qty,1,StEdited);</Line>
               <Line Number="2">FIND(StEdited,SearchText,1,StPosition);</Line>
+              <Line Number="3">IF Convert THEN</Line>
+              <Line Number="4">LOWER(CaseText,StLowered);</Line>
+              <Line Number="5">UPPER(CaseText,StUppered);</Line>
+              <Line Number="6">STOR(NumericText,StParsedReal);</Line>
+              <Line Number="7">RTOS(RealSource,StFormattedReal);</Line>
+              <Line Number="8">END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>

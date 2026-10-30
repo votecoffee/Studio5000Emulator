@@ -43,6 +43,10 @@ Available string increment: [FIND/INSERT/DELETE in ladder and ST](string-operati
 with explicit user-string capacities, alias-safe source reads and rollback.
 Remaining string edge cases, conversions and native status behavior stay open.
 
+Available conversion increment: [LOWER/UPPER and STOR/RTOS](string-conversions.md)
+in ladder/ST with custom strings and AOI bindings. Native RTOS formatting, STOR
+edge forms, wider types and math/status/fault behavior remain open.
+
 Available arithmetic increment: [FAL ALL/numeric execution](file-arithmetic.md),
 including indexed transforms, scalar accumulation and sequential writes. INC,
 broader types/functions, AOI and native cursor/overflow/status behavior stay open.

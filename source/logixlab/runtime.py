@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations
 from .extended import Extensions
 from .addons import AddOns
@@ -672,6 +672,7 @@ class Engine:
                 'integer_execution':integer_math.description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'string_operations':string_operations.description(),
+                'string_conversions':string_conversions.description(),
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
                 'numeric_conversions':numeric_conversions.description(),
