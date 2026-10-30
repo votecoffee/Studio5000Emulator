@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; ST CTUD added for app `26.1030.090800`. The engine has **99 built-in
+Audited 2026-10-30; ST OSRI/OSFI added for app `26.1030.092825`. The engine has **99 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -21,8 +21,9 @@ separate language family, not RLL mnemonics.
   constructs do not implement the distinct RLL FOR/BRK instructions.
 
 [ST-only TONR/TOFR/RTOR](st-timers.md) use logical FBD_TIMER records;
-[ST CTUD](st-counter.md) uses FBD_COUNTER. These four additional calls are
-excluded from the RLL dispatch count. Their FBD graph forms remain unimplemented.
+[ST CTUD](st-counter.md) uses FBD_COUNTER and [ST OSRI/OSFI](st-oneshot.md) use
+FBD_ONESHOT. These six additional calls are excluded from the RLL dispatch count.
+Their FBD graph forms remain unimplemented.
 
 ## Instruction families
 
@@ -35,7 +36,7 @@ excluded from the RLL dispatch count. Their FBD graph forms remain unimplemented
 | ASCII Conversion Instructions | `DTOS`, `LOWER`, `RTOS`, `STOD`, `STOR`, `UPPER` | — | — |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
 | ASCII String | `CONCAT`, `DELETE`, `FIND`, `INSERT`, `MID` | — | — |
-| Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | `OSFI`, `OSRI` |
+| Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST-only OSRI/OSFI listed above) |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
 | Drives Instructions | — | — | `HMIBC`, `INTG`, `PI`, `PMUL`, `SCRV`, `SOC`, `UPDN` |
@@ -90,6 +91,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | Raw byte reinterpretation, complete aggregate layouts, all legal source/destination forms and asynchronous/CPS synchronization behavior. Current copies require matching declared element types inside a modeled region. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
+| OSRI/OSFI (ST only) | [Logical FBD_ONESHOT](st-oneshot.md), sampled rising/falling edges, startup suppression, skipped calls and transactional history. FBD graphs, mixed instruction kinds on one record and native layout/lifecycle/fault parity remain unfinished. |
 | CTUD (ST only) | [Logical FBD_COUNTER](st-counter.md), sampled up/down edges, first-call/Run priming, reset, signed wrap and transactional history. FBD graphs and native reset/flag/layout/fault parity remain unfinished. |
 | TONR/TOFR/RTOR (ST only) | [Logical FBD_TIMER and elapsed-time profile](st-timers.md), reset/retention, skipped calls, status aliases and rollback. FBD graphs, native clock/status/fault/layout parity and other profiles remain unfinished. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
@@ -122,6 +124,7 @@ The exact current dispatch table is `ARITIES` in
 [sequencer_operations.py](../source/logixlab/sequencer_operations.py),
 [st_timers.py](../source/logixlab/st_timers.py),
 [st_counter.py](../source/logixlab/st_counter.py),
+[st_oneshot.py](../source/logixlab/st_oneshot.py),
 [structured.py](../source/logixlab/structured.py),
 [expressions.py](../source/logixlab/expressions.py) and
 [st_expression.py](../source/logixlab/st_expression.py). Loading a project reports

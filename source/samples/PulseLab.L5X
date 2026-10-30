@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="PulseLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="PulseLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallEdges" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RisingPulses" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FallingPulses" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RisingOutput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FallingOutput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Rise" DataType="FBD_ONESHOT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_ONESHOT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="InputBit" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutputBit" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Fall" DataType="FBD_ONESHOT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_ONESHOT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="InputBit" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutputBit" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallEdges THEN</Line>
+              <Line Number="1">    Rise.InputBit := Input;</Line>
+              <Line Number="2">    Fall.InputBit := Input;</Line>
+              <Line Number="3">    OSRI(Rise);</Line>
+              <Line Number="4">    OSFI(Fall);</Line>
+              <Line Number="5">    IF Rise.OutputBit THEN RisingPulses := RisingPulses + 1; END_IF;</Line>
+              <Line Number="6">    IF Fall.OutputBit THEN FallingPulses := FallingPulses + 1; END_IF;</Line>
+              <Line Number="7">    CallCount := CallCount + 1;</Line>
+              <Line Number="8">END_IF;</Line>
+              <Line Number="9">RisingOutput := Rise.OutputBit;</Line>
+              <Line Number="10">FallingOutput := Fall.OutputBit;</Line>
+              <Line Number="11">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

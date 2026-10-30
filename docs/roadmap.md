@@ -1,5 +1,8 @@
 # Roadmap
 
+Available in `26.1030.092825`: [ST OSRI/OSFI](st-oneshot.md), logical FBD_ONESHOT
+records, rising/falling edge pulses, startup/skip/rollback behavior and Pulse Lab.
+
 Available in `26.1030.090800`: [ST CTUD](st-counter.md), logical FBD_COUNTER
 records, sampled-edge/reset/wrap behavior and Counter Lab.
 

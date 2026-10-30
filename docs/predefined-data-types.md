@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.090800` on 2026-10-30. Every supplied entry appears below in its original
+`26.1030.092825` on 2026-10-30. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -23,9 +23,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
 | FBD_TIMER model, partial | 1 | [ST TONR/TOFR/RTOR](st-timers.md), logical fields and deterministic elapsed time; FBD graphs and native parity remain unfinished |
 | FBD_COUNTER model, partial | 1 | [ST CTUD](st-counter.md), sampled edges and logical up/down state; FBD graphs and native parity remain unfinished |
-| No dedicated model | 206 | No dedicated bounded named runtime model |
+| FBD_ONESHOT model, partial | 1 | [ST OSRI/OSFI](st-oneshot.md), sampled rising/falling pulses and logical fields; FBD graphs and native parity remain unfinished |
+| No dedicated model | 205 | No dedicated bounded named runtime model |
 
-Thus **16 entries have dedicated bounded models**; this is not 16 fully
+Thus **17 entries have dedicated bounded models**; this is not 17 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -146,7 +147,7 @@ Every dedicated model status still requires the qualifications above.
 | 67 | `FBD_MASK_EQUAL` | FBD state/logic | No dedicated model | Listed |
 | 68 | `FBD_MATH` | FBD state/logic | No dedicated model | Listed |
 | 69 | `FBD_MATH_ADVANCED` | FBD state/logic | No dedicated model | Listed |
-| 70 | `FBD_ONESHOT` | FBD state/logic | No dedicated model | Listed |
+| 70 | `FBD_ONESHOT` | FBD state/logic | FBD_ONESHOT model (partial) | Listed |
 | 71 | `FBD_TIMER` | FBD state/logic | FBD_TIMER model (partial) | Listed |
 | 72 | `FBD_TRUNCATE` | FBD state/logic | No dedicated model | Listed |
 | 73 | `FILTER_HIGH_PASS` | Process/filter/drive | No dedicated model | Listed |

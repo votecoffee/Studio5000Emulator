@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.090800",
+  "audited_app_version": "26.1030.092825",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -57,6 +57,11 @@
       "label": "FBD_COUNTER model (partial)",
       "remaining": "Bounded ST CTUD; FBD graphs, complete native reset/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_counter.py"
+    },
+    "fbd_oneshot_model": {
+      "label": "FBD_ONESHOT model (partial)",
+      "remaining": "Bounded ST OSRI/OSFI; FBD graphs, mixed-kind records, native layout/lifecycle/fault parity and other profiles remain unfinished.",
+      "source": "source/logixlab/st_oneshot.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -178,17 +183,18 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 16,
-    "no_dedicated_model": 206,
+    "dedicated_bounded_models": 17,
+    "no_dedicated_model": 205,
     "status_counts": {
-      "no_dedicated_model": 206,
+      "no_dedicated_model": 205,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
       "string_model": 1,
       "control_model": 1,
       "fbd_timer_model": 1,
-      "fbd_counter_model": 1
+      "fbd_counter_model": 1,
+      "fbd_oneshot_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1032,7 +1038,7 @@
       "identifier_candidate": "FBD_ONESHOT",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_oneshot_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_ONESHOT",
       "notes": []

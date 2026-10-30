@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST OSRI/OSFI](st-oneshot.md) use logical FBD_ONESHOT records and per-record
+sampled input history. Reached calls produce rising/falling pulses; skipped
+calls retain outputs and history. Run entry reprimes history. Values and edges
+share scan/prescan rollback and supported detached routine replacement.
+
 Whole-project execution supports one to 32 Standard Continuous/Periodic and
 qualified [instruction-only Event tasks](event-tasks.md),
 with at most one Continuous task. Periodic releases follow integral-millisecond

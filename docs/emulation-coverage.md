@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; ST CTUD added for app `26.1030.090800`. **Full Logix emulation is not
+Audited 2026-10-30; ST OSRI/OSFI added for app `26.1030.092825`. **Full Logix emulation is not
 implemented.** The current engine executes a bounded RLL/Structured Text subset.
 Development now prioritizes execution, data and simulated devices; further
 Studio 5000 compatibility expansion is deferred until those foundations mature.
@@ -39,6 +39,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
+| FBD_ONESHOT and ST edges | [OSRI/OSFI](st-oneshot.md), rising/falling pulses, startup suppression, skipped calls and transactional history | FBD graph forms, shared-kind records and native layout/lifecycle/fault parity |
 | FBD_COUNTER and ST CTUD | [Up/down counting](st-counter.md), sampled edges, reset, signed wrap, first-call/Run priming and rollback | FBD graph forms and native lifecycle/reset/flags/layout/fault parity |
 | FBD_TIMER and ST timers | [TONR/TOFR/RTOR](st-timers.md), logical fields/status aliases, deterministic milliseconds, reset/retention, skipped calls and rollback | FBD graph forms, native clocks/layout/status/fault parity and other controller profiles |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |

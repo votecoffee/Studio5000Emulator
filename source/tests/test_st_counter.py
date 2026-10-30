@@ -235,7 +235,7 @@ class StructuredCounterTests(unittest.TestCase):
 
     def test_builtin_counter_is_not_decorated_only_and_does_not_inflate_rll_count(self):
         e=self.checked();self.assertNotIn('FBD_COUNTER',e.project.data_only_types);self.assertNotIn('fbd_counter',e.project.udts)
-        self.assertEqual(len(ARITIES),99);self.assertEqual(set(ST_ONLY_ARITIES),{'TONR','TOFR','RTOR','CTUD'})
+        self.assertEqual(len(ARITIES),99);self.assertTrue({'TONR','TOFR','RTOR','CTUD'}<=set(ST_ONLY_ARITIES))
         self.assertEqual(set(e.memory.read('C')),set(FIELDS));self.assertEqual(e.memory.resolve('C.ACC')[2],'DINT')
 
     def test_report_exposes_sampled_initialization_order_reset_and_qualification(self):

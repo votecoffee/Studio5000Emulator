@@ -620,6 +620,31 @@ class ApplicationLifecycleTests(unittest.TestCase):
         profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
+    def test_pulse_lab_st_edges_skips_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'PulseLab'})['blockers'], [])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        self.post('step', {'dt':10});self.post('write', {'tag':'Input','value':True})
+        v=values(self.post('step', {'dt':10}));self.assertTrue(v['RisingOutput']);self.assertEqual(v['RisingPulses'],1)
+        self.post('write', {'tag':'CallEdges','value':False});v=values(self.post('step', {'dt':10}))
+        self.assertTrue(v['RisingOutput']);self.assertEqual(v['RisingPulses'],1)
+        self.post('write', {'tag':'CallEdges','value':True});v=values(self.post('step', {'dt':10}))
+        self.assertFalse(v['RisingOutput']);self.assertEqual(v['RisingPulses'],1)
+        self.post('write', {'tag':'Input','value':False});before=self.post('write', {'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}))
+        self.assertTrue(v['FallingOutput']);self.assertEqual(v['FallingPulses'],1)
+        v=values(self.post('step', {'dt':10}));self.assertFalse(v['FallingOutput']);self.assertEqual(v['FallingPulses'],1)
+        self.post('write', {'tag':'Input','value':True});before=self.post('write', {'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step', {'dt':10})
+        error.exception.close()
+        self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}))
+        self.assertTrue(v['RisingOutput']);self.assertEqual(v['RisingPulses'],2)
+        profile=self.post('report', {})['st_oneshot'];self.assertEqual(profile['instructions'],['OSFI','OSRI'])
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_counter_lab_st_edges_wrap_reset_and_retry_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'CounterLab'})['blockers'], [])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
