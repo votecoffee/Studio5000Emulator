@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.170127`: [stateful FBD blocks](fbd-stateful.md),
+TONR/TOFR/RTOR, CTUD and OSRI/OSFI, with FBD Timer/Counter Lab. Shared clocks/edges,
+connected enables and whole-advance rollback; native FBD timing remains unqualified.
+
 Available in `26.1030.164452`: [FBD signal conditioning](function-blocks.md),
 SCL/HLL/SNEG/SSUM, typed BOOL diagnostic wires and FBD Signal Lab. Existing ST
 numerical models are shared; native FBD lifecycle/precision parity remains unqualified.

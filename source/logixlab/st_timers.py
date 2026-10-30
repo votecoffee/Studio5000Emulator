@@ -88,5 +88,5 @@ def description():
                 invalid_preset='PRE<0 sets Status=3/EnableOut=false and pauses timing; valid calls clear Status',
                 rollback='Record values and elapsed-time history commit with the complete advance',
                 native_runtime_parity=False,
-                remaining=['FBD graph execution and Ladder forms','Native clock wrap, precision/status/fault/layout parity',
+                remaining=['General FBD outside the qualified single-sheet graph and native language forms','Native clock wrap, precision/status/fault/layout parity',
                            'Other controller profiles','Mixed timer instructions sharing one record'])

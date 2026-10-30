@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-30; FBD signal blocks added for app `26.1030.164452`. **Full Logix emulation is not
+Audited 2026-10-30; stateful FBD blocks added for app `26.1030.170127`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development now prioritizes execution, data and simulated devices; further
@@ -20,7 +20,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
-| Function blocks | [Single-sheet signal graphs](function-blocks.md), SEL/MUX/SCL/HLL/SNEG/SSUM, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
+| Function blocks | [Single-sheet signal graphs](function-blocks.md), Twelve blocks including timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
@@ -53,9 +53,9 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | RATE_LIMITER and ST RLIM | [Rate limiting](st-rate-limiter.md), separate rates, bypass, Periodic/elapsed and explicit oversample timing, status aliases and rollback | Module timestamp mode/RTS diagnostics, FBD graphs and native timing/precision/status/layout/fault parity |
 | ST/FBD signal conditioning | [HLL/SNEG/SSUM](st-signals.md), logical HL_LIMIT/SELECTABLE_NEGATE/SELECTED_SUMMER, inclusive limit alarms, selector diagnostics and weighted sums | General FBD and native precision/overflow/status/layout/fault parity |
 | SCALE and ST/FBD SCL | [Analog scaling](st-scaling.md), finite REAL interpolation/extrapolation, limiting, raw alarms and status aliases | General FBD and native precision/overflow/status/layout/fault parity |
-| FBD_ONESHOT and ST edges | [OSRI/OSFI](st-oneshot.md), rising/falling pulses, startup suppression, skipped calls and transactional history | FBD graph forms, shared-kind records and native layout/lifecycle/fault parity |
-| FBD_COUNTER and ST CTUD | [Up/down counting](st-counter.md), sampled edges, reset, signed wrap, first-call/Run priming and rollback | FBD graph forms and native lifecycle/reset/flags/layout/fault parity |
-| FBD_TIMER and ST timers | [TONR/TOFR/RTOR](st-timers.md), logical fields/status aliases, deterministic milliseconds, reset/retention, skipped calls and rollback | FBD graph forms, native clocks/layout/status/fault parity and other controller profiles |
+| FBD_ONESHOT and ST/FBD edges | [OSRI/OSFI](st-oneshot.md), rising/falling pulses, startup suppression, skipped calls and transactional history | General FBD graph forms, shared-kind records and native layout/lifecycle/fault parity |
+| FBD_COUNTER and ST/FBD CTUD | [Up/down counting](st-counter.md), sampled edges, reset, signed wrap, first-call/Run priming and rollback | General FBD graph forms and native lifecycle/reset/flags/layout/fault parity |
+| FBD_TIMER and ST/FBD timers | [TONR/TOFR/RTOR](st-timers.md), logical fields/status aliases, deterministic milliseconds, reset/retention, skipped calls and rollback | General FBD graph forms, native clocks/layout/status/fault parity and other controller profiles |
 | TIMER/COUNTER | Modeled TON/TOF/RTO, CTU/CTD/RES and represented fields | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
 | CONTROL | [Logical members, shifts, FIFO/LIFO and RES](control-operations.md); [matching string/UDT records](record-queues.md); [DINT sequencers](sequencer-operations.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
@@ -164,7 +164,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
 - [ ] **L03 — FBD execution:** [Single-sheet signal graphs](function-blocks.md)
-  now execute six blocks over typed acyclic wires with enable/status/rollback. Complete multiple
+  now execute twelve blocks over typed acyclic wires with enable/status/rollback. Complete multiple
   sheets, connectors, feedback, native execution order, retained state, sample
   periods, other FBD instructions/functions/AOIs and native transfer/edit support.
 - [ ] **L04 — SFC execution:** active steps and transitions, selection/parallel

@@ -1,7 +1,8 @@
 # Function block signal execution
 
 The v35 ControlLogix 5580 software profile executes a limited FBD graph containing
-`SEL`, `MUX`, `SCL`, `HLL`, `SNEG` and `SSUM`. Choose **FBD selector lab** for
+`SEL`, `MUX`, `SCL`, `HLL`, `SNEG`, `SSUM` and the six
+[timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 Other FBD instructions and complete native graph semantics remain unfinished.
 
@@ -38,12 +39,16 @@ records; implicit dependencies through backing-tag reads are rejected.
 | HLL | Both/high/low limiting with inclusive active alarms and selector/range diagnostics. |
 | SNEG | Select the input or its negation. |
 | SSUM | Sum selected input/gain pairs in index order, then add Bias. |
+| TONR / TOFR / RTOR | Shared logical timer models with explicit elapsed-time and reset/pause/off-delay policies. |
+| CTUD | Sampled up/down count edges, reset, DINT wrap and done/overflow/underflow state. |
+| OSRI / OSFI | Sampled rising/falling pulses and startup suppression. |
 | Connected EnableIn false | Clear enables and retain outputs, status and hidden output history. |
 
 Status aliases are BOOL source pins: MUX InstructFault/SelectorInv; SCL
 InstructFault/InRawRangeInv; HLL InstructFault/LimitsInv/SelectLimitInv. They can
 drive BOOL ORefs or downstream BOOL inputs. They cannot be driven as inputs.
 Unknown Status bits remain unknown and cannot be published as FALSE.
+FBD_TIMER additionally exposes InstructFault/PresetInv as BOOL output pins.
 
 An enabled invalid MUX selector uses zero before its first enabled execution.
 Subsequent invalid selectors use retained internal output, independently of
@@ -88,10 +93,17 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-stays at 40 bounded models. There are six FBD blocks, with four names shared
-with the existing twenty-seven ST-only-call dispatch entries. RLL remains 101.
+stays at 40 bounded models. There are twelve FBD blocks, with ten names shared
+with the existing twenty-seven ST-call dispatch entries. RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
+
+## Timer/counter lab
+
+Choose **FBD timer/counter lab** for `FBDStateLab.L5X`: six blocks, 38 root tags,
+34 drawing nodes and 39 wires. Rising pulses count toward CountPreset; CountDone
+starts OnDelay. TimerInput separately drives retained and off-delay timers. See
+[the stateful contract](fbd-stateful.md) for lifecycle, timing and retry behavior.
 
 ## Remaining work and references
 

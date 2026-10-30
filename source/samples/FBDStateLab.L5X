@@ -1,0 +1,363 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDStateLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDStateLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CountDown" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CountPreset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="CounterReset" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimerInput" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnPreset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="30" />
+        </Data>
+      </Tag>
+      <Tag Name="RetainPreset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="50" />
+        </Data>
+      </Tag>
+      <Tag Name="OffPreset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetTimers" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RisingPulse" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FallingPulse" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Count" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CountDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Overflow" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Underflow" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnACC" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnTiming" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnPresetInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RetainedACC" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RetainedTiming" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RetainedDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OffACC" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OffTiming" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OffDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Rising" TagType="Base" DataType="FBD_ONESHOT">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_ONESHOT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="InputBit" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutputBit" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Falling" TagType="Base" DataType="FBD_ONESHOT">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_ONESHOT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="InputBit" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OutputBit" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Counter" TagType="Base" DataType="FBD_COUNTER">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_COUNTER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="CUEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CDEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="CU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CD" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OV" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OnDelay" TagType="Base" DataType="FBD_TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_TIMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="TimerEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Retained" TagType="Base" DataType="FBD_TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_TIMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="TimerEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="5" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OffDelay" TagType="Base" DataType="FBD_TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_TIMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="TimerEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(TimeAndCount,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TimeAndCount" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Sample input edges, count rising pulses, delay count done and exercise retained/off timers.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="Input" />
+                <IRef ID="2" X="20" Y="105" Operand="CountDown" />
+                <IRef ID="3" X="20" Y="210" Operand="CountPreset" />
+                <IRef ID="4" X="20" Y="315" Operand="CounterReset" />
+                <IRef ID="5" X="20" Y="420" Operand="TimerInput" />
+                <IRef ID="6" X="20" Y="525" Operand="OnPreset" />
+                <IRef ID="7" X="20" Y="630" Operand="RetainPreset" />
+                <IRef ID="8" X="20" Y="735" Operand="OffPreset" />
+                <IRef ID="9" X="20" Y="840" Operand="ResetTimers" />
+                <IRef ID="10" X="20" Y="945" Operand="BlockEnable" />
+                <Block ID="100" X="320" Y="70" Type="OSRI" Operand="Rising" VisiblePins="EnableIn InputBit EnableOut OutputBit" />
+                <Block ID="200" X="620" Y="230" Type="OSFI" Operand="Falling" VisiblePins="EnableIn InputBit EnableOut OutputBit" />
+                <Block ID="300" X="920" Y="390" Type="CTUD" Operand="Counter" VisiblePins="EnableIn CUEnable CDEnable PRE Reset EnableOut ACC CU CD DN OV UN" />
+                <Block ID="400" X="320" Y="720" Type="TONR" Operand="OnDelay" VisiblePins="EnableIn TimerEnable PRE Reset EnableOut ACC EN TT DN Status" />
+                <Block ID="500" X="620" Y="880" Type="RTOR" Operand="Retained" VisiblePins="EnableIn TimerEnable PRE Reset EnableOut ACC EN TT DN Status" />
+                <Block ID="600" X="920" Y="1040" Type="TOFR" Operand="OffDelay" VisiblePins="EnableIn TimerEnable PRE Reset EnableOut ACC EN TT DN Status" />
+                <ORef ID="700" X="1250" Y="0" Operand="RisingPulse" />
+                <ORef ID="701" X="1250" Y="105" Operand="FallingPulse" />
+                <ORef ID="702" X="1250" Y="210" Operand="Count" />
+                <ORef ID="703" X="1250" Y="315" Operand="CountDone" />
+                <ORef ID="704" X="1250" Y="420" Operand="Overflow" />
+                <ORef ID="705" X="1250" Y="525" Operand="Underflow" />
+                <ORef ID="706" X="1250" Y="630" Operand="OnACC" />
+                <ORef ID="707" X="1250" Y="735" Operand="OnTiming" />
+                <ORef ID="708" X="1250" Y="840" Operand="OnDone" />
+                <ORef ID="709" X="1250" Y="945" Operand="OnStatus" />
+                <ORef ID="710" X="1250" Y="1050" Operand="OnFault" />
+                <ORef ID="711" X="1250" Y="1155" Operand="OnPresetInvalid" />
+                <ORef ID="712" X="1250" Y="1260" Operand="RetainedACC" />
+                <ORef ID="713" X="1250" Y="1365" Operand="RetainedTiming" />
+                <ORef ID="714" X="1250" Y="1470" Operand="RetainedDone" />
+                <ORef ID="715" X="1250" Y="1575" Operand="OffACC" />
+                <ORef ID="716" X="1250" Y="1680" Operand="OffTiming" />
+                <ORef ID="717" X="1250" Y="1785" Operand="OffDone" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="InputBit" />
+                <Wire FromID="10" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="1" FromParam="In" ToID="200" ToParam="InputBit" />
+                <Wire FromID="10" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="OutputBit" ToID="300" ToParam="CUEnable" />
+                <Wire FromID="2" FromParam="In" ToID="300" ToParam="CDEnable" />
+                <Wire FromID="3" FromParam="In" ToID="300" ToParam="PRE" />
+                <Wire FromID="4" FromParam="In" ToID="300" ToParam="Reset" />
+                <Wire FromID="10" FromParam="In" ToID="300" ToParam="EnableIn" />
+                <Wire FromID="300" FromParam="DN" ToID="400" ToParam="TimerEnable" />
+                <Wire FromID="6" FromParam="In" ToID="400" ToParam="PRE" />
+                <Wire FromID="9" FromParam="In" ToID="400" ToParam="Reset" />
+                <Wire FromID="10" FromParam="In" ToID="400" ToParam="EnableIn" />
+                <Wire FromID="5" FromParam="In" ToID="500" ToParam="TimerEnable" />
+                <Wire FromID="7" FromParam="In" ToID="500" ToParam="PRE" />
+                <Wire FromID="9" FromParam="In" ToID="500" ToParam="Reset" />
+                <Wire FromID="10" FromParam="In" ToID="500" ToParam="EnableIn" />
+                <Wire FromID="5" FromParam="In" ToID="600" ToParam="TimerEnable" />
+                <Wire FromID="8" FromParam="In" ToID="600" ToParam="PRE" />
+                <Wire FromID="9" FromParam="In" ToID="600" ToParam="Reset" />
+                <Wire FromID="10" FromParam="In" ToID="600" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="OutputBit" ToID="700" ToParam="Out" />
+                <Wire FromID="200" FromParam="OutputBit" ToID="701" ToParam="Out" />
+                <Wire FromID="300" FromParam="ACC" ToID="702" ToParam="Out" />
+                <Wire FromID="300" FromParam="DN" ToID="703" ToParam="Out" />
+                <Wire FromID="300" FromParam="OV" ToID="704" ToParam="Out" />
+                <Wire FromID="300" FromParam="UN" ToID="705" ToParam="Out" />
+                <Wire FromID="400" FromParam="ACC" ToID="706" ToParam="Out" />
+                <Wire FromID="400" FromParam="TT" ToID="707" ToParam="Out" />
+                <Wire FromID="400" FromParam="DN" ToID="708" ToParam="Out" />
+                <Wire FromID="400" FromParam="Status" ToID="709" ToParam="Out" />
+                <Wire FromID="400" FromParam="InstructFault" ToID="710" ToParam="Out" />
+                <Wire FromID="400" FromParam="PresetInv" ToID="711" ToParam="Out" />
+                <Wire FromID="500" FromParam="ACC" ToID="712" ToParam="Out" />
+                <Wire FromID="500" FromParam="TT" ToID="713" ToParam="Out" />
+                <Wire FromID="500" FromParam="DN" ToID="714" ToParam="Out" />
+                <Wire FromID="600" FromParam="ACC" ToID="715" ToParam="Out" />
+                <Wire FromID="600" FromParam="TT" ToID="716" ToParam="Out" />
+                <Wire FromID="600" FromParam="DN" ToID="717" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

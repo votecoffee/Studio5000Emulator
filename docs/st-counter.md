@@ -1,9 +1,10 @@
 # Structured Text up/down counter
 
 App `26.1030.090800` adds CTUD over logical FBD_COUNTER records to the bounded
-v35 ControlLogix 5580 profile. This is one ST-only call, alongside the three
-[ST timers](st-timers.md); the RLL dispatch count remains 99. FBD graph execution
-and ladder CTUD forms are not implemented.
+v35 ControlLogix 5580 profile, alongside the three [ST timers](st-timers.md).
+CTUD also executes in the limited [FBD graph](fbd-stateful.md), with connected
+EnableIn gating and shared sampled-edge state. General FBD and native lifecycle
+parity remain unfinished.
 
 ```text
 Counter.PRE := 3;

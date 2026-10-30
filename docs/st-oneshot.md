@@ -1,9 +1,10 @@
 # Structured Text edge one-shots
 
 App `26.1030.092825` adds OSRI and OSFI over logical FBD_ONESHOT records in the
-bounded v35 ControlLogix 5580 profile. These are ST-only calls, alongside the
-three [ST timers](st-timers.md) and [CTUD](st-counter.md). The RLL dispatch count
-remains 99. FBD graph execution is still unfinished.
+bounded v35 ControlLogix 5580 profile, alongside the three [ST timers](st-timers.md)
+and [CTUD](st-counter.md). These calls also execute in the limited
+[FBD graph](fbd-stateful.md), with connected-enable gating and shared edge state.
+Native FBD lifecycle/layout/fault parity remains unqualified.
 
 ```text
 Rising.InputBit := Sensor;

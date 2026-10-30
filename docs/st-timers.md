@@ -2,8 +2,9 @@
 
 App `26.1030.084708` adds TONR, TOFR and RTOR calls for the bounded v35
 ControlLogix 5580 profile. Each takes one writable FBD_TIMER record. These are
-ST-only calls in this implementation; they do not add ladder instructions or
-FBD graph execution. The RLL dispatch inventory remains 99 entries.
+also supported by the limited [FBD graph](fbd-stateful.md), with connected
+EnableIn gating. They do not add RLL dispatch entries. The elapsed-time policy
+is shared; native FBD timing/lifecycle parity remains unqualified.
 
 ```text
 OnDelay.PRE := 500;

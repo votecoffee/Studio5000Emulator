@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.164452`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1030.170127`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -188,6 +188,10 @@ and inspect the executing graph.
 [FBD signal conditioning](docs/function-blocks.md) adds SCL, HLL, SNEG and SSUM
 with connected enables and BOOL diagnostic outputs. Choose **FBD signal lab**
 for a scale/limit/negate/sum chain.
+
+[Stateful FBD blocks](docs/fbd-stateful.md) add TONR/TOFR/RTOR, CTUD and
+OSRI/OSFI with shared clocks/edge histories and transactional rollback. Choose
+**FBD timer/counter lab** to exercise pulses, counting and timer behavior.
 
 ## Table of Contents
 

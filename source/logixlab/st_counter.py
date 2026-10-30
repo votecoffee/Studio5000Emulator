@@ -60,5 +60,5 @@ def description():
                 prescan='Clear EnableIn/EnableOut; Run entry clears sampled-edge history and retains represented data',
                 rollback='Record and sampled-edge history commit with the complete advance',
                 native_runtime_parity=False,
-                remaining=['FBD graphs and Ladder forms','Native reset/overflow/status/layout/fault parity',
+                remaining=['General FBD outside the qualified single-sheet graph and native language forms','Native reset/overflow/status/layout/fault parity',
                            'Other controller profiles and complete lifecycle qualification'])

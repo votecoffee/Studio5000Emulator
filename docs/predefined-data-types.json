@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.164452",
+  "audited_app_version": "26.1030.170127",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -50,17 +50,17 @@
     },
     "fbd_timer_model": {
       "label": "FBD_TIMER model (partial)",
-      "remaining": "Bounded ST TONR/TOFR/RTOR; FBD graphs, native clock/status/fault/layout parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD TONR/TOFR/RTOR; general FBD, native clock/status/fault/layout parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_timers.py"
     },
     "fbd_counter_model": {
       "label": "FBD_COUNTER model (partial)",
-      "remaining": "Bounded ST CTUD; FBD graphs, complete native reset/overflow/status/layout/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD CTUD; general FBD, complete native reset/overflow/status/layout/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_counter.py"
     },
     "fbd_oneshot_model": {
       "label": "FBD_ONESHOT model (partial)",
-      "remaining": "Bounded ST OSRI/OSFI; FBD graphs, mixed-kind records, native layout/lifecycle/fault parity and other profiles remain unfinished.",
+      "remaining": "Bounded ST/FBD OSRI/OSFI; general FBD, mixed-kind records, native layout/lifecycle/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/st_oneshot.py"
     },
     "scale_model": {

@@ -43,5 +43,5 @@ def description():
                 skipped_calls='Retain outputs and history until next reached call; hidden intermediate pulses are not sampled',
                 prescan='Clear EnableIn/EnableOut; Run entry resets history; represented InputBit/OutputBit retain until execution',
                 rollback='Record and sampled-edge history commit with the complete advance',native_runtime_parity=False,
-                remaining=['FBD graphs','Shared records between OSRI and OSFI','Native layout, lifecycle and fault parity',
+                remaining=['General FBD outside the qualified single-sheet graph and native language forms','Shared records between OSRI and OSFI','Native layout, lifecycle and fault parity',
                            'Other controller profiles'])

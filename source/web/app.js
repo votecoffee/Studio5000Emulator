@@ -229,6 +229,7 @@ $('regulator-demo').onclick=()=>loadDemo('RegulatorLab');
 $('copy-demo').onclick=()=>loadDemo('CopyLab');
 $('selector-demo').onclick=()=>loadDemo('SelectorLab');
 $('fbd-signal-demo').onclick=()=>loadDemo('FBDSignalLab');
+$('fbd-state-demo').onclick=()=>loadDemo('FBDStateLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');

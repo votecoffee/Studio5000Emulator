@@ -335,6 +335,12 @@ uses a separately configured converter against a private copy. Source bytes are
 preserved and private provenance records identify the import. Native files,
 converter logs and project-specific reports are local inputs, not public fixtures.
 
+[Stateful FBD timers/counter/one-shots](fbd-stateful.md) use the existing ST
+clock and edge stores by resolved record. Disabled calls retain history; active
+timers include elapsed gaps when resumed. TimerEnable false executes its
+separate reset/pause/off-delay path. Values, clocks and edges commit or roll
+back with the complete advance. Native FBD timing parity remains unqualified.
+
 ## Function block signals
 
 [Single-sheet FBD selector graphs](function-blocks.md) sample IRefs once, execute

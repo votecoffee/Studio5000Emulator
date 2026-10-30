@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-30; FBD signal blocks added for app `26.1030.164452`. The engine has **101 built-in
+Audited 2026-10-30; stateful FBD blocks added for app `26.1030.170127`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -20,7 +20,7 @@ separate language family, not RLL mnemonics.
 - **Remaining names** have no built-in execution implementation.
   [RLL FOR/BRK](ladder-loops.md) and ST FOR/EXIT have distinct execution profiles.
 
-[ST-only TONR/TOFR/RTOR](st-timers.md) use logical FBD_TIMER records;
+[ST/FBD TONR/TOFR/RTOR](st-timers.md) use logical FBD_TIMER records;
 [ST CTUD](st-counter.md) uses FBD_COUNTER and [ST OSRI/OSFI](st-oneshot.md) use
 FBD_ONESHOT. [ST SCL](st-scaling.md) uses SCALE; [ST HLL/SNEG/SSUM](st-signals.md)
 add three signal-conditioning records. [ST RLIM](st-rate-limiter.md) uses
@@ -33,9 +33,10 @@ records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and deriva
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
 [ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
 These twenty-seven additional calls are excluded from the RLL dispatch count.
-SCL/HLL/SNEG/SSUM also execute in the limited [FBD graph](function-blocks.md),
-alongside FBD-only SEL/MUX. Six graph blocks are supported; the four shared names
-are not additional instructions or data types. Other ST calls lack FBD forms.
+SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
+execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
+Twelve graph blocks are supported, with ten names shared with ST. These forms
+do not add instructions or data types. Other ST calls lack FBD forms.
 
 ## Instruction families
 
@@ -48,7 +49,7 @@ are not additional instructions or data types. Other ST calls lack FBD forms.
 | ASCII Conversion Instructions | `DTOS`, `LOWER`, `RTOS`, `STOD`, `STOR`, `UPPER` | — | — |
 | ASCII Serial Port Instructions | — | — | `ABL`, `ACB`, `ACL`, `AHL`, `ARD`, `ARL`, `AWA`, `AWT` |
 | ASCII String | `CONCAT`, `DELETE`, `FIND`, `INSERT`, `MID` | — | — |
-| Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST-only OSRI/OSFI listed above) |
+| Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST/FBD OSRI/OSFI listed above) |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
 | Drives Instructions | — | — | `HMIBC`, `PMUL`, `SCRV`, `SOC` (ST-only PI/INTG/UPDN listed above) |
@@ -76,7 +77,7 @@ are not additional instructions or data types. Other ST calls lack FBD forms.
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |
 | Statistical Instructions | — | — | — (ST-only MAVE/MSTD/MAXC/MINC listed above) |
-| Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | — (ST-only variants listed above) |
+| Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | — (ST/FBD variants listed above) |
 | Trigonometric Instructions | `ACS`, `ASN`, `ATN`, `COS`, `SIN`, `TAN` | `ACOS`, `ASIN`, `ATAN` | — |
 | Additional alphabetical entries | — | `TRUNC` | `BPT`, `PCE`, `TPT` |
 | Additional motion registration and homing | — | — | `MAAT`, `MAHD`, `MRAT`, `MRHD` |
@@ -114,9 +115,9 @@ schema/behavior backlog separately from instruction names.
 | RLIM (ST only) | [Logical RATE_LIMITER](st-rate-limiter.md), separate rates, bypass, Periodic/elapsed and oversample timing, status aliases and transactional history. Module timestamp mode, FBD graphs and native timing/precision/status/fault/layout parity remain unfinished. |
 | HLL/SNEG/SSUM (ST/FBD) | [Logical signal records](st-signals.md), both/one-sided limits, inclusive alarms, status aliases, selectable negation and eight weighted input pairs plus bias. General FBD and native precision/overflow/status/layout/fault parity remain unfinished. |
 | SCL (ST/FBD) | [Logical SCALE](st-scaling.md), finite REAL scaling, extrapolation/limiting, raw alarms, invalid-range status and rollback. General FBD and native precision/overflow/status/layout/fault parity remain unfinished. |
-| OSRI/OSFI (ST only) | [Logical FBD_ONESHOT](st-oneshot.md), sampled rising/falling edges, startup suppression, skipped calls and transactional history. FBD graphs, mixed instruction kinds on one record and native layout/lifecycle/fault parity remain unfinished. |
-| CTUD (ST only) | [Logical FBD_COUNTER](st-counter.md), sampled up/down edges, first-call/Run priming, reset, signed wrap and transactional history. FBD graphs and native reset/flag/layout/fault parity remain unfinished. |
-| TONR/TOFR/RTOR (ST only) | [Logical FBD_TIMER and elapsed-time profile](st-timers.md), reset/retention, skipped calls, status aliases and rollback. FBD graphs, native clock/status/fault/layout parity and other profiles remain unfinished. |
+| OSRI/OSFI (ST/FBD) | [Logical FBD_ONESHOT](st-oneshot.md), sampled rising/falling edges, startup suppression, skipped calls and transactional history. General FBD, mixed instruction kinds on one record and native layout/lifecycle/fault parity remain unfinished. |
+| CTUD (ST/FBD) | [Logical FBD_COUNTER](st-counter.md), sampled up/down edges, first-call/Run priming, reset, signed wrap and transactional history. General FBD and native reset/flag/layout/fault parity remain unfinished. |
+| TONR/TOFR/RTOR (ST/FBD) | [Logical FBD_TIMER and elapsed-time profile](st-timers.md), reset/retention, skipped calls, status aliases and rollback. General FBD, native clock/status/fault/layout parity and other profiles remain unfinished. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
 | FBC/DDT | [DINT ladder bit diagnostics](file-bit-compare.md), bit offsets, all/one-mismatch modes, result wrapping, selective DDT updates and prescan/false controls. Broader references/profiles and native cursor/status/fault parity remain unfinished. |
 | DTR | [DINT ladder data transition](data-transition.md), complete prior-reference comparison, true/false writes and lexical prescan, including existing AOI bindings. Other profiles and native operand/status/fault parity remain unfinished. |
