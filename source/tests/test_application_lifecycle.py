@@ -79,6 +79,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded['version'], '35')
         self.assertIn(__version__, self.get('/').decode())
 
+    def test_filter_lab_orders_timing_diagnostics_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'FilterLab'});self.assertEqual(state['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def step(expected,status=0,delta=0.125):
+            state=self.post('step',{'dt':125});v=values(state)
+            self.assertAlmostEqual(v['Filtered'],expected,places=5);self.assertEqual((v['FilterState.Status'],v['ElapsedSeconds']),(status,delta));return state
+        step(0);write('Input',10);step(5);step(10)
+        write('SampleTime',0);write('Input',100);step(10,delta=0)
+        write('InitializeFilter',True);write('Input',0);step(0,delta=0)
+        write('InitializeFilter',False);write('SampleTime',0.125);write('FilterOrder',3);step(0)
+        write('Input',10);step(5/3);step(20/3)
+        write('FilterOrder',4);step(10,status=5);write('FilterOrder',1);write('SampleTime',-1);step(10,status=-2147483647,delta=0)
+        write('SampleTime',0.125);write('Input',0);write('FaultDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:self.post('step',{'dt':125})
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);step(5)
+        report=self.post('report',{});self.assertIn('software approximation',report['st_filter']['solver'])
+        self.assertFalse(report['st_filter']['native_runtime_parity']);self.assertIn('filter-demo',self.get('/').decode())
+
     def test_capture_lab_extrema_resets_skip_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'CaptureLab'});self.assertEqual(state['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}

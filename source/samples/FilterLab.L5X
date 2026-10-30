@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FilterLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FilterLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="Cutoff" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="16.0" />
+        </Data>
+      </Tag>
+      <Tag Name="FilterOrder" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="1.0" />
+        </Data>
+      </Tag>
+      <Tag Name="InitializeFilter" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingMode" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.125" />
+        </Data>
+      </Tag>
+      <Tag Name="CallFilter" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Filtered" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="ElapsedSeconds" TagType="Base" DataType="REAL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Radix="Float" Value="0.0" />
+        </Data>
+      </Tag>
+      <Tag Name="InstructionFault" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FrequencyLimited" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OrderInvalid" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimeInvalid" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FilterState" TagType="Base" DataType="FILTER_LOW_PASS">
+        <Data Format="Decorated">
+          <Structure DataType="FILTER_LOW_PASS">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Initialize" DataType="BOOL" Value="0" />
+            <DataValueMember Name="WLag" DataType="REAL" Value="16.0" />
+            <DataValueMember Name="Order" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="1" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.125" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+              <Line Number="0">IF CallFilter THEN</Line>
+              <Line Number="1">FilterState.In := Input;</Line>
+              <Line Number="2">FilterState.WLag := Cutoff;</Line>
+              <Line Number="3">FilterState.Order := FilterOrder;</Line>
+              <Line Number="4">FilterState.Initialize := InitializeFilter;</Line>
+              <Line Number="5">FilterState.TimingMode := TimingMode;</Line>
+              <Line Number="6">FilterState.OversampleDT := SampleTime;</Line>
+              <Line Number="7">LPF(FilterState);</Line>
+              <Line Number="8">CallCount := CallCount + 1;</Line>
+              <Line Number="9">END_IF;</Line>
+              <Line Number="10">Filtered := FilterState.Out;</Line>
+              <Line Number="11">ElapsedSeconds := FilterState.DeltaT;</Line>
+              <Line Number="12">InstructionFault := FilterState.InstructFault;</Line>
+              <Line Number="13">FrequencyLimited := FilterState.WLagInv;</Line>
+              <Line Number="14">OrderInvalid := FilterState.OrderInv;</Line>
+              <Line Number="15">TimeInvalid := FilterState.TimingModeInv OR FilterState.DeltaTInv;</Line>
+              <Line Number="16">GuardResult := 1 / FaultDivisor;</Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

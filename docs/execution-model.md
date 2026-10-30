@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[ST LPF](st-low-pass-filter.md) uses explicitly chosen bilinear sections for
+orders 1/2/3, host-double histories and float32 public values. It is a software
+approximation, not a verified native recurrence. Periodic/elapsed/oversample
+timing, initialization, internal bounds and section histories share rollback.
+
 [ST MAXC/MINC](st-capture.md) retain finite REAL extrema separately from visible
 Out fields. Held Reset supplies a new baseline; skipped calls retain history.
 Run entry clears the history, detached routine replacement preserves it, and

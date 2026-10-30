@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1030.140207`: [ST LPF software model](st-low-pass-filter.md),
+bilinear orders 1/2/3, timed filtering/diagnostics and Filter Lab. Native discrete
+recurrence and numerical parity remain open.
+
 Available in `26.1030.134503`: [ST MAXC/MINC](st-capture.md), logical capture
 records, retained extrema/reset baselines and Capture Lab.
 

@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.134503",
+  "audited_app_version": "26.1030.140207",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -97,6 +97,11 @@
       "label": "Capture model (partial)",
       "remaining": "Bounded ST MAXC/MINC finite REAL extrema/reset baselines; FBD graphs, packed layouts and native lifecycle/precision/nonfinite/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_capture.py"
+    },
+    "low_pass_software_model": {
+      "label": "LPF software model (partial)",
+      "remaining": "Explicit bilinear ST LPF orders 1/2/3; native recurrence/coefficient/precision/transition parity, RTS, FBD graphs, packed layouts and full lifecycle/status/fault behavior remain unfinished.",
+      "source": "source/logixlab/st_filter.py"
     },
     "no_dedicated_model": {
       "label": "No dedicated model",
@@ -218,10 +223,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 26,
-    "no_dedicated_model": 196,
+    "dedicated_bounded_models": 27,
+    "no_dedicated_model": 195,
     "status_counts": {
-      "no_dedicated_model": 196,
+      "no_dedicated_model": 195,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -236,7 +241,8 @@
       "selected_summer_model": 1,
       "rate_limiter_model": 1,
       "moving_statistics_model": 2,
-      "capture_model": 2
+      "capture_model": 2,
+      "low_pass_software_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1128,7 +1134,7 @@
       "identifier_candidate": "FILTER_LOW_PASS",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "low_pass_software_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FILTER_LOW_PASS",
       "notes": []

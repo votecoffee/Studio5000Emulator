@@ -151,6 +151,11 @@ window changes, initialization and fault recovery.
 with retained extrema, reset baselines and transactional history. Choose
 **Capture lab** to try extrema, held resets, skipped calls and fault recovery.
 
+[Structured Text LPF software filtering](docs/st-low-pass-filter.md) adds three
+filter orders with periodic/oversample timing, diagnostics and rollback. Its
+bilinear recurrence is a documented software approximation; native numerical
+parity remains unverified. Choose **Filter lab** to try step responses.
+
 ## Table of Contents
 
 - [Background](#background)
