@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-31; FBD rate/capture blocks added for app `26.1031.084520`. The engine has **101 built-in
+Audited 2026-10-31; FBD accumulation blocks added for app `26.1031.085701`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -28,15 +28,15 @@ RATE_LIMITER. [ST MAVE/MSTD](st-moving-statistics.md) add MOVING_AVERAGE and
 MOVING_STD_DEV. [ST MAXC/MINC](st-capture.md) add MAXIMUM_CAPTURE and
 MINIMUM_CAPTURE. [ST LPF](st-low-pass-filter.md) adds a FILTER_LOW_PASS software
 model. [ST Boolean memory](st-digital-memory.md) adds DFF/JKFF/RESD/SETD and
-four logical records. [ST UPDN/INTG](st-accumulation.md) add two accumulation
+four logical records. [ST/FBD UPDN/INTG](st-accumulation.md) add two accumulation
 records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
 [ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
 These twenty-seven additional calls are excluded from the RLL dispatch count.
 SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
 execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
-Twenty-three graph blocks are supported, with seventeen names shared with ST. These forms
-include [Boolean logic/memory](fbd-boolean.md) and [RLIM/MAXC/MINC](fbd-rate-capture.md).
+Twenty-five graph blocks are supported, with nineteen names shared with ST. These forms
+include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md) and [UPDN/INTG](fbd-accumulation.md).
 The four Boolean record types now have bounded logical models. Other ST calls
 lack FBD forms.
 
@@ -54,7 +54,7 @@ lack FBD forms.
 | Bit Instructions | `ONS`, `OSF`, `OSR`, `OTE`, `OTL`, `OTU`, `XIC`, `XIO` | — | — (ST/FBD OSRI/OSFI listed above) |
 | Compare Instructions | `CMP`, `EQU`, `GEQ`, `GRT`, `LEQ`, `LES`, `LIM`, `MEQ`, `NEQ` | — | — |
 | Compute/Math Instructions | `ABS`, `ADD`, `CPT`, `DIV`, `MOD`, `MUL`, `NEG`, `SQR`, `SUB` | `SQRT` | — |
-| Drives Instructions | — | — | `HMIBC`, `PMUL`, `SCRV`, `SOC` (ST-only PI/INTG/UPDN listed above) |
+| Drives Instructions | — | — | `HMIBC`, `PMUL`, `SCRV`, `SOC` (ST-only PI and ST/FBD INTG/UPDN listed above) |
 | Drive Safety Instructions | — | — | `SBC`, `SDI`, `SFX`, `SLP`, `SLS`, `SOS`, `SS1`, `SS2` |
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
@@ -109,7 +109,7 @@ schema/behavior backlog separately from instruction names.
 | PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; PID/PIDE are separate. |
 | FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
 | ESEL/DERV (ST only) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, FBD graphs and packed layouts remain unfinished. |
-| UPDN/INTG (ST only) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, FBD graphs and packed layouts remain unfinished. |
+| UPDN/INTG (ST/FBD) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, general FBD forms and packed layouts remain unfinished. |
 | DFF/JKFF/RESD/SETD (ST/FBD) | [Logical Boolean memory](st-digital-memory.md), sampled clock/data/toggle behavior, Clear priority, latch dominance, complements and rollback. General FBD, layouts and native lifecycle/output-write/status/fault parity remain unfinished. |
 | LPF (ST only, software solver) | [Logical FILTER_LOW_PASS](st-low-pass-filter.md), explicit bilinear orders 1/2/3, elapsed/Periodic/oversample timing, bounds/status and transactional sections. Native recurrence/coefficients/precision/transitions, RTS, FBD/layout/lifecycle/fault parity remain unfinished. |
 | MAXC/MINC (ST/FBD) | [Logical capture records](st-capture.md), retained finite REAL extrema, held reset baselines, skipped calls and rollback. General FBD forms, packed layouts and native lifecycle/precision/nonfinite/status/fault parity remain unfinished. |

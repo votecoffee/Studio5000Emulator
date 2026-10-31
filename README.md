@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1031.084520`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1031.085701`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -163,7 +163,9 @@ Choose **Digital lab** to try clock edges, Clear, dominance and skipped calls.
 
 [Structured Text accumulation](docs/st-accumulation.md) adds UPDN totals and
 INTG timed integration with hold, initialization, limits, alarms and rollback.
-Choose **Accumulator lab** to try both instructions.
+Choose **Accumulator lab** to try both instructions. [FBD accumulation](docs/fbd-accumulation.md)
+adds the same models to graphs, with an **FBD accumulation lab** for totals,
+integration, initialization, holds and BOOL diagnostics.
 
 [Structured Text process signals](docs/st-process-signals.md) adds ESEL healthy-input
 selection and DERV rate of change. Choose **Process lab** to try selection modes,

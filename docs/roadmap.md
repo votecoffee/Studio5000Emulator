@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1031.085701`: [FBD UPDN/INTG](fbd-accumulation.md), per-call
+totals and timed integration with FBD Accumulation Lab. Shared ST history, enables,
+holds, limits and diagnostic wires; native timing/lifecycle parity remains unqualified.
+
 Available in `26.1031.084520`: [FBD RLIM/MAXC/MINC](fbd-rate-capture.md),
 rate limiting and retained extrema with FBD Rate/Capture Lab. Shared ST algorithms,
 enables/status wires and rollback; native timing/lifecycle parity remains unqualified.

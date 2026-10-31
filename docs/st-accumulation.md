@@ -7,8 +7,9 @@ webpage or launch with `--sample AccumulatorLab` for a synthetic example.
 These are bounded software models. The equation and logical schemas were checked
 against installed Studio v35 help and Rockwell's
 [process control and drives reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm006_-en-p.pdf).
-Native startup, precision and interacting conditions remain unqualified; FBD
-graph execution, packed layouts and other controller profiles remain unfinished.
+Native startup, precision and interacting conditions remain unqualified.
+[FBD UPDN/INTG](fbd-accumulation.md) share these models; general graph forms,
+packed layouts and other controller profiles remain unfinished.
 
 ## Records
 

@@ -4,8 +4,8 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 `SEL`, `MUX`, `SCL`, `HLL`, `SNEG`, `SSUM` and the six
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
-[Boolean logic/memory](fbd-boolean.md) and [rate limiting/extrema](fbd-rate-capture.md)
-bring the inventory to 23 blocks. Other FBD instructions and complete native
+[Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
+and [accumulation/integration](fbd-accumulation.md) bring the inventory to 25 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -45,6 +45,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 | SNEG | Select the input or its negation. |
 | SSUM | Sum selected input/gain pairs in index order, then add Bias. |
 | TONR / TOFR / RTOR | Shared logical timer models with explicit elapsed-time and reset/pause/off-delay policies. |
+| UPDN / INTG | Shared per-call accumulation and trapezoidal integration with initialization, holds, limits and diagnostics. |
 | RLIM | Shared ramp/bypass and simulated/oversample timing, with BOOL diagnostics; RTS remains blocked. |
 | MAXC / MINC | Retained finite REAL extrema and level-sensitive reset baselines. |
 | CTUD | Sampled up/down count edges, reset, DINT wrap and done/overflow/underflow state. |
@@ -100,7 +101,7 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 44 bounded models. There are twenty-three FBD blocks, with seventeen names shared
+now contains 44 bounded models. There are twenty-five FBD blocks, with nineteen names shared
 with the existing twenty-seven ST-call dispatch entries. RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
@@ -117,6 +118,12 @@ starts OnDelay. TimerInput separately drives retained and off-delay timers. See
 Choose **FBD rate/capture lab** for `FBDTrendLab.L5X`: RLIM feeds MAXC/MINC over
 23 nodes and 25 wires. See [the rate/capture contract](fbd-rate-capture.md) for
 timing modes, reset baselines, enable gaps, BOOL diagnostics and retry behavior.
+
+## Accumulation lab
+
+Choose **FBD accumulation lab** for `FBDTotalLab.L5X`: UPDN and INTG over 29 nodes
+and 28 wires. See [the accumulation contract](fbd-accumulation.md) for shared ST
+history, startup, initialization, holds, limits, diagnostic pins and rollback.
 
 ## Remaining work and references
 

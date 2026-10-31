@@ -842,7 +842,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag':'Preset','value':30});self.post('write', {'tag':'ResetTimers','value':True})
         v=values(self.post('step', {'dt':10}));self.assertFalse(v['AnyFault'])
         self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(0,0,30))
-        profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
+        profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR','UPDN'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_rate_lab_timing_bypass_status_and_clock_rollback_through_http(self):
@@ -1020,7 +1020,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'ManualValue','value':33});self.post('write',{'tag':'FaultDivisor','value':1})
         state=self.post('step',{'dt':10});self.assertEqual(values(state)['MultiplexedOutput'],33)
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),2)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','JKFF','MAXC','MINC','MUX','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR'])
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(profile['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','INTG','JKFF','MAXC','MINC','MUX','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR','UPDN'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_fbd_signal_lab_diagnostic_wires_enables_and_rollback_through_http(self):
@@ -1073,7 +1073,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(v['OnDelay.EnableOut'])
         self.post('write',{'tag':'OnPreset','value':100});state=self.post('step',{'dt':10});self.assertFalse(values(state)['OnFault'])
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),6)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),23)
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),25)
         self.assertFalse(profile['native_runtime_parity']);self.assertIn('elapsed',profile['blocks']['timing'])
 
     def test_fbd_boolean_lab_latches_clock_and_retry_through_http(self):
@@ -1122,8 +1122,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
         write('FaultDivisor',1);state=self.post('step',{'dt':10});self.assertEqual(values(state)['Limited'],1.5)
         self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),3)
-        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),23)
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),25)
         self.assertEqual(profile['blocks']['status_aliases']['RATE_LIMITER']['DeltaTInv'],'Status.31')
+        self.assertFalse(profile['native_runtime_parity'])
+
+    def test_fbd_accumulation_lab_initialize_holds_diagnostics_and_retry_through_http(self):
+        state=self.post('demo',{'sample':'FBDTotalLab'});self.assertEqual(state['blockers'],[])
+        graph=next(row for row in state['routines'] if row['kind']=='FBD')['diagram']
+        self.assertEqual((len(graph['nodes']),len(graph['wires'])),(29,28))
+        self.assertIn(b'FBD accumulation lab',self.get('/'));values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Total'],v['Integral']),(1.5,0))
+        for tag,value in (('InitializeTotal',True),('HoldTotal',True),('InitializeIntegral',True),('IntegralSeed',2)):
+            write(tag,value)
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Total'],v['Integral']),(10,2))
+        for tag,value in (('InitializeTotal',False),('InitializeIntegral',False),('HoldHigh',True),('Rate',8)):
+            write(tag,value)
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Total'],v['Integral']),(10,2))
+        write('HoldHigh',False);write('SampleTime',0);v=values(self.post('step',{'dt':10}))
+        self.assertEqual(v['Integral'],2);self.assertEqual(v['IntegralStatus'],0)
+        write('SampleTime',-1);v=values(self.post('step',{'dt':10}))
+        self.assertTrue(v['SampleInvalid']);self.assertEqual(v['IntegralStatus'],-2147483647)
+        write('SampleTime',.25);write('Gain',-1);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
+        write('Gain',1);write('FaultDivisor',1);write('HoldTotal',False)
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Total'],v['Integral']),(11.5,4))
+        self.assertFalse(v['IntegralFault']);write('BlockEnable',False)
+        v=values(self.post('step',{'dt':10}));self.assertEqual((v['Total'],v['Integral']),(11.5,4))
+        self.assertFalse(v['IntegralState.EnableOut']);write('BlockEnable',True)
+        state=self.post('step',{'dt':10});v=values(state);self.assertEqual((v['Total'],v['Integral']),(13,5));self.assertTrue(v['HighAlarm'])
+        self.assertEqual(len([t for t in state['trace'] if t.get('language')=='FBD']),2)
+        profile=self.post('report',{})['function_blocks'];self.assertEqual(len(profile['instructions']),25)
+        self.assertEqual(profile['blocks']['status_aliases']['INTEGRATOR']['HighLowLimsInv'],'Status.2')
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_quit_exits_process_and_releases_protocol_and_http_listeners(self):

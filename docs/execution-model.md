@@ -21,7 +21,7 @@ input/clock/output histories. Consumed requests and both histories participate i
 whole-advance rollback. Native startup and interacting-condition policies remain
 unqualified.
 
-[ST accumulation](st-accumulation.md) maintains per-record UPDN totals and INTG
+[ST/FBD accumulation](fbd-accumulation.md) maintains per-record UPDN totals and INTG
 input/output histories. Reached calls, Periodic/elapsed/oversample time, directional
 holds and rollback follow its explicit finite software profile. Native startup,
 rounding and interacting-condition precedence remain unqualified.

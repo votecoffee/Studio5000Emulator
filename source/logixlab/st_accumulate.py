@@ -106,4 +106,4 @@ def description():
                 arithmetic='Float32 public values and stored output/input history; host-double expression intermediates; nonfinite values fault transactionally',
                 native_runtime_parity=False,
                 remaining=['Native startup/input-history/Initialize/limit/hold/invalid-input precedence and rounding qualification',
-                           'Module timestamps and RTS diagnostics','FBD graphs, packed layouts, other controller profiles and native nonfinite/status/fault parity'])
+                           'Module timestamps and RTS diagnostics','General FBD graph forms, packed layouts, other controller profiles and native nonfinite/status/fault parity'])

@@ -1,0 +1,295 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDTotalLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDTotalLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Plus" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="Minus" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.5" />
+        </Data>
+      </Tag>
+      <Tag Name="Rate" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="4" />
+        </Data>
+      </Tag>
+      <Tag Name="Gain" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="InitializeTotal" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TotalSeed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldTotal" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InitializeIntegral" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegralSeed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldHigh" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldLow" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighLimit" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="LowLimit" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="-5" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingMode" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.25" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Total" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Integral" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Elapsed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HighAlarm" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LowAlarm" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegralStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IntegralFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GainInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitsInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TotalState" TagType="Base" DataType="UP_DOWN_ACCUM">
+        <Data Format="Decorated">
+          <Structure DataType="UP_DOWN_ACCUM">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="InPlus" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="InMinus" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Initialize" DataType="BOOL" Value="0" />
+            <DataValueMember Name="InitialValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Hold" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="IntegralState" TagType="Base" DataType="INTEGRATOR">
+        <Data Format="Decorated">
+          <Structure DataType="INTEGRATOR">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Initialize" DataType="BOOL" Value="0" />
+            <DataValueMember Name="InitialValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="IGain" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighLimit" DataType="REAL" Value="3.4028234663852886e+38" />
+            <DataValueMember Name="LowLimit" DataType="REAL" Value="-3.4028234663852886e+38" />
+            <DataValueMember Name="HoldHigh" DataType="BOOL" Value="0" />
+            <DataValueMember Name="HoldLow" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="HighAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LowAlarm" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(AccumulateSignals,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="AccumulateSignals" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Compare per-call up/down totals with timed integration, initialization, holds, limits and diagnostics.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="Plus" />
+                <IRef ID="2" X="20" Y="90" Operand="Minus" />
+                <IRef ID="3" X="20" Y="180" Operand="Rate" />
+                <IRef ID="4" X="20" Y="270" Operand="Gain" />
+                <IRef ID="5" X="20" Y="360" Operand="InitializeTotal" />
+                <IRef ID="6" X="20" Y="450" Operand="TotalSeed" />
+                <IRef ID="7" X="20" Y="540" Operand="HoldTotal" />
+                <IRef ID="8" X="20" Y="630" Operand="InitializeIntegral" />
+                <IRef ID="9" X="20" Y="720" Operand="IntegralSeed" />
+                <IRef ID="10" X="20" Y="810" Operand="HoldHigh" />
+                <IRef ID="11" X="20" Y="900" Operand="HoldLow" />
+                <IRef ID="12" X="20" Y="990" Operand="HighLimit" />
+                <IRef ID="13" X="20" Y="1080" Operand="LowLimit" />
+                <IRef ID="14" X="20" Y="1170" Operand="TimingMode" />
+                <IRef ID="15" X="20" Y="1260" Operand="SampleTime" />
+                <IRef ID="16" X="20" Y="1350" Operand="BlockEnable" />
+                <Block ID="100" X="450" Y="100" Type="UPDN" Operand="TotalState" VisiblePins="EnableIn InPlus InMinus Initialize InitialValue Hold EnableOut Out" />
+                <Block ID="200" X="900" Y="700" Type="INTG" Operand="IntegralState" VisiblePins="EnableIn In Initialize InitialValue IGain HighLimit LowLimit HoldHigh HoldLow TimingMode OversampleDT RTSTime RTSTimeStamp EnableOut Out HighAlarm LowAlarm DeltaT Status" />
+                <ORef ID="900" X="1500" Y="0" Operand="Total" />
+                <ORef ID="901" X="1500" Y="100" Operand="Integral" />
+                <ORef ID="902" X="1500" Y="200" Operand="Elapsed" />
+                <ORef ID="903" X="1500" Y="300" Operand="HighAlarm" />
+                <ORef ID="904" X="1500" Y="400" Operand="LowAlarm" />
+                <ORef ID="905" X="1500" Y="500" Operand="IntegralStatus" />
+                <ORef ID="906" X="1500" Y="600" Operand="IntegralFault" />
+                <ORef ID="907" X="1500" Y="700" Operand="GainInvalid" />
+                <ORef ID="908" X="1500" Y="800" Operand="LimitsInvalid" />
+                <ORef ID="909" X="1500" Y="900" Operand="TimingInvalid" />
+                <ORef ID="910" X="1500" Y="1000" Operand="SampleInvalid" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="InPlus" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="InMinus" />
+                <Wire FromID="5" FromParam="In" ToID="100" ToParam="Initialize" />
+                <Wire FromID="6" FromParam="In" ToID="100" ToParam="InitialValue" />
+                <Wire FromID="7" FromParam="In" ToID="100" ToParam="Hold" />
+                <Wire FromID="3" FromParam="In" ToID="200" ToParam="In" />
+                <Wire FromID="4" FromParam="In" ToID="200" ToParam="IGain" />
+                <Wire FromID="8" FromParam="In" ToID="200" ToParam="Initialize" />
+                <Wire FromID="9" FromParam="In" ToID="200" ToParam="InitialValue" />
+                <Wire FromID="10" FromParam="In" ToID="200" ToParam="HoldHigh" />
+                <Wire FromID="11" FromParam="In" ToID="200" ToParam="HoldLow" />
+                <Wire FromID="12" FromParam="In" ToID="200" ToParam="HighLimit" />
+                <Wire FromID="13" FromParam="In" ToID="200" ToParam="LowLimit" />
+                <Wire FromID="14" FromParam="In" ToID="200" ToParam="TimingMode" />
+                <Wire FromID="15" FromParam="In" ToID="200" ToParam="OversampleDT" />
+                <Wire FromID="16" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="16" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="900" ToParam="Out" />
+                <Wire FromID="200" FromParam="Out" ToID="901" ToParam="Out" />
+                <Wire FromID="200" FromParam="DeltaT" ToID="902" ToParam="Out" />
+                <Wire FromID="200" FromParam="HighAlarm" ToID="903" ToParam="Out" />
+                <Wire FromID="200" FromParam="LowAlarm" ToID="904" ToParam="Out" />
+                <Wire FromID="200" FromParam="Status" ToID="905" ToParam="Out" />
+                <Wire FromID="200" FromParam="InstructFault" ToID="906" ToParam="Out" />
+                <Wire FromID="200" FromParam="IGainInv" ToID="907" ToParam="Out" />
+                <Wire FromID="200" FromParam="HighLowLimsInv" ToID="908" ToParam="Out" />
+                <Wire FromID="200" FromParam="TimingModeInv" ToID="909" ToParam="Out" />
+                <Wire FromID="200" FromParam="DeltaTInv" ToID="910" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-31",
-  "audited_app_version": "26.1031.084520",
+  "audited_app_version": "26.1031.085701",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -145,7 +145,7 @@
     },
     "accumulation_model": {
       "label": "Accumulation model (partial)",
-      "remaining": "Bounded ST UPDN/INTG finite REAL totals/integration; native startup/rounding/precedence, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD UPDN/INTG finite REAL totals/integration; native startup/rounding/precedence, RTS, general FBD forms, packed layouts and lifecycle/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_accumulate.py"
     }
   },
