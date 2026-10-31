@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-31",
-  "audited_app_version": "26.1031.092055",
+  "audited_app_version": "26.1031.093331",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -132,6 +132,11 @@
       "label": "FBD selector model (partial)",
       "remaining": "Bounded single-sheet SEL/MUX logical records and acyclic typed wires; native ordering/lifecycle/status/fault, packed layouts, general FBD and transfer/edit parity remain unfinished.",
       "source": "source/logixlab/fbd_select.py"
+    },
+    "fbd_compare_model": {
+      "label": "FBD comparison model (bounded)",
+      "remaining": "Finite REAL EQU/NEQ/GRT/GEQ/LES/LEQ/LIM Block forms with BOOL results; nonfinite behavior, other types/forms, packed layouts and native lifecycle/transfer parity remain unfinished.",
+      "source": "source/logixlab/fbd_compare.py"
     },
     "fbd_math_model": {
       "label": "FBD math model (bounded)",
@@ -268,10 +273,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 46,
-    "no_dedicated_model": 176,
+    "dedicated_bounded_models": 48,
+    "no_dedicated_model": 174,
     "status_counts": {
-      "no_dedicated_model": 176,
+      "no_dedicated_model": 174,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -296,7 +301,8 @@
       "pi_software_model": 1,
       "fbd_selector_model": 2,
       "fbd_boolean_model": 4,
-      "fbd_math_model": 2
+      "fbd_math_model": 2,
+      "fbd_compare_model": 2
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1032,7 +1038,7 @@
       "identifier_candidate": "FBD_COMPARE",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_compare_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_COMPARE",
       "notes": []
@@ -1068,7 +1074,7 @@
       "identifier_candidate": "FBD_LIMIT",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_compare_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_LIMIT",
       "notes": []

@@ -341,6 +341,11 @@ timers include elapsed gaps when resumed. TimerEnable false executes its
 separate reset/pause/off-delay path. Values, clocks and edges commit or roll
 back with the complete advance. Native FBD timing parity remains unqualified.
 
+[FBD comparisons and limits](fbd-comparisons.md) produce BOOL results from
+known finite REAL inputs. Inclusive/reversed LIM boundaries, float32 equality,
+enable gates and prescan retention are explicit. Unknown/nonfinite inputs fail
+the whole advance; native nonfinite/lifecycle/packed-layout parity is unqualified.
+
 [FBD arithmetic](fbd-arithmetic.md) uses finite REAL logical records with no hidden
 state. Its prescan retains enables/Dest; excluded zero-divisor/overflow cases fail
 the whole advance. Native minor-fault/flag behavior remains unqualified.

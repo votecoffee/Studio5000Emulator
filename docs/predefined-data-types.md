@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1031.092055` on 2026-10-31. Every supplied entry appears below in its original
+`26.1031.093331` on 2026-10-31. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -41,9 +41,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |
 | FBD Boolean models, partial | 4 | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL records and graph execution |
 | FBD math models, bounded | 2 | [ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md), finite REAL records and stateless arithmetic |
-| No dedicated model | 176 | No dedicated bounded named runtime model |
+| FBD comparison models, bounded | 2 | [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md), finite REAL operands and BOOL results |
+| No dedicated model | 174 | No dedicated bounded named runtime model |
 
-Thus **46 entries have dedicated bounded models**; this is not 46 fully
+Thus **48 entries have dedicated bounded models**; this is not 48 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -155,10 +156,10 @@ Every dedicated model status still requires the qualifications above.
 | 58 | `FBD_BOOLEAN_NOT` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 59 | `FBD_BOOLEAN_OR` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 60 | `FBD_BOOLEAN_XOR` | FBD state/logic | FBD Boolean model (partial) | Listed |
-| 61 | `FBD_COMPARE` | FBD state/logic | No dedicated model | Listed |
+| 61 | `FBD_COMPARE` | FBD state/logic | FBD comparison model (bounded) | Listed |
 | 62 | `FBD_CONVERT` | FBD state/logic | No dedicated model | Listed |
 | 63 | `FBD_COUNTER` | FBD state/logic | FBD_COUNTER model (partial) | Listed |
-| 64 | `FBD_LIMIT` | FBD state/logic | No dedicated model | Listed |
+| 64 | `FBD_LIMIT` | FBD state/logic | FBD comparison model (bounded) | Listed |
 | 65 | `FBD_LOGICAL` | FBD state/logic | No dedicated model | Listed |
 | 66 | `FBD_MASKED_MOVE` | FBD state/logic | No dedicated model | Listed |
 | 67 | `FBD_MASK_EQUAL` | FBD state/logic | No dedicated model | Listed |

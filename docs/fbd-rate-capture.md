@@ -4,7 +4,7 @@ RLIM, MAXC and MINC execute as FBD Blocks in the bounded v35 ControlLogix 5580
 software graph. They share the existing [rate-limiter](st-rate-limiter.md) and
 [capture](st-capture.md) algorithms and per-record history with ST calls. This
 adds three graph forms. With [accumulation/integration](fbd-accumulation.md), the
-FBD inventory is 33 blocks: 21 shared ST-call names, six common RLL arithmetic
+FBD inventory is 40 blocks: 21 shared ST-call names, 13 common RLL arithmetic/comparison
 names and six available only as FBD forms.
 RLL remains 101 and ST calls 27.
 
