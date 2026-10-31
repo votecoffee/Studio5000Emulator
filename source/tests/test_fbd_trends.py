@@ -249,8 +249,8 @@ class FBDTrendTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);self.assertEqual(candidate.last_timer,e.last_timer)
         self.assertEqual(self.step(candidate),(1,1,0));self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('RLIM','MAXC','MINC')))
 
-    def test_registry_reports_twenty_seven_blocks_and_qualified_status_pins(self):
-        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),27)
+    def test_registry_reports_thirty_three_blocks_and_qualified_status_pins(self):
+        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),33)
         self.assertEqual(profile['blocks']['status_aliases']['RATE_LIMITER']['DeltaTInv'],'Status.31')
         self.assertFalse(profile['native_runtime_parity']);self.assertIn('extrema',profile['blocks']['rate_capture'])
 

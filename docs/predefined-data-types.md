@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1031.090828` on 2026-10-31. Every supplied entry appears below in its original
+`26.1031.092055` on 2026-10-31. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -40,9 +40,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
 | FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |
 | FBD Boolean models, partial | 4 | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL records and graph execution |
-| No dedicated model | 178 | No dedicated bounded named runtime model |
+| FBD math models, bounded | 2 | [ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md), finite REAL records and stateless arithmetic |
+| No dedicated model | 176 | No dedicated bounded named runtime model |
 
-Thus **44 entries have dedicated bounded models**; this is not 44 fully
+Thus **46 entries have dedicated bounded models**; this is not 46 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -161,8 +162,8 @@ Every dedicated model status still requires the qualifications above.
 | 65 | `FBD_LOGICAL` | FBD state/logic | No dedicated model | Listed |
 | 66 | `FBD_MASKED_MOVE` | FBD state/logic | No dedicated model | Listed |
 | 67 | `FBD_MASK_EQUAL` | FBD state/logic | No dedicated model | Listed |
-| 68 | `FBD_MATH` | FBD state/logic | No dedicated model | Listed |
-| 69 | `FBD_MATH_ADVANCED` | FBD state/logic | No dedicated model | Listed |
+| 68 | `FBD_MATH` | FBD state/logic | FBD math model (bounded) | Listed |
+| 69 | `FBD_MATH_ADVANCED` | FBD state/logic | FBD math model (bounded) | Listed |
 | 70 | `FBD_ONESHOT` | FBD state/logic | FBD_ONESHOT model (partial) | Listed |
 | 71 | `FBD_TIMER` | FBD state/logic | FBD_TIMER model (partial) | Listed |
 | 72 | `FBD_TRUNCATE` | FBD state/logic | No dedicated model | Listed |

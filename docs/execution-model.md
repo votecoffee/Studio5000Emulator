@@ -341,6 +341,10 @@ timers include elapsed gaps when resumed. TimerEnable false executes its
 separate reset/pause/off-delay path. Values, clocks and edges commit or roll
 back with the complete advance. Native FBD timing parity remains unqualified.
 
+[FBD arithmetic](fbd-arithmetic.md) uses finite REAL logical records with no hidden
+state. Its prescan retains enables/Dest; excluded zero-divisor/overflow cases fail
+the whole advance. Native minor-fault/flag behavior remains unqualified.
+
 [FBD rate limiting and extrema](fbd-rate-capture.md) share RLIM previous-output/clock
 and MAXC/MINC retained-extrema history with ST calls. Connected enables gate algorithms;
 whole-advance rollback and detached RLL replacement preserve that state. RTS remains blocked.

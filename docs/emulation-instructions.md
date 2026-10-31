@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-31; FBD process blocks added for app `26.1031.090828`. The engine has **101 built-in
+Audited 2026-10-31; FBD arithmetic blocks added for app `26.1031.092055`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -35,9 +35,11 @@ records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled del
 These twenty-seven additional calls are excluded from the RLL dispatch count.
 SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
 execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
-Twenty-seven graph blocks are supported, with twenty-one names shared with ST. These forms
+Thirty-three graph blocks are supported: twenty-one shared ST-call names, six
+common RLL arithmetic names and six FBD-only forms. These forms
 include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md), [UPDN/INTG](fbd-accumulation.md) and [ESEL/DERV](fbd-process-signals.md).
-The four Boolean record types now have bounded logical models. Other ST calls
+[ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md) use two logical math records.
+The four Boolean record types also have bounded logical models. Other ST calls
 lack FBD forms.
 
 ## Instruction families

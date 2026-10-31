@@ -279,8 +279,8 @@ class FBDStatefulTests(unittest.TestCase):
                 else:self.sheet(root).find('Block[@ID="500"]').set('Operand','OnDelay')
             with self.subTest(kind=kind):self.assertTrue(self.engine(mutate).blockers)
 
-    def test_report_has_twenty_seven_blocks_and_timer_diagnostic_pins(self):
-        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),27)
+    def test_report_has_thirty_three_blocks_and_timer_diagnostic_pins(self):
+        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),33)
         self.assertEqual(profile['blocks']['status_aliases']['FBD_TIMER'],{'InstructFault':'Status.0','PresetInv':'Status.1'})
         self.assertFalse(profile['native_runtime_parity'])
 

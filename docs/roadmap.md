@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1031.092055`: [FBD arithmetic](fbd-arithmetic.md), finite REAL
+ADD/SUB/MUL/DIV/ABS/NEG, two logical math record models and FBD Arithmetic Lab.
+Prescan retention; native flags/minor-fault/overflow handling remain unfinished.
+
 Available in `26.1031.090828`: [FBD ESEL/DERV](fbd-process-signals.md), enhanced
 healthy-input selection, Program/Operator requests and rate of change with FBD
 Process Lab. Shared ST history and rollback; native transitions/parity unqualified.

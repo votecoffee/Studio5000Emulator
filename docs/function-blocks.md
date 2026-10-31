@@ -5,7 +5,7 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 [Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
-and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) bring the inventory to 27 blocks. Other FBD instructions and complete native
+and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) bring the inventory to 33 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -38,6 +38,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 
 | Block | Behavior |
 | --- | --- |
+| ADD / SUB / MUL / DIV / ABS / NEG | Finite REAL math with typed records and retained prescan values; native minor-fault/overflow cases remain excluded. |
 | SEL | SelectorIn false selects In1; true selects In2. |
 | MUX | Selector 1 through 8 selects the corresponding REAL input. Invalid selectors set Status to 3 and retain the previous enabled output. |
 | SCL | Scale raw values into engineering units, optionally clamp raw excursions, and report strict raw-limit alarms/invalid ranges. |
@@ -67,7 +68,8 @@ Only consumed selectors, connected enables and selected values must be known;
 unknown unselected inputs can travel on wires. An unknown published output or
 nonfinite consumed REAL faults the advance instead of becoming a known zero.
 
-Prescan clears enables without copying inputs or publishing outputs. Run entry
+Math-block prescan retains enables/Dest; other qualified blocks clear enables.
+Prescan does not copy wires or publish outputs. Run entry
 clears hidden output history. Skipped routine calls retain state. Existing RLL/ST
 callers, routine harnesses and Standard Continuous/Periodic/instruction-only Event
 tasks can execute these graphs. Nodes and wires share the instruction budget.
@@ -102,8 +104,9 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 44 bounded models. There are twenty-seven FBD blocks, with twenty-one names shared
-with the existing twenty-seven ST-call dispatch entries. RLL remains 101.
+now contains 46 bounded models. There are 33 FBD blocks: 21 names shared with
+existing ST calls, six common RLL arithmetic names and six FBD-only forms.
+ST-call dispatch entries remain 27 and RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
 
@@ -131,6 +134,12 @@ history, startup, initialization, holds, limits, diagnostic pins and rollback.
 Choose **FBD process lab** for `FBDProcessLab.L5X`: ESEL feeds DERV over 38 nodes
 and 38 wires. See [the process-signal contract](fbd-process-signals.md) for
 health-aware selection, wired requests, derivative timing and rollback.
+
+## Arithmetic lab
+
+Choose **FBD arithmetic lab** for `FBDMathLab.L5X`: six blocks over 19 nodes and
+23 wires. See [the arithmetic contract](fbd-arithmetic.md) for typed fields,
+rounding, prescan retention, enable gates and excluded fault cases.
 
 ## Remaining work and references
 

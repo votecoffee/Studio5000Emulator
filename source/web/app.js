@@ -234,6 +234,7 @@ $('fbd-logic-demo').onclick=()=>loadDemo('FBDLogicLab');
 $('fbd-trend-demo').onclick=()=>loadDemo('FBDTrendLab');
 $('fbd-total-demo').onclick=()=>loadDemo('FBDTotalLab');
 $('fbd-process-demo').onclick=()=>loadDemo('FBDProcessLab');
+$('fbd-math-demo').onclick=()=>loadDemo('FBDMathLab');
 $('text-demo').onclick=()=>loadDemo('TextLab');
 $('string-demo').onclick=()=>loadDemo('StringLab');
 $('control-demo').onclick=()=>loadDemo('ControlLab');
