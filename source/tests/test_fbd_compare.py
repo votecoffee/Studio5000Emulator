@@ -270,8 +270,8 @@ class FBDCompareTests(unittest.TestCase):
         self.step(candidate);self.assertEqual(candidate.memory.read('TimerACC'),20)
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('EQU','NEQ','GRT','GEQ','LES','LEQ','LIM')))
 
-    def test_report_has_forty_blocks_and_finite_comparison_contract(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),40)
+    def test_report_has_forty_six_blocks_and_finite_comparison_contract(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),46)
         self.assertEqual(p['blocks']['comparison']['instructions'],['EQU','GEQ','GRT','LEQ','LES','LIM','NEQ'])
         self.assertIn('Inclusive',p['blocks']['comparison']['limits']);self.assertFalse(p['blocks']['comparison']['native_runtime_parity'])
 

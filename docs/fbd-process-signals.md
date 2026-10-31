@@ -3,8 +3,8 @@
 ESEL and DERV execute as FBD Blocks in the bounded v35 ControlLogix 5580 software
 graph. They share the [existing ST models](st-process-signals.md), including
 Program/Operator arbitration and derivative input/output/clock history. There
-are 40 graph blocks: 21 shared ST-call names, 13 common RLL arithmetic/comparison names
-and six FBD-only forms. RLL remains
+are 46 graph blocks: 21 shared ST-call names, 18 common RLL names
+and seven FBD-only forms. RLL remains
 101 and ST calls 27.
 
 | Block | Logical record | Main outputs besides EnableOut |

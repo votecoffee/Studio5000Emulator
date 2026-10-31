@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1031.094624`: [FBD bitwise/masked operations](fbd-bitwise.md),
+AND/OR/XOR/NOT/MEQ/MVMT with signed DINT patterns, explicit-target merging and
+FBD Bitwise Lab. Four logical records; native flags/lifecycle/layout unqualified.
+
 Available in `26.1031.093331`: [FBD comparisons/limits](fbd-comparisons.md),
 EQU/NEQ/GRT/GEQ/LES/LEQ/LIM with finite REAL inputs, BOOL results and FBD Comparison
 Lab. Two logical records; native nonfinite/lifecycle/packed-layout parity unqualified.

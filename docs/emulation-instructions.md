@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-31; FBD comparison/limit blocks added for app `26.1031.093331`. The engine has **101 built-in
+Audited 2026-10-31; FBD bitwise/masked blocks added for app `26.1031.094624`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -35,13 +35,15 @@ records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled del
 These twenty-seven additional calls are excluded from the RLL dispatch count.
 SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
 execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
-Forty graph blocks are supported: twenty-one shared ST-call names, thirteen
-common RLL arithmetic/comparison names and six FBD-only forms. These forms
+Forty-six graph blocks are supported: twenty-one shared ST-call names, eighteen
+common RLL names and seven FBD-only forms. These forms
 include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md), [UPDN/INTG](fbd-accumulation.md) and [ESEL/DERV](fbd-process-signals.md).
 [ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md) use two logical math records.
 [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md) add FBD_COMPARE/FBD_LIMIT
 with finite REAL inputs and BOOL outputs. These Block forms add no one-record
-RLL/ST call overloads. The four Boolean record types also have bounded logical models. Other ST calls
+RLL/ST call overloads. [AND/OR/XOR/NOT/MEQ/MVMT](fbd-bitwise.md) add DINT bitwise/masked Block forms
+and four logical record models. ST MVMT remains unsupported.
+The four Boolean record types also have bounded logical models. Other ST calls
 lack FBD forms.
 
 ## Instruction families
@@ -72,7 +74,7 @@ lack FBD forms.
 | Motion Group Instructions | — | — | `MGS`, `MGSD`, `MGSP`, `MGSR` |
 | Motion Move Instructions | — | — | `MAG`, `MAH`, `MAJ`, `MAM`, `MAPC`, `MAS`, `MATC`, `MCCP`, `MCD`, `MCSV`, `MDAC`, `MRP` |
 | Motion State Instruction | — | — | `MAFR`, `MASD`, `MASR`, `MDF`, `MDO`, `MDS`, `MSF`, `MSO` |
-| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | `BTDT`, `MVMT` (FBD Boolean blocks and ST/FBD DFF/JKFF/RESD/SETD listed above) |
+| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | `BTDT` (FBD-only MVMT, FBD Boolean blocks and ST/FBD DFF/JKFF/RESD/SETD listed above) |
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |

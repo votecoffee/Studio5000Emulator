@@ -252,8 +252,8 @@ class FBDMathTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('ADD','SUB','MUL','DIV','NEG','ABS')))
         self.assertEqual(self.step(candidate),(8,7,21,7,-7,7))
 
-    def test_inventory_reports_forty_blocks_and_math_limits(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),40)
+    def test_inventory_reports_forty_six_blocks_and_math_limits(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),46)
         self.assertEqual(p['blocks']['math']['instructions'],['ABS','ADD','DIV','MUL','NEG','SUB'])
         self.assertFalse(p['blocks']['math']['native_runtime_parity']);self.assertIn('prescan leaves',p['blocks']['math']['lifecycle'])
 

@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-31; FBD comparison/limit blocks added for app `26.1031.093331`. **Full Logix emulation is not
+Audited 2026-10-31; FBD bitwise/masked blocks added for app `26.1031.094624`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development now prioritizes execution, data and simulated devices; further
@@ -20,10 +20,11 @@ firmware features are separate profiles, not implicit L85E capabilities.
 
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
+| FBD bitwise records | [AND/OR/XOR/NOT/MEQ/MVMT](fbd-bitwise.md), signed DINT patterns, masked BOOL comparison and explicit-target merging | ST MVMT calls, other record operations/forms/types, native flags/lifecycle/layout/transfer qualification |
 | FBD comparison records | [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md), finite REAL comparisons, inclusive/reversed limits, BOOL outputs and retained prescan values | Nonfinite behavior, other types/forms, packed layouts and native lifecycle/transfer parity |
 | FBD math records | [ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md), finite REAL operations, two typed records, prescan retention and transactional failures | Other math/forms/types, native flags, minor-fault/nonfinite/overflow/layout/lifecycle parity |
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
-| Function blocks | [Single-sheet signal graphs](function-blocks.md), Forty blocks including comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
+| Function blocks | [Single-sheet signal graphs](function-blocks.md), Forty-six blocks including bitwise/masked operations, comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |

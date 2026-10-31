@@ -1,0 +1,324 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDBitwiseLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDBitwiseLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="A" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="170" />
+        </Data>
+      </Tag>
+      <Tag Name="B" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="204" />
+        </Data>
+      </Tag>
+      <Tag Name="Mask" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="15" />
+        </Data>
+      </Tag>
+      <Tag Name="Target" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="240" />
+        </Data>
+      </Tag>
+      <Tag Name="CompareValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="OffValue" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OnValue" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="100" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetTimer" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimerPreset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AndValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OrValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="XorValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Inverted" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Merged" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Matches" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectedValue" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimerACC" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimerDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BitwiseEnabled" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AndState" TagType="Base" DataType="FBD_LOGICAL">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_LOGICAL">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="SourceA" DataType="DINT" Value="0" />
+            <DataValueMember Name="SourceB" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OrState" TagType="Base" DataType="FBD_LOGICAL">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_LOGICAL">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="SourceA" DataType="DINT" Value="0" />
+            <DataValueMember Name="SourceB" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="XorState" TagType="Base" DataType="FBD_LOGICAL">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_LOGICAL">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="SourceA" DataType="DINT" Value="0" />
+            <DataValueMember Name="SourceB" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="NotState" TagType="Base" DataType="FBD_CONVERT">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_CONVERT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MoveState" TagType="Base" DataType="FBD_MASKED_MOVE">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_MASKED_MOVE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="Mask" DataType="DINT" Value="0" />
+            <DataValueMember Name="Target" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MatchState" TagType="Base" DataType="FBD_MASK_EQUAL">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_MASK_EQUAL">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="Mask" DataType="DINT" Value="0" />
+            <DataValueMember Name="Compare" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Choice" TagType="Base" DataType="SELECT">
+        <Data Format="Decorated">
+          <Structure DataType="SELECT">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectorIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="OnDelay" TagType="Base" DataType="FBD_TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_TIMER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="TimerEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PRE" DataType="DINT" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TT" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(BitSignals,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="BitSignals" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>DINT bitwise operations and explicit-target masked merging; masked BOOL equality drives a selector and timer.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="A" />
+                <IRef ID="2" X="20" Y="130" Operand="B" />
+                <IRef ID="3" X="20" Y="260" Operand="Mask" />
+                <IRef ID="4" X="20" Y="390" Operand="Target" />
+                <IRef ID="5" X="20" Y="520" Operand="CompareValue" />
+                <IRef ID="6" X="20" Y="650" Operand="OffValue" />
+                <IRef ID="7" X="20" Y="780" Operand="OnValue" />
+                <IRef ID="8" X="20" Y="910" Operand="ResetTimer" />
+                <IRef ID="9" X="20" Y="1040" Operand="TimerPreset" />
+                <IRef ID="10" X="20" Y="1170" Operand="BlockEnable" />
+                <Block ID="100" X="360" Y="50" Type="AND" Operand="AndState" VisiblePins="EnableIn SourceA SourceB EnableOut Dest" />
+                <Block ID="200" X="740" Y="50" Type="OR" Operand="OrState" VisiblePins="EnableIn SourceA SourceB EnableOut Dest" />
+                <Block ID="300" X="1120" Y="50" Type="XOR" Operand="XorState" VisiblePins="EnableIn SourceA SourceB EnableOut Dest" />
+                <Block ID="400" X="360" Y="600" Type="NOT" Operand="NotState" VisiblePins="EnableIn Source EnableOut Dest" />
+                <Block ID="500" X="740" Y="600" Type="MVMT" Operand="MoveState" VisiblePins="EnableIn Source Mask Target EnableOut Dest" />
+                <Block ID="600" X="1120" Y="600" Type="MEQ" Operand="MatchState" VisiblePins="EnableIn Source Mask Compare EnableOut Dest" />
+                <Block ID="700" X="360" Y="1150" Type="SEL" Operand="Choice" VisiblePins="EnableIn In1 In2 SelectorIn EnableOut Out" />
+                <Block ID="800" X="740" Y="1150" Type="TONR" Operand="OnDelay" VisiblePins="EnableIn TimerEnable PRE Reset EnableOut ACC EN TT DN Status" />
+                <ORef ID="1000" X="1650" Y="0" Operand="AndValue" />
+                <ORef ID="1001" X="1650" Y="120" Operand="OrValue" />
+                <ORef ID="1002" X="1650" Y="240" Operand="XorValue" />
+                <ORef ID="1003" X="1650" Y="360" Operand="Inverted" />
+                <ORef ID="1004" X="1650" Y="480" Operand="Merged" />
+                <ORef ID="1005" X="1650" Y="600" Operand="Matches" />
+                <ORef ID="1006" X="1650" Y="720" Operand="SelectedValue" />
+                <ORef ID="1007" X="1650" Y="840" Operand="TimerACC" />
+                <ORef ID="1008" X="1650" Y="960" Operand="TimerDone" />
+                <ORef ID="1009" X="1650" Y="1080" Operand="BitwiseEnabled" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="SourceA" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="SourceB" />
+                <Wire FromID="1" FromParam="In" ToID="200" ToParam="SourceA" />
+                <Wire FromID="2" FromParam="In" ToID="200" ToParam="SourceB" />
+                <Wire FromID="1" FromParam="In" ToID="300" ToParam="SourceA" />
+                <Wire FromID="2" FromParam="In" ToID="300" ToParam="SourceB" />
+                <Wire FromID="300" FromParam="Dest" ToID="400" ToParam="Source" />
+                <Wire FromID="1" FromParam="In" ToID="500" ToParam="Source" />
+                <Wire FromID="3" FromParam="In" ToID="500" ToParam="Mask" />
+                <Wire FromID="4" FromParam="In" ToID="500" ToParam="Target" />
+                <Wire FromID="500" FromParam="Dest" ToID="600" ToParam="Source" />
+                <Wire FromID="3" FromParam="In" ToID="600" ToParam="Mask" />
+                <Wire FromID="5" FromParam="In" ToID="600" ToParam="Compare" />
+                <Wire FromID="600" FromParam="Dest" ToID="700" ToParam="SelectorIn" />
+                <Wire FromID="6" FromParam="In" ToID="700" ToParam="In1" />
+                <Wire FromID="7" FromParam="In" ToID="700" ToParam="In2" />
+                <Wire FromID="600" FromParam="Dest" ToID="800" ToParam="TimerEnable" />
+                <Wire FromID="8" FromParam="In" ToID="800" ToParam="Reset" />
+                <Wire FromID="9" FromParam="In" ToID="800" ToParam="PRE" />
+                <Wire FromID="10" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="300" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="400" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="500" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="600" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="700" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="800" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Dest" ToID="1000" ToParam="Out" />
+                <Wire FromID="200" FromParam="Dest" ToID="1001" ToParam="Out" />
+                <Wire FromID="300" FromParam="Dest" ToID="1002" ToParam="Out" />
+                <Wire FromID="400" FromParam="Dest" ToID="1003" ToParam="Out" />
+                <Wire FromID="500" FromParam="Dest" ToID="1004" ToParam="Out" />
+                <Wire FromID="600" FromParam="Dest" ToID="1005" ToParam="Out" />
+                <Wire FromID="700" FromParam="Out" ToID="1006" ToParam="Out" />
+                <Wire FromID="800" FromParam="ACC" ToID="1007" ToParam="Out" />
+                <Wire FromID="800" FromParam="DN" ToID="1008" ToParam="Out" />
+                <Wire FromID="600" FromParam="EnableOut" ToID="1009" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

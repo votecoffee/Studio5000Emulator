@@ -341,6 +341,12 @@ timers include elapsed gaps when resumed. TimerEnable false executes its
 separate reset/pause/off-delay path. Values, clocks and edges commit or roll
 back with the complete advance. Native FBD timing parity remains unqualified.
 
+[FBD bitwise and masked operations](fbd-bitwise.md) use exact signed DINT
+patterns and BOOL masked equality. MVMT merges from its explicit Target each
+call. Its prescan clears enables; the other five retain enables/Dest. All
+required operands must be known, including zero/full-mask cases. Full native
+flags/lifecycle/layout/transfer qualification remains unfinished.
+
 [FBD comparisons and limits](fbd-comparisons.md) produce BOOL results from
 known finite REAL inputs. Inclusive/reversed LIM boundaries, float32 equality,
 enable gates and prescan retention are explicit. Unknown/nonfinite inputs fail

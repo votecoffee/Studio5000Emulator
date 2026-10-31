@@ -5,7 +5,7 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 [Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
-and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) bring the inventory to 40 blocks. Other FBD instructions and complete native
+and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) and [bitwise/masked operations](fbd-bitwise.md) bring the inventory to 46 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -38,6 +38,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 
 | Block | Behavior |
 | --- | --- |
+| AND / OR / XOR / NOT / MEQ / MVMT | Signed DINT bitwise results, BOOL masked equality and explicit-target merging; per-family prescan rules. |
 | EQU / NEQ / GRT / GEQ / LES / LEQ / LIM | Finite REAL comparisons and inclusive/reversed limits with BOOL Dest and retained prescan values. |
 | ADD / SUB / MUL / DIV / ABS / NEG | Finite REAL math with typed records and retained prescan values; native minor-fault/overflow cases remain excluded. |
 | SEL | SelectorIn false selects In1; true selects In2. |
@@ -69,7 +70,8 @@ Only consumed selectors, connected enables and selected values must be known;
 unknown unselected inputs can travel on wires. An unknown published output or
 nonfinite consumed REAL faults the advance instead of becoming a known zero.
 
-Math/comparison-block prescan retains enables/Dest; other qualified blocks clear enables.
+Math/comparison and AND/OR/XOR/NOT/MEQ prescan retain enables/Dest; MVMT and
+other qualified blocks clear enables.
 Prescan does not copy wires or publish outputs. Run entry
 clears hidden output history. Skipped routine calls retain state. Existing RLL/ST
 callers, routine harnesses and Standard Continuous/Periodic/instruction-only Event
@@ -105,8 +107,8 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 48 bounded models. There are 40 FBD blocks: 21 names shared with
-existing ST calls, 13 common RLL arithmetic/comparison names and six FBD-only forms.
+now contains 52 bounded models. There are 46 FBD blocks: 21 names shared with
+existing ST calls, 18 common RLL names and seven FBD-only forms.
 ST-call dispatch entries remain 27 and RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
@@ -147,6 +149,12 @@ rounding, prescan retention, enable gates and excluded fault cases.
 Choose **FBD comparison lab** for `FBDCompareLab.L5X`: nine blocks over 29 nodes
 and 41 wires. See [comparisons and limits](fbd-comparisons.md) for typed BOOL
 results, inclusive/reversed boundaries, selector/timer wiring and rollback.
+
+## Bitwise lab
+
+Choose **FBD bitwise lab** for `FBDBitwiseLab.L5X`: eight blocks over 28 nodes
+and 37 wires. See [bitwise and masked operations](fbd-bitwise.md) for signed
+patterns, explicit Target semantics, BOOL dataflow, prescan and rollback.
 
 ## Remaining work and references
 

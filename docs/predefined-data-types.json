@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-31",
-  "audited_app_version": "26.1031.093331",
+  "audited_app_version": "26.1031.094624",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -132,6 +132,11 @@
       "label": "FBD selector model (partial)",
       "remaining": "Bounded single-sheet SEL/MUX logical records and acyclic typed wires; native ordering/lifecycle/status/fault, packed layouts, general FBD and transfer/edit parity remain unfinished.",
       "source": "source/logixlab/fbd_select.py"
+    },
+    "fbd_bitwise_model": {
+      "label": "FBD bitwise model (bounded)",
+      "remaining": "Signed DINT AND/OR/XOR/NOT/MEQ/MVMT Block forms; ST MVMT, other record operations/types/forms, native flags/lifecycle/fault/layout/transfer parity remain unfinished.",
+      "source": "source/logixlab/fbd_bitwise.py"
     },
     "fbd_compare_model": {
       "label": "FBD comparison model (bounded)",
@@ -273,10 +278,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 48,
-    "no_dedicated_model": 174,
+    "dedicated_bounded_models": 52,
+    "no_dedicated_model": 170,
     "status_counts": {
-      "no_dedicated_model": 174,
+      "no_dedicated_model": 170,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -302,7 +307,8 @@
       "fbd_selector_model": 2,
       "fbd_boolean_model": 4,
       "fbd_math_model": 2,
-      "fbd_compare_model": 2
+      "fbd_compare_model": 2,
+      "fbd_bitwise_model": 4
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1050,7 +1056,7 @@
       "identifier_candidate": "FBD_CONVERT",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_bitwise_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_CONVERT",
       "notes": []
@@ -1086,7 +1092,7 @@
       "identifier_candidate": "FBD_LOGICAL",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_bitwise_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_LOGICAL",
       "notes": []
@@ -1098,7 +1104,7 @@
       "identifier_candidate": "FBD_MASKED_MOVE",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_bitwise_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_MASKED_MOVE",
       "notes": []
@@ -1110,7 +1116,7 @@
       "identifier_candidate": "FBD_MASK_EQUAL",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_bitwise_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_MASK_EQUAL",
       "notes": []

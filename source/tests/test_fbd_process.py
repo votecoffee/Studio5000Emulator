@@ -270,8 +270,8 @@ class FBDProcessTests(unittest.TestCase):
         self.settings(candidate,Input3=50);self.assertEqual(self.step(candidate),(50,3,40,True))
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('ESEL','DERV')))
 
-    def test_report_has_forty_blocks_and_process_diagnostic_pins(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),40)
+    def test_report_has_forty_six_blocks_and_process_diagnostic_pins(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),46)
         self.assertEqual(p['blocks']['status_aliases']['SELECT_ENHANCED']['InsFaulted'],'Status.1')
         self.assertEqual(p['blocks']['status_aliases']['DERIVATIVE']['DeltaTInv'],'Status.31')
         self.assertIn('reapplied',p['blocks']['requests']);self.assertFalse(p['native_runtime_parity'])

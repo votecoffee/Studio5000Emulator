@@ -232,7 +232,7 @@ class FBDSignalTests(unittest.TestCase):
     def test_registry_pins_remain_typed_and_legacy_selectors_report_is_retained(self):
         from logixlab.fbd_blocks import PINS,OUTPUTS
         e=self.checked();self.assertEqual(PINS['SCALE']['InRawRangeInv'],'BOOL');self.assertIn('InRawRangeInv',OUTPUTS['SCALE'])
-        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['ABS','ADD','BAND','BNOT','BOR','BXOR','CTUD','DERV','DFF','DIV','EQU','ESEL','GEQ','GRT','HLL','INTG','JKFF','LEQ','LES','LIM','MAXC','MINC','MUL','MUX','NEG','NEQ','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','SUB','TOFR','TONR','UPDN'])
+        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['ABS','ADD','AND','BAND','BNOT','BOR','BXOR','CTUD','DERV','DFF','DIV','EQU','ESEL','GEQ','GRT','HLL','INTG','JKFF','LEQ','LES','LIM','MAXC','MEQ','MINC','MUL','MUX','MVMT','NEG','NEQ','NOT','OR','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','SUB','TOFR','TONR','UPDN','XOR'])
         self.assertFalse(report['native_runtime_parity']);self.assertIn('selectors',report)
 
 
