@@ -101,3 +101,5 @@ Instruction availability and logical fields can be compared with Rockwell's
 [general-instruction manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 and the installed v35 help. The software timing and unknown-value policies above
 remain explicit limits of this implementation.
+
+[RLIM/MAXC/MINC](fbd-rate-capture.md) additionally share rate/extrema state with ST.

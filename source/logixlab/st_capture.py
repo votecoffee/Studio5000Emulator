@@ -53,5 +53,5 @@ def description():
                 lifecycle='Prescan clears enable bits; Run entry resets history; supported detached routine replacement preserves it',
                 failures='Unknown required inputs, nonfinite/overflow or a later fault roll back outputs, history and the whole advance',
                 native_runtime_parity=False,
-                remaining=['FBD graphs, packed layouts and other controller profiles','Native initialization/reset priority, skipped-call and postscan behavior',
+                remaining=['General FBD graph forms, packed layouts and other controller profiles','Native initialization/reset priority, skipped-call and postscan behavior',
                            'Native nonfinite, precision, signed-zero, status and fault parity'])

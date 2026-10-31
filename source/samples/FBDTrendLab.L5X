@@ -1,0 +1,255 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDTrendLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDTrendLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Signal" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IncreaseRate" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="DecreaseRate" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="4" />
+        </Data>
+      </Tag>
+      <Tag Name="Bypass" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetCapture" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MaximumReset" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="MinimumReset" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="-10" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingMode" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.25" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Limited" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Maximum" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Minimum" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Elapsed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RateStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RateFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IncreaseInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DecreaseInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Ramp" TagType="Base" DataType="RATE_LIMITER">
+        <Data Format="Decorated">
+          <Structure DataType="RATE_LIMITER">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="IncRate" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DecRate" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="ByPass" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="HighCapture" TagType="Base" DataType="MAXIMUM_CAPTURE">
+        <Data Format="Decorated">
+          <Structure DataType="MAXIMUM_CAPTURE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ResetValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LowCapture" TagType="Base" DataType="MINIMUM_CAPTURE">
+        <Data Format="Decorated">
+          <Structure DataType="MINIMUM_CAPTURE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ResetValue" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(RampAndCapture,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RampAndCapture" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Rate-limited analog signal and retained maximum/minimum, with explicit enable, timing and reset inputs.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="Signal" />
+                <IRef ID="2" X="20" Y="95" Operand="IncreaseRate" />
+                <IRef ID="3" X="20" Y="190" Operand="DecreaseRate" />
+                <IRef ID="4" X="20" Y="285" Operand="Bypass" />
+                <IRef ID="5" X="20" Y="380" Operand="ResetCapture" />
+                <IRef ID="6" X="20" Y="475" Operand="MaximumReset" />
+                <IRef ID="7" X="20" Y="570" Operand="MinimumReset" />
+                <IRef ID="8" X="20" Y="665" Operand="TimingMode" />
+                <IRef ID="9" X="20" Y="760" Operand="SampleTime" />
+                <IRef ID="10" X="20" Y="855" Operand="BlockEnable" />
+                <Block ID="100" X="380" Y="80" Type="RLIM" Operand="Ramp" VisiblePins="EnableIn In IncRate DecRate ByPass TimingMode OversampleDT RTSTime RTSTimeStamp EnableOut Out DeltaT Status" />
+                <Block ID="200" X="740" Y="380" Type="MAXC" Operand="HighCapture" VisiblePins="EnableIn In Reset ResetValue EnableOut Out" />
+                <Block ID="300" X="1100" Y="680" Type="MINC" Operand="LowCapture" VisiblePins="EnableIn In Reset ResetValue EnableOut Out" />
+                <ORef ID="900" X="1500" Y="0" Operand="Limited" />
+                <ORef ID="901" X="1500" Y="95" Operand="Maximum" />
+                <ORef ID="902" X="1500" Y="190" Operand="Minimum" />
+                <ORef ID="903" X="1500" Y="285" Operand="Elapsed" />
+                <ORef ID="904" X="1500" Y="380" Operand="RateStatus" />
+                <ORef ID="905" X="1500" Y="475" Operand="RateFault" />
+                <ORef ID="906" X="1500" Y="570" Operand="IncreaseInvalid" />
+                <ORef ID="907" X="1500" Y="665" Operand="DecreaseInvalid" />
+                <ORef ID="908" X="1500" Y="760" Operand="TimingInvalid" />
+                <ORef ID="909" X="1500" Y="855" Operand="SampleInvalid" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="In" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="IncRate" />
+                <Wire FromID="3" FromParam="In" ToID="100" ToParam="DecRate" />
+                <Wire FromID="4" FromParam="In" ToID="100" ToParam="ByPass" />
+                <Wire FromID="8" FromParam="In" ToID="100" ToParam="TimingMode" />
+                <Wire FromID="9" FromParam="In" ToID="100" ToParam="OversampleDT" />
+                <Wire FromID="100" FromParam="Out" ToID="200" ToParam="In" />
+                <Wire FromID="100" FromParam="Out" ToID="300" ToParam="In" />
+                <Wire FromID="5" FromParam="In" ToID="200" ToParam="Reset" />
+                <Wire FromID="5" FromParam="In" ToID="300" ToParam="Reset" />
+                <Wire FromID="6" FromParam="In" ToID="200" ToParam="ResetValue" />
+                <Wire FromID="7" FromParam="In" ToID="300" ToParam="ResetValue" />
+                <Wire FromID="10" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="10" FromParam="In" ToID="300" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="900" ToParam="Out" />
+                <Wire FromID="200" FromParam="Out" ToID="901" ToParam="Out" />
+                <Wire FromID="300" FromParam="Out" ToID="902" ToParam="Out" />
+                <Wire FromID="100" FromParam="DeltaT" ToID="903" ToParam="Out" />
+                <Wire FromID="100" FromParam="Status" ToID="904" ToParam="Out" />
+                <Wire FromID="100" FromParam="InstructFault" ToID="905" ToParam="Out" />
+                <Wire FromID="100" FromParam="IncRateInv" ToID="906" ToParam="Out" />
+                <Wire FromID="100" FromParam="DecRateInv" ToID="907" ToParam="Out" />
+                <Wire FromID="100" FromParam="TimingModeInv" ToID="908" ToParam="Out" />
+                <Wire FromID="100" FromParam="DeltaTInv" ToID="909" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

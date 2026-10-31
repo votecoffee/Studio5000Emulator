@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1031.084520`: [FBD RLIM/MAXC/MINC](fbd-rate-capture.md),
+rate limiting and retained extrema with FBD Rate/Capture Lab. Shared ST algorithms,
+enables/status wires and rollback; native timing/lifecycle parity remains unqualified.
+
 Available in `26.1030.172212`: [Boolean FBD logic](fbd-boolean.md),
 BAND/BOR/BNOT/BXOR plus DFF/JKFF/RESD/SETD, with FBD Boolean Lab. Logical records
 and shared retained state; native layout/lifecycle parity remains unqualified.

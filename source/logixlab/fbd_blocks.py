@@ -1,18 +1,23 @@
 """Qualified FBD block adapters sharing existing logical instruction models."""
-from . import fbd_select,st_scale,st_signal,st_timers,st_counter,st_oneshot,st_digital,fbd_boolean
+from . import fbd_select,st_scale,st_signal,st_timers,st_counter,st_oneshot,st_digital,fbd_boolean,st_rate,st_capture
 from .model import ModelError,Op
 
 TYPES={**fbd_select.TYPES,'SCL':'SCALE',**st_signal.TYPES,
        **dict.fromkeys(st_timers.INSTRUCTIONS,'FBD_TIMER'),'CTUD':'FBD_COUNTER',
-       **dict.fromkeys(st_oneshot.INSTRUCTIONS,'FBD_ONESHOT'),**st_digital.TYPES,**fbd_boolean.TYPES}
+       **dict.fromkeys(st_oneshot.INSTRUCTIONS,'FBD_ONESHOT'),**st_digital.TYPES,**fbd_boolean.TYPES,
+       'RLIM':'RATE_LIMITER',**st_capture.TYPES}
 SCHEMAS={**fbd_select.SCHEMAS,'SCALE':st_scale.FIELDS,**st_signal.SCHEMAS,
-         'FBD_TIMER':st_timers.FIELDS,'FBD_COUNTER':st_counter.FIELDS,'FBD_ONESHOT':st_oneshot.FIELDS,**st_digital.SCHEMAS,**fbd_boolean.SCHEMAS}
+         'FBD_TIMER':st_timers.FIELDS,'FBD_COUNTER':st_counter.FIELDS,'FBD_ONESHOT':st_oneshot.FIELDS,**st_digital.SCHEMAS,**fbd_boolean.SCHEMAS,
+         'RATE_LIMITER':st_rate.FIELDS,**dict.fromkeys(st_capture.TYPES.values(),st_capture.FIELDS)}
 ALIASES={
+    'RATE_LIMITER':st_rate.STATUS_ALIASES,
     'FBD_TIMER':{'InstructFault':0,'PresetInv':1},
     'MULTIPLEXER':{'InstructFault':0,'SelectorInv':1},
     'SCALE':{'InstructFault':0,'InRawRangeInv':1},
     'HL_LIMIT':{'InstructFault':0,'LimitsInv':1,'SelectLimitInv':2}}
 OUTPUTS={**fbd_select.OUTPUTS,
+    'RATE_LIMITER':('EnableOut','Out','DeltaT','Status'),
+    **dict.fromkeys(st_capture.TYPES.values(),('EnableOut','Out')),
     'SCALE':('EnableOut','Out','MaxAlarm','MinAlarm','Status'),
     'HL_LIMIT':('EnableOut','Out','HighAlarm','LowAlarm','Status'),
     'SELECTABLE_NEGATE':('EnableOut','Out'),'SELECTED_SUMMER':('EnableOut','Out'),
@@ -29,7 +34,8 @@ PINS={kind:fields|dict.fromkeys(ALIASES.get(kind,{}),'BOOL') for kind,fields in 
 ADAPTERS={'SCL':st_scale,**dict.fromkeys(st_signal.INSTRUCTIONS,st_signal),
           **dict.fromkeys(st_timers.INSTRUCTIONS,st_timers),'CTUD':st_counter,
           **dict.fromkeys(st_oneshot.INSTRUCTIONS,st_oneshot),
-          **dict.fromkeys(st_digital.INSTRUCTIONS,st_digital),**dict.fromkeys(fbd_boolean.INSTRUCTIONS,fbd_boolean)}
+          **dict.fromkeys(st_digital.INSTRUCTIONS,st_digital),**dict.fromkeys(fbd_boolean.INSTRUCTIONS,fbd_boolean),
+          'RLIM':st_rate,**dict.fromkeys(st_capture.INSTRUCTIONS,st_capture)}
 
 
 def adapter(name):return ADAPTERS[name]
@@ -66,13 +72,14 @@ def execute(engine,node,scope,*,wired_enable):
 def description():
     return dict(instructions=sorted(TYPES),records=SCHEMAS,outputs=OUTPUTS,
                 status_aliases={kind:{name:'Status.'+str(bit) for name,bit in fields.items()} for kind,fields in ALIASES.items()},
-                shared_models='Signal blocks, timers, CTUD and one-shots reuse existing ST numerical/state/status profiles',
+                shared_models='Signal blocks, timers, counters, one-shots, digital memory, rate limiting and captures share existing ST profiles',
                 enable='Connected EnableIn gates each block; disabled outputs/alarms/status retain; unwired enable is true',
                 prescan='Clear enables only; do not copy wires or publish output references',
                 unknowns='Unknown input values propagate on wires; required reads and published outputs must be known',
                 timing='Disabled FBD calls retain timer history; re-enabled active timers include elapsed simulated time since the last reached enabled call',
                 timer_control='TimerEnable is separate from EnableIn: a reached false TimerEnable resets TONR or pauses RTOR; disabled EnableIn skips the algorithm',
                 state='Counter and one-shot edges sample enabled reached calls only; ST/FBD sites share resolved-record history',
+                rate_capture='RLIM shares timing and previous-output history; MAXC/MINC share retained extrema and level-sensitive reset baselines',
                 boolean=fbd_boolean.description(),
                 digital='DFF/JKFF/RESD/SETD share the existing sampled clock and dominant-latch history model',
                 native_runtime_parity=False,

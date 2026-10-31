@@ -58,7 +58,8 @@ reset or failed new maximum/minimum cannot affect a corrected retry. Prescan
 failure also restores existing values and history.
 
 These are two bounded named models, not complete emulation of the predefined
-types or the statistical instruction family. FBD graphs, native packed layouts,
+types or the statistical instruction family. [FBD MAXC/MINC](fbd-rate-capture.md)
+share these algorithms; general FBD forms, native packed layouts,
 other controller profiles, native initialization/reset/skip/postscan semantics
 and native nonfinite/precision/status/fault parity remain unfinished. Studio
 transfer and online-edit acceptance remain separate.

@@ -82,5 +82,5 @@ def description():
                 prescan='Clear enable pair; Run entry resets history, then first call initializes from In',
                 rollback='Values and history commit with the whole advance; no native precision/status/fault/layout parity claim',
                 native_runtime_parity=False,
-                remaining=['Module timestamp/real time sampling mode and RTS status behavior','FBD graphs and other controller profiles',
+                remaining=['Module timestamp/real time sampling mode and RTS status behavior','General FBD graph forms and other controller profiles',
                            'Native skipped-call, timing transitions, invalid-input, precision, overflow and lifecycle qualification'])

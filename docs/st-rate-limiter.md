@@ -3,7 +3,8 @@
 App `26.1030.102258` adds RLIM over logical RATE_LIMITER records in the bounded
 v35 ControlLogix 5580 profile. Period/elapsed timing and explicit oversample
 timing are supported. Module timestamp timing remains unqualified. RLIM is an
-ST-only call; the RLL dispatch count stays 99. FBD graphs remain unfinished.
+ST call; [FBD RLIM](fbd-rate-capture.md) also uses this model. The current
+RLL dispatch count is 101. General FBD forms remain unfinished.
 
 ```text
 Ramp.In := Target;

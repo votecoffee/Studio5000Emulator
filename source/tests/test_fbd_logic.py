@@ -283,8 +283,8 @@ class FBDBooleanTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[name]==1 for name in ('BAND','BOR','BNOT','BXOR','DFF','JKFF','RESD','SETD')))
         self.assertEqual(self.step(candidate)[4:6],(True,True))
 
-    def test_report_has_twenty_blocks_and_four_fbd_only_boolean_types(self):
-        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),20)
+    def test_report_has_twenty_three_blocks_and_four_fbd_only_boolean_types(self):
+        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),23)
         self.assertEqual(profile['blocks']['boolean']['instructions'],['BAND','BNOT','BOR','BXOR'])
         self.assertFalse(profile['native_runtime_parity']);self.assertFalse(profile['blocks']['boolean']['native_runtime_parity'])
 

@@ -3,7 +3,8 @@
 The v35 ControlLogix 5580 software graph supports BAND, BOR, BNOT and BXOR over
 four logical FBD_BOOLEAN records. DFF, JKFF, RESD and SETD also execute through
 the existing [Boolean-memory models](st-digital-memory.md). These eight FBD forms
-bring the graph inventory to twenty blocks; RLL remains 101 and ST calls 27.
+were added after the first twelve forms. With [rate/capture blocks](fbd-rate-capture.md),
+the graph inventory is 23 blocks; RLL remains 101 and ST calls 27.
 
 | Block | Logical type | Inputs besides EnableIn | Outputs besides EnableOut |
 | --- | --- | --- | --- |

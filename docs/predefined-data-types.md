@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1030.172212` on 2026-10-30. Every supplied entry appears below in its original
+`26.1031.084520` on 2026-10-31. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -21,16 +21,16 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
-| FBD_TIMER model, partial | 1 | [ST TONR/TOFR/RTOR](st-timers.md), logical fields and deterministic elapsed time; FBD graphs and native parity remain unfinished |
-| FBD_COUNTER model, partial | 1 | [ST CTUD](st-counter.md), sampled edges and logical up/down state; FBD graphs and native parity remain unfinished |
-| FBD_ONESHOT model, partial | 1 | [ST OSRI/OSFI](st-oneshot.md), sampled rising/falling pulses and logical fields; FBD graphs and native parity remain unfinished |
-| SCALE model, partial | 1 | [ST SCL](st-scaling.md), finite REAL scaling, limiting, alarms and status; FBD graphs and native parity remain unfinished |
+| FBD_TIMER model, partial | 1 | [ST/FBD TONR/TOFR/RTOR](st-timers.md), logical fields and deterministic elapsed time; General FBD forms and native parity remain unfinished |
+| FBD_COUNTER model, partial | 1 | [ST/FBD CTUD](st-counter.md), sampled edges and logical up/down state; General FBD forms and native parity remain unfinished |
+| FBD_ONESHOT model, partial | 1 | [ST/FBD OSRI/OSFI](st-oneshot.md), sampled rising/falling pulses and logical fields; General FBD forms and native parity remain unfinished |
+| SCALE model, partial | 1 | [ST/FBD SCL](st-scaling.md), finite REAL scaling, limiting, alarms and status; General FBD forms and native parity remain unfinished |
 | HL_LIMIT model, partial | 1 | [ST HLL](st-signals.md), both/one-sided limits, alarms and status |
 | SELECTABLE_NEGATE model, partial | 1 | [ST SNEG](st-signals.md), finite REAL selectable negation |
 | SELECTED_SUMMER model, partial | 1 | [ST SSUM](st-signals.md), eight weighted input pairs and bias |
-| RATE_LIMITER model, partial | 1 | [ST RLIM](st-rate-limiter.md), ramps/bypass and Periodic/oversample timing; RTS/FBD/native parity remain unfinished |
+| RATE_LIMITER model, partial | 1 | [ST/FBD RLIM](st-rate-limiter.md), ramps/bypass and Periodic/oversample timing; RTS/general FBD/native parity remain unfinished |
 | Moving statistics models, partial | 2 | [ST MAVE/MSTD](st-moving-statistics.md), finite REAL queues and uniform/weighted averages/population deviation |
-| Capture models, partial | 2 | [ST MAXC/MINC](st-capture.md), retained finite REAL extrema and reset baselines |
+| Capture models, partial | 2 | [ST/FBD MAXC/MINC](st-capture.md), retained finite REAL extrema and reset baselines |
 | LPF software model, partial | 1 | [ST LPF](st-low-pass-filter.md), explicit bilinear sections; native numerical recurrence remains unverified |
 | Boolean memory models, partial | 4 | [ST DFF/JKFF/RESD/SETD](st-digital-memory.md), sampled clocks, dominant latches, complements and history |
 | Accumulation models, partial | 2 | [ST UPDN/INTG](st-accumulation.md), finite REAL totals, timed integration, holds, limits and history |

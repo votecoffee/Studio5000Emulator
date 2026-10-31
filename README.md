@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1030.172212`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1031.084520`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -192,6 +192,9 @@ for a scale/limit/negate/sum chain.
 [Stateful FBD blocks](docs/fbd-stateful.md) add TONR/TOFR/RTOR, CTUD and
 OSRI/OSFI with shared clocks/edge histories and transactional rollback. Choose
 **FBD timer/counter lab** to exercise pulses, counting and timer behavior.
+
+[FBD rate limiting and extrema](docs/fbd-rate-capture.md) adds RLIM, MAXC and MINC
+with shared ST history, BOOL diagnostics and the **FBD rate/capture lab**.
 
 [FBD Boolean logic](docs/fbd-boolean.md) adds BAND/BOR/BNOT/BXOR plus
 DFF/JKFF/RESD/SETD. Choose **FBD Boolean lab** for truth tables, sampled clocks

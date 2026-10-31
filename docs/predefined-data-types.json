@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
-  "audited_date": "2026-10-30",
-  "audited_app_version": "26.1030.172212",
+  "audited_date": "2026-10-31",
+  "audited_app_version": "26.1031.084520",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -85,7 +85,7 @@
     },
     "rate_limiter_model": {
       "label": "RATE_LIMITER model (partial)",
-      "remaining": "Bounded ST RLIM period/oversample ramps; module timestamp timing, FBD graphs and native timing/precision/status/layout/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD RLIM period/oversample ramps; module timestamp timing, general FBD forms and native timing/precision/status/layout/fault parity remain unfinished.",
       "source": "source/logixlab/st_rate.py"
     },
     "moving_statistics_model": {
@@ -95,7 +95,7 @@
     },
     "capture_model": {
       "label": "Capture model (partial)",
-      "remaining": "Bounded ST MAXC/MINC finite REAL extrema/reset baselines; FBD graphs, packed layouts and native lifecycle/precision/nonfinite/status/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD MAXC/MINC finite REAL extrema/reset baselines; general FBD forms, packed layouts and native lifecycle/precision/nonfinite/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_capture.py"
     },
     "low_pass_software_model": {

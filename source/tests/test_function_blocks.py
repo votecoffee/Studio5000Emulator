@@ -183,7 +183,7 @@ class FunctionBlockTests(unittest.TestCase):
             self.assertEqual(default(dtype)['EnableIn'],True)
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(name+'.'+member)[2],kind)
         e.memory.write('ChannelChoice.SelectorInv',True);self.assertEqual(e.memory.read('ChannelChoice.Status'),2)
-        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','JKFF','MUX','OSFI','OSRI','RESD','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR']);self.assertFalse(report['native_runtime_parity'])
+        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','JKFF','MAXC','MINC','MUX','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR']);self.assertFalse(report['native_runtime_parity'])
         self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
 
     def test_profiles_and_st_ladder_forms_remain_blocked(self):
