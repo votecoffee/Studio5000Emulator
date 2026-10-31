@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1031.090828`: [FBD ESEL/DERV](fbd-process-signals.md), enhanced
+healthy-input selection, Program/Operator requests and rate of change with FBD
+Process Lab. Shared ST history and rollback; native transitions/parity unqualified.
+
 Available in `26.1031.085701`: [FBD UPDN/INTG](fbd-accumulation.md), per-call
 totals and timed integration with FBD Accumulation Lab. Shared ST history, enables,
 holds, limits and diagnostic wires; native timing/lifecycle parity remains unqualified.

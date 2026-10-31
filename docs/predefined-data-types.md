@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1031.085701` on 2026-10-31. Every supplied entry appears below in its original
+`26.1031.090828` on 2026-10-31. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -34,8 +34,8 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | LPF software model, partial | 1 | [ST LPF](st-low-pass-filter.md), explicit bilinear sections; native numerical recurrence remains unverified |
 | Boolean memory models, partial | 4 | [ST DFF/JKFF/RESD/SETD](st-digital-memory.md), sampled clocks, dominant latches, complements and history |
 | Accumulation models, partial | 2 | [ST/FBD UPDN/INTG](fbd-accumulation.md), finite REAL totals, timed integration, holds, limits and history |
-| Enhanced selection model, partial | 1 | [ST ESEL](st-process-signals.md), healthy/manual selection, control requests and diagnostics |
-| Derivative model, partial | 1 | [ST DERV](st-process-signals.md), timed rate of change, bypass and history |
+| Enhanced selection model, partial | 1 | [ST/FBD ESEL](fbd-process-signals.md), healthy/manual selection, control requests and diagnostics |
+| Derivative model, partial | 1 | [ST/FBD DERV](fbd-process-signals.md), timed rate of change, bypass and history |
 | Curve/delay models, partial | 2 | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, sample delay queues, resizing and health recovery |
 | PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
 | FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |

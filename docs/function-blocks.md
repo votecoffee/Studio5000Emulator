@@ -5,7 +5,7 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 [Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
-and [accumulation/integration](fbd-accumulation.md) bring the inventory to 25 blocks. Other FBD instructions and complete native
+and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) bring the inventory to 27 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -45,6 +45,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 | SNEG | Select the input or its negation. |
 | SSUM | Sum selected input/gain pairs in index order, then add Bias. |
 | TONR / TOFR / RTOR | Shared logical timer models with explicit elapsed-time and reset/pause/off-delay policies. |
+| ESEL / DERV | Shared enhanced healthy-input selection, request arbitration and rate-of-change history. |
 | UPDN / INTG | Shared per-call accumulation and trapezoidal integration with initialization, holds, limits and diagnostics. |
 | RLIM | Shared ramp/bypass and simulated/oversample timing, with BOOL diagnostics; RTS remains blocked. |
 | MAXC / MINC | Retained finite REAL extrema and level-sensitive reset baselines. |
@@ -101,7 +102,7 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 44 bounded models. There are twenty-five FBD blocks, with nineteen names shared
+now contains 44 bounded models. There are twenty-seven FBD blocks, with twenty-one names shared
 with the existing twenty-seven ST-call dispatch entries. RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
@@ -124,6 +125,12 @@ timing modes, reset baselines, enable gaps, BOOL diagnostics and retry behavior.
 Choose **FBD accumulation lab** for `FBDTotalLab.L5X`: UPDN and INTG over 29 nodes
 and 28 wires. See [the accumulation contract](fbd-accumulation.md) for shared ST
 history, startup, initialization, holds, limits, diagnostic pins and rollback.
+
+## Process lab
+
+Choose **FBD process lab** for `FBDProcessLab.L5X`: ESEL feeds DERV over 38 nodes
+and 38 wires. See [the process-signal contract](fbd-process-signals.md) for
+health-aware selection, wired requests, derivative timing and rollback.
 
 ## Remaining work and references
 

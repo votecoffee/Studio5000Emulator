@@ -297,8 +297,8 @@ class FBDAccumulationTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);self.assertEqual(candidate.last_timer,e.last_timer)
         self.assertEqual(self.step(candidate),(4.5,1.5));self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('UPDN','INTG')))
 
-    def test_inventory_has_twenty_five_blocks_with_typed_integrator_aliases(self):
-        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),25)
+    def test_inventory_has_twenty_seven_blocks_with_typed_integrator_aliases(self):
+        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),27)
         self.assertEqual(profile['blocks']['status_aliases']['INTEGRATOR']['DeltaTInv'],'Status.31')
         self.assertIn('trapezoidal',profile['blocks']['accumulation']);self.assertFalse(profile['native_runtime_parity'])
 

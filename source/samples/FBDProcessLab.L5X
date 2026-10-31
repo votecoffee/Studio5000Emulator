@@ -1,0 +1,373 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="FBDProcessLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="FBDProcessLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Input1" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="10" />
+        </Data>
+      </Tag>
+      <Tag Name="Input2" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="Input3" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="30" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault1" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault2" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Fault3" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputsUsed" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectionMode" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ProgramSelection" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="OperatorSelection" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ProgramRequest" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OperatorRequest" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ForceManual" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RequestProgram" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RequestOperator" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ResetRequests" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Gain" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Bypass" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingMode" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleTime" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0.25" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CallCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Selected" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectedInput" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ProgramControl" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OverrideActive" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectionStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SelectionFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="AllInputsFaulted" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputCountInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ModeInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Derivative" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Elapsed" TagType="Base" DataType="REAL">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DerivativeStatus" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DerivativeFault" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TimingInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SampleInvalid" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Selector" TagType="Base" DataType="SELECT_ENHANCED">
+        <Data Format="Decorated">
+          <Structure DataType="SELECT_ENHANCED">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In1" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In2" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In3" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="In4" DataType="REAL" Value="40" />
+            <DataValueMember Name="In5" DataType="REAL" Value="50" />
+            <DataValueMember Name="In6" DataType="REAL" Value="60" />
+            <DataValueMember Name="In1Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In2Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In3Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In4Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In5Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="In6Fault" DataType="BOOL" Value="0" />
+            <DataValueMember Name="InsUsed" DataType="DINT" Value="1" />
+            <DataValueMember Name="SelectorMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgSelector" DataType="DINT" Value="0" />
+            <DataValueMember Name="OperSelector" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgProgReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgOperReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgOverrideReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OperProgReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="OperOperReq" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ProgValueReset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SelectedIn" DataType="DINT" Value="0" />
+            <DataValueMember Name="ProgOper" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Override" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Slope" TagType="Base" DataType="DERIVATIVE">
+        <Data Format="Decorated">
+          <Structure DataType="DERIVATIVE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="In" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Gain" DataType="REAL" Value="1.0" />
+            <DataValueMember Name="ByPass" DataType="BOOL" Value="0" />
+            <DataValueMember Name="TimingMode" DataType="DINT" Value="0" />
+            <DataValueMember Name="OversampleDT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="RTSTime" DataType="DINT" Value="1" />
+            <DataValueMember Name="RTSTimeStamp" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Out" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DeltaT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="Status" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(SelectAndDifferentiate,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="SelectAndDifferentiate" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Healthy-input enhanced selection, Program/Operator arbitration and a downstream rate-of-change block.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="Input1" />
+                <IRef ID="2" X="20" Y="85" Operand="Input2" />
+                <IRef ID="3" X="20" Y="170" Operand="Input3" />
+                <IRef ID="4" X="20" Y="255" Operand="Fault1" />
+                <IRef ID="5" X="20" Y="340" Operand="Fault2" />
+                <IRef ID="6" X="20" Y="425" Operand="Fault3" />
+                <IRef ID="7" X="20" Y="510" Operand="InputsUsed" />
+                <IRef ID="8" X="20" Y="595" Operand="SelectionMode" />
+                <IRef ID="9" X="20" Y="680" Operand="ProgramSelection" />
+                <IRef ID="10" X="20" Y="765" Operand="OperatorSelection" />
+                <IRef ID="11" X="20" Y="850" Operand="ProgramRequest" />
+                <IRef ID="12" X="20" Y="935" Operand="OperatorRequest" />
+                <IRef ID="13" X="20" Y="1020" Operand="ForceManual" />
+                <IRef ID="14" X="20" Y="1105" Operand="RequestProgram" />
+                <IRef ID="15" X="20" Y="1190" Operand="RequestOperator" />
+                <IRef ID="16" X="20" Y="1275" Operand="ResetRequests" />
+                <IRef ID="17" X="20" Y="1360" Operand="Gain" />
+                <IRef ID="18" X="20" Y="1445" Operand="Bypass" />
+                <IRef ID="19" X="20" Y="1530" Operand="TimingMode" />
+                <IRef ID="20" X="20" Y="1615" Operand="SampleTime" />
+                <IRef ID="21" X="20" Y="1700" Operand="BlockEnable" />
+                <Block ID="100" X="450" Y="80" Type="ESEL" Operand="Selector" VisiblePins="EnableIn In1 In2 In3 In4 In5 In6 In1Fault In2Fault In3Fault In4Fault In5Fault In6Fault InsUsed SelectorMode ProgSelector OperSelector ProgProgReq ProgOperReq ProgOverrideReq OperProgReq OperOperReq ProgValueReset EnableOut Out SelectedIn ProgOper Override Status" />
+                <Block ID="200" X="950" Y="780" Type="DERV" Operand="Slope" VisiblePins="EnableIn In Gain ByPass TimingMode OversampleDT RTSTime RTSTimeStamp EnableOut Out DeltaT Status" />
+                <ORef ID="900" X="1500" Y="0" Operand="Selected" />
+                <ORef ID="901" X="1500" Y="110" Operand="SelectedInput" />
+                <ORef ID="902" X="1500" Y="220" Operand="ProgramControl" />
+                <ORef ID="903" X="1500" Y="330" Operand="OverrideActive" />
+                <ORef ID="904" X="1500" Y="440" Operand="SelectionStatus" />
+                <ORef ID="905" X="1500" Y="550" Operand="SelectionFault" />
+                <ORef ID="906" X="1500" Y="660" Operand="AllInputsFaulted" />
+                <ORef ID="907" X="1500" Y="770" Operand="InputCountInvalid" />
+                <ORef ID="908" X="1500" Y="880" Operand="ModeInvalid" />
+                <ORef ID="909" X="1500" Y="990" Operand="Derivative" />
+                <ORef ID="910" X="1500" Y="1100" Operand="Elapsed" />
+                <ORef ID="911" X="1500" Y="1210" Operand="DerivativeStatus" />
+                <ORef ID="912" X="1500" Y="1320" Operand="DerivativeFault" />
+                <ORef ID="913" X="1500" Y="1430" Operand="TimingInvalid" />
+                <ORef ID="914" X="1500" Y="1540" Operand="SampleInvalid" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="In1" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="In2" />
+                <Wire FromID="3" FromParam="In" ToID="100" ToParam="In3" />
+                <Wire FromID="4" FromParam="In" ToID="100" ToParam="In1Fault" />
+                <Wire FromID="5" FromParam="In" ToID="100" ToParam="In2Fault" />
+                <Wire FromID="6" FromParam="In" ToID="100" ToParam="In3Fault" />
+                <Wire FromID="7" FromParam="In" ToID="100" ToParam="InsUsed" />
+                <Wire FromID="8" FromParam="In" ToID="100" ToParam="SelectorMode" />
+                <Wire FromID="9" FromParam="In" ToID="100" ToParam="ProgSelector" />
+                <Wire FromID="10" FromParam="In" ToID="100" ToParam="OperSelector" />
+                <Wire FromID="11" FromParam="In" ToID="100" ToParam="ProgProgReq" />
+                <Wire FromID="12" FromParam="In" ToID="100" ToParam="ProgOperReq" />
+                <Wire FromID="13" FromParam="In" ToID="100" ToParam="ProgOverrideReq" />
+                <Wire FromID="14" FromParam="In" ToID="100" ToParam="OperProgReq" />
+                <Wire FromID="15" FromParam="In" ToID="100" ToParam="OperOperReq" />
+                <Wire FromID="16" FromParam="In" ToID="100" ToParam="ProgValueReset" />
+                <Wire FromID="100" FromParam="Out" ToID="200" ToParam="In" />
+                <Wire FromID="17" FromParam="In" ToID="200" ToParam="Gain" />
+                <Wire FromID="18" FromParam="In" ToID="200" ToParam="ByPass" />
+                <Wire FromID="19" FromParam="In" ToID="200" ToParam="TimingMode" />
+                <Wire FromID="20" FromParam="In" ToID="200" ToParam="OversampleDT" />
+                <Wire FromID="21" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="21" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Out" ToID="900" ToParam="Out" />
+                <Wire FromID="100" FromParam="SelectedIn" ToID="901" ToParam="Out" />
+                <Wire FromID="100" FromParam="ProgOper" ToID="902" ToParam="Out" />
+                <Wire FromID="100" FromParam="Override" ToID="903" ToParam="Out" />
+                <Wire FromID="100" FromParam="Status" ToID="904" ToParam="Out" />
+                <Wire FromID="100" FromParam="InstructFault" ToID="905" ToParam="Out" />
+                <Wire FromID="100" FromParam="InsFaulted" ToID="906" ToParam="Out" />
+                <Wire FromID="100" FromParam="InsUsedInv" ToID="907" ToParam="Out" />
+                <Wire FromID="100" FromParam="SelectorModeInv" ToID="908" ToParam="Out" />
+                <Wire FromID="200" FromParam="Out" ToID="909" ToParam="Out" />
+                <Wire FromID="200" FromParam="DeltaT" ToID="910" ToParam="Out" />
+                <Wire FromID="200" FromParam="Status" ToID="911" ToParam="Out" />
+                <Wire FromID="200" FromParam="InstructFault" ToID="912" ToParam="Out" />
+                <Wire FromID="200" FromParam="TimingModeInv" ToID="913" ToParam="Out" />
+                <Wire FromID="200" FromParam="DeltaTInv" ToID="914" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

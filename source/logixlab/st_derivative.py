@@ -72,4 +72,4 @@ def description():
                 arithmetic='Float32 public values and history; host-double expression intermediates; nonfinite/overflow faults transactionally',
                 native_runtime_parity=False,
                 remaining=['Native startup, bypass/zero/invalid timing transitions, rounding/status/fault/lifecycle qualification',
-                           'RTS/module timestamps, FBD graphs, packed layouts and other controller profiles'])
+                           'RTS/module timestamps, general FBD graph forms, packed layouts and other controller profiles'])

@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-10-31",
-  "audited_app_version": "26.1031.085701",
+  "audited_app_version": "26.1031.090828",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -110,12 +110,12 @@
     },
     "enhanced_select_model": {
       "label": "Enhanced selection model (partial)",
-      "remaining": "Bounded ST ESEL healthy/manual selection and Program/Operator requests; native startup/request/health/status precedence, FBD graphs, packed layouts and lifecycle/precision/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD ESEL healthy/manual selection and Program/Operator requests; native startup/request/health/status precedence, general FBD forms, packed layouts and lifecycle/precision/fault parity remain unfinished.",
       "source": "source/logixlab/st_select.py"
     },
     "derivative_model": {
       "label": "Derivative model (partial)",
-      "remaining": "Bounded ST DERV finite REAL rate of change and bypass; native startup/timing transitions/rounding, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
+      "remaining": "Bounded ST/FBD DERV finite REAL rate of change and bypass; native startup/timing transitions/rounding, RTS, general FBD forms, packed layouts and lifecycle/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_derivative.py"
     },
     "curve_delay_model": {

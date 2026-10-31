@@ -232,7 +232,7 @@ class FBDSignalTests(unittest.TestCase):
     def test_registry_pins_remain_typed_and_legacy_selectors_report_is_retained(self):
         from logixlab.fbd_blocks import PINS,OUTPUTS
         e=self.checked();self.assertEqual(PINS['SCALE']['InRawRangeInv'],'BOOL');self.assertIn('InRawRangeInv',OUTPUTS['SCALE'])
-        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DFF','HLL','INTG','JKFF','MAXC','MINC','MUX','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR','UPDN'])
+        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['BAND','BNOT','BOR','BXOR','CTUD','DERV','DFF','ESEL','HLL','INTG','JKFF','MAXC','MINC','MUX','OSFI','OSRI','RESD','RLIM','RTOR','SCL','SEL','SETD','SNEG','SSUM','TOFR','TONR','UPDN'])
         self.assertFalse(report['native_runtime_parity']);self.assertIn('selectors',report)
 
 

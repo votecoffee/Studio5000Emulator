@@ -2,7 +2,8 @@
 
 UPDN and INTG execute as FBD Blocks in the bounded v35 ControlLogix 5580 software
 graph. They share the [ST accumulation models](st-accumulation.md) and resolved
-record histories. The graph inventory is now 25 blocks: 19 names shared with ST
+record histories. With [process signals](fbd-process-signals.md), the graph inventory is 27 blocks:
+21 names shared with ST
 and six FBD-only forms. RLL remains 101 and ST calls 27.
 
 | Block | Logical record | Inputs besides EnableIn | Outputs besides EnableOut |

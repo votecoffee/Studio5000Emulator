@@ -7,9 +7,10 @@ feed six synthetic sensor values through selection and rate-of-change blocks.
 Logical schemas and equations were checked against installed Studio v35 help and
 Rockwell's [process control and drives reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm006_-en-p.pdf).
 These are software models with unqualified native lifecycle, precision and
-interacting-condition behavior. FBD graphs, packed layouts and other controller
-profiles remain unfinished. SEL and MUX remain unsupported; v35 help lists SEL
-as FBD-only, so this increment does not add an ST SEL extension.
+interacting-condition behavior. [FBD ESEL/DERV](fbd-process-signals.md) share these
+models. General graph forms, packed layouts and other controller profiles remain
+unfinished. [FBD SEL/MUX](function-blocks.md) have separate graph models; those
+names are not available as ST calls.
 
 ## ESEL and SELECT_ENHANCED
 

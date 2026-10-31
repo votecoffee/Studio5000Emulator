@@ -85,4 +85,4 @@ def description():
                 lifecycle='Prescan clears enables; Run clears control history; skips retain; whole-advance rollback and detached replacement preserve control',
                 native_runtime_parity=False,
                 remaining=['Native startup, simultaneous requests, reset/override/health/status precedence and median qualification',
-                           'FBD graphs, packed layouts, other controller profiles and native precision/lifecycle/nonfinite/fault parity'])
+                           'General FBD graph forms, packed layouts, other controller profiles and native precision/lifecycle/nonfinite/fault parity'])

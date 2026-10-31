@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-10-31; FBD accumulation blocks added for app `26.1031.085701`. **Full Logix emulation is not
+Audited 2026-10-31; FBD process blocks added for app `26.1031.090828`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development now prioritizes execution, data and simulated devices; further
@@ -21,7 +21,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Area | Current implementation | Remaining |
 | --- | --- | --- |
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
-| Function blocks | [Single-sheet signal graphs](function-blocks.md), Twenty-five blocks including accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
+| Function blocks | [Single-sheet signal graphs](function-blocks.md), Twenty-seven blocks including enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
@@ -45,7 +45,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles and separate PID/PIDE families |
 | FUNCTION_GENERATOR/DEADTIME | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, selected tables, sampled transport delay, resizing, health recovery and transactional arrays | Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and other profiles |
-| SELECT_ENHANCED/DERIVATIVE | [ST ESEL/DERV](st-process-signals.md), healthy high/low/median/mean/manual selection, control requests, timed rate of change, bypass and rollback | Native startup/request/health/timing/rounding qualification, RTS, FBD graphs, packed layouts and other profiles |
+| SELECT_ENHANCED/DERIVATIVE | [ST/FBD ESEL/DERV](fbd-process-signals.md), healthy high/low/median/mean/manual selection, control requests, timed rate of change, bypass and rollback | Native startup/request/health/timing/rounding qualification, RTS, general FBD forms, packed layouts and other profiles |
 | UP_DOWN_ACCUM/INTEGRATOR | [ST/FBD UPDN/INTG](fbd-accumulation.md), per-call totals, timed integration, initialization, directional holds, limits, alarms and transactional history | Native startup/rounding/precedence, RTS, general FBD forms, packed layouts and other controller profiles |
 | FLIP_FLOP_D/FLIP_FLOP_JK/DOMINANT_RESET/DOMINANT_SET | [ST/FBD Boolean memory](fbd-boolean.md), clocked data/toggle state, Clear priority, dominance, complements and transactional history | General FBD forms, packed layouts, other profiles and native startup/Run/skip/postscan/output-write/status/fault parity |
 | FILTER_LOW_PASS software model | [ST LPF](st-low-pass-filter.md), explicitly chosen bilinear orders 1/2/3, Periodic/elapsed/oversample timing, bounds/status and section rollback | Native discrete recurrence/coefficients/precision/transitions, RTS, FBD graphs, packed layouts, other profiles and full lifecycle/status/fault parity |
@@ -165,7 +165,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
 - [ ] **L03 — FBD execution:** [Single-sheet signal graphs](function-blocks.md)
-  now execute twenty-five blocks over typed acyclic wires with enable/status/rollback. Complete multiple
+  now execute twenty-seven blocks over typed acyclic wires with enable/status/rollback. Complete multiple
   sheets, connectors, feedback, native execution order, retained state, sample
   periods, other FBD instructions/functions/AOIs and native transfer/edit support.
 - [ ] **L04 — SFC execution:** active steps and transitions, selection/parallel

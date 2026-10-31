@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-10-31; FBD accumulation blocks added for app `26.1031.085701`. The engine has **101 built-in
+Audited 2026-10-31; FBD process blocks added for app `26.1031.090828`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -29,14 +29,14 @@ MOVING_STD_DEV. [ST MAXC/MINC](st-capture.md) add MAXIMUM_CAPTURE and
 MINIMUM_CAPTURE. [ST LPF](st-low-pass-filter.md) adds a FILTER_LOW_PASS software
 model. [ST Boolean memory](st-digital-memory.md) adds DFF/JKFF/RESD/SETD and
 four logical records. [ST/FBD UPDN/INTG](st-accumulation.md) add two accumulation
-records. [ST ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
+records. [ST/FBD ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
 [ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
 These twenty-seven additional calls are excluded from the RLL dispatch count.
 SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
 execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
-Twenty-five graph blocks are supported, with nineteen names shared with ST. These forms
-include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md) and [UPDN/INTG](fbd-accumulation.md).
+Twenty-seven graph blocks are supported, with twenty-one names shared with ST. These forms
+include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md), [UPDN/INTG](fbd-accumulation.md) and [ESEL/DERV](fbd-process-signals.md).
 The four Boolean record types now have bounded logical models. Other ST calls
 lack FBD forms.
 
@@ -58,7 +58,7 @@ lack FBD forms.
 | Drive Safety Instructions | — | — | `SBC`, `SDI`, `SFX`, `SLP`, `SLS`, `SOS`, `SS1`, `SS2` |
 | Equipment Phase Instructions | — | — | `PATT`, `PCLF`, `PCMD`, `PDET`, `PFL`, `POVR`, `PPD`, `PRNP`, `PSC`, `PXRQ` |
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
-| Filter Instructions | — | — | `HPF`, `LDL2`, `NTCH` (ST-only DERV and LPF software model listed above) |
+| Filter Instructions | — | — | `HPF`, `LDL2`, `NTCH` (ST/FBD DERV and ST-only LPF software model listed above) |
 | For Break Instructions | `BRK`, `FOR` | — | — |
 | Input/Output Instructions | `GSV`, `SSV` | — | `IOT`, `MSG` |
 | License Instructions | — | — | `LV` |
@@ -74,7 +74,7 @@ lack FBD forms.
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
 | Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
-| Select/Limit Instructions | — | — | — (FBD-only SEL/MUX, ST/FBD HLL/SNEG/SSUM and ST-only ESEL and ST/FBD RLIM listed above) |
+| Select/Limit Instructions | — | — | — (FBD-only SEL/MUX, ST/FBD HLL/SNEG/SSUM and ST/FBD ESEL/RLIM listed above) |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
 | Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |
@@ -108,7 +108,7 @@ schema/behavior backlog separately from instruction names.
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. Complete expression/type/conversion coverage remains unfinished. MEQ covers SINT/INT/DINT; native arithmetic/status parity is unverified. |
 | PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; PID/PIDE are separate. |
 | FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
-| ESEL/DERV (ST only) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, FBD graphs and packed layouts remain unfinished. |
+| ESEL/DERV (ST/FBD) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, general FBD forms and packed layouts remain unfinished. |
 | UPDN/INTG (ST/FBD) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, general FBD forms and packed layouts remain unfinished. |
 | DFF/JKFF/RESD/SETD (ST/FBD) | [Logical Boolean memory](st-digital-memory.md), sampled clock/data/toggle behavior, Clear priority, latch dominance, complements and rollback. General FBD, layouts and native lifecycle/output-write/status/fault parity remain unfinished. |
 | LPF (ST only, software solver) | [Logical FILTER_LOW_PASS](st-low-pass-filter.md), explicit bilinear orders 1/2/3, elapsed/Periodic/oversample timing, bounds/status and transactional sections. Native recurrence/coefficients/precision/transitions, RTS, FBD/layout/lifecycle/fault parity remain unfinished. |
