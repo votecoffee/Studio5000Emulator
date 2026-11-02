@@ -252,9 +252,9 @@ class FBDMathTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('ADD','SUB','MUL','DIV','NEG','ABS')))
         self.assertEqual(self.step(candidate),(8,7,21,7,-7,7))
 
-    def test_inventory_reports_fifty_eight_blocks_and_math_limits(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),58)
-        self.assertEqual(p['blocks']['math']['instructions'],['ABS','ACS','ADD','ASN','ATN','COS','DEG','DIV','LN','LOG','MUL','NEG','RAD','SIN','SQR','SUB','TAN','XPY'])
+    def test_inventory_reports_sixty_two_blocks_and_math_limits(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
+        self.assertEqual(p['blocks']['math']['instructions'],['ABS','ACS','ADD','ASN','ATN','COS','DEG','DIV','LN','LOG','MOD','MUL','NEG','RAD','SIN','SQR','SUB','TAN','XPY'])
         self.assertFalse(p['blocks']['math']['native_runtime_parity']);self.assertIn('prescan leaves',p['blocks']['math']['lifecycle'])
 
 

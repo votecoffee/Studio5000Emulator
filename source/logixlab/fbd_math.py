@@ -4,7 +4,7 @@ from .integer_math import CONTROLLERS
 from .model import ModelError
 from .real_math import FUNCTIONS,real
 
-TYPES={**dict.fromkeys(('ADD','SUB','MUL','DIV','XPY'),'FBD_MATH'),
+TYPES={**dict.fromkeys(('ADD','SUB','MUL','DIV','MOD','XPY'),'FBD_MATH'),
        **dict.fromkeys(('ABS','NEG',*FUNCTIONS),'FBD_MATH_ADVANCED')}
 SCHEMAS={
     'FBD_MATH':{'EnableIn':'BOOL','SourceA':'REAL','SourceB':'REAL','EnableOut':'BOOL','Dest':'REAL'},
@@ -49,20 +49,23 @@ def execute(engine,op,scope):
         value=read('Source');result=abs(value) if op.name=='ABS' else -value
     else:
         a,b=read('SourceA'),read('SourceB')
+        if op.name=='MOD' and b==0:
+            raise ModelError('FBD MOD zero-divisor minor-fault behavior remains outside the finite software profile')
         if op.name=='DIV' and b==0:
             raise ModelError('FBD DIV zero-divisor minor-fault behavior remains outside the finite software profile')
-        result=a+b if op.name=='ADD' else a-b if op.name=='SUB' else a*b if op.name=='MUL' else a/b
+        result=a+b if op.name=='ADD' else a-b if op.name=='SUB' else a*b if op.name=='MUL' else math.fmod(a,b) if op.name=='MOD' else a/b
     obj.update(EnableIn=True,EnableOut=True,Dest=real(result))
 
 
 def description():
     return dict(instructions=sorted(TYPES),records=SCHEMAS,language='FBD Block',
                 arithmetic='Known finite float32 inputs/results; host-double operation then float32 result rounding',
+                remainder='Finite host fmod, with dividend sign; zero-divisor native result/minor fault excluded',
                 square_root='Absolute value of the finite source before square root, shared with the ladder model',
                 transcendental='Shared ladder host-math functions; radians for trig inputs and inverse-trig outputs; float32 values between blocks',
                 lifecycle='No hidden state; prescan leaves enables/Dest unchanged; disabled/skipped calls retain Dest',
                 failures='Unknown/nonfinite/domain/overflow and zero-divisor cases fail the whole advance transactionally',
-                zero_divisor='Native DIV result/minor-fault handling remains unsupported; no numeric substitute is produced',
+                zero_divisor='Native DIV/MOD result/minor-fault handling remains unsupported; no numeric substitute is produced',
                 native_runtime_parity=False,
                 remaining=['Tagless Function forms, remaining math operations, wider operands and packed layouts',
                            'Native underflow/overflow/nonfinite/zero-divisor, math flags, fault and lifecycle qualification'])

@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1102.071333`: [FBD MOD/TRN/TOD/FRD](fbd-conversions.md),
+finite REAL remainder, REAL-to-DINT truncation and shared DINT BCD conversion with
+FBD Conversion Lab. Native saturation/minor-fault/overflow/flag parity unqualified.
+
 Available in `26.1102.065922`: [FBD advanced math](fbd-advanced-math.md),
 SQR/LN/LOG/XPY/DEG/RAD/SIN/COS/TAN/ASN/ACS/ATN over the existing REAL records, with
 FBD Advanced Math Lab. Host functions/float32 boundaries; native precision/faults unqualified.

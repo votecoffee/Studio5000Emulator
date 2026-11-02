@@ -32,6 +32,21 @@ def validate(memory, op, scope):
     return 32
 
 
+def from_bcd(value):
+    value &= 0xffffffff
+    return sum(((value >> (4 * index)) & 15) * 10 ** index for index in range(8))
+
+
+def to_bcd(value):
+    if not 0 <= value <= 99999999:
+        raise ModelError('TOD source outside the qualified 0..99999999 range')
+    result = 0
+    for index in range(8):
+        value, digit = divmod(value, 10)
+        result |= digit << (4 * index)
+    return bit_value(result, 'DINT')
+
+
 def execute(memory, op, power, scope):
     if not power:
         return False
@@ -39,16 +54,9 @@ def execute(memory, op, power, scope):
     value = unsigned(memory, op.args[0], scope, width)
     if op.name == 'FRD':
         # v35 explicitly defines weighted hex nibbles, including A..F.
-        result = sum(((value >> (4 * index)) & 15) * 10 ** index for index in range(8))
+        result = from_bcd(value)
     elif op.name == 'TOD':
-        value = memory.read(op.args[0], scope)
-        if not 0 <= value <= 99999999:
-            raise ModelError('TOD source outside the qualified 0..99999999 range')
-        result = 0
-        for index in range(8):
-            value, digit = divmod(value, 10)
-            result |= digit << (4 * index)
-        result = bit_value(result, 'DINT')
+        result = to_bcd(memory.read(op.args[0], scope))
     else:
         order = op.args[1].upper()
         if width == 16:
@@ -66,9 +74,9 @@ def execute(memory, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-conversions', instructions=sorted(INSTRUCTIONS),
-                bcd='RLL DINT source/immediate and DINT destination; eight weighted nibbles for FRD',
+                bcd='RLL DINT source/immediate and FBD logical records share eight weighted nibbles for FRD',
                 tod_range='0..99999999; packed signed DINT bit pattern',
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
-                remaining=['Other BCD types and mixed conversions', 'BCD expression/FBD forms',
+                remaining=['Other BCD types and mixed conversions', 'BCD expression and remaining FBD forms',
                            'TOD saturation, math status and native fault parity'])

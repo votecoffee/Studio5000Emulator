@@ -19,7 +19,8 @@ MVMT combines Source bits selected by Mask with the remaining bits from Target.
 It reads Target on every enabled call and never uses the previous Dest as a
 baseline. Mask zero returns Target; all bits set returns Source. Negative masks
 and the sign bit are supported. Wider, mixed, REAL and tagless Function forms
-remain outside this Block profile. ST MVMT calls are still unsupported.
+remain outside this Block profile. ST MVMT calls are still unsupported. [FBD TOD/FRD](fbd-conversions.md) share
+the existing FBD_CONVERT schema; its NOT implementation remains available.
 
 Every required operand must be a known signed DINT, including Source/Compare
 with a zero mask and Target with a full mask. The model does not infer a known
@@ -48,9 +49,9 @@ returns true. That condition selects 100 and starts a 20 ms TONR. BlockEnable
 gates all eight blocks; ExecuteGraph skips the routine; ResetTimer is separate
 from the comparison. FaultDivisor zero demonstrates late-error rollback.
 
-The graph inventory is 58 blocks: 21 shared ST-call names, 30 common RLL names
+The graph inventory is 62 blocks: 21 shared ST-call names, 34 common RLL names
 and seven FBD-only forms. RLL remains 101 and ST calls 27. The 222-entry catalog
-retains all identities and now has 52 dedicated bounded models and 170 entries
+retains all identities and now has 53 dedicated bounded models and 169 entries
 without one. These counts do not establish full type or native controller parity.
 
 Schemas, algorithms and prescan tables were checked against installed v35 help

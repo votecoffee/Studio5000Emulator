@@ -44,9 +44,9 @@ RootInput to -25 for Root 5; try invalid LogInput or Ratio to observe rollback.
 BlockEnable gates all blocks; ExecuteGraph skips the routine; FaultDivisor zero
 demonstrates a later ladder fault. Restore valid inputs before retrying.
 
-There are 58 supported graph blocks: 21 shared ST-call names, 30 common RLL
+There are 62 supported graph blocks: 21 shared ST-call names, 34 common RLL
 names and seven FBD-only forms. RLL remains 101 and ST calls 27. The 222-entry
-type catalog remains at 52 dedicated bounded models and 170 without one. These
+type catalog remains at 53 dedicated bounded models and 169 without one. These
 counts do not establish full instruction/type coverage or native runtime parity.
 
 Schemas and execution tables were checked against installed v35 help 14478.htm,

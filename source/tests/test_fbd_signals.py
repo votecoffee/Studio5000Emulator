@@ -232,7 +232,7 @@ class FBDSignalTests(unittest.TestCase):
     def test_registry_pins_remain_typed_and_legacy_selectors_report_is_retained(self):
         from logixlab.fbd_blocks import PINS,OUTPUTS
         e=self.checked();self.assertEqual(PINS['SCALE']['InRawRangeInv'],'BOOL');self.assertIn('InRawRangeInv',OUTPUTS['SCALE'])
-        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['ABS','ACS','ADD','AND','ASN','ATN','BAND','BNOT','BOR','BXOR','COS','CTUD','DEG','DERV','DFF','DIV','EQU','ESEL','GEQ','GRT','HLL','INTG','JKFF','LEQ','LES','LIM','LN','LOG','MAXC','MEQ','MINC','MUL','MUX','MVMT','NEG','NEQ','NOT','OR','OSFI','OSRI','RAD','RESD','RLIM','RTOR','SCL','SEL','SETD','SIN','SNEG','SQR','SSUM','SUB','TAN','TOFR','TONR','UPDN','XOR','XPY'])
+        report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['ABS','ACS','ADD','AND','ASN','ATN','BAND','BNOT','BOR','BXOR','COS','CTUD','DEG','DERV','DFF','DIV','EQU','ESEL','FRD','GEQ','GRT','HLL','INTG','JKFF','LEQ','LES','LIM','LN','LOG','MAXC','MEQ','MINC','MOD','MUL','MUX','MVMT','NEG','NEQ','NOT','OR','OSFI','OSRI','RAD','RESD','RLIM','RTOR','SCL','SEL','SETD','SIN','SNEG','SQR','SSUM','SUB','TAN','TOD','TOFR','TONR','TRN','UPDN','XOR','XPY'])
         self.assertFalse(report['native_runtime_parity']);self.assertIn('selectors',report)
 
 

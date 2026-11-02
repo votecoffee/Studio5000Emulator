@@ -46,10 +46,10 @@ third 10 ms step reports TimerDone. BlockEnable gates all blocks; ExecuteGraph
 skips the routine; ResetTimer resets the timer separately from comparison truth.
 FaultDivisor zero demonstrates a late error; restore it to 1 to retry.
 
-The graph inventory is 58 blocks: 21 shared ST-call names, 30 common RLL
+The graph inventory is 62 blocks: 21 shared ST-call names, 34 common RLL
 names and seven FBD-only forms. RLL remains 101 and ST calls
 27. Later-version mnemonic aliases are not enabled by this v35 increment.
-The 222-entry type catalog now has 52 dedicated bounded models and 170 entries
+The 222-entry type catalog now has 53 dedicated bounded models and 169 entries
 without one; this does not establish complete emulation of those types.
 
 Schemas, BOOL pins and lifecycle tables were checked against installed v35 help

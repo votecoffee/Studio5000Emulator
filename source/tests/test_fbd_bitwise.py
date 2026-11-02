@@ -252,7 +252,7 @@ class FBDBitwiseTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in TYPES))
 
     def test_report_lists_six_bitwise_forms_and_distinct_target_contract(self):
-        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),58)
+        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
         self.assertEqual(p['blocks']['bitwise']['instructions'],['AND','MEQ','MVMT','NOT','OR','XOR'])
         self.assertIn('never read previous Dest',p['blocks']['bitwise']['masked_move']);self.assertFalse(p['native_runtime_parity'])
 

@@ -212,8 +212,8 @@ class FBDAdvancedMathTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n,_,_ in BLOCKS));self.step(candidate);self.assertEqual(candidate.memory.read('Power'),8)
 
     def test_report_counts_and_shared_math_contract(self):
-        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),58)
-        self.assertEqual(len(p['blocks']['math']['instructions']),18);self.assertIn('Absolute value',p['blocks']['math']['square_root']);self.assertIn('radians',p['blocks']['math']['transcendental'])
+        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
+        self.assertEqual(len(p['blocks']['math']['instructions']),19);self.assertIn('Absolute value',p['blocks']['math']['square_root']);self.assertIn('radians',p['blocks']['math']['transcendental'])
         self.assertFalse(p['native_runtime_parity']);self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
 
 

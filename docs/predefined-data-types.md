@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1102.065922` on 2026-11-02. Every supplied entry appears below in its original
+`26.1102.071333` on 2026-11-02. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -40,12 +40,13 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | PI software model, partial | 1 | [ST PI](st-pi-regulation.md), linear/shaped gains, integral holds/limits, initialization and history |
 | FBD selector models, partial | 2 | [SEL/MUX](function-blocks.md), typed single-sheet graphs, enables and retained output |
 | FBD Boolean models, partial | 4 | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL records and graph execution |
-| FBD math models, bounded | 2 | [Basic](fbd-arithmetic.md) and [advanced math](fbd-advanced-math.md), 18 finite REAL forms over the same two logical records |
+| FBD math models, bounded | 2 | [Basic](fbd-arithmetic.md) and [advanced math](fbd-advanced-math.md), 19 finite REAL forms over the same two logical records |
 | FBD comparison models, bounded | 2 | [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md), finite REAL operands and BOOL results |
-| FBD bitwise models, bounded | 4 | [AND/OR/XOR/NOT/MEQ/MVMT](fbd-bitwise.md), signed DINT logical/convert/mask records; other consumers remain unfinished |
-| No dedicated model | 170 | No dedicated bounded named runtime model |
+| FBD bitwise models, bounded | 3 | [AND/OR/XOR/MEQ/MVMT](fbd-bitwise.md), signed DINT logical/mask records; NOT retains its shared conversion record |
+| FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
+| No dedicated model | 169 | No dedicated bounded named runtime model |
 
-Thus **52 entries have dedicated bounded models**; this is not 52 fully
+Thus **53 entries have dedicated bounded models**; this is not 53 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -158,7 +159,7 @@ Every dedicated model status still requires the qualifications above.
 | 59 | `FBD_BOOLEAN_OR` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 60 | `FBD_BOOLEAN_XOR` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 61 | `FBD_COMPARE` | FBD state/logic | FBD comparison model (bounded) | Listed |
-| 62 | `FBD_CONVERT` | FBD state/logic | FBD bitwise model (bounded) | Listed |
+| 62 | `FBD_CONVERT` | FBD state/logic | FBD conversion model (bounded) | Listed |
 | 63 | `FBD_COUNTER` | FBD state/logic | FBD_COUNTER model (partial) | Listed |
 | 64 | `FBD_LIMIT` | FBD state/logic | FBD comparison model (bounded) | Listed |
 | 65 | `FBD_LOGICAL` | FBD state/logic | FBD bitwise model (bounded) | Listed |
@@ -168,7 +169,7 @@ Every dedicated model status still requires the qualifications above.
 | 69 | `FBD_MATH_ADVANCED` | FBD state/logic | FBD math model (bounded) | Listed |
 | 70 | `FBD_ONESHOT` | FBD state/logic | FBD_ONESHOT model (partial) | Listed |
 | 71 | `FBD_TIMER` | FBD state/logic | FBD_TIMER model (partial) | Listed |
-| 72 | `FBD_TRUNCATE` | FBD state/logic | No dedicated model | Listed |
+| 72 | `FBD_TRUNCATE` | FBD state/logic | FBD conversion model (bounded) | Listed |
 | 73 | `FILTER_HIGH_PASS` | Process/filter/drive | No dedicated model | Listed |
 | 74 | `FILTER_LOW_PASS` | Process/filter/drive | LPF software model (partial) | Listed |
 | 75 | `FILTER_NOTCH` | Process/filter/drive | No dedicated model | Listed |

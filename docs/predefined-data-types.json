@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-11-02",
-  "audited_app_version": "26.1102.065922",
+  "audited_app_version": "26.1102.071333",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -133,6 +133,11 @@
       "remaining": "Bounded single-sheet SEL/MUX logical records and acyclic typed wires; native ordering/lifecycle/status/fault, packed layouts, general FBD and transfer/edit parity remain unfinished.",
       "source": "source/logixlab/fbd_select.py"
     },
+    "fbd_conversion_model": {
+      "label": "FBD conversion model (bounded)",
+      "remaining": "TRN REAL-to-DINT and shared DINT TOD/FRD Block forms, plus existing NOT; other operations/types/forms, native saturation/overflow/flags/lifecycle/fault/layout/transfer parity remain unfinished.",
+      "source": "source/logixlab/fbd_convert.py"
+    },
     "fbd_bitwise_model": {
       "label": "FBD bitwise model (bounded)",
       "remaining": "Signed DINT AND/OR/XOR/NOT/MEQ/MVMT Block forms; ST MVMT, other record operations/types/forms, native flags/lifecycle/fault/layout/transfer parity remain unfinished.",
@@ -145,7 +150,7 @@
     },
     "fbd_math_model": {
       "label": "FBD math model (bounded)",
-      "remaining": "18 finite REAL basic/advanced math Block forms; other operations, tagless Functions, wider types, native precision/flags/minor-fault/domain/nonfinite/overflow/layout/lifecycle parity remain unfinished.",
+      "remaining": "19 finite REAL basic/advanced math/remainder Block forms; other operations, tagless Functions, wider types, native precision/flags/minor-fault/domain/nonfinite/overflow/layout/lifecycle parity remain unfinished.",
       "source": "source/logixlab/fbd_math.py"
     },
     "fbd_boolean_model": {
@@ -278,10 +283,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 52,
-    "no_dedicated_model": 170,
+    "dedicated_bounded_models": 53,
+    "no_dedicated_model": 169,
     "status_counts": {
-      "no_dedicated_model": 170,
+      "no_dedicated_model": 169,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -308,7 +313,8 @@
       "fbd_boolean_model": 4,
       "fbd_math_model": 2,
       "fbd_compare_model": 2,
-      "fbd_bitwise_model": 4
+      "fbd_bitwise_model": 3,
+      "fbd_conversion_model": 2
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -1056,7 +1062,7 @@
       "identifier_candidate": "FBD_CONVERT",
       "starred": false,
       "family": "fbd",
-      "model_status": "fbd_bitwise_model",
+      "model_status": "fbd_conversion_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_CONVERT",
       "notes": []
@@ -1176,7 +1182,7 @@
       "identifier_candidate": "FBD_TRUNCATE",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "fbd_conversion_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_TRUNCATE",
       "notes": []

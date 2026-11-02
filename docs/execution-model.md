@@ -352,6 +352,11 @@ known finite REAL inputs. Inclusive/reversed LIM boundaries, float32 equality,
 enable gates and prescan retention are explicit. Unknown/nonfinite inputs fail
 the whole advance; native nonfinite/lifecycle/packed-layout parity is unqualified.
 
+[FBD conversions/remainder](fbd-conversions.md) add finite REAL MOD, REAL-to-DINT
+TRN and DINT TOD/FRD. TRN truncates toward zero with a representable result;
+TOD accepts 0..99999999 and FRD decodes weighted nibbles. Native overflow,
+saturation/minor-fault and math-flag behavior remain outside this bounded profile.
+
 [FBD advanced math](fbd-advanced-math.md) shares the ladder host functions for
 roots, logs, powers, angle conversion and trig. SQR uses the absolute source;
 float32 values pass between blocks. Invalid domains/nonfinite/overflow fail
