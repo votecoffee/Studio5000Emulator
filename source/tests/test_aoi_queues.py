@@ -269,7 +269,7 @@ class AOIQueueTests(unittest.TestCase):
         from logixlab.model import ARITIES, ST_ONLY_ARITIES
         from logixlab.server import SAMPLES
         self.assertIn('AOIQueueLab',SAMPLES);e=self.checked();p=e.report()
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29));self.assertIn('InOut',p['control_operations']['aoi_arrays']);self.assertFalse(p['control_operations']['native_control_layout'])
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29));self.assertIn('InOut',p['control_operations']['aoi_arrays']);self.assertFalse(p['control_operations']['native_control_layout'])
         self.assertEqual(len(e.addons.instances),2);self.assertEqual({r.kind for a in e.project.aois.values() for r in a.routines.values()},{'RLL'})
 
 

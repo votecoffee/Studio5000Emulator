@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="PIDLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="PIDLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Execute" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PV" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="CV" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Quotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Loop" DataType="PID" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PID">
+            <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+            <DataValueMember Name="SP" DataType="REAL" Value="50" />
+            <DataValueMember Name="KP" DataType="REAL" Value="1" />
+            <DataValueMember Name="KI" DataType="REAL" Value="0.5" />
+            <DataValueMember Name="KD" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="BIAS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXS" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DB" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXO" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="UPD" DataType="REAL" Value="1" />
+            <DataValueMember Name="PV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="ERR" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="OUT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="PVH" DataType="REAL" Value="80" />
+            <DataValueMember Name="PVL" DataType="REAL" Value="10" />
+            <DataValueMember Name="DVP" DataType="REAL" Value="30" />
+            <DataValueMember Name="DVN" DataType="REAL" Value="-30" />
+            <DataValueMember Name="PVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="DVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="MAXI" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINI" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="TIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXCV" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINCV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MINTIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXTIE" DataType="REAL" Value="100" />
+            <ArrayMember Name="DATA" DataType="REAL" Dimensions="17" Radix="Float">
+              <Element Index="[0]" Value="0.0" />
+              <Element Index="[1]" Value="0.0" />
+              <Element Index="[2]" Value="0.0" />
+              <Element Index="[3]" Value="0.0" />
+              <Element Index="[4]" Value="0.0" />
+              <Element Index="[5]" Value="0.0" />
+              <Element Index="[6]" Value="0.0" />
+              <Element Index="[7]" Value="0.0" />
+              <Element Index="[8]" Value="0.0" />
+              <Element Index="[9]" Value="0.0" />
+              <Element Index="[10]" Value="0.0" />
+              <Element Index="[11]" Value="0.0" />
+              <Element Index="[12]" Value="0.0" />
+              <Element Index="[13]" Value="0.0" />
+              <Element Index="[14]" Value="0.0" />
+              <Element Index="[15]" Value="0.0" />
+              <Element Index="[16]" Value="0.0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Comment>P/PI software profile. Set Execute, change PV/SP, or set Loop.SWM and Loop.SO. UPD is seconds per reached call.</Comment>
+                <Text>XIC(Execute)PID(Loop,PV,0,CV,0,0,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Comment>Set FaultDivisor to zero to verify transactional rollback, then correct it and retry.</Comment>
+                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

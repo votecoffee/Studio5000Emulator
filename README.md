@@ -6,13 +6,13 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.085455`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.092032`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
 emulation remains ahead of further Studio 5000 connectivity work.
-The current model is partial: 101 built-in RLL instruction entries, a bounded ST
+The current model is partial: 102 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
@@ -194,6 +194,10 @@ switching, buffer timing/resizing, health recovery and transactional faults.
 [Structured Text PI regulation](docs/st-pi-regulation.md) adds a bounded software
 regulator with gain shaping, holds and output limits. Choose **Regulator lab**
 for a closed-loop step response or externally supplied process feedback.
+
+[Ladder PID](docs/ladder-pid.md) adds a bounded proportional/integral software
+profile with scaling, output limits, alarms and software manual tracking. Choose
+**PID lab** to try it; derivative, control deadband and cascade remain blocked.
 
 [Numeric COP/CPS byte copies](docs/numeric-copies.md) add mixed integer/REAL bit
 images, clipped lengths and preserved partial destination elements. Choose

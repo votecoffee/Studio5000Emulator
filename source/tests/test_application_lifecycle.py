@@ -1457,3 +1457,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('Search',False);write('Transform',False);step();write('Search',True);v=values(step());self.assertEqual(v['FindA.POS'],3);self.assertTrue(v['FindA.DN']);self.assertTrue(v['FindA.IN'])
         self.assertEqual((v['InputA[4]'],v['InputB[4]'],v['OutputA[4]'],v['OutputB[4]'],v['DriverA.Scratch[4]'],v['DriverB.Scratch[4]']),(999,998,901,902,777,777))
         report=self.post('report',{});self.assertIn('InOut',report['file_arithmetic']['aoi']);self.assertIn('InOut',report['file_search']['aoi']);self.assertEqual(len(report['add_on_instructions']['instances']),2)
+
+
+    def test_pid_lab_modes_scaling_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'PIDLab'});self.assertEqual(state['blockers'],[])
+        self.assertIn(b'id="pid-demo"',self.get('/'));self.assertIn(b"loadDemo('PIDLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        write('Execute',True);self.assertEqual(values(step())['CV'],45)
+        self.assertEqual(values(step())['CV'],60)
+        write('Loop.SWM',True);write('Loop.SO',70);self.assertEqual(values(step())['CV'],70)
+        write('Loop.SWM',False);self.assertEqual(values(step())['CV'],70)
+        before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);self.assertEqual(values(step())['CV'],85)
+        write('Execute',False);self.assertEqual(values(step())['CV'],85)
+        p=self.post('report',{})['ladder_pid'];self.assertFalse(p['native_runtime_parity']);self.assertEqual(p['data_elements'],17)

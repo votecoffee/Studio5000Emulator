@@ -51,9 +51,9 @@ bit 16, producing 16#236700AA. MVMT then replaces the low byte, producing
 BlockEnable gates only FBD; ExecuteText/ExecuteGraph skip calls independently.
 FaultDivisor zero demonstrates rollback after both paths execute.
 
-The inventory is 101 RLL entries, 29 ST-call entries and 63 FBD forms: 23 shared
+The inventory is 102 RLL entries, 29 ST-call entries and 63 FBD forms: 23 shared
 ST-call names, 34 common RLL names and six FBD-only names. All 222 catalog
-identities remain; 54 have dedicated bounded models and 168 have none. These
+identities remain; 55 have dedicated bounded models and 167 have none. These
 counts do not establish complete type/instruction coverage or native equivalence.
 
 Schemas and lifecycle tables were checked against installed v35 help 14684.htm

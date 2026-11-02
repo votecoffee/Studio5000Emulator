@@ -45,9 +45,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD bitwise models, bounded | 3 | [AND/OR/XOR/MEQ/MVMT](fbd-bitwise.md), signed DINT logical/mask records; NOT retains its shared conversion record |
 | FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
 | Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
-| No dedicated model | 168 | No dedicated bounded named runtime model |
+| PID software model, bounded | 1 | [Ladder P/PI](ladder-pid.md); derivative/deadband/cascade and native solver/layout parity remain unfinished |
+| No dedicated model | 167 | No dedicated bounded named runtime model |
 
-Thus **54 entries have dedicated bounded models**; this is not 54 fully
+Thus **55 entries have dedicated bounded models**; this is not 55 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -212,7 +213,7 @@ Every dedicated model status still requires the qualifications above.
 | 111 | `PATH_DATA` | Motion/axis/reference | No dedicated model | Listed |
 | 112 | `PHASE` | Phase/sequence | No dedicated model | Listed |
 | 113 | `PHASE_INSTRUCTION` | Phase/sequence | No dedicated model | Listed |
-| 114 | `PID` | Process/filter/drive | No dedicated model | Listed |
+| 114 | `PID` | Process/filter/drive | PID software model (bounded) | Listed |
 | 115 | `PIDE_AUTOTUNE` | Process/filter/drive | No dedicated model | Listed |
 | 116 | `PID_ENHANCED` | Process/filter/drive | No dedicated model | Listed |
 | 117 | `POSITION_DATA` | Motion/axis/reference | No dedicated model | Listed |

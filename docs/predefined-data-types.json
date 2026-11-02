@@ -123,6 +123,11 @@
       "remaining": "Bounded ST FGEN selected piecewise curves and DEDT sampled transport delay; native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
       "source": "source/logixlab/st_curves.py"
     },
+    "pid_software_model": {
+      "label": "PID software model (bounded)",
+      "remaining": "Ladder P/PI subset; derivative/deadband/cascade, other operands/languages and native solver/status/fault/layout parity remain unfinished.",
+      "source": "source/logixlab/ladder_pid.py"
+    },
     "pi_software_model": {
       "label": "PI software model (partial)",
       "remaining": "Bounded ST PI regulation with linear/shaped gains and transactional integral; native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts and lifecycle/status/fault parity remain unfinished.",
@@ -288,10 +293,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 54,
-    "no_dedicated_model": 168,
+    "dedicated_bounded_models": 55,
+    "no_dedicated_model": 167,
     "status_counts": {
-      "no_dedicated_model": 168,
+      "no_dedicated_model": 167,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -313,6 +318,7 @@
       "enhanced_select_model": 1,
       "derivative_model": 1,
       "curve_delay_model": 2,
+      "pid_software_model": 1,
       "pi_software_model": 1,
       "fbd_selector_model": 2,
       "fbd_boolean_model": 4,
@@ -1694,7 +1700,7 @@
       "identifier_candidate": "PID",
       "starred": false,
       "family": "process",
-      "model_status": "no_dedicated_model",
+      "model_status": "pid_software_model",
       "v35_listing": "exact",
       "v35_catalog_name": "PID",
       "notes": []

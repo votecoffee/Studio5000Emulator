@@ -76,7 +76,7 @@ class FBDBooleanTests(unittest.TestCase):
             for name in SCHEMAS[kind]:self.assertEqual(e.memory.resolve(record+'.'+name)[2],'BOOL')
         self.assertTrue(all(default('FBD_BOOLEAN_AND')['In'+str(i)] for i in range(1,9)))
         self.assertTrue(default('FBD_BOOLEAN_NOT')['In']);self.assertFalse(default('FBD_BOOLEAN_OR')['EnableIn'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
 
     def test_omitted_saved_and_input_remains_unknown_despite_true_shape(self):
         def omit(root):

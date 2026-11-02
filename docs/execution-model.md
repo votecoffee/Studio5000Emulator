@@ -32,6 +32,11 @@ all operands even with a zero mask. False rungs skip computation, CPT retains
 its destination through prescan, and failures roll back the whole advance.
 These software policies do not establish native intermediate/fault parity.
 
+[Ladder PID P/PI](ladder-pid.md) uses explicit percent-error equations and UPD
+seconds per reached true call. Hidden integral/manual history rolls back with
+public fields; Prescan/false clear EN, INI false reinitializes, and Run resets
+history. Derivative/deadband/cascade and native equations/layouts remain blocked.
+
 [ST PI regulation](st-pi-regulation.md) retains integral, prior input, held output
 and clock per resolved record. Holds and saturation affect the integral; Run
 resets it, while whole-advance rollback and detached replacement preserve it.

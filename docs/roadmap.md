@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.092032`: [ladder PID P/PI](ladder-pid.md), explicit percent-error
+regulation, independent/dependent gains, scaling, limits, software manual tracking
+and alarms. Derivative/deadband/cascade and native solver/layout parity remain open.
+
 Available in `26.1102.085455`: [AOI FAL/FSC](aoi-file-operations.md),
 ALL/numeric/INC file transforms and searches, canonical progress, exact InOut
 and represented local operands, with AOI File Lab. Native cursor/fault parity remains open.

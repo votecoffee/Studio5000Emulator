@@ -110,9 +110,9 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 54 bounded models. There are 63 FBD blocks: 23 names shared with
+now contains 55 bounded models. There are 63 FBD blocks: 23 names shared with
 existing ST calls, 34 common RLL names and six FBD-only forms.
-ST-call dispatch entries are 29 and RLL remains 101.
+ST-call dispatch entries are 29 and RLL is 102 (including the separate ladder PID P/PI subset).
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
 

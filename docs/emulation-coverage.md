@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; ladder AOI file operations added for app `26.1102.085455`. **Full Logix emulation is not
+Audited 2026-11-02; ladder PID P/PI added for app `26.1102.092032`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -28,7 +28,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FBD math records | [Basic arithmetic](fbd-arithmetic.md) plus [SQR/LN/LOG/XPY/DEG/RAD/trig](fbd-advanced-math.md), 19 finite REAL Block forms over two records, prescan retention and transactional failures | Other math/forms/types, native precision/flags, minor-fault/domain/nonfinite/overflow/layout/lifecycle parity |
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
 | Function blocks | [Single-sheet signal graphs](function-blocks.md), Sixty-three blocks including target bit moves, conversions/remainder, advanced math, bitwise/masked operations, comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
-| Ladder (RLL) | 101 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 102 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
@@ -49,7 +49,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers, homogeneous RLL and [ST](wide-st.md) arithmetic/bitwise operations, plus [ladder CPT/CMP/MEQ](ladder-wide-expressions.md) in the v35 5580 profile | Mixed types/conversions, additional expression/ST forms, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
-| PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles and separate PID/PIDE families |
+| PID ladder software profile | [P/PI regulator](ladder-pid.md), independent/dependent gains, scaling, limits, software manual tracking, CTL aliases and alarms | Derivative/deadband/cascade/hardware manual, remaining operands/languages and native solver/status/fault/layout parity |
+| PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles, remaining [ladder PID](ladder-pid.md) features and separate PIDE family |
 | FUNCTION_GENERATOR/DEADTIME | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, selected tables, sampled transport delay, resizing, health recovery and transactional arrays | Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and other profiles |
 | SELECT_ENHANCED/DERIVATIVE | [ST/FBD ESEL/DERV](fbd-process-signals.md), healthy high/low/median/mean/manual selection, control requests, timed rate of change, bypass and rollback | Native startup/request/health/timing/rounding qualification, RTS, general FBD forms, packed layouts and other profiles |
 | UP_DOWN_ACCUM/INTEGRATOR | [ST/FBD UPDN/INTG](fbd-accumulation.md), per-call totals, timed integration, initialization, directional holds, limits, alarms and transactional history | Native startup/rounding/precedence, RTS, general FBD forms, packed layouts and other controller profiles |
@@ -138,7 +139,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
 - [ ] **D04 — Predefined structures:** complete the named
   [predefined-type inventory](predefined-data-types.md), including dedicated
   complete CONTROL beyond its [logical shift/FIFO/LIFO profile](control-operations.md),
-  and implement MESSAGE, PID/PID_ENHANCED, alarm/filter/drive/phase/sequence records, motion
+  and implement MESSAGE, remaining [PID](ladder-pid.md)/PID_ENHANCED behavior, alarm/filter/drive/phase/sequence records, motion
   control/axis/group/coordinate/cam records and module-defined I/O types.
   Decorated-data retention alone does not supply control behavior.
 - [ ] **D05 — Timers/counters:** alternate instruction structures and reset
@@ -316,5 +317,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 101 built-in RLL entries.
+added by project AOIs are counted separately from the 102 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

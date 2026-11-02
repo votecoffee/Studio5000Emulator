@@ -243,7 +243,7 @@ class TargetBitMoveTests(unittest.TestCase):
         candidate,_=prepare(e,decode(container(E.tostring(xml,encoding='utf8'))),tuple(texts),'MainProgram',0);self.assertEqual(self.snapshot(e),before);candidate.step(10);self.assertEqual(candidate.memory.read('TextOutput'),candidate.memory.read('GraphOutput'));self.assertEqual(candidate.project.instruction_counts['BTDT'],2)
 
     def test_report_and_dispatch_inventories(self):
-        e=self.checked();p=e.report();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29));self.assertEqual(len(p['function_blocks']['instructions']),63)
+        e=self.checked();p=e.report();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29));self.assertEqual(len(p['function_blocks']['instructions']),63)
         self.assertEqual(p['st_bit_moves']['instructions'],['BTDT','MVMT']);self.assertEqual(p['function_blocks']['blocks']['bit_moves'],p['st_bit_moves']);self.assertFalse(p['st_bit_moves']['native_runtime_parity'])
 
 

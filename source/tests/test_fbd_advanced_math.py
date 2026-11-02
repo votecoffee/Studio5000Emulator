@@ -214,7 +214,7 @@ class FBDAdvancedMathTests(unittest.TestCase):
     def test_report_counts_and_shared_math_contract(self):
         p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),63)
         self.assertEqual(len(p['blocks']['math']['instructions']),19);self.assertIn('Absolute value',p['blocks']['math']['square_root']);self.assertIn('radians',p['blocks']['math']['transcendental'])
-        self.assertFalse(p['native_runtime_parity']);self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
+        self.assertFalse(p['native_runtime_parity']);self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
 
 
 if __name__=='__main__':unittest.main()

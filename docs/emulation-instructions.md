@@ -1,7 +1,7 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; ladder AOI file operations added for app `26.1102.085455`. Language priority is ladder, then ST, then FBD, then SFC;
-new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **101 built-in
+Audited 2026-11-02; ladder PID P/PI added for app `26.1102.092032`. Language priority is ladder, then ST, then FBD, then SFC;
+new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -89,7 +89,7 @@ lack FBD forms.
 | Select/Limit Instructions | — | — | — (FBD-only SEL/MUX, ST/FBD HLL/SNEG/SSUM and ST/FBD ESEL/RLIM listed above) |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
 | Sequential Function Chart (SFC) Instructions | — | — | `ACTION`, `STEP`, `STOP`, `TRANSITION` |
-| Special Instructions | `DDT`, `DTR`, `FBC` | — | `PID` |
+| Special Instructions | `DDT`, `DTR`, `FBC`, `PID` | — | — |
 | Statistical Instructions | — | — | — (ST-only MAVE/MSTD and ST/FBD MAXC/MINC listed above) |
 | Timer/Counter Instructions | `CTD`, `CTU`, `RES`, `RTO`, `TOF`, `TON` | — | — (ST/FBD variants listed above) |
 | Trigonometric Instructions | `ACS`, `ASN`, `ATN`, `COS`, `SIN`, `TAN` | `ACOS`, `ASIN`, `ATAN` | — |
@@ -118,7 +118,8 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | [Numeric byte regions](numeric-copies.md) support SINT/INT/DINT/LINT, unsigned integers and finite REAL in RLL/ST: destination-sized requests, clipped numeric-region bounds, partial destination preservation and forward overlap. Aggregate/BOOL/string/LREAL layouts, cross-member/base-tag forms, native synchronization and fault/partial-effect parity remain unfinished. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. [Homogeneous LINT/unsigned ladder forms](ladder-wide-expressions.md) add exact CPT/CMP and declared-width MEQ. Mixed types/conversions, wider immediates, functions/power, file/index consumers and native arithmetic/status parity remain unfinished. |
-| PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; PID/PIDE are separate. |
+| PID (ladder P/PI subset) | [Logical PID software profile](ladder-pid.md), independent/dependent P/PI, scaling, limits, software manual tracking and alarms. Derivative/deadband/cascade/hardware manual, further operands/languages and native coefficients/status/fault/layout parity remain unfinished. |
+| PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; the separate [ladder PID](ladder-pid.md) supports P/PI only and PIDE remains unimplemented. |
 | FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
 | ESEL/DERV (ST/FBD) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, general FBD forms and packed layouts remain unfinished. |
 | UPDN/INTG (ST/FBD) | [Logical accumulation records](st-accumulation.md), per-call totals, trapezoidal integration, initialization, holds, limits, alarms, timing and rollback. Native startup/rounding/precedence, RTS, general FBD forms and packed layouts remain unfinished. |

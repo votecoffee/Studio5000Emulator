@@ -58,7 +58,7 @@ class FBDCompareTests(unittest.TestCase):
             self.assertNotIn(dtype,e.project.data_only_types)
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+member)[2],kind)
             self.assertTrue(default(dtype)['EnableIn']);self.assertFalse(default(dtype)['Dest'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
 
     def test_ascending_limits_include_both_boundaries(self):
         e=self.checked();self.settings(e,LowLimit=0,HighLimit=10)

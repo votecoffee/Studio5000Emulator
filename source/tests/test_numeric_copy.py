@@ -176,7 +176,7 @@ class NumericCopyTests(unittest.TestCase):
     def test_report_exposes_byte_contract_without_adding_dispatch_entries(self):
         e=self.checked();profile=e.report()['numeric_copy'];self.assertTrue(profile['available']);self.assertFalse(profile['native_runtime_parity'])
         self.assertEqual((profile['endianness'],profile['types']),('little',['DINT','INT','LINT','REAL','SINT','UDINT','UINT','ULINT','USINT']))
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
 
     def test_program_local_and_aoi_inout_arrays_use_resolved_regions(self):
         def setup(root):

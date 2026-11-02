@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy
+from . import system_values, integer_math, bit_transfer, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, ladder_pid
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
@@ -365,6 +365,7 @@ class Engine:
         if n in st_select.INSTRUCTIONS:st_select.validate(self,op,scope);return
         if n in st_derivative.INSTRUCTIONS:st_derivative.validate(self,op,scope);return
         if n in st_curves.INSTRUCTIONS:st_curves.validate(self,op,scope);return
+        if n in ladder_pid.INSTRUCTIONS:ladder_pid.validate(self,op,scope);return
         if n in st_pi.INSTRUCTIONS:st_pi.validate(self,op,scope);return
         if n in st_bit_moves.INSTRUCTIONS:st_bit_moves.validate(self,op,scope);return
         if n not in ARITIES or len(a) != ARITIES[n]: return
@@ -435,6 +436,7 @@ class Engine:
                 n,a=op.name,op.args
                 def w(member,value):self.memory.write(a[0]+member,value,scope)
                 if n in self.project.aois:self.addons.call(op,False,scope,depth+1,prescan=True)
+                elif n in ladder_pid.INSTRUCTIONS:ladder_pid.prescan(self,op,scope)
                 elif n in control_operations.INSTRUCTIONS:control_operations.prescan(self.memory,op,scope)
                 elif n in sequencer_operations.INSTRUCTIONS:sequencer_operations.prescan(self.memory,op,scope)
                 elif n in array_statistics.INSTRUCTIONS:array_statistics.prescan(self.memory,op,scope)
@@ -595,6 +597,7 @@ class Engine:
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
         if n=='MCR':return p
+        if n in ladder_pid.INSTRUCTIONS:return ladder_pid.execute(self,op,p,scope)
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
         if n=='SSV':return task_inhibit.execute(self,op,p,scope)
@@ -784,6 +787,7 @@ class Engine:
                 'st_select':st_select.description(),
                 'st_derivative':st_derivative.description(),
                 'st_curves':st_curves.description(),
+                'ladder_pid':ladder_pid.description(),
                 'st_pi':st_pi.description(),
                 'st_bit_moves':st_bit_moves.description(),
                 'string_operations':string_operations.description(),
