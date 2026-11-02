@@ -808,6 +808,7 @@ class Engine:
                            "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP/MEQ also support homogeneous wide operands; mixed types and native math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
+                           "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; AOI and separate file/sequencer reference expansions remain unqualified",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
                            "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",

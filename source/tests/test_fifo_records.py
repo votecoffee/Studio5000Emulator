@@ -206,10 +206,12 @@ class RecordQueueTests(unittest.TestCase):
     def test_unload_destination_cannot_share_queue_base_tag(self):
         self.assertTrue(self.engine(['FFU(PartQueue[0],PartQueue[3],PartControl,?,?);']).blockers)
 
-    def test_alias_and_dynamic_array_starts_remain_blocked(self):
+    def test_alias_and_dynamic_array_starts_copy_record_payloads(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='QueueAlias',TagType='Alias',DataType='PartRecord',AliasFor='PartQueue[0]')
-        self.assertTrue(self.engine(['FFL(IncomingPart,QueueAlias,PartControl,?,?);'],alias).blockers)
-        self.assertTrue(self.engine(['FFL(IncomingPart,PartQueue[GuardResult],PartControl,?,?);']).blockers)
+        for start in ('QueueAlias','PartQueue[GuardResult]'):
+            e=self.checked([f'XIC(LoadPart)FFL(IncomingPart,{start},PartControl,?,?);'],mutate=alias);e.step()
+            value=copy.deepcopy(e.memory.read('IncomingPart'));e.memory.write('LoadPart',True);e.step()
+            self.assertEqual(e.memory.read('PartQueue[0]'),value);self.assertEqual(e.memory.read('PartControl.POS'),1)
 
     def test_wrong_firmware_or_controller_profile_is_blocked(self):
         for field,value in (('MajorRev','34'),('ProcessorType','1756-L75'),('ProcessorType','5069-L340ERM')):

@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[Shift and queue starting references](queue-references.md) use structural
+preflight for aliases and dynamic indices, then resolve the actual region
+when an operation needs it. False or latched calls do not consume dynamic
+start values. Invalid reached windows roll back CONTROL latches, data, time
+and scheduling, so correcting the index permits retry of the same edge.
+
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) share exact integer
 expression evaluation with ST. Each wide numeric intermediate must fit the
 matching declared type. CMP eagerly evaluates both logical sides; MEQ reads

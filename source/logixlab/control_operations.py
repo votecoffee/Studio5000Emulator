@@ -6,6 +6,7 @@ Length/position pseudo-operands use saved LEN/POS, never per-scan initialization
 import re
 
 from .model import ModelError, coerce, literal
+from .integer_math import CONTROLLERS
 from . import fifo_values
 
 FLAGS = ('EN', 'EU', 'DN', 'EM', 'ER', 'UL', 'IN', 'FD')
@@ -63,8 +64,44 @@ def static_array(memory, ref, scope, *, writable=True):
     return key, parts, dtype
 
 
-def array_region(memory, ref, count, scope, *, writable=True):
-    static_array(memory, ref, scope, writable=writable)
+def starting_array(memory, ref, scope, *, structural=False):
+    """Extended starts are opt-in for shifts/queues; file consumers stay static."""
+    if scope in memory.frames:
+        raise ModelError('Shift/FIFO array bindings inside AOIs are not yet qualified')
+    explicit=re.match(r'Program:(\w+)\.(.+)',ref,re.I)
+    owner,local=explicit.groups() if explicit else (scope,ref)
+    match=re.match(r'[A-Za-z_][\w:]*',local)
+    if not match:raise ModelError('Invalid shift/FIFO array reference')
+    name=match[0]
+    tag=memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
+    extended=not re.fullmatch(r'[A-Za-z_][\w:]*(?:\.[A-Za-z_]\w*|\[\d+(?:,\d+)*\])*',ref) or tag is not None and bool(tag.alias)
+    if extended and (memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS):
+        raise ModelError('Alias/indirect shift/FIFO starts require the v35 ControlLogix 5580 profile')
+    previous=memory.structural
+    try:
+        if structural:memory.structural=True
+        if not extended:
+            result=static_array(memory,ref,scope)
+            memory.region(ref,0,scope)
+            return result
+        key,parts,dtype=memory.check_writable(ref,scope)
+        if not fifo_values.supported(memory,dtype):
+            raise ModelError('Shift/FIFO operand requires a qualified numeric, string or explicit UDT array')
+        if any(isinstance(part,tuple) for part in parts):raise ModelError('Shift/FIFO operand cannot be a bit')
+        value=memory.at(key,parts)
+        if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i]),list)
+                                                for i,part in enumerate(parts) if isinstance(part,int)):
+            raise ModelError('Shift/FIFO operand must address an array')
+        # Verify an actual selected array/member boundary, not a scalar member
+        # inside an array of records. Structural indices never consume data.
+        memory.region(ref,0,scope)
+        return key,parts,dtype
+    finally:memory.structural=previous
+
+
+def array_region(memory, ref, count, scope, *, writable=True, references=False):
+    if references:starting_array(memory,ref,scope)
+    else:static_array(memory, ref, scope, writable=writable)
     if not 0 <= count <= MAX_ELEMENTS:
         raise ModelError('Shift/FIFO operation exceeds the 4096-element software limit')
     return memory.region(ref, count, scope)
@@ -96,8 +133,7 @@ def validate(memory, op, scope):
     if a[3:] != (['?'] if shift else ['?', '?']):
         raise ModelError('Use neutral-text ? pseudo-operands; CONTROL.LEN/POS hold saved values')
     array = a[1] if n in ('FFL', 'LFL') else a[0]
-    key, _, dtype = array_region(memory, array, 0, scope)
-    _, parts, _ = memory.resolve(array, scope)
+    key, parts, dtype = starting_array(memory, array, scope, structural=True)
     ck, cp, _ = memory.resolve(ctrl, scope)
     if ck == key and (parts[:len(cp)] == cp or cp[:len(parts)] == parts):
         raise ModelError('Array and CONTROL storage cannot overlap')
@@ -160,7 +196,7 @@ def shift(memory, op, power, scope):
         obj.update(DN=True, POS=0, UL=source)
         return True
     count = (length + 31) // 32
-    key, paths, _ = array_region(memory, a[0], count, scope)
+    key, paths, _ = array_region(memory, a[0], count, scope, references=True)
     words = [memory.read(memory.address(key, path)) for path in paths]
     if any(type(word) is not int for word in words):raise ModelError('Shift requires known DINT array words')
     bits = sum((word & 0xffffffff) << (32 * i) for i, word in enumerate(words))
@@ -193,7 +229,7 @@ def fifo(memory, op, power, scope):
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
     if n in ('FFL', 'LFL') and position == length:return True
     array = a[1] if n in ('FFL', 'LFL') else a[0]
-    key, paths, dtype = array_region(memory, array, length, scope)
+    key, paths, dtype = array_region(memory, array, length, scope, references=True)
     if n in ('FFL', 'LFL'):
         source = fifo_values.read(memory,a[0],scope,dtype)
         memory.store(key, paths[position], source)
@@ -226,6 +262,8 @@ def description():
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
                 aggregate_values='Whole logical records including backing bytes; unknown represented fields remain unknown; no native byte-layout claim',
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
+                starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
+                skipped_references='False or latched calls structurally check starts without consuming dynamic indices',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
                 remaining=['FIFO scalar wide/unsigned types, mixed conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
-                           'Indirect/alias/AOI starting arrays', 'Native invalid-state and scan parity'])
+                           'AOI starting arrays; indirect/alias starts for separate file/sequencer consumers', 'Native invalid-state and scan parity'])

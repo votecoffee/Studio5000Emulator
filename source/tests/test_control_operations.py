@@ -196,10 +196,13 @@ class ControlOperationTests(unittest.TestCase):
     def test_neutral_operands_types_and_source_control_overlap_stay_explicit(self):
         for text in ('BSL(Words[0],Ctl,BitIn,33);','FFL(Incoming,Queue[0],Ctl,3,0);',
                      'BSR(Words[0],Ctl,1,?);','BSL(Words[0],Ctl,Ctl.UL,?);','BSL(Incoming,Ctl,BitIn,?);',
-                     'BSL(Queue[Incoming],Ctl,BitIn,?);','FFU(Queue[0],Queue[1],Ctl,?,?);',
+                     'FFU(Queue[0],Queue[1],Ctl,?,?);',
                      'BSL(Words[0],SourceA,BitIn,?);','FFL(BitIn,Queue[0],Ctl,?,?);',
                      'BSL(Words[0],Words[0].0,BitIn,?);','BSL(BitIn,Ctl,BitIn,?);'):
             self.assertTrue(self.engine([text]).blockers,text)
+        e=self.checked(['BSL(Queue[Incoming],Ctl,BitIn,?);']);before=copy.deepcopy(e.memory.values)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(e.memory.values,before)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Ctl"]').set('Constant','true')
         self.assertTrue(self.engine(['BSL(Words[0],Ctl,BitIn,?);'],mutate=constant).blockers)
 
@@ -220,9 +223,9 @@ class ControlOperationTests(unittest.TestCase):
         e.memory.write('Record.State.LEN',65)
         with self.assertRaises(ModelError):e.step()
 
-    def test_alias_and_indirect_start_arrays_and_st_calls_remain_blocked(self):
+    def test_alias_start_array_is_supported_and_st_calls_remain_blocked(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ArrayAlias',DataType='DINT',TagType='Alias',AliasFor='Words[0]')
-        self.assertTrue(self.engine(['BSL(ArrayAlias,Ctl,BitIn,?);'],mutate=alias).blockers)
+        e=self.checked(['BSL(ArrayAlias,Ctl,BitIn,?);'],mutate=alias);e.step();self.assertEqual(e.memory.read('Words[0]'),1)
         def structured(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine')
             routine.set('Type','ST');routine.remove(routine.find('RLLContent'))

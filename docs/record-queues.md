@@ -21,7 +21,8 @@ AOI instance types, operational predefined records such as TIMER/COUNTER/CONTROL
 inferred data-only schemas and UDTs containing those types remain unqualified.
 Mixed-type conversions and aggregate/string immediates remain blocked. Existing
 numeric immediates retain their earlier rules. These are ladder forms; ST/FBD
-forms, AOI array bindings and alias/indirect array starts remain unfinished.
+forms and AOI array bindings remain unfinished. [Alias and indirect starts](queue-references.md)
+now use the same typed payload copies in the v35 5580 ladder queue profile.
 
 ## Copying and clearing
 

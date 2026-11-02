@@ -48,8 +48,9 @@ Matching scalar SINT/INT/DINT/REAL sources, destinations and arrays retain
 representable numeric source immediates. [Matching strings and explicit UDT
 records](record-queues.md) add whole logical copies and typed zero clearing for
 the v35 5580 profile. The array region stays within its selected member. Mixed
-conversions, broader predefined/AOI records, indirect or alias array starts and
-AOI array bindings remain unfinished. FFU/LFU
+conversions, broader predefined/AOI records and AOI array bindings remain
+unfinished. [Alias and indirect starts](queue-references.md) are now available
+for shifts/FIFO/LIFO in the bounded v35 5580 profile. FFU/LFU
 destinations cannot share their array base tag. Shift SourceBit
 cannot overlap its CONTROL. These restrictions are checked before execution.
 
@@ -74,8 +75,11 @@ Scalar, array and nested CONTROL members can be accessed by logic and the UI;
 ordinary symbolic CIP access covers individual atomic members. Native CONTROL
 templates, packed byte layouts and whole-record wire transfers remain withheld.
 
-All operations stay within a 4096-element software bound. Array starts use static
-literal indices. Known words are required for shifts and numeric FIFO unload regions. Aggregate
+All operations stay within a 4096-element software bound. Static starts retain
+their earlier rules. The v35 5580 shift/FIFO/LIFO profile also accepts aliases
+and bounded indirect starts, resolved when an edge needs the region. Separate
+file/sequencer consumers retain their own restrictions. Known words are required
+for shifts and numeric FIFO unload regions. Aggregate
 copies preserve represented unknown fields/backing bytes; reached unknown whole
 sources still fault. Bounds, source and conversion failures roll back data, control
 state, time and task scheduling. Native fault records, partial side effects and

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.081249`: [shift/FIFO/LIFO starting references](queue-references.md),
+alias chains and bounded indirect starts with edge-sensitive index reads and
+Queue Reference Lab. Separate file/sequencer and AOI starts remain unchanged.
+
 Available in `26.1102.075653`: [ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md),
 homogeneous LINT/unsigned expressions, exact 64-bit comparisons and masks, with
 Ladder Wide Expression Lab. Mixed conversions and native status/fault parity remain open.
