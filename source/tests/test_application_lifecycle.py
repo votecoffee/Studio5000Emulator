@@ -1817,3 +1817,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('FillReal',32766.5);row=step();self.assertEqual((row['ByteFill[1]'],row['WordFill[1]'],row['RealFill[1]']),(42,42,32766))
         report=self.post('report',{})['numeric_fill'];self.assertTrue(report['available']);self.assertFalse(report['clipping']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_data_lab_size_truncate_and_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('InspectData',True);row=step()
+        self.assertEqual(tuple(row[t] for t in ('SizeResult','StringCapacity','TruncatedWide','TruncatedUnsigned')),(3.0,82,'2',2))
+        write('InspectData',False);write('FillReal',-3.9);self.assertEqual(step()['TruncatedWide'],'2')
+        before=write('InspectData',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FillReal',16777217);row=step()
+        self.assertEqual((row['TruncatedWide'],row['TruncatedUnsigned']),('16777216',16777216))
+        report=self.post('report',{})['size_truncate'];self.assertTrue(report['available']);self.assertIn('ULINT',report['trn_destinations']);self.assertFalse(report['native_runtime_parity'])

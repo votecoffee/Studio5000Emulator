@@ -473,6 +473,13 @@ blocks. Distinct backing records and explicit typed wires prevent ambiguous
 implicit dependencies. Enable/status/retained output and whole-advance rollback
 are modeled; native scheduling/lifecycle/status/fault parity remains unqualified.
 
+[Array size and truncation](size-truncate.md) use structural preflight for v35
+5580 SIZE/TRN. SIZE reads the closest logical array dimensions without its leaf
+values; TRN truncates finite float32 toward zero into a representable signed,
+unsigned or REAL destination. False/prescan skip live operands. Existing AOI
+bindings, unknown destination establishment and whole-advance rollback apply.
+Native status/overflow/lifecycle and broader profiles remain unqualified.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed

@@ -3,7 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions, numeric_copy, numeric_fill, wide_st
+from . import string_operations, string_conversions, numeric_copy, numeric_fill, size_truncate, wide_st
 from .integer_math import WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
 from .model import ModelError, coerce
@@ -139,6 +139,7 @@ class Extensions:
         if n in string_operations.INSTRUCTIONS:
             string_operations.validate(self.memory,op,scope);return True
         if n not in EXTENDED:return False
+        if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope):return True
         if n=='CMP':self.condition(a[0],allow_wide=True).validate(self.memory,scope)
         elif n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
@@ -189,6 +190,7 @@ class Extensions:
             return power
         if n not in EXTENDED:return None
         if not power:return power
+        if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope,execute=True):return power
         if n=='CMP':return self.condition(a[0],allow_wide=True).evaluate(self.memory,scope)
         if n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)

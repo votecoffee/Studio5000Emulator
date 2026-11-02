@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.152534`: [SIZE/TRN forms](size-truncate.md), selected
+array/string DATA dimensions without leaf reads, REAL SIZE results and signed/
+unsigned TRN destinations. False/prescan reads remain lazy; unknown destinations
+can be established. Direct string SIZE, LREAL and native overflow/status remain open.
+
 Available in `26.1102.151103`: [numeric FLL](numeric-fill.md), integer low-bit
 narrowing/sign extension, lazy source/length/index reads, full unknown-element
 writes and typed AOI/local fills. Logical member bounds, representable REAL
