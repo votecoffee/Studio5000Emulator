@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; statistics references/AOIs added for app `26.1102.110913`. **Full Logix emulation is not
+Audited 2026-11-02; statistics references/AOIs added for app `26.1102.112144`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.

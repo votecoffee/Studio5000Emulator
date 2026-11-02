@@ -188,5 +188,9 @@ class AOIStatisticsTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);self.write(e,FaultDivisor=1);e.step();self.assertEqual(e.memory.read('DriverB.PlaneMean'),20)
 
+    def test_shared_geometry_keeps_unqualified_aoi_sort_blocked(self):
+        def sort(root):root.find('.//AddOnInstructionDefinition/Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text').text='SRT(Samples[Index],0,MeanState,?,?);'
+        self.assertTrue(self.engine(sort).blockers)
+
 
 if __name__=='__main__':unittest.main()

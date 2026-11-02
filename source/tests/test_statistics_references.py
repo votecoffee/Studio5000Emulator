@@ -124,5 +124,9 @@ class StatisticsReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'overlap'):e.step()
         self.assertEqual(self.snapshot(e),before)
 
+    def test_shared_geometry_keeps_srt_alias_and_indirect_starts_blocked(self):
+        for source in ('WholeView[0]','Queue[Index]','AliasChain'):
+            self.assertTrue(self.engine([f'SRT({source},0,Ctl,?,?);'],length=3,mutate=self.tags).blockers)
+
 
 if __name__=='__main__':unittest.main()

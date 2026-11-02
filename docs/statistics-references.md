@@ -53,6 +53,8 @@ are still consumed before either body path; unknown copied inputs can fault
 even if the statistics operation itself would skip a source index. Missing
 saved locals remain unknown; definition defaults do not fill them.
 
+The separate SRT reference profile remains unchanged.
+
 Integer AVE destinations, partial POS/resume, wider source types, additional
 languages and broader AOI/native lifecycle, precision, status, faults and packed
 layouts remain unfinished. These are software-model checks, not native import

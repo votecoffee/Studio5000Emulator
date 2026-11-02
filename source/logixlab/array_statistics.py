@@ -9,18 +9,19 @@ from .real_math import real
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
 
 
-def region(memory, op, scope, count=0, *, writable=False, structural=False):
+def region(memory, op, scope, count=0, *, writable=False, structural=False, references=False):
     if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
         raise ModelError('Statistics exceed the 4096-element software limit')
     previous=memory.structural
     try:
         if structural:memory.structural=True
-        return selected_region(memory,op,scope,count,writable=writable)
+        return selected_region(memory,op,scope,count,writable=writable,references=references)
     finally:memory.structural=previous
 
 
-def selected_region(memory, op, scope, count, *, writable):
-    controls.check_start_indices(memory,op.args[0],scope)
+def selected_region(memory, op, scope, count, *, writable, references):
+    if references:controls.check_start_indices(memory,op.args[0],scope)
+    else:controls.static_array(memory,op.args[0],scope,writable=writable)
     key, parts, dtype = (memory.check_writable if writable else memory.resolve)(op.args[0],scope)
     if dtype not in controls.NUMERIC:
         raise ModelError('Statistics sources require SINT/INT/DINT/REAL arrays')
@@ -54,7 +55,7 @@ def validate(memory, op, scope):
     if op.args[4:] != ['?', '?']:
         raise ModelError('Statistics LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[3], scope)
-    key, _, prefix, _ = region(memory, op, scope, structural=True)
+    key, _, prefix, _ = region(memory, op, scope, structural=True, references=True)
     destination(memory,op.args[2],scope,key,prefix)
 
 
@@ -87,7 +88,7 @@ def execute(memory, op, power, scope):
         raise ModelError('Statistics require POS zero for a fresh complete operation; resume is unqualified')
     if length < (2 if op.name == 'STD' else 1):
         raise ModelError('AVE requires at least one element; sample STD requires at least two')
-    key, paths, prefix, _ = region(memory, op, scope, length)
+    key, paths, prefix, _ = region(memory, op, scope, length, references=True)
     destination(memory,op.args[2],scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
     total = 0.0

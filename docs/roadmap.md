@@ -4,7 +4,7 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
-Available in `26.1102.110913`: [statistics references and AOIs](statistics-references.md),
+Available in `26.1102.112144`: [statistics references and AOIs](statistics-references.md),
 alias/indirect AVE/STD windows, exact one/two/three-dimensional InOut and saved
 local arrays, canonical binding rollback and AOI Statistics Lab. Partial POS,
 integer AVE results and native lifecycle/precision/fault parity remain open.
