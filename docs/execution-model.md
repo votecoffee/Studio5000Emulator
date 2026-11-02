@@ -480,6 +480,12 @@ unsigned or REAL destination. False/prescan skip live operands. Existing AOI
 bindings, unknown destination establishment and whole-advance rollback apply.
 Native status/overflow/lifecycle and broader profiles remain unqualified.
 
+[Numeric ladder comparisons](numeric-comparisons.md) separate static checks from
+live operands for v35 5580 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ. False/prescan skip
+values and dynamic indices; true calls consume every operand, including MEQ under
+a zero mask. Existing exact wide/mask/limit rules and AOI rollback are retained.
+Complete native promotion/status/fault/lifecycle parity remains unfinished.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed

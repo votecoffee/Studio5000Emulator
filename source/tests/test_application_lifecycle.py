@@ -1834,3 +1834,43 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('FillReal',16777217);row=step()
         self.assertEqual((row['TruncatedWide'],row['TruncatedUnsigned']),('16777216',16777216))
         report=self.post('report',{})['size_truncate'];self.assertTrue(report['available']);self.assertIn('ULINT',report['trn_destinations']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_data_lab_numeric_comparisons_skip_false_indices_and_retry_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('CompareEnable',True);row=step()
+        self.assertTrue(all(row[t] for t in ('MaskedMatch','InRange','CompareEqual')))
+        write('CompareValues[0]',4661);row=step();self.assertTrue(row['MaskedMatch']);self.assertFalse(row['CompareEqual'])
+        write('CompareEnable',False);write('CompareIndex',999);row=step()
+        self.assertFalse(any(row[t] for t in ('MaskedMatch','InRange','CompareEqual')))
+        before=write('CompareEnable',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('CompareIndex',0);write('CompareValues[0]',5001);row=step();self.assertFalse(row['InRange'])
+        report=self.post('report',{})['numeric_comparisons'];self.assertEqual(len(report['instructions']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_imported_unknown_numeric_comparisons_are_lazy_and_atomic_through_http(self):
+        import base64
+        from test_numeric_comparisons import NumericComparisonTests
+        fixture=NumericComparisonTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)MEQ(Values[Index],0,0)OTE(RunLatch);','XIC(StartPB)LIM(0,Values[1],10)OTE(BatchComplete);'])
+            raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownComparisons.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'Index','value':0});self.post('write',{'tag':'StartPB','value':True})
+        def state():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Values[0]',123),('Values[1]',5)):
+            before=state()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            after=state()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(row['RunLatch']);self.assertTrue(row['BatchComplete'])

@@ -3,7 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions, numeric_copy, numeric_fill, size_truncate, wide_st
+from . import string_operations, string_conversions, numeric_copy, numeric_fill, size_truncate, comparisons, wide_st
 from .integer_math import WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
 from .model import ModelError, coerce
@@ -76,8 +76,11 @@ class Extensions:
         return dtype
 
     def is_string(self,ref,scope):
+        previous=self.memory.structural
+        if comparisons.available(self.engine.project):self.memory.structural=True
         try:return self.memory.project.string_capacity(self.memory.resolve(ref,scope)[2]) is not None
         except ModelError:return False
+        finally:self.memory.structural=previous
 
     def expression(self,text):
         if text not in self.expressions:self.expressions[text]=Expression(text)
@@ -138,6 +141,7 @@ class Extensions:
             string_conversions.validate(self.memory,op,scope);return True
         if n in string_operations.INSTRUCTIONS:
             string_operations.validate(self.memory,op,scope);return True
+        if comparisons.validate(self.engine,op,scope):return True
         if n not in EXTENDED:return False
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope):return True
         if n=='CMP':self.condition(a[0],allow_wide=True).validate(self.memory,scope)
@@ -188,6 +192,8 @@ class Extensions:
         if n in string_operations.INSTRUCTIONS:
             if power:string_operations.execute(self.memory,op,scope)
             return power
+        if n in comparisons.INSTRUCTIONS and comparisons.available(self.engine.project):
+            return comparisons.execute(self.engine,op,power,scope)
         if n not in EXTENDED:return None
         if not power:return power
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope,execute=True):return power

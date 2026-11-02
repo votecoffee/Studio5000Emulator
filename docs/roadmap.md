@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.153859`: [lazy numeric comparisons](numeric-comparisons.md),
+structural preflight for six relations plus MEQ/LIM, false/prescan index/value
+skips, unknown-import recovery and existing exact wide/AOI forms. Native numeric
+promotion, fault/status/lifecycle and broader profile qualification remain open.
+
 Available in `26.1102.152534`: [SIZE/TRN forms](size-truncate.md), selected
 array/string DATA dimensions without leaf reads, REAL SIZE results and signed/
 unsigned TRN destinations. False/prescan reads remain lazy; unknown destinations
