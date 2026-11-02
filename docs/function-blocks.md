@@ -5,7 +5,7 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 [Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
-and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) and [bitwise/masked operations](fbd-bitwise.md) bring the inventory to 46 blocks. Other FBD instructions and complete native
+and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) and [bitwise/masked operations](fbd-bitwise.md) plus [advanced math](fbd-advanced-math.md) bring the inventory to 58 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -40,6 +40,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 | --- | --- |
 | AND / OR / XOR / NOT / MEQ / MVMT | Signed DINT bitwise results, BOOL masked equality and explicit-target merging; per-family prescan rules. |
 | EQU / NEQ / GRT / GEQ / LES / LEQ / LIM | Finite REAL comparisons and inclusive/reversed limits with BOOL Dest and retained prescan values. |
+| SQR / LN / LOG / XPY / DEG / RAD / SIN / COS / TAN / ASN / ACS / ATN | Finite REAL host math shared with ladder; float32 block boundaries and transactional domain failures. |
 | ADD / SUB / MUL / DIV / ABS / NEG | Finite REAL math with typed records and retained prescan values; native minor-fault/overflow cases remain excluded. |
 | SEL | SelectorIn false selects In1; true selects In2. |
 | MUX | Selector 1 through 8 selects the corresponding REAL input. Invalid selectors set Status to 3 and retain the previous enabled output. |
@@ -107,8 +108,8 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 52 bounded models. There are 46 FBD blocks: 21 names shared with
-existing ST calls, 18 common RLL names and seven FBD-only forms.
+now contains 52 bounded models. There are 58 FBD blocks: 21 names shared with
+existing ST calls, 30 common RLL names and seven FBD-only forms.
 ST-call dispatch entries remain 27 and RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
@@ -155,6 +156,12 @@ results, inclusive/reversed boundaries, selector/timer wiring and rollback.
 Choose **FBD bitwise lab** for `FBDBitwiseLab.L5X`: eight blocks over 28 nodes
 and 37 wires. See [bitwise and masked operations](fbd-bitwise.md) for signed
 patterns, explicit Target semantics, BOOL dataflow, prescan and rollback.
+
+## Advanced math lab
+
+Choose **FBD advanced math lab** for `FBDAdvancedMathLab.L5X`: twelve blocks,
+33 nodes and 38 wires. See [roots/powers/logs/trig](fbd-advanced-math.md) for
+units, domains, rounding, lifecycle and recovery.
 
 ## Remaining work and references
 

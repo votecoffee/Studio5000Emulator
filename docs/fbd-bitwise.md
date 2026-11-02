@@ -48,7 +48,7 @@ returns true. That condition selects 100 and starts a 20 ms TONR. BlockEnable
 gates all eight blocks; ExecuteGraph skips the routine; ResetTimer is separate
 from the comparison. FaultDivisor zero demonstrates late-error rollback.
 
-The graph inventory is 46 blocks: 21 shared ST-call names, 18 common RLL names
+The graph inventory is 58 blocks: 21 shared ST-call names, 30 common RLL names
 and seven FBD-only forms. RLL remains 101 and ST calls 27. The 222-entry catalog
 retains all identities and now has 52 dedicated bounded models and 170 entries
 without one. These counts do not establish full type or native controller parity.

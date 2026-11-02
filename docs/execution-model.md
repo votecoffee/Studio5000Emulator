@@ -352,6 +352,11 @@ known finite REAL inputs. Inclusive/reversed LIM boundaries, float32 equality,
 enable gates and prescan retention are explicit. Unknown/nonfinite inputs fail
 the whole advance; native nonfinite/lifecycle/packed-layout parity is unqualified.
 
+[FBD advanced math](fbd-advanced-math.md) shares the ladder host functions for
+roots, logs, powers, angle conversion and trig. SQR uses the absolute source;
+float32 values pass between blocks. Invalid domains/nonfinite/overflow fail
+the whole advance; native fault/status and bit-exact parity remain unqualified.
+
 [FBD arithmetic](fbd-arithmetic.md) uses finite REAL logical records with no hidden
 state. Its prescan retains enables/Dest; excluded zero-divisor/overflow cases fail
 the whole advance. Native minor-fault/flag behavior remains unqualified.

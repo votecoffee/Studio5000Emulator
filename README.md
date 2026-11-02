@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1031.094624`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.065922`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full emulation before further Studio 5000 connectivity.**
@@ -191,6 +191,10 @@ patterns, masked merging and BOOL-driven selector/timer behavior.
 [FBD comparisons](docs/fbd-comparisons.md) adds EQU/NEQ/GRT/GEQ/LES/LEQ/LIM
 with finite REAL inputs, BOOL results and an **FBD comparison lab** connecting
 conditions to a selector and timer.
+
+[FBD advanced math](docs/fbd-advanced-math.md) adds roots, powers, logarithms,
+angle conversion and trigonometry over the existing REAL records. Choose
+**FBD advanced math lab** for connected angle conversions and domain recovery.
 
 [FBD arithmetic](docs/fbd-arithmetic.md) adds finite REAL ADD/SUB/MUL/DIV/ABS/NEG
 with typed logical records, retained prescan values and an **FBD arithmetic lab**.

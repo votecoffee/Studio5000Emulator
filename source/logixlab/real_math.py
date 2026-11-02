@@ -68,4 +68,4 @@ def description():
                 failures='Unknown values, domains and nonfinite/overflow results stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
                 remaining=['Integer destinations, wide/unsigned sources and LREAL',
-                           'FBD forms and native precision/status/NaN/infinity behavior'])
+                           'FBD Blocks share these functions; native precision/status/NaN/infinity behavior remains unqualified'])

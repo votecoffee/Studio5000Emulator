@@ -43,11 +43,13 @@ Negative -7 and Magnitude 7. BlockEnable gates all six; ExecuteGraph skips the
 routine. Divisor zero demonstrates the excluded minor-fault case. FaultDivisor
 zero adds a later ladder fault; restore valid values before retrying.
 
-The graph inventory is 46 blocks: 21 names shared with existing ST-call entries,
-18 existing RLL names and seven FBD-only forms. RLL remains 101 and
+The graph inventory is 58 blocks: 21 names shared with existing ST-call entries,
+30 existing RLL names and seven FBD-only forms. RLL remains 101 and
 ST calls 27. Tagless FBD Function forms, integer/wide math wires, other math
 operations and packed/native transfer layouts remain unsupported or unqualified.
 No one-record RLL/ST call overloads are added by these FBD forms.
+[Advanced math](fbd-advanced-math.md) adds twelve forms over the same records,
+using shared ladder host functions with float32 values between blocks.
 
 Schemas, operands and prescan tables were checked against installed v35 help
 14598.htm, 14616.htm, 14618.htm, 14619.htm, 14621.htm and 14623.htm, alongside

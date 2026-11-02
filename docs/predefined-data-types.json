@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
-  "audited_date": "2026-10-31",
-  "audited_app_version": "26.1031.094624",
+  "audited_date": "2026-11-02",
+  "audited_app_version": "26.1102.065922",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -145,7 +145,7 @@
     },
     "fbd_math_model": {
       "label": "FBD math model (bounded)",
-      "remaining": "Finite REAL ADD/SUB/MUL/DIV/ABS/NEG Block forms; other operations, tagless Functions, wider types, native flags/minor-fault/nonfinite/overflow/layout/lifecycle parity remain unfinished.",
+      "remaining": "18 finite REAL basic/advanced math Block forms; other operations, tagless Functions, wider types, native precision/flags/minor-fault/domain/nonfinite/overflow/layout/lifecycle parity remain unfinished.",
       "source": "source/logixlab/fbd_math.py"
     },
     "fbd_boolean_model": {

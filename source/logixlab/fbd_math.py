@@ -1,10 +1,11 @@
 """Finite REAL math Block forms; native faults, flags and layouts unqualified."""
+import math
 from .integer_math import CONTROLLERS
 from .model import ModelError
-from .real_math import real
+from .real_math import FUNCTIONS,real
 
-TYPES={**dict.fromkeys(('ADD','SUB','MUL','DIV'),'FBD_MATH'),
-       **dict.fromkeys(('ABS','NEG'),'FBD_MATH_ADVANCED')}
+TYPES={**dict.fromkeys(('ADD','SUB','MUL','DIV','XPY'),'FBD_MATH'),
+       **dict.fromkeys(('ABS','NEG',*FUNCTIONS),'FBD_MATH_ADVANCED')}
 SCHEMAS={
     'FBD_MATH':{'EnableIn':'BOOL','SourceA':'REAL','SourceB':'REAL','EnableOut':'BOOL','Dest':'REAL'},
     'FBD_MATH_ADVANCED':{'EnableIn':'BOOL','Source':'REAL','EnableOut':'BOOL','Dest':'REAL'}}
@@ -39,7 +40,12 @@ def execute(engine,op,scope):
         value=obj[name]
         if type(value) not in (int,float):raise ModelError('FBD '+op.name+' '+name+' is unknown or not REAL')
         return real(value)
-    if op.name in ('ABS','NEG'):
+    if op.name in FUNCTIONS or op.name=='XPY':
+        values=[read('SourceA'),read('SourceB')] if op.name=='XPY' else [read('Source')]
+        try:result=math.pow(*values) if op.name=='XPY' else FUNCTIONS[op.name](*values)
+        except (ValueError,OverflowError) as error:
+            raise ModelError('FBD '+op.name+' outside the finite REAL math profile') from error
+    elif op.name in ('ABS','NEG'):
         value=read('Source');result=abs(value) if op.name=='ABS' else -value
     else:
         a,b=read('SourceA'),read('SourceB')
@@ -52,8 +58,10 @@ def execute(engine,op,scope):
 def description():
     return dict(instructions=sorted(TYPES),records=SCHEMAS,language='FBD Block',
                 arithmetic='Known finite float32 inputs/results; host-double operation then float32 result rounding',
+                square_root='Absolute value of the finite source before square root, shared with the ladder model',
+                transcendental='Shared ladder host-math functions; radians for trig inputs and inverse-trig outputs; float32 values between blocks',
                 lifecycle='No hidden state; prescan leaves enables/Dest unchanged; disabled/skipped calls retain Dest',
-                failures='Unknown/nonfinite/overflow and zero-divisor cases fail the whole advance transactionally',
+                failures='Unknown/nonfinite/domain/overflow and zero-divisor cases fail the whole advance transactionally',
                 zero_divisor='Native DIV result/minor-fault handling remains unsupported; no numeric substitute is produced',
                 native_runtime_parity=False,
                 remaining=['Tagless Function forms, remaining math operations, wider operands and packed layouts',

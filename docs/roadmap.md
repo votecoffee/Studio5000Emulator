@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1102.065922`: [FBD advanced math](fbd-advanced-math.md),
+SQR/LN/LOG/XPY/DEG/RAD/SIN/COS/TAN/ASN/ACS/ATN over the existing REAL records, with
+FBD Advanced Math Lab. Host functions/float32 boundaries; native precision/faults unqualified.
+
 Available in `26.1031.094624`: [FBD bitwise/masked operations](fbd-bitwise.md),
 AND/OR/XOR/NOT/MEQ/MVMT with signed DINT patterns, explicit-target merging and
 FBD Bitwise Lab. Four logical records; native flags/lifecycle/layout unqualified.
