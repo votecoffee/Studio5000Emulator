@@ -1621,3 +1621,42 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values(self.post('step',{'dt':10}))['Outputs'],0x120001)
         self.post('write',{'tag':'Program:MainProgram.Offset','value':2})
         self.assertEqual(values(self.post('step',{'dt':10}))['Outputs'],0x120002)
+
+    def test_aoi_statistics_lab_dimensions_latches_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'AOIStatsLab'})['blockers'],[])
+        self.assertIn(b'AOI statistics lab',self.get('/'));self.assertIn(b"loadDemo('AOIStatsLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('Calculate',True);row=step()
+        self.assertEqual(tuple(row[t] for t in ('DriverA.Mean','DriverA.Deviation','DriverA.ColumnMean','DriverA.RowMean','DriverA.PlaneMean','DriverB.Mean','DriverB.Deviation')),(4,2,7,10,7,20,10))
+        write('IndexA',999);self.assertEqual(step()['DriverA.Mean'],4)
+        write('Calculate',False);row=step();self.assertFalse(row['MeanA.DN']);self.assertEqual(row['MeanA.POS'],0)
+        write('IndexA',2);write('Calculate',True);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertEqual((row['DriverA.Mean'],row['DriverA.LocalMean']),(6,6))
+        write('EnabledA',False);row=step();self.assertFalse(row['DriverA.Ready']);self.assertTrue(row['DriverB.Ready'])
+        write('EnabledA',True);row=step();self.assertTrue(row['DriverA.Ready'])
+        report=self.post('report',{})['array_statistics'];self.assertIn('InOut',report['aoi']);self.assertIn('indirect',report['starting_references']);self.assertFalse(report['native_math_status'])
+
+    def test_statistics_alias_column_latching_and_bad_start_through_http(self):
+        import base64
+        from xml.etree import ElementTree as E
+        root=E.parse(Path(__file__).resolve().parents[1]/'samples/StatsLab.L5X').getroot();tags=root.find('./Controller/Tags');program=root.find('./Controller/Programs/Program/Tags')
+        E.SubElement(tags,'Tag',Name='GridView',DataType='DINT',Dimensions='2,3',TagType='Alias',AliasFor='Grid')
+        for parent,value in ((tags,0),(program,1)):
+            tag=E.SubElement(parent,'Tag',Name='Offset',DataType='DINT',TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value=str(value))
+        content=root.find('.//Program/Routines/Routine/RLLContent');content.clear();E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='XIC(Calculate)AVE(GridView[0,Offset],0,ColumnMean,ColumnControl,?,?);'
+        self.assertEqual(self.post('load',{'name':'CallerStatistics.L5X','content':base64.b64encode(E.tostring(root,encoding='utf-8',xml_declaration=True)).decode()})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        self.post('write',{'tag':'Calculate','value':True});self.assertEqual(values(self.post('step',{'dt':10}))['ColumnMean'],7)
+        self.post('write',{'tag':'Program:MainProgram.Offset','value':999});self.assertEqual(values(self.post('step',{'dt':10}))['ColumnMean'],7)
+        self.post('write',{'tag':'Calculate','value':False});self.post('step',{'dt':10});before=self.post('write',{'tag':'Calculate','value':True})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'Program:MainProgram.Offset','value':2});self.assertEqual(values(self.post('step',{'dt':10}))['ColumnMean'],9)

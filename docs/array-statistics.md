@@ -14,7 +14,7 @@ each scan. See [logical CONTROL](control-operations.md) and
 
 ## Dimension and calculation
 
-Use a fully subscripted static element in a one-, two- or three-dimensional
+Use a fully subscripted element in a one-, two- or three-dimensional
 array. Dimension is immediate 0, 1 or 2 and must exist in that array. Only the
 selected subscript increases; other subscripts stay fixed. For example,
 `AVE(Grid[0,1],0,Mean,Control,?,?)` with LEN=2 averages Grid[0,1] and Grid[1,1].
@@ -23,8 +23,9 @@ It does not flatten the array into adjacent rows.
 The complete LEN region must fit that dimension within the selected member.
 At most 4096 values are processed per operation. Numeric UDT array members and
 sibling result members are supported. Constant input arrays are legal;
-destinations cannot overlap the source array. Indirect/alias starting arrays
-and AOI array bindings remain unqualified.
+destinations cannot overlap the source array. [Aliases, indirect starts and RLL
+AOI arrays](statistics-references.md) now execute, with explicit latch, index
+consumption, dimension, binding and rollback rules.
 
 AVE requires at least one value and calculates the mean. STD requires at least
 two and calculates sample deviation: `sqrt(sum((x-mean)^2)/(N-1))`. This follows

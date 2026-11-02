@@ -9,8 +9,21 @@ from .real_math import real
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
 
 
-def region(memory, op, scope, count=0, *, writable=False):
-    key, parts, dtype = controls.static_array(memory, op.args[0], scope, writable=writable)
+def region(memory, op, scope, count=0, *, writable=False, structural=False):
+    if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
+        raise ModelError('Statistics exceed the 4096-element software limit')
+    previous=memory.structural
+    try:
+        if structural:memory.structural=True
+        return selected_region(memory,op,scope,count,writable=writable)
+    finally:memory.structural=previous
+
+
+def selected_region(memory, op, scope, count, *, writable):
+    controls.check_start_indices(memory,op.args[0],scope)
+    key, parts, dtype = (memory.check_writable if writable else memory.resolve)(op.args[0],scope)
+    if dtype not in controls.NUMERIC:
+        raise ModelError('Statistics sources require SINT/INT/DINT/REAL arrays')
     if not parts or not isinstance(parts[-1], int) or isinstance(memory.at(key, parts), list):
         raise ModelError('Statistics require a fully subscripted numeric array element')
     split = len(parts)
@@ -27,8 +40,6 @@ def region(memory, op, scope, count=0, *, writable=False):
     except ValueError as error:raise ModelError('Statistics dimension must be immediate 0, 1 or 2') from error
     if type(dimension) is not int or not 0 <= dimension < len(shape):
         raise ModelError('Statistics dimension must select a declared array dimension')
-    if not 0 <= count <= controls.MAX_ELEMENTS:
-        raise ModelError('Statistics exceed the 4096-element software limit')
     if indices[dimension] + count > shape[dimension]:
         raise ModelError('Statistics exceed the selected dimension/member boundary')
     paths = []
@@ -43,8 +54,12 @@ def validate(memory, op, scope):
     if op.args[4:] != ['?', '?']:
         raise ModelError('Statistics LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[3], scope)
-    key, _, prefix, _ = region(memory, op, scope)
-    dk, dp, dtype = memory.check_writable(op.args[2], scope)
+    key, _, prefix, _ = region(memory, op, scope, structural=True)
+    destination(memory,op.args[2],scope,key,prefix)
+
+
+def destination(memory, ref, scope, key, prefix):
+    dk, dp, dtype = memory.check_writable(ref, scope)
     if dtype != 'REAL' or isinstance(memory.at(dk, dp), (list, dict)):
         raise ModelError('Statistics currently require a scalar REAL destination')
     if dk == key and dp[:len(prefix)] == prefix:
@@ -72,7 +87,8 @@ def execute(memory, op, power, scope):
         raise ModelError('Statistics require POS zero for a fresh complete operation; resume is unqualified')
     if length < (2 if op.name == 'STD' else 1):
         raise ModelError('AVE requires at least one element; sample STD requires at least two')
-    key, paths, _, _ = region(memory, op, scope, length)
+    key, paths, prefix, _ = region(memory, op, scope, length)
+    destination(memory,op.args[2],scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
     total = 0.0
     for value in values:total = real(total + value)
@@ -92,10 +108,12 @@ def execute(memory, op, power, scope):
 def description():
     return dict(profile='v35-5580-complete-array-statistics', language='RLL', instructions=sorted(INSTRUCTIONS),
                 source_types=sorted(controls.NUMERIC), destination='REAL', max_elements=controls.MAX_ELEMENTS,
-                dimensions='Static fully subscripted one/two/three-dimensional arrays; selected dimension varies',
+                dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
+                starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',
+                aoi='RLL bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; disjoint sibling results and existing copied-input/Prescan/EnableInFalse/binding rollback rules',
                 calculation='Float32 inputs, accumulation and results; STD uses sample divisor N-1',
                 transition='Fresh POS zero, complete operation once; held EN/DN retains result; ER inhibits',
                 false_rung='STD clears EN/DN/ER/POS; AVE clears them only with DN set and ER clear',
                 native_math_status=False, native_fault_classification=False,
                 remaining=['Partial POS/resume and native fault side effects', 'Integer AVE destinations',
-                           'Indirect/alias/AOI starting arrays', 'Native precision/layout/status parity'])
+                           'Broader AOI lifecycle, wider types and additional languages', 'Native precision/layout/status parity'])

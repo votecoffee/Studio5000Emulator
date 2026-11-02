@@ -83,7 +83,9 @@ their earlier rules. The v35 5580 shift/FIFO/LIFO profile also accepts aliases
 and bounded indirect starts, resolved when an edge needs the region. Separate
 file consumers retain their own restrictions. [Sequencers](sequencer-references.md)
 now support alias/indirect tables and selected one-dimensional AOI arrays, with
-live-start consumption on each reached data operation. Known words are required
+live-start consumption on each reached data operation. [AVE/STD](statistics-references.md)
+also accept alias/indirect and one/two/three-dimensional AOI arrays; their completed
+CONTROL latches skip live source selection until rearmed. Known words are required
 for shifts and numeric FIFO unload regions. Aggregate
 copies preserve represented unknown fields/backing bytes; reached unknown whole
 sources still fault. Bounds, source and conversion failures roll back data, control

@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[AVE/STD reference execution](statistics-references.md) checks source shape
+without reading live indices during preflight. False or completed/error-latched
+operations skip source indices; fresh calls sample the selected numeric dimension.
+AOI InOut/local arrays and disjoint results share binding/value rollback, with
+a fresh destination-overlap check against the actual selected source.
+
 [Sequencer table references](sequencer-references.md) use structural preflight and
 live start sampling on reached SQO/SQI/SQL data operations, including held calls.
 Alias suffix indices retain the caller namespace; AliasFor-authored indices retain

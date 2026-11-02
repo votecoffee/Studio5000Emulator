@@ -1,0 +1,531 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIStatsLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIStatsLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabStatsDriver" Class="Standard" Revision="1.0" Vendor="LogixLab" SoftwareRevision="v35.01" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true">
+        <Parameters>
+          <Parameter Name="EnableIn" DataType="BOOL" Usage="Input" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="EnableOut" DataType="BOOL" Usage="Output" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="Calculate" DataType="BOOL" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Index" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Row" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Column" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Samples" DataType="REAL" Usage="InOut" Required="true" Visible="true" Dimensions="6" />
+          <Parameter Name="Grid" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="2,3" />
+          <Parameter Name="Cube" DataType="INT" Usage="InOut" Required="true" Visible="true" Dimensions="2,2,3" />
+          <Parameter Name="MeanState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="DeviationState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="ColumnState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="RowState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="PlaneState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Mean" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="Deviation" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="ColumnMean" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="RowMean" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="PlaneMean" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="LocalMean" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="LocalDeviation" DataType="REAL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="Ready" DataType="BOOL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Scratch" DataType="REAL" Dimensions="6" />
+          <LocalTag Name="LocalMeanState" DataType="CONTROL" />
+          <LocalTag Name="LocalDeviationState" DataType="CONTROL" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Calculate)AVE(Samples[Index],0,Mean,MeanState,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Calculate)STD(Samples[Index],0,Deviation,DeviationState,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Calculate)AVE(Grid[0,Column],0,ColumnMean,ColumnState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Calculate)AVE(Grid[Row,0],1,RowMean,RowState,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(Calculate)AVE(Cube[0,1,Index],0,PlaneMean,PlaneState,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(Calculate)AVE(Scratch[Index],0,LocalMean,LocalMeanState,?,?);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(Calculate)STD(Scratch[Index],0,LocalDeviation,LocalDeviationState,?,?);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(MeanState.DN)XIC(DeviationState.DN)OTE(Ready);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()AVE(Samples[Index],0,Mean,MeanState,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()STD(Samples[Index],0,Deviation,DeviationState,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>AFI()AVE(Grid[0,Column],0,ColumnMean,ColumnState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>AFI()AVE(Grid[Row,0],1,RowMean,RowState,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>AFI()AVE(Cube[0,1,Index],0,PlaneMean,PlaneState,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>AFI()AVE(Scratch[Index],0,LocalMean,LocalMeanState,?,?);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>AFI()STD(Scratch[Index],0,LocalDeviation,LocalDeviationState,?,?);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>AFI()OTE(Ready);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Calculate" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="RowA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="RowB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ColumnA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ColumnB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Quotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SamplesA" DataType="REAL" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="6">
+            <Element Index="[0]" Value="101" />
+            <Element Index="[1]" Value="2" />
+            <Element Index="[2]" Value="4" />
+            <Element Index="[3]" Value="6" />
+            <Element Index="[4]" Value="8" />
+            <Element Index="[5]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="GridA" DataType="DINT" TagType="Base" Dimensions="2,3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="2,3">
+            <Element Index="[0,0]" Value="2" />
+            <Element Index="[0,1]" Value="4" />
+            <Element Index="[0,2]" Value="6" />
+            <Element Index="[1,0]" Value="8" />
+            <Element Index="[1,1]" Value="10" />
+            <Element Index="[1,2]" Value="12" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CubeA" DataType="INT" TagType="Base" Dimensions="2,2,3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="2,2,3">
+            <Element Index="[0,0,0]" Value="0" />
+            <Element Index="[0,0,1]" Value="1" />
+            <Element Index="[0,0,2]" Value="2" />
+            <Element Index="[0,1,0]" Value="3" />
+            <Element Index="[0,1,1]" Value="4" />
+            <Element Index="[0,1,2]" Value="5" />
+            <Element Index="[1,0,0]" Value="6" />
+            <Element Index="[1,0,1]" Value="7" />
+            <Element Index="[1,0,2]" Value="8" />
+            <Element Index="[1,1,0]" Value="9" />
+            <Element Index="[1,1,1]" Value="10" />
+            <Element Index="[1,1,2]" Value="11" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="MeanA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DeviationA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ColumnAState" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="RowAState" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PlaneA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabStatsDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabStatsDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Calculate" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="1" />
+            <DataValueMember Name="Row" DataType="DINT" Value="1" />
+            <DataValueMember Name="Column" DataType="DINT" Value="1" />
+            <DataValueMember Name="Mean" DataType="REAL" Value="0" />
+            <DataValueMember Name="Deviation" DataType="REAL" Value="0" />
+            <DataValueMember Name="ColumnMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="RowMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="PlaneMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="LocalMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="LocalDeviation" DataType="REAL" Value="0" />
+            <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+            <ArrayMember DataType="REAL" Dimensions="6" Name="Scratch">
+              <Element Index="[0]" Value="501" />
+              <Element Index="[1]" Value="2" />
+              <Element Index="[2]" Value="4" />
+              <Element Index="[3]" Value="6" />
+              <Element Index="[4]" Value="8" />
+              <Element Index="[5]" Value="599" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalMeanState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <StructureMember DataType="CONTROL" Name="LocalDeviationState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SamplesB" DataType="REAL" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="6">
+            <Element Index="[0]" Value="102" />
+            <Element Index="[1]" Value="103" />
+            <Element Index="[2]" Value="10" />
+            <Element Index="[3]" Value="20" />
+            <Element Index="[4]" Value="30" />
+            <Element Index="[5]" Value="998" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="GridB" DataType="DINT" TagType="Base" Dimensions="2,3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="2,3">
+            <Element Index="[0,0]" Value="12" />
+            <Element Index="[0,1]" Value="14" />
+            <Element Index="[0,2]" Value="16" />
+            <Element Index="[1,0]" Value="18" />
+            <Element Index="[1,1]" Value="20" />
+            <Element Index="[1,2]" Value="22" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CubeB" DataType="INT" TagType="Base" Dimensions="2,2,3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="2,2,3">
+            <Element Index="[0,0,0]" Value="12" />
+            <Element Index="[0,0,1]" Value="13" />
+            <Element Index="[0,0,2]" Value="14" />
+            <Element Index="[0,1,0]" Value="15" />
+            <Element Index="[0,1,1]" Value="16" />
+            <Element Index="[0,1,2]" Value="17" />
+            <Element Index="[1,0,0]" Value="18" />
+            <Element Index="[1,0,1]" Value="19" />
+            <Element Index="[1,0,2]" Value="20" />
+            <Element Index="[1,1,0]" Value="21" />
+            <Element Index="[1,1,1]" Value="22" />
+            <Element Index="[1,1,2]" Value="23" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="MeanB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DeviationB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ColumnBState" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="RowBState" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PlaneB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabStatsDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabStatsDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Calculate" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="2" />
+            <DataValueMember Name="Row" DataType="DINT" Value="0" />
+            <DataValueMember Name="Column" DataType="DINT" Value="2" />
+            <DataValueMember Name="Mean" DataType="REAL" Value="0" />
+            <DataValueMember Name="Deviation" DataType="REAL" Value="0" />
+            <DataValueMember Name="ColumnMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="RowMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="PlaneMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="LocalMean" DataType="REAL" Value="0" />
+            <DataValueMember Name="LocalDeviation" DataType="REAL" Value="0" />
+            <DataValueMember Name="Ready" DataType="BOOL" Value="0" />
+            <ArrayMember DataType="REAL" Dimensions="6" Name="Scratch">
+              <Element Index="[0]" Value="501" />
+              <Element Index="[1]" Value="2" />
+              <Element Index="[2]" Value="4" />
+              <Element Index="[3]" Value="6" />
+              <Element Index="[4]" Value="8" />
+              <Element Index="[5]" Value="599" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalMeanState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <StructureMember DataType="CONTROL" Name="LocalDeviationState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SampleView" TagType="Alias" DataType="REAL" Dimensions="6" AliasFor="SamplesA" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(EnabledA)LabStatsDriver(DriverA,Calculate,IndexA,RowA,ColumnA,SampleView,GridA,CubeA,MeanA,DeviationA,ColumnAState,RowAState,PlaneA);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledB)LabStatsDriver(DriverB,Calculate,IndexB,RowB,ColumnB,SamplesB,GridB,CubeB,MeanB,DeviationB,ColumnBState,RowBState,PlaneB);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

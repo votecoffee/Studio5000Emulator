@@ -5,7 +5,7 @@ Length/position pseudo-operands use saved LEN/POS, never per-scan initialization
 """
 import re
 
-from .model import ModelError, coerce, literal
+from .model import ModelError, coerce, literal, split_indices
 from .integer_math import CONTROLLERS
 from . import fifo_values
 
@@ -40,6 +40,41 @@ def flag(obj, name):
     if type(obj[name]) is not bool:
         raise ModelError('CONTROL.' + name + ' is unknown or not BOOL')
     return obj[name]
+
+
+def check_start_indices(memory, ref, scope, seen=()):
+    """Opt-in guard for consumers whose CONTROL.POS already supplies an offset."""
+    from .expressions import Expression
+    identity=(ref.lower(),scope.lower())
+    if identity in seen or len(seen)>32:raise ModelError('Array reference cycle or nesting limit')
+    seen=seen+(identity,);pos=0
+    while pos<len(ref):
+        start=ref.find('[',pos)
+        if start<0:break
+        end=start+1;depth=1
+        while end<len(ref) and depth:
+            if ref[end]=='[':depth+=1
+            elif ref[end]==']':depth-=1
+            end+=1
+        if depth:raise ModelError('Unclosed array start subscript')
+        for expr in split_indices(ref[start+1:end-1]):
+            for name in Expression(expr).refs:
+                key,parts,_=memory.resolve(name,scope)
+                if parts and parts[-1]=='POS' and memory.resolve(memory.address(key,parts[:-1]))[2]=='CONTROL':
+                    raise ModelError('Array start must not use CONTROL.POS in a subscript')
+                check_start_indices(memory,name,scope,seen)
+        pos=end
+    explicit=re.match(r'Program:(\w+)\.(.+)',ref,re.I)
+    owner,local=explicit.groups() if explicit else (scope,ref)
+    match=re.match(r'[A-Za-z_][\w:]*',local)
+    if not match:raise ModelError('Invalid array start reference')
+    name=match[0]
+    if owner in memory.frames:
+        binding=memory.frames[owner].get(name.lower())
+        if binding:check_start_indices(memory,*binding,seen)
+    else:
+        tag=memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
+        if tag is not None and tag.alias:check_start_indices(memory,tag.alias,tag.scope,seen)
 
 
 def static_array(memory, ref, scope, *, writable=True):

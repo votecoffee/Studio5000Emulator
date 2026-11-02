@@ -155,7 +155,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         for text in ('AVE(Queue[0],1,Result,Ctl,?,?);','AVE(Queue[0],Incoming,Result,Ctl,?,?);',
             'AVE(Queue[0],TRUE,Result,Ctl,?,?);','AVE(Queue[0],0.0,Result,Ctl,?,?);',
             'AVE(Queue[0],0,Outgoing,Ctl,?,?);','AVE(Queue,0,Result,Ctl,?,?);',
-            'AVE(Queue[Incoming],0,Result,Ctl,?,?);','AVE(Queue[0],0,Result,Ctl,4,0);',
+            'AVE(Queue[Ctl.POS],0,Result,Ctl,?,?);','AVE(Queue[0],0,Result,Ctl,4,0);',
             'STD(Queue[0],0,Result,Ctl,?);'):
             self.assertTrue(self.engine([text]).blockers,text)
         self.assertTrue(self.engine(['STD(Queue[0],0,Queue[1],Ctl,?,?);'],dtype='REAL').blockers)

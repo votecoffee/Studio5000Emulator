@@ -1,52 +1,16 @@
 """Bounded DINT ladder sequencers with canonical table references and CONTROL."""
-import re
 from . import bit_transfer, control_operations as controls
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError, split_indices
+from .model import ModelError
 
 INSTRUCTIONS = frozenset(('SQI', 'SQO', 'SQL'))
-
-
-def check_indices(memory, ref, scope, seen=()):
-    """Do not add CONTROL.POS twice: it is already the sequencer row offset."""
-    from .expressions import Expression
-    identity=(ref.lower(),scope.lower())
-    if identity in seen or len(seen)>32:raise ModelError('Sequencer reference cycle or nesting limit')
-    seen=seen+(identity,);pos=0
-    while pos<len(ref):
-        start=ref.find('[',pos)
-        if start<0:break
-        end=start+1;depth=1
-        while end<len(ref) and depth:
-            if ref[end]=='[':depth+=1
-            elif ref[end]==']':depth-=1
-            end+=1
-        if depth:raise ModelError('Unclosed sequencer subscript')
-        for expr in split_indices(ref[start+1:end-1]):
-            for name in Expression(expr).refs:
-                key,parts,_=memory.resolve(name,scope)
-                if parts and parts[-1]=='POS' and memory.resolve(memory.address(key,parts[:-1]))[2]=='CONTROL':
-                    raise ModelError('Sequencer table start must not use CONTROL.POS in a subscript')
-                check_indices(memory,name,scope,seen)
-        pos=end
-    explicit=re.match(r'Program:(\w+)\.(.+)',ref,re.I)
-    owner,local=explicit.groups() if explicit else (scope,ref)
-    match=re.match(r'[A-Za-z_][\w:]*',local)
-    if not match:raise ModelError('Invalid sequencer table reference')
-    name=match[0]
-    if owner in memory.frames:
-        binding=memory.frames[owner].get(name.lower())
-        if binding:check_indices(memory,*binding,seen)
-    else:
-        tag=memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
-        if tag is not None and tag.alias:check_indices(memory,tag.alias,tag.scope,seen)
 
 
 def starting_array(memory, ref, scope, *, writable=False, structural=False):
     previous=memory.structural
     try:
         if structural:memory.structural=True
-        check_indices(memory,ref,scope)
+        controls.check_start_indices(memory,ref,scope)
         key,parts,dtype=(memory.check_writable if writable else memory.resolve)(ref,scope)
         if dtype!='DINT' or any(isinstance(part,tuple) for part in parts):
             raise ModelError('Sequencer table must be a DINT array')

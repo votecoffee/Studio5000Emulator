@@ -243,6 +243,7 @@ $('aoi-file-demo').onclick=()=>loadDemo('AOIFileLab');
 $('pid-demo').onclick=()=>loadDemo('PIDLab');
 $('aoi-pid-demo').onclick=()=>loadDemo('AOIPIDLab');
 $('aoi-sequencer-demo').onclick=()=>loadDemo('AOISequencerLab');
+$('aoi-stats-demo').onclick=()=>loadDemo('AOIStatsLab');
 $('fbd-convert-demo').onclick=()=>loadDemo('FBDConversionLab');
 $('fbd-math-demo').onclick=()=>loadDemo('FBDMathLab');
 $('fbd-bitwise-demo').onclick=()=>loadDemo('FBDBitwiseLab');
