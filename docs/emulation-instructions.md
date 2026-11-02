@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; bit-logic operand selection added for app `26.1102.154916`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-02; numeric MOV/CLR added for app `26.1102.160128`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -116,6 +116,7 @@ schema/behavior backlog separately from instruction names.
 | SRT | [Dimension-wise ladder/ST sorting](array-sort.md), with SINT/INT/DINT/REAL arrays and three-operand ST calls. The qualified whole-region profile retains POS zero; [alias/indirect and AOI references](sort-references.md) now execute with conservative ST FOR effects. Native internal cursor, partial-state/fault behavior, broader lifecycle and types remain unfinished. |
 | AVE/STD | [Dimension-wise statistics](array-statistics.md) with SINT/INT/DINT/REAL arrays and AVE results, REAL STD results and logical CONTROL. [Alias/indirect starts and RLL AOI arrays](statistics-references.md) now execute. Partial POS/resume, broader AOI lifecycle and native precision/fault/status behavior remain unfinished. |
 | COP/CPS | [Numeric byte regions](numeric-copies.md) support SINT/INT/DINT/LINT, unsigned integers and finite REAL in RLL/ST: destination-sized requests, clipped numeric-region bounds, partial destination preservation and forward overlap. Aggregate/BOOL/string/LREAL layouts, cross-member/base-tag forms, native synchronization and fault/partial-effect parity remain unfinished. |
+| Numeric MOV/CLR | [Scalar storage](numeric-storage.md) supports nine numeric types with integer pattern conversion, representable REAL rounding and full unknown writes. Other MOV/CLR forms, literal ranges and native overflow/status remain unfinished. |
 | Contacts/coils/one-shots | [Bit logic](bit-logic.md) validates types/shape without saved BOOL values. Complete BOOL writes establish unknowns; contacts/latches and one-shots consume values only when needed. Packed integers, native layout/fault/postscan/lifecycle and broader profile qualification remain bounded. |
 | Numeric comparisons | [EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ](numeric-comparisons.md) validate types/shape without saved values and skip live indices/values while false. True calls consume all operands; promotion and native parity remain incomplete. |
 | FLL/SIZE | [Numeric FLL](numeric-fill.md) qualifies v35 5580 integer narrowing/sign extension, representable REAL conversion and lazy references. Native clipping/cross-member layouts, REAL overflow/status, wider FLL types and aggregate fill qualification remain unfinished; [SIZE](size-truncate.md) now handles selected/member arrays and REAL results, with direct string forms still excluded; DINT-zero structure fills retain their separate contract. |

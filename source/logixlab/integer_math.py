@@ -20,6 +20,7 @@ def description(project):
                 arithmetic_available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 types=sorted(WIDE_TYPES), controllers=sorted(CONTROLLERS),
                 instructions=sorted(INSTRUCTIONS), mixed_types=False,
+                storage_moves='Standalone v35 MOV/CLR use the separate numeric_storage type/conversion profile',
                 immediate_type='signed DINT, representable in operand type',
                 division='Exact integer quotient truncated toward zero',
                 overflow='Stop and roll back modeled scan; native status/fault flags not emulated')

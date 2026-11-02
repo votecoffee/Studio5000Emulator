@@ -5,6 +5,10 @@ v35 ControlLogix 5580 projects with `1756-L81E` through `1756-L85E` processor
 identifiers. These are software-model rules; native runtime equivalence and
 math-status/fault parity are not established.
 
+Standalone v35 MOV/CLR now use the separate [numeric storage profile](numeric-storage.md),
+including mixed numeric moves and full writes to unknown scalar destinations.
+The homogeneous type and overflow rules below continue to apply to arithmetic.
+
 ## Try the bundled demo
 
 Choose **Integer lab** in the app, then **Step scan**, or start it from source:

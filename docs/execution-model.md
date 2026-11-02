@@ -492,6 +492,12 @@ ONS/OSR false and OSF true establish state without reading history; pulse-produc
 transitions require known storage. Existing prescan and AOI/advance rollback apply.
 Partial integer-bit writes still require known backing values.
 
+[Numeric scalar storage](numeric-storage.md) handles v35 5580 MOV/CLR separately
+from arithmetic. Integer moves preserve low destination bits, with signed/unsigned
+widening; REAL uses float32 and representable nearest-even integer results. False/
+prescan skip live operands, and full writes establish unknown numeric values.
+Native status/overflow/lifecycle and additional forms remain unfinished.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed

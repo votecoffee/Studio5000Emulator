@@ -251,6 +251,51 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="MoveNumeric" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveSource" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305419896" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2.5" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveWord" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveUnsigned" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveRealResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MoveRounded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ClearValue" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Value="99" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -259,83 +304,104 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(CompareEnable)MEQ(CompareValues[CompareIndex],CompareValues[1],CompareValues[2])OTE(MaskedMatch);</Text>
+                <Text>XIC(MoveNumeric)MOV(MoveSource,MoveByte);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>XIC(CompareEnable)LIM(0,CompareValues[CompareIndex],5000)OTE(InRange);</Text>
+                <Text>XIC(MoveNumeric)MOV(MoveSource,MoveWord);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>XIC(CompareEnable)EQU(CompareValues[CompareIndex],4660)OTE(CompareEqual);</Text>
+                <Text>XIC(MoveNumeric)MOV(SignSource,MoveUnsigned);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>XIC(InspectData)SIZE(Grid[1,2],1,SizeResult);</Text>
+                <Text>XIC(MoveNumeric)MOV(MoveReal,MoveRealResult);</Text>
               </Rung>
               <Rung Number="4" Type="N">
-                <Text>XIC(InspectData)SIZE(Message.DATA[0],0,StringCapacity);</Text>
+                <Text>XIC(MoveNumeric)MOV(MoveReal,MoveRounded);</Text>
               </Rung>
               <Rung Number="5" Type="N">
-                <Text>XIC(InspectData)TRN(FillReal,TruncatedWide);</Text>
+                <Text>XIC(MoveNumeric)CLR(ClearValue);</Text>
               </Rung>
               <Rung Number="6" Type="N">
-                <Text>XIC(InspectData)TRN(FillReal,TruncatedUnsigned);</Text>
+                <Text>XIC(MoveNumeric)MOV(MoveSource,ByteFill[FillIndex]);</Text>
               </Rung>
               <Rung Number="7" Type="N">
-                <Text>XIC(FillNumeric)FLL(FillSource,ByteFill[FillIndex],FillLength);</Text>
+                <Text>XIC(CompareEnable)MEQ(CompareValues[CompareIndex],CompareValues[1],CompareValues[2])OTE(MaskedMatch);</Text>
               </Rung>
               <Rung Number="8" Type="N">
-                <Text>XIC(FillNumeric)FLL(FillSource,WordFill[FillIndex],FillLength);</Text>
+                <Text>XIC(CompareEnable)LIM(0,CompareValues[CompareIndex],5000)OTE(InRange);</Text>
               </Rung>
               <Rung Number="9" Type="N">
-                <Text>XIC(FillNumeric)FLL(SignSource,SignedFill[FillIndex],FillLength);</Text>
+                <Text>XIC(CompareEnable)EQU(CompareValues[CompareIndex],4660)OTE(CompareEqual);</Text>
               </Rung>
               <Rung Number="10" Type="N">
-                <Text>XIC(FillNumeric)FLL(FillReal,RealFill[FillIndex],FillLength);</Text>
+                <Text>XIC(InspectData)SIZE(Grid[1,2],1,SizeResult);</Text>
               </Rung>
               <Rung Number="11" Type="N">
+                <Text>XIC(InspectData)SIZE(Message.DATA[0],0,StringCapacity);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(InspectData)TRN(FillReal,TruncatedWide);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(InspectData)TRN(FillReal,TruncatedUnsigned);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillSource,ByteFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillSource,WordFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(FillNumeric)FLL(SignSource,SignedFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillReal,RealFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
                 <Comment>Initialize a numeric array once.</Comment>
                 <Text>XIC(S:FS)FLL(7,Buffer[0],6);</Text>
               </Rung>
-              <Rung Number="12" Type="N">
+              <Rung Number="19" Type="N">
                 <Comment>Copy six elements into a two-dimensional array.</Comment>
                 <Text>XIC(CopyEnable)COP(Source[0],Buffer[0],6)CPS(Buffer[0],Grid[0,0],6);</Text>
               </Rung>
-              <Rung Number="13" Type="N">
+              <Rung Number="20" Type="N">
                 <Comment>Read the second dimension length.</Comment>
                 <Text>SIZE(Grid,1,Columns);</Text>
               </Rung>
-              <Rung Number="14" Type="N">
+              <Rung Number="21" Type="N">
                 <Comment>Evaluate an expression with an indexed array operand.</Comment>
                 <Text>CPT(Scaled,(Grid[Index,1]+5)*2.0);</Text>
               </Rung>
-              <Rung Number="15" Type="N">
+              <Rung Number="22" Type="N">
                 <Comment>Build text from a numeric value.</Comment>
                 <Text>DTOS(Grid[Index,1],NumberText)CONCAT(Prefix,NumberText,Message);</Text>
               </Rung>
-              <Rung Number="16" Type="N">
+              <Rung Number="23" Type="N">
                 <Comment>Extract text and convert a string back to a number.</Comment>
                 <Text>MID(Message,3,1,Snippet)STOD(NumberText,ParsedNumber);</Text>
               </Rung>
-              <Rung Number="17" Type="N">
+              <Rung Number="24" Type="N">
                 <Comment>Preserve wide integer values and read an unsigned word bit.</Comment>
                 <Text>MOV(WideSource,WideDest)XIC(PackedStatus.15)OTE(HighBit);</Text>
               </Rung>
-              <Rung Number="18" Type="N">
+              <Rung Number="25" Type="N">
                 <Comment>Prepare a bounded loop.</Comment>
                 <Text>CLR(LoopCount);</Text>
               </Rung>
-              <Rung Number="19" Type="N">
+              <Rung Number="26" Type="N">
                 <Comment>Repeat until the count reaches three.</Comment>
                 <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
               </Rung>
-              <Rung Number="20" Type="N">
+              <Rung Number="27" Type="N">
                 <Comment>Skip the next write when Bypass is set.</Comment>
                 <Text>XIC(Bypass)JMP(Finish);</Text>
               </Rung>
-              <Rung Number="21" Type="N">
+              <Rung Number="28" Type="N">
                 <Comment>This write is skipped in the default demo.</Comment>
                 <Text>MOV(999,SkippedValue);</Text>
               </Rung>
-              <Rung Number="22" Type="N">
+              <Rung Number="29" Type="N">
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>

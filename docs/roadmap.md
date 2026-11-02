@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.160128`: [numeric MOV/CLR](numeric-storage.md), all nine
+signed/unsigned integer and REAL scalar combinations, typed zeros, structural
+preflight and lazy/full unknown writes. Native status/REAL overflow and remaining
+LREAL/time/date/string/aggregate forms remain open.
+
 Available in `26.1102.154916`: [contacts/coils/one-shots](bit-logic.md), structural
 BOOL preflight, complete unknown-value writes and state-dependent one-shot reads.
 Bit Lab adds contact/latch/edge examples; packed backing preservation and native

@@ -1920,3 +1920,44 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'StartPB','value':False});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertFalse(row['Flags[1]']);self.assertTrue(row['State.Latch'])
         self.post('write',{'tag':'StartPB','value':True});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertTrue(row['State.Pulse'])
+
+    def test_data_lab_numeric_moves_clear_and_range_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertEqual(step()['ClearValue'],'99');write('MoveNumeric',True);row=step()
+        self.assertEqual(tuple(row[t] for t in ('MoveByte','MoveWord','MoveUnsigned','MoveRounded','MoveRealResult','ClearValue','ByteFill[1]')),(120,22136,'18446744073709551615',2,2.5,'0',120))
+        write('MoveNumeric',False);write('FillIndex',999);write('MoveSource',42);self.assertEqual(step()['MoveByte'],120)
+        before=write('MoveNumeric',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FillIndex',1);row=step();self.assertEqual((row['MoveByte'],row['ByteFill[1]']),(42,42))
+        before=write('MoveReal',2147483648.0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('MoveReal',3.5);row=step();self.assertEqual((row['MoveRounded'],row['ByteFill[0]'],row['ByteFill[4]']),(4,101,99))
+        report=self.post('report',{})['numeric_storage'];self.assertEqual(len(report['types']),9);self.assertFalse(report['native_math_status'])
+
+    def test_imported_unknown_numeric_move_and_clear_recover_through_http(self):
+        import base64
+        from test_numeric_storage import NumericStorageTests
+        fixture=NumericStorageTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)MOV(Inputs[Index],Results[Index]);','XIC(StartPB)CLR(Results[2]);']);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownNumericStorage.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});before=self.post('write',{'tag':'StartPB','value':True})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'Inputs[0]','value':4660});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(52,None,0))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+        self.post('write',{'tag':'Index','value':1});self.post('write',{'tag':'Inputs[1]','value':-1});self.post('write',{'tag':'StartPB','value':True})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(52,-1,0))
