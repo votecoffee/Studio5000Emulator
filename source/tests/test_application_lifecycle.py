@@ -1585,3 +1585,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('EnabledA',False);row=step();self.assertFalse(row['ControlA.CTL']&(1<<31));self.assertTrue(row['ControlB.CTL']&(1<<31))
         write('EnabledA',True);write('HoldA',True);write('ReadbackA',70);row=step();self.assertEqual((row['CVA'],row['DriverA.AuxValue']),(70,70))
         report=self.post('report',{});self.assertEqual(len(report['add_on_instructions']['instances']),2);self.assertIn('InOut',report['ladder_pid']['aoi'])
+
+    def test_aoi_sequencer_lab_tables_false_mode_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'AOISequencerLab'})['blockers'],[])
+        self.assertIn(b'AOI sequencer lab',self.get('/'));self.assertIn(b"loadDemo('AOISequencerLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        step();write('Step',True);write('Teach',True);row=step()
+        self.assertEqual((row['OutputsA'],row['OutputsB'],row['LearnedA[2]'],row['DriverB.Scratch[3]']),(0x120001,0x340008,11,22))
+        self.assertTrue(row['DriverA.Matched']);self.assertTrue(row['DriverB.Matched'])
+        write('ValueA',33);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertEqual((row['LearnedA[2]'],row['DriverA.Scratch[2]']),(33,33))
+        write('EnabledA',False);write('IndexA',999);row=step();self.assertFalse(row['SequenceA.EN']);self.assertTrue(row['SequenceB.EN'])
+        write('IndexA',1);write('EnabledA',True);row=step();self.assertEqual((row['SequenceA.POS'],row['SequenceB.POS']),(2,1))
+        profile=self.post('report',{})['sequencer_operations'];self.assertIn('indirect',profile['starting_references']);self.assertIn('InOut',profile['aoi']);self.assertFalse(profile['native_scan_parity'])
+
+    def test_sequencer_alias_suffix_keeps_caller_scope_through_http(self):
+        import base64
+        from xml.etree import ElementTree as E
+        root=E.parse(Path(__file__).resolve().parents[1]/'samples/SequenceLab.L5X').getroot()
+        tags=root.find('./Controller/Tags');program=root.find('./Controller/Programs/Program/Tags')
+        E.SubElement(tags,'Tag',Name='PatternView',DataType='DINT',Dimensions='5',TagType='Alias',AliasFor='Patterns')
+        for parent,value in ((tags,0),(program,1)):
+            tag=E.SubElement(parent,'Tag',Name='Offset',DataType='DINT',TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value=str(value))
+        tags.find('Tag[@Name="SequenceControl"]/Data/Structure/DataValueMember[@Name="LEN"]').set('Value','2')
+        content=root.find('.//Program/Routines/Routine/RLLContent');content.clear()
+        E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='SQO(PatternView[Offset],255,Outputs,SequenceControl,?,?);'
+        loaded=self.post('load',{'name':'CallerScope.L5X','content':base64.b64encode(E.tostring(root,encoding='utf-8',xml_declaration=True)).decode()});self.assertEqual(loaded['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        self.assertEqual(values(self.post('step',{'dt':10}))['Outputs'],0x120001)
+        self.post('write',{'tag':'Program:MainProgram.Offset','value':2})
+        self.assertEqual(values(self.post('step',{'dt':10}))['Outputs'],0x120002)

@@ -676,7 +676,7 @@ class Memory:
         return parsed.evaluate(self,scope,index=True)
 
     def bound_suffix(self,suffix,scope):
-        """Evaluate AOI subscripts in their frame before following a binding."""
+        """Evaluate caller subscripts before following alias or AOI bindings."""
         out=[];pos=0
         while pos<len(suffix):
             start=suffix.find('[',pos)
@@ -717,7 +717,10 @@ class Memory:
         if tag.problem: raise ModelError(f"{tag.key}: {tag.problem}")
         if key in seen: raise ModelError("Alias cycle")
         tail = ref[m.end():]
-        if tag.alias: return self.resolve(tag.alias + tail, tag.scope, seen + (key,))
+        if tag.alias:
+            # Caller suffixes use the caller's namespace; indices authored in
+            # AliasFor itself still belong to the alias declaration's scope.
+            return self.resolve(tag.alias + self.bound_suffix(tail,scope),tag.scope,seen+(key,))
         parts = []
         dtype = tag.dtype
         value = self.values[key]

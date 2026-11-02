@@ -1,14 +1,65 @@
-"""Bounded v35 5580 DINT ladder sequencers, with saved CONTROL LEN/POS."""
+"""Bounded DINT ladder sequencers with canonical table references and CONTROL."""
+import re
 from . import bit_transfer, control_operations as controls
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import ModelError, split_indices
 
 INSTRUCTIONS = frozenset(('SQI', 'SQO', 'SQL'))
 
 
-def array_region(memory, ref, count, scope, *, writable=False):
-    # Reuse static start/member/resource checks. Read-only input tables are legal.
-    return controls.array_region(memory, ref, count, scope, writable=writable)
+def check_indices(memory, ref, scope, seen=()):
+    """Do not add CONTROL.POS twice: it is already the sequencer row offset."""
+    from .expressions import Expression
+    identity=(ref.lower(),scope.lower())
+    if identity in seen or len(seen)>32:raise ModelError('Sequencer reference cycle or nesting limit')
+    seen=seen+(identity,);pos=0
+    while pos<len(ref):
+        start=ref.find('[',pos)
+        if start<0:break
+        end=start+1;depth=1
+        while end<len(ref) and depth:
+            if ref[end]=='[':depth+=1
+            elif ref[end]==']':depth-=1
+            end+=1
+        if depth:raise ModelError('Unclosed sequencer subscript')
+        for expr in split_indices(ref[start+1:end-1]):
+            for name in Expression(expr).refs:
+                key,parts,_=memory.resolve(name,scope)
+                if parts and parts[-1]=='POS' and memory.resolve(memory.address(key,parts[:-1]))[2]=='CONTROL':
+                    raise ModelError('Sequencer table start must not use CONTROL.POS in a subscript')
+                check_indices(memory,name,scope,seen)
+        pos=end
+    explicit=re.match(r'Program:(\w+)\.(.+)',ref,re.I)
+    owner,local=explicit.groups() if explicit else (scope,ref)
+    match=re.match(r'[A-Za-z_][\w:]*',local)
+    if not match:raise ModelError('Invalid sequencer table reference')
+    name=match[0]
+    if owner in memory.frames:
+        binding=memory.frames[owner].get(name.lower())
+        if binding:check_indices(memory,*binding,seen)
+    else:
+        tag=memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
+        if tag is not None and tag.alias:check_indices(memory,tag.alias,tag.scope,seen)
+
+
+def starting_array(memory, ref, scope, *, writable=False, structural=False):
+    previous=memory.structural
+    try:
+        if structural:memory.structural=True
+        check_indices(memory,ref,scope)
+        key,parts,dtype=(memory.check_writable if writable else memory.resolve)(ref,scope)
+        if dtype!='DINT' or any(isinstance(part,tuple) for part in parts):
+            raise ModelError('Sequencer table must be a DINT array')
+        value=memory.at(key,parts)
+        if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i]),list)
+                                                for i,part in enumerate(parts) if isinstance(part,int)):
+            raise ModelError('Sequencer table must address an array')
+        if scope in memory.frames and (not parts or not isinstance(parts[-1],int) or
+                len(parts)>1 and isinstance(parts[-2],int) or isinstance(value,list)):
+            raise ModelError('AOI sequencers require a selected element of a one-dimensional array')
+        memory.region(ref,0,scope)
+        return key,parts,dtype
+    finally:memory.structural=previous
 
 
 def validate(memory, op, scope):
@@ -18,9 +69,7 @@ def validate(memory, op, scope):
     if a[control_index + 1:] != ['?', '?']:
         raise ModelError('Sequencer LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, a[control_index], scope)
-    key, _, dtype = array_region(memory, a[0], 0, scope, writable=op.name == 'SQL')
-    if dtype != 'DINT':raise ModelError('Sequencer table must be a DINT array')
-    _, parts, _ = memory.resolve(a[0], scope)
+    key, parts, _ = starting_array(memory, a[0], scope, writable=op.name == 'SQL', structural=True)
     ck, cp, _ = memory.resolve(a[control_index], scope)
     if ck == key and (parts[:len(cp)] == cp or cp[:len(parts)] == parts):
         raise ModelError('Sequencer table and CONTROL cannot overlap')
@@ -30,8 +79,11 @@ def validate(memory, op, scope):
         bit_transfer.operand(memory, a[1], scope)
         controls.scalar(memory, a[2], scope, 'DINT', destination=op.name == 'SQO')
         if op.name == 'SQO':
-            dk, _, _ = memory.resolve(a[2], scope)
-            if dk == key:raise ModelError('SQO destination must not share the table base tag')
+            dk, dp, _ = memory.resolve(a[2], scope)
+            if dk == key:
+                boundary=parts[:-1] if parts and isinstance(parts[-1],int) else parts
+                if scope not in memory.frames or dp[:len(boundary)]==boundary or boundary[:len(dp)]==dp:
+                    raise ModelError('SQO destination must not share the table array storage')
 
 
 def prescan(memory, op, scope):
@@ -69,8 +121,12 @@ def execute(memory, op, power, scope):
     # bounded profile qualifies the whole configured table including row zero.
     if length + 1 > controls.MAX_ELEMENTS:
         raise ModelError('Sequencer table exceeds the 4096-element software limit')
+    # Only reached data operations consume the live starting subscript. A bad
+    # start faults; the existing SQI/SQO ER policy still covers a valid start
+    # whose configured LEN+1 window runs beyond its array/member boundary.
+    starting_array(memory,a[0],scope,writable=n=='SQL')
     try:
-        key, paths, _ = array_region(memory, a[0], length + 1, scope, writable=n == 'SQL')
+        key, paths, _ = memory.region(a[0], length + 1, scope)
     except ModelError:
         if n == 'SQL':raise
         obj['ER'] = True
@@ -97,8 +153,10 @@ def description():
                 rows='Startup row zero; edge advances through 1..LEN then wraps to one',
                 held_true='SQO rewrites masked output; SQL reloads current row; SQI compares without advancing',
                 masks='SINT/INT/DINT zero-filled patterns and 32-bit radix immediates',
-                bounds='Static selected-member region including LEN+1 rows, maximum 4096 elements',
+                bounds='Selected array/member region including LEN+1 rows, maximum 4096 elements; live starts consumed on reached data operations, including held calls',
+                starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live indices',
+                aoi='RLL bodies with exact one-dimensional InOut/local DINT arrays and selected element starts; disjoint instance members allowed; existing Prescan/EnableInFalse/binding rollback rules',
                 invalid_state='ER with data retained for modeled SQI/SQO cases; SQL bounds stop and roll back',
                 native_scan_parity=False, native_control_layout=False,
-                remaining=['Mixed SQL/SQI source types', 'Indirect/alias/AOI table starts',
+                remaining=['Mixed SQL/SQI source types', 'Broader AOI shapes/lifecycle and additional languages',
                            'Native faults/invalid-state parity and broader controller profiles'])

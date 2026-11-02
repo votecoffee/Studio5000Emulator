@@ -45,9 +45,10 @@ and scheduling. Native fault classification and partial side effects remain
 separate work.
 
 Input tables may be constant. SQL tables and CONTROL records must be writable.
-Array starts require static literal indices; indirect/alias starts and AOI
-array bindings remain unqualified. SQO destinations cannot share the table base
-tag. Mixed source types, ST/FBD forms, other controller profiles and native
+[Aliases, indirect starts and ladder AOI tables](sequencer-references.md) now
+execute with explicit index-consumption and boundary rules. SQO destinations
+outside AOIs cannot share the table base tag; disjoint AOI instance members
+are supported. Mixed source types, ST/FBD forms, other controller profiles and native
 CONTROL layout/scan/status parity remain unfinished.
 
 ## Sequence Lab

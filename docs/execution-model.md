@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[Sequencer table references](sequencer-references.md) use structural preflight and
+live start sampling on reached SQO/SQI/SQL data operations, including held calls.
+Alias suffix indices retain the caller namespace; AliasFor-authored indices retain
+the declaration namespace. AOI InOut/local tables share canonical storage and
+participate in binding/value rollback.
+
 [AOI FAL/FSC](aoi-file-operations.md) share the ordinary bounded file
 algorithms. INC progress uses resolved CONTROL storage, including InOut banks
 and nested local records, and participates in whole-advance rollback with

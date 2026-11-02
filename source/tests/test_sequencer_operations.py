@@ -121,7 +121,7 @@ class SequencerTests(unittest.TestCase):
             e=self.checked([instruction],length=4096)
             with self.assertRaisesRegex(ModelError,'software limit'):e.step()
         for instruction in ('SQO(Queue[0],TRUE,Outgoing,Ctl,?,?);','SQL(Queue[0],BitIn,Ctl,?,?);',
-                            'SQI(Queue[Incoming],-1,Incoming,Ctl,?,?);','SQO(Queue[0],-1,Queue[1],Ctl,?,?);',
+                            'SQI(Queue[Ctl.POS],-1,Incoming,Ctl,?,?);','SQO(Queue[0],-1,Queue[1],Ctl,?,?);',
                             'SQO(Queue[0],-1,Outgoing,Ctl,3,0);'):
             self.assertTrue(self.engine([instruction],length=3).blockers)
         e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);'],length=3);e.memory.values['incoming']=None

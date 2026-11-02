@@ -1,0 +1,350 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOISequencerLab" TargetType="Controller" ContainsContext="false" ExportOptions="DecoratedData Context Dependencies">
+  <Controller Name="AOISequencerLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabSequencer" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true">
+        <Parameters>
+          <Parameter Name="EnableIn" DataType="BOOL" Usage="Input" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="EnableOut" DataType="BOOL" Usage="Output" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="Step" DataType="BOOL" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Teach" DataType="BOOL" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Index" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Value" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Feedback" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Table" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="6" />
+          <Parameter Name="Learned" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="6" />
+          <Parameter Name="Sequence" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="TeachState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Destination" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Matched" DataType="BOOL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="LocalValue" DataType="DINT" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Scratch" DataType="DINT" Dimensions="6" />
+          <LocalTag Name="LocalState" DataType="CONTROL" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Step)SQO(Table[Index],16#FF,Destination,Sequence,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Step)SQI(Table[Index],16#FF,Feedback,Sequence,?,?)OTE(Matched);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Teach)SQL(Learned[Index],Value,TeachState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Teach)SQL(Scratch[Index],Value,LocalState,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>MOV(Scratch[2],LocalValue);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()SQO(Table[Index],16#FF,Destination,Sequence,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()SQI(Table[Index],16#FF,Feedback,Sequence,?,?)OTE(Matched);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>AFI()SQL(Learned[Index],Value,TeachState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>AFI()SQL(Scratch[Index],Value,LocalState,?,?);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Step" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Teach" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="ValueA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="11" />
+        </Data>
+      </Tag>
+      <Tag Name="ValueB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="22" />
+        </Data>
+      </Tag>
+      <Tag Name="FeedbackA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FeedbackB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="8" />
+        </Data>
+      </Tag>
+      <Tag Name="OutputsA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1179648" />
+        </Data>
+      </Tag>
+      <Tag Name="OutputsB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3407872" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Quotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PatternsA" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="101" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="1" />
+            <Element Index="[3]" Value="2" />
+            <Element Index="[4]" Value="991" />
+            <Element Index="[5]" Value="992" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="LearnedA" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="201" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="901" />
+            <Element Index="[5]" Value="902" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="SequenceA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TeachA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabSequencer" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabSequencer">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Step" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Teach" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="1" />
+            <DataValueMember Name="Value" DataType="DINT" Value="11" />
+            <DataValueMember Name="Feedback" DataType="DINT" Value="1" />
+            <DataValueMember Name="Matched" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LocalValue" DataType="DINT" Value="0" />
+            <ArrayMember DataType="DINT" Dimensions="6" Name="Scratch">
+              <Element Index="[0]" Value="301" />
+              <Element Index="[1]" Value="302" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="913" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PatternsB" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="102" />
+            <Element Index="[1]" Value="103" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="8" />
+            <Element Index="[4]" Value="16" />
+            <Element Index="[5]" Value="993" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="LearnedB" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="202" />
+            <Element Index="[1]" Value="203" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="0" />
+            <Element Index="[5]" Value="903" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="SequenceB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TeachB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabSequencer" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabSequencer">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Step" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Teach" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="2" />
+            <DataValueMember Name="Value" DataType="DINT" Value="22" />
+            <DataValueMember Name="Feedback" DataType="DINT" Value="8" />
+            <DataValueMember Name="Matched" DataType="BOOL" Value="0" />
+            <DataValueMember Name="LocalValue" DataType="DINT" Value="0" />
+            <ArrayMember DataType="DINT" Dimensions="6" Name="Scratch">
+              <Element Index="[0]" Value="301" />
+              <Element Index="[1]" Value="302" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="0" />
+              <Element Index="[5]" Value="913" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalState">
+              <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PatternView" TagType="Alias" DataType="DINT" Dimensions="6" AliasFor="PatternsA" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(EnabledA)LabSequencer(DriverA,Step,Teach,IndexA,ValueA,FeedbackA,PatternView,LearnedA,SequenceA,TeachA,OutputsA);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledB)LabSequencer(DriverB,Step,Teach,IndexB,ValueB,FeedbackB,PatternsB,LearnedB,SequenceB,TeachB,OutputsB);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

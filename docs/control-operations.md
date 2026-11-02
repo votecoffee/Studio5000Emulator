@@ -81,7 +81,9 @@ templates, packed byte layouts and whole-record wire transfers remain withheld.
 All operations stay within a 4096-element software bound. Static starts retain
 their earlier rules. The v35 5580 shift/FIFO/LIFO profile also accepts aliases
 and bounded indirect starts, resolved when an edge needs the region. Separate
-file/sequencer consumers retain their own restrictions. Known words are required
+file consumers retain their own restrictions. [Sequencers](sequencer-references.md)
+now support alias/indirect tables and selected one-dimensional AOI arrays, with
+live-start consumption on each reached data operation. Known words are required
 for shifts and numeric FIFO unload regions. Aggregate
 copies preserve represented unknown fields/backing bytes; reached unknown whole
 sources still fault. Bounds, source and conversion failures roll back data, control
