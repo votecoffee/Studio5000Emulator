@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; PID numeric operands/tieback added for app `26.1102.095230`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-02; PID PV tracking/inhold added for app `26.1102.101552`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -118,7 +118,7 @@ schema/behavior backlog separately from instruction names.
 | COP/CPS | [Numeric byte regions](numeric-copies.md) support SINT/INT/DINT/LINT, unsigned integers and finite REAL in RLL/ST: destination-sized requests, clipped numeric-region bounds, partial destination preservation and forward overlap. Aggregate/BOOL/string/LREAL layouts, cross-member/base-tag forms, native synchronization and fault/partial-effect parity remain unfinished. |
 | FLL/SIZE | All legal types, narrowing/conversion rules and aggregate forms. Current FLL has bounded numeric destinations and DINT-zero structure fills. |
 | CPT/CMP/MEQ | [Narrow integer division](integer-expressions.md) now works in CPT/CMP and FAL/FSC expressions with documented REAL promotion. [Homogeneous LINT/unsigned ladder forms](ladder-wide-expressions.md) add exact CPT/CMP and declared-width MEQ. Mixed types/conversions, wider immediates, functions/power, file/index consumers and native arithmetic/status parity remain unfinished. |
-| PID (ladder software profile) | [Logical PID](ladder-pid.md), independent/dependent P/PI/PID, scaling, limits, [integer operands and hardware manual](pid-operands.md), alarms and [unsmoothed derivative/deadband](pid-dynamics.md). Smoothing/cascade/inhold, further operands/languages and native coefficients/status/fault/layout parity remain unfinished. |
+| PID (ladder software profile) | [Logical PID](ladder-pid.md), independent/dependent P/PI/PID, scaling, limits, [integer operands and hardware manual](pid-operands.md), alarms, [derivative/deadband](pid-dynamics.md) and [manual PVT/inhold](pid-restart.md). Smoothing/cascade/module restart, further operands/languages and native coefficients/status/fault/layout parity remain unfinished. |
 | PI (ST only, software profile) | [Logical PROP_INT regulation](st-pi-regulation.md), linear/shaped gains, trapezoidal integral, holds, limits, initialization, timing and rollback. Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs and packed layouts remain unfinished; the separate [ladder PID](ladder-pid.md) has bounded P/PI/PID behavior and PIDE remains unimplemented. |
 | FGEN/DEDT (ST only) | [Logical curves and delay](st-curves-delay.md), selected piecewise tables, endpoint clamps, sample queues, resizing, health/timing/status and rollback. Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs and packed layouts remain unfinished. |
 | ESEL/DERV (ST/FBD) | [Logical process signals](st-process-signals.md), healthy high/low/median/mean/manual selection, Program/Operator requests, timed rate of change, bypass and rollback. Native startup/request/health/timing/rounding qualification, RTS, general FBD forms and packed layouts remain unfinished. |

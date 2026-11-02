@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.101552`: [PID manual PV tracking/inhold](pid-restart.md),
+manual SP tracking, explicit readback initialization and automatic release.
+Analog module handshakes/timing and exact native restart behavior remain open.
+
 Available in `26.1102.095230`: [PID numeric operands/tieback](pid-operands.md),
 SINT/INT/DINT/REAL PV/CV, explicit conversion/deadband behavior and MO hardware
 manual. PID lab now has separate REAL/INT loops and Boolean mode aliases.

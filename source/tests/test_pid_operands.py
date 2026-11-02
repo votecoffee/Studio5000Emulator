@@ -156,7 +156,7 @@ class PIDOperandTests(unittest.TestCase):
 
     def test_unsupported_types_literals_aggregates_and_overlap_still_block(self):
         for text in ('PID(Loop,20,0,CV,0,0,0);','PID(Loop,PV,TRUE,CV,0,0,0);','PID(Loop,PV,2147483648,CV,0,0,0);',
-                     'PID(Loop,PV,Tieback+1,CV,0,0,0);','PID(Loop,PV,Loop.TIE,CV,0,0,0);','PID(Loop,PV,Tieback,CV,0,Execute,0);'):
+                     'PID(Loop,PV,Tieback+1,CV,0,0,0);','PID(Loop,PV,Loop.TIE,CV,0,0,0);','PID(Loop,PV,Tieback,CV,0,PV,0);'):
             with self.subTest(text=text):self.assertTrue(self.engine(lines=[text]).blockers)
         for name,kind in (('PV','LINT'),('CV','UDINT'),('Tieback','BOOL')):
             def bad(root):

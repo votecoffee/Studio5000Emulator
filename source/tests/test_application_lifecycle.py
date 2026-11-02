@@ -1529,3 +1529,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IntManual',True);write('Tieback',60);row=step();self.assertEqual(row['RawCV'],19660);self.assertFalse(row['IntLoop.CTL']&(1<<11))
         fault(write('IntLoop.MAXCV',100000));write('IntLoop.MAXCV',32767);self.assertEqual(step()['RawCV'],19660)
         p=self.post('report',{})['ladder_pid'];self.assertIn('ties-to-even',p['conversions']);self.assertIn('MO overrides SWM',p['manual']);self.assertFalse(p['native_runtime_parity'])
+
+
+    def test_pid_tracking_inhold_release_and_rollback_through_http(self):
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        def fault(before):
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        self.assertEqual(self.post('demo',{'sample':'PIDLab'})['blockers'],[])
+        write('Execute',True);self.assertEqual(step()['CV'],45)
+        write('Inhold',True);write('Readback',75);row=step();self.assertEqual((row['CV'],row['Loop.OUT'],row['Loop.DATA[0]']),(75,75,45));self.assertTrue(row['Inhold'])
+        write('Readback',80);fault(write('FaultDivisor',0));write('FaultDivisor',1);self.assertEqual(step()['CV'],80)
+        write('Inhold',False);self.assertEqual(step()['CV'],80)
+        write('Manual',True);write('PVTracking',True);write('PV',25);row=step();self.assertEqual((row['CV'],row['Loop.SP'],row['Loop.ERR']),(50,25,0))
+        write('Inhold',True);write('Readback',65);write('PV',30);row=step();self.assertEqual((row['CV'],row['Loop.SP']),(65,25))
+        write('Inhold',False);row=step();self.assertEqual((row['CV'],row['Loop.SP']),(50,30))
+        write('IntExecute',True);write('IntInhold',True);write('IntReadback',20000);row=step();self.assertEqual((row['RawCV'],row['IntLoop.DATA[14]']),(20000,20000))
+        fault(write('IntReadback',-1));write('IntReadback',21000);self.assertEqual(step()['RawCV'],21000)
+        p=self.post('report',{})['ladder_pid'];self.assertIn('PVT',p['pv_tracking']);self.assertIn('acknowledgement',p['inhold']);self.assertFalse(p['native_runtime_parity'])

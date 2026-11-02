@@ -13,10 +13,12 @@ XIC(Execute)PID(Loop,PV,0,CV,0,0,0);
 ```
 
 `Loop` is a writable logical `PID`; PV/CV accept scalar SINT/INT/DINT/REAL tags.
-Tieback accepts these tag types or numeric immediates; master-loop and both
-inhold operands require literal zero. [Numeric operands and tieback](pid-operands.md)
+Tieback accepts these tag types or numeric immediates; the
+inhold operands accept stored BOOL status and numeric readback tags, or literal
+zero to disable them. [PV tracking and inhold](pid-restart.md) describe their
+restart contract; the master operand requires zero. [Numeric operands and tieback](pid-operands.md)
 describe conversions and hardware manual priority. Aliases, program scope and
-selected arrays/members resolve through shared memory. PV/CV/tieback cannot
+selected arrays/members resolve through shared memory. PV/CV/tieback/inhold cannot
 overlap the PID record. ST/AOI and other optional forms remain blocked.
 Use one true execution of a record at
 each modeled task-release time; a repeated true call at the same time faults.
@@ -64,6 +66,9 @@ not native minor-fault records or partial controller effects.
 
 ## Manual, lifecycle and diagnostics
 
+[Inhold](pid-restart.md) can override output with readback and seed I/BIAS.
+Manual PVT copies scaled PV into SP only while manual controls the output.
+
 MO selects [hardware manual/tieback](pid-operands.md) and overrides SWM. Tieback
 is scaled using MINTIE/MAXTIE, clamps into 0..100 and uses the same tracking path.
 
@@ -106,7 +111,7 @@ controls; see the [numeric operand examples](pid-operands.md).
 ## Remaining
 
 Nonzero KD requires NDF true; derivative smoothing remains blocked. Cascade
-flags CT/CL and PV tracking PVT fault explicitly. Filtering, inhold/module restart,
+flags CT/CL fault explicitly. Filtering, analog module restart/acknowledgement,
 saved active state, additional languages/operands, native derivative/deadband
 coefficients, boundaries, lifecycle, status/
 fault/precision/lifecycle behavior and DATA/layout interpretation remain open.

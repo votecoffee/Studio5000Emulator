@@ -138,7 +138,7 @@ class LadderPIDTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);self.assertEqual(self.run_step(e,FaultDivisor=1),60)
 
     def test_invalid_and_unsupported_live_options_roll_back(self):
-        for member,value in [('KD',1),('DB',-1),('KD',-1),('CL',True),('CT',True),('PVT',True),
+        for member,value in [('KD',1),('DB',-1),('KD',-1),('CL',True),('CT',True),
                              ('UPD',0),('UPD',-1),('KP',-1),('KI',-1),('MAXI',0),('MAXS',0),
                              ('MAXCV',0),('SP',101),('MINO',101),('MAXO',-1),('PVDB',-1),('DVDB',-1),('PVL',90)]:
             with self.subTest(member=member,value=value):
@@ -155,7 +155,7 @@ class LadderPIDTests(unittest.TestCase):
         self.assertIsNone(e.memory.values['loop']['DATA'][1]);self.assertEqual(e.memory.read('Loop.DATA[0]'),15)
 
     def test_unsupported_operand_types_profiles_and_optional_forms_block(self):
-        for text in ('PID(Loop,20,0,CV,0,0,0);','PID(Loop,PV,0,PV,Loop,0,0);','PID(Loop,PV,TRUE,CV,0,0,0);','PID(Loop,PV,0,Loop.PV,0,0,0);','PID(Loop,PV,0,CV,0,Execute,0);'):
+        for text in ('PID(Loop,20,0,CV,0,0,0);','PID(Loop,PV,0,PV,Loop,0,0);','PID(Loop,PV,TRUE,CV,0,0,0);','PID(Loop,PV,0,Loop.PV,0,0,0);','PID(Loop,PV,0,CV,0,PV,0);'):
             with self.subTest(text=text):self.assertTrue(self.engine(lines=[text]).blockers)
         for name in ('PV','CV'):
             def integer(root):root.find('./Controller/Tags/Tag[@Name="'+name+'"]').set('DataType','LINT')

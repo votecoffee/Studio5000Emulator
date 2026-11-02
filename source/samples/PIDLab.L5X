@@ -166,6 +166,28 @@
       <Tag Name="IntSoftwareManual" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.SWM" ExternalAccess="Read/Write" />
       <Tag Name="IntNoDerivativeSmoothing" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.NDF" ExternalAccess="Read/Write" />
       <Tag Name="IntNoZeroCrossing" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.NOZC" ExternalAccess="Read/Write" />
+      <Tag Name="Inhold" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Readback" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="50" />
+        </Data>
+      </Tag>
+      <Tag Name="IntInhold" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IntReadback" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="16384" />
+        </Data>
+      </Tag>
+      <Tag Name="PVTracking" TagType="Alias" DataType="BOOL" AliasFor="Loop.PVT" ExternalAccess="Read/Write" />
+      <Tag Name="IntPVTracking" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.PVT" ExternalAccess="Read/Write" />
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -174,12 +196,12 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Comment>PID software profile. Set Execute; SWM uses SO, MO uses Tieback. Set NDF before nonzero KD. UPD is seconds per reached call.</Comment>
-                <Text>XIC(Execute)PID(Loop,PV,Tieback,CV,0,0,0);</Text>
+                <Comment>PID software profile. MO uses Tieback; PVTracking follows PV in manual. Inhold copies Readback to CV. Set NDF before nonzero KD.</Comment>
+                <Text>XIC(Execute)PID(Loop,PV,Tieback,CV,0,Inhold,Readback);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Comment>Optional INT process and control values. Set IntExecute; inspect RawPV, RawCV and IntLoop. Both loops share the external Tieback input.</Comment>
-                <Text>XIC(IntExecute)PID(IntLoop,RawPV,Tieback,RawCV,0,0,0);</Text>
+                <Text>XIC(IntExecute)PID(IntLoop,RawPV,Tieback,RawCV,0,IntInhold,IntReadback);</Text>
               </Rung>
               <Rung Number="2" Type="N">
                 <Comment>Set FaultDivisor to zero to verify transactional rollback, then correct it and retry.</Comment>

@@ -12,8 +12,9 @@ XIC(Execute)PID(Loop,PV,Tieback,CV,0,0,0);
 
 PV must be a numeric tag. CV must be a writable numeric tag. Tieback may be a
 scalar tag of the same four supported types, a signed DINT immediate or a finite
-REAL immediate. The operands may use different supported types. Master and
-both inhold operands still require literal zero. BOOL, wide/unsigned types,
+REAL immediate. The operands may use different supported types. Master requires
+literal zero; [inhold](pid-restart.md) accepts status/readback tags or zero sentinels.
+BOOL numeric operands, wide/unsigned types,
 expressions, whole arrays and overlap with the PID record remain blocked.
 Aliases and selected array/member operands use the common memory resolver.
 
@@ -56,8 +57,9 @@ Manual percent uses the full 0..100 range, independent of automatic MINO/MAXO,
 then follows normal CV descaling and conversion. It clears the deadband latch
 and refreshes derivative samples. Invalid or unknown tieback data/ranges fault
 when MO consumes them, without committing earlier work from that advance.
-PVT tracking, cascade, inhold/module restart, smoothing and saved native solver
-history remain unsupported. ST/AOI instruction forms remain deferred.
+[Manual PVT and explicit inhold inputs](pid-restart.md) now execute. Cascade,
+analog module restart/acknowledgement, smoothing and saved native solver history
+remain unsupported. ST/AOI instruction forms remain deferred.
 
 ## PID lab
 

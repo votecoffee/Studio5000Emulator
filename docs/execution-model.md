@@ -39,7 +39,9 @@ history. [Derivative and deadband](pid-dynamics.md) add previous-sample and
 zero-crossing state to the same transaction. Smoothing/cascade and native
 equations/layouts remain blocked. [Narrow numeric operands and tieback](pid-operands.md)
 add explicit float32 promotion, integer CV conversion/deadband zeroing and
-hardware manual priority to the same transaction.
+hardware manual priority to the same transaction. [Manual PVT and inhold](pid-restart.md)
+add SP tracking and readback-driven CV initialization; their SP/CV/history effects
+roll back with the advance. Analog module acknowledgement/timing is separate.
 
 [ST PI regulation](st-pi-regulation.md) retains integral, prior input, held output
 and clock per resolved record. Holds and saturation affect the integral; Run
