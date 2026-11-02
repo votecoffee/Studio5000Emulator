@@ -59,7 +59,9 @@ Array accesses remain within the selected member/dimension.
 
 [INC mode](file-incremental.md) now supports one iteration per enable edge for
 idle-source controls, with separate transactional progress and RES integration.
-Saved active INC controls, AOI execution and ST/FBD FAL calls remain blocked.
+Saved active INC controls and ST/FBD FAL calls remain blocked.
+[RLL AOI execution](aoi-file-operations.md) now supports exact InOut and
+represented local operands with the same bounded expressions and modes.
 No private native edge state or target-specific fault behavior is fabricated.
 
 ## Stats Lab

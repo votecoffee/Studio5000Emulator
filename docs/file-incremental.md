@@ -74,8 +74,9 @@ their progress, preserving LEN and the arrays. See
 Native hidden-bit encoding, restoration from a saved active snapshot, copying
 hidden progress through aggregate transfers, mixed consumers of one CONTROL,
 final-cursor parity, native status/fault records and partial-write behavior
-remain unqualified. AOI execution, ST/FBD instruction calls and additional
-types/expressions remain unfinished. These are software-model checks; native
+remain unqualified. [RLL AOI execution](aoi-file-operations.md) now shares
+the same idle-source gate and canonical progress. ST/FBD instruction calls,
+additional types/expressions and broader AOI lifecycle/schema remain unfinished. These are software-model checks; native
 controller and Studio acceptance are separate.
 
 The baseline is installed v35 help 14504/14515/14521/14523 and the INC/true/false

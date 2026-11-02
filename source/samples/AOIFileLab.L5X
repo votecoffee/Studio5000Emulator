@@ -1,0 +1,351 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIFileLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIFileLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabFileDriver" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="Transform" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Search" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Reset" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Gain" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Bias" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Threshold" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Input" TagType="Base" DataType="DINT" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Dimensions="5" Constant="false" />
+          <Parameter Name="Output" TagType="Base" DataType="DINT" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Dimensions="5" Constant="false" />
+          <Parameter Name="Calc" TagType="Base" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Constant="false" />
+          <Parameter Name="Find" TagType="Base" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Constant="false" />
+          <Parameter Name="Found" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="Position" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="Total" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Scratch" DataType="DINT" Dimensions="5" ExternalAccess="None" />
+          <LocalTag Name="LocalCalc" DataType="CONTROL" ExternalAccess="None" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Reset)RES(Calc)RES(Find)RES(LocalCalc)CLR(Total);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Transform)FAL(Calc,?,?,INC,Output[Calc.POS],Input[Calc.POS]*Gain+Bias);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Search)FSC(Find,?,?,INC,Input[Find.POS]&gt;=Threshold);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Transform)FAL(LocalCalc,?,?,INC,Scratch[LocalCalc.POS],Input[LocalCalc.POS]+Bias);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>MOV(Find.POS,Position)XIC(Find.FD)OTE(Found);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>CPT(Total,Scratch[0]+Scratch[1]+Scratch[2]+Scratch[3]);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()FAL(Calc,?,?,INC,Output[Calc.POS],Input[Calc.POS]*Gain+Bias);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()FSC(Find,?,?,INC,Input[Find.POS]&gt;=Threshold);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>AFI()FAL(LocalCalc,?,?,INC,Scratch[LocalCalc.POS],Input[LocalCalc.POS]+Bias);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Transform" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Search" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Reset" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GainA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="BiasA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="GainB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="BiasB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="8" />
+        </Data>
+      </Tag>
+      <Tag Name="Steps" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="InputA" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="2" />
+            <Element Index="[1]" Value="4" />
+            <Element Index="[2]" Value="6" />
+            <Element Index="[3]" Value="8" />
+            <Element Index="[4]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="OutputA" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="901" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CalcA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="FindA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabFileDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabFileDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Transform" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Search" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Gain" DataType="DINT" Value="0" />
+            <DataValueMember Name="Bias" DataType="DINT" Value="0" />
+            <DataValueMember Name="Threshold" DataType="DINT" Value="0" />
+            <DataValueMember Name="Found" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Position" DataType="DINT" Value="0" />
+            <DataValueMember Name="Total" DataType="DINT" Value="0" />
+            <ArrayMember Name="Scratch" DataType="DINT" Dimensions="5">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="777" />
+            </ArrayMember>
+            <StructureMember Name="LocalCalc" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="InputB" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="1" />
+            <Element Index="[1]" Value="3" />
+            <Element Index="[2]" Value="5" />
+            <Element Index="[3]" Value="7" />
+            <Element Index="[4]" Value="998" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="OutputB" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="0" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="902" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CalcB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="FindB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabFileDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabFileDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Transform" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Search" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Reset" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Gain" DataType="DINT" Value="0" />
+            <DataValueMember Name="Bias" DataType="DINT" Value="0" />
+            <DataValueMember Name="Threshold" DataType="DINT" Value="0" />
+            <DataValueMember Name="Found" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Position" DataType="DINT" Value="0" />
+            <DataValueMember Name="Total" DataType="DINT" Value="0" />
+            <ArrayMember Name="Scratch" DataType="DINT" Dimensions="5">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="0" />
+              <Element Index="[4]" Value="777" />
+            </ArrayMember>
+            <StructureMember Name="LocalCalc" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(Steps,1,Steps);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledA)LabFileDriver(DriverA,Transform,Search,Reset,GainA,BiasA,LimitA,InputA,OutputA,CalcA,FindA);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(EnabledB)LabFileDriver(DriverB,Transform,Search,Reset,GainB,BiasB,LimitB,InputB,OutputB,CalcB,FindB);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

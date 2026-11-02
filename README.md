@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.083150`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.085455`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -82,6 +82,9 @@ changing windows, aliases, edge suppression and rollback.
 [AOI queue execution](docs/aoi-queues.md) adds selected one-dimensional InOut
 and saved local arrays, scoped indices and disjoint instance storage. Choose
 **AOI queue lab** to compare two independent queue/stack/shift instances.
+[AOI FAL/FSC execution](docs/aoi-file-operations.md) adds bounded ALL, numeric
+and INC transforms/searches with per-CONTROL progress. **AOI file lab** shows
+two independent scaled arrays, local scratch data and match inhibition.
 Choose **Control lab** to inspect shifts and queues. **Sequence lab** demonstrates
 a stack plus [DINT SQO/SQI/SQL](docs/sequencer-operations.md) for masked pattern
 outputs, feedback comparison and teaching a table.

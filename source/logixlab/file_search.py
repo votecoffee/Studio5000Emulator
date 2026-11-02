@@ -21,7 +21,6 @@ def validate(engine, op, scope):
     memory = engine.memory
     if engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('FSC requires the v35 ControlLogix 5580 software profile')
-    if scope in memory.frames:raise ModelError('FSC execution inside AOIs remains unqualified')
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
@@ -85,7 +84,8 @@ def description():
                 numeric='Active numeric searches continue on false rungs; partial EN stays set',
                 completion='DN set at last element; false with IN clear resets EN/DN/POS and retains FD/ER',
                 prescan='No initialization', max_elements=controls.MAX_ELEMENTS,
+                aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False,
                 incremental=incremental.description(),
                 remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
-                           'AOI execution and native faults/status/invalid-state parity'])
+                           'Broader AOI lifecycle/schema and native faults/status/invalid-state parity'])

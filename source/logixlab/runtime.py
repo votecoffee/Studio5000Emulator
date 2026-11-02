@@ -815,6 +815,7 @@ class Engine:
                            "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",
                            "Hidden saved AOI locals stay unknown until written; definition defaults are never substituted for saved values",
+                           "RLL AOI FAL/FSC use the bounded ALL/numeric/idle-source INC profiles; progress follows resolved CONTROL storage, with native cursor/fault/lifecycle parity unqualified",
                            "AOI alias/constant/nullable parameters, JSR/FOR/BRK inside AOIs, general FBD, SFC/Postscan, motion, CIP/network, module I/O and safety execution are unsupported",
                            "ST supports a bounded typed subset and reached-statement calls; FOR bounds/step must remain unchanged by its body; dynamic counter references are blocked",
                            "ST [:=] clears during prescan; ordinary assignments retain imported values until executed; native runtime equivalence is unverified",

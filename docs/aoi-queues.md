@@ -36,7 +36,8 @@ same-base restrictions remain unchanged.
 
 The first element must be explicitly selected, such as `Buffer[0]` or
 `Buffer[Index]`. Whole arrays, multidimensional starts and partially selected
-subarrays remain outside this AOI profile. Separate file, sequencer, statistics,
+subarrays remain outside this AOI profile. [AOI FAL/FSC](aoi-file-operations.md)
+have a separate bounded expression profile. Other file, sequencer, statistics,
 sorting and bit-diagnostic consumers keep their earlier restrictions.
 
 ## Lifecycle and faults

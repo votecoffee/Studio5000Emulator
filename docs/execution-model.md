@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[AOI FAL/FSC](aoi-file-operations.md) share the ordinary bounded file
+algorithms. INC progress uses resolved CONTROL storage, including InOut banks
+and nested local records, and participates in whole-advance rollback with
+AOI bindings. Numeric work can continue on a false call if active; a skipped
+AOI suspends execution unless its authored EnableInFalse routine invokes it.
+
 [AOI queues and shifts](aoi-queues.md) use exact InOut bindings and represented
 one-dimensional local arrays. Subscripts are evaluated in the AOI frame before
 following the bound tag, including nested frame references. Failed advances

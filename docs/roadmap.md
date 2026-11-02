@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.085455`: [AOI FAL/FSC](aoi-file-operations.md),
+ALL/numeric/INC file transforms and searches, canonical progress, exact InOut
+and represented local operands, with AOI File Lab. Native cursor/fault parity remains open.
+
 Available in `26.1102.083150`: [ladder AOI queues and shifts](aoi-queues.md),
 selected one-dimensional InOut/local arrays, scoped subscript resolution,
 transactional binding rollback and AOI Queue Lab. Broader AOI/native parity remains open.

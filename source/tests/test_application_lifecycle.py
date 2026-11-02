@@ -1434,3 +1434,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexB',2);v=values(self.post('step',{'dt':10}));self.assertEqual((v['ItemA'],v['ItemB']),(11,22))
         self.assertEqual((v['BufferA[0]'],v['BufferA[5]'],v['BufferB[0]'],v['BufferB[5]'],v['DriverA.Stack[3]'],v['DriverB.Stack[3]'],v['DriverA.Bits[2]'],v['DriverB.Bits[2]']),(101,901,102,902,777,777,888,888))
         report=self.post('report',{});self.assertEqual(len(report['add_on_instructions']['instances']),2);self.assertIn('InOut',report['control_operations']['aoi_arrays'])
+
+    def test_aoi_file_lab_progress_inhibit_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'AOIFileLab'});self.assertEqual(state['blockers'],[])
+        self.assertIn(b'AOI file lab',self.get('/'));self.assertIn(b"loadDemo('AOIFileLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        self.post('step',{'dt':10});write('Transform',True);write('Search',True);v=values(step())
+        self.assertEqual((v['OutputA[0]'],v['OutputB[0]'],v['CalcA.POS'],v['CalcB.POS']),(5,2,0,0))
+        v=values(step());self.assertEqual(v['CalcA.POS'],0)
+        for _ in range(2):
+            write('Transform',False);write('Search',False);step();write('Transform',True);write('Search',True);v=values(step())
+        self.assertEqual((v['OutputA[2]'],v['OutputB[2]'],v['FindA.POS']),(13,14,2));self.assertTrue(v['FindA.IN']);self.assertTrue(v['DriverA.Found'])
+        write('Transform',False);write('Search',False);step();write('Transform',True);write('Search',True);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        write('FaultDivisor',1);v=values(step());self.assertEqual((v['OutputA[3]'],v['OutputB[3]'],v['DriverA.Total'],v['DriverB.Total']),(17,20,24,12));self.assertTrue(v['CalcA.DN']);self.assertTrue(v['FindB.DN'])
+        write('FindA.IN',False);v=values(step());self.assertEqual(v['FindA.POS'],2)
+        write('Search',False);write('Transform',False);step();write('Search',True);v=values(step());self.assertEqual(v['FindA.POS'],3);self.assertTrue(v['FindA.DN']);self.assertTrue(v['FindA.IN'])
+        self.assertEqual((v['InputA[4]'],v['InputB[4]'],v['OutputA[4]'],v['OutputB[4]'],v['DriverA.Scratch[4]'],v['DriverB.Scratch[4]']),(999,998,901,902,777,777))
+        report=self.post('report',{});self.assertIn('InOut',report['file_arithmetic']['aoi']);self.assertIn('InOut',report['file_search']['aoi']);self.assertEqual(len(report['add_on_instructions']['instances']),2)

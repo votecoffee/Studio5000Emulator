@@ -31,7 +31,6 @@ def validate(engine, op, scope):
     memory = engine.memory
     if engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('FAL requires the v35 ControlLogix 5580 software profile')
-    if scope in memory.frames:raise ModelError('FAL execution inside AOIs remains unqualified')
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FAL LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
@@ -91,7 +90,8 @@ def description():
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
                 writes='Sequential live reads/writes; source/destination array overlap can propagate',
                 prescan='No initialization', max_elements=controls.MAX_ELEMENTS,
+                aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False, native_math_status=False,
                 incremental=incremental.description(),
                 remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
-                           'AOI execution and native overflow/fault/status/partial-write parity'])
+                           'Broader AOI lifecycle/schema and native overflow/fault/status/partial-write parity'])
