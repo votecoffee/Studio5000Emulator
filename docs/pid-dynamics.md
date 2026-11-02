@@ -75,7 +75,8 @@ latch. Run/INI reset hidden history; a first held call again requires saved OUT.
 
 These boundary, startup, transfer and configuration-change rules are simulator
 choices requiring native qualification. EWD is not a complete native status
-model. Cascade, PV tracking, hardware manual/tieback/inhold, other operand types,
+model. [Hardware manual and narrow integer operands](pid-operands.md) are now supported.
+Cascade, PV tracking, inhold, other operand types,
 ST/AOI forms, native minor faults and packed DATA layouts remain unfinished.
 
 ## Try the existing PID lab

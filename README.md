@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.093759`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.095230`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -197,8 +197,10 @@ for a closed-loop step response or externally supplied process feedback.
 
 [Ladder PID](docs/ladder-pid.md) adds bounded P/PI/PID calculations, scaling,
 limits, alarms and software manual tracking. [Derivative and deadband](docs/pid-dynamics.md)
-include unsmoothed PV/error rates and zero-crossing output holds. Choose **PID lab**
-to try them; derivative smoothing and cascade remain blocked.
+include unsmoothed PV/error rates and zero-crossing output holds.
+[Numeric operands and tieback](docs/pid-operands.md) add integer PV/CV and hardware
+manual mode. Choose **PID lab** for independent REAL/INT loops and Boolean mode
+controls; derivative smoothing and cascade remain blocked.
 
 [Numeric COP/CPS byte copies](docs/numeric-copies.md) add mixed integer/REAL bit
 images, clipped lengths and preserved partial destination elements. Choose

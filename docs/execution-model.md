@@ -37,7 +37,9 @@ seconds per reached true call. Hidden integral/manual history rolls back with
 public fields; Prescan/false clear EN, INI false reinitializes, and Run resets
 history. [Derivative and deadband](pid-dynamics.md) add previous-sample and
 zero-crossing state to the same transaction. Smoothing/cascade and native
-equations/layouts remain blocked.
+equations/layouts remain blocked. [Narrow numeric operands and tieback](pid-operands.md)
+add explicit float32 promotion, integer CV conversion/deadband zeroing and
+hardware manual priority to the same transaction.
 
 [ST PI regulation](st-pi-regulation.md) retains integral, prior input, held output
 and clock per resolved record. Holds and saturation affect the integral; Run

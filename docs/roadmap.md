@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.095230`: [PID numeric operands/tieback](pid-operands.md),
+SINT/INT/DINT/REAL PV/CV, explicit conversion/deadband behavior and MO hardware
+manual. PID lab now has separate REAL/INT loops and Boolean mode aliases.
+
 Available in `26.1102.093759`: [PID derivative/deadband](pid-dynamics.md),
 unsmoothed PV/error rates, independent/dependent gains and output holds with or
 without zero crossing. Native filtering, boundaries and lifecycle remain unqualified.

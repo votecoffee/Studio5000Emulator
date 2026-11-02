@@ -1504,3 +1504,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('Loop.SWM',True);write('Loop.SO',70);self.assertEqual(step()['CV'],70)
         write('Loop.SWM',False);row=step();self.assertEqual(row['CV'],70);self.assertTrue(row['Loop.CTL']&(1<<11))
         p=self.post('report',{})['ladder_pid'];self.assertIn('NDF',p['derivative']);self.assertIn('NOZC',p['deadband']);self.assertFalse(p['native_runtime_parity'])
+
+
+    def test_pid_integer_loops_hardware_manual_and_rollback_through_http(self):
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        def fault(before):
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        loaded=self.post('demo',{'sample':'PIDLab'});self.assertEqual(loaded['blockers'],[])
+        self.assertIs(type(values(loaded)['Manual']),bool);self.assertIs(type(values(loaded)['IntManual']),bool)
+        write('Execute',True);write('IntExecute',True);row=step();self.assertEqual((row['CV'],row['RawCV'],row['IntLoop.PV']),(45,8192,25))
+        for tag,value in [('Manual',True),('IntManual',True),('Tieback',60)]:write(tag,value)
+        row=step();self.assertEqual((row['CV'],row['RawCV'],row['Loop.TIE'],row['IntLoop.TIE']),(60,19660,60,60))
+        for tag,value in [('IntManual',False),('IntSoftwareManual',True),('IntLoop.SO',50)]:write(tag,value)
+        self.assertEqual(step()['RawCV'],16384);write('IntSoftwareManual',False);self.assertEqual(step()['RawCV'],16384)
+        write('IntManual',True);write('Tieback',75);fault(write('FaultDivisor',0));write('FaultDivisor',1)
+        row=step();self.assertEqual((row['CV'],row['RawCV'],row['IntLoop.DATA[14]']),(75,24575,24575))
+        for tag,value in [('IntManual',False),('IntLoop.DB',2),('IntNoZeroCrossing',True),('RawPV',11840)]:write(tag,value)
+        row=step();self.assertEqual((row['RawCV'],row['IntLoop.OUT']),(0,75));self.assertTrue(row['IntLoop.CTL']&(1<<11))
+        write('IntManual',True);write('Tieback',60);row=step();self.assertEqual(row['RawCV'],19660);self.assertFalse(row['IntLoop.CTL']&(1<<11))
+        fault(write('IntLoop.MAXCV',100000));write('IntLoop.MAXCV',32767);self.assertEqual(step()['RawCV'],19660)
+        p=self.post('report',{})['ladder_pid'];self.assertIn('ties-to-even',p['conversions']);self.assertIn('MO overrides SWM',p['manual']);self.assertFalse(p['native_runtime_parity'])

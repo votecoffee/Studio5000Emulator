@@ -1,6 +1,6 @@
 """Bounded ladder PID solver; native coefficients, filtering and layout unqualified."""
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import ModelError, coerce, literal
 from .real_math import real
 
 INSTRUCTIONS = frozenset(('PID',))
@@ -11,11 +11,26 @@ BITS = dict(EN=31, CT=30, CL=29, PVT=28, DOE=27, SWM=26, CA=25, MO=24,
             PE=23, NDF=22, NOBC=21, NOZC=20, INI=15, SPOR=14, OLL=13,
             OLH=12, EWD=11, DVNA=10, DVPA=9, PVLA=8, PVHA=7)
 ALIASES = {name.lower(): bit for name, bit in BITS.items()}
+NUMERIC_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 
 
 def default():
     """Schema shape only; importing missing data still produces unknown values."""
     return {'CTL': 0, **dict.fromkeys(REAL_FIELDS, 0.0), 'DATA': [0.0] * 17}
+
+
+def source(memory, ref, scope, *, immediate=False):
+    try:
+        value = literal(ref)
+    except ValueError:
+        key, parts, dtype = memory.resolve(ref, scope)
+        if dtype not in NUMERIC_TYPES or isinstance(memory.at(key, parts), (list, dict)):
+            raise ModelError('PID sources require scalar SINT/INT/DINT/REAL operands')
+        return key, parts
+    if not immediate or type(value) not in (int, float):
+        raise ModelError('PID PV requires a tag; tieback permits numeric immediates')
+    coerce(value, 'DINT') if type(value) is int else real(value)
+    return None
 
 
 def validate(engine, op, scope):
@@ -26,24 +41,23 @@ def validate(engine, op, scope):
         raise ModelError('PID inside AOIs remains unqualified')
     if 'pid' in engine.project.udts:
         raise ModelError('Redefined PID records remain unqualified')
-    if len(op.args) != 7 or any(op.args[i] != '0' for i in (2, 4, 5, 6)):
-        raise ModelError('PID requires seven operands with literal 0 tieback/master/inhold operands')
+    if len(op.args) != 7 or any(op.args[i] != '0' for i in (4, 5, 6)):
+        raise ModelError('PID requires seven operands with literal 0 master/inhold operands')
     key, parts, dtype = memory.check_writable(op.args[0], scope)
     obj = memory.at(key, parts)
     if dtype != 'PID' or not isinstance(obj, dict) or set(obj) != set(FIELDS):
         raise ModelError('PID requires a writable logical PID record')
     if not isinstance(obj['DATA'], list) or len(obj['DATA']) != 17:
         raise ModelError('PID requires a seventeen-element REAL DATA array')
-    pkey, pparts, ptype = memory.resolve(op.args[1], scope)
-    if ptype != 'REAL' or isinstance(memory.at(pkey, pparts), (list, dict)):
-        raise ModelError('PID process variable must be a scalar REAL tag')
+    pv = source(memory, op.args[1], scope)
+    tieback = source(memory, op.args[2], scope, immediate=True)
     ckey, cparts, ctype = memory.check_writable(op.args[3], scope)
-    if ctype != 'REAL' or isinstance(memory.at(ckey, cparts), (list, dict)):
-        raise ModelError('PID control variable must be a writable scalar REAL tag')
-    for k, p in ((pkey, pparts), (ckey, cparts)):
-        if k == key and p[:len(parts)] == parts:
-            raise ModelError('PID process/control variables cannot overlap its record')
-    return key, parts, obj
+    if ctype not in NUMERIC_TYPES or isinstance(memory.at(ckey, cparts), (list, dict)):
+        raise ModelError('PID control variable must be a writable scalar SINT/INT/DINT/REAL tag')
+    for location in (pv, (ckey, cparts), tieback):
+        if location is not None and location[0] == key and location[1][:len(parts)] == parts:
+            raise ModelError('PID process/control/tieback operands cannot overlap its record')
+    return key, parts, obj, ctype
 
 
 def prescan(engine, op, scope):
@@ -53,7 +67,7 @@ def prescan(engine, op, scope):
 
 
 def execute(engine, op, power, scope):
-    key, parts, obj = validate(engine, op, scope)
+    key, parts, obj, cvtype = validate(engine, op, scope)
     if not power:
         engine.memory.write(op.args[0] + '.EN', False, scope)
         return False
@@ -66,8 +80,8 @@ def execute(engine, op, power, scope):
         if type(value) not in (int, float):
             raise ModelError('PID ' + name + ' is unknown or has the wrong value type')
         return real(value)
-    if any(flags(name) for name in ('CT', 'CL', 'PVT', 'MO')):
-        raise ModelError('PID cascade, PV tracking and hardware manual modes remain unqualified')
+    if any(flags(name) for name in ('CT', 'CL', 'PVT')):
+        raise ModelError('PID cascade and PV tracking remain unqualified')
     v = {name: read(name) for name in ('SP', 'KP', 'KI', 'KD', 'BIAS', 'MAXS', 'MINS',
          'DB', 'MAXO', 'MINO', 'UPD', 'MAXI', 'MINI', 'MAXCV', 'MINCV', 'PVH', 'PVL',
          'DVP', 'DVN', 'PVDB', 'DVDB')}
@@ -98,7 +112,8 @@ def execute(engine, op, power, scope):
         raise ModelError('PID requires one true execution per record per task release time')
     state = previous if flags('INI') else None
     integral = state['integral'] if state and ki else 0.0
-    manual = flags('SWM')
+    hardware_manual = flags('MO')
+    manual = hardware_manual or flags('SWM')
     bias = v['BIAS']
     derivative_signature = (flags('DOE'), flags('CA'), *(v[n] for n in ('MINS', 'MAXS', 'MINI', 'MAXI')))
     # Re-arm zero crossing when its configuration changes. NDF/KD/gains do
@@ -116,7 +131,14 @@ def execute(engine, op, power, scope):
         kd = v['KP'] * 60 * v['KD'] if flags('PE') else v['KD']
         derivative = real(kd * change * 100 / (v['MAXS'] - v['MINS']) / v['UPD'])
     if manual:
-        out = min(100.0, max(0.0, read('SO')))
+        if hardware_manual:
+            tieback = real(engine.memory.read(op.args[2], scope))
+            mintie, maxtie = read('MINTIE'), read('MAXTIE')
+            if maxtie <= mintie:
+                raise ModelError('PID tieback scaling span must be positive')
+            out = real(min(100.0, max(0.0, (tieback - mintie) * 100 / (maxtie - mintie))))
+        else:
+            out = min(100.0, max(0.0, read('SO')))
         if ki:
             integral = real(out - bias - proportional)
         elif not flags('NOBC'):
@@ -145,6 +167,10 @@ def execute(engine, op, power, scope):
         limited_low, limited_high = raw <= low, raw >= high
     out = real(out)
     cv = real(v['MINCV'] + out * (v['MAXCV'] - v['MINCV']) / 100)
+    # The v35 reference specifies zero for integer CV in the deadband. This
+    # profile applies that rule throughout the automatic error band, including
+    # before zero-crossing hold; manual modes bypass control deadband.
+    assigned_cv = 0 if (cvtype != 'REAL' and not manual and v['DB'] > 0 and abs(error) <= v['DB']) else coerce(cv, cvtype)
     def alarm(name, value, limit, band, high_alarm):
         old = bool(ctl & (1 << BITS[name]))
         return (value > limit or old and value >= limit - band) if high_alarm else (
@@ -157,10 +183,12 @@ def execute(engine, op, power, scope):
     for name, value in results.items():
         bit = 1 << BITS[name]
         ctl = (ctl | bit) if value else (ctl & ~bit)
-    engine.memory.write(op.args[3], cv, scope)
+    engine.memory.write(op.args[3], assigned_cv, scope)
     obj.update(CTL=bit_value(ctl, 'DINT'), PV=pv, ERR=error, OUT=out, BIAS=bias,
                SO=out, MINO=real(low), MAXO=real(high))
-    for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, cv)):
+    if hardware_manual:
+        obj['TIE'] = tieback
+    for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, real(assigned_cv))):
         obj['DATA'][i] = value
     engine.last_timer[identity] = dict(integral=integral, manual=manual, at=engine.time_ms,
         pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature,
@@ -171,15 +199,16 @@ def execute(engine, op, power, scope):
 def description():
     return dict(profile='v35-5580-RLL-PID-software', language='RLL', instructions=['PID'],
         record=dict(FIELDS), data_elements=17, ctl_aliases=dict(BITS),
-        operands='PID record, scalar REAL PV, 0, writable scalar REAL CV, 0, 0, 0; outside AOIs',
+        operands='PID record, scalar SINT/INT/DINT/REAL PV, numeric tieback tag or DINT/REAL immediate, writable SINT/INT/DINT/REAL CV, 0, 0, 0; outside AOIs',
+        conversions='PV/tieback promote to finite REAL; integer CV uses ties-to-even with range faults; automatic integer CV is zero throughout a positive deadband; DATA14 mirrors assigned CV',
         equation='Percent error=100*(SP-PV)/(MAXS-MINS), sign reversed for CA; P=KP*error%; independent I+=KI*error%*UPD; dependent I+=KP*error%*UPD/(60*KI)',
         solver='Rectangular I per reached true call using UPD, not elapsed time; clip outward I to automatic headroom, freeze if already beyond the limit',
         derivative='NDF required for KD>0; independent D=KD*d(error%)/UPD or signed KD*d(PV%)/UPD; dependent coefficient=KP*60*KD; first/reinitialized/manual-transfer/config-change sample gives zero D',
         deadband='DB>0: inclusive engineering error band; NOZC holds immediately, otherwise hold after zero/sign crossing; EWD means active hold; hold percent output and I, refresh samples; manual overrides',
-        manual='SWM: SO clamped 0..100, I tracks output-P-BIAS; with zero KI, BIAS tracks unless NOBC; first auto call after manual holds I',
+        manual='MO overrides SWM: numeric tieback scaled MINTIE..MAXTIE into 0..100, raw input mirrored in TIE; SWM uses SO; I tracks output-P-BIAS or BIAS tracks with zero KI unless NOBC; first auto sample holds I',
         lifecycle='Prescan/false clear EN only; skipped calls retain history; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
         data='DATA[0,2,3,4,14] mirror I,PV,error,SP,CV; other entries retained, not interpreted as native coefficients',
         native_runtime_parity=False, packed_layout=False,
-        remaining=['Derivative smoothing/filter coefficients, cascade/PV tracking/hardware manual/inhold',
-                   'ST/AOI forms, integer PV/CV and optional-operand variants, saved active solver state',
+        remaining=['Derivative smoothing/filter coefficients, cascade/PV tracking/inhold',
+                   'ST/AOI forms, further optional-operand variants and saved active solver state',
                    'Native coefficients, anti-windup/bumpless/initialization/alarm boundaries, minor faults, rounding and DATA/layout parity'])

@@ -1,7 +1,7 @@
 # Ladder PID software profile
 
 The Standard v35 ControlLogix 5580 profile executes a bounded ladder `PID` with
-P/PI/PID control, scaling, automatic output limits, software manual
+P/PI/PID control, scaling, automatic output limits, manual
 tracking and alarm hysteresis. This is a deterministic simulator solver. Native
 discrete equations, startup, rounding, fault behavior and packed layouts remain
 unqualified. The separate [ST PI regulator](st-pi-regulation.md) uses `PROP_INT`.
@@ -12,11 +12,13 @@ unqualified. The separate [ST PI regulator](st-pi-regulation.md) uses `PROP_INT`
 XIC(Execute)PID(Loop,PV,0,CV,0,0,0);
 ```
 
-`Loop` is a writable logical `PID`; PV and CV are scalar REAL tags. Aliases,
-program scope and ordinary nested records/arrays can resolve through the shared
-memory model. PV/CV cannot overlap the PID record. Tieback, master-loop and both
-inhold operands must be literal `0`. Integer operands, ST/AOI forms and other
-optional-operand forms remain blocked. Use one true execution of a record at
+`Loop` is a writable logical `PID`; PV/CV accept scalar SINT/INT/DINT/REAL tags.
+Tieback accepts these tag types or numeric immediates; master-loop and both
+inhold operands require literal zero. [Numeric operands and tieback](pid-operands.md)
+describe conversions and hardware manual priority. Aliases, program scope and
+selected arrays/members resolve through shared memory. PV/CV/tieback cannot
+overlap the PID record. ST/AOI and other optional forms remain blocked.
+Use one true execution of a record at
 each modeled task-release time; a repeated true call at the same time faults.
 
 The logical record has DINT `CTL`, the REAL members named in the v35 reference,
@@ -44,7 +46,10 @@ rate; a [Periodic task](task-scheduling.md) is a suitable source of releases.
    automatic output headroom; freeze it if already beyond that limit. Retain
    changes that move away from a limit.
    Clamp the resulting output percentage to MINO..MAXO.
-5. Scale OUT percent into MINCV..MAXCV and write CV. SO follows OUT in auto.
+5. Scale OUT percent into MINCV..MAXCV and convert to the CV type. Integer
+   outputs round ties to even or fault on overflow; positive automatic deadband
+   forces integer CV zero throughout its error band. DATA[14] mirrors assigned CV.
+   SO follows the selected output.
 
 This explicitly chooses rectangular integration and conditional anti-windup;
 it does not claim these are the controller's exact implementation. Public
@@ -58,6 +63,9 @@ sum, including equality. Runtime validation faults use whole-advance rollback,
 not native minor-fault records or partial controller effects.
 
 ## Manual, lifecycle and diagnostics
+
+MO selects [hardware manual/tieback](pid-operands.md) and overrides SWM. Tieback
+is scaled using MINTIE/MAXTIE, clamps into 0..100 and uses the same tracking path.
 
 SWM selects software manual: clamp SO into 0..100 and scale it into CV, even
 outside the automatic MINO/MAXO limits. When integration is enabled, back-calculate
@@ -92,12 +100,13 @@ Execute false, PV 20, SP 50, KP 1, KI 0.5, UPD 1 and 0..100 scaling/limits.
 Set Execute true and step: CV becomes 45, then 60. Set Loop.SWM true and Loop.SO
 70: CV becomes 70. Clear SWM: the first auto step holds 70, then reaches 85.
 Set FaultDivisor zero to exercise rollback; correct it to one before retrying.
+The lab also includes an optional INT loop, shared Tieback and Boolean mode
+controls; see the [numeric operand examples](pid-operands.md).
 
 ## Remaining
 
 Nonzero KD requires NDF true; derivative smoothing remains blocked. Cascade
-flags CT/CL, PV tracking PVT and hardware manual MO fault explicitly. Filtering,
-tieback/inhold,
+flags CT/CL and PV tracking PVT fault explicitly. Filtering, inhold/module restart,
 saved active state, additional languages/operands, native derivative/deadband
 coefficients, boundaries, lifecycle, status/
 fault/precision/lifecycle behavior and DATA/layout interpretation remain open.
