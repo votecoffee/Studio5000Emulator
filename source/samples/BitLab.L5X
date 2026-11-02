@@ -226,6 +226,61 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="LogicInput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicReset" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicOutput" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicLatched" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicInverse" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OneShotStorage" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OneShotPulse" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RiseStorage" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RisePulse" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FallStorage" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FallPulse" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -234,42 +289,63 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Enable)MVM(SourceByte,Mask,Status);</Text>
+                <Text>XIC(LogicInput)OTE(LogicOutput);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>CLR(Packed)BTD(SourceByte,0,Packed,0,8)BTD(SourceWord,0,Packed,16,16);</Text>
+                <Text>XIO(LogicInput)OTE(LogicInverse);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>BTD(Packed,0,LowWord,0,16);</Text>
+                <Text>XIC(LogicInput)OTL(LogicLatched);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>BTD(Packed,24,HighByte,0,8);</Text>
+                <Text>XIC(LogicReset)OTU(LogicLatched);</Text>
               </Rung>
               <Rung Number="4" Type="N">
-                <Text>MVM(0,SourceByte,MixedMask);</Text>
+                <Text>XIC(LogicInput)ONS(OneShotStorage)OTE(OneShotPulse);</Text>
               </Rung>
               <Rung Number="5" Type="N">
-                <Text>MOV(16#1234,Overlap)BTD(Overlap,0,Overlap,4,12);</Text>
+                <Text>XIC(LogicInput)OSR(RiseStorage,RisePulse);</Text>
               </Rung>
               <Rung Number="6" Type="N">
-                <Text>BTD(SourceWord,0,Truncated,12,32);</Text>
+                <Text>XIC(LogicInput)OSF(FallStorage,FallPulse);</Text>
               </Rung>
               <Rung Number="7" Type="N">
-                <Text>MEQ(Status,Mask,SourceByte)OTE(BitOK);</Text>
+                <Text>XIC(Enable)MVM(SourceByte,Mask,Status);</Text>
               </Rung>
               <Rung Number="8" Type="N">
-                <Text>XIC(TransitionEnable)DTR(TransitionSource,TransitionMask,TransitionReference)OTE(TransitionPulse);</Text>
+                <Text>CLR(Packed)BTD(SourceByte,0,Packed,0,8)BTD(SourceWord,0,Packed,16,16);</Text>
               </Rung>
               <Rung Number="9" Type="N">
-                <Text>XIC(TransitionPulse)ADD(TransitionCount,1,TransitionCount);</Text>
+                <Text>BTD(Packed,0,LowWord,0,16);</Text>
               </Rung>
               <Rung Number="10" Type="N">
-                <Text>XIC(CompareEnable)FBC(CompareSource[0],CompareReference[0],MismatchBits[0],CompareControl,?,?,CompareResultControl,?,?);</Text>
+                <Text>BTD(Packed,24,HighByte,0,8);</Text>
               </Rung>
               <Rung Number="11" Type="N">
-                <Text>XIC(DetectEnable)DDT(CompareSource[0],LearnReference[0],ChangedBits[0],DetectControl,?,?,DetectResultControl,?,?);</Text>
+                <Text>MVM(0,SourceByte,MixedMask);</Text>
               </Rung>
               <Rung Number="12" Type="N">
+                <Text>MOV(16#1234,Overlap)BTD(Overlap,0,Overlap,4,12);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>BTD(SourceWord,0,Truncated,12,32);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>MEQ(Status,Mask,SourceByte)OTE(BitOK);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(TransitionEnable)DTR(TransitionSource,TransitionMask,TransitionReference)OTE(TransitionPulse);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(TransitionPulse)ADD(TransitionCount,1,TransitionCount);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(CompareEnable)FBC(CompareSource[0],CompareReference[0],MismatchBits[0],CompareControl,?,?,CompareResultControl,?,?);</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text>XIC(DetectEnable)DDT(CompareSource[0],LearnReference[0],ChangedBits[0],DetectControl,?,?,DetectResultControl,?,?);</Text>
+              </Rung>
+              <Rung Number="19" Type="N">
                 <Text>DIV(1,FaultDivisor,GuardResult);</Text>
               </Rung>
             </RLLContent>

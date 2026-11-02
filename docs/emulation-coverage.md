@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; lazy numeric comparisons added for app `26.1102.153859`. **Full Logix emulation is not
+Audited 2026-11-02; bit-logic operand selection added for app `26.1102.154916`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -40,6 +40,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | BCD/byte-order conversions | [DINT packed BCD with narrow TOD inputs/FRD results and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | FRD narrow sources, TOD narrow results, wide/unsigned BCD operands, further forms and native math/fault status |
 | Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists, selective reference updates and [alias/indirect/AOI references](bit-diagnostic-references.md) | Broader AOI shapes/profiles and native sampling/cursor/status/fault parity |
 | Data transition | [DINT RLL DTR](data-transition.md), masked comparison, true/false reference updates, lexical prescan and existing AOI bindings | Other controller profiles and native operand/status/fault parity |
+| Contacts/coils/one-shots | [XIC/XIO/OTE/OTL/OTU/ONS/OSR/OSF](bit-logic.md), structural preflight, full BOOL establishment, lazy contacts/latches and state-dependent one-shot reads; existing prescan/AOI rollback | Packed writes require known backing integers; native BOOL layout/fault/postscan/lifecycle and broader profiles unfinished |
 | Numeric ladder comparisons | [EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ](numeric-comparisons.md), structural preflight, false/prescan operand skips, existing exact wide/masked forms and AOI rollback | Complete numeric promotion matrix, broader profiles and native status/fault/lifecycle qualification |
 | SIZE/TRN | [Array size and truncation](size-truncate.md), selected arrays/string DATA, metadata-only size reads, lazy references, REAL SIZE results and signed/unsigned TRN destinations | Direct string SIZE, LREAL, native overflow/status/lifecycle and broader profiles; dynamic dimension tags remain a software extension |
 | Numeric FLL | [Narrow numeric fills](numeric-fill.md), integer truncation/sign extension, representable REAL conversion, structural preflight, lazy reads and existing AOI bindings | Native clipping/base-tag traversal, REAL overflow bits/status, wider types and other profiles; aggregate zero fills keep their separate contract |

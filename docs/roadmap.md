@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.154916`: [contacts/coils/one-shots](bit-logic.md), structural
+BOOL preflight, complete unknown-value writes and state-dependent one-shot reads.
+Bit Lab adds contact/latch/edge examples; packed backing preservation and native
+layout/fault/postscan/lifecycle boundaries remain explicit.
+
 Available in `26.1102.153859`: [lazy numeric comparisons](numeric-comparisons.md),
 structural preflight for six relations plus MEQ/LIM, false/prescan index/value
 skips, unknown-import recovery and existing exact wide/AOI forms. Native numeric

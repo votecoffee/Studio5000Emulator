@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.153859`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.154916`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -80,6 +80,10 @@ results, with ties-to-even integer rounding and transactional range checks.
 ladder SQR, XPY, logs, angle
 conversions and trigonometry. **Math lab** compares ladder, CPT and ST values,
 including the v35 absolute-value rule for negative square-root inputs.
+
+[Ladder contacts and coils](docs/bit-logic.md) allow unknown BOOL values during
+validation, establish complete coil values and read one-shot history only when
+needed. **Bit lab** adds contact, latch and rising/falling pulse examples.
 
 [Numeric ladder comparisons](docs/numeric-comparisons.md) validate unknown values
 without consuming them on false rungs, including MEQ and LIM dynamic indices.

@@ -1874,3 +1874,49 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.post('write',{'tag':tag,'value':value})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(row['RunLatch']);self.assertTrue(row['BatchComplete'])
+
+    def test_bit_lab_contacts_latches_and_edges_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        row=step();self.assertFalse(row['LogicOutput']);self.assertTrue(row['LogicInverse'])
+        write('LogicInput',True);row=step()
+        self.assertTrue(all(row[t] for t in ('LogicOutput','LogicLatched','OneShotPulse','RisePulse')));self.assertFalse(row['FallPulse'])
+        row=step();self.assertFalse(row['OneShotPulse']);self.assertFalse(row['RisePulse'])
+        write('LogicInput',False);row=step();self.assertTrue(row['FallPulse']);self.assertTrue(row['LogicLatched'])
+        write('LogicReset',True);self.assertFalse(step()['LogicLatched'])
+        write('LogicReset',False);write('LogicInput',True);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertTrue(row['OneShotPulse']);self.assertTrue(row['RisePulse'])
+        report=self.post('report',{})['bit_logic'];self.assertTrue(report['available']);self.assertEqual(len(report['instructions']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_unknown_bool_members_and_oneshot_history_recover_through_http(self):
+        import base64
+        from test_bit_logic import BitLogicTests
+        fixture=BitLogicTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)XIC(State.Contact)OTE(State.Output);','XIC(StartPB)OTL(State.Latch);','XIC(StartPB)ONS(Flags[Index])OTE(State.Pulse);'])
+            raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownBitLogic.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.assertIsNone(next(row['value'] for row in state['tags'] if row['name']=='State.Output'))
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        before=current()
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'State.Contact','value':True});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(row['State.Output']);self.assertTrue(row['State.Latch']);self.assertTrue(row['State.Pulse'])
+        self.post('write',{'tag':'Index','value':1});before=current()
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'StartPB','value':False});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertFalse(row['Flags[1]']);self.assertTrue(row['State.Latch'])
+        self.post('write',{'tag':'StartPB','value':True});row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertTrue(row['State.Pulse'])

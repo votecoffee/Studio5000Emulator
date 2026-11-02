@@ -486,6 +486,12 @@ values and dynamic indices; true calls consume every operand, including MEQ unde
 a zero mask. Existing exact wide/mask/limit rules and AOI rollback are retained.
 Complete native promotion/status/fault/lifecycle parity remains unfinished.
 
+[Ladder bit logic](bit-logic.md) validates scalar BOOL shapes/references without
+saved values. False contacts/latches skip live operands, while OTE always writes.
+ONS/OSR false and OSF true establish state without reading history; pulse-producing
+transitions require known storage. Existing prescan and AOI/advance rollback apply.
+Partial integer-bit writes still require known backing values.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed
