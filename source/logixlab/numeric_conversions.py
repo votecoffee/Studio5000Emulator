@@ -1,4 +1,4 @@
-"""DINT BCD conversions and INT/DINT byte order for the v35 5580 model."""
+"""Bounded BCD operand conversions and INT/DINT byte order for v35 5580."""
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, bit_value
 from .model import ModelError
@@ -26,10 +26,13 @@ def validate(memory, op, scope):
         if op.args[1].upper() not in ORDERS:
             raise ModelError('SWPB order must be REVERSE, WORD or HIGHLOW')
         return 16 if stype == 'INT' else 32
-    if dtype != 'DINT' or operand(memory, source, scope) != 32:
-        raise ModelError('FRD/TOD currently require a DINT source/immediate and DINT destination')
-    # operand() permits only SINT/INT/DINT or bounded DINT immediates.
-    return 32
+    width = operand(memory, source, scope)
+    if op.name == 'FRD':
+        if width != 32 or dtype not in ('SINT', 'INT', 'DINT'):
+            raise ModelError('FRD requires a DINT source/immediate and SINT/INT/DINT destination')
+    elif dtype != 'DINT':
+        raise ModelError('TOD requires a SINT/INT/DINT source/immediate and DINT destination')
+    return width
 
 
 def from_bcd(value):
@@ -74,9 +77,12 @@ def execute(memory, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-conversions', instructions=sorted(INSTRUCTIONS),
-                bcd='RLL DINT source/immediate and FBD logical records share eight weighted nibbles for FRD',
-                tod_range='0..99999999; packed signed DINT bit pattern',
+                bcd='RLL FRD decodes DINT source/immediate into SINT/INT/DINT; shared FBD calculation retains eight weighted nibbles',
+                rll_operands={'FRD':{'sources':['DINT'],'destinations':['SINT','INT','DINT']},
+                              'TOD':{'sources':['SINT','INT','DINT'],'destinations':['DINT']}},
+                frd_range='Decoded value must fit the signed destination; range errors roll back the advance',
+                tod_range='SINT/INT/DINT decimal inputs within 0..99999999; packed signed DINT result',
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
-                remaining=['Other BCD types and mixed conversions', 'BCD expression and remaining FBD forms',
+                remaining=['FRD narrow sources, TOD narrow destinations and wide/unsigned BCD operands', 'BCD expression and remaining FBD forms',
                            'TOD saturation, math status and native fault parity'])

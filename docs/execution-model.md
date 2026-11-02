@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[BCD operand combinations](numeric-conversions.md) permit narrow decimal TOD
+inputs and narrow decoded FRD results around a DINT packed value. Calculations
+remain exact integer operations. Decoded result overflow and invalid TOD ranges
+use the existing whole-advance rollback policy.
+
 [Integer AVE results](array-statistics.md) convert the existing float32 mean
 to SINT/INT/DINT with ties to even and rounded range checks. STD remains REAL.
 Canonical results cannot overlap the source array or the operation's CONTROL

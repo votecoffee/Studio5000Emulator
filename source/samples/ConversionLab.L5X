@@ -98,6 +98,51 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="ByteDecimal" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="BytePacked" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteDecoded" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WordDecimal" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="12345" />
+        </Data>
+      </Tag>
+      <Tag Name="WordPacked" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WordDecoded" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RawByteBCD" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="153" />
+        </Data>
+      </Tag>
+      <Tag Name="RawByteDecoded" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NarrowOK" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -125,6 +170,18 @@
               </Rung>
               <Rung Number="6" Type="N">
                 <Text>EQU(Decoded,Decimal)EQU(Weighted,12345684)EQU(SignExtended,-21742)EQU(SwappedWords[0],-21742)EQU(SwappedWords[1],255)OTE(AllOK);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(Enable)TOD(ByteDecimal,BytePacked)FRD(BytePacked,ByteDecoded);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(Enable)TOD(WordDecimal,WordPacked)FRD(WordPacked,WordDecoded);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(Enable)FRD(RawByteBCD,RawByteDecoded);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>EQU(ByteDecimal,ByteDecoded)EQU(WordDecimal,WordDecoded)OTE(NarrowOK);</Text>
               </Rung>
             </RLLContent>
           </Routine>

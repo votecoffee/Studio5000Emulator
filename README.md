@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.144504`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.145714`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -81,7 +81,10 @@ ladder SQR, XPY, logs, angle
 conversions and trigonometry. **Math lab** compares ladder, CPT and ST values,
 including the v35 absolute-value rule for negative square-root inputs.
 
-[Numeric conversions](docs/numeric-conversions.md) add DINT FRD/TOD and
+[Numeric conversions](docs/numeric-conversions.md) now accept SINT/INT decimal
+TOD sources and SINT/INT decoded FRD results around a DINT packed-BCD value.
+**Conversion lab** demonstrates byte/word round trips and result-range recovery.
+The profile also includes DINT FRD/TOD and
 INT/DINT SWPB byte ordering in ladder, with SWPB also available in ST. Choose
 **Conversion lab** to inspect packed BCD, byte orders and sign extension.
 
