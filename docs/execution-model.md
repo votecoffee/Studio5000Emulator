@@ -498,6 +498,12 @@ widening; REAL uses float32 and representable nearest-even integer results. Fals
 prescan skip live operands, and full writes establish unknown numeric values.
 Native status/overflow/lifecycle and additional forms remain unfinished.
 
+[Scalar arithmetic/bitwise operand selection](scalar-math.md) validates v35 5580
+ADD/SUB/MUL/DIV/MOD/NEG/ABS/AND/OR/XOR/NOT structurally. False/prescan skip live
+values/indices; true sources must be known and complete writes establish unknown
+destinations. Existing calculations, ranges, wide rules and AOI rollback apply.
+Complete promotion/width/native status/fault/lifecycle remains unfinished.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed

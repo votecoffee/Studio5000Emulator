@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, ladder_pid
+from . import system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, ladder_pid
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
@@ -388,6 +388,7 @@ class Engine:
         if n in file_arithmetic.INSTRUCTIONS:file_arithmetic.validate(self,op,scope);return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.specification(self.memory,op,scope);return
+        if scalar_math.validate(self,op,scope):return
         if numeric_storage.validate(self,op,scope):return
         if bit_logic.validate(self,op,scope):return
         if self.extensions.validate(op,scope):return
@@ -775,6 +776,7 @@ class Engine:
                 'bit_transfer':bit_transfer.description(),
                 'bit_logic':bit_logic.description(self.project),
                 'numeric_storage':numeric_storage.description(self.project),
+                'scalar_math':scalar_math.description(self.project),
                 'numeric_copy':numeric_copy.description(self.project),
                 'numeric_fill':numeric_fill.description(self.project),
                 'size_truncate':size_truncate.description(self.project),

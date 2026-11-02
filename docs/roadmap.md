@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.161542`: [scalar arithmetic/bitwise operand selection](scalar-math.md),
+structural preflight, false/prescan skips and full unknown destination writes for
+eleven existing operations. Math Lab adds a basic-operations section; complete
+promotion/width/status/native fault qualification remains open.
+
 Available in `26.1102.160128`: [numeric MOV/CLR](numeric-storage.md), all nine
 signed/unsigned integer and REAL scalar combinations, typed zeros, structural
 preflight and lazy/full unknown writes. Native status/REAL overflow and remaining

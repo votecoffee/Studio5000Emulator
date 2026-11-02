@@ -1961,3 +1961,48 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
         self.post('write',{'tag':'Index','value':1});self.post('write',{'tag':'Inputs[1]','value':-1});self.post('write',{'tag':'StartPB','value':True})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(52,-1,0))
+
+    def test_math_lab_basic_arithmetic_bitwise_and_fault_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        step();write('BasicMath',True);row=step()
+        names=('BasicSum','BasicDifference','BasicProduct','BasicQuotient','BasicRemainder','BasicNegative','BasicAbsolute','BasicAnd','BasicOr','BasicXor','BasicNot')
+        self.assertEqual(tuple(row[t] for t in names),(10,4,21,2,1,-7,7,3,7,4,-8))
+        write('BasicMath',False);write('BasicB',0);self.assertEqual(step()['BasicSum'],10)
+        before=write('BasicMath',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('BasicB',3);self.assertEqual(step()['BasicQuotient'],2)
+        write('BasicA',2147483647);before=write('BasicB',1)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('BasicA',7);write('BasicB',3);self.assertEqual(step()['BasicSum'],10)
+        report=self.post('report',{})['scalar_math'];self.assertEqual(len(report['instructions']),11);self.assertFalse(report['native_runtime_parity'])
+
+    def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
+        import base64
+        from test_scalar_math import ScalarMathTests
+        fixture=ScalarMathTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)ADD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Inputs[Index],Results[2]);','XIC(StartPB)DIV(Source,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownScalarMath.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Inputs[0]',7),('Inputs[2]',2)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(10,None,-8))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+        self.post('write',{'tag':'Index','value':1});self.post('write',{'tag':'Inputs[1]','value':100});self.post('write',{'tag':'StartPB','value':True})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(10,103,-101))

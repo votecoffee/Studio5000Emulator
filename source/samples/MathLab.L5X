@@ -220,6 +220,76 @@
           <DataValue DataType="DINT" Value="7" />
         </Data>
       </Tag>
+      <Tag Name="BasicMath" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicSum" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicDifference" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicProduct" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicQuotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicRemainder" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicNegative" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicAbsolute" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicAnd" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicOr" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicXor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BasicNot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -228,45 +298,78 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Enable)SQR(Input,Root);</Text>
+                <Text>XIC(BasicMath)ADD(BasicA,BasicB,BasicSum);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>XIC(Enable)LN(LogInput,LogNatural)LOG(LogInput,Log10);</Text>
+                <Text>XIC(BasicMath)SUB(BasicA,BasicB,BasicDifference);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>XIC(Enable)XPY(Base,Power,Powered);</Text>
+                <Text>XIC(BasicMath)MUL(BasicA,BasicB,BasicProduct);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>XIC(Enable)RAD(Degrees,Radians)DEG(Radians,RoundTrip);</Text>
+                <Text>XIC(BasicMath)DIV(BasicA,BasicB,BasicQuotient);</Text>
               </Rung>
               <Rung Number="4" Type="N">
-                <Text>XIC(Enable)SIN(Radians,Sine)COS(Radians,Cosine)TAN(Radians,Tangent);</Text>
+                <Text>XIC(BasicMath)MOD(BasicA,BasicB,BasicRemainder);</Text>
               </Rung>
               <Rung Number="5" Type="N">
-                <Text>XIC(Enable)ASN(UnitValue,ArcSine)ACS(UnitValue,ArcCosine)ATN(UnitValue,ArcTangent);</Text>
+                <Text>XIC(BasicMath)NEG(BasicA,BasicNegative);</Text>
               </Rung>
               <Rung Number="6" Type="N">
-                <Text>XIC(Enable)CPT(CptRoot,SQR(Input));</Text>
+                <Text>XIC(BasicMath)ABS(BasicA,BasicAbsolute);</Text>
               </Rung>
               <Rung Number="7" Type="N">
-                <Text>JSR(MathText,0);</Text>
+                <Text>XIC(BasicMath)AND(BasicA,BasicB,BasicAnd);</Text>
               </Rung>
               <Rung Number="8" Type="N">
-                <Text>EQU(Root,CptRoot)EQU(Root,StRoot)EQU(Radians,StAngle)OTE(AllOK);</Text>
+                <Text>XIC(BasicMath)OR(BasicA,BasicB,BasicOr);</Text>
               </Rung>
               <Rung Number="9" Type="N">
-                <Text>DIV(Dividend,Divisor,LadderQuotient)MOD(Dividend,Divisor,LadderRemainder)CPT(CptQuotient,Dividend/Divisor)CPT(CptRemainder,Dividend MOD Divisor)CPT(CptRealQuotient,Dividend/Divisor)CMP(Dividend/Divisor=LadderQuotient&amp;&amp;Dividend MOD Divisor=LadderRemainder)OTE(CmpMatches);</Text>
+                <Text>XIC(BasicMath)XOR(BasicA,BasicB,BasicXor);</Text>
               </Rung>
               <Rung Number="10" Type="N">
-                <Text>JSR(DivideText,0);</Text>
+                <Text>XIC(BasicMath)NOT(BasicA,BasicNot);</Text>
               </Rung>
               <Rung Number="11" Type="N">
-                <Text>EQU(LadderQuotient,CptQuotient)EQU(LadderQuotient,StQuotient)EQU(LadderRemainder,CptRemainder)EQU(LadderRemainder,StRemainder)EQU(CptRealQuotient,StRealQuotient)XIC(CmpMatches)OTE(IntegerMathMatches);</Text>
+                <Text>XIC(Enable)SQR(Input,Root);</Text>
               </Rung>
               <Rung Number="12" Type="N">
-                <Text>XIC(Enable)SQR(Input,ByteRoot)SQR(Input,WordRoot)SQR(Input,DintRoot);</Text>
+                <Text>XIC(Enable)LN(LogInput,LogNatural)LOG(LogInput,Log10);</Text>
               </Rung>
               <Rung Number="13" Type="N">
+                <Text>XIC(Enable)XPY(Base,Power,Powered);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(Enable)RAD(Degrees,Radians)DEG(Radians,RoundTrip);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(Enable)SIN(Radians,Sine)COS(Radians,Cosine)TAN(Radians,Tangent);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(Enable)ASN(UnitValue,ArcSine)ACS(UnitValue,ArcCosine)ATN(UnitValue,ArcTangent);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(Enable)CPT(CptRoot,SQR(Input));</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text>JSR(MathText,0);</Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text>EQU(Root,CptRoot)EQU(Root,StRoot)EQU(Radians,StAngle)OTE(AllOK);</Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text>DIV(Dividend,Divisor,LadderQuotient)MOD(Dividend,Divisor,LadderRemainder)CPT(CptQuotient,Dividend/Divisor)CPT(CptRemainder,Dividend MOD Divisor)CPT(CptRealQuotient,Dividend/Divisor)CMP(Dividend/Divisor=LadderQuotient&amp;&amp;Dividend MOD Divisor=LadderRemainder)OTE(CmpMatches);</Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text>JSR(DivideText,0);</Text>
+              </Rung>
+              <Rung Number="22" Type="N">
+                <Text>EQU(LadderQuotient,CptQuotient)EQU(LadderQuotient,StQuotient)EQU(LadderRemainder,CptRemainder)EQU(LadderRemainder,StRemainder)EQU(CptRealQuotient,StRealQuotient)XIC(CmpMatches)OTE(IntegerMathMatches);</Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text>XIC(Enable)SQR(Input,ByteRoot)SQR(Input,WordRoot)SQR(Input,DintRoot);</Text>
+              </Rung>
+              <Rung Number="24" Type="N">
                 <Text>XIC(Enable)SQR(RoundingInput,RoundedRoot)XPY(-2.5,1.0,RoundedPower);</Text>
               </Rung>
             </RLLContent>
