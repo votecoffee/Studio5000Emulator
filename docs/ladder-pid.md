@@ -1,7 +1,7 @@
-# Ladder PID: proportional and integral software profile
+# Ladder PID software profile
 
 The Standard v35 ControlLogix 5580 profile executes a bounded ladder `PID` with
-proportional/integral control, scaling, automatic output limits, software manual
+P/PI/PID control, scaling, automatic output limits, software manual
 tracking and alarm hysteresis. This is a deterministic simulator solver. Native
 discrete equations, startup, rounding, fault behavior and packed layouts remain
 unqualified. The separate [ST PI regulator](st-pi-regulation.md) uses `PROP_INT`.
@@ -40,7 +40,7 @@ rate; a [Periodic task](task-scheduling.md) is a suitable source of releases.
    `I = previous I + KI * e * UPD`. With dependent gains (PE set), use
    `I = previous I + KP * e * UPD / (60 * KI)`. KI zero disables integration
    and clears the active integral; zero effective dependent gain does likewise.
-4. Add BIAS, P and I. Clip an outward integral increment to the remaining
+4. Add BIAS, P, I and the [unsmoothed derivative](pid-dynamics.md) term. Clip an outward integral increment to the remaining
    automatic output headroom; freeze it if already beyond that limit. Retain
    changes that move away from a limit.
    Clamp the resulting output percentage to MINO..MAXO.
@@ -51,7 +51,7 @@ it does not claim these are the controller's exact implementation. Public
 REAL values, P, percent error and retained I use float32; intermediate products
 use host precision. Overflow/nonfinite values fault the modeled advance.
 
-KP/KI must be nonnegative, UPD positive, scaling spans positive, and SP within
+KP/KI/KD and DB must be nonnegative, UPD positive, scaling spans positive, and SP within
 the engineering range. Automatic limits require `0 <= MINO < MAXO <= 100`;
 equal limits reset to 0/100. Inclusive limit flags describe the final unclamped
 sum, including equality. Runtime validation faults use whole-advance rollback,
@@ -73,11 +73,14 @@ does not seed hidden solver history. Entering Run clears that history. External
 DATA writes do not replace it. DATA indices 0/2/3/4/14 mirror I/PV/error/SP/CV;
 other entries are retained without inventing native coefficients.
 
+[Control deadband](pid-dynamics.md) can hold the prior output percent and I,
+with immediate NOZC entry or zero-crossing detection. Held samples refresh the
+derivative baseline and alarms; EWD reports active hold.
+
 PVHA/PVLA and DVPA/DVNA use strict initial comparisons against PVH/PVL and
 DVP/DVN. A latched alarm remains through equality at its limit minus/plus the
 nonnegative PVDB/DVDB hysteresis band. ERR includes the selected control-action
-sign. EWD and SPOR are cleared on successful calls; unsupported deadband and
-out-of-range SP instead fault. These alarm-boundary choices need native testing.
+sign. SPOR is cleared on successful calls; out-of-range SP instead faults. These alarm-boundary choices need native testing.
 
 Later faults roll back record fields, CV, hidden I/manual history, trace, time
 and task state together. Previously committed updates remain committed.
@@ -92,9 +95,11 @@ Set FaultDivisor zero to exercise rollback; correct it to one before retrying.
 
 ## Remaining
 
-Nonzero KD or DB, cascade flags CT/CL, PV tracking PVT and hardware manual MO
-fault explicitly. Derivative/filtering, deadband/zero crossing, tieback/inhold,
-saved active state, additional languages/operands, native coefficients/status/
+Nonzero KD requires NDF true; derivative smoothing remains blocked. Cascade
+flags CT/CL, PV tracking PVT and hardware manual MO fault explicitly. Filtering,
+tieback/inhold,
+saved active state, additional languages/operands, native derivative/deadband
+coefficients, boundaries, lifecycle, status/
 fault/precision/lifecycle behavior and DATA/layout interpretation remain open.
 This does not implement PIDE, PPID or functional safety.
 

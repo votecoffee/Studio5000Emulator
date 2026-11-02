@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.093759`: [PID derivative/deadband](pid-dynamics.md),
+unsmoothed PV/error rates, independent/dependent gains and output holds with or
+without zero crossing. Native filtering, boundaries and lifecycle remain unqualified.
+
 Available in `26.1102.092032`: [ladder PID P/PI](ladder-pid.md), explicit percent-error
 regulation, independent/dependent gains, scaling, limits, software manual tracking
 and alarms. Derivative/deadband/cascade and native solver/layout parity remain open.

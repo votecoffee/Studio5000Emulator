@@ -125,7 +125,7 @@
     },
     "pid_software_model": {
       "label": "PID software model (bounded)",
-      "remaining": "Ladder P/PI subset; derivative/deadband/cascade, other operands/languages and native solver/status/fault/layout parity remain unfinished.",
+      "remaining": "Ladder P/PI/PID with unsmoothed derivative and control deadband; smoothing/cascade, other operands/languages and native solver/status/fault/layout parity remain unfinished.",
       "source": "source/logixlab/ladder_pid.py"
     },
     "pi_software_model": {

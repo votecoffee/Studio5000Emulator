@@ -1477,3 +1477,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('FaultDivisor',1);self.assertEqual(values(step())['CV'],85)
         write('Execute',False);self.assertEqual(values(step())['CV'],85)
         p=self.post('report',{})['ladder_pid'];self.assertFalse(p['native_runtime_parity']);self.assertEqual(p['data_elements'],17)
+
+
+    def test_pid_derivative_deadband_and_rollback_through_http(self):
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        def fault(before):
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
+        self.assertEqual(self.post('demo',{'sample':'PIDLab'})['blockers'],[])
+        for tag,value in [('Loop.KP',0),('Loop.KI',0),('Loop.BIAS',50),('Loop.KD',2),('Loop.NDF',True),('Execute',True)]:write(tag,value)
+        self.assertEqual(step()['CV'],50);write('PV',25);self.assertEqual(step()['CV'],40)
+        write('Loop.SP',55);self.assertEqual(step()['CV'],50)
+        write('Loop.DOE',True);write('Loop.SP',60);self.assertEqual(step()['CV'],50)
+        write('Loop.SP',61);self.assertEqual(step()['CV'],52)
+        write('PV',26);fault(write('FaultDivisor',0));write('FaultDivisor',1);self.assertEqual(step()['CV'],48)
+        self.assertEqual(self.post('demo',{'sample':'PIDLab'})['blockers'],[])
+        for tag,value in [('Loop.DB',2),('Execute',True),('PV',47)]:write(tag,value)
+        self.assertEqual(step()['CV'],4.5);write('PV',49);row=step();self.assertEqual(row['CV'],3);self.assertFalse(row['Loop.CTL']&(1<<11))
+        write('PV',51);row=step();self.assertEqual(row['CV'],3);self.assertTrue(row['Loop.CTL']&(1<<11))
+        write('PV',47);fault(write('FaultDivisor',0));write('FaultDivisor',1);self.assertEqual(step()['CV'],6.5)
+        write('Loop.NOZC',True);write('PV',49);self.assertEqual(step()['CV'],6.5)
+        write('Loop.SWM',True);write('Loop.SO',70);self.assertEqual(step()['CV'],70)
+        write('Loop.SWM',False);row=step();self.assertEqual(row['CV'],70);self.assertTrue(row['Loop.CTL']&(1<<11))
+        p=self.post('report',{})['ladder_pid'];self.assertIn('NDF',p['derivative']);self.assertIn('NOZC',p['deadband']);self.assertFalse(p['native_runtime_parity'])
