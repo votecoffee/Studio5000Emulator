@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.114903`: [FBC/DDT references and AOIs](bit-diagnostic-references.md),
+alias/indirect DINT windows, disjoint logical array/control members, lazy fixed
+result windows and independent local/InOut learning with AOI Bit Lab. Native
+address-sampling/status/fault/layout and broader AOI qualification remain open.
+
 Available in `26.1102.113048`: [sorting references and AOIs](sort-references.md),
 alias/indirect SRT windows, numeric InOut/saved local arrays, parent-array ST FOR
 write protection and AOI Sort Lab. Native cursor/fault/layout and broader lifecycle

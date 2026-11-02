@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[FBC/DDT references and AOIs](bit-diagnostic-references.md) validate canonical
+array/control roles. Fresh calls sample input windows once and select a fixed
+result window lazily before the first learning/result write. Local and InOut
+learning, results and cursors share the existing binding/value transaction.
+
 [SRT references and AOIs](sort-references.md) use structural preflight and
 EN/ER-gated live source selection. ST FOR write effects cover the selected member
 and conservatively widen across parent arrays; CONTROL EN/DN are tracked separately.

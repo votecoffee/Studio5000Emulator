@@ -247,8 +247,8 @@ class FileBitCompareTests(unittest.TestCase):
             def constant(root):root.find(f'./Controller/Tags/Tag[@Name="{role}"]').set('Constant','true')
             self.assertTrue(self.engine(name='DDT',mutate=constant).blockers)
 
-    def test_alias_or_indirect_array_starts_wrong_types_and_scalar_arrays_block(self):
-        def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='AliasSource',TagType='Alias',AliasFor='Source[0]')
+    def test_cursor_bit_wrong_type_and_scalar_array_forms_block(self):
+        def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='AliasSource',DataType='BOOL',TagType='Alias',AliasFor='Source[0].0')
         for source in ('AliasSource','Source[Compare.POS]','Source[0].0','42','Status'):
             self.assertTrue(self.engine([self.instruction(source=source)+';'],mutate=alias).blockers,source)
         for role in ('Source','Reference','Result'):

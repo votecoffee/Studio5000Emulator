@@ -8,10 +8,44 @@ INSTRUCTIONS = frozenset(('FBC', 'DDT'))
 MAX_BITS = 4096
 
 
-def region(memory, ref, count, scope, *, writable=False):
-    key, paths, dtype = controls.array_region(memory, ref, count, scope, writable=writable)
-    if dtype != 'DINT':raise ModelError('FBC/DDT arrays require DINT elements')
-    return key, paths
+def region(memory, ref, count, scope, *, writable=False, structural=False):
+    if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
+        raise ModelError('FBC/DDT array region exceeds the 4096-element software limit')
+    previous=memory.structural
+    try:
+        if structural:memory.structural=True
+        controls.check_start_indices(memory,ref,scope)
+        key,parts,dtype=(memory.check_writable if writable else memory.resolve)(ref,scope)
+        if dtype!='DINT' or any(isinstance(part,tuple) for part in parts):
+            raise ModelError('FBC/DDT arrays require DINT elements')
+        value=memory.values[key];boundary=None
+        for i,part in enumerate(parts):
+            if isinstance(value,list) and (i==0 or not isinstance(parts[i-1],int)):boundary=parts[:i]
+            value=value[part]
+        if isinstance(value,list) and boundary is None:boundary=parts
+        if boundary is None:raise ModelError('FBC/DDT operand must address an array')
+        if scope in memory.frames and (not parts or not isinstance(parts[-1],int) or
+                len(parts)>1 and isinstance(parts[-2],int) or isinstance(value,list)):
+            raise ModelError('AOI FBC/DDT require selected elements of one-dimensional arrays')
+        _,paths,_=memory.region(ref,count,scope)
+        return key,paths,(key,boundary)
+    finally:memory.structural=previous
+
+
+def overlaps(left, right):
+    return left[0]==right[0] and (left[1][:len(right[1])]==right[1] or right[1][:len(left[1])]==left[1])
+
+
+def control_addresses(memory, op, scope):
+    return [(key,parts) for key,parts,_ in (memory.resolve(op.args[i],scope) for i in (3,6))]
+
+
+def check_roles(op, arrays, control_paths):
+    if overlaps(*control_paths) or any(overlaps(control, array) for control in control_paths for array in arrays.values()):
+        raise ModelError('FBC/DDT controls require distinct storage disjoint from data arrays')
+    if ('result' in arrays and any(overlaps(arrays['result'],arrays[name]) for name in ('source','reference')) or
+            op.name=='DDT' and overlaps(arrays['source'],arrays['reference'])):
+        raise ModelError('FBC/DDT writable array roles require distinct array/member storage')
 
 
 def validate(memory, op, scope):
@@ -21,14 +55,9 @@ def validate(memory, op, scope):
     if a[4:6] != ['?', '?'] or a[7:] != ['?', '?']:
         raise ModelError('FBC/DDT LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, a[3], scope);controls.control(memory, a[6], scope)
-    source, _ = region(memory, a[0], 0, scope)
-    reference, _ = region(memory, a[1], 0, scope, writable=op.name == 'DDT')
-    result, _ = region(memory, a[2], 0, scope, writable=True)
-    compare = memory.resolve(a[3], scope)[0];output = memory.resolve(a[6], scope)[0]
-    if compare == output or {compare, output} & {source, reference, result}:
-        raise ModelError('FBC/DDT controls require separate base tags from each other and data arrays')
-    if result in (source, reference) or op.name == 'DDT' and source == reference:
-        raise ModelError('FBC/DDT writable array roles require separate base tags')
+    arrays={name:region(memory,a[i],0,scope,writable=writable,structural=True)[2]
+            for name,i,writable in (('source',0,False),('reference',1,op.name=='DDT'),('result',2,True))}
+    check_roles(op,arrays,control_addresses(memory,op,scope))
 
 
 def prescan(memory, op, scope):
@@ -53,11 +82,14 @@ def execute(engine, op, power, scope):
         compare['ER'] = True;return True
     if length > MAX_BITS:raise ModelError('FBC/DDT exceed the 4096-bit software limit')
     words = (length + 31) // 32
-    sk, sources = region(memory, a[0], words, scope)
-    rk, references = region(memory, a[1], words, scope, writable=op.name == 'DDT')
+    sk, sources, source_path = region(memory, a[0], words, scope)
+    rk, references, reference_path = region(memory, a[1], words, scope, writable=op.name == 'DDT')
+    arrays=dict(source=source_path,reference=reference_path)
+    control_paths=control_addresses(memory,op,scope);check_roles(op,arrays,control_paths)
     if position >= length:
         compare.update(POS=length, DN=True);return True
     result = controls.control(memory, a[6], scope)
+    destinations=None
     while position < length:
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FBC/DDT instruction budget exceeded')
@@ -66,13 +98,17 @@ def execute(engine, op, power, scope):
         reference = unsigned(memory, memory.address(rk, references[word]), '', 32)
         if (source ^ reference) & (1 << bit):
             compare['FD'] = True
-            if op.name == 'DDT':
-                memory.store(rk, references[word], bit_value(reference ^ (1 << bit), 'DINT'))
             if controls.flag(result, 'DN'):result.update(DN=False, POS=0)
             capacity, offset = controls.integer(result, 'LEN'), controls.integer(result, 'POS')
             if capacity <= 0 or not 0 <= offset < capacity:
                 raise ModelError('FBC/DDT require positive result LEN and POS within capacity; full lists require DN')
-            dk, destinations = region(memory, a[2], capacity, scope, writable=True)
+            if destinations is None:
+                # Freeze the result start on the first mismatch, before DDT
+                # changes reference bits or result writes can change an index.
+                dk,destinations,result_path=region(memory,a[2],capacity,scope,writable=True)
+                check_roles(op,dict(arrays,result=result_path),control_paths)
+            if op.name == 'DDT':
+                memory.store(rk, references[word], bit_value(reference ^ (1 << bit), 'DINT'))
             memory.store(dk, destinations[offset], position)
             result['POS'] = offset + 1
             if result['POS'] >= capacity:result['DN'] = True
@@ -96,6 +132,10 @@ def description():
                 false_prescan='Clear compare EN/FD; when compare DN was set, reset both positions and done bits',
                 max_bits=MAX_BITS, max_result_entries=controls.MAX_ELEMENTS,
                 invalid_state='Compare LEN<=0 or POS<0 sets ER; bounds/unknown/result-state failures roll back advance',
+                starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
+                sampling='Source/reference windows once per fresh comparison; result window lazily once on first mismatch, before reference/result writes',
+                storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',
+                aoi='RLL bodies with exact one-dimensional DINT InOut/local arrays and selected element starts; canonical role checks and existing lifecycle/binding rollback rules',
                 native_runtime_parity=False,
-                remaining=['AOIs and alias/indirect array starts', 'Overlapping writable roles and shared base controls',
+                remaining=['Broader AOI shapes/lifecycle and additional languages', 'Overlapping writable roles and native address-sampling parity',
                            'Other controller profiles and complete native cursor/status/fault/partial-write parity'])

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.113048`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.114903`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -109,6 +109,11 @@ SINT/INT/DINT values, including mixed widths and scalar/member/array operands.
 Choose **Bit lab** to try packing and extracting data.
 [Data transition](docs/data-transition.md) adds DINT DTR change detection,
 including reference updates during prescan and false scans.
+[FBC/DDT references and AOIs](docs/bit-diagnostic-references.md) add alias/indirect
+starts, disjoint shared members and stable per-call result windows. Choose
+**AOI bit diagnostics lab** to compare independent result lists and local/external
+learning.
+
 [File bit diagnostics](docs/file-bit-compare.md) add FBC/DDT array comparisons,
 all/one-mismatch modes, result-list wrapping and selective reference learning.
 

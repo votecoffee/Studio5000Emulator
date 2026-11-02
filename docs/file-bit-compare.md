@@ -42,17 +42,17 @@ do not refresh reference data on that false scan.
 
 ## Supported storage and failure policy
 
-The current profile accepts static DINT array starts, including selected member
-arrays, offsets, program-local arrays and multidimensional regions flattened
-within the modeled array boundary. Compare and result controls must use
-separate base tags from each other and the arrays. Writable result storage
-must not share an input base tag; DDT source and reference require separate
-base tags too. Read-only FBC source/reference tables are allowed. Existing
-CONTROL aliases are supported; alias/indirect starting arrays and AOI execution
-remain unqualified. ST/FBD and other controller profiles remain unavailable.
+The current profile accepts [alias/indirect starts and RLL AOI arrays](bit-diagnostic-references.md).
+Selected member arrays, offsets, program-local arrays and multidimensional
+regions flattened within the modeled boundary remain supported outside AOIs.
+AOI starts select elements of one-dimensional DINT arrays. Disjoint array members
+and distinct controls may share a base tag; writable roles cannot share an array
+member, even with disjoint windows. Read-only FBC input tables are allowed
+outside AOIs. ST/FBD and other controller profiles remain unavailable.
 
 Each operation qualifies the complete configured source/reference word region.
-The result region is qualified when a mismatch needs recording. The software
+The result region is selected once on the first mismatch, before DDT learning
+or result writes; that window stays fixed for the invocation. The software
 limits are 4096 compared bits and 4096 result entries. Every compared bit consumes
 the existing instruction budget. There is no cross-tag memory traversal.
 

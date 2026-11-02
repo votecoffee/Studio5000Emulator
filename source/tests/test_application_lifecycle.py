@@ -783,7 +783,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         held=self.post('step', {'dt':10});self.assertFalse(rows(held)['TransitionPulse'])
         self.assertEqual(rows(held)['TransitionCount'],2)
         report=self.post('report', {})['data_transition']
-        self.assertEqual(report['instructions'],['ACS','ASN','ATN','BTDT','COS','DEG','DTR','FRD','LN','LOG','MOD','RAD','SIN','SQR','TAN','TOD','TRN','XPY']);self.assertFalse(report['native_runtime_parity'])
+        self.assertEqual(report['instructions'],['DTR']);self.assertFalse(report['native_runtime_parity'])
 
     def test_bit_lab_fbc_ddt_result_wrap_learning_and_fault_recovery_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'BitLab'})['blockers'], [])
@@ -817,7 +817,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((v['LearnReference[1]'],v['LearnReference[2]']),(1073741953,777))
         self.assertEqual(v['CompareReference[0]'],0);self.assertEqual(v['CompareReference[1]'],0)
         profile=self.post('report', {})['file_bit_compare']
-        self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','DDT','DEG','FBC','FRD','LN','LOG','MOD','RAD','SIN','SQR','TAN','TOD','TRN','XPY']);self.assertFalse(profile['native_runtime_parity'])
+        self.assertEqual(profile['instructions'],['DDT','FBC']);self.assertFalse(profile['native_runtime_parity'])
 
     def test_timer_lab_st_delays_retention_status_and_clock_rollback_through_http(self):
         state=self.post('demo', {'sample':'TimerLab'});self.assertEqual(state['blockers'], [])
@@ -1698,3 +1698,36 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'FaultDivisor','value':1});self.assertEqual(values(self.post('step',{'dt':10}))['SortGrid[0,1]'],20)
+
+    def test_aoi_bit_diagnostics_arrays_learning_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'AOIBitLab'})['blockers'],[])
+        self.assertIn(b'AOI bit diagnostics lab',self.get('/'));self.assertIn(b"loadDemo('AOIBitLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('CompareEnable',True);write('DetectEnable',True);row=step()
+        self.assertEqual(tuple(row[t] for t in ('CompareResultsA[1]','CompareResultsA[2]','CompareResultsA[3]','LearnedA[1]','LearnedB[1]','DriverA.Scratch[1]')),(32,39,31,1,2,1))
+        write('DetectEnable',False);step();write('DetectEnable',True);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertEqual((row['LearnedA[1]'],row['DriverA.Scratch[1]'],row['DetectA.POS']),(33,33,6))
+        write('EnabledA',False);write('SourceIndexA',999);row=step();self.assertFalse(row['DetectA.EN']);self.assertTrue(row['DetectB.EN'])
+        write('SourceIndexA',1);write('EnabledA',True);row=step();self.assertEqual(row['DetectA.POS'],32)
+        profile=self.post('report',{})['file_bit_compare'];self.assertIn('one-dimensional',profile['aoi']);self.assertIn('before',profile['sampling']);self.assertFalse(profile['native_runtime_parity'])
+
+    def test_ddt_result_index_is_sampled_before_learning_through_http(self):
+        import base64
+        from xml.etree import ElementTree as E
+        root=E.parse(Path(__file__).resolve().parents[1]/'samples/BitLab.L5X').getroot()
+        # A two-bit operation uses the existing first source/reference/result
+        # elements; the result address depends on the reference being learned.
+        tags=root.find('./Controller/Tags')
+        for name,value in (('CompareSource',3),('LearnReference',0)):
+            tags.find(f'Tag[@Name="{name}"]/Data/Array/Element[@Index="[0]"]').set('Value',str(value))
+        state=tags.find('Tag[@Name="DetectControl"]/Data/Structure');state.find('DataValueMember[@Name="LEN"]').set('Value','2');state.find('DataValueMember[@Name="IN"]').set('Value','0')
+        content=root.find('.//Program/Routines/Routine/RLLContent');content.clear();E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='DDT(CompareSource[0],LearnReference[0],ChangedBits[LearnReference[0]],DetectControl,?,?,DetectResultControl,?,?);'
+        self.assertEqual(self.post('load',{'name':'SampledResult.L5X','content':base64.b64encode(E.tostring(root,encoding='utf-8',xml_declaration=True)).decode()})['blockers'],[])
+        values={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((values['LearnReference[0]'],values['ChangedBits[0]'],values['ChangedBits[1]']),(3,0,1))

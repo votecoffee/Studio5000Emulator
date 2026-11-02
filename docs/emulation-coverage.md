@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; sorting references/AOIs added for app `26.1102.113048`. **Full Logix emulation is not
+Audited 2026-11-02; bit diagnostic references/AOIs added for app `26.1102.114903`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -38,7 +38,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL results, CONTROL transitions and [alias/indirect/AOI references](statistics-references.md) | Partial POS/resume, integer AVE results, broader types/lifecycle and native precision/fault/status behavior |
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
-| Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists and selective reference updates | AOI/indirect/alias array starts, broader profiles and native cursor/status/fault parity |
+| Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists, selective reference updates and [alias/indirect/AOI references](bit-diagnostic-references.md) | Broader AOI shapes/profiles and native sampling/cursor/status/fault parity |
 | Data transition | [DINT RLL DTR](data-transition.md), masked comparison, true/false reference updates, lexical prescan and existing AOI bindings | Other controller profiles and native operand/status/fault parity |
 | Numeric COP/CPS | [Little-endian byte copies](numeric-copies.md) across nine numeric types, clipped lengths, preserved partial elements, row-major/member arrays, budget/rollback and ST loop write effects | Native aggregate/BOOL/string/LREAL layouts, cross-member/base-tag copying, synchronization and fault/partial-effect parity |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |

@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; sorting references/AOIs added for app `26.1102.113048`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-02; bit diagnostic references/AOIs added for app `26.1102.114903`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -134,7 +134,7 @@ schema/behavior backlog separately from instruction names.
 | CTUD (ST/FBD) | [Logical FBD_COUNTER](st-counter.md), sampled up/down edges, first-call/Run priming, reset, signed wrap and transactional history. General FBD and native reset/flag/layout/fault parity remain unfinished. |
 | TONR/TOFR/RTOR (ST/FBD) | [Logical FBD_TIMER and elapsed-time profile](st-timers.md), reset/retention, skipped calls, status aliases and rollback. General FBD, native clock/status/fault/layout parity and other profiles remain unfinished. |
 | TON/TOF/RTO/CTU/CTD/RES | All state transitions, shared instances, skipped scans, timing/fault behavior and target-specific types. Current RLL timers/counters require neutral-text `?,?` operands. |
-| FBC/DDT | [DINT ladder bit diagnostics](file-bit-compare.md), bit offsets, all/one-mismatch modes, result wrapping, selective DDT updates and prescan/false controls. Broader references/profiles and native cursor/status/fault parity remain unfinished. |
+| FBC/DDT | [DINT ladder bit diagnostics](file-bit-compare.md), bit offsets, all/one-mismatch modes, result wrapping, selective DDT updates and prescan/false controls. [Alias/indirect and RLL AOI references](bit-diagnostic-references.md) now execute with canonical roles and lazy fixed result windows. Broader AOI shapes/profiles and native sampling/cursor/status/fault parity remain unfinished. |
 | DTR | [DINT ladder data transition](data-transition.md), complete prior-reference comparison, true/false writes and lexical prescan, including existing AOI bindings. Other profiles and native operand/status/fault parity remain unfinished. |
 | MCR | [Paired ladder zones](master-control.md), false scanning, unconditional endings, routine/AOI isolation and trace markers. Open-ended/conditional/nested zones, cross-boundary jumps and native scan/fault/CPU parity remain unfinished. |
 | FOR/BRK | [Ladder indexed routine loops](ladder-loops.md), signed inclusive bounds, early exits, nested calls and task-isolated frames. Native operand sampling/overflow/watchdog/postscan parity, recursion, AOI and SFC forms remain unfinished. |

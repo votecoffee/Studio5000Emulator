@@ -1,0 +1,509 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIBitLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIBitLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabBitDiagnostics" Class="Standard" Revision="1.0" Vendor="LogixLab" SoftwareRevision="v35.01" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true">
+        <Parameters>
+          <Parameter Name="EnableIn" DataType="BOOL" Usage="Input" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="EnableOut" DataType="BOOL" Usage="Output" Required="false" Visible="false" Dimensions="0" />
+          <Parameter Name="CompareEnable" DataType="BOOL" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="DetectEnable" DataType="BOOL" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="SourceIndex" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="ReferenceIndex" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="ResultIndex" DataType="DINT" Usage="Input" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="Source" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="4" />
+          <Parameter Name="Reference" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="4" />
+          <Parameter Name="Learned" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="4" />
+          <Parameter Name="CompareResults" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="6" />
+          <Parameter Name="DetectResults" DataType="DINT" Usage="InOut" Required="true" Visible="true" Dimensions="6" />
+          <Parameter Name="CompareState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="CompareListState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="DetectState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="DetectListState" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" Dimensions="0" />
+          <Parameter Name="CompareFound" DataType="BOOL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+          <Parameter Name="DetectFound" DataType="BOOL" Usage="Output" Required="false" Visible="true" Dimensions="0" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Scratch" DataType="DINT" Dimensions="4" />
+          <LocalTag Name="LocalResults" DataType="DINT" Dimensions="6" />
+          <LocalTag Name="LocalCompare" DataType="CONTROL" />
+          <LocalTag Name="LocalList" DataType="CONTROL" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(CompareEnable)FBC(Source[SourceIndex],Reference[ReferenceIndex],CompareResults[ResultIndex],CompareState,?,?,CompareListState,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(DetectEnable)DDT(Source[SourceIndex],Learned[ReferenceIndex],DetectResults[ResultIndex],DetectState,?,?,DetectListState,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(DetectEnable)DDT(Source[SourceIndex],Scratch[ReferenceIndex],LocalResults[ResultIndex],LocalCompare,?,?,LocalList,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(CompareState.FD)OTE(CompareFound);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(DetectState.FD)OTE(DetectFound);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()FBC(Source[SourceIndex],Reference[ReferenceIndex],CompareResults[ResultIndex],CompareState,?,?,CompareListState,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()DDT(Source[SourceIndex],Learned[ReferenceIndex],DetectResults[ResultIndex],DetectState,?,?,DetectListState,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>AFI()DDT(Source[SourceIndex],Scratch[ReferenceIndex],LocalResults[ResultIndex],LocalCompare,?,?,LocalList,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>AFI()OTE(CompareFound);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>AFI()OTE(DetectFound);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="CompareEnable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="DetectEnable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SourceIndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SourceIndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ReferenceIndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ReferenceIndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ResultIndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ResultIndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Quotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SourceA" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="101" />
+            <Element Index="[1]" Value="-2147483615" />
+            <Element Index="[2]" Value="129" />
+            <Element Index="[3]" Value="999" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ReferenceA" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="301" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="888" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="LearnedA" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="401" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="1073741824" />
+            <Element Index="[3]" Value="887" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CompareResultsA" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="201" />
+            <Element Index="[1]" Value="-1" />
+            <Element Index="[2]" Value="-1" />
+            <Element Index="[3]" Value="-1" />
+            <Element Index="[4]" Value="-1" />
+            <Element Index="[5]" Value="299" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="DetectResultsA" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="601" />
+            <Element Index="[1]" Value="-1" />
+            <Element Index="[2]" Value="-1" />
+            <Element Index="[3]" Value="-1" />
+            <Element Index="[4]" Value="-1" />
+            <Element Index="[5]" Value="699" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CompareA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="CompareListA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DetectA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="1" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DetectListA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabBitDiagnostics" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabBitDiagnostics">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CompareEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DetectEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="SourceIndex" DataType="DINT" Value="1" />
+            <DataValueMember Name="ReferenceIndex" DataType="DINT" Value="1" />
+            <DataValueMember Name="ResultIndex" DataType="DINT" Value="1" />
+            <DataValueMember Name="CompareFound" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DetectFound" DataType="BOOL" Value="0" />
+            <ArrayMember DataType="DINT" Dimensions="4" Name="Scratch">
+              <Element Index="[0]" Value="501" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="536870912" />
+              <Element Index="[3]" Value="886" />
+            </ArrayMember>
+            <ArrayMember DataType="DINT" Dimensions="6" Name="LocalResults">
+              <Element Index="[0]" Value="701" />
+              <Element Index="[1]" Value="-1" />
+              <Element Index="[2]" Value="-1" />
+              <Element Index="[3]" Value="-1" />
+              <Element Index="[4]" Value="-1" />
+              <Element Index="[5]" Value="799" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalCompare">
+              <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="1" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <StructureMember DataType="CONTROL" Name="LocalList">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SourceB" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="102" />
+            <Element Index="[1]" Value="10" />
+            <Element Index="[2]" Value="2" />
+            <Element Index="[3]" Value="998" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ReferenceB" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="301" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="888" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="LearnedB" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="4">
+            <Element Index="[0]" Value="401" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="1073741824" />
+            <Element Index="[3]" Value="887" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CompareResultsB" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="201" />
+            <Element Index="[1]" Value="-1" />
+            <Element Index="[2]" Value="-1" />
+            <Element Index="[3]" Value="-1" />
+            <Element Index="[4]" Value="-1" />
+            <Element Index="[5]" Value="299" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="DetectResultsB" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="601" />
+            <Element Index="[1]" Value="-1" />
+            <Element Index="[2]" Value="-1" />
+            <Element Index="[3]" Value="-1" />
+            <Element Index="[4]" Value="-1" />
+            <Element Index="[5]" Value="699" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="CompareB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="CompareListB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DetectB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="1" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DetectListB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabBitDiagnostics" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabBitDiagnostics">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="CompareEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DetectEnable" DataType="BOOL" Value="0" />
+            <DataValueMember Name="SourceIndex" DataType="DINT" Value="1" />
+            <DataValueMember Name="ReferenceIndex" DataType="DINT" Value="1" />
+            <DataValueMember Name="ResultIndex" DataType="DINT" Value="2" />
+            <DataValueMember Name="CompareFound" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DetectFound" DataType="BOOL" Value="0" />
+            <ArrayMember DataType="DINT" Dimensions="4" Name="Scratch">
+              <Element Index="[0]" Value="501" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="536870912" />
+              <Element Index="[3]" Value="886" />
+            </ArrayMember>
+            <ArrayMember DataType="DINT" Dimensions="6" Name="LocalResults">
+              <Element Index="[0]" Value="701" />
+              <Element Index="[1]" Value="-1" />
+              <Element Index="[2]" Value="-1" />
+              <Element Index="[3]" Value="-1" />
+              <Element Index="[4]" Value="-1" />
+              <Element Index="[5]" Value="799" />
+            </ArrayMember>
+            <StructureMember DataType="CONTROL" Name="LocalCompare">
+              <DataValueMember Name="LEN" DataType="DINT" Value="40" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="1" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <StructureMember DataType="CONTROL" Name="LocalList">
+              <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="SourceView" TagType="Alias" DataType="DINT" Dimensions="4" AliasFor="SourceA" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(EnabledA)LabBitDiagnostics(DriverA,CompareEnable,DetectEnable,SourceIndexA,ReferenceIndexA,ResultIndexA,SourceView,ReferenceA,LearnedA,CompareResultsA,DetectResultsA,CompareA,CompareListA,DetectA,DetectListA);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledB)LabBitDiagnostics(DriverB,CompareEnable,DetectEnable,SourceIndexB,ReferenceIndexB,ResultIndexB,SourceB,ReferenceB,LearnedB,CompareResultsB,DetectResultsB,CompareB,CompareListB,DetectB,DetectListB);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>
