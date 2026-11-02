@@ -118,7 +118,7 @@ class RealMathTests(unittest.TestCase):
     def test_unqualified_types_immediates_arities_and_mnemonics_block(self):
         for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(['SQR(Source,Dest);'],types=(dtype,'REAL','REAL'),values=(0,2,7)).blockers)
-        for dtype in ('SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT'):
+        for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL',dtype),values=(0.5,2,0)).blockers)
         for text in ('SQR(TRUE,Dest);','SQR(2147483648,Dest);','SQR(16#FFFF_FFFF,Dest);',
                      'SQR(1e40,Dest);','SQR(1e309,Dest);','SQR(Source);','XPY(Source,Dest);',
@@ -163,7 +163,7 @@ class RealMathTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(['SQR(Source,Dest);'],mutate=old).blockers)
         e=self.checked(['SQR(Source,Dest);']);report=e.report()['real_math']
-        self.assertEqual(len(report['instructions']),12);self.assertEqual(report['destination'],'REAL')
+        self.assertEqual(len(report['instructions']),12);self.assertEqual(report['destination'],'SINT/INT/DINT/REAL')
         self.assertFalse(report['native_math_status']);self.assertFalse(report['native_fault_classification'])
 
 

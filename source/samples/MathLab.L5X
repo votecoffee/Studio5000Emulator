@@ -190,6 +190,36 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="ByteRoot" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="WordRoot" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="DintRoot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="RoundingInput" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="6.25" />
+        </Data>
+      </Tag>
+      <Tag Name="RoundedRoot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="RoundedPower" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="7" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -232,6 +262,12 @@
               </Rung>
               <Rung Number="11" Type="N">
                 <Text>EQU(LadderQuotient,CptQuotient)EQU(LadderQuotient,StQuotient)EQU(LadderRemainder,CptRemainder)EQU(LadderRemainder,StRemainder)EQU(CptRealQuotient,StRealQuotient)XIC(CmpMatches)OTE(IntegerMathMatches);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(Enable)SQR(Input,ByteRoot)SQR(Input,WordRoot)SQR(Input,DintRoot);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(Enable)SQR(RoundingInput,RoundedRoot)XPY(-2.5,1.0,RoundedPower);</Text>
               </Rung>
             </RLLContent>
           </Routine>

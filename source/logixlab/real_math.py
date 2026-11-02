@@ -1,4 +1,4 @@
-"""Finite REAL-result ladder math for the explicit v35 5580 profile."""
+"""Finite ladder math with narrow numeric results for the v35 5580 profile."""
 import math
 
 from .integer_math import CONTROLLERS
@@ -16,6 +16,7 @@ FUNCTIONS = {'SQR': square_root, 'LN': math.log, 'LOG': math.log10,
              'ASN': math.asin, 'ACS': math.acos, 'ATN': math.atan}
 INSTRUCTIONS = frozenset((*FUNCTIONS, 'XPY'))
 SOURCE_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
+DESTINATION_TYPES = SOURCE_TYPES
 
 
 def real(value):
@@ -31,8 +32,8 @@ def validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Standalone math requires the v35 ControlLogix 5580 software profile')
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
-    if dtype != 'REAL' or isinstance(memory.at(key, parts), (list, dict)):
-        raise ModelError('Standalone math currently requires a scalar REAL destination')
+    if dtype not in DESTINATION_TYPES or isinstance(memory.at(key, parts), (list, dict)):
+        raise ModelError('Standalone math requires a scalar SINT/INT/DINT/REAL destination')
     for ref in op.args[:-1]:
         try:
             value = literal(ref)
@@ -60,12 +61,14 @@ def execute(memory, op, power, scope):
 
 
 def description():
-    return dict(profile='v35-5580-finite-REAL-results', language='RLL',
-                instructions=sorted(INSTRUCTIONS), sources=sorted(SOURCE_TYPES), destination='REAL',
+    return dict(profile='v35-5580-finite-math-narrow-results', language='RLL',
+                instructions=sorted(INSTRUCTIONS), sources=sorted(SOURCE_TYPES), destination='SINT/INT/DINT/REAL',
+                destinations=sorted(DESTINATION_TYPES),
+                integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',
                 failures='Unknown values, domains and nonfinite/overflow results stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
-                remaining=['Integer destinations, wide/unsigned sources and LREAL',
+                remaining=['Wide/unsigned sources or destinations and LREAL',
                            'FBD Blocks share these functions; native precision/status/NaN/infinity behavior remains unqualified'])

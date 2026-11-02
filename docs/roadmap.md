@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.143300`: [narrow integer ladder math results](math-operations.md),
+covering all twelve existing math forms, float32-to-nearest-even conversion,
+range rollback and Math Lab examples. Wider types, native precision/status/fault
+behavior and full ladder/ST qualification remain open.
+
 Available in `26.1102.114903`: [FBC/DDT references and AOIs](bit-diagnostic-references.md),
 alias/indirect DINT windows, disjoint logical array/control members, lazy fixed
 result windows and independent local/InOut learning with AOI Bit Lab. Native

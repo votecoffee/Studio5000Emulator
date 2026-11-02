@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[Common ladder math](math-operations.md) accepts narrow integer results after
+the existing finite float32 calculation. Conversion rounds ties to even; an
+out-of-range rounded value rolls back the advance rather than storing native
+overflow bits or flags. REAL calculations and ST/FBD profiles remain separate.
+
 [FBC/DDT references and AOIs](bit-diagnostic-references.md) validate canonical
 array/control roles. Fresh calls sample input windows once and select a fixed
 result window lazily before the first learning/result write. Local and InOut

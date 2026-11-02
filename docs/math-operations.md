@@ -1,4 +1,4 @@
-# Common REAL math
+# Common ladder math
 
 The explicit v35 ControlLogix 5580 software profile supports these ladder forms:
 
@@ -19,9 +19,10 @@ ATN(Source,Dest);
 
 Sources may be scalar SINT/INT/DINT/REAL tags or bounded numeric immediates.
 Integer immediates must fit signed DINT; real immediates must fit finite REAL.
-Destinations must be writable scalar REAL. Existing array elements, indirect
-indices, UDT members, aliases and supported AOI bindings are available. Integer
-destinations, wide/unsigned sources and LREAL remain unqualified.
+Destinations may be writable scalar SINT/INT/DINT/REAL. Existing array elements,
+indirect indices, UDT members, aliases and supported AOI local/Output/InOut
+bindings are available. Whole aggregates, BOOL/bit targets, constants,
+wide/unsigned operands and LREAL remain unqualified.
 
 ## Calculations
 
@@ -40,11 +41,26 @@ it does not establish bit-for-bit native math-library or precision parity.
 In-place operations capture their inputs before writing. Unknown destinations
 can be established by a successful full result write.
 
+For a SINT/INT/DINT destination, the float32 result rounds to the nearest whole
+number, with exact halves going to the nearest even integer. Thus SQR(3,Dint)
+writes 2 in this 5580 profile, SQR(6.25,Dint) writes 2, and XPY(-2.5,1,Dint)
+writes -2. This differs from the integer-source SQR truncation documented for
+older 5570 controllers, which remain outside this profile.
+
+Range checks apply after rounding: -128.5 becomes a valid SINT -128, while
+127.5 rounds to 128 and faults. Values lost when converting sources/results
+to float32 cannot be recovered by an integer destination: XPY(16777217,1,Dint)
+writes 16777216. A DINT source of 2147483647 becomes 2147483648 in this pipeline
+and therefore faults on a DINT result. These are explicit finite software
+boundaries; exact native intermediate precision remains unqualified.
+
 Prescan and false rungs retain destination data. True rungs evaluate on every
 execution. Unknown required values, domain errors, nonfinite results and
 overflow stop and roll back the entire modeled advance, including data, time
 and task scheduling. Native NaN/infinity results, configurable minor faults,
 math-status flags, underflow status and partial side effects remain unfinished.
+Out-of-range rounded integer results also roll back the advance. The simulator
+does not store truncated overflow bits or synthesize native arithmetic flags.
 
 ## Expressions and languages
 
@@ -56,8 +72,9 @@ ST uses expression assignments such as `Dest:=SQRT(Source);`,
 `Dest:=SIN(Source);`, `Dest:=ACOS(Source);` or `Dest:=X**Y;`. Standalone math
 instruction calls remain ladder forms. Existing expression type/range/grammar
 limits still apply separately. Use v35 SQR/ACS/ASN/ATN/XPY for ladder blocks;
-SQRT/ACOS/ASIN/ATAN remain expression aliases in this model. FBD execution is
-still unsupported.
+SQRT/ACOS/ASIN/ATAN remain expression aliases in this model. Existing
+[FBD REAL-record math](fbd-advanced-math.md) has separate operands and lifecycle;
+this increment adds no FBD forms.
 
 ## Math Lab
 
@@ -66,7 +83,13 @@ negative input. Inspect logarithms, power, degree/radian round trips, ordinary
 trigonometry and inverse trigonometry. AllOK compares the ladder/CPT/ST root
 and angle results. Disable Enable and change inputs to retain ladder values
 while the called ST routine continues; re-enable to update ladder results.
-The same sample now compares [integer division and REAL promotion](integer-expressions.md)
+ByteRoot, WordRoot and DintRoot also calculate the negative input at their
+respective integer widths. RoundedRoot starts at 2 from RoundingInput 6.25;
+RoundedPower starts at -2 from -2.5 raised to 1. All five ladder results retain
+values when Enable is false. Raising Input to 40000 makes ByteRoot exceed SINT
+and demonstrates whole-advance rollback; correct it to 25 and retry to get 5.
+
+The same sample also compares [integer division and REAL promotion](integer-expressions.md)
 through ladder, CPT/CMP and a called ST routine. Independent StDivisor can
 diverge from Divisor and demonstrates later-ST failure/recovery.
 See [MathLab.L5X](../source/samples/MathLab.L5X) and
@@ -76,4 +99,8 @@ The baseline uses installed v35 help 14617 (SQR), 14478–14480 (power/logs),
 14663/14676 (DEG/RAD), 14748–14752 and 14768 (trigonometry). The published
 Rockwell [General Instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 provides additional context; newer instruction mnemonics do not expand this
-v35 profile. Software tests do not establish native controller or Studio acceptance.
+v35 profile. Published [SQR rounding by controller family](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compute-math-instructions/square-root--sqrt-.html)
+and [REAL-to-integer conversion](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/real-to-integer.html)
+provide additional context for rounding. Their native overflow behavior does
+not replace this model's range rollback policy. Software tests do not establish
+native controller or Studio acceptance.

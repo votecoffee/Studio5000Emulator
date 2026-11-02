@@ -1731,3 +1731,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(self.post('load',{'name':'SampledResult.L5X','content':base64.b64encode(E.tostring(root,encoding='utf-8',xml_declaration=True)).decode()})['blockers'],[])
         values={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((values['LearnReference[0]'],values['ChangedBits[0]'],values['ChangedBits[1]']),(3,0,1))
+
+    def test_math_lab_integer_results_round_retain_and_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        row=values(self.post('step',{'dt':10}))
+        for tag in ('ByteRoot','WordRoot','DintRoot'):self.assertEqual(row[tag],4)
+        self.assertEqual((row['RoundedRoot'],row['RoundedPower']),(2,-2))
+        self.post('write',{'tag':'RoundingInput','value':12.25})
+        self.assertEqual(values(self.post('step',{'dt':10}))['RoundedRoot'],4)
+        for tag,value in (('Enable',False),('Input',40000),('RoundingInput',6.25)):self.post('write',{'tag':tag,'value':value})
+        row=values(self.post('step',{'dt':10}));self.assertEqual((row['ByteRoot'],row['RoundedRoot'],row['StRoot']),(4,4,200.0))
+        before=self.post('write',{'tag':'Enable','value':True})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'Input','value':25});row=values(self.post('step',{'dt':10}))
+        self.assertEqual(tuple(row[t] for t in ('Root','ByteRoot','WordRoot','DintRoot','RoundedRoot','RoundedPower')),(5.0,5,5,5,2,-2))
+        report=self.post('report',{})['real_math'];self.assertEqual(report['destinations'],['DINT','INT','REAL','SINT']);self.assertIn('ties to even',report['integer_conversion']);self.assertFalse(report['native_math_status'])
