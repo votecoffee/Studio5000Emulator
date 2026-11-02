@@ -1,0 +1,379 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIPIDLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIPIDLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabPIDDriver" Revision="1.0" Vendor="Studio5000Emulator" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="PV" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="State" TagType="Base" DataType="PID" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="CV" TagType="Base" DataType="REAL" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Tieback" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Inhold" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Readback" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="AuxValue" TagType="Base" DataType="REAL" Usage="Output" Required="false" Visible="true" ExternalAccess="Read/Write" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Local" DataType="PID" TagType="Base" ExternalAccess="Read/Write" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>PID(State,PV,Tieback,CV,0,Inhold,Readback);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>PID(Local,PV,Tieback,AuxValue,0,Inhold,Readback);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()PID(State,PV,Tieback,CV,0,Inhold,Readback);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()PID(Local,PV,Tieback,AuxValue,0,Inhold,Readback);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PVA" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="20" />
+        </Data>
+      </Tag>
+      <Tag Name="PVB" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="35" />
+        </Data>
+      </Tag>
+      <Tag Name="CVA" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="CVB" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Tieback" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="60" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="HoldB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ReadbackA" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="70" />
+        </Data>
+      </Tag>
+      <Tag Name="ReadbackB" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="80" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Quotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ControlA" DataType="PID" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PID">
+            <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+            <DataValueMember Name="SP" DataType="REAL" Value="50" />
+            <DataValueMember Name="KP" DataType="REAL" Value="1" />
+            <DataValueMember Name="KI" DataType="REAL" Value="0.5" />
+            <DataValueMember Name="KD" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="BIAS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXS" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DB" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXO" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="UPD" DataType="REAL" Value="1" />
+            <DataValueMember Name="PV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="ERR" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="OUT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="PVH" DataType="REAL" Value="80" />
+            <DataValueMember Name="PVL" DataType="REAL" Value="10" />
+            <DataValueMember Name="DVP" DataType="REAL" Value="30" />
+            <DataValueMember Name="DVN" DataType="REAL" Value="-30" />
+            <DataValueMember Name="PVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="DVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="MAXI" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINI" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="TIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXCV" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINCV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MINTIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXTIE" DataType="REAL" Value="100" />
+            <ArrayMember Name="DATA" DataType="REAL" Dimensions="17" Radix="Float">
+              <Element Index="[0]" Value="0.0" />
+              <Element Index="[1]" Value="0.0" />
+              <Element Index="[2]" Value="0.0" />
+              <Element Index="[3]" Value="0.0" />
+              <Element Index="[4]" Value="0.0" />
+              <Element Index="[5]" Value="0.0" />
+              <Element Index="[6]" Value="0.0" />
+              <Element Index="[7]" Value="0.0" />
+              <Element Index="[8]" Value="0.0" />
+              <Element Index="[9]" Value="0.0" />
+              <Element Index="[10]" Value="0.0" />
+              <Element Index="[11]" Value="0.0" />
+              <Element Index="[12]" Value="0.0" />
+              <Element Index="[13]" Value="0.0" />
+              <Element Index="[14]" Value="0.0" />
+              <Element Index="[15]" Value="0.0" />
+              <Element Index="[16]" Value="0.0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabPIDDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabPIDDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PV" DataType="REAL" Value="0" />
+            <DataValueMember Name="Tieback" DataType="REAL" Value="60" />
+            <DataValueMember Name="Inhold" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Readback" DataType="REAL" Value="70" />
+            <DataValueMember Name="AuxValue" DataType="REAL" Value="0" />
+            <StructureMember DataType="PID" Name="Local">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="30" />
+              <DataValueMember Name="KP" DataType="REAL" Value="0.5" />
+              <DataValueMember Name="KI" DataType="REAL" Value="0" />
+              <DataValueMember Name="KD" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="BIAS" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXS" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINS" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="DB" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="SO" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXO" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINO" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="UPD" DataType="REAL" Value="1" />
+              <DataValueMember Name="PV" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="ERR" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="OUT" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="PVH" DataType="REAL" Value="80" />
+              <DataValueMember Name="PVL" DataType="REAL" Value="10" />
+              <DataValueMember Name="DVP" DataType="REAL" Value="30" />
+              <DataValueMember Name="DVN" DataType="REAL" Value="-30" />
+              <DataValueMember Name="PVDB" DataType="REAL" Value="2" />
+              <DataValueMember Name="DVDB" DataType="REAL" Value="2" />
+              <DataValueMember Name="MAXI" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINI" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="TIE" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXCV" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINCV" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MINTIE" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXTIE" DataType="REAL" Value="100" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17" Radix="Float">
+                <Element Index="[0]" Value="0.0" />
+                <Element Index="[1]" Value="0.0" />
+                <Element Index="[2]" Value="0.0" />
+                <Element Index="[3]" Value="0.0" />
+                <Element Index="[4]" Value="0.0" />
+                <Element Index="[5]" Value="0.0" />
+                <Element Index="[6]" Value="0.0" />
+                <Element Index="[7]" Value="0.0" />
+                <Element Index="[8]" Value="0.0" />
+                <Element Index="[9]" Value="0.0" />
+                <Element Index="[10]" Value="0.0" />
+                <Element Index="[11]" Value="0.0" />
+                <Element Index="[12]" Value="0.0" />
+                <Element Index="[13]" Value="0.0" />
+                <Element Index="[14]" Value="0.0" />
+                <Element Index="[15]" Value="0.0" />
+                <Element Index="[16]" Value="0.0" />
+              </ArrayMember>
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ManualA" TagType="Alias" DataType="BOOL" AliasFor="ControlA.MO" ExternalAccess="Read/Write" />
+      <Tag Name="PVTrackingA" TagType="Alias" DataType="BOOL" AliasFor="ControlA.PVT" ExternalAccess="Read/Write" />
+      <Tag Name="ControlB" DataType="PID" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="PID">
+            <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+            <DataValueMember Name="SP" DataType="REAL" Value="50" />
+            <DataValueMember Name="KP" DataType="REAL" Value="1" />
+            <DataValueMember Name="KI" DataType="REAL" Value="0.5" />
+            <DataValueMember Name="KD" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="BIAS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXS" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINS" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="DB" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="SO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXO" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINO" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="UPD" DataType="REAL" Value="1" />
+            <DataValueMember Name="PV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="ERR" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="OUT" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="PVH" DataType="REAL" Value="80" />
+            <DataValueMember Name="PVL" DataType="REAL" Value="10" />
+            <DataValueMember Name="DVP" DataType="REAL" Value="30" />
+            <DataValueMember Name="DVN" DataType="REAL" Value="-30" />
+            <DataValueMember Name="PVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="DVDB" DataType="REAL" Value="2" />
+            <DataValueMember Name="MAXI" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINI" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="TIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXCV" DataType="REAL" Value="100" />
+            <DataValueMember Name="MINCV" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MINTIE" DataType="REAL" Value="0.0" />
+            <DataValueMember Name="MAXTIE" DataType="REAL" Value="100" />
+            <ArrayMember Name="DATA" DataType="REAL" Dimensions="17" Radix="Float">
+              <Element Index="[0]" Value="0.0" />
+              <Element Index="[1]" Value="0.0" />
+              <Element Index="[2]" Value="0.0" />
+              <Element Index="[3]" Value="0.0" />
+              <Element Index="[4]" Value="0.0" />
+              <Element Index="[5]" Value="0.0" />
+              <Element Index="[6]" Value="0.0" />
+              <Element Index="[7]" Value="0.0" />
+              <Element Index="[8]" Value="0.0" />
+              <Element Index="[9]" Value="0.0" />
+              <Element Index="[10]" Value="0.0" />
+              <Element Index="[11]" Value="0.0" />
+              <Element Index="[12]" Value="0.0" />
+              <Element Index="[13]" Value="0.0" />
+              <Element Index="[14]" Value="0.0" />
+              <Element Index="[15]" Value="0.0" />
+              <Element Index="[16]" Value="0.0" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabPIDDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabPIDDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="PV" DataType="REAL" Value="0" />
+            <DataValueMember Name="Tieback" DataType="REAL" Value="60" />
+            <DataValueMember Name="Inhold" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Readback" DataType="REAL" Value="70" />
+            <DataValueMember Name="AuxValue" DataType="REAL" Value="0" />
+            <StructureMember DataType="PID" Name="Local">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="30" />
+              <DataValueMember Name="KP" DataType="REAL" Value="0.5" />
+              <DataValueMember Name="KI" DataType="REAL" Value="0" />
+              <DataValueMember Name="KD" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="BIAS" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXS" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINS" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="DB" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="SO" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXO" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINO" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="UPD" DataType="REAL" Value="1" />
+              <DataValueMember Name="PV" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="ERR" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="OUT" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="PVH" DataType="REAL" Value="80" />
+              <DataValueMember Name="PVL" DataType="REAL" Value="10" />
+              <DataValueMember Name="DVP" DataType="REAL" Value="30" />
+              <DataValueMember Name="DVN" DataType="REAL" Value="-30" />
+              <DataValueMember Name="PVDB" DataType="REAL" Value="2" />
+              <DataValueMember Name="DVDB" DataType="REAL" Value="2" />
+              <DataValueMember Name="MAXI" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINI" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="TIE" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXCV" DataType="REAL" Value="100" />
+              <DataValueMember Name="MINCV" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MINTIE" DataType="REAL" Value="0.0" />
+              <DataValueMember Name="MAXTIE" DataType="REAL" Value="100" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17" Radix="Float">
+                <Element Index="[0]" Value="0.0" />
+                <Element Index="[1]" Value="0.0" />
+                <Element Index="[2]" Value="0.0" />
+                <Element Index="[3]" Value="0.0" />
+                <Element Index="[4]" Value="0.0" />
+                <Element Index="[5]" Value="0.0" />
+                <Element Index="[6]" Value="0.0" />
+                <Element Index="[7]" Value="0.0" />
+                <Element Index="[8]" Value="0.0" />
+                <Element Index="[9]" Value="0.0" />
+                <Element Index="[10]" Value="0.0" />
+                <Element Index="[11]" Value="0.0" />
+                <Element Index="[12]" Value="0.0" />
+                <Element Index="[13]" Value="0.0" />
+                <Element Index="[14]" Value="0.0" />
+                <Element Index="[15]" Value="0.0" />
+                <Element Index="[16]" Value="0.0" />
+              </ArrayMember>
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="ManualB" TagType="Alias" DataType="BOOL" AliasFor="ControlB.MO" ExternalAccess="Read/Write" />
+      <Tag Name="PVTrackingB" TagType="Alias" DataType="BOOL" AliasFor="ControlB.PVT" ExternalAccess="Read/Write" />
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(EnabledA)LabPIDDriver(DriverA,PVA,ControlA,CVA,Tieback,HoldA,ReadbackA);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledB)LabPIDDriver(DriverB,PVB,ControlB,CVB,Tieback,HoldB,ReadbackB);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

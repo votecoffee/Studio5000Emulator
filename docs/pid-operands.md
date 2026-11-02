@@ -57,9 +57,10 @@ Manual percent uses the full 0..100 range, independent of automatic MINO/MAXO,
 then follows normal CV descaling and conversion. It clears the deadband latch
 and refreshes derivative samples. Invalid or unknown tieback data/ranges fault
 when MO consumes them, without committing earlier work from that advance.
-[Manual PVT and explicit inhold inputs](pid-restart.md) now execute. Cascade,
-analog module restart/acknowledgement, smoothing and saved native solver history
-remain unsupported. ST/AOI instruction forms remain deferred.
+[Manual PVT and explicit inhold inputs](pid-restart.md), [one-way cascade](pid-cascade.md)
+and [ladder AOI PID](aoi-pid.md) now execute. Cascade feedback, analog module
+restart/acknowledgement, smoothing and saved native solver history remain
+unsupported. ST PID forms remain deferred.
 
 ## PID lab
 

@@ -77,8 +77,9 @@ These boundary, startup, transfer and configuration-change rules are simulator
 choices requiring native qualification. EWD is not a complete native status
 model. [Hardware manual and narrow integer operands](pid-operands.md) are now supported.
 [Manual PV tracking and explicit inhold](pid-restart.md) also execute.
-Cascade, analog module restart/acknowledgement, other operand types,
-ST/AOI forms, native minor faults and packed DATA layouts remain unfinished.
+[One-way cascade](pid-cascade.md) and [ladder AOI bodies](aoi-pid.md) also execute.
+Cascade feedback, analog module restart/acknowledgement, other operand types,
+ST PID forms, native minor faults and packed DATA layouts remain unfinished.
 
 ## Try the existing PID lab
 

@@ -138,7 +138,7 @@ class LadderPIDTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);self.assertEqual(self.run_step(e,FaultDivisor=1),60)
 
     def test_invalid_and_unsupported_live_options_roll_back(self):
-        for member,value in [('KD',1),('DB',-1),('KD',-1),('CL',True),('CT',True),
+        for member,value in [('KD',1),('DB',-1),('KD',-1),('CL',True),
                              ('UPD',0),('UPD',-1),('KP',-1),('KI',-1),('MAXI',0),('MAXS',0),
                              ('MAXCV',0),('SP',101),('MINO',101),('MAXO',-1),('PVDB',-1),('DVDB',-1),('PVL',90)]:
             with self.subTest(member=member,value=value):

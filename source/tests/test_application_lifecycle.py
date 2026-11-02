@@ -1551,3 +1551,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IntExecute',True);write('IntInhold',True);write('IntReadback',20000);row=step();self.assertEqual((row['RawCV'],row['IntLoop.DATA[14]']),(20000,20000))
         fault(write('IntReadback',-1));write('IntReadback',21000);self.assertEqual(step()['RawCV'],21000)
         p=self.post('report',{})['ladder_pid'];self.assertIn('PVT',p['pv_tracking']);self.assertIn('acknowledgement',p['inhold']);self.assertFalse(p['native_runtime_parity'])
+
+    def test_pid_cascade_scan_order_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'PIDLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        for tag in ('Execute','IntExecute','Cascade','CascadeMaster','IntCascade'):write(tag,True)
+        row=step();self.assertEqual((row['CV'],row['IntLoop.SP'],row['RawCV']),(45,45,6553))
+        before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertEqual((row['CV'],row['IntLoop.SP'],row['RawCV']),(60,60,11468))
+        write('Execute',False);row=step();self.assertEqual(row['IntLoop.SP'],60)
+        p=self.post('report',{})['ladder_pid'];self.assertIn('one-way',p['cascade']);self.assertFalse(p['native_runtime_parity'])
+
+    def test_aoi_pid_lab_local_inout_modes_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'AOIPIDLab'})['blockers'],[])
+        self.assertIn(b'AOI PID lab',self.get('/'));self.assertIn(b"loadDemo('AOIPIDLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('EnabledA',True);write('EnabledB',True);row=step()
+        self.assertEqual((row['CVA'],row['CVB'],row['DriverA.AuxValue'],row['DriverB.AuxValue']),(45,22.5,5,0))
+        before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);self.assertEqual(step()['CVA'],60)
+        write('EnabledA',False);row=step();self.assertFalse(row['ControlA.CTL']&(1<<31));self.assertTrue(row['ControlB.CTL']&(1<<31))
+        write('EnabledA',True);write('HoldA',True);write('ReadbackA',70);row=step();self.assertEqual((row['CVA'],row['DriverA.AuxValue']),(70,70))
+        report=self.post('report',{});self.assertEqual(len(report['add_on_instructions']['instances']),2);self.assertIn('InOut',report['ladder_pid']['aoi'])

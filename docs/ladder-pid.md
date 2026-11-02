@@ -16,10 +16,12 @@ XIC(Execute)PID(Loop,PV,0,CV,0,0,0);
 Tieback accepts these tag types or numeric immediates; the
 inhold operands accept stored BOOL status and numeric readback tags, or literal
 zero to disable them. [PV tracking and inhold](pid-restart.md) describe their
-restart contract; the master operand requires zero. [Numeric operands and tieback](pid-operands.md)
+restart contract. [One-way cascade](pid-cascade.md) accepts a distinct master
+PID record or literal zero when no master is used. [Numeric operands and tieback](pid-operands.md)
 describe conversions and hardware manual priority. Aliases, program scope and
 selected arrays/members resolve through shared memory. PV/CV/tieback/inhold cannot
-overlap the PID record. ST/AOI and other optional forms remain blocked.
+overlap the PID record. [Ladder AOI bodies](aoi-pid.md) can use exact InOut and
+represented saved local PID records. ST PID calls remain blocked.
 Use one true execution of a record at
 each modeled task-release time; a repeated true call at the same time faults.
 
@@ -110,8 +112,9 @@ controls; see the [numeric operand examples](pid-operands.md).
 
 ## Remaining
 
-Nonzero KD requires NDF true; derivative smoothing remains blocked. Cascade
-flags CT/CL fault explicitly. Filtering, analog module restart/acknowledgement,
+Nonzero KD requires NDF true; derivative smoothing remains blocked. One-way
+cascade is supported; upstream feedback and multi-level chains remain open.
+Filtering, analog module restart/acknowledgement,
 saved active state, additional languages/operands, native derivative/deadband
 coefficients, boundaries, lifecycle, status/
 fault/precision/lifecycle behavior and DATA/layout interpretation remain open.

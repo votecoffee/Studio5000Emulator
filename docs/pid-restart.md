@@ -70,6 +70,9 @@ That module behavior, its tolerance and communication timing remain separate.
 An external device simulator can drive the explicit input tags and acknowledge
 the result without making the PLC solver responsible for a physical module.
 
+[One-way cascade](pid-cascade.md) skips the master sample while manual/inhold
+controls output. These modes also apply inside [supported ladder AOIs](aoi-pid.md).
+
 ## Try the PID lab
 
 The two loops have separate Inhold/Readback and IntInhold/IntReadback tags, plus

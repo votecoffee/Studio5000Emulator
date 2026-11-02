@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.103932`: [one-way PID cascade](pid-cascade.md) and
+[ladder AOI PID](aoi-pid.md), authored master/slave order, engineering SP scaling,
+exact InOut/saved local records and independent instances with AOI PID lab.
+Cascade feedback, native filtering and broader lifecycle/layout parity remain open.
+
 Available in `26.1102.101552`: [PID manual PV tracking/inhold](pid-restart.md),
 manual SP tracking, explicit readback initialization and automatic release.
 Analog module handshakes/timing and exact native restart behavior remain open.

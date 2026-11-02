@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; PID PV tracking/inhold added for app `26.1102.101552`. **Full Logix emulation is not
+Audited 2026-11-02; PID cascade/AOI execution added for app `26.1102.103932`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -49,7 +49,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | LINT and unsigned integers | Storage/transfers, homogeneous RLL and [ST](wide-st.md) arithmetic/bitwise operations, plus [ladder CPT/CMP/MEQ](ladder-wide-expressions.md) in the v35 5580 profile | Mixed types/conversions, additional expression/ST forms, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
-| PID ladder software profile | [P/PI/PID regulator](ladder-pid.md), gains, scaling, limits, [integer operands and tieback manual](pid-operands.md), CTL aliases, alarms, [derivative/deadband](pid-dynamics.md) and [PVT/inhold inputs](pid-restart.md) | Smoothing/cascade/module restart, remaining operands/languages and native solver/status/fault/layout parity |
+| PID ladder software profile | [P/PI/PID regulator](ladder-pid.md), gains, scaling, limits, [integer operands and tieback manual](pid-operands.md), CTL aliases, alarms, [derivative/deadband](pid-dynamics.md) and [PVT/inhold inputs](pid-restart.md), [one-way cascade](pid-cascade.md) and [ladder AOIs](aoi-pid.md) | Smoothing/cascade feedback/module restart, remaining operands/languages and native solver/status/fault/layout parity |
 | PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles, remaining [ladder PID](ladder-pid.md) features and separate PIDE family |
 | FUNCTION_GENERATOR/DEADTIME | [ST FGEN/DEDT](st-curves-delay.md), piecewise curves, selected tables, sampled transport delay, resizing, health recovery and transactional arrays | Native startup/conditional diagnostics/precision/resize/recovery, RTS, FBD graphs, packed layouts and other profiles |
 | SELECT_ENHANCED/DERIVATIVE | [ST/FBD ESEL/DERV](fbd-process-signals.md), healthy high/low/median/mean/manual selection, control requests, timed rate of change, bypass and rollback | Native startup/request/health/timing/rounding qualification, RTS, general FBD forms, packed layouts and other profiles |

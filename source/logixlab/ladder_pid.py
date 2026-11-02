@@ -37,12 +37,10 @@ def validate(engine, op, scope):
     memory = engine.memory
     if engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('PID requires the v35 ControlLogix 5580 software profile')
-    if scope in memory.frames:
-        raise ModelError('PID inside AOIs remains unqualified')
     if 'pid' in engine.project.udts:
         raise ModelError('Redefined PID records remain unqualified')
-    if len(op.args) != 7 or op.args[4] != '0':
-        raise ModelError('PID requires seven operands with literal 0 master operand')
+    if len(op.args) != 7:
+        raise ModelError('PID requires seven operands')
     key, parts, dtype = memory.check_writable(op.args[0], scope)
     obj = memory.at(key, parts)
     if dtype != 'PID' or not isinstance(obj, dict) or set(obj) != set(FIELDS):
@@ -62,10 +60,22 @@ def validate(engine, op, scope):
     ckey, cparts, ctype = memory.check_writable(op.args[3], scope)
     if ctype not in NUMERIC_TYPES or isinstance(memory.at(ckey, cparts), (list, dict)):
         raise ModelError('PID control variable must be a writable scalar SINT/INT/DINT/REAL tag')
+    master = None
+    if op.args[4] != '0':
+        mkey, mparts, mtype = memory.resolve(op.args[4], scope)
+        mobj = memory.at(mkey, mparts) if mtype == 'PID' else None
+        if (not isinstance(mobj, dict) or set(mobj) != set(FIELDS) or
+                not isinstance(mobj['DATA'], list) or len(mobj['DATA']) != 17):
+            raise ModelError('PID master requires one logical PID record or literal 0')
+        if mkey == key and (mparts[:len(parts)] == parts or parts[:len(mparts)] == mparts):
+            raise ModelError('PID cascade cannot reference its own record')
+        if ckey == mkey and cparts[:len(mparts)] == mparts:
+            raise ModelError('PID control variable cannot overwrite its master record')
+        master = mobj
     for location in (pv, (ckey, cparts), tieback, inhold_bit, inhold_value):
         if location is not None and location[0] == key and location[1][:len(parts)] == parts:
             raise ModelError('PID process/control/tieback/inhold operands cannot overlap its record')
-    return key, parts, obj, ctype
+    return key, parts, obj, ctype, master
 
 
 def prescan(engine, op, scope):
@@ -75,7 +85,7 @@ def prescan(engine, op, scope):
 
 
 def execute(engine, op, power, scope):
-    key, parts, obj, cvtype = validate(engine, op, scope)
+    key, parts, obj, cvtype, master = validate(engine, op, scope)
     if not power:
         engine.memory.write(op.args[0] + '.EN', False, scope)
         return False
@@ -88,8 +98,10 @@ def execute(engine, op, power, scope):
         if type(value) not in (int, float):
             raise ModelError('PID ' + name + ' is unknown or has the wrong value type')
         return real(value)
-    if any(flags(name) for name in ('CT', 'CL')):
-        raise ModelError('PID cascade remains unqualified')
+    cascade = flags('CL')
+    master_role = cascade and flags('CT')
+    if cascade and ((master_role and master is not None) or (not master_role and master is None)):
+        raise ModelError('PID cascade master needs literal 0; cascade slave needs a distinct master PID')
     inhold = False if op.args[5] == '0' else engine.memory.read(op.args[5], scope)
     if type(inhold) is not bool:
         raise ModelError('PID inhold bit must have a known BOOL value')
@@ -115,7 +127,22 @@ def execute(engine, op, power, scope):
         raise ModelError('PID automatic output limits require 0 <= MINO < MAXO <= 100')
     pv = real(v['MINS'] + (real(engine.memory.read(op.args[1], scope)) - v['MINI']) *
               (v['MAXS'] - v['MINS']) / (v['MAXI'] - v['MINI']))
-    v['SP'] = pv if pv_tracking else read('SP')
+    cascade_sample = cascade and not master_role and not tracking
+    if pv_tracking:
+        v['SP'] = pv
+    elif cascade_sample:
+        control = master['CTL']
+        if type(control) is not int or control & ((1 << BITS['CL']) | (1 << BITS['CT'])) != ((1 << BITS['CL']) | (1 << BITS['CT'])):
+            raise ModelError('PID cascade source must have known CL and CT master flags set')
+        output = master['OUT']
+        if type(output) not in (int, float):
+            raise ModelError('PID cascade master OUT must be known')
+        output = real(output)
+        if not 0 <= output <= 100:
+            raise ModelError('PID cascade master OUT must be within 0..100 percent')
+        v['SP'] = real(v['MINS'] + output * (v['MAXS'] - v['MINS']) / 100)
+    else:
+        v['SP'] = read('SP')
     if not v['MINS'] <= v['SP'] <= v['MAXS']:
         raise ModelError('PID setpoint is outside the engineering range')
     error = real((pv - v['SP']) if flags('CA') else (v['SP'] - pv))
@@ -219,7 +246,7 @@ def execute(engine, op, power, scope):
                SO=out, MINO=real(low), MAXO=real(high))
     if hardware_manual:
         obj['TIE'] = tieback
-    if pv_tracking:
+    if pv_tracking or cascade_sample:
         obj['SP'] = v['SP']
     for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, real(assigned_cv))):
         obj['DATA'][i] = value
@@ -232,7 +259,7 @@ def execute(engine, op, power, scope):
 def description():
     return dict(profile='v35-5580-RLL-PID-software', language='RLL', instructions=['PID'],
         record=dict(FIELDS), data_elements=17, ctl_aliases=dict(BITS),
-        operands='PID record, scalar SINT/INT/DINT/REAL PV, numeric tieback tag or DINT/REAL immediate, writable SINT/INT/DINT/REAL CV, 0, BOOL inhold tag or 0, numeric readback tag or 0; outside AOIs',
+        operands='PID record, scalar SINT/INT/DINT/REAL PV, numeric tieback tag or DINT/REAL immediate, writable SINT/INT/DINT/REAL CV, master PID or 0, BOOL inhold tag or 0, numeric readback tag or 0',
         conversions='PV/tieback promote to finite REAL; integer CV uses ties-to-even with range faults; automatic integer CV is zero throughout a positive deadband; DATA14 mirrors assigned CV',
         equation='Percent error=100*(SP-PV)/(MAXS-MINS), sign reversed for CA; P=KP*error%; independent I+=KI*error%*UPD; dependent I+=KP*error%*UPD/(60*KI)',
         solver='Rectangular I per reached true call using UPD, not elapsed time; clip outward I to automatic headroom, freeze if already beyond the limit',
@@ -241,9 +268,11 @@ def description():
         manual='MO overrides SWM: numeric tieback scaled MINTIE..MAXTIE into 0..100, raw input mirrored in TIE; SWM uses SO; I tracks output-P-BIAS or BIAS tracks with zero KI unless NOBC; first auto sample holds I',
         pv_tracking='PVT copies scaled PV to SP during controlling MO/SWM only; unknown old SP may be established; resulting SP must fit the engineering range; inactive auto and inhold retain SP',
         inhold='True BOOL overrides manual/deadband; readback copied into CV after conversion, must fit MINCV..MAXCV; inverse OUT seeds I or BIAS regardless NOBC; release primes auto; external module/acknowledgement/timing not modeled',
+        cascade='CL/CT master uses own SP; CL/non-CT automatic slave samples a distinct CL/CT master OUT into MINS..MAXS; manual/inhold skip sampling; one-way, sampled in authored order, no upstream feedback',
+        aoi='RLL bodies with exact InOut PID/atomic bindings or represented saved locals; canonical record history; existing copied-parameter/Prescan/EnableInFalse/rollback rules apply',
         lifecycle='Prescan/false clear EN only; skipped calls retain history; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
         data='DATA[0,2,3,4,14] mirror I,PV,error,SP,CV; other entries retained, not interpreted as native coefficients',
         native_runtime_parity=False, packed_layout=False,
-        remaining=['Derivative smoothing/filter coefficients, cascade and analog module restart/acknowledgement',
-                   'ST/AOI forms, further optional-operand variants and saved active solver state',
+        remaining=['Derivative smoothing/filter coefficients, cascade feedback/chains and analog module restart/acknowledgement',
+                   'ST call forms, broader AOI schema/lifecycle, further optional variants and saved active solver state',
                    'Native coefficients, anti-windup/bumpless/initialization/alarm boundaries, minor faults, rounding and DATA/layout parity'])

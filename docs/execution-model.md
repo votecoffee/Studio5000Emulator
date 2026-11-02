@@ -36,8 +36,10 @@ These software policies do not establish native intermediate/fault parity.
 seconds per reached true call. Hidden integral/manual history rolls back with
 public fields; Prescan/false clear EN, INI false reinitializes, and Run resets
 history. [Derivative and deadband](pid-dynamics.md) add previous-sample and
-zero-crossing state to the same transaction. Smoothing/cascade and native
-equations/layouts remain blocked. [Narrow numeric operands and tieback](pid-operands.md)
+zero-crossing state to the same transaction. [One-way cascade](pid-cascade.md)
+samples OUT in authored order; [ladder AOIs](aoi-pid.md) resolve canonical
+InOut/local PID history with binding rollback. Cascade feedback, smoothing and
+native equations/layouts remain unqualified. [Narrow numeric operands and tieback](pid-operands.md)
 add explicit float32 promotion, integer CV conversion/deadband zeroing and
 hardware manual priority to the same transaction. [Manual PVT and inhold](pid-restart.md)
 add SP tracking and readback-driven CV initialization; their SP/CV/history effects

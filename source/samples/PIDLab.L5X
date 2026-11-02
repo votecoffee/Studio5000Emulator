@@ -188,6 +188,10 @@
       </Tag>
       <Tag Name="PVTracking" TagType="Alias" DataType="BOOL" AliasFor="Loop.PVT" ExternalAccess="Read/Write" />
       <Tag Name="IntPVTracking" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.PVT" ExternalAccess="Read/Write" />
+      <Tag Name="Cascade" TagType="Alias" DataType="BOOL" AliasFor="Loop.CL" ExternalAccess="Read/Write" />
+      <Tag Name="CascadeMaster" TagType="Alias" DataType="BOOL" AliasFor="Loop.CT" ExternalAccess="Read/Write" />
+      <Tag Name="IntCascade" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.CL" ExternalAccess="Read/Write" />
+      <Tag Name="IntCascadeMaster" TagType="Alias" DataType="BOOL" AliasFor="IntLoop.CT" ExternalAccess="Read/Write" />
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -201,7 +205,7 @@
               </Rung>
               <Rung Number="1" Type="N">
                 <Comment>Optional INT process and control values. Set IntExecute; inspect RawPV, RawCV and IntLoop. Both loops share the external Tieback input.</Comment>
-                <Text>XIC(IntExecute)PID(IntLoop,RawPV,Tieback,RawCV,0,IntInhold,IntReadback);</Text>
+                <Text>XIC(IntExecute)PID(IntLoop,RawPV,Tieback,RawCV,Loop,IntInhold,IntReadback);</Text>
               </Rung>
               <Rung Number="2" Type="N">
                 <Comment>Set FaultDivisor to zero to verify transactional rollback, then correct it and retry.</Comment>
