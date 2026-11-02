@@ -45,9 +45,9 @@ Truncated 2. DecimalInput 12345678 passes through TOD/FRD; RawBCD 16#1234567E
 decodes separately. BlockEnable gates all five blocks; ExecuteGraph skips them.
 FaultDivisor zero demonstrates a later ladder error; restore valid inputs to retry.
 
-The graph inventory is 62 forms: 21 shared ST-call names, 34 common RLL names and
-seven FBD-only forms. RLL remains 101 and ST calls 27. The 222-entry type catalog
-has 53 dedicated bounded models and 169 without one. FBD_CONVERT is classified
+The graph inventory is 63 forms: 23 shared ST-call names, 34 common RLL names and
+six FBD-only forms. RLL remains 101 and ST calls 29. The 222-entry type catalog
+has 54 dedicated bounded models and 168 without one. FBD_CONVERT is classified
 with conversion records; its existing NOT model remains available.
 
 Schemas and execution tables were checked against installed v35 help 14620.htm,

@@ -61,5 +61,5 @@ def description():
                 lifecycle='No hidden state; MVMT prescan clears enables; other five retain enables/Dest; all retain Dest on disabled/skipped calls',
                 failures='All required operands must be known signed DINT values, including zero/full masks; failures roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['ST MVMT call, tagless Functions, other FBD_CONVERT operations, wider/mixed types and packed layouts',
+                remaining=['Tagless Functions, other FBD_CONVERT operations, wider/mixed types and packed layouts',
                            'Native math flags, fault, lifecycle, transfer/edit and controller qualification'])

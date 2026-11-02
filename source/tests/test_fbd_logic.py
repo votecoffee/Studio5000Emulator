@@ -76,7 +76,7 @@ class FBDBooleanTests(unittest.TestCase):
             for name in SCHEMAS[kind]:self.assertEqual(e.memory.resolve(record+'.'+name)[2],'BOOL')
         self.assertTrue(all(default('FBD_BOOLEAN_AND')['In'+str(i)] for i in range(1,9)))
         self.assertTrue(default('FBD_BOOLEAN_NOT')['In']);self.assertFalse(default('FBD_BOOLEAN_OR')['EnableIn'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
 
     def test_omitted_saved_and_input_remains_unknown_despite_true_shape(self):
         def omit(root):
@@ -283,8 +283,8 @@ class FBDBooleanTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[name]==1 for name in ('BAND','BOR','BNOT','BXOR','DFF','JKFF','RESD','SETD')))
         self.assertEqual(self.step(candidate)[4:6],(True,True))
 
-    def test_report_has_sixty_two_blocks_and_four_fbd_only_boolean_types(self):
-        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),62)
+    def test_report_has_sixty_three_blocks_and_four_fbd_only_boolean_types(self):
+        e=self.checked();profile=e.report()['function_blocks'];self.assertEqual(len(profile['instructions']),63)
         self.assertEqual(profile['blocks']['boolean']['instructions'],['BAND','BNOT','BOR','BXOR'])
         self.assertFalse(profile['native_runtime_parity']);self.assertFalse(profile['blocks']['boolean']['native_runtime_parity'])
 

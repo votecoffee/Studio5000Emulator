@@ -352,6 +352,13 @@ known finite REAL inputs. Inclusive/reversed LIM boundaries, float32 equality,
 enable gates and prescan retention are explicit. Unknown/nonfinite inputs fail
 the whole advance; native nonfinite/lifecycle/packed-layout parity is unqualified.
 
+[ST/FBD target bit moves](target-bit-moves.md) add dynamic DINT BTDT fields
+and ST MVMT calls. Explicit Target supplies the baseline each time; reached ST
+calls force enables, while FBD supports connected gating. Prescan clears enables,
+retains Dest and whole-advance rollback includes both languages. ST loop bounds
+are protected from overlapping backing-record writes. Native flags/fault/source-
+excess/lifecycle/transfer qualification remains unfinished.
+
 [FBD conversions/remainder](fbd-conversions.md) add finite REAL MOD, REAL-to-DINT
 TRN and DINT TOD/FRD. TRN truncates toward zero with a representable result;
 TOD accepts 0..99999999 and FRD decodes weighted nibbles. Native overflow,

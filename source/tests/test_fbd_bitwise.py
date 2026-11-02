@@ -176,7 +176,7 @@ class FBDBitwiseTests(unittest.TestCase):
             dtype=e.memory.resolve(tag)[2];self.assertNotIn(dtype,e.project.data_only_types)
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+member)[2],kind)
             self.assertTrue(default(dtype)['EnableIn'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
 
     def test_local_alias_and_nested_array_record(self):
         def nested(root):
@@ -252,7 +252,7 @@ class FBDBitwiseTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in TYPES))
 
     def test_report_lists_six_bitwise_forms_and_distinct_target_contract(self):
-        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
+        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),63)
         self.assertEqual(p['blocks']['bitwise']['instructions'],['AND','MEQ','MVMT','NOT','OR','XOR'])
         self.assertIn('never read previous Dest',p['blocks']['bitwise']['masked_move']);self.assertFalse(p['native_runtime_parity'])
 

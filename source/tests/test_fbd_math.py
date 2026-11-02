@@ -62,7 +62,7 @@ class FBDMathTests(unittest.TestCase):
         self.assertEqual(math.copysign(1,e.memory.read('Magnitude')),1)
 
     def test_math_schemas_and_member_types_are_exact(self):
-        e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
+        e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
         for tag,dtype in (('Adder','FBD_MATH'),('Absolute','FBD_MATH_ADVANCED')):
             self.assertNotIn(dtype,e.project.data_only_types)
             for pin,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+pin)[2],kind)
@@ -252,8 +252,8 @@ class FBDMathTests(unittest.TestCase):
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('ADD','SUB','MUL','DIV','NEG','ABS')))
         self.assertEqual(self.step(candidate),(8,7,21,7,-7,7))
 
-    def test_inventory_reports_sixty_two_blocks_and_math_limits(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
+    def test_inventory_reports_sixty_three_blocks_and_math_limits(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),63)
         self.assertEqual(p['blocks']['math']['instructions'],['ABS','ACS','ADD','ASN','ATN','COS','DEG','DIV','LN','LOG','MOD','MUL','NEG','RAD','SIN','SQR','SUB','TAN','XPY'])
         self.assertFalse(p['blocks']['math']['native_runtime_parity']);self.assertIn('prescan leaves',p['blocks']['math']['lifecycle'])
 

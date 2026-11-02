@@ -1,0 +1,239 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="TargetMoveLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="TargetMoveLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Word" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305419896" />
+        </Data>
+      </Tag>
+      <Tag Name="SourceOffset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="4" />
+        </Data>
+      </Tag>
+      <Tag Name="BitCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="8" />
+        </Data>
+      </Tag>
+      <Tag Name="DestinationOffset" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="16" />
+        </Data>
+      </Tag>
+      <Tag Name="BaseWord" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="587202730" />
+        </Data>
+      </Tag>
+      <Tag Name="Mask" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="255" />
+        </Data>
+      </Tag>
+      <Tag Name="BlockEnable" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteText" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="ExecuteGraph" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TextCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GraphCount" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TextFieldValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TextOutput" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TextEnabled" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GraphFieldValue" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GraphOutput" TagType="Base" DataType="DINT">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="GraphEnabled" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TextField" TagType="Base" DataType="FBD_BIT_FIELD_DISTRIBUTE">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BIT_FIELD_DISTRIBUTE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="SourceBit" DataType="DINT" Value="4" />
+            <DataValueMember Name="Length" DataType="DINT" Value="8" />
+            <DataValueMember Name="DestBit" DataType="DINT" Value="16" />
+            <DataValueMember Name="Target" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="TextMask" TagType="Base" DataType="FBD_MASKED_MOVE">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_MASKED_MOVE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="Mask" DataType="DINT" Value="0" />
+            <DataValueMember Name="Target" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="GraphField" TagType="Base" DataType="FBD_BIT_FIELD_DISTRIBUTE">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_BIT_FIELD_DISTRIBUTE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="SourceBit" DataType="DINT" Value="4" />
+            <DataValueMember Name="Length" DataType="DINT" Value="8" />
+            <DataValueMember Name="DestBit" DataType="DINT" Value="16" />
+            <DataValueMember Name="Target" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="GraphMask" TagType="Base" DataType="FBD_MASKED_MOVE">
+        <Data Format="Decorated">
+          <Structure DataType="FBD_MASKED_MOVE">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="1" />
+            <DataValueMember Name="Source" DataType="DINT" Value="0" />
+            <DataValueMember Name="Mask" DataType="DINT" Value="0" />
+            <DataValueMember Name="Target" DataType="DINT" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Dest" DataType="DINT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ExecuteText)JSR(TextMoves,0);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ExecuteText)ADD(TextCount,1,TextCount);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(ExecuteGraph)JSR(GraphMoves,0);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(ExecuteGraph)ADD(GraphCount,1,GraphCount);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TextMoves" Type="ST">
+            <STContent>
+              <Line Number="0">TextField.Source := Word;</Line>
+              <Line Number="1">TextField.SourceBit := SourceOffset;</Line>
+              <Line Number="2">TextField.Length := BitCount;</Line>
+              <Line Number="3">TextField.DestBit := DestinationOffset;</Line>
+              <Line Number="4">TextField.Target := BaseWord;</Line>
+              <Line Number="5">BTDT(TextField);</Line>
+              <Line Number="6">TextMask.Source := Word;</Line>
+              <Line Number="7">TextMask.Mask := Mask;</Line>
+              <Line Number="8">TextMask.Target := TextField.Dest;</Line>
+              <Line Number="9">MVMT(TextMask);</Line>
+              <Line Number="10">TextFieldValue := TextField.Dest;</Line>
+              <Line Number="11">TextOutput := TextMask.Dest;</Line>
+              <Line Number="12">TextEnabled := TextMask.EnableOut;</Line>
+            </STContent>
+          </Routine>
+          <Routine Name="GraphMoves" Type="FBD">
+            <FBDContent SheetSize="A3" SheetOrientation="Landscape">
+              <Sheet Number="1">
+                <Description>Compare ST and FBD explicit-target bit moves. BlockEnable gates only FBD; ExecuteText and ExecuteGraph skip their calls independently.</Description>
+                <IRef ID="1" X="20" Y="0" Operand="Word" />
+                <IRef ID="2" X="20" Y="120" Operand="SourceOffset" />
+                <IRef ID="3" X="20" Y="240" Operand="BitCount" />
+                <IRef ID="4" X="20" Y="360" Operand="DestinationOffset" />
+                <IRef ID="5" X="20" Y="480" Operand="BaseWord" />
+                <IRef ID="6" X="20" Y="600" Operand="Mask" />
+                <IRef ID="7" X="20" Y="720" Operand="BlockEnable" />
+                <Block ID="100" X="400" Y="150" Type="BTDT" Operand="GraphField" VisiblePins="EnableIn Source SourceBit Length DestBit Target EnableOut Dest" />
+                <Block ID="200" X="900" Y="150" Type="MVMT" Operand="GraphMask" VisiblePins="EnableIn Source Mask Target EnableOut Dest" />
+                <ORef ID="1000" X="1400" Y="0" Operand="GraphFieldValue" />
+                <ORef ID="1001" X="1400" Y="200" Operand="GraphOutput" />
+                <ORef ID="1002" X="1400" Y="400" Operand="GraphEnabled" />
+                <Wire FromID="1" FromParam="In" ToID="100" ToParam="Source" />
+                <Wire FromID="2" FromParam="In" ToID="100" ToParam="SourceBit" />
+                <Wire FromID="3" FromParam="In" ToID="100" ToParam="Length" />
+                <Wire FromID="4" FromParam="In" ToID="100" ToParam="DestBit" />
+                <Wire FromID="5" FromParam="In" ToID="100" ToParam="Target" />
+                <Wire FromID="1" FromParam="In" ToID="200" ToParam="Source" />
+                <Wire FromID="6" FromParam="In" ToID="200" ToParam="Mask" />
+                <Wire FromID="100" FromParam="Dest" ToID="200" ToParam="Target" />
+                <Wire FromID="7" FromParam="In" ToID="100" ToParam="EnableIn" />
+                <Wire FromID="7" FromParam="In" ToID="200" ToParam="EnableIn" />
+                <Wire FromID="100" FromParam="Dest" ToID="1000" ToParam="Out" />
+                <Wire FromID="200" FromParam="Dest" ToID="1001" ToParam="Out" />
+                <Wire FromID="200" FromParam="EnableOut" ToID="1002" ToParam="Out" />
+              </Sheet>
+            </FBDContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

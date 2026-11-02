@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; FBD conversion/remainder blocks added for app `26.1102.071333`. The engine has **101 built-in
+Audited 2026-11-02; ST/FBD target bit moves added for app `26.1102.073226`. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -32,11 +32,12 @@ four logical records. [ST/FBD UPDN/INTG](st-accumulation.md) add two accumulatio
 records. [ST/FBD ESEL/DERV](st-process-signals.md) add enhanced selection and derivative
 records. [ST FGEN/DEDT](st-curves-delay.md) add piecewise curves and sampled delay.
 [ST PI](st-pi-regulation.md) adds a PROP_INT software regulator.
-These twenty-seven additional calls are excluded from the RLL dispatch count.
+[ST/FBD BTDT/MVMT](target-bit-moves.md) add explicit-target DINT field/mask
+operations with logical records. These twenty-nine additional calls are excluded from the RLL dispatch count.
 SCL/HLL/SNEG/SSUM and [TONR/TOFR/RTOR/CTUD/OSRI/OSFI](fbd-stateful.md) also
 execute in the limited [FBD graph](function-blocks.md), alongside FBD-only SEL/MUX.
-Sixty-two graph blocks are supported: twenty-one shared ST-call names, thirty-four
-common RLL names and seven FBD-only forms. These forms
+Sixty-three graph blocks are supported: twenty-three shared ST-call names, thirty-four
+common RLL names and six FBD-only forms. These forms
 include [Boolean logic/memory](fbd-boolean.md), [RLIM/MAXC/MINC](fbd-rate-capture.md), [UPDN/INTG](fbd-accumulation.md) and [ESEL/DERV](fbd-process-signals.md).
 [ADD/SUB/MUL/DIV/ABS/NEG](fbd-arithmetic.md) and
 [SQR/LN/LOG/XPY/DEG/RAD/SIN/COS/TAN/ASN/ACS/ATN](fbd-advanced-math.md) use two
@@ -46,7 +47,7 @@ FBD_TRUNCATE/FBD_CONVERT records, sharing the existing ladder BCD calculations.
 [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md) add FBD_COMPARE/FBD_LIMIT
 with finite REAL inputs and BOOL outputs. These Block forms add no one-record
 RLL/ST call overloads. [AND/OR/XOR/NOT/MEQ/MVMT](fbd-bitwise.md) add DINT bitwise/masked Block forms
-and four logical record models. ST MVMT remains unsupported.
+and four logical record models. MVMT now also executes as a supported ST call.
 The four Boolean record types also have bounded logical models. Other ST calls
 lack FBD forms.
 
@@ -78,7 +79,7 @@ lack FBD forms.
 | Motion Group Instructions | — | — | `MGS`, `MGSD`, `MGSP`, `MGSR` |
 | Motion Move Instructions | — | — | `MAG`, `MAH`, `MAJ`, `MAM`, `MAPC`, `MAS`, `MATC`, `MCCP`, `MCD`, `MCSV`, `MDAC`, `MRP` |
 | Motion State Instruction | — | — | `MAFR`, `MASD`, `MASR`, `MDF`, `MDO`, `MDS`, `MSF`, `MSO` |
-| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | `BTDT` (FBD-only MVMT, FBD Boolean blocks and ST/FBD DFF/JKFF/RESD/SETD listed above) |
+| Move/Logical Instructions | `AND`, `BTD`, `CLR`, `MOV`, `MVM`, `NOT`, `OR`, `SWPB`, `XOR` | — | — (ST/FBD BTDT/MVMT, FBD Boolean blocks and ST/FBD DFF/JKFF/RESD/SETD listed above) |
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |

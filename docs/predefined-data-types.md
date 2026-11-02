@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1102.071333` on 2026-11-02. Every supplied entry appears below in its original
+`26.1102.073226` on 2026-11-02. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -44,9 +44,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD comparison models, bounded | 2 | [EQU/NEQ/GRT/GEQ/LES/LEQ/LIM](fbd-comparisons.md), finite REAL operands and BOOL results |
 | FBD bitwise models, bounded | 3 | [AND/OR/XOR/MEQ/MVMT](fbd-bitwise.md), signed DINT logical/mask records; NOT retains its shared conversion record |
 | FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
-| No dedicated model | 169 | No dedicated bounded named runtime model |
+| Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
+| No dedicated model | 168 | No dedicated bounded named runtime model |
 
-Thus **53 entries have dedicated bounded models**; this is not 53 fully
+Thus **54 entries have dedicated bounded models**; this is not 54 fully
 emulated types and not a percentage-complete claim. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -153,7 +154,7 @@ Every dedicated model status still requires the qualifications above.
 | 53 | `ENERGY_ELECTRICAL` | Energy | No dedicated model | Listed |
 | 54 | `EXT_ROUTINE_CONTROL` | External routine | No dedicated model | Listed |
 | 55 | `EXT_ROUTINE_PARAMETERS` | External routine | No dedicated model | Listed |
-| 56 | `FBD_BIT_FIELD_DISTRIBUTE` | FBD state/logic | No dedicated model | Listed |
+| 56 | `FBD_BIT_FIELD_DISTRIBUTE` | FBD state/logic | Target bit move model (bounded) | Listed |
 | 57 | `FBD_BOOLEAN_AND` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 58 | `FBD_BOOLEAN_NOT` | FBD state/logic | FBD Boolean model (partial) | Listed |
 | 59 | `FBD_BOOLEAN_OR` | FBD state/logic | FBD Boolean model (partial) | Listed |

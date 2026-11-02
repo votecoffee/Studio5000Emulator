@@ -59,7 +59,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9}
 
 
-ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1}
+ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1,"BTDT":1,"MVMT":1}
 
 
 def operand_problem(op):
@@ -387,7 +387,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE'}
+        builtin={'BOOL',*INT_BITS,'REAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -481,6 +481,9 @@ class Project:
         upper = dtype.upper()
         if upper in INT_BITS or upper == "REAL": return 0.0 if upper == "REAL" else 0
         if upper == "BOOL": return False
+        if upper=='FBD_BIT_FIELD_DISTRIBUTE':
+            from .st_bit_moves import default
+            return default(upper)
         if upper=='FBD_TRUNCATE':
             from .fbd_convert import default
             return default(upper)
@@ -780,6 +783,9 @@ class Memory:
                     elif dtype.upper()=='FBD_COUNTER':
                         from .st_counter import FIELDS
                         dtype=FIELDS[actual]
+                    elif dtype.upper()=='FBD_BIT_FIELD_DISTRIBUTE':
+                        from .st_bit_moves import SCHEMAS
+                        dtype=SCHEMAS['FBD_BIT_FIELD_DISTRIBUTE'][actual]
                     elif dtype.upper()=='FBD_TRUNCATE':
                         from .fbd_convert import SCHEMAS
                         dtype=SCHEMAS['FBD_TRUNCATE'][actual]

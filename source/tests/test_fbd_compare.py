@@ -58,7 +58,7 @@ class FBDCompareTests(unittest.TestCase):
             self.assertNotIn(dtype,e.project.data_only_types)
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+member)[2],kind)
             self.assertTrue(default(dtype)['EnableIn']);self.assertFalse(default(dtype)['Dest'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
 
     def test_ascending_limits_include_both_boundaries(self):
         e=self.checked();self.settings(e,LowLimit=0,HighLimit=10)
@@ -270,8 +270,8 @@ class FBDCompareTests(unittest.TestCase):
         self.step(candidate);self.assertEqual(candidate.memory.read('TimerACC'),20)
         self.assertTrue(all(candidate.project.instruction_counts[n]==1 for n in ('EQU','NEQ','GRT','GEQ','LES','LEQ','LIM')))
 
-    def test_report_has_sixty_two_blocks_and_finite_comparison_contract(self):
-        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),62)
+    def test_report_has_sixty_three_blocks_and_finite_comparison_contract(self):
+        e=self.checked();p=e.report()['function_blocks'];self.assertEqual(len(p['instructions']),63)
         self.assertEqual(p['blocks']['comparison']['instructions'],['EQU','GEQ','GRT','LEQ','LES','LIM','NEQ'])
         self.assertIn('Inclusive',p['blocks']['comparison']['limits']);self.assertFalse(p['blocks']['comparison']['native_runtime_parity'])
 

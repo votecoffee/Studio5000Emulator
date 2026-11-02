@@ -133,7 +133,7 @@ class FBDConversionTests(unittest.TestCase):
         e=self.checked();self.assertNotIn('FBD_TRUNCATE',e.project.data_only_types)
         for pin,kind in SCHEMAS['FBD_TRUNCATE'].items():self.assertEqual(e.memory.resolve('TruncateState.'+pin)[2],kind)
         self.assertTrue(default('FBD_TRUNCATE')['EnableIn']);self.assertIs(type(default('FBD_TRUNCATE')['Dest']),int)
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,27))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(101,29))
 
     def test_prescan_and_run_retain_enables_dest_and_no_hidden_state(self):
         def saved(root):
@@ -239,7 +239,7 @@ class FBDConversionTests(unittest.TestCase):
         candidate,_=prepare(e,decode(container(E.tostring(xml,encoding='utf8'))),tuple(texts),'MainProgram',0);self.assertEqual(self.snapshot(e),before);self.assertEqual(self.step(candidate),(2.75,2,0x12345678,12345678,12345684));self.assertEqual(candidate.project.instruction_counts['FRD'],2)
 
     def test_report_inventories_and_excluded_native_ranges(self):
-        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),62);self.assertEqual(len(p['blocks']['math']['instructions']),19)
+        p=self.checked().report()['function_blocks'];self.assertEqual(len(p['instructions']),63);self.assertEqual(len(p['blocks']['math']['instructions']),19)
         self.assertEqual(p['blocks']['conversion']['instructions'],['FRD','TOD','TRN']);self.assertIn('saturation',p['blocks']['conversion']['remaining'][0]);self.assertFalse(p['native_runtime_parity'])
 
 

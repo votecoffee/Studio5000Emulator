@@ -1,5 +1,9 @@
 # Roadmap
 
+Available in `26.1102.073226`: [ST/FBD BTDT/MVMT](target-bit-moves.md),
+dynamic DINT bit fields and masks with explicit Target, shared records and Target
+Bit Move Lab. Native flags/fault/source-excess/lifecycle/postscan parity unqualified.
+
 Available in `26.1102.071333`: [FBD MOD/TRN/TOD/FRD](fbd-conversions.md),
 finite REAL remainder, REAL-to-DINT truncation and shared DINT BCD conversion with
 FBD Conversion Lab. Native saturation/minor-fault/overflow/flag parity unqualified.

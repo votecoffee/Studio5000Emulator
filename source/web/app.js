@@ -235,6 +235,7 @@ $('fbd-trend-demo').onclick=()=>loadDemo('FBDTrendLab');
 $('fbd-total-demo').onclick=()=>loadDemo('FBDTotalLab');
 $('fbd-process-demo').onclick=()=>loadDemo('FBDProcessLab');
 $('fbd-advanced-demo').onclick=()=>loadDemo('FBDAdvancedMathLab');
+$('target-move-demo').onclick=()=>loadDemo('TargetMoveLab');
 $('fbd-convert-demo').onclick=()=>loadDemo('FBDConversionLab');
 $('fbd-math-demo').onclick=()=>loadDemo('FBDMathLab');
 $('fbd-bitwise-demo').onclick=()=>loadDemo('FBDBitwiseLab');

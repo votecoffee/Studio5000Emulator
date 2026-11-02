@@ -5,7 +5,7 @@ The v35 ControlLogix 5580 software profile executes a limited FBD graph containi
 [timer/counter/one-shot blocks](fbd-stateful.md). Choose **FBD selector lab** for
 manual/automatic selection or **FBD signal lab** for a scale/limit/negate/sum chain.
 [Boolean logic/memory](fbd-boolean.md), [rate limiting/extrema](fbd-rate-capture.md)
-and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) and [bitwise/masked operations](fbd-bitwise.md) plus [advanced math](fbd-advanced-math.md) and [conversions/remainder](fbd-conversions.md) bring the inventory to 62 blocks. Other FBD instructions and complete native
+and [accumulation/integration](fbd-accumulation.md) with [process signals](fbd-process-signals.md) and [basic arithmetic](fbd-arithmetic.md) plus [comparisons/limits](fbd-comparisons.md) and [bitwise/masked operations](fbd-bitwise.md) plus [advanced math](fbd-advanced-math.md) and [conversions/remainder](fbd-conversions.md) plus [target bit moves](target-bit-moves.md) bring the inventory to 63 blocks. Other FBD instructions and complete native
 graph semantics remain unfinished.
 
 ## Supported graph
@@ -40,6 +40,7 @@ DFF/JKFF/RESD/SETD, with strict BOOL pins and shared latch/clock state.
 | --- | --- |
 | AND / OR / XOR / NOT / MEQ / MVMT | Signed DINT bitwise results, BOOL masked equality and explicit-target merging; per-family prescan rules. |
 | EQU / NEQ / GRT / GEQ / LES / LEQ / LIM | Finite REAL comparisons and inclusive/reversed limits with BOOL Dest and retained prescan values. |
+| BTDT | DINT bit field transferred into explicit Target; shared ST model, dynamic positions/length and clipped destination excess. |
 | MOD / TRN / TOD / FRD | Finite REAL remainder, typed REAL-to-DINT truncation and shared DINT BCD conversion; excluded ranges fail transactionally. |
 | SQR / LN / LOG / XPY / DEG / RAD / SIN / COS / TAN / ASN / ACS / ATN | Finite REAL host math shared with ladder; float32 block boundaries and transactional domain failures. |
 | ADD / SUB / MUL / DIV / ABS / NEG | Finite REAL math with typed records and retained prescan values; native minor-fault/overflow cases remain excluded. |
@@ -72,7 +73,7 @@ Only consumed selectors, connected enables and selected values must be known;
 unknown unselected inputs can travel on wires. An unknown published output or
 nonfinite consumed REAL faults the advance instead of becoming a known zero.
 
-Math/comparison/conversion and AND/OR/XOR/NOT/MEQ prescan retain enables/Dest; MVMT and
+Math/comparison/conversion and AND/OR/XOR/NOT/MEQ prescan retain enables/Dest; MVMT/BTDT and
 other qualified blocks clear enables.
 Prescan does not copy wires or publish outputs. Run entry
 clears hidden output history. Skipped routine calls retain state. Existing RLL/ST
@@ -109,9 +110,9 @@ BlockEnable gates all four blocks; ExecuteGraph skips the routine; FaultDivisor
 zero demonstrates whole-advance rollback. Restore it to 1 to retry.
 
 These four adapters add FBD forms to existing models; the 222-type inventory
-now contains 53 bounded models. There are 62 FBD blocks: 21 names shared with
-existing ST calls, 34 common RLL names and seven FBD-only forms.
-ST-call dispatch entries remain 27 and RLL remains 101.
+now contains 54 bounded models. There are 63 FBD blocks: 23 names shared with
+existing ST calls, 34 common RLL names and six FBD-only forms.
+ST-call dispatch entries are 29 and RLL remains 101.
 Native startup/output-write/disabled/postscan behavior, intermediate precision
 and full controller fault/status parity remain unqualified.
 
@@ -169,6 +170,12 @@ units, domains, rounding, lifecycle and recovery.
 Choose **FBD conversion lab** for `FBDConversionLab.L5X`: five blocks, 16 nodes
 and 17 wires. See [remainder/truncation/BCD](fbd-conversions.md) for ranges,
 signed bit patterns, typed wires, prescan retention and rollback.
+
+## Target bit move lab
+
+Choose **Target bit move lab** for `TargetMoveLab.L5X`: ST calls and a two-block
+FBD chain over twelve nodes and thirteen wires. See [explicit-target bit moves](target-bit-moves.md)
+for dynamic field selection, masks, enable differences and shared transactions.
 
 ## Remaining work and references
 

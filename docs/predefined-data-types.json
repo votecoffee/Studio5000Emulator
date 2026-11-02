@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-11-02",
-  "audited_app_version": "26.1102.071333",
+  "audited_app_version": "26.1102.073226",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -138,9 +138,14 @@
       "remaining": "TRN REAL-to-DINT and shared DINT TOD/FRD Block forms, plus existing NOT; other operations/types/forms, native saturation/overflow/flags/lifecycle/fault/layout/transfer parity remain unfinished.",
       "source": "source/logixlab/fbd_convert.py"
     },
+    "target_bit_move_model": {
+      "label": "Target bit move model (bounded)",
+      "remaining": "DINT ST/FBD BTDT and shared MVMT calls; other types/forms, native flags/fault/source-excess/lifecycle/postscan/layout/transfer parity remain unfinished.",
+      "source": "source/logixlab/st_bit_moves.py"
+    },
     "fbd_bitwise_model": {
       "label": "FBD bitwise model (bounded)",
-      "remaining": "Signed DINT AND/OR/XOR/NOT/MEQ/MVMT Block forms; ST MVMT, other record operations/types/forms, native flags/lifecycle/fault/layout/transfer parity remain unfinished.",
+      "remaining": "Signed DINT AND/OR/XOR/NOT/MEQ/MVMT Block forms with shared ST MVMT; other record operations/types/forms, native flags/lifecycle/fault/layout/transfer parity remain unfinished.",
       "source": "source/logixlab/fbd_bitwise.py"
     },
     "fbd_compare_model": {
@@ -283,10 +288,10 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 53,
-    "no_dedicated_model": 169,
+    "dedicated_bounded_models": 54,
+    "no_dedicated_model": 168,
     "status_counts": {
-      "no_dedicated_model": 169,
+      "no_dedicated_model": 168,
       "numeric_model": 5,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
@@ -314,7 +319,8 @@
       "fbd_math_model": 2,
       "fbd_compare_model": 2,
       "fbd_bitwise_model": 3,
-      "fbd_conversion_model": 2
+      "fbd_conversion_model": 2,
+      "target_bit_move_model": 1
     },
     "v35_listing_counts": {
       "exact": 203,
@@ -990,7 +996,7 @@
       "identifier_candidate": "FBD_BIT_FIELD_DISTRIBUTE",
       "starred": false,
       "family": "fbd",
-      "model_status": "no_dedicated_model",
+      "model_status": "target_bit_move_model",
       "v35_listing": "exact",
       "v35_catalog_name": "FBD_BIT_FIELD_DISTRIBUTE",
       "notes": []
