@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.143300`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.144504`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -66,7 +66,8 @@ AOI data. Choose **AOI statistics lab** to compare latched means, deviations and
 selected axes.
 
 [Array statistics](docs/array-statistics.md) add ladder AVE and sample STD with
-REAL results and dimension selection. **Stats lab** demonstrates averages,
+REAL sample deviation and SINT/INT/DINT/REAL averages, including nearest-even
+integer conversion and range rollback. **Stats lab** demonstrates averages,
 deviation, row/column selection and CONTROL rearming.
 
 [Integer expressions](docs/integer-expressions.md) add exact narrow division in

@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; narrow integer math results added for app `26.1102.143300`. **Full Logix emulation is not
+Audited 2026-11-02; integer AVE results added for app `26.1102.144504`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -35,7 +35,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed transforms, scalar accumulation, sequential writes and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/overflow/status/partial-fault parity |
 | File search | [FSC ALL/numeric modes](file-search.md) and [idle-source INC](file-incremental.md), comparisons, match/inhibit/resume, false-rung numeric continuation and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/status/fault parity |
 | File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension, ST call transitions and [alias/indirect/AOI references](sort-references.md) | Native internal POS cursor, partial states/faults, wider types, broader lifecycle and conservative FOR effects |
-| Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL results, CONTROL transitions and [alias/indirect/AOI references](statistics-references.md) | Partial POS/resume, integer AVE results, broader types/lifecycle and native precision/fault/status behavior |
+| Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL sample deviation and narrow numeric averages, CONTROL transitions and [alias/indirect/AOI references](statistics-references.md) | Partial POS/resume, broader types/lifecycle and native precision/fault/status behavior |
 | Common ladder math | [Twelve math forms](math-operations.md), SINT/INT/DINT/REAL results, nearest-even integer conversion, range rollback and absolute-value square roots in ladder/CPT/ST | Wide/unsigned/LREAL operands and native precision/math-status/nonfinite/overflow behavior; FBD has separate REAL-record forms |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |
 | Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists, selective reference updates and [alias/indirect/AOI references](bit-diagnostic-references.md) | Broader AOI shapes/profiles and native sampling/cursor/status/fault parity |

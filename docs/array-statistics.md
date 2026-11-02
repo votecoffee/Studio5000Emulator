@@ -7,7 +7,8 @@ AVE(Array,Dimension,Dest,Control,?,?);
 STD(Array,Dimension,Dest,Control,?,?);
 ```
 
-Sources use SINT/INT/DINT/REAL arrays and destinations use writable REAL scalars.
+Sources use SINT/INT/DINT/REAL arrays. AVE accepts writable scalar
+SINT/INT/DINT/REAL results; STD requires a writable REAL result.
 CONTROL.LEN/POS hold saved values; pseudo-operands do not initialize them on
 each scan. See [logical CONTROL](control-operations.md) and
 [implementation](../source/logixlab/array_statistics.py).
@@ -23,7 +24,9 @@ It does not flatten the array into adjacent rows.
 The complete LEN region must fit that dimension within the selected member.
 At most 4096 values are processed per operation. Numeric UDT array members and
 sibling result members are supported. Constant input arrays are legal;
-destinations cannot overlap the source array. [Aliases, indirect starts and RLL
+destinations cannot overlap the source array or the operation's own CONTROL
+record, including LEN/POS aliases. Disjoint result and control members may
+share the same enclosing tag. [Aliases, indirect starts and RLL
 AOI arrays](statistics-references.md) now execute, with explicit latch, index
 consumption, dimension, binding and rollback rules.
 
@@ -32,6 +35,19 @@ two and calculates sample deviation: `sqrt(sum((x-mean)^2)/(N-1))`. This follows
 the installed v35 formula rather than population deviation. Inputs, accumulation,
 intermediate squared differences and results use float32 in this software
 profile; native precision and bit-for-bit parity remain unverified.
+
+An integer AVE result rounds the float32 mean to the nearest whole number,
+with exact halves going to the nearest even value: 2.5 becomes 2, 3.5 becomes
+4, and -2.5 becomes -2. Range checks apply after rounding: SINT -128.5 fits as
+-128, while 127.5 rounds outside SINT and rolls back the advance. No native
+overflow bits or arithmetic flags are synthesized.
+
+Integer results retain the same float32 accumulation order as REAL results.
+For example, DINT samples [16777216,1,-16777216,2] produce a modeled float32
+mean of 0.5 and an integer result of 0; an exact integer sum would differ.
+A one-element DINT source of 2147483647 first rounds to 2147483648, so a DINT
+result fails its range check. Wider intermediates and native precision remain
+unqualified. STD is not widened by the integer AVE profile.
 
 ## CONTROL transitions
 
@@ -53,9 +69,8 @@ Unknown required values, invalid bounds/lengths, partial positions, accumulation
 overflow and later execution faults stop and roll back the whole modeled advance,
 including data, control flags, time and scheduler state. Native ER/POS fault
 side effects, partial results, math flags and fault classifications remain
-unfinished. Integer AVE destinations, wider types and additional reference
-forms also remain open. Neither instruction is available as an ST call; FBD
-execution remains unsupported.
+unfinished. Wider types, partial-state execution and broader AOI forms remain
+open. Neither instruction is available as an ST call or FBD instruction.
 
 ## Stats Lab
 
@@ -66,10 +81,17 @@ and Ready is true. The Values guard element remains 999.
 Change Values[0] to 14 while Calculate stays true: results remain latched.
 Set Calculate off and step, then on and step to recalculate Average=8.
 Reset clears the four independent control records while retaining lengths
-and sample data. See [StatsLab.L5X](../source/samples/StatsLab.L5X).
+and sample data. ByteAverage, WordAverage and DintAverage use separate controls
+and RoundingValues[0..3], initially [1,2,3,4]: all three results round 2.5 to 2.
+Change RoundingValues[0] to 5, rearm Calculate false/true, and the mean 3.5 rounds
+to 4. RoundingValues[4] is a guard and remains 777. Reset also resets these three
+controls. A mean of 127.5 demonstrates SINT rollback; correct the samples and
+retry with the controls still fresh. See [StatsLab.L5X](../source/samples/StatsLab.L5X).
 
 The baseline uses installed v35 help 14507 (AVE), 14501/14536 (STD/formula)
 and 14492 (All Mode), including the AVE false flowchart. Rockwell's published
 [General Instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
-provides context. These bounded software checks do not establish native
+and published [AVE operands](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/array-file-misc-instructions/file-average-ave.html)
+provide context. Rounding uses the existing [REAL-to-integer rule](math-operations.md);
+newer published types do not expand the v35 profile. These software checks do not establish native
 controller or Studio acceptance.

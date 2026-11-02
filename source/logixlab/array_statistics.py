@@ -1,4 +1,4 @@
-"""Bounded dimension-wise AVE/STD with logical CONTROL and REAL results."""
+"""Bounded dimension-wise AVE/STD with logical CONTROL and typed results."""
 import math
 
 from . import control_operations as controls
@@ -56,15 +56,19 @@ def validate(memory, op, scope):
         raise ModelError('Statistics LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[3], scope)
     key, _, prefix, _ = region(memory, op, scope, structural=True, references=True)
-    destination(memory,op.args[2],scope,key,prefix)
+    destination(memory,op,scope,key,prefix)
 
 
-def destination(memory, ref, scope, key, prefix):
-    dk, dp, dtype = memory.check_writable(ref, scope)
-    if dtype != 'REAL' or isinstance(memory.at(dk, dp), (list, dict)):
-        raise ModelError('Statistics currently require a scalar REAL destination')
+def destination(memory, op, scope, key, prefix):
+    dk, dp, dtype = memory.check_writable(op.args[2], scope)
+    allowed = controls.NUMERIC if op.name == 'AVE' else {'REAL'}
+    if dtype not in allowed or isinstance(memory.at(dk, dp), (list, dict)):
+        raise ModelError(op.name + ' requires a scalar ' + ('SINT/INT/DINT/REAL' if op.name == 'AVE' else 'REAL') + ' destination')
     if dk == key and dp[:len(prefix)] == prefix:
         raise ModelError('Statistics destination must not overlap the source array')
+    ck, cp, _ = memory.resolve(op.args[3], scope)
+    if dk == ck and dp[:len(cp)] == cp:
+        raise ModelError('Statistics destination must not overlap its CONTROL record')
 
 
 def prescan(memory, op, scope):
@@ -89,7 +93,7 @@ def execute(memory, op, power, scope):
     if length < (2 if op.name == 'STD' else 1):
         raise ModelError('AVE requires at least one element; sample STD requires at least two')
     key, paths, prefix, _ = region(memory, op, scope, length, references=True)
-    destination(memory,op.args[2],scope,key,prefix)
+    destination(memory,op,scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
     total = 0.0
     for value in values:total = real(total + value)
@@ -108,7 +112,10 @@ def execute(memory, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-complete-array-statistics', language='RLL', instructions=sorted(INSTRUCTIONS),
-                source_types=sorted(controls.NUMERIC), destination='REAL', max_elements=controls.MAX_ELEMENTS,
+                source_types=sorted(controls.NUMERIC), destination='AVE: SINT/INT/DINT/REAL; STD: REAL',
+                destinations={'AVE':sorted(controls.NUMERIC),'STD':['REAL']}, max_elements=controls.MAX_ELEMENTS,
+                integer_ave='Float32 mean rounded to nearest integer, ties to even; rounded range errors roll back the advance',
+                result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',
                 dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
                 starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',
                 aoi='RLL bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; disjoint sibling results and existing copied-input/Prescan/EnableInFalse/binding rollback rules',
@@ -116,5 +123,5 @@ def description():
                 transition='Fresh POS zero, complete operation once; held EN/DN retains result; ER inhibits',
                 false_rung='STD clears EN/DN/ER/POS; AVE clears them only with DN set and ER clear',
                 native_math_status=False, native_fault_classification=False,
-                remaining=['Partial POS/resume and native fault side effects', 'Integer AVE destinations',
+                remaining=['Partial POS/resume and native fault side effects',
                            'Broader AOI lifecycle, wider types and additional languages', 'Native precision/layout/status parity'])

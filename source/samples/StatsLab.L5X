@@ -371,6 +371,80 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="RoundingValues" DataType="REAL" Dimensions="5" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="5">
+            <Element Index="[0]" Value="1" />
+            <Element Index="[1]" Value="2" />
+            <Element Index="[2]" Value="3" />
+            <Element Index="[3]" Value="4" />
+            <Element Index="[4]" Value="777" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ByteAverage" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteMeanControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="WordAverage" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="WordMeanControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DintAverage" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="7" />
+        </Data>
+      </Tag>
+      <Tag Name="DintMeanControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -379,7 +453,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Reset)RES(MeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl)RES(SearchControl)RES(BatchControl)RES(TransformControl)RES(BatchTransformControl)RES(StepTransformControl)RES(StepSearchControl);</Text>
+                <Text>XIC(Reset)RES(MeanControl)RES(ByteMeanControl)RES(WordMeanControl)RES(DintMeanControl)RES(DeviationControl)RES(ColumnControl)RES(RowControl)RES(SortControl)RES(TextSortControl)RES(SearchControl)RES(BatchControl)RES(TransformControl)RES(BatchTransformControl)RES(StepTransformControl)RES(StepSearchControl);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(Calculate)AVE(Values[0],0,Average,MeanControl,?,?);</Text>
@@ -419,6 +493,15 @@
               </Rung>
               <Rung Number="13" Type="N">
                 <Text>XIC(StepSearch)FSC(StepSearchControl,?,?,INC,Values[StepSearchControl.POS]&gt;=SearchLimit);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(Calculate)AVE(RoundingValues[0],0,ByteAverage,ByteMeanControl,?,?);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(Calculate)AVE(RoundingValues[0],0,WordAverage,WordMeanControl,?,?);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(Calculate)AVE(RoundingValues[0],0,DintAverage,DintMeanControl,?,?);</Text>
               </Rung>
             </RLLContent>
           </Routine>

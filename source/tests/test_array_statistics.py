@@ -154,7 +154,7 @@ class ArrayStatisticsTests(unittest.TestCase):
     def test_unsupported_dimensions_types_pseudo_operands_and_overlap_block(self):
         for text in ('AVE(Queue[0],1,Result,Ctl,?,?);','AVE(Queue[0],Incoming,Result,Ctl,?,?);',
             'AVE(Queue[0],TRUE,Result,Ctl,?,?);','AVE(Queue[0],0.0,Result,Ctl,?,?);',
-            'AVE(Queue[0],0,Outgoing,Ctl,?,?);','AVE(Queue,0,Result,Ctl,?,?);',
+            'STD(Queue[0],0,Outgoing,Ctl,?,?);','AVE(Queue,0,Result,Ctl,?,?);',
             'AVE(Queue[Ctl.POS],0,Result,Ctl,?,?);','AVE(Queue[0],0,Result,Ctl,4,0);',
             'STD(Queue[0],0,Result,Ctl,?);'):
             self.assertTrue(self.engine([text]).blockers,text)

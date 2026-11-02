@@ -3,7 +3,8 @@
 The bounded v35 ControlLogix 5580 ladder AVE/STD profile accepts alias chains
 and indirect fully subscripted SINT/INT/DINT/REAL arrays. RLL AOIs can use exact
 one-, two- or three-dimensional InOut arrays and represented saved local arrays,
-with writable REAL results in disjoint sibling members. [Calculation and
+with writable SINT/INT/DINT/REAL AVE results and REAL STD results in disjoint
+sibling members. Results cannot overwrite the operation's own CONTROL record. [Calculation and
 CONTROL transitions](array-statistics.md) remain unchanged.
 
 ```text
@@ -56,7 +57,7 @@ saved locals remain unknown; definition defaults do not fill them.
 The separate [SRT reference profile](sort-references.md) now qualifies aliases,
 indirect starts and AOI arrays with its own transition and FOR-effect rules.
 
-Integer AVE destinations, partial POS/resume, wider source types, additional
+Partial POS/resume, wider source/result types, additional
 languages and broader AOI/native lifecycle, precision, status, faults and packed
 layouts remain unfinished. These are software-model checks, not native import
 or controller qualification.
