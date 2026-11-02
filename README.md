@@ -6,10 +6,12 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.073226`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.075653`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
-**Development focus: full emulation before further Studio 5000 connectivity.**
+**Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
+Complete and qualify ladder and ST before adding new FBD/SFC features. Full
+emulation remains ahead of further Studio 5000 connectivity work.
 The current model is partial: 101 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
@@ -25,6 +27,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+[Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous
+LINT/unsigned CPT, CMP and MEQ forms for v35 5580. **Ladder wide expression lab**
+demonstrates values beyond floating-point precision, high-bit masks and fault recovery.
 
 [Event tasks](docs/event-tasks.md) add EVENT calls in ladder/ST for qualified
 instruction-only tasks. **Event lab** demonstrates immediate higher-priority
@@ -468,11 +474,12 @@ conventions.
 
 ## Roadmap
 
-1. Prioritize common execution: Continuous/Periodic tasks, basic RLL/ST forms,
-   timers/counters, ordinary strings/arrays/UDTs/AOIs and frequently used instructions.
-2. Add common data manipulation, shift/FIFO/sequencer operations and faults/status;
-   then event scheduling, messaging and virtual I/O.
-3. Expand AOIs and Structured Text, then implement FBD and SFC.
+1. Complete and qualify ladder instruction families, operand/type forms, task and
+   scan lifecycle, faults/status, arrays/strings/UDTs and ordinary AOIs. Common forms come first.
+2. Complete Structured Text on the same runtime, including expressions, control
+   flow, calls, AOI lifecycle and equivalent type/fault behavior.
+3. After both language gates pass, expand FBD; complete its gate before SFC.
+   Preserve the existing bounded graph support while this work is deferred.
 4. Build generic cyclic I/O and device models, including EDS mappings, POINT I/O
    and FANUC handshakes; then virtual drive/motion execution.
 5. Qualify mixed-feature projects with explicit conformance evidence.

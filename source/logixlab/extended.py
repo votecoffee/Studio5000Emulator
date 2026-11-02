@@ -3,7 +3,9 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions, numeric_copy
+from . import string_operations, string_conversions, numeric_copy, wide_st
+from .integer_math import WIDE_TYPES, CONTROLLERS
+from .model import INT_BITS, literal
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
@@ -17,13 +19,34 @@ class Extensions:
         self.expressions={}
         self.conditions={}
 
-    def condition(self,text):
-        if text not in self.conditions:self.conditions[text]=Condition(text)
-        return self.conditions[text]
+    def condition(self,text,*,allow_wide=False):
+        key=(text,allow_wide)
+        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide)
+        return self.conditions[key]
 
-    def masked(self,ref,scope):
+    def wide_mask_profile(self,args,scope):
+        types=set();immediates=[]
+        for ref in args:
+            try:immediates.append(literal(ref))
+            except ValueError:types.add(self.memory.resolve(ref,scope)[2])
+        wide=types&WIDE_TYPES
+        if not wide:return None
+        if len(wide)!=1 or types-wide:raise ModelError('Wide MEQ requires matching declared operand types')
+        if self.engine.project.version!='35' or self.engine.project.processor.upper() not in CONTROLLERS:
+            raise ModelError('Wide MEQ requires the v35 ControlLogix 5580 profile')
+        dtype=next(iter(wide))
+        for value in immediates:
+            if type(value) is not int or not -(1<<31)<=value<1<<31:
+                raise ModelError('Wide MEQ immediates require signed DINT integers representable in the operand type')
+            coerce(value,dtype)
+        return dtype
+
+    def masked(self,ref,scope,dtype=None):
+        if dtype is not None:
+            value=self.memory.read(ref,scope)
+            if type(value) is not int:raise ModelError('Wide MEQ requires known scalar integer operands')
+            return coerce(value,dtype)&((1<<INT_BITS[dtype])-1)
         if re.fullmatch(r'(?:2|8|16)#[0-9A-Fa-f_]+',ref):
-            from .model import literal
             value=literal(ref)
             if not 0<=value<=0xffffffff:raise ModelError('MEQ immediate exceeds 32 bits')
             return value
@@ -42,11 +65,14 @@ class Extensions:
         coerce(value,'DINT')
         return value
 
-    def numeric_destination(self,ref,scope,integer=False):
-        _,_,dtype=self.memory.check_writable(ref,scope)
-        if dtype not in (('SINT','INT','DINT') if integer else ('SINT','INT','DINT','REAL')):
+    def numeric_destination(self,ref,scope,integer=False,wide=False):
+        key,parts,dtype=self.memory.check_writable(ref,scope)
+        allowed=set(('SINT','INT','DINT') if integer else ('SINT','INT','DINT','REAL'))
+        if wide:allowed.update(WIDE_TYPES)
+        if dtype not in allowed:
             raise ModelError('Numeric scalar destination required')
-        if isinstance(self.memory.read(ref,scope),(dict,list,bool)):raise ModelError('Numeric scalar destination required')
+        value=self.memory.at(key,parts) if wide else self.memory.read(ref,scope)
+        if isinstance(value,(dict,list,bool)):raise ModelError('Numeric scalar destination required')
         return dtype
 
     def is_string(self,ref,scope):
@@ -56,6 +82,16 @@ class Extensions:
     def expression(self,text):
         if text not in self.expressions:self.expressions[text]=Expression(text)
         return self.expressions[text]
+
+    def compute(self,args,scope,execute=False):
+        dtype=self.numeric_destination(args[0],scope,wide=True)
+        expression=self.expression(args[1])
+        profile=wide_st.analyze(expression,self.memory,scope,dtype,consumer='CPT')
+        if profile is not None:
+            if profile[1]!='number':raise ModelError('CPT requires a numeric expression result')
+            if execute:return wide_st.evaluate(expression,self.memory,scope,profile)
+        elif execute:return expression.evaluate(self.memory,scope,dtype)
+        else:expression.validate(self.memory,scope,dtype)
 
     def block(self,op,scope,execute=False):
         n,a=op.name,op.args
@@ -102,9 +138,10 @@ class Extensions:
         if n in string_operations.INSTRUCTIONS:
             string_operations.validate(self.memory,op,scope);return True
         if n not in EXTENDED:return False
-        if n=='CMP':self.condition(a[0]).validate(self.memory,scope)
+        if n=='CMP':self.condition(a[0],allow_wide=True).validate(self.memory,scope)
         elif n=='MEQ':
-            for arg in a:self.masked(arg,scope)
+            dtype=self.wide_mask_profile(a,scope)
+            for arg in a:self.masked(arg,scope,dtype)
         elif n in ('COP','CPS','FLL'):self.block(op,scope)
         elif n=='SIZE':
             value=self.memory.read(a[0],scope)
@@ -115,9 +152,7 @@ class Extensions:
                 value=value[0]
             if not isinstance(value,list):raise ModelError('SIZE source must address an array')
             self.numeric_destination(a[2],scope,integer=True)
-        elif n=='CPT':
-            dtype=self.numeric_destination(a[0],scope)
-            self.expression(a[1]).validate(self.memory,scope,dtype)
+        elif n=='CPT':self.compute(a,scope)
         elif n=='TRN':
             self.numeric_destination(a[1],scope)
             value=self.memory.read(a[0],scope)
@@ -153,9 +188,10 @@ class Extensions:
             return power
         if n not in EXTENDED:return None
         if not power:return power
-        if n=='CMP':return self.condition(a[0]).evaluate(self.memory,scope)
+        if n=='CMP':return self.condition(a[0],allow_wide=True).evaluate(self.memory,scope)
         if n=='MEQ':
-            source,mask,compare=(self.masked(x,scope) for x in a)
+            dtype=self.wide_mask_profile(a,scope)
+            source,mask,compare=(self.masked(x,scope,dtype) for x in a)
             return (source&mask)==(compare&mask)
         if n in ('COP','CPS','FLL'):self.block(op,scope,execute=True)
         elif n=='SIZE':
@@ -167,9 +203,7 @@ class Extensions:
                 value=value[0]
             if not isinstance(value,list):raise ModelError('SIZE dimension exceeds array rank')
             self.memory.write(a[2],len(value),scope)
-        elif n=='CPT':
-            dtype=self.memory.resolve(a[0],scope)[2]
-            self.memory.write(a[0],self.expression(a[1]).evaluate(self.memory,scope,dtype),scope)
+        elif n=='CPT':self.memory.write(a[0],self.compute(a,scope,execute=True),scope)
         elif n=='TRN':self.memory.write(a[1],__import__('math').trunc(coerce(self.memory.read(a[0],scope),'REAL')),scope)
         elif n=='CONCAT':
             text=self.memory.string(a[0],scope)+self.memory.string(a[1],scope)

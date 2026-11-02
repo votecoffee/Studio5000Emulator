@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="WideExpressionLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="WideExpressionLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Execute" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedInput" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedDelta" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedResult" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedMinimum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="-9223372036854775808" />
+        </Data>
+      </Tag>
+      <Tag Name="Divisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedInput" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="18446744073709551614" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedDelta" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedResult" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Pattern" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="9223372036854775808" />
+        </Data>
+      </Tag>
+      <Tag Name="Mask" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="9223372036854775808" />
+        </Data>
+      </Tag>
+      <Tag Name="Expected" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="9223372036854775808" />
+        </Data>
+      </Tag>
+      <Tag Name="ExactCompare" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MaskMatches" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteInput" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="200" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteDelta" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteResult" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Scans" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(Scans,1,Scans);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Execute)CPT(SignedResult,SignedInput+SignedDelta);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Execute)CPT(UnsignedResult,UnsignedInput+UnsignedDelta);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Execute)CPT(SignedQuotient,SignedMinimum/Divisor);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(Execute)CPT(SignedRemainder,SignedMinimum MOD Divisor);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(Execute)CMP(SignedResult&gt;SignedInput)OTE(ExactCompare);</Text>
+              </Rung>
+              <Rung Number="6" Type="N">
+                <Text>XIC(Execute)MEQ(Pattern,Mask,Expected)OTE(MaskMatches);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(Execute)CPT(ByteResult,ByteInput+ByteDelta);</Text>
+              </Rung>
+              <Rung Number="8" Type="N">
+                <Text>XIC(Execute)CPT(GuardResult,SignedResult/FaultDivisor);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

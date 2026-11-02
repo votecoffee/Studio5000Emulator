@@ -1362,3 +1362,21 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with device('snapshot') as response:
             values={t['name']:t['value'] for t in json.load(response)['tags']}
         self.assertEqual(values['Observed'],76)
+
+    def test_ladder_wide_lab_exact_values_gating_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'WideExpressionLab'});self.assertEqual(state['blockers'],[])
+        self.assertEqual({row['kind'] for row in state['routines']},{'RLL'})
+        self.assertIn(b'Ladder wide expression lab',self.get('/'));self.assertIn(b"loadDemo('WideExpressionLab')",self.get('/app.js'))
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        v=values(self.post('step',{'dt':10}));self.assertEqual(v['SignedResult'],'9007199254740995');self.assertEqual(v['UnsignedResult'],'18446744073709551615')
+        self.assertTrue(v['ExactCompare']);self.assertTrue(v['MaskMatches']);self.assertEqual(v['SignedQuotient'],'-3074457345618258602')
+        write('Execute',False);write('SignedInput','1');v=values(self.post('step',{'dt':10}));self.assertEqual(v['SignedResult'],'9007199254740995');self.assertFalse(v['ExactCompare'])
+        write('Execute',True);write('SignedInput','9007199254740992');v=values(self.post('step',{'dt':10}));self.assertEqual(v['SignedResult'],'9007199254740994')
+        before=write('FaultDivisor','0')
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        self.assertEqual((after['tags'],after['scan'],after['ms']),(before['tags'],before['scan'],before['ms']))
+        write('FaultDivisor','1');v=values(self.post('step',{'dt':10}));self.assertEqual(v['Scans'],4)
+        report=self.post('report',{})['wide_ladder_expressions'];self.assertEqual(report['instructions'],['CPT','CMP','MEQ']);self.assertFalse(report['native_runtime_parity'])

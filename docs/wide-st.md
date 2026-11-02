@@ -65,7 +65,7 @@ See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 Wide FOR counters/bounds, CASE selectors and array-index expressions remain
 blocked. [Narrow ST/CPT/CMP integer division](integer-expressions.md) has a
 separate DINT-intermediate profile. Power/other wide math functions, mixed
-conversions, additional literal forms, wide CPT/CMP/MEQ and file-expression consumers, LREAL/time types
+conversions, additional literal forms, wide file-expression consumers, LREAL/time types
 and native intermediate/status/fault parity remain unfinished. The controller
 gate is an explicit software profile; native Studio/controller acceptance of
 these new ST forms has not been demonstrated.

@@ -1,5 +1,9 @@
 # Integer expression division
 
+[Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) now have a separate
+homogeneous v35 5580 profile. The rules below describe the narrow expression
+model; file-expression consumers remain narrow.
+
 App `26.1029.231505` adds integer division to the existing narrow ST, CPT and
 CMP expression models. FAL uses the CPT evaluator and FSC uses the CMP evaluator,
 so their supported integer expressions gain the same operation.

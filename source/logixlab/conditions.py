@@ -10,9 +10,20 @@ LOGICAL={'&&','^^','||'}
 
 
 class Condition(Expression):
-    def __init__(self,text):super().__init__(text,condition=True)
+    def __init__(self,text,*,allow_wide=False):
+        super().__init__(text,condition=True)
+        self.allow_wide=allow_wide
+
+    def wide_profile(self,memory,scope):
+        if not self.allow_wide:return None
+        from . import wide_st
+        profile=wide_st.analyze(self,memory,scope,consumer='CMP')
+        if profile is not None and profile[1]!='bool':raise ModelError('CMP requires a BOOL result or comparison')
+        return profile
 
     def validate(self,memory,scope=''):
+        wide=self.wide_profile(memory,scope)
+        if wide is not None:return False,wide[2]
         types={};real=False
         for ref in self.refs:
             dtype=memory.resolve(ref,scope)[2]
@@ -59,6 +70,10 @@ class Condition(Expression):
         return real,types
 
     def evaluate(self,memory,scope=''):
+        wide=self.wide_profile(memory,scope)
+        if wide is not None:
+            from . import wide_st
+            return bool(wide_st.evaluate(self,memory,scope,wide))
         real,types=self.validate(memory,scope)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
         def visit(node):

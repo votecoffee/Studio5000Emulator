@@ -1,5 +1,13 @@
 # Roadmap
 
+Language order: **ladder → Structured Text → FBD → SFC**. Complete and qualify
+ladder and ST before new FBD/SFC feature work. Existing partial language
+implementations remain available; their presence does not complete these gates.
+
+Available in `26.1102.075653`: [ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md),
+homogeneous LINT/unsigned expressions, exact 64-bit comparisons and masks, with
+Ladder Wide Expression Lab. Mixed conversions and native status/fault parity remain open.
+
 Available in `26.1102.073226`: [ST/FBD BTDT/MVMT](target-bit-moves.md),
 dynamic DINT bit fields and masks with explicit Target, shared records and Target
 Bit Move Lab. Native flags/fault/source-excess/lifecycle/postscan parity unqualified.
@@ -126,7 +134,9 @@ finite float32 labels, lists/ranges, first-match execution and Text Lab examples
 
 ## Current priority: emulation first
 
-As of 2026-10-29, build the runtime toward complete, explicitly qualified Logix
+As of 2026-11-02, prioritize complete ladder, then ST, then FBD, then SFC.
+Defer new FBD/SFC features until ladder and ST coverage and qualification pass.
+Build the runtime toward complete, explicitly qualified Logix
 emulation before expanding Studio 5000 connectivity. Keep accepted connection,
 transfer and bounded edit profiles working. Do not use transfer acceptance as
 a substitute for executable instruction or device behavior.
@@ -234,9 +244,13 @@ unsupported-feature reports. Native comparisons are identified separately.
 
 ## 2. Languages and AOIs
 
-Scope: L01–L05 and A01–A03. Complete common RLL/ST forms and AOI parameters and
-lifecycle. Implement FBD graph execution and SFC step/action/transition execution
-on the same typed memory and clock, including their stateful instruction sets.
+Scope: L01–L05 and A01–A03. First complete ladder families, operand/type forms,
+scan modes, faults/status and AOI parameters/lifecycle; then complete ST
+expressions, constructs and calls on the same typed memory and clock. Each gate
+requires a published form-by-form coverage matrix and positive, negative,
+conditional-scan and fault checks. Keep native equivalence claims evidence-bound.
+After both gates pass, complete FBD graphs and stateful instructions; then SFC
+steps/actions/transitions. New FBD/SFC features are deferred until those gates pass.
 
 Acceptance: mixed-language calls, nested instances, Prescan/EnableInFalse/
 Postscan, feedback and parallel-chart behavior; deterministic traces and

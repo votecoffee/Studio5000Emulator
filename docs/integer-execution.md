@@ -76,8 +76,10 @@ wrapped LIM ranges, complements, false rungs, unknown data, rollback, mixed-type
 rejections and the processor/firmware gate. These are model-level checks.
 
 [Homogeneous wide ST](wide-st.md) now supports bounded assignments, arithmetic,
-comparisons and bitwise expressions. Wide CPT/CMP/MEQ, remaining ST forms,
-mixed-type promotions, conversions, flags, LREAL and time types remain unfinished.
+comparisons and bitwise expressions. [Ladder CPT/CMP/MEQ](ladder-wide-expressions.md)
+now accept homogeneous wide operands under a separate bounded profile. Remaining
+ST/expression forms, mixed-type promotions, conversions, flags, LREAL and time
+types remain unfinished.
 Other controller families need explicit qualification. See the
 [full capability checklist](emulation-coverage.md) and
 [implementation](../source/logixlab/integer_math.py).

@@ -1,10 +1,11 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; ST/FBD target bit moves added for app `26.1102.073226`. **Full Logix emulation is not
+Audited 2026-11-02; ladder wide expressions added for app `26.1102.075653`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
-Development now prioritizes execution, data and simulated devices; further
-Studio 5000 compatibility expansion is deferred until those foundations mature.
+Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
+New FBD/SFC features wait for ladder and ST coverage and qualification gates.
+Studio 5000 compatibility expansion follows the emulation foundations.
 
 This inventory separates parsing/storage, execution, protocol access and native
 engineering acceptance. A visible tag, exported structure, empty discovery
@@ -45,7 +46,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Function Block Diagram (FBD) | Routine kind can be identified; execution is blocked | Graph import, execution ordering, state, instructions, monitoring and validation |
 | Sequential Function Chart (SFC) | Routine kind can be identified; execution is blocked | Steps, transitions, actions, qualifiers, branches, timers, reset/pause/forcing and monitoring |
 | BOOL/SINT/INT/DINT/REAL | Saved values, scalar/member/array access and supported operations | Complete conversions, math flags, overflow and native edge cases |
-| LINT and unsigned integers | Storage/transfers plus homogeneous RLL and [ST](wide-st.md) arithmetic/comparisons/bitwise operations in the v35 5580 profile | Mixed types/conversions, additional ST forms, wide CPT/CMP/MEQ, native math/status and other targets |
+| LINT and unsigned integers | Storage/transfers, homogeneous RLL and [ST](wide-st.md) arithmetic/bitwise operations, plus [ladder CPT/CMP/MEQ](ladder-wide-expressions.md) in the v35 5580 profile | Mixed types/conversions, additional expression/ST forms, native math/status and other targets |
 | LREAL | No built-in scalar model | 64-bit floating storage, expressions, instructions, conversions and transfers |
 | DT/LDT/TIME32/TIME/LTIME | No dedicated built-in models | Typed storage, literals, units/ranges, operations, formatting, clock interaction and firmware qualification |
 | PROP_INT and ST PI software profile | [PI regulation](st-pi-regulation.md), linear/shaped gains, holds, output/integral limits, initialization, timing and transactional history | Native coefficients/thresholds/rounding/ordering, RTS, FBD graphs, packed layouts, other profiles and separate PID/PIDE families |
@@ -123,7 +124,8 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   [LINT/unsigned RLL profile](integer-execution.md) to mixed types, expressions,
   conversions and all qualified targets. Add LREAL storage and operations,
   complete signed/unsigned boundaries and promotion. [Homogeneous wide ST](wide-st.md)
-  covers bounded assignments/conditions; remaining ST forms, wide CPT/CMP/MEQ
+  covers bounded assignments/conditions; [ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md)
+  are also bounded; remaining ST forms and mixed conversions
   and native status semantics remain unfinished.
 - [ ] **D02 — Numeric edge behavior:** overflow/truncation, carry and math flags,
   divide-by-zero, rounding, REAL/LREAL NaN/infinity/subnormal handling and

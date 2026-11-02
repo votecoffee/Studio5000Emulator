@@ -6,6 +6,13 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) share exact integer
+expression evaluation with ST. Each wide numeric intermediate must fit the
+matching declared type. CMP eagerly evaluates both logical sides; MEQ reads
+all operands even with a zero mask. False rungs skip computation, CPT retains
+its destination through prescan, and failures roll back the whole advance.
+These software policies do not establish native intermediate/fault parity.
+
 [ST PI regulation](st-pi-regulation.md) retains integral, prior input, held output
 and clock per resolved record. Holds and saturation affect the integral; Run
 resets it, while whole-advance rollback and detached replacement preserve it.
