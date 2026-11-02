@@ -6,6 +6,11 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[SRT references and AOIs](sort-references.md) use structural preflight and
+EN/ER-gated live source selection. ST FOR write effects cover the selected member
+and conservatively widen across parent arrays; CONTROL EN/DN are tracked separately.
+Executed ST calls retain their false/true transition and whole-advance rollback.
+
 [AVE/STD reference execution](statistics-references.md) checks source shape
 without reading live indices during preflight. False or completed/error-latched
 operations skip source indices; fresh calls sample the selected numeric dimension.

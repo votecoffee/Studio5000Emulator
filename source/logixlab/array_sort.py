@@ -14,13 +14,18 @@ def validate(memory, op, scope):
     if op.args[3:] != ['?', '?']:
         raise ModelError('SRT LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[2], scope)
-    geometry.region(memory, op, scope, writable=True)
+    geometry.region(memory, op, scope, writable=True, structural=True, references=True)
 
 
 def write_effects(memory, op, scope):
-    """Conservative whole-array effect, plus the two written CONTROL fields."""
+    """Whole member effect, widened across parent arrays; CONTROL EN/DN only."""
     validate(memory, op, scope)
-    key, _, prefix, _ = geometry.region(memory, op, scope, writable=True)
+    key, _, prefix, _ = geometry.region(memory, op, scope, writable=True, structural=True, references=True)
+    # A structural index is a placeholder, not proof of which parent record
+    # will be selected. Include the entire enclosing parent array, even for
+    # currently literal parents, so indirect aliases/bindings cannot escape
+    # FOR bounds/step protection by selecting a different instance later.
+    prefix=prefix[:next((i for i,part in enumerate(prefix) if isinstance(part,int)),len(prefix))]
     ck, cp, _ = memory.resolve(op.args[2], scope)
     return [(key, prefix), (ck, cp + ['EN']), (ck, cp + ['DN'])]
 
@@ -36,7 +41,7 @@ def execute(memory, op, power, scope):
     length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
     if position != 0 or length < 1:
         raise ModelError('SRT qualified whole-region profile requires POS zero and positive LEN')
-    key, paths, _, dtype = geometry.region(memory, op, scope, length, writable=True)
+    key, paths, _, dtype = geometry.region(memory, op, scope, length, writable=True, references=True)
     values = [memory.read(memory.address(key, path)) for path in paths]
     if any(type(value) not in (int, float) or dtype != 'REAL' and type(value) is not int
            or not math.isfinite(value) for value in values):
@@ -59,7 +64,10 @@ def description():
                 types=sorted(controls.NUMERIC), order='Ascending, integer values retain exact declared precision',
                 ladder='Rising EN; held true retains array; false clears EN/DN and retains ER/POS',
                 structured_text='Three operands; each executed call performs false then true',
+                starting_references='Aliases and bounded indirect starts; structural preflight; false/EN/ER-inhibited ladder calls skip live source indices; no CONTROL.POS-dependent starts',
+                aoi='RLL/ST bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; existing copied-input/Prescan/EnableInFalse/binding rollback rules',
+                write_effects='Whole selected array member; enclosing parent arrays widened conservatively for FOR bounds/step; CONTROL EN/DN tracked separately',
                 position='Qualified POS zero retained; positive LEN, at most 4096 values in selected dimension/member',
                 prescan='No state initialization', native_math_status=False, native_fault_classification=False,
                 remaining=['Native internal POS cursor and partial-state behavior', 'Native faults/side effects',
-                           'Indirect/alias/AOI starting arrays and additional types'])
+                           'Broader AOI lifecycle, conservative FOR effects and additional types'])

@@ -1660,3 +1660,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'Program:MainProgram.Offset','value':2});self.assertEqual(values(self.post('step',{'dt':10}))['ColumnMean'],9)
+
+    def test_aoi_sort_lab_axes_latches_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'AOISortLab'})['blockers'],[])
+        self.assertIn(b'AOI sort lab',self.get('/'));self.assertIn(b"loadDemo('AOISortLab')",self.get('/app.js'))
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        write('Sort',True);row=step()
+        self.assertEqual(tuple(row[t] for t in ('SamplesA[1]','SamplesB[2]','GridA[0,1]','GridB[0,2]','CubeA[1,1,0]','DriverA.Scratch[1]')),(2,10,4,10,7,3))
+        write('IndexA',999);write('SamplesA[1]',7);self.assertEqual(step()['SamplesA[1]'],7)
+        write('Sort',False);step();write('IndexA',1);write('Sort',True);before=write('FaultDivisor',0)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('FaultDivisor',1);row=step();self.assertEqual((row['SamplesA[1]'],row['SamplesA[2]'],row['SamplesA[3]']),(4,6,7))
+        write('EnabledA',False);row=step();self.assertFalse(row['OrderA.EN']);self.assertTrue(row['OrderB.EN'])
+        report=self.post('report',{})['array_sort'];self.assertIn('InOut',report['aoi']);self.assertIn('parent arrays',report['write_effects']);self.assertFalse(report['native_math_status'])
+
+    def test_st_sort_alias_repeated_calls_and_late_fault_through_http(self):
+        import base64
+        from xml.etree import ElementTree as E
+        root=E.parse(Path(__file__).resolve().parents[1]/'samples/StatsLab.L5X').getroot();tags=root.find('./Controller/Tags');program=root.find('./Controller/Programs/Program/Tags')
+        E.SubElement(tags,'Tag',Name='GridView',DataType='REAL',Dimensions='2,3',TagType='Alias',AliasFor='SortGrid')
+        for parent,name,value in ((tags,'Offset',0),(program,'Offset',1),(tags,'FaultDivisor',1)):
+            tag=E.SubElement(parent,'Tag',Name=name,DataType='DINT',TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value=str(value))
+        routine=root.find('.//Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
+        E.SubElement(E.SubElement(routine,'STContent'),'Line',Number='0').text='IF TextSort THEN SRT(GridView[0,Offset],0,TextSortControl); END_IF; ColumnMean:=1.0/FaultDivisor;'
+        self.assertEqual(self.post('load',{'name':'AliasSort.L5X','content':base64.b64encode(E.tostring(root,encoding='utf-8',xml_declaration=True)).decode()})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        self.post('write',{'tag':'TextSort','value':True});self.assertEqual(values(self.post('step',{'dt':10}))['SortGrid[0,1]'],4)
+        self.post('write',{'tag':'SortGrid[0,1]','value':20});self.assertEqual(values(self.post('step',{'dt':10}))['SortGrid[0,1]'],10)
+        self.post('write',{'tag':'SortGrid[0,1]','value':30});before=self.post('write',{'tag':'FaultDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'FaultDivisor','value':1});self.assertEqual(values(self.post('step',{'dt':10}))['SortGrid[0,1]'],20)

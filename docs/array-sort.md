@@ -9,7 +9,9 @@ SRT(Array,Dimension,Control);       // Structured Text
 
 CONTROL.LEN/POS supply saved values. ST's three operands are normalized to the
 same internal instruction shape without reinitializing LEN/POS. Use fully
-subscripted static SINT/INT/DINT/REAL arrays with one to three dimensions.
+subscripted SINT/INT/DINT/REAL arrays with one to three dimensions.
+[Aliases, indirect starts and AOI arrays](sort-references.md) now execute with
+explicit sampling, boundary and conservative FOR-effect rules.
 Only the selected dimension varies; the other subscripts stay fixed. Both the
 array and CONTROL must be writable. See [implementation](../source/logixlab/array_sort.py).
 
@@ -37,8 +39,9 @@ unchanged LEN/POS may still supply loop bounds.
 Unknown values, bounds/length/position errors, nonfinite REAL data and later
 faults retain whole-advance data/control/time/scheduler rollback. Native major
 faults, partial writes and internal status/cursor behavior remain unfinished.
-Alias/indirect/AOI starting arrays, wider/unsigned types and FBD forms are not
-qualified. Numeric UDT array members and CONTROL aliases are supported.
+[Alias/indirect and AOI array starts](sort-references.md) now execute. Wider/unsigned
+types and FBD forms remain unqualified. Numeric UDT array members and CONTROL
+aliases are supported; parent-array FOR effects are conservative.
 
 ## Stats Lab
 

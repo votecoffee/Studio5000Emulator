@@ -188,9 +188,12 @@ class AOIStatisticsTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);self.write(e,FaultDivisor=1);e.step();self.assertEqual(e.memory.read('DriverB.PlaneMean'),20)
 
-    def test_shared_geometry_keeps_unqualified_aoi_sort_blocked(self):
-        def sort(root):root.find('.//AddOnInstructionDefinition/Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text').text='SRT(Samples[Index],0,MeanState,?,?);'
-        self.assertTrue(self.engine(sort).blockers)
+    def test_aoi_sort_can_feed_a_following_statistics_operation(self):
+        def sort(root):
+            root.find('.//AddOnInstructionDefinition/Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text').text='SRT(Samples[Index],0,MeanState,?,?);'
+            arr=root.find('./Controller/Tags/Tag[@Name="SamplesA"]/Data/Array')
+            for index,value in enumerate((6,2,4),1):arr.find(f'Element[@Index="[{index}]"]').set('Value',str(value))
+        e=self.checked(sort);self.write(e,Calculate=True);e.step();self.assertEqual(e.memory.read('SamplesA')[1:4],[2,4,6]);self.assertEqual(e.memory.read('DriverA.Deviation'),2)
 
 
 if __name__=='__main__':unittest.main()

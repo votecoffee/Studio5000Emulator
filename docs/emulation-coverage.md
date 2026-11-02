@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; statistics references/AOIs added for app `26.1102.112144`. **Full Logix emulation is not
+Audited 2026-11-02; sorting references/AOIs added for app `26.1102.113048`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -34,7 +34,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed transforms, scalar accumulation, sequential writes and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/overflow/status/partial-fault parity |
 | File search | [FSC ALL/numeric modes](file-search.md) and [idle-source INC](file-incremental.md), comparisons, match/inhibit/resume, false-rung numeric continuation and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/status/fault parity |
-| File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension and ST call transitions | Native internal POS cursor, partial states/faults, wider types and indirect/alias/AOI starting arrays |
+| File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension, ST call transitions and [alias/indirect/AOI references](sort-references.md) | Native internal POS cursor, partial states/faults, wider types, broader lifecycle and conservative FOR effects |
 | Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL results, CONTROL transitions and [alias/indirect/AOI references](statistics-references.md) | Partial POS/resume, integer AVE results, broader types/lifecycle and native precision/fault/status behavior |
 | Common REAL math | [Twelve ladder math forms](math-operations.md), REAL results and absolute-value square roots in ladder/CPT/ST | Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/math-status/nonfinite behavior |
 | BCD/byte-order conversions | [DINT FRD/TOD and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | Other BCD types, mixed conversions, expression/FBD forms and native math/fault status |

@@ -157,7 +157,7 @@ class ArraySortTests(unittest.TestCase):
     def test_unqualified_types_references_dimensions_and_arities_block(self):
         for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(['SRT(Queue[0],0,Ctl,?,?);'],dtype=dtype).blockers)
-        for text in ('SRT(Queue,0,Ctl,?,?);','SRT(Queue[Incoming],0,Ctl,?,?);',
+        for text in ('SRT(Queue,0,Ctl,?,?);','SRT(Queue[Ctl.POS],0,Ctl,?,?);',
                      'SRT(Queue[0],Incoming,Ctl,?,?);','SRT(Queue[0],1,Ctl,?,?);',
                      'SRT(Queue[0],0,Ctl);','SRT(Queue[0],0,Ctl,4,0);'):
             self.assertTrue(self.engine([text]).blockers,text)

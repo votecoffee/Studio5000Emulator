@@ -85,7 +85,8 @@ file consumers retain their own restrictions. [Sequencers](sequencer-references.
 now support alias/indirect tables and selected one-dimensional AOI arrays, with
 live-start consumption on each reached data operation. [AVE/STD](statistics-references.md)
 also accept alias/indirect and one/two/three-dimensional AOI arrays; their completed
-CONTROL latches skip live source selection until rearmed. Known words are required
+CONTROL latches skip live source selection until rearmed. [SRT references and AOIs](sort-references.md)
+use EN/ER inhibition and independent sort controls, with conservative ST FOR effects. Known words are required
 for shifts and numeric FIFO unload regions. Aggregate
 copies preserve represented unknown fields/backing bytes; reached unknown whole
 sources still fault. Bounds, source and conversion failures roll back data, control

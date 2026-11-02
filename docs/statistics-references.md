@@ -53,7 +53,8 @@ are still consumed before either body path; unknown copied inputs can fault
 even if the statistics operation itself would skip a source index. Missing
 saved locals remain unknown; definition defaults do not fill them.
 
-The separate SRT reference profile remains unchanged.
+The separate [SRT reference profile](sort-references.md) now qualifies aliases,
+indirect starts and AOI arrays with its own transition and FOR-effect rules.
 
 Integer AVE destinations, partial POS/resume, wider source types, additional
 languages and broader AOI/native lifecycle, precision, status, faults and packed
