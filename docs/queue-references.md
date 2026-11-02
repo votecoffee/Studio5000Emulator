@@ -79,7 +79,9 @@ Toggle each pulse false and step before its next true step. Guard elements
 
 ## Remaining work
 
-AOI array bindings, wider scalar FIFO payloads, mixed conversions, other
+[One-dimensional AOI queues/shifts](aoi-queues.md) now support exact InOut and
+represented local arrays. Broader AOI array shapes, wider scalar FIFO payloads,
+mixed conversions, other
 predefined records, full CONTROL lifecycle/status/fault parity and native
 layouts remain unfinished. Separate sequencer, statistics, sorting and bit
 diagnostic consumers retain their prior reference restrictions. This change

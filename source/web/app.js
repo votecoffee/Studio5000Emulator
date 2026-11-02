@@ -238,6 +238,7 @@ $('fbd-advanced-demo').onclick=()=>loadDemo('FBDAdvancedMathLab');
 $('target-move-demo').onclick=()=>loadDemo('TargetMoveLab');
 $('wide-expression-demo').onclick=()=>loadDemo('WideExpressionLab');
 $('queue-reference-demo').onclick=()=>loadDemo('QueueReferenceLab');
+$('aoi-queue-demo').onclick=()=>loadDemo('AOIQueueLab');
 $('fbd-convert-demo').onclick=()=>loadDemo('FBDConversionLab');
 $('fbd-math-demo').onclick=()=>loadDemo('FBDMathLab');
 $('fbd-bitwise-demo').onclick=()=>loadDemo('FBDBitwiseLab');

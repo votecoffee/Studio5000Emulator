@@ -200,7 +200,7 @@ class QueueReferenceTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
 
-    def test_separate_file_and_sequencer_consumers_stay_static_and_aoi_stays_blocked(self):
+    def test_separate_file_consumers_stay_static_and_unbound_aoi_frames_are_rejected(self):
         e=self.checked(['NOP();'])
         from logixlab import control_operations as impl
         for start in ('QueueAlias','Queue[Index]'):

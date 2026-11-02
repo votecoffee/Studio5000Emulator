@@ -1,0 +1,350 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIQueueLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIQueueLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabQueueDriver" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true" SoftwareRevision="v35.01">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="Load" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Unload" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Push" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Pop" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Shift" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Index" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Value" TagType="Base" DataType="DINT" Usage="Input" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Item" TagType="Base" DataType="DINT" Usage="Output" Required="true" Visible="true" ExternalAccess="Read/Write" />
+          <Parameter Name="Buffer" TagType="Base" DataType="DINT" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Dimensions="6" Constant="false" />
+          <Parameter Name="State" TagType="Base" DataType="CONTROL" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" Constant="false" />
+          <Parameter Name="Popped" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+          <Parameter Name="Word" TagType="Base" DataType="DINT" Usage="Output" Required="false" Visible="false" ExternalAccess="Read/Write" />
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Stack" DataType="DINT" Dimensions="4" ExternalAccess="None" />
+          <LocalTag Name="StackState" DataType="CONTROL" Dimensions="0" ExternalAccess="None" />
+          <LocalTag Name="Bits" DataType="DINT" Dimensions="3" ExternalAccess="None" />
+          <LocalTag Name="ShiftState" DataType="CONTROL" Dimensions="0" ExternalAccess="None" />
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(Load)FFL(Value,Buffer[Index],State,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(Unload)FFU(Buffer[Index],Item,State,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(Push)LFL(Value,Stack[0],StackState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(Pop)LFU(Stack[0],Popped,StackState,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(Shift)BSL(Bits[0],ShiftState,EnableIn,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>MOV(Bits[0],Word);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>AFI()FFL(Value,Buffer[Index],State,?,?);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>AFI()FFU(Buffer[Index],Item,State,?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>AFI()LFL(Value,Stack[0],StackState,?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>AFI()LFU(Stack[0],Popped,StackState,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>AFI()BSL(Bits[0],ShiftState,EnableIn,?);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="EnabledA" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="EnabledB" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="Load" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Unload" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Push" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Pop" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Shift" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="ValueA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="11" />
+        </Data>
+      </Tag>
+      <Tag Name="ValueB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="22" />
+        </Data>
+      </Tag>
+      <Tag Name="ItemA" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ItemB" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="Steps" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FaultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="GuardResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="BufferA" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="101" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="0" />
+            <Element Index="[5]" Value="901" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="StateA" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverA" DataType="LabQueueDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabQueueDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Load" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Unload" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Push" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Pop" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Shift" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="0" />
+            <DataValueMember Name="Value" DataType="DINT" Value="0" />
+            <DataValueMember Name="Item" DataType="DINT" Value="0" />
+            <DataValueMember Name="Popped" DataType="DINT" Value="0" />
+            <DataValueMember Name="Word" DataType="DINT" Value="0" />
+            <ArrayMember Name="Stack" DataType="DINT" Dimensions="4">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="777" />
+            </ArrayMember>
+            <StructureMember Name="StackState" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <ArrayMember Name="Bits" DataType="DINT" Dimensions="3">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="888" />
+            </ArrayMember>
+            <StructureMember Name="ShiftState" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="33" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="BufferB" DataType="DINT" TagType="Base" Dimensions="6" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="6">
+            <Element Index="[0]" Value="102" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="0" />
+            <Element Index="[5]" Value="902" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="StateB" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="DriverB" DataType="LabQueueDriver" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabQueueDriver">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Load" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Unload" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Push" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Pop" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Shift" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Index" DataType="DINT" Value="0" />
+            <DataValueMember Name="Value" DataType="DINT" Value="0" />
+            <DataValueMember Name="Item" DataType="DINT" Value="0" />
+            <DataValueMember Name="Popped" DataType="DINT" Value="0" />
+            <DataValueMember Name="Word" DataType="DINT" Value="0" />
+            <ArrayMember Name="Stack" DataType="DINT" Dimensions="4">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="0" />
+              <Element Index="[3]" Value="777" />
+            </ArrayMember>
+            <StructureMember Name="StackState" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+            <ArrayMember Name="Bits" DataType="DINT" Dimensions="3">
+              <Element Index="[0]" Value="0" />
+              <Element Index="[1]" Value="0" />
+              <Element Index="[2]" Value="888" />
+            </ArrayMember>
+            <StructureMember Name="ShiftState" DataType="CONTROL">
+              <DataValueMember Name="LEN" DataType="DINT" Value="33" />
+              <DataValueMember Name="POS" DataType="DINT" Value="0" />
+              <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+              <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+              <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+              <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+              <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+              <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+            </StructureMember>
+          </Structure>
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>ADD(Steps,1,Steps);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(EnabledA)LabQueueDriver(DriverA,Load,Unload,Push,Pop,Shift,IndexA,ValueA,ItemA,BufferA,StateA);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(EnabledB)LabQueueDriver(DriverB,Load,Unload,Push,Pop,Shift,IndexB,ValueB,ItemB,BufferB,StateB);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="Continuous" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false" Class="Standard">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

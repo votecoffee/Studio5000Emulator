@@ -48,10 +48,13 @@ Matching scalar SINT/INT/DINT/REAL sources, destinations and arrays retain
 representable numeric source immediates. [Matching strings and explicit UDT
 records](record-queues.md) add whole logical copies and typed zero clearing for
 the v35 5580 profile. The array region stays within its selected member. Mixed
-conversions, broader predefined/AOI records and AOI array bindings remain
-unfinished. [Alias and indirect starts](queue-references.md) are now available
+conversions and broader predefined/AOI records remain unfinished.
+[One-dimensional AOI queues/shifts](aoi-queues.md) now support exact InOut
+bindings and represented local arrays, with scoped indices. [Alias and indirect starts](queue-references.md) are now available
 for shifts/FIFO/LIFO in the bounded v35 5580 profile. FFU/LFU
-destinations cannot share their array base tag. Shift SourceBit
+destinations outside AOIs cannot share their array base tag. Inside the bounded
+AOI profile, disjoint instance members can share a base tag; destinations within
+the selected array member remain blocked. Shift SourceBit
 cannot overlap its CONTROL. These restrictions are checked before execution.
 
 ## LIFO pair

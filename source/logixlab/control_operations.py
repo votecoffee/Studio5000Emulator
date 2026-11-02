@@ -66,15 +66,14 @@ def static_array(memory, ref, scope, *, writable=True):
 
 def starting_array(memory, ref, scope, *, structural=False):
     """Extended starts are opt-in for shifts/queues; file consumers stay static."""
-    if scope in memory.frames:
-        raise ModelError('Shift/FIFO array bindings inside AOIs are not yet qualified')
+    aoi=scope in memory.frames
     explicit=re.match(r'Program:(\w+)\.(.+)',ref,re.I)
     owner,local=explicit.groups() if explicit else (scope,ref)
     match=re.match(r'[A-Za-z_][\w:]*',local)
     if not match:raise ModelError('Invalid shift/FIFO array reference')
     name=match[0]
     tag=memory.project.tags.get(f'Program:{owner}.{name}'.lower()) or memory.project.tags.get(name.lower())
-    extended=not re.fullmatch(r'[A-Za-z_][\w:]*(?:\.[A-Za-z_]\w*|\[\d+(?:,\d+)*\])*',ref) or tag is not None and bool(tag.alias)
+    extended=aoi or not re.fullmatch(r'[A-Za-z_][\w:]*(?:\.[A-Za-z_]\w*|\[\d+(?:,\d+)*\])*',ref) or tag is not None and bool(tag.alias)
     if extended and (memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS):
         raise ModelError('Alias/indirect shift/FIFO starts require the v35 ControlLogix 5580 profile')
     previous=memory.structural
@@ -92,6 +91,9 @@ def starting_array(memory, ref, scope, *, structural=False):
         if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i]),list)
                                                 for i,part in enumerate(parts) if isinstance(part,int)):
             raise ModelError('Shift/FIFO operand must address an array')
+        if aoi and (not parts or not isinstance(parts[-1],int) or
+                    len(parts)>1 and isinstance(parts[-2],int) or isinstance(value,list)):
+            raise ModelError('AOI shift/FIFO starts require a selected element of a one-dimensional array')
         # Verify an actual selected array/member boundary, not a scalar member
         # inside an array of records. Structural indices never consume data.
         memory.region(ref,0,scope)
@@ -145,8 +147,8 @@ def validate(memory, op, scope):
             raise ModelError('Shift source must not overlap its CONTROL record')
     else:
         if not fifo_values.supported(memory,dtype):raise ModelError('FIFO element type remains unqualified')
-        if fifo_values.aggregate(dtype) and ck==key:
-            raise ModelError('Aggregate FIFO array and CONTROL cannot share a base tag')
+        if fifo_values.aggregate(dtype) and ck==key and scope not in memory.frames:
+            raise ModelError('Aggregate FIFO array and CONTROL cannot share a base tag outside AOIs')
         value = a[0] if n in ('FFL', 'LFL') else a[1]
         scalar(memory, value, scope, dtype, destination=n in ('FFU', 'LFU'))
         vk,vp,_=memory.resolve(value,scope) if fifo_values.aggregate(dtype) else (None,[],None)
@@ -155,7 +157,11 @@ def validate(memory, op, scope):
         if n in ('FFU', 'LFU'):
             dk, dp, _ = memory.resolve(value, scope)
             if dk == key:
-                raise ModelError('FFU destination must not share the FIFO base tag')
+                # Saved AOI locals share one instance base. Permit disjoint
+                # members, while retaining the whole selected array boundary.
+                boundary=parts[:-1]
+                if scope not in memory.frames or dp[:len(boundary)]==boundary or boundary[:len(dp)]==dp:
+                    raise ModelError('FFU destination must not share the FIFO array storage')
 
 
 def fifo_status(obj):
@@ -264,6 +270,7 @@ def description():
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='False or latched calls structurally check starts without consuming dynamic indices',
+                aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
                 remaining=['FIFO scalar wide/unsigned types, mixed conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
-                           'AOI starting arrays; indirect/alias starts for separate file/sequencer consumers', 'Native invalid-state and scan parity'])
+                           'Broader AOI array shapes/lifecycle and indirect/alias starts for separate file/sequencer consumers', 'Native invalid-state and scan parity'])

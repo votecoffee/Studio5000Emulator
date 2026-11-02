@@ -466,6 +466,7 @@ class Engine:
     def step(self, dt=10):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
+        bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
@@ -519,6 +520,7 @@ class Engine:
             self._task_measurements=measured
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
+            if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
             if batch:self._task_scheduler.inhibitions=inhibitions
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
@@ -808,7 +810,7 @@ class Engine:
                            "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP/MEQ also support homogeneous wide operands; mixed types and native math status remain unsupported",
                            "Routine harness ignores task scheduling and unrelated program prescan",
-                           "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; AOI and separate file/sequencer reference expansions remain unqualified",
+                           "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",
                            "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",

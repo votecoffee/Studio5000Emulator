@@ -6,6 +6,13 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[AOI queues and shifts](aoi-queues.md) use exact InOut bindings and represented
+one-dimensional local arrays. Subscripts are evaluated in the AOI frame before
+following the bound tag, including nested frame references. Failed advances
+restore AOI frames, binding caches and instance metadata as well as values;
+failed rebinding therefore cannot become the reported active binding. Local
+storage is modeled logically, without claiming a native packed instance layout.
+
 [Shift and queue starting references](queue-references.md) use structural
 preflight for aliases and dynamic indices, then resolve the actual region
 when an operation needs it. False or latched calls do not consume dynamic

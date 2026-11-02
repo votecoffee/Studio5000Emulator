@@ -21,7 +21,8 @@ AOI instance types, operational predefined records such as TIMER/COUNTER/CONTROL
 inferred data-only schemas and UDTs containing those types remain unqualified.
 Mixed-type conversions and aggregate/string immediates remain blocked. Existing
 numeric immediates retain their earlier rules. These are ladder forms; ST/FBD
-forms and AOI array bindings remain unfinished. [Alias and indirect starts](queue-references.md)
+forms remain unfinished. [One-dimensional AOI queues](aoi-queues.md) now accept
+exact InOut arrays and represented local arrays with disjoint instance storage. [Alias and indirect starts](queue-references.md)
 now use the same typed payload copies in the v35 5580 ladder queue profile.
 
 ## Copying and clearing
@@ -55,7 +56,9 @@ edge. RES retains queue data while clearing CONTROL progress.
 Static starting indices and the selected array/member boundary are enforced,
 with the existing 4,096-element software limit. Aggregate arrays and CONTROL
 must have separate base tags; aggregate payload and CONTROL storage cannot
-overlap. Unload destinations cannot share the queue base tag. Scalar payload
+overlap. Unload destinations outside AOIs cannot share the queue base tag;
+the bounded AOI profile permits disjoint instance members, while keeping
+destinations within the selected array member blocked. Scalar payload
 aliases and Program-local sources remain supported.
 
 Unknown whole sources, bounds errors and later instruction faults roll back

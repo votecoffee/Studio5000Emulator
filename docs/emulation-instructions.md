@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-02; ladder queue references added for app `26.1102.081249`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-02; ladder AOI queues added for app `26.1102.083150`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **101 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -109,7 +109,7 @@ schema/behavior backlog separately from instruction names.
 | SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite REAL-result ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources. Integer destinations, wide/unsigned/LREAL sources, FBD and native precision/status/nonfinite behavior remain unfinished. |
 | FRD/TOD/SWPB | [DINT BCD and INT/DINT byte-order forms](numeric-conversions.md) for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Other BCD types, mixed conversions, BCD expressions/FBD and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
-| BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching string/explicit UDT records](record-queues.md). [Aliases and bounded indirect starts](queue-references.md) are supported for these shift/queue forms. Native layout/status parity, mixed conversions, operational/AOI records and AOI array starts remain unfinished. |
+| BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching string/explicit UDT records](record-queues.md). [Aliases and bounded indirect starts](queue-references.md) are supported for these shift/queue forms. [One-dimensional AOI InOut/local arrays](aoi-queues.md) now work in RLL. Native layout/status parity, mixed conversions, operational/AOI records and broader AOI shapes/lifecycle remain unfinished. |
 | SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. Mixed source types, indirect/AOI table starts and native scan/fault parity remain unfinished. |
 | FAL | [Bounded ALL/numeric ladder iteration](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed destinations, sequential writes and the CPT grammar. Saved active INC state, additional types/functions, AOIs and native cursor/overflow/status/partial-fault behavior remain unfinished. |
 | FSC | [Bounded ALL/numeric ladder search](file-search.md) and [idle-source INC](file-incremental.md), comparison expressions and FD/IN. Saved active INC state, AOIs, additional expressions and native cursor/status/fault parity remain unfinished. |

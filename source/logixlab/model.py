@@ -672,6 +672,23 @@ class Memory:
             parsed.validate(self,scope,index=True);return 0
         return parsed.evaluate(self,scope,index=True)
 
+    def bound_suffix(self,suffix,scope):
+        """Evaluate AOI subscripts in their frame before following a binding."""
+        out=[];pos=0
+        while pos<len(suffix):
+            start=suffix.find('[',pos)
+            if start<0:out.append(suffix[pos:]);break
+            out.append(suffix[pos:start]);end=start+1;depth=1
+            while end<len(suffix) and depth:
+                if suffix[end]=='[':depth+=1
+                elif suffix[end]==']':depth-=1
+                end+=1
+            if depth:raise ModelError('Unclosed AOI array subscript')
+            values=[self.index(expr,scope) for expr in split_indices(suffix[start+1:end-1])]
+            if any(type(value) is not int for value in values):raise ModelError('AOI array subscript must be an integer')
+            out.append('['+','.join(map(str,values))+']');pos=end
+        return ''.join(out)
+
     def resolve(self, ref, scope="", seen=()):
         ref = ref.strip()
         cache_key=(ref.lower(),scope.lower())
@@ -689,7 +706,7 @@ class Memory:
             binding=self.frames[scope].get(name.lower())
             if binding is None:raise ModelError(f'Unknown AOI parameter/local {ref}')
             target,owner=binding
-            return self.resolve(target+ref[m.end():],owner,seen)
+            return self.resolve(target+self.bound_suffix(ref[m.end():],scope),owner,seen)
         key = f"Program:{scope}.{name}".lower()
         if key not in self.project.tags: key = name.lower()
         tag = self.project.tags.get(key)
