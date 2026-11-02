@@ -6,6 +6,12 @@ percentage of native controller compatibility.
 
 ## Scope and state
 
+[Numeric FLL](numeric-fill.md) uses structural type/shape checks, then samples
+length, destination paths and source before writes. Integer narrowing retains
+low destination bits; widening preserves signed values. False/prescan skip
+live operands; zero length checks the destination but skips the source value.
+Unknown destinations can be established; bounds and later faults roll back.
+
 [BCD operand combinations](numeric-conversions.md) permit narrow decimal TOD
 inputs and narrow decoded FRD results around a DINT packed value. Calculations
 remain exact integer operations. Decoded result overflow and invalid TOD ranges

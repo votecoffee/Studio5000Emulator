@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-02; BCD operand combinations added for app `26.1102.145714`. **Full Logix emulation is not
+Audited 2026-11-02; numeric FLL added for app `26.1102.151103`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -40,6 +40,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | BCD/byte-order conversions | [DINT packed BCD with narrow TOD inputs/FRD results and INT/DINT SWPB](numeric-conversions.md), with ST SWPB calls | FRD narrow sources, TOD narrow results, wide/unsigned BCD operands, further forms and native math/fault status |
 | Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists, selective reference updates and [alias/indirect/AOI references](bit-diagnostic-references.md) | Broader AOI shapes/profiles and native sampling/cursor/status/fault parity |
 | Data transition | [DINT RLL DTR](data-transition.md), masked comparison, true/false reference updates, lexical prescan and existing AOI bindings | Other controller profiles and native operand/status/fault parity |
+| Numeric FLL | [Narrow numeric fills](numeric-fill.md), integer truncation/sign extension, representable REAL conversion, structural preflight, lazy reads and existing AOI bindings | Native clipping/base-tag traversal, REAL overflow bits/status, wider types and other profiles; aggregate zero fills keep their separate contract |
 | Numeric COP/CPS | [Little-endian byte copies](numeric-copies.md) across nine numeric types, clipped lengths, preserved partial elements, row-major/member arrays, budget/rollback and ST loop write effects | Native aggregate/BOOL/string/LREAL layouts, cross-member/base-tag copying, synchronization and fault/partial-effect parity |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, mixed widths, preserved bits and bounded fields | Wide/unsigned types, MVMT/BTDT and native status/fault parity |
 | Structured Text | Assignments, conditionals, [integer/REAL CASE](st-case-selection.md), bounded loops, [homogeneous wide expressions](wide-st.md), [decimal typed constants](st-integer-literals.md), supported calls and RLL/ST calls | Complete language/functions, mixed/wide FOR/CASE/index forms, full numeric promotion, time arithmetic and aggregates |

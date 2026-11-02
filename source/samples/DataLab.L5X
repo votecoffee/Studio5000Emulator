@@ -118,6 +118,80 @@
       <Tag Name="Snippet" TagType="Base" DataType="STRING" Constant="false" ExternalAccess="Read/Write">
         <Data Format="L5K">[0,'$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00$00']</Data>
       </Tag>
+      <Tag Name="FillNumeric" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FillSource" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="305419896" />
+        </Data>
+      </Tag>
+      <Tag Name="SignSource" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="FillReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2.5" />
+        </Data>
+      </Tag>
+      <Tag Name="FillIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FillLength" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ByteFill" DataType="SINT" Dimensions="5" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="SINT" Dimensions="5">
+            <Element Index="[0]" Value="101" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="99" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="WordFill" DataType="INT" Dimensions="5" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="5">
+            <Element Index="[0]" Value="201" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="299" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="SignedFill" DataType="DINT" Dimensions="5" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="301" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="399" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="RealFill" DataType="INT" Dimensions="5" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="5">
+            <Element Index="[0]" Value="401" />
+            <Element Index="[1]" Value="0" />
+            <Element Index="[2]" Value="0" />
+            <Element Index="[3]" Value="0" />
+            <Element Index="[4]" Value="499" />
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -126,50 +200,62 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillSource,ByteFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillSource,WordFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(FillNumeric)FLL(SignSource,SignedFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(FillNumeric)FLL(FillReal,RealFill[FillIndex],FillLength);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
                 <Comment>Initialize a numeric array once.</Comment>
                 <Text>XIC(S:FS)FLL(7,Buffer[0],6);</Text>
               </Rung>
-              <Rung Number="1" Type="N">
+              <Rung Number="5" Type="N">
                 <Comment>Copy six elements into a two-dimensional array.</Comment>
                 <Text>XIC(CopyEnable)COP(Source[0],Buffer[0],6)CPS(Buffer[0],Grid[0,0],6);</Text>
               </Rung>
-              <Rung Number="2" Type="N">
+              <Rung Number="6" Type="N">
                 <Comment>Read the second dimension length.</Comment>
                 <Text>SIZE(Grid,1,Columns);</Text>
               </Rung>
-              <Rung Number="3" Type="N">
+              <Rung Number="7" Type="N">
                 <Comment>Evaluate an expression with an indexed array operand.</Comment>
                 <Text>CPT(Scaled,(Grid[Index,1]+5)*2.0);</Text>
               </Rung>
-              <Rung Number="4" Type="N">
+              <Rung Number="8" Type="N">
                 <Comment>Build text from a numeric value.</Comment>
                 <Text>DTOS(Grid[Index,1],NumberText)CONCAT(Prefix,NumberText,Message);</Text>
               </Rung>
-              <Rung Number="5" Type="N">
+              <Rung Number="9" Type="N">
                 <Comment>Extract text and convert a string back to a number.</Comment>
                 <Text>MID(Message,3,1,Snippet)STOD(NumberText,ParsedNumber);</Text>
               </Rung>
-              <Rung Number="6" Type="N">
+              <Rung Number="10" Type="N">
                 <Comment>Preserve wide integer values and read an unsigned word bit.</Comment>
                 <Text>MOV(WideSource,WideDest)XIC(PackedStatus.15)OTE(HighBit);</Text>
               </Rung>
-              <Rung Number="7" Type="N">
+              <Rung Number="11" Type="N">
                 <Comment>Prepare a bounded loop.</Comment>
                 <Text>CLR(LoopCount);</Text>
               </Rung>
-              <Rung Number="8" Type="N">
+              <Rung Number="12" Type="N">
                 <Comment>Repeat until the count reaches three.</Comment>
                 <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
               </Rung>
-              <Rung Number="9" Type="N">
+              <Rung Number="13" Type="N">
                 <Comment>Skip the next write when Bypass is set.</Comment>
                 <Text>XIC(Bypass)JMP(Finish);</Text>
               </Rung>
-              <Rung Number="10" Type="N">
+              <Rung Number="14" Type="N">
                 <Comment>This write is skipped in the default demo.</Comment>
                 <Text>MOV(999,SkippedValue);</Text>
               </Rung>
-              <Rung Number="11" Type="N">
+              <Rung Number="15" Type="N">
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1102.145714`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1102.151103`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -80,6 +80,10 @@ results, with ties-to-even integer rounding and transactional range checks.
 ladder SQR, XPY, logs, angle
 conversions and trigonometry. **Math lab** compares ladder, CPT and ST values,
 including the v35 absolute-value rule for negative square-root inputs.
+
+[Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
+structural validation and lazy operand reads for FLL. In **Data lab**, enable
+FillNumeric to compare guarded byte, word, signed and rounded REAL fills.
 
 [Numeric conversions](docs/numeric-conversions.md) now accept SINT/INT decimal
 TOD sources and SINT/INT decoded FRD results around a DINT packed-BCD value.

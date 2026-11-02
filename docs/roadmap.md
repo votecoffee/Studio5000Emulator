@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1102.151103`: [numeric FLL](numeric-fill.md), integer low-bit
+narrowing/sign extension, lazy source/length/index reads, full unknown-element
+writes and typed AOI/local fills. Logical member bounds, representable REAL
+conversion and aggregate/other-controller boundaries remain explicit.
+
 Available in `26.1102.145714`: [BCD operand combinations](numeric-conversions.md),
 SINT/INT TOD inputs, SINT/INT FRD results, exact integer round trips and range
 rollback in Conversion Lab/AOIs. Packed values stay DINT; reverse width
