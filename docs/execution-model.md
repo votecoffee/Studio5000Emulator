@@ -225,8 +225,12 @@ Square roots take the source absolute value, including existing CPT/ST functions
 Domain/overflow failures retain advance rollback; native NaN/infinity, precision
 and math-status behavior remain separate work.
 
-[Numeric conversions](numeric-conversions.md) provide ladder DINT FRD/TOD and
-ladder/ST INT/DINT SWPB. FRD weights all eight hex nibbles, including A–F;
+[Numeric conversions](numeric-conversions.md) provide ladder BCD forms around
+DINT packed words and ladder/ST INT/DINT SWPB. Structural preflight checks
+declared operands without consuming saved dynamic indices; false/prescan skip
+live operands. Enabled calls retain actual indices/source/range checks and full
+unknown-result writes, with whole-advance/AOI rollback.
+FRD weights all eight hex nibbles, including A–F;
 TOD packs qualified decimal values into a signed DINT bit pattern. SWPB uses
 explicit byte-order selectors and sign-extends swapped INT results to DINT.
 Native TOD saturation/math flags remain separate from modeled rollback.

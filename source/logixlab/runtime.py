@@ -380,7 +380,7 @@ class Engine:
         if n=='GSV':system_values.validate(self,op,scope);return
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
         if n in sequencer_operations.INSTRUCTIONS:sequencer_operations.validate(self.memory,op,scope);return
-        if n in numeric_conversions.INSTRUCTIONS:numeric_conversions.validate(self.memory,op,scope);return
+        if n in numeric_conversions.INSTRUCTIONS:numeric_conversions.preflight(self.memory,op,scope);return
         if n in real_math.INSTRUCTIONS:real_math.preflight(self.memory,op,scope);return
         if n in array_statistics.INSTRUCTIONS:array_statistics.validate(self.memory,op,scope);return
         if n in array_sort.INSTRUCTIONS:array_sort.validate(self.memory,op,scope);return

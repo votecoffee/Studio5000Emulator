@@ -67,6 +67,25 @@ In-place swapping captures the source before writing. Existing scalar array,
 indirect-index, UDT member, alias and supported AOI bindings remain available.
 ST FOR validation includes SWPB destination writes in bound/step protection.
 
+## Operand selection
+
+Preflight checks declared scalar types/shapes, index grammar, destination
+permissions, immediate bounds and SWPB selectors without evaluating saved dynamic
+indices or reading tag values. False ladder rungs and prescan skip live operands.
+An unknown or out-of-range saved dynamic index can remain until an enabled call
+reaches it. Nonnegative literal indices retain their bounds checks. Missing
+references, invalid grammar/types/shapes, read-only destinations, excluded
+immediates and invalid selectors remain blocked, including on false rungs.
+
+Enabled calls retain actual source/destination index and required-source checks.
+Full result writes can establish unknown selected elements or members while
+preserving unwritten siblings. Existing aliases, UDT members and AOI local/InOut
+bindings follow the same rules. Reached unknown/index/range or later faults roll
+back the entire advance and existing AOI bindings. Preflight restores its prior
+structural context after success and errors. Calculations, type combinations,
+BCD range policy, byte-order selectors and the existing ST SWPB contract remain
+unchanged. FRD/TOD remain unavailable as ST calls.
+
 ## Scans and demo
 
 Prescan and false ladder rungs retain destination data. A true rung or executed
@@ -83,6 +102,14 @@ add narrow round trips; NarrowOK checks them. RawByteBCD separately decodes
 into RawByteDecoded. Set RawByteBCD to 296 (16#128) to exercise SINT result
 overflow after earlier conversions, then correct it to 295 (16#127) and retry.
 False Enable retains ladder results while the called ST routine still runs.
+The separate `IndexedConversions` section starts disabled with `ConversionIndex`
+99 and unknown result arrays. Set the index to 0, then enable the gate:
+`IndexedDecimal[0]` 1234 produces `IndexedPacked[0]` 4660 (16#1234),
+`IndexedDecoded[0]` 1234 and `IndexedSwapped[0]` 305397760 (16#12340000).
+Unwritten siblings remain unknown. Index 2 demonstrates 80000000 packing into
+signed DINT -2147483648 and decoding back; its WORD byte swap is 32768. Invalid
+enabled indices or excluded TOD inputs fault and roll back; correct them and retry.
+
 See [ConversionLab.L5X](../source/samples/ConversionLab.L5X) and
 [implementation](../source/logixlab/numeric_conversions.py).
 

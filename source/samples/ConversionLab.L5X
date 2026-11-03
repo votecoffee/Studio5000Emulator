@@ -143,6 +143,43 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="IndexedConversions" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConversionIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexedDecimal" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+            <Element Index="[0]" Value="1234" />
+            <Element Index="[1]" Value="99" />
+            <Element Index="[2]" Value="80000000" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IndexedPacked" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IndexedDecoded" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IndexedSwapped" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -182,6 +219,15 @@
               </Rung>
               <Rung Number="10" Type="N">
                 <Text>EQU(ByteDecimal,ByteDecoded)EQU(WordDecimal,WordDecoded)OTE(NarrowOK);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(IndexedConversions)TOD(IndexedDecimal[ConversionIndex],IndexedPacked[ConversionIndex]);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(IndexedConversions)FRD(IndexedPacked[ConversionIndex],IndexedDecoded[ConversionIndex]);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(IndexedConversions)SWPB(IndexedPacked[ConversionIndex],WORD,IndexedSwapped[ConversionIndex]);</Text>
               </Rung>
             </RLLContent>
           </Routine>

@@ -35,6 +35,16 @@ def validate(memory, op, scope):
     return width
 
 
+def preflight(memory, op, scope):
+    """Check declared operands without consuming saved dynamic indices."""
+    previous = memory.structural
+    memory.structural = True
+    try:
+        return validate(memory, op, scope)
+    finally:
+        memory.structural = previous
+
+
 def from_bcd(value):
     value &= 0xffffffff
     return sum(((value >> (4 * index)) & 15) * 10 ** index for index in range(8))
@@ -80,6 +90,8 @@ def description():
                 bcd='RLL FRD decodes DINT source/immediate into SINT/INT/DINT; shared FBD calculation retains eight weighted nibbles',
                 rll_operands={'FRD':{'sources':['DINT'],'destinations':['SINT','INT','DINT']},
                               'TOD':{'sources':['SINT','INT','DINT'],'destinations':['DINT']}},
+                preflight='Declared scalar types/shapes, index grammar, permissions, immediate bounds and SWPB selectors; no saved dynamic indices or tag values',
+                selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
                 frd_range='Decoded value must fit the signed destination; range errors roll back the advance',
                 tod_range='SINT/INT/DINT decimal inputs within 0..99999999; packed signed DINT result',
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',

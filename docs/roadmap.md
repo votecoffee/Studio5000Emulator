@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.073819`: [FRD/TOD/SWPB operand selection](numeric-conversions.md#operand-selection),
+structural index preflight, false/prescan operand skips, actual true-call checks
+and full writes to unknown results. Conversion Lab adds indexed round trips and
+byte swapping. Type/calculation/range contracts and native status/fault/layout
+boundaries remain unchanged.
+
 Available in `26.1103.072635`: [MVM/BTD operand selection](bit-transfer.md#operand-selection),
 v35 5580 structural preflight, false/prescan dynamic-index skips, full unknown
 writes and existing partial-bit/address requirements. Bit Lab adds indexed
