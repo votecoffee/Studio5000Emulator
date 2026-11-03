@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.175514`: [matching aggregate COP/CPS](aggregate-copies.md).
+Basic records, strings and explicit nested UDTs use structural/lazy operand
+selection, captured complete windows, unknown propagation, independent storage
+and scalar-member work limits. Data lab adds three gated copies. Existing ST
+calls share validation; packed layouts, native clipping/private histories,
+synchronization and parity remain separate.
+
 Available in `26.1103.172122`: [declared-schema aggregate zero FLL](aggregate-fill.md).
 Basic records, strings and explicit nested UDTs receive typed zero values even
 when saved fields are unknown. Structural/lazy selection, captured windows and

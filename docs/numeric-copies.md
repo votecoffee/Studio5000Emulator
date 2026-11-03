@@ -48,6 +48,9 @@ continue across member boundaries up to a base tag's end; this model does not
 infer that aggregate ABI. BOOL bits/packed arrays, full strings, aggregate
 reinterpretation and LREAL byte images remain unsupported. Existing matching
 aggregate copies retain their logical-copy behavior and strict region bounds.
+[Basic record/string/UDT copies](aggregate-copies.md) now have separate structural
+preflight, lazy operands and bounded scalar-member work, while numeric copies
+keep the byte-budget and transfer rules on this page.
 Other controller profiles retain legacy matching copies; mixed numeric byte
 copies require the profile above.
 

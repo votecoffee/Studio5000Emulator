@@ -3,7 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions, numeric_copy, numeric_fill, size_truncate, comparisons, wide_st
+from . import string_operations, string_conversions, numeric_copy, numeric_fill, aggregate_copy, size_truncate, comparisons, wide_st
 from .integer_math import WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
 from .model import ModelError, coerce
@@ -100,6 +100,7 @@ class Extensions:
         n,a=op.name,op.args
         if n=='FLL' and numeric_fill.handle(self.engine,op,scope,execute=execute):return
         if n=='FLL' and numeric_fill.aggregate_handle(self.engine,op,scope,execute=execute):return
+        if n in ('COP','CPS') and aggregate_copy.handle(self.engine,op,scope,execute=execute):return
         if n in ('COP','CPS') and not execute and numeric_copy.preflight(self.engine,op,scope):return
         count=self.integer(a[2],scope)
         self.memory.check_writable(a[1],scope)

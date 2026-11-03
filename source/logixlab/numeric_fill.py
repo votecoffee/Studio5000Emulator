@@ -68,17 +68,17 @@ def handle(engine, op, scope, *, execute=False):
     return True
 
 
-def aggregate_template(project,dtype,seen=()):
+def aggregate_template(project,dtype,seen=(),*,instruction="FLL"):
     """Use declared schemas, never the Python types of unknown saved values."""
     if dtype.upper() in ('TIMER','COUNTER','CONTROL','STRING'):return project.default(dtype)
     name=dtype.lower();definition=project.udts.get(name)
     if definition is None or dtype.upper() in project.aois:
-        raise ModelError('Aggregate FLL supports basic records and explicit UDTs, not operational/AOI records')
-    if name in seen or len(seen)>=32:raise ModelError('Aggregate FLL schema nesting exceeds its bounded profile')
+        raise ModelError('Aggregate '+instruction+' supports basic records and explicit UDTs, not operational/AOI records')
+    if name in seen or len(seen)>=32:raise ModelError('Aggregate '+instruction+' schema nesting exceeds its bounded profile')
     for member in definition.findall('./Members/Member'):
         if member.get('Hidden','false').lower()=='true':continue
         kind=member.get('DataType')
-        if kind not in {*INT_BITS,'BOOL','REAL','BIT'}:aggregate_template(project,kind,seen+(name,))
+        if kind not in {*INT_BITS,'BOOL','REAL','BIT'}:aggregate_template(project,kind,seen+(name,),instruction=instruction)
     return project.default(dtype)
 
 

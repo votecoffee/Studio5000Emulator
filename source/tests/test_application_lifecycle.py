@@ -2549,3 +2549,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(row['ZeroTimers[1].ACC'],0);self.assertIs(row['ZeroTimers[1].EN'],False);self.assertIs(row['ZeroCounters[1].CU'],False);self.assertEqual(row['ZeroStrings[1]'],'');self.assertEqual(row['ZeroStrings[1].DATA[81]'],0);self.assertEqual((row['ZeroRecords[0].Count'],row['ZeroRecords[2].Count']),(111,999));self.assertIsNone(row['ZeroTimers[0].ACC'])
         write('FillAggregates',False);write('AggregateIndex',99);row=values(step());self.assertEqual(row['ZeroRecords[1].Count'],0);write('AggregateIndex',1);write('AggregateSource[0]',1);write('FillAggregates',True);fault('integer zero only');write('AggregateSource[0]',0);step()
         report=self.post('report',{})['aggregate_fill'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_data_lab_matching_aggregate_copies_lazy_references_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['CopyRecords[1].Count']);self.assertIsNone(row['CopyTimers[1].ACC'])
+        write('CopyAggregates',True);fault('Unknown');write('AggregateCopyLength[0]',1);fault('outside bounds');write('AggregateCopySourceIndex',1);fault('outside bounds');write('AggregateCopyDestIndex',1)
+        row=values(step());self.assertIsNone(row['CopyRecords[1].Count']);self.assertIsNone(row['CopyTimers[1].EN'])
+        write('AggregateIndex',1);write('AggregateLength[0]',1);write('AggregateSource[0]',0);write('FillAggregates',True);row=values(step())
+        self.assertIs(row['CopyRecords[1].Enabled'],False);self.assertIs(type(row['CopyRecords[1].Measure']),float);self.assertIs(row['CopyTimers[1].EN'],False);self.assertEqual(row['CopyStrings[1]'],'')
+        write('FillAggregates',False);write('ZeroRecords[1].Count',73);write('ZeroTimers[1].ACC',42);write('ZeroStrings[1].DATA[81]',77);row=values(step())
+        self.assertEqual((row['CopyRecords[1].Count'],row['CopyTimers[1].ACC'],row['CopyStrings[1].DATA[81]']),(73,42,77));self.assertIsNone(row['CopyRecords[0].Count']);self.assertIsNone(row['CopyTimers[2].ACC']);self.assertEqual((row['ZeroRecords[0].Count'],row['ZeroRecords[2].Count']),(111,999))
+        write('CopyAggregates',False);write('AggregateCopySourceIndex',99);write('AggregateCopyDestIndex',99);row=values(step());self.assertEqual(row['CopyRecords[1].Count'],73)
+        write('CopyAggregates',True);fault('outside bounds');write('AggregateCopySourceIndex',1);write('AggregateCopyDestIndex',1);step()
+        report=self.post('report',{})['aggregate_copy'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])

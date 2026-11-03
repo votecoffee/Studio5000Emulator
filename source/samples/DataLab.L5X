@@ -406,6 +406,27 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="CopyAggregates" DataType="BOOL" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="AggregateCopySourceIndex" DataType="DINT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="AggregateCopyDestIndex" DataType="DINT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="AggregateCopyLength" DataType="DINT" TagType="Base" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data>
+      </Tag>
+      <Tag Name="CopyRecords" DataType="ZeroFillCell" TagType="Base" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="ZeroFillCell" Dimensions="3"></Array></Data>
+      </Tag>
+      <Tag Name="CopyTimers" DataType="TIMER" TagType="Base" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="TIMER" Dimensions="3"></Array></Data>
+      </Tag>
+      <Tag Name="CopyStrings" DataType="STRING" TagType="Base" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="STRING" Dimensions="3"></Array></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -480,62 +501,71 @@
                 <Text>XIC(FillAggregates)FLL(AggregateSource[0],ZeroStrings[AggregateIndex],AggregateLength[0]);</Text>
               </Rung>
               <Rung Number="22" Type="N">
+                <Text>XIC(CopyAggregates)COP(ZeroRecords[AggregateCopySourceIndex],CopyRecords[AggregateCopyDestIndex],AggregateCopyLength[0]);</Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text>XIC(CopyAggregates)CPS(ZeroTimers[AggregateCopySourceIndex],CopyTimers[AggregateCopyDestIndex],AggregateCopyLength[0]);</Text>
+              </Rung>
+              <Rung Number="24" Type="N">
+                <Text>XIC(CopyAggregates)COP(ZeroStrings[AggregateCopySourceIndex],CopyStrings[AggregateCopyDestIndex],AggregateCopyLength[0]);</Text>
+              </Rung>
+              <Rung Number="25" Type="N">
                 <Comment>Initialize a numeric array once.</Comment>
                 <Text>XIC(S:FS)FLL(7,Buffer[0],6);</Text>
               </Rung>
-              <Rung Number="23" Type="N">
+              <Rung Number="26" Type="N">
                 <Comment>Copy six elements into a two-dimensional array.</Comment>
                 <Text>XIC(CopyEnable)COP(Source[0],Buffer[0],6)CPS(Buffer[0],Grid[0,0],6);</Text>
               </Rung>
-              <Rung Number="24" Type="N">
+              <Rung Number="27" Type="N">
                 <Comment>Read the second dimension length.</Comment>
                 <Text>SIZE(Grid,1,Columns);</Text>
               </Rung>
-              <Rung Number="25" Type="N">
+              <Rung Number="28" Type="N">
                 <Comment>Evaluate an expression with an indexed array operand.</Comment>
                 <Text>CPT(Scaled,(Grid[Index,1]+5)*2.0);</Text>
               </Rung>
-              <Rung Number="26" Type="N">
+              <Rung Number="29" Type="N">
                 <Comment>Build text from a numeric value.</Comment>
                 <Text>DTOS(Grid[Index,1],NumberText)CONCAT(Prefix,NumberText,Message);</Text>
               </Rung>
-              <Rung Number="27" Type="N">
+              <Rung Number="30" Type="N">
                 <Comment>Extract text and convert a string back to a number.</Comment>
                 <Text>MID(Message,3,1,Snippet)STOD(NumberText,ParsedNumber);</Text>
               </Rung>
-              <Rung Number="28" Type="N">
+              <Rung Number="31" Type="N">
                 <Comment>Preserve wide integer values and read an unsigned word bit.</Comment>
                 <Text>MOV(WideSource,WideDest)XIC(PackedStatus.15)OTE(HighBit);</Text>
               </Rung>
-              <Rung Number="29" Type="N">
+              <Rung Number="32" Type="N">
                 <Comment>Prepare a bounded loop.</Comment>
                 <Text>CLR(LoopCount);</Text>
               </Rung>
-              <Rung Number="30" Type="N">
+              <Rung Number="33" Type="N">
                 <Comment>Repeat until the count reaches three.</Comment>
                 <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
               </Rung>
-              <Rung Number="31" Type="N">
+              <Rung Number="34" Type="N">
                 <Comment>Zero-fill a negative signed byte before applying a wide mask.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedSmall,MixedMask,MixedExpected)OTE(MixedMaskMatch);</Text>
               </Rung>
-              <Rung Number="32" Type="N">
+              <Rung Number="35" Type="N">
                 <Comment>Compare adjacent exact signed and unsigned 64-bit values.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedExact,MixedFullMask,MixedExpectedExact)OTE(MixedExactMatch);</Text>
               </Rung>
-              <Rung Number="33" Type="N">
+              <Rung Number="36" Type="N">
                 <Comment>Zero-fill a negative DINT before comparing its wide pattern.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedNarrow,MixedFullMask,MixedExpected)OTE(MixedWidthMatch);</Text>
               </Rung>
-              <Rung Number="34" Type="N">
+              <Rung Number="37" Type="N">
                 <Comment>Skip the next write when Bypass is set.</Comment>
                 <Text>XIC(Bypass)JMP(Finish);</Text>
               </Rung>
-              <Rung Number="35" Type="N">
+              <Rung Number="38" Type="N">
                 <Comment>This write is skipped in the default demo.</Comment>
                 <Text>MOV(999,SkippedValue);</Text>
               </Rung>
-              <Rung Number="36" Type="N">
+              <Rung Number="39" Type="N">
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>
