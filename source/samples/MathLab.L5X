@@ -290,6 +290,31 @@
           <DataValue DataType="DINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="RealModulo" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ModuloA" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="-7.5" />
+        </Data>
+      </Tag>
+      <Tag Name="ModuloB" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="ModuloResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ModuloRounded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -371,6 +396,12 @@
               </Rung>
               <Rung Number="24" Type="N">
                 <Text>XIC(Enable)SQR(RoundingInput,RoundedRoot)XPY(-2.5,1.0,RoundedPower);</Text>
+              </Rung>
+              <Rung Number="25" Type="N">
+                <Text>XIC(RealModulo)MOD(ModuloA,ModuloB,ModuloResult);</Text>
+              </Rung>
+              <Rung Number="26" Type="N">
+                <Text>XIC(RealModulo)MOD(ModuloA,ModuloB,ModuloRounded);</Text>
               </Rung>
             </RLLContent>
           </Routine>

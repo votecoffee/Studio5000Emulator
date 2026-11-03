@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.065425`: [finite ladder REAL MOD](scalar-math.md#finite-real-remainder),
+SINT/INT/DINT/REAL source/result forms, float32 input/result conversion,
+dividend-sign remainders, rounded integer results and transactional recovery.
+Math Lab adds `RealModulo`; wide/unsigned/LREAL mixtures and native precision/
+status/minor-fault behavior remain open.
+
 Available in `26.1102.161542`: [scalar arithmetic/bitwise operand selection](scalar-math.md),
 structural preflight, false/prescan skips and full unknown destination writes for
 eleven existing operations. Math Lab adds a basic-operations section; complete

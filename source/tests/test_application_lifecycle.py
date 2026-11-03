@@ -2006,3 +2006,42 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
         self.post('write',{'tag':'Index','value':1});self.post('write',{'tag':'Inputs[1]','value':100});self.post('write',{'tag':'StartPB','value':True})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(10,103,-101))
+
+    def test_math_lab_real_modulo_sign_rounding_zero_and_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertEqual(step()['ModuloResult'],0.0);write('RealModulo',True);row=step()
+        self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(-1.5,-2))
+        write('ModuloA',7.5);write('ModuloB',-2);row=step()
+        self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(1.5,2))
+        write('RealModulo',False);write('ModuloB',0);self.assertEqual(step()['ModuloResult'],1.5)
+        before=write('RealModulo',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('ModuloB',4);row=step();self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(3.5,4))
+        report=self.post('report',{})['scalar_math']['real_remainder'];self.assertFalse(report['native_precision'])
+
+    def test_imported_unknown_real_modulo_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_real_remainder import RealRemainderTests
+        fixture=RealRemainderTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)MOD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)DIV(Source,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownRealModulo.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Inputs[0]',-7.5),('Inputs[2]',2)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(-1.5,None,None))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})

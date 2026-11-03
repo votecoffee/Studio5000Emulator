@@ -667,9 +667,12 @@ class Engine:
                 x, y = r(0), r(1)
                 if n in ("DIV", "MOD") and y == 0: raise ModelError(f"{n} divide by zero")
                 if n == "MOD":
-                    if not isinstance(x, int) or not isinstance(y, int): raise ModelError("MOD supports integers only")
-                    q = abs(x) // abs(y) * (-1 if (x < 0) != (y < 0) else 1)
-                    value = x - q * y
+                    if scalar_math.available(self.project) and (isinstance(x, float) or isinstance(y, float)):
+                        value = scalar_math.real_remainder(x, y)
+                    else:
+                        if not isinstance(x, int) or not isinstance(y, int): raise ModelError("MOD supports integers only")
+                        q = abs(x) // abs(y) * (-1 if (x < 0) != (y < 0) else 1)
+                        value = x - q * y
                 else:
                     operation = {"ADD": operator.add, "SUB": operator.sub, "MUL": operator.mul,
                                  "DIV": operator.truediv, "AND": operator.and_, "OR": operator.or_, "XOR": operator.xor}[n]
