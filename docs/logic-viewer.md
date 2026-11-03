@@ -21,6 +21,32 @@ represented integer bits, simple indirect tag indices and AOI instance bindings
 are resolved from snapshot metadata. More complex address expressions can remain
 unavailable in the viewer even when the runtime supports them.
 
+## Instruction presentation
+
+AOI calls use the imported definition name, an instance row and the visible
+parameters in declaration order. Input, Output and InOut markers distinguish
+argument roles; tooltips include data types, dimensions and descriptions.
+Required arguments bind in declaration order even if their rows are hidden.
+Optional parameters read from the instance. EnableIn/EnableOut are represented
+as EN/ENO status indicators. Select a call to inspect hidden parameters as well
+as visible ones. **Open AOI logic** opens an instantiated call's Logic routine
+with the matching instance context.
+
+Built-in ladder instructions use descriptive headers, opcode captions and named
+operands. Timers/counters show saved PRE/ACC values and status indicators;
+CONTROL instructions show saved LEN/POS values in place of neutral-text `?`
+pseudo-operands. Routine calls distinguish input and return arguments. Routine
+names, system attribute names and expressions are source references, not tag
+values to evaluate in the browser. Unknown instructions retain all source
+operands and remain marked unsupported.
+
+Every visible parameter row participates in layout, including AOIs with more
+than six parameters and parallel/nested branches. Long references are shortened
+on the drawing; tooltips and the inspector retain the full reference. Faceplate
+rows and status decorations are not additional executable graph nodes or wires.
+The viewer remains read-only. This is a Studio-style presentation, not a claim
+of pixel-for-pixel native UI or instruction execution equivalence.
+
 ## Separation of responsibilities
 
 The viewer uses plain JavaScript and SVG, with no browser framework or graph
@@ -29,9 +55,10 @@ library required at runtime.
 | Layer | Responsibility |
 | --- | --- |
 | [ladder-graph.js](../source/web/ladder-graph.js) | Adapt imported rung nodes into an explicit graph, compute layout, associate last-scan power |
+| [instruction-view.js](../source/web/instruction-view.js) | Describe built-in/AOI faceplates, operand roles, visible rows and measured extents |
 | [logic-view.js](../source/web/logic-view.js) | Render symbols, wires, text, values, selection and instruction details |
 | [logic-view.css](../source/web/logic-view.css) | Document colors, typography and selection/monitor styles |
-| [server.py](../source/logixlab/server.py) | Existing authenticated snapshots, plus canonical read-only AOI binding references |
+| [server.py](../source/logixlab/server.py) | Existing authenticated snapshots, plus read-only AOI definitions and canonical binding references |
 
 The graph has `schemaVersion: 1`, a routine/rung identity, source text and comment,
 instruction/rail/junction nodes, typed directional power ports and explicit
@@ -46,7 +73,9 @@ model. Layout coordinates and snapshot values remain outside the graph.
 
 ```javascript
 const graph = LadderGraph.compile(rung, routine.key);
-const geometry = LadderGraph.layout(graph, 1000);
+const measure = node => LogixInstructionView.dimensions(node,
+  LogixInstructionView.describe(node, snapshot.aoi_definitions));
+const geometry = LadderGraph.layout(graph, 1000, measure);
 const monitoring = LadderGraph.power(graph, lastTrace);
 ```
 
@@ -90,7 +119,8 @@ node --test source/tests/web/logic-view.test.cjs
 
 The focused tests cover branch topology, stable monitoring identities, source
 preservation, port geometry, nested branch spacing, output alignment, missing
-and partial traces, and exact ST token reconstruction. HTTP checks cover asset
+and partial traces, AOI argument/visibility binding, full-row geometry, saved control members,
+and exact ST token reconstruction. HTTP checks cover asset
 delivery, module order and read-only AOI binding metadata. Browser checks cover
 selection, values, navigation, scope, zoom and the rendered documents.
 

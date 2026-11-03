@@ -56,16 +56,16 @@
       const longest = Math.max(0, ...node.operands.map(x => x.length));
       return {width: Math.max(150, Math.min(240, longest * 7 + 24)), above: 40, below: 34, symbol: true};
     }
-    const rows = ['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(node.opcode) ? 3 : Math.min(6, Math.max(1, node.operands.length));
+    const rows = ['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(node.opcode) ? 3 : Math.max(1, node.operands.length);
     return {width: 238, above: 36, below: rows * 27 + 24, rows, symbol: false};
   }
 
-  function layout(graph, minimumWidth = 0) {
+  function layout(graph, minimumWidth = 0, measureInstruction = dimensions) {
     const byId = new Map(graph.nodes.map(n => [n.id, n])), measured = new Map(), placed = {}, ports = {};
     function measure(region) {
       if (measured.has(region)) return measured.get(region);
       let value;
-      if (region.kind === 'instruction') value = dimensions(byId.get(region.node));
+      if (region.kind === 'instruction') value = measureInstruction(byId.get(region.node));
       else if (region.kind === 'sequence') {
         const rows = region.items.map(measure);
         value = {width: rows.reduce((n, x) => n + x.width, 0) + Math.max(0, rows.length - 1) * 30,

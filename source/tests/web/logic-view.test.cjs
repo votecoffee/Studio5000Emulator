@@ -2,6 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const graph = require('../../web/ladder-graph.js');
 const {tokenizeST} = require('../../web/logic-view.js');
+const instruction = require('../../web/instruction-view.js');
 const op = (name, ...args) => ({name, args});
 const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained', nodes});
 const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', 'Start')], [op('XIC', 'Latch')]]}, op('OTE', 'Latch')]), 'Main/Main');
@@ -110,4 +111,58 @@ test('ST block comments remain comments across lines and support nesting', () =>
   assert(tokens[1].every(token => token.kind === 'comment'));
   assert(tokens[2].some(token => token.kind === 'number'));
   assert.deepEqual(tokens.map(row => row.map(t => t.text).join('')), lines);
+});
+
+test('timer and control faceplates monitor saved members instead of neutral placeholders', () => {
+  const face = (opcode, ...operands) => instruction.describe({opcode, operands});
+  assert.deepEqual(face('TON', 'Delay', '?', '?').rows.map(row => row.ref), ['Delay', 'Delay.PRE', 'Delay.ACC']);
+  assert.deepEqual(face('FFL', 'Item', 'Queue[0]', 'QueueState', '?', '?').rows.slice(-2).map(row => row.ref), ['QueueState.LEN', 'QueueState.POS']);
+  assert.equal(face('BSL', 'Bits', 'Shift', 'Input', '?').rows.at(-1).ref, 'Shift.LEN');
+  assert.deepEqual(face('DDT', 'A', 'B', 'Results', 'Compare', '?', '?', 'Found', '?', '?').rows.map(row => row.ref),
+    ['A', 'B', 'Results', 'Compare', 'Compare.LEN', 'Compare.POS', 'Found', 'Found.LEN', 'Found.POS']);
+  assert.equal(face('MOV', '?', 'Dest').rows[0].ref, '?', 'Only defined pseudo-operands may be expanded');
+});
+
+test('routine faceplates distinguish input and return arguments from the neutral count', () => {
+  const face = instruction.describe({opcode: 'JSR', operands: ['Worker', '2', 'A', 'B', 'Result']});
+  assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Routine Name', 'Worker'], ['Input Par 1', 'A'], ['Input Par 2', 'B'], ['Return Par 1', 'Result']]);
+  assert(face.rows[0].sourceOnly);assert(!face.rows[1].sourceOnly);
+});
+
+function aoiDefinition() {
+  return {QUEUE: {name: 'Queue', description: 'Public test definition', parameters: [
+    {name: 'EnableIn', type: 'BOOL', usage: 'Input', required: false, visible: false},
+    {name: 'HiddenArg', type: 'DINT', usage: 'Input', required: true, visible: false},
+    {name: 'Buffer', type: 'DINT', usage: 'InOut', dimensions: '6', required: true, visible: true},
+    {name: 'Ready', type: 'BOOL', usage: 'Output', required: false, visible: true},
+    ...Array.from({length: 8}, (_, i) => ({name: 'Setting' + i, type: 'DINT', usage: 'Input', required: false, visible: true})),
+    {name: 'Private', type: 'DINT', usage: 'Output', required: false, visible: false},
+    {name: 'EnableOut', type: 'BOOL', usage: 'Output', required: false, visible: false}]}};
+}
+
+test('AOI rows retain declaration order, binding roles and independent visibility', () => {
+  const definitions = aoiDefinition(), original = structuredClone(definitions);
+  const face = instruction.describe({opcode: 'qUeUe', operands: ['Driver', '17', 'External[2]']}, definitions);
+  assert.equal(face.kind, 'aoi');assert.equal(face.title, 'Queue');
+  assert.deepEqual(face.rows.slice(0, 3).map(row => [row.label, row.ref]), [['Instance', 'Driver'], ['Buffer', 'External[2]'], ['Ready', 'Driver.Ready']]);
+  assert.equal(face.fields.find(row => row.label === 'HiddenArg').ref, '17');
+  assert.equal(face.fields.find(row => row.label === 'Private').ref, 'Driver.Private');
+  assert.equal(face.rows[1].usage, 'InOut');assert.equal(face.rows[1].dimensions, '6');
+  assert.equal(face.rows.length, 11);assert(!face.rows.some(row => row.label === 'EnableOut'));
+  assert.deepEqual(definitions, original);
+});
+
+test('AOI geometry uses every visible row and keeps nested branches apart', () => {
+  const g = graph.compile(rung([{branch: [[op('QUEUE', 'Driver', '17', 'External')], [op('TON', 'T', '?', '?')]]}, op('OTE', 'Q')]));
+  const original = structuredClone(g), drawing = graph.layout(g, 0, node => instruction.dimensions(node, instruction.describe(node, aoiDefinition())));
+  const a = drawing.nodes[g.order[0]], b = drawing.nodes[g.order[1]];
+  assert.equal(a.rows, 11);assert(a.below > 370);assert(a.y + a.below < b.y - b.above);
+  for (const id of g.order) {const box = drawing.nodes[id];assert(box.y + box.below < drawing.height);}
+  assert.deepEqual(g, original);
+});
+
+test('unknown instructions retain all source operands without inventing a supported definition', () => {
+  const node = {opcode: 'VENDOR_CUSTOM', operands: Array.from({length: 9}, (_, i) => 'Argument' + i)};
+  const face = instruction.describe(node);assert.equal(face.known, false);assert.equal(face.rows.length, 9);
+  assert.deepEqual(face.rows.map(row => row.ref), node.operands);assert.equal(instruction.dimensions(node, face).rows, 9);
 });

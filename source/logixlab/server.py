@@ -238,6 +238,13 @@ class Application:
                 "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
                 "changes": e.changes, "provenance": self.provenance,
                 "tasks": e.project.tasks, "task_schedule":e.scheduler_description(), "converter": self.converter,
+                'aoi_definitions':{name:{'name':aoi.name,'description':aoi.description,
+                    'parameters':[{'name':p.get('Name',''),'type':p.get('DataType',''),
+                        'usage':p.get('Usage',''),'dimensions':p.get('Dimensions',''),
+                        'required':p.get('Required','false').lower()=='true',
+                        'visible':p.get('Visible','false').lower()=='true',
+                        'description':p.findtext('Description','')} for p in aoi.parameters]}
+                    for name,aoi in e.project.aois.items()},
                 'aoi_instances':e.addons.instances,
                 'aoi_bindings':{address:{name:target[0] for name,target in e.memory.frames.get(instance.get('scope',''),{}).items()
                                         if isinstance(target,tuple) and len(target)==2 and isinstance(target[0],str) and target[1]==''}
@@ -642,6 +649,7 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
             assets = {"/": ("index.html", "text/html; charset=utf-8"),
                       "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"),
                       "/ladder-graph.js": ("ladder-graph.js", "text/javascript"),
+                      "/instruction-view.js": ("instruction-view.js", "text/javascript"),
                       "/logic-view.js": ("logic-view.js", "text/javascript"), "/logic-view.css": ("logic-view.css", "text/css"),
                       "/favicon.ico": ("icons/plc-simulator.ico", "image/vnd.microsoft.icon"),
                       "/icons/plc-simulator-64.png": ("icons/plc-simulator-64.png", "image/png"),

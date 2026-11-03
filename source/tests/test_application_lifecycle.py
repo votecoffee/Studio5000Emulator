@@ -2322,6 +2322,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
     def test_logic_view_assets_are_served_with_graph_modules_before_app_and_no_state_changes(self):
         page=self.get('/').decode('utf8')
         self.assertLess(page.index('src="/ladder-graph.js"'),page.index('src="/logic-view.js"'))
+        self.assertLess(page.index('src="/instruction-view.js"'),page.index('src="/logic-view.js"'))
         self.assertLess(page.index('src="/logic-view.js"'),page.index('src="/app.js"'))
         self.assertIn('id="instruction-inspector"',page);self.assertIn('id="logic-fit"',page)
         self.assertIn('Read-only monitor',page)
@@ -2329,7 +2330,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         def current():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
         before=current()
-        for name in ('ladder-graph.js','logic-view.js','logic-view.css'):
+        for name in ('ladder-graph.js','instruction-view.js','logic-view.js','logic-view.css'):
             self.assertEqual(self.get('/'+name),(Path(__file__).resolve().parents[1]/'web'/name).read_bytes())
         after=current()
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
@@ -2345,3 +2346,17 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(all(isinstance(ref,str) and not ref.startswith('@') for fields in bindings.values() for ref in fields.values()))
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','aoi_bindings','routine_edits'):self.assertEqual(after[key],state[key])
+
+    def test_logic_view_aoi_definitions_preserve_parameter_metadata_without_writes(self):
+        state=self.post('demo',{'sample':'AOIQueueLab'})
+        definition=state['aoi_definitions']['LABQUEUEDRIVER']
+        self.assertEqual(definition['name'],'LabQueueDriver')
+        parameters=definition['parameters']
+        self.assertEqual([p['name'] for p in parameters[:4]],['EnableIn','EnableOut','Load','Unload'])
+        buffer=next(p for p in parameters if p['name']=='Buffer')
+        self.assertEqual((buffer['type'],buffer['usage'],buffer['dimensions']),('DINT','InOut','6'))
+        self.assertTrue(buffer['visible']);self.assertTrue(buffer['required'])
+        popped=next(p for p in parameters if p['name']=='Popped')
+        self.assertFalse(popped['visible']);self.assertFalse(popped['required'])
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','aoi_definitions','aoi_bindings','routine_edits'):self.assertEqual(after[key],state[key])

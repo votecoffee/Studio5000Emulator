@@ -281,6 +281,7 @@ class AddOn:
     routines: dict = field(default_factory=dict)
     modes: dict = field(default_factory=dict)
     problems: list = field(default_factory=list)
+    description: str = ''
 
     @property
     def required(self):
@@ -349,7 +350,7 @@ class Project:
             self.udts[d.get("Name").lower()] = d
         for d in c.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
             aoi=AddOn(d.get('Name',''),list(d.findall('./Parameters/Parameter')),
-                      list(d.findall('./LocalTags/LocalTag')))
+                      list(d.findall('./LocalTags/LocalTag')), description=d.findtext('Description',''))
             self.aois[aoi.name.upper()]=aoi
             if d.get('Class','Standard')!='Standard':aoi.problems.append('Safety AOI execution is unsupported')
             for mode in ('Prescan','EnableInFalse','Postscan'):

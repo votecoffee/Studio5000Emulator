@@ -6,7 +6,7 @@ let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
-  onOpenRoutine(key) {selected=key;renderExplorer();renderLadder();},onZoom(value) {updateZoom(value);}});
+  onOpenRoutine(key, context) {selected=key;if(context!==undefined)selectedContext=context;renderExplorer();renderLadder();},onZoom(value) {updateZoom(value);}});
 let logicZoom = 1;
 function updateZoom(value) {
   logicZoom=value;const percent=Math.round(value*100), select=$('logic-zoom');

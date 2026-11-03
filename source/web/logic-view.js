@@ -6,16 +6,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
   const KEYWORDS = new Set(('IF THEN ELSIF ELSE END_IF CASE OF END_CASE FOR TO BY DO END_FOR WHILE END_WHILE REPEAT UNTIL END_REPEAT EXIT RETURN AND OR XOR NOT MOD TRUE FALSE').split(' '));
-  const LABELS = {MOV: ['Source', 'Dest'], CLR: ['Dest'], ADD: ['Source A', 'Source B', 'Dest'],
-    SUB: ['Source A', 'Source B', 'Dest'], MUL: ['Source A', 'Source B', 'Dest'], DIV: ['Source A', 'Source B', 'Dest'],
-    MOD: ['Source A', 'Source B', 'Dest'], CPT: ['Dest', 'Expression'], CMP: ['Expression'],
-    EQU: ['Source A', 'Source B'], NEQ: ['Source A', 'Source B'], LES: ['Source A', 'Source B'],
-    LEQ: ['Source A', 'Source B'], GRT: ['Source A', 'Source B'], GEQ: ['Source A', 'Source B'],
-    MEQ: ['Source', 'Mask', 'Compare'], LIM: ['Low', 'Test', 'High'], MVM: ['Source', 'Mask', 'Dest'],
-    BTD: ['Source', 'Source bit', 'Dest', 'Dest bit', 'Length'], COP: ['Source', 'Dest', 'Length'],
-    CPS: ['Source', 'Dest', 'Length'], FLL: ['Source', 'Dest', 'Length'], FRD: ['Source', 'Dest'],
-    TOD: ['Source', 'Dest'], SWPB: ['Source', 'Order', 'Dest'], JSR: ['Routine', 'Input count'],
-    RES: ['Control'], NEG: ['Source', 'Dest'], ABS: ['Source', 'Dest'], SQR: ['Source', 'Dest']};
+  const faceplates = root.LogixInstructionView || (typeof require === 'function' ? require('./instruction-view.js') : null);
   const short = (text, limit = 28) => String(text).length > limit ? String(text).slice(0, limit - 1) + '…' : String(text);
   const valueText = row => !row || row.value == null ? '?' : typeof row.value === 'boolean' ? (row.value ? '1' : '0') : String(row.value);
   function html(tag, className, text) {
@@ -94,11 +85,15 @@
       return null;
     }
     function trace(rung) {return lastTraces.get(rung);}
-    function parameters(node) {
-      if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(node.opcode)) return [
-        {label: ['CTU', 'CTD'].includes(node.opcode) ? 'Counter' : 'Timer', ref: node.operands[0]},
-        {label: 'Preset', ref: node.operands[0] + '.PRE'}, {label: 'Accum', ref: node.operands[0] + '.ACC'}];
-      return node.operands.map((ref, i) => ({ref, label: LABELS[node.opcode]?.[i] || 'Operand ' + (i + 1)}));
+    function presentation(node) {return faceplates.describe(node, current.state.aoi_definitions);}
+    function parameters(node) {return presentation(node).fields;}
+    function openAOI(node) {
+      const face = presentation(node);if (face.kind !== 'aoi') return null;
+      const target = current.state.routines.find(r => r.key.toLowerCase() === ('AOI:' + face.title + '/Logic').toLowerCase());
+      const instance = node.operands[0], scope = current.routine.key.split('/')[0];
+      const candidates = current.context ? [current.context + '.' + instance] : ['Program:' + scope + '.' + instance, instance];
+      const context = candidates.map(name => Object.keys(current.state.aoi_instances || {}).find(key => key.toLowerCase() === name.toLowerCase())).find(Boolean);
+      return target && context ? {key: target.key, context} : null;
     }
     function select(id, focus = false) {
       selected = id;
@@ -127,20 +122,24 @@
       inspector.hidden = !item;if (!item) {inspection = '';return;}
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
       const rows = fields.map(field => ({...field, row: read(field.ref)}));
-      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out]);if (fingerprint === inspection) return;
+      const face = item.graph ? presentation(item.node) : null;
+      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, face?.description]);if (fingerprint === inspection) return;
       inspection = fingerprint;inspector.replaceChildren();
-      const head = html('div', 'lv-inspector-head');head.append(html('strong', '', item.node.opcode || item.node.type || item.node.kind));
+      const head = html('div', 'lv-inspector-head');head.append(html('strong', '', face ? (face.kind === 'aoi' ? face.title : item.node.opcode + ' · ' + face.title) : item.node.type || item.node.kind));
       const context = doc.graph ? `Rung ${doc.graph.number} · Last scan ${event?.in === undefined ? '?' : Number(event.in)} → ${event?.out === undefined ? '?' : Number(event.out)}` : current.routine.key;
       head.append(html('span', '', context));
       const close = html('button', '', 'Close');close.setAttribute('aria-label', 'Close instruction details');close.onclick = () => {selected = '';select('');};head.append(close);
       const target = ['JSR', 'FOR'].includes(item.node.opcode) && current.state.routines.find(r => r.key.toLowerCase() === (current.routine.key.split('/')[0] + '/' + item.node.operands[0]).toLowerCase());
       if (target) {const open = html('button', '', 'Open routine ↗');open.onclick = () => options.onOpenRoutine(target.key);head.insertBefore(open, close);}
+      const aoi = item.graph && openAOI(item.node);
+      if (aoi) {const open = html('button', '', 'Open AOI logic ↗');open.onclick = () => options.onOpenRoutine(aoi.key, aoi.context);head.insertBefore(open, close);}
       inspector.append(head);
+      if (face?.description) inspector.append(html('p', 'lv-instruction-description', face.description));
       const table = html('div', 'lv-operand-list');
       for (const field of rows) {
-        const row = html('div', 'lv-operand');row.append(html('span', 'lv-field-label', field.label),
-          html('code', '', field.ref), html('span', 'lv-current-value' + (!field.row || field.row.value == null ? ' unknown' : ''), valueText(field.row)),
-          html('span', 'lv-field-type', field.row?.type || 'Not available'));
+        const row = html('div', 'lv-operand');row.append(html('span', 'lv-field-label', field.label + (field.visible === false ? ' (hidden)' : '')),
+          html('code', '', field.ref), html('span', 'lv-current-value' + (!field.sourceOnly && (!field.row || field.row.value == null) ? ' unknown' : ''), field.sourceOnly ? '—' : valueText(field.row)),
+          html('span', 'lv-field-type', [field.usage, field.sourceOnly ? 'Source text' : field.type || field.row?.type || 'Not available'].filter(Boolean).join(' · ')));
         table.append(row);
       }
       inspector.append(table);
@@ -149,33 +148,49 @@
       const {x, y, width, above, below, symbol} = position, group = svg('g', {class: 'lv-instruction', transform: `translate(${x},${y})`, 'data-node-id': node.id});
       group.append(svg('rect', {class: 'lv-selection', x: -5, y: -above + 5, width: width + 10, height: above + below - 10, rx: 2}));
       const cx = width / 2, title = svg('title', {}, node.opcode + '(' + node.operands.join(', ') + ')');group.append(title);
-      const fields = [], op = node.opcode;
+      const fields = [], op = node.opcode, face = presentation(node);
+      group.dataset.instructionKind = face.kind;
+      if (face.description) title.textContent += '\n' + face.description;
       if (symbol) {
         group.append(svg('path', {class: 'lv-inner-wire input', d: `M0 0 H${cx - 16}`}), svg('path', {class: 'lv-inner-wire output', d: `M${cx + 16} 0 H${width}`}));
         group.append(svg('rect', {class: 'lv-energized-fill', x: cx - 16, y: -14, width: 32, height: 28}));
-        if (root.LadderGraph.contacts.has(op)) {
+        if (face.kind === 'contact') {
           group.append(svg('path', {class: 'lv-symbol', d: `M${cx - 9} -13 V13 M${cx + 9} -13 V13${op === 'XIO' ? ` M${cx - 12} 12 L${cx + 12} -12` : ''}`}));
-        } else if (root.LadderGraph.coils.has(op)) {
+        } else if (face.kind === 'coil') {
           group.append(svg('path', {class: 'lv-symbol', d: `M${cx - 5} -14 C${cx - 23} -8 ${cx - 23} 8 ${cx - 5} 14 M${cx + 5} -14 C${cx + 23} -8 ${cx + 23} 8 ${cx + 5} 14`}));
           if (op !== 'OTE') group.append(svg('text', {x: cx, y: 4, class: 'lv-coil-letter'}, op === 'OTL' ? 'L' : 'U'));
-        } else group.append(svg('text', {x: cx, y: 5, class: 'lv-inline-op'}, op === 'ONS' ? '[ONS]' : 'AFI'));
+        } else group.append(svg('text', {x: cx, y: 5, class: 'lv-inline-op'}, op === 'JMP' ? '>>' : op === 'LBL' ? '<<' : '[' + op + ']'));
         const operand = svg('text', {x: cx, y: -27, class: 'lv-reference'}, short(node.operands[0] || '', Math.floor(width / 7)));group.append(operand);
-        if (node.operands[0]) {const value = svg('text', {x: cx, y: 29, class: 'lv-value'});group.append(value);fields.push({el: value, ref: node.operands[0]});}
+        if (node.operands[0] && !face.fields[0]?.sourceOnly) {const value = svg('text', {x: cx, y: 29, class: 'lv-value'});group.append(value);fields.push({el: value, ref: node.operands[0]});}
 
       } else {
-        const params = parameters(node), shown = params.slice(0, position.rows), height = position.rows * 27 + 40;
-        group.append(svg('rect', {class: 'lv-block', x: 0, y: -20, width, height}),
-          svg('path', {class: 'lv-block-rule', d: `M0 9 H${width}`}), svg('text', {x: 10, y: -2, class: 'lv-block-opcode'}, op));
-        if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(op)) {
-          const flags = ['CTU', 'CTD'].includes(op) ? [op === 'CTU' ? 'CU' : 'CD', 'DN', op === 'CTU' ? 'OV' : 'UN'] : ['EN', 'TT', 'DN'];
-          flags.forEach((flag, i) => {const el = svg('text', {x: width - 65 + i * 22, y: -2, class: 'lv-state-bit'}, flag);group.append(el);fields.push({el, ref: node.operands[0] + '.' + flag, flag});});
-        }
-        shown.forEach((param, i) => {
-          const y = 27 + i * 27;group.append(svg('text', {x: 9, y, class: 'lv-param-name'}, param.label),
-            svg('text', {x: 78, y, class: 'lv-param-reference'}, short(param.ref, 21)));
-          const value = svg('text', {x: width - 9, y: y + 12, class: 'lv-param-value'});group.append(value);fields.push({el: value, ref: param.ref});
+        const boxWidth = position.boxWidth, height = face.rows.length * 34 + 39;
+        group.append(svg('rect', {class: 'lv-block' + (face.kind === 'aoi' ? ' lv-aoi-block' : ''), x: 0, y: -24, width: boxWidth, height}),
+          svg('path', {class: 'lv-block-rule', d: `M0 5 H${boxWidth}`}),
+          svg('text', {x: 9, y: -7, class: face.kind === 'aoi' ? 'lv-aoi-name' : 'lv-block-title'}, face.title));
+        if (face.kind !== 'aoi') group.append(svg('text', {x: boxWidth - 8, y: -7, class: 'lv-block-opcode'}, op));
+        face.flags.forEach((flag, i) => {
+          const x = boxWidth + 24, y = i * 22;
+          group.append(svg('path', {class: 'lv-status-coil', d: `M${boxWidth} ${y} H${x - 12} M${x - 6} ${y - 7} C${x - 15} ${y - 4} ${x - 15} ${y + 4} ${x - 6} ${y + 7} M${x + 6} ${y - 7} C${x + 15} ${y - 4} ${x + 15} ${y + 4} ${x + 6} ${y + 7}`}));
+          const el = svg('text', {x, y: y + 3, class: 'lv-state-bit'}, flag.label);group.append(el);fields.push({el, ...flag, flag: flag.label});
         });
-        if (params.length > shown.length) group.append(svg('text', {x: width - 8, y: 0, class: 'lv-more'}, '+' + (params.length - shown.length)));
+        if (face.flags.length) group.append(svg('path', {class: 'lv-inner-wire output', d: `M${boxWidth + 36} 0 H${width}`}));
+        face.rows.forEach((param, i) => {
+          const y = 24 + i * 34;
+          const row = svg('g', {'data-parameter': param.label, 'data-usage': param.usage || '', class: 'lv-parameter-row'});
+          const label = svg('text', {x: 9, y, class: 'lv-param-name'}, param.label);
+          const reference = svg('text', {x: position.labelWidth + 18, y, class: 'lv-param-reference' + (param.instance ? ' lv-instance-name' : '')}, param.member ? '' : short(param.ref, 40));
+          reference.append(svg('title', {}, param.ref));row.append(label, reference);
+          if (param.usage) {
+            const left = param.usage !== 'Output', right = param.usage !== 'Input';
+            row.append(svg('path', {class: 'lv-parameter-direction', d: `${left ? `M-6 ${y - 4} H0 M-4 ${y - 7} L0 ${y - 4} L-4 ${y - 1}` : ''} ${right ? `M${boxWidth} ${y - 4} H${boxWidth + 6} M${boxWidth + 2} ${y - 7} L${boxWidth + 6} ${y - 4} L${boxWidth + 2} ${y - 1}` : ''}`}));
+            label.append(svg('title', {}, [param.usage, param.type, param.dimensions ? '[' + param.dimensions + ']' : '', param.required ? 'Required argument' : 'Instance parameter', param.description].filter(Boolean).join(' · ')));
+          }
+          if (!param.sourceOnly) {
+            const value = svg('text', {x: boxWidth - 9, y: param.member ? y : y + 13, class: 'lv-param-value' + (param.member ? ' lv-member-value' : '')});row.append(value);fields.push({el: value, ref: param.ref});
+          }
+          group.append(row);
+        });
       }
       for (const name of ['in', 'out']) group.append(svg('circle', {class: 'lv-port', cx: name === 'in' ? 0 : width, cy: 0, r: 3,
         'data-port-id': name, 'data-port-direction': name === 'in' ? 'in' : 'out'}));
@@ -184,9 +199,9 @@
     }
     function renderLadder() {
       const graphs = current.routine.rungs.map(rung => root.LadderGraph.compile(rung, current.routine.key));
-      const minimum = Math.max(760, ...graphs.map(graph => root.LadderGraph.layout(graph).width));
+      const minimum = Math.max(760, ...graphs.map(graph => root.LadderGraph.layout(graph, 0, node => faceplates.dimensions(node, presentation(node))).width));
       for (const graph of graphs) {
-        const geometry = root.LadderGraph.layout(graph, minimum), row = html('section', 'lv-rung');row.dataset.rung = graph.number;
+        const geometry = root.LadderGraph.layout(graph, minimum, node => faceplates.dimensions(node, presentation(node))), row = html('section', 'lv-rung');row.dataset.rung = graph.number;
         const comment = html('div', 'lv-rung-comment', graph.comment);comment.hidden = !showComments || !graph.comment;row.append(comment);
         const picture = svg('svg', {class: 'lv-ladder', viewBox: `0 0 ${geometry.width} ${geometry.height}`, width: geometry.width * zoom,
           height: geometry.height * zoom, 'aria-label': `Rung ${graph.number}: ${graph.source || 'ladder logic'}`});
@@ -311,7 +326,7 @@
       render(value) {
         current = value;valueMap = new Map(value.state.tags.map(row => [row.name.toLowerCase(), row]));
         aggregates = new Set();for (const name of valueMap.keys()) for (let i = 0; i < name.length; i++) if (name[i] === '.' || name[i] === '[') aggregates.add(name.slice(0, i));
-        const source = JSON.stringify([value.state.connectivity?.source_l5x_sha256 || value.state.name, value.routine.key, value.routine.rungs, value.routine.lines, value.routine.diagram]);
+        const source = JSON.stringify([value.state.connectivity?.source_l5x_sha256 || value.state.name, value.routine.key, value.routine.rungs, value.routine.lines, value.routine.diagram, value.state.aoi_definitions]);
         if (source !== sourceIdentity) {selected = '';sourceIdentity = source;zoom = 1;canvas.scrollTo(0, 0);options.onZoom?.(zoom);}
         const next = JSON.stringify([source, value.context]);
         if (next !== key) {key = next;canvas.dataset.routine = current.routine.key;rebuild();}

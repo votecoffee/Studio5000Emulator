@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.093714`: [AOI and instruction faceplates](logic-viewer.md#instruction-presentation),
+with definition/instance headers, named and visible AOI parameters, Input/Output/
+InOut markers, EN/ENO status, definition-logic navigation, built-in titles and
+operands, saved TIMER/COUNTER/CONTROL members, and measured full-row layouts.
+This changes read-only presentation; instruction execution coverage is unchanged.
+
 Available in `26.1103.084226`: [Studio-style logic documents](logic-viewer.md),
 ladder contact/coil symbols, rails and explicit branch wiring, read-only node
 selection and operand details, exact values, zoom/fit, ST highlighting/call
