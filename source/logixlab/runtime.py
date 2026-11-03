@@ -386,6 +386,7 @@ class Engine:
         if n in array_sort.INSTRUCTIONS:array_sort.validate(self.memory,op,scope);return
         if n in file_search.INSTRUCTIONS:file_search.validate(self,op,scope);return
         if n in file_arithmetic.INSTRUCTIONS:file_arithmetic.validate(self,op,scope);return
+        if self._timer_preflight(op,scope):return
         if self._counter_preflight(op,scope):return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.preflight(self.memory,op,scope);return
@@ -423,6 +424,52 @@ class Engine:
             for arg in a:
                 if isinstance(self.memory.read(arg, scope), (bool, float)): raise ModelError("Bitwise operands require integers")
         integer_math.profile(self,op,scope)
+
+    def _timer_preflight(self,op,scope):
+        if op.name not in ('TON','TOF','RTO') or not bit_logic.available(self.project):return False
+        previous=self.memory.structural;self.memory.structural=True
+        try:
+            key,_,_=self.memory.resolve(op.args[0],scope)
+            if key is not None and self.project.tags[key].constant:raise ModelError('Constant timer/counter cannot be modified')
+            self._counter_record(op.args[0],scope,'TIMER')
+            if op.args[1:]!=['?','?']:
+                raise ModelError('Use neutral-text ?,? operands; PRE/ACC are taken from tag data')
+        finally:self.memory.structural=previous
+        return True
+
+    def _timer_execute(self,op,power,scope):
+        if op.name not in ('TON','TOF','RTO') or not bit_logic.available(self.project):return None
+        obj=self._counter_record(op.args[0],scope,'TIMER');timer=dict(obj)
+        for member in ('PRE','ACC'):
+            if type(timer[member]) is not int or not 0<=timer[member]<=2147483647:
+                raise ModelError(op.name+': TIMER.'+member+' is unknown or outside nonnegative DINT')
+        def flag(member):
+            if type(timer[member]) is not bool:raise ModelError('TIMER.'+member+' is unknown or not BOOL')
+            return timer[member]
+        key,parts,_=self.memory.resolve(op.args[0],scope);identity=(key,tuple(parts))
+        elapsed=self.time_ms-self.last_timer.get(identity,self.time_ms)
+        # Retain the existing deterministic timer recurrence and clock identity.
+        # Only a branch that consumes saved EN/DN requires that BOOL to be known.
+        if op.name=='TOF':
+            if power:timer.update(EN=True,TT=False,DN=True,ACC=0)
+            else:
+                if flag('EN'):elapsed=0
+                timer['EN']=False
+                if flag('DN'):
+                    timer['ACC']+=elapsed;timer['DN']=timer['ACC']<timer['PRE']
+                timer['TT']=timer['DN']
+        elif not power:
+            timer.update(EN=False,TT=False)
+            if op.name=='TON':timer.update(ACC=0,DN=False)
+        else:
+            if not flag('EN'):elapsed=0
+            timer['EN']=True
+            if not flag('DN'):
+                timer['ACC']+=elapsed;timer['DN']=timer['ACC']>=timer['PRE']
+            timer['TT']=not timer['DN']
+        if timer['ACC']>2147483647:raise ModelError('Timer accumulator overflow')
+        obj.update(timer);self.last_timer[identity]=self.time_ms
+        return power
 
     def _counter_record(self,ref,scope,expected=None):
         key,parts,dtype=self.memory.check_writable(ref,scope)
@@ -666,6 +713,8 @@ class Engine:
         if n in array_sort.INSTRUCTIONS:return array_sort.execute(self.memory,op,p,scope)
         if n in file_search.INSTRUCTIONS:return file_search.execute(self,op,p,scope)
         if n in file_arithmetic.INSTRUCTIONS:return file_arithmetic.execute(self,op,p,scope)
+        timer=self._timer_execute(op,p,scope)
+        if timer is not None:return timer
         counter=self._counter_execute(op,p,scope)
         if counter is not None:return counter
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
@@ -834,6 +883,13 @@ class Engine:
                 'numeric_storage':numeric_storage.description(self.project),
                 'scalar_math':scalar_math.description(self.project),
                 'numeric_copy':numeric_copy.description(self.project),
+                'ladder_timers':dict(available=bit_logic.available(self.project),language='RLL',instructions=['TON','TOF','RTO'],
+                    operands='Scalar writable TIMER; known nonnegative DINT PRE/ACC; structural shape/type/permission preflight',
+                    selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
+                    clock='Existing deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
+                    lifecycle='Prescan needs actual indices; TON/TOF clear ACC/DN, RTO retains them; completed prescan is separate from scan rollback',
+                    faults='Unknown consumed fields, bad indices, negative/overflow values and later faults roll back values and timer history',
+                    native_runtime_parity=False),
                 'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
                     counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',
                     unknowns='False CTU/CTD establish their edge flag without old history; unread opposite-edge/overflow flags are retained',

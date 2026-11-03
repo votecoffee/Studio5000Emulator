@@ -2512,3 +2512,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ResetRecord',True);fault('outside bounds');write('ResetIndex',0);row=values(step())
         for name in ('ResetCounters','ResetTimers'):self.assertEqual(row[name+'[0].ACC'],0);self.assertIsNone(row[name+'[0].PRE']);self.assertFalse(row[name+'[0].DN']);self.assertIsNone(row[name+'[1].ACC'])
         report=self.post('report',{})['ladder_counters'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_timer_lab_ladder_unknown_done_pause_off_delay_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'TimerLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        row=values(step());self.assertEqual(row['LadderRetained.ACC'],7);self.assertIsNone(row['LadderRetained.DN'])
+        write('LadderTimers',True);before=write('TimerEnable',True)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);self.assertIn('TIMER.DN',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        write('LadderReset',True);row=values(step());self.assertEqual(row['LadderRetained.ACC'],0);self.assertFalse(row['LadderRetained.DN']);write('LadderReset',False)
+        for wanted in (10,20,30):row=values(step());self.assertEqual(row['LadderRetained.ACC'],wanted);self.assertEqual(row['LadderOn.ACC'],wanted)
+        self.assertTrue(row['LadderOn.DN']);self.assertTrue(row['LadderRetained.DN']);self.assertFalse(row['LadderRetained.TT'])
+        write('LadderRetained.PRE',100);write('LadderRetained.DN',False);row=values(step());self.assertEqual(row['LadderRetained.ACC'],40);write('LadderRetained.DN',True);step();row=values(step());self.assertEqual(row['LadderRetained.ACC'],40);self.assertFalse(row['LadderRetained.TT'])
+        write('LadderRetained.DN',False);row=values(step());self.assertEqual(row['LadderRetained.ACC'],50);write('TimerEnable',False);row=values(step());self.assertEqual(row['LadderOn.ACC'],0);self.assertTrue(row['LadderOff.TT']);self.assertEqual(row['LadderOff.ACC'],0)
+        for wanted in (10,20,30):row=values(step());self.assertEqual(row['LadderOff.ACC'],wanted)
+        self.assertFalse(row['LadderOff.DN']);self.assertFalse(row['LadderOff.TT']);self.assertEqual(row['LadderRetained.ACC'],50)
+        report=self.post('report',{})['ladder_timers'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])

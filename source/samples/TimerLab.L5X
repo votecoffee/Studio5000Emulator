@@ -108,6 +108,34 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="LadderTimers" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LadderReset" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LadderOn" TagType="Base" DataType="TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="30" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LadderOff" TagType="Base" DataType="TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="30" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LadderRetained" TagType="Base" DataType="TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="30" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="7" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -135,7 +163,32 @@
               <Line Number="17">RetainedDone := Retained.DN;</Line>
               <Line Number="18">AnyFault := On.InstructFault OR Off.InstructFault OR Retained.InstructFault;</Line>
               <Line Number="19">GuardResult := 1 / FaultDivisor;</Line>
+              <Line Number="20">IF LadderTimers THEN</Line>
+              <Line Number="21">    JSR(LadderTiming,0);</Line>
+              <Line Number="22">END_IF;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="LadderTiming" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(LadderReset)RES(LadderOn);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(LadderReset)RES(LadderOff);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(LadderReset)RES(LadderRetained);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(TimerEnable)TON(LadderOn,?,?);</Text>
+              </Rung>
+              <Rung Number="4" Type="N">
+                <Text>XIC(TimerEnable)TOF(LadderOff,?,?);</Text>
+              </Rung>
+              <Rung Number="5" Type="N">
+                <Text>XIC(TimerEnable)RTO(LadderRetained,?,?);</Text>
+              </Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

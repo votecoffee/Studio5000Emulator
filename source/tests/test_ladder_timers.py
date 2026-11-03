@@ -1,0 +1,143 @@
+"""Typed timer state selection, retained unknowns and canonical elapsed clocks."""
+import copy
+import unittest
+from xml.etree import ElementTree as E
+
+import test_runtime as fixtures
+from logixlab.model import ModelError
+
+
+class LadderTimerTests(unittest.TestCase):
+    setUp=fixtures.RuntimeTests.setUp
+
+    @staticmethod
+    def fields(root):
+        tags=root.find('./Controller/Tags')
+        for name,value in [('Index',0),('BadIndex',99)]:
+            tag=E.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value=str(value))
+        tag=E.SubElement(tags,'Tag',Name='TimerCells',DataType='TIMER',TagType='Base',Dimensions='3');arr=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TIMER',Dimensions='3')
+        for i in (0,1):
+            obj=E.SubElement(E.SubElement(arr,'Element',Index=f'[{i}]'),'Structure',DataType='TIMER')
+            for name,dtype,value in [('PRE','DINT',20),('ACC','DINT',7 if i==0 else 0),('EN','BOOL',0),('TT','BOOL',0),('DN','BOOL',0)]:
+                if i==0 and name=='DN':continue
+                E.SubElement(obj,'DataValueMember',Name=name,DataType=dtype,Value=str(value))
+
+    def engine(self,rungs,mutate=None):
+        self.root=E.parse(fixtures.SAMPLE).getroot()
+        def fields(root):
+            self.fields(root)
+            if mutate:mutate(root)
+        return fixtures.RuntimeTests.engine(self,rungs,fields)
+
+    def checked(self,*args,**kwargs):
+        e=self.engine(*args,**kwargs);self.assertEqual(e.blockers,[]);self.assertFalse(e.memory.structural);return e
+
+    @staticmethod
+    def snapshot(e):return copy.deepcopy((e.memory.values,e.memory.frames,e.memory._resolved,e.addons.instances,e.scan_count,e.time_ms,e.scheduler_description(),e.trace,e.last_timer))
+
+    def test_rto_false_retains_unknown_done_true_requires_it_and_recovers(self):
+        e=self.checked(['XIC(StartPB)RTO(TimerCells[Index],?,?);']);e.step();obj=e.memory.read('TimerCells')[0];self.assertEqual(obj['ACC'],7);self.assertIsNone(obj['DN']);self.assertFalse(obj['EN']);self.assertFalse(obj['TT'])
+        e.memory.write('StartPB',True);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[0].DN',False);e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),7);e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),17);e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),27);self.assertTrue(e.memory.read('TimerCells[0].DN'));self.assertFalse(e.memory.read('TimerCells[0].TT'))
+
+    def test_required_en_history_is_not_inferred_and_other_paths_establish_outputs(self):
+        for op in ('TON','RTO'):
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.values['timercells'][1]['EN']=None;e.memory.write('StartPB',True);before=self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,'TIMER.EN.*unknown'):e.step()
+            self.assertEqual(self.snapshot(e),before);e.memory.write('StartPB',False);e.step();self.assertFalse(e.memory.read('TimerCells[1].EN'));self.assertFalse(e.memory.read('TimerCells[1].TT'))
+        for op,power in [('TON',False),('TOF',True)]:
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.values['timercells'][1].update(EN=None,DN=None,TT=None);e.memory.write('StartPB',power);e.step();obj=e.memory.read('TimerCells')[1];self.assertEqual(obj['EN'],power);self.assertEqual(obj['DN'],power);self.assertEqual(obj['ACC'],0);self.assertFalse(obj['TT'])
+
+    def test_true_ton_and_false_tof_require_done_but_never_read_old_tt(self):
+        for op,power in [('TON',True),('TOF',False)]:
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.values['timercells'][1].update(DN=None,TT=None);e.memory.write('StartPB',power);before=self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+            self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',False);e.step();self.assertIs(type(e.memory.read('TimerCells[1].TT')),bool)
+
+    def test_tof_false_requires_enable_then_done_and_delays_after_fall(self):
+        e=self.checked(['XIC(StartPB)TOF(TimerCells[1],?,?);']);e.memory.values['timercells'][1].update(EN=None,DN=None);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.EN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].EN',False);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',True);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);self.assertFalse(e.memory.read('TimerCells[1].DN'));self.assertFalse(e.memory.read('TimerCells[1].TT'))
+
+    def test_all_paths_require_known_nonnegative_dint_preset_and_accumulator(self):
+        for op in ('TON','TOF','RTO'):
+            for power in (False,True):
+                e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.write('StartPB',power)
+                for name,value in [('PRE',None),('ACC',None),('PRE',-1),('ACC',-1),('PRE',True),('ACC',2147483648)]:
+                    obj=e.memory.values['timercells'][1];saved=dict(obj);obj[name]=value;before=self.snapshot(e)
+                    with self.assertRaisesRegex(ModelError,'TIMER.'+name):e.step()
+                    self.assertEqual(self.snapshot(e),before);e.memory.values['timercells'][1]=saved
+
+    def test_retained_done_pause_resume_and_false_retention_keep_elapsed_rules(self):
+        e=self.checked(['XIC(StartPB)RTO(TimerCells[1],?,?);']);e.memory.write('StartPB',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
+        e.memory.write('TimerCells[1].DN',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);self.assertFalse(e.memory.read('TimerCells[1].TT'))
+        e.memory.write('TimerCells[1].DN',False);e.memory.write('TimerCells[1].PRE',100);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);e.memory.write('StartPB',False);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),30)
+
+    def test_late_fault_restores_timer_values_and_elapsed_history_for_all_three(self):
+        for op in ('TON','TOF','RTO'):
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('StartPB',True);e.step()
+            if op=='TOF':e.memory.write('StartPB',False);e.step()
+            e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,'zero'):e.step()
+            self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
+
+    def test_accumulator_overflow_restores_history_and_recovery_advances_once(self):
+        for op in ('TON','TOF','RTO'):
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.write('StartPB',True);e.step()
+            if op=='TOF':e.memory.write('StartPB',False);e.step()
+            e.memory.write('TimerCells[1].PRE',2147483647);e.memory.write('TimerCells[1].ACC',2147483647);e.memory.write('TimerCells[1].DN',op=='TOF');before=self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,'overflow'):e.step()
+            self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].ACC',0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
+
+    def test_aliases_share_clock_identity_and_other_elements_remain_independent(self):
+        def alias(root):E.SubElement(root.find('./Controller/Programs/Program/Tags'),'Tag',Name='View',TagType='Alias',DataType='TIMER',AliasFor='TimerCells')
+        e=self.checked(['XIC(StartPB)TON(TimerCells[0],?,?);','XIC(StartPB)TON(View[0],?,?);','XIC(PartSensor)TON(TimerCells[1],?,?);'],alias);e.memory.write('StartPB',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),10);self.assertEqual(e.memory.read('TimerCells[1].ACC'),0)
+        e.memory.write('PartSensor',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),20);self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);self.assertEqual(len(e.last_timer),2);self.assertIsNone(e.memory.read('TimerCells')[2]['ACC'])
+
+    def test_skipped_subroutine_retains_existing_elapsed_since_last_call_policy(self):
+        def routine(root):
+            root.find('./Controller/Tags/Tag[@Name="TimerCells"]/Data/Array/Element/Structure/DataValueMember[@Name="PRE"]').set('Value','100')
+            obj=E.SubElement(root.find('./Controller/Programs/Program/Routines'),'Routine',Name='Tick',Type='RLL');E.SubElement(E.SubElement(E.SubElement(obj,'RLLContent'),'Rung',Number='0',Type='N'),'Text').text='TON(TimerCells[0],?,?);'
+        e=self.checked(['XIC(StartPB)JSR(Tick,0);'],routine);e.step();self.assertEqual(e.last_timer,{})
+        e.memory.write('StartPB',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),10);e.memory.write('StartPB',False);e.step();e.step();e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('TimerCells[0].ACC'),40)
+
+    @staticmethod
+    def aoi_logic(root):
+        c=root.find('Controller');tags=c.find('Tags')
+        for name,value in [('EnabledA',1),('EnabledB',1),('ResetA',1),('ResetB',0)]:
+            tag=E.SubElement(tags,'Tag',Name=name,DataType='BOOL',TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='BOOL',Value=str(value))
+        obj=tags.find('Tag[@Name="TimerCells"]/Data/Array/Element[@Index="[1]"]/Structure');obj.remove(obj.find('DataValueMember[@Name="DN"]'))
+        definition=E.SubElement(c.find('AddOnInstructionDefinitions'),'AddOnInstructionDefinition',Name='TimerWorker',Class='Standard',ExecutePrescan='false',ExecutePostscan='false',ExecuteEnableInFalse='false');params=E.SubElement(definition,'Parameters')
+        for name,dtype,usage,required in [('EnableIn','BOOL','Input','false'),('EnableOut','BOOL','Output','false'),('State','TIMER','InOut','true'),('Trigger','BOOL','Input','true'),('Reset','BOOL','Input','true')]:E.SubElement(params,'Parameter',Name=name,DataType=dtype,TagType='Base',Usage=usage,Required=required,Visible=required)
+        E.SubElement(E.SubElement(definition,'LocalTags'),'LocalTag',Name='LocalTimer',DataType='TIMER');content=E.SubElement(E.SubElement(E.SubElement(definition,'Routines'),'Routine',Name='Logic',Type='RLL'),'RLLContent')
+        for i,text in enumerate(['XIC(Reset)RES(State);','XIC(Reset)RES(LocalTimer);','XIC(Trigger)RTO(State,?,?);','XIC(Trigger)RTO(LocalTimer,?,?);']):E.SubElement(E.SubElement(content,'Rung',Number=str(i),Type='N'),'Text').text=text
+        for name in ('First','Second'):
+            obj=E.SubElement(E.SubElement(E.SubElement(tags,'Tag',Name=name,DataType='TimerWorker',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='TimerWorker')
+            for field in ('EnableIn','EnableOut','Trigger','Reset'):E.SubElement(obj,'DataValueMember',Name=field,DataType='BOOL',Value='0')
+            local=E.SubElement(obj,'StructureMember',Name='LocalTimer',DataType='TIMER')
+            for field,value in [('PRE',20),('ACC',7)]:E.SubElement(local,'DataValueMember',Name=field,DataType='DINT',Value=str(value))
+
+    def test_aoi_local_inout_timer_clocks_and_later_binding_rollback(self):
+        e=self.checked(['XIC(EnabledA)TimerWorker(First,TimerCells[0],StartPB,ResetA);','XIC(EnabledB)TimerWorker(Second,TimerCells[1],PartSensor,ResetB);'],self.aoi_logic);e.memory.write('PartSensor',True);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('ResetB',True);e.step();e.memory.write('ResetA',False);e.memory.write('ResetB',False);e.memory.write('StartPB',True);e.memory.write('PartSensor',False);e.step();e.step();self.assertEqual(e.memory.read('First.LocalTimer.ACC'),10);self.assertEqual(e.memory.read('Second.LocalTimer.ACC'),0)
+        e.memory.values['timercells'][1]['DN']=None;e.memory.write('PartSensor',True);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',False);e.step();self.assertEqual(e.memory.read('First.LocalTimer.ACC'),20);self.assertEqual(e.memory.read('TimerCells[1].ACC'),0)
+
+    def test_static_types_permissions_operands_prescan_indices_and_profile_stay_bounded(self):
+        for text in ('TON(Parts,?,?);','RTO(TimerCells,?,?);','TOF(TimerCells[99],?,?);','TON(TimerCells[0],1,2);'):
+            e=self.engine(['AFI()'+text]);self.assertTrue(e.blockers,text);self.assertFalse(e.memory.structural)
+        for op in ('TON','TOF','RTO'):
+            def constant(root):root.find('./Controller/Tags/Tag[@Name="TimerCells"]').set('Constant','true')
+            self.assertTrue(self.engine([f'AFI(){op}(TimerCells[0],?,?);'],constant).blockers)
+            self.assertTrue(any('Prescan' in b for b in self.engine([f'AFI(){op}(TimerCells[BadIndex],?,?);']).blockers))
+        def older(root):root.find('Controller').set('ProcessorType','1756-L75')
+        e=self.engine(['AFI()TON(TimerCells[1],?,?);'],older);self.assertEqual(e.blockers,[]);self.assertFalse(e.report()['ladder_timers']['available'])
+        report=self.checked(['AFI()RTO(TimerCells[0],?,?);']).report()['ladder_timers'];self.assertEqual(report['instructions'],['TON','TOF','RTO']);self.assertFalse(report['native_runtime_parity'])
+
+
+if __name__=='__main__':unittest.main()

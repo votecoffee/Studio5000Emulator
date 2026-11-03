@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; ladder counter/reset state selection added for app `26.1103.163323`. **Full Logix emulation is not
+Audited 2026-11-03; ladder timer state selection added for app `26.1103.165339`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -73,7 +73,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FBD_ONESHOT and ST/FBD edges | [OSRI/OSFI](st-oneshot.md), rising/falling pulses, startup suppression, skipped calls and transactional history | General FBD graph forms, shared-kind records and native layout/lifecycle/fault parity |
 | FBD_COUNTER and ST/FBD CTUD | [Up/down counting](st-counter.md), sampled edges, reset, signed wrap, first-call/Run priming and rollback | General FBD graph forms and native lifecycle/reset/flags/layout/fault parity |
 | FBD_TIMER and ST/FBD timers | [TONR/TOFR/RTOR](st-timers.md), logical fields/status aliases, deterministic milliseconds, reset/retention, skipped calls and rollback | General FBD graph forms, native clocks/layout/status/fault parity and other controller profiles |
-| TIMER/COUNTER | Modeled TON/TOF/RTO and [CTU/CTD/RES](ladder-counters.md), known consumed counter values/history, signed wrap, unknown full resets, scoped records and runtime/AOI rollback | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
+| TIMER/COUNTER | [TON/TOF/RTO](ladder-timers.md) with known consumed PRE/ACC and EN/DN history, retained unread flags, canonical clock rollback; [CTU/CTD/RES](ladder-counters.md), known consumed counter values/history, signed wrap, unknown full resets, scoped records and runtime/AOI rollback | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
 | CONTROL | [Logical members, shifts, FIFO/LIFO and RES](control-operations.md); [alias/indirect shift/queue starts](queue-references.md); [one-dimensional AOI queues/shifts](aoi-queues.md); [matching string/UDT records](record-queues.md); [DINT sequencers](sequencer-operations.md) with [alias/indirect and AOI tables](sequencer-references.md); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |

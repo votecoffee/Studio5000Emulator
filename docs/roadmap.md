@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.165339`: [ladder timer state selection](ladder-timers.md).
+TON/TOF/RTO require known nonnegative DINT PRE/ACC and only consume EN/DN when
+that path needs their history. Unknown retained DN is preserved while false
+and rejected when used. Existing millisecond recurrence, canonical clock
+identities, prescan and rollback remain; Timer lab adds a called ladder routine.
+Native clock/status/lifecycle parity and other profiles remain separate.
+
 Available in `26.1103.163323`: [ladder counter/reset state selection](ladder-counters.md).
 CTU/CTD require known DINT PRE/ACC and required BOOL history instead of treating
 unknown edges as false. False counter rungs establish their own edge flag;
