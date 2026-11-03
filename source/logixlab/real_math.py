@@ -46,6 +46,16 @@ def validate(memory, op, scope):
             real(value)
 
 
+def preflight(memory, op, scope):
+    """Check declared operands without consuming saved dynamic indices."""
+    previous = memory.structural
+    memory.structural = True
+    try:
+        validate(memory, op, scope)
+    finally:
+        memory.structural = previous
+
+
 def execute(memory, op, power, scope):
     if not power:
         return False
@@ -64,6 +74,8 @@ def description():
     return dict(profile='v35-5580-finite-math-narrow-results', language='RLL',
                 instructions=sorted(INSTRUCTIONS), sources=sorted(SOURCE_TYPES), destination='SINT/INT/DINT/REAL',
                 destinations=sorted(DESTINATION_TYPES),
+                validation='Declared scalar types, shapes, index grammar, permissions and literal bounds; no live indices or saved tag values',
+                selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 square_root='Absolute value of source before square root, including CPT/ST functions',

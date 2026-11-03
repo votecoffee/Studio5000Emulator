@@ -511,6 +511,14 @@ errors roll back; integer-only remainders retain exact calculation. Complete
 arithmetic/remaining bitwise type promotion and native precision/status/fault/
 lifecycle remain unfinished.
 
+[Standalone ladder math](math-operations.md#operand-selection) uses structural
+preflight for SQR/XPY/logs/angles/trigonometry. Declared operand shape/type,
+permissions, index grammar and literal bounds remain checked; false/prescan do
+not consume saved dynamic indices or tag values. True math retains actual index,
+known-source, finite/domain/result-range checks, full unknown writes and existing
+whole-advance/AOI rollback. Calculations and native precision/status boundaries
+are unchanged.
+
 ## Boundaries
 
 General FBD/SFC, CPU preemption, external Event sources, Safety tasks, motion, physical I/O, produced/consumed

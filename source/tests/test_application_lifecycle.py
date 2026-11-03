@@ -2078,3 +2078,47 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(511,None,-256))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+
+    def test_math_lab_indexed_operands_skip_false_indices_and_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        row=step();self.assertIsNone(row['IndexedRoots[1]']);self.assertEqual(row['MathIndex'],99)
+        before=write('IndexedMath',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('MathIndex',1);row=step();self.assertEqual((row['IndexedRoots[1]'],row['IndexedPowers[1]']),(3.0,81.0))
+        self.assertIsNone(row['IndexedRoots[0]']);write('IndexedMath',False);write('MathIndex',999);row=step()
+        self.assertEqual((row['IndexedRoots[1]'],row['IndexedPowers[1]']),(3.0,81.0))
+        write('MathIndex',0);write('IndexedMath',True);row=step()
+        self.assertEqual((row['IndexedRoots[0]'],row['IndexedPowers[0]']),(4.0,256.0))
+        before=write('IndexedInputs[0]',1e20)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('IndexedInputs[0]',25);row=step();self.assertEqual((row['IndexedRoots[0]'],row['IndexedPowers[0]']),(5.0,625.0))
+        report=self.post('report',{})['real_math'];self.assertIn('no live indices',report['validation']);self.assertFalse(report['native_math_status'])
+
+    def test_imported_unknown_math_index_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_math_operands import MathOperandTests
+        fixture=MathOperandTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=None);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownMathIndex.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Index',1),('Inputs[1]',-16),('Inputs[2]',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(None,4.0,None))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})

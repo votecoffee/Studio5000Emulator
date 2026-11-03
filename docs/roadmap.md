@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.071432`: [standalone math operand selection](math-operations.md#operand-selection),
+structural preflight for all twelve existing forms, false/prescan dynamic-index
+skips, true reached-value checks and full unknown results. Math Lab adds indexed
+root/power examples. Existing finite calculations, range rollback and native
+precision/status/fault/lifecycle boundaries remain.
+
 Available in `26.1103.070406`: [SINT/INT/DINT bitwise widths](scalar-math.md#sintintdint-bitwise-widths),
 source zero extension for AND/OR/XOR/NOT, complement after promotion, signed
 low-bit results, full unknown writes and Bit Lab examples. Mixed wide/unsigned/

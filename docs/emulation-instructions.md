@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; narrow bitwise width handling added for app `26.1103.070406`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; standalone math index preflight added for app `26.1103.071432`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -106,7 +106,7 @@ schema/behavior backlog separately from instruction names.
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned operations have bounded [RLL](integer-execution.md) and [ST](wide-st.md) profiles, including [decimal ST L/U/UL literals](st-integer-literals.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
-| SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources and results, nearest-even integer conversion and range rollback. Wide/unsigned/LREAL operands and native precision/status/nonfinite/overflow behavior remain unfinished; FBD uses separate REAL-record forms. |
+| SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources and results, nearest-even integer conversion and range rollback. Structural preflight skips saved dynamic indices; false/prescan skip operands, true math checks reached indices/values, and full writes establish unknown results. Wide/unsigned/LREAL operands and native precision/status/nonfinite/overflow behavior remain unfinished; FBD uses separate REAL-record forms. |
 | FRD/TOD/SWPB | [DINT packed BCD with SINT/INT TOD inputs and FRD results](numeric-conversions.md), plus INT/DINT byte-order forms, for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. FRD narrow inputs, TOD narrow results, wide/unsigned types, further forms and native overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. Wide/unsigned operands, ST/FBD variants and native math/fault status remain unfinished. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching string/explicit UDT records](record-queues.md). [Aliases and bounded indirect starts](queue-references.md) are supported for these shift/queue forms. [One-dimensional AOI InOut/local arrays](aoi-queues.md) now work in RLL. Native layout/status parity, mixed conversions, operational/AOI records and broader AOI shapes/lifecycle remain unfinished. |

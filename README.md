@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.070406`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.071432`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -79,7 +79,10 @@ results, with ties-to-even integer rounding and transactional range checks.
 **Math lab** demonstrates integer roots and halfway results. The profile includes
 ladder SQR, XPY, logs, angle
 conversions and trigonometry. **Math lab** compares ladder, CPT and ST values,
-including the v35 absolute-value rule for negative square-root inputs.
+including the v35 absolute-value rule for negative square-root inputs. The twelve
+standalone ladder math instructions validate dynamic indices structurally and
+skip their values while false or in prescan. Set `MathIndex` to 1 and enable
+`IndexedMath` to try selected root/power writes into unknown result arrays.
 
 [Basic scalar arithmetic and bitwise operations](docs/scalar-math.md) validate
 unknown values structurally, skip false-rung operands and establish full numeric

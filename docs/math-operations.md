@@ -24,6 +24,29 @@ indirect indices, UDT members, aliases and supported AOI local/Output/InOut
 bindings are available. Whole aggregates, BOOL/bit targets, constants,
 wide/unsigned operands and LREAL remain unqualified.
 
+## Operand selection
+
+Preflight checks declared scalar types, shapes, index grammar, permissions and
+immediate bounds without evaluating saved dynamic indices or reading tag values.
+This applies to all twelve forms above, including both XPY sources. Existing
+static guards remain: an invalid declared type, missing reference, malformed
+index expression, read-only target or excluded literal still blocks execution,
+even on a false rung. Nonnegative literal indices outside an array's bounds remain blocked.
+
+Prescan and false rungs skip live source values and indices, retaining unknown
+results and existing data. For example, a saved out-of-range or unknown `Index`
+does not block `XIC(Enable)SQR(Inputs[Index],Results[Index])` when disabled. On a
+true rung, actual source and destination indices must be valid and all required
+source values must be known. The same rules apply through aliases, UDT members
+and existing AOI local/InOut bindings. The preflight context is restored after
+both success and validation failure; runtime checks retain their normal context.
+
+A full result write can establish the selected unknown numeric element/member.
+Unwritten siblings remain unknown. A reached unknown/index/domain/range failure
+or later instruction fault restores the entire advance, including earlier math
+writes, time/task state and existing AOI bindings. These changes affect operand
+validation; calculations, rounding and existing finite math bounds are unchanged.
+
 ## Calculations
 
 | Family | Modeled result |
@@ -88,6 +111,12 @@ respective integer widths. RoundedRoot starts at 2 from RoundingInput 6.25;
 RoundedPower starts at -2 from -2.5 raised to 1. All five ladder results retain
 values when Enable is false. Raising Input to 40000 makes ByteRoot exceed SINT
 and demonstrates whole-advance rollback; correct it to 25 and retry to get 5.
+
+The separate `IndexedMath` section starts disabled with `MathIndex` 99 and
+unknown `IndexedRoots`/`IndexedPowers` arrays. Set `MathIndex` to 1, then enable
+`IndexedMath`: input 9 produces root 3 and power 81 at element 1, leaving siblings
+unknown. Disable the gate and change the index to retain results. An enabled
+out-of-range index faults and rolls back; select a valid index and retry.
 
 The same sample also compares [integer division and REAL promotion](integer-expressions.md)
 through ladder, CPT/CMP and a called ST routine. Independent StDivisor can

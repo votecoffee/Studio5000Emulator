@@ -315,6 +315,37 @@
           <DataValue DataType="DINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="IndexedMath" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MathIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="IndexedInputs" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+            <Element Index="[0]" Value="-16" />
+            <Element Index="[1]" Value="9" />
+            <Element Index="[2]" Value="16" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IndexedRoots" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="IndexedPowers" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="REAL" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -402,6 +433,12 @@
               </Rung>
               <Rung Number="26" Type="N">
                 <Text>XIC(RealModulo)MOD(ModuloA,ModuloB,ModuloRounded);</Text>
+              </Rung>
+              <Rung Number="27" Type="N">
+                <Text>XIC(IndexedMath)SQR(IndexedInputs[MathIndex],IndexedRoots[MathIndex]);</Text>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Text>XIC(IndexedMath)XPY(IndexedInputs[MathIndex],2.0,IndexedPowers[MathIndex]);</Text>
               </Rung>
             </RLLContent>
           </Routine>
