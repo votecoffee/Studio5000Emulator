@@ -2045,3 +2045,36 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(-1.5,None,None))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+
+    def test_bit_lab_declared_width_bitwise_results_and_false_retention_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        self.assertEqual(step()['NotWidened'],0);write('BitwiseWidths',True);row=step()
+        names=('AndWidths','OrWidths','XorWidths','NotWidened','NotNarrowed')
+        self.assertEqual(tuple(row[t] for t in names),(0,131071,65791,-256,-1))
+        write('BitwiseWidths',False);write('LogicByte',0);write('LogicWord',0);write('LogicDword',255)
+        row=step();self.assertEqual(tuple(row[t] for t in names),(0,131071,65791,-256,-1))
+        write('BitwiseWidths',True);row=step();self.assertEqual(tuple(row[t] for t in names),(0,255,255,-1,0))
+        report=self.post('report',{})['scalar_math']['bitwise'];self.assertEqual(report['types'],['SINT','INT','DINT']);self.assertFalse(report['native_precision'])
+
+    def test_imported_unknown_bitwise_widths_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_scalar_bitwise import ScalarBitwiseTests
+        fixture=ScalarBitwiseTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownBitwiseWidths.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Inputs[0]',-1),('Inputs[2]',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(511,None,-256))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})

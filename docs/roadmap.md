@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.070406`: [SINT/INT/DINT bitwise widths](scalar-math.md#sintintdint-bitwise-widths),
+source zero extension for AND/OR/XOR/NOT, complement after promotion, signed
+low-bit results, full unknown writes and Bit Lab examples. Mixed wide/unsigned/
+REAL forms and native status/fault/lifecycle/layout qualification remain open.
+
 Available in `26.1103.065425`: [finite ladder REAL MOD](scalar-math.md#finite-real-remainder),
 SINT/INT/DINT/REAL source/result forms, float32 input/result conversion,
 dividend-sign remainders, rounded integer results and transactional recovery.

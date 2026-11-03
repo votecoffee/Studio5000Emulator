@@ -501,11 +501,15 @@ Native status/overflow/lifecycle and additional forms remain unfinished.
 [Scalar arithmetic/bitwise operand selection](scalar-math.md) validates v35 5580
 ADD/SUB/MUL/DIV/MOD/NEG/ABS/AND/OR/XOR/NOT structurally. False/prescan skip live
 values/indices; true sources must be known and complete writes establish unknown
-destinations. Existing ranges, wide rules and AOI rollback apply. MOD adds finite
+destinations. SINT/INT/DINT bitwise sources are zero extended before calculation;
+NOT complements after promotion, and results keep destination low bits with signed
+interpretation. Decimal DINT/32-bit radix immediates are supported. Homogeneous
+wide rules and AOI rollback apply. MOD adds finite
 REAL-source remainders, float32 input/result conversion and representable narrow
 integer results rounded to even. Zero after REAL conversion and nonfinite/range
 errors roll back; integer-only remainders retain exact calculation. Complete
-promotion/width/native precision/status/fault/lifecycle remains unfinished.
+arithmetic/remaining bitwise type promotion and native precision/status/fault/
+lifecycle remain unfinished.
 
 ## Boundaries
 

@@ -26,6 +26,36 @@ dividend's sign. Wide arithmetic stays homogeneous and exact. Arithmetic overflo
 still stops and rolls back the model rather than reproducing native status and
 partial effects.
 
+## SINT/INT/DINT bitwise widths
+
+Ladder `AND`, `OR`, `XOR` and `NOT` use declared SINT/INT/DINT source widths.
+Smaller source patterns are zero extended before the operation. The result keeps
+the destination's low 8/16/32 bits, interpreted as its signed integer type. A
+complete result write can establish an unknown destination without reading its
+old value. Full SINT/INT/DINT source/result width combinations are modeled.
+
+For example, a SINT value of -1 contributes the pattern 255. OR with a DINT
+value of 256 produces 511 in a DINT destination. `NOT` performs complement after
+promotion: SINT -1 into DINT becomes -256. A DINT value of 255 complemented into
+SINT becomes 0; upper bits are discarded instead of causing a modeled range
+fault. Native overflow/math flags remain unqualified.
+
+Immediates are signed decimal DINT values or complete 32-bit binary/octal/hex
+patterns. `-1` and `16#FFFF_FFFF` both supply 32 one bits. Larger patterns,
+out-of-range decimal literals, REAL/BOOL operands, invalid shapes and constant
+destinations remain blocked, even on false rungs. Every enabled source is still
+required, including an unknown input combined with a zero mask. False/prescan
+skip live values/indices. Unknowns, reached invalid indices and later faults roll
+back the whole advance and existing AOI bindings.
+
+Homogeneous wide-integer bitwise forms retain their separate rules. Mixed wide/
+unsigned/REAL bitwise forms and native status/fault/lifecycle/packed layout
+qualification remain unfinished. ST expressions and FBD are unchanged.
+
+Choose **Bit lab** and enable `BitwiseWidths`. Its default inputs produce
+`AndWidths` 0, `OrWidths` 131071, `XorWidths` 65791, `NotWidened` -256 and
+`NotNarrowed` -1. The report describes this profile under `scalar_math.bitwise`.
+
 ## Finite REAL remainder
 
 Ladder `MOD` accepts SINT/INT/DINT/REAL sources and SINT/INT/DINT/REAL results
@@ -51,10 +81,9 @@ intermediate rounding and bit-for-bit results remain unqualified.
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer operations
 retain their separate profile. Mixed wide/unsigned and REAL operands, LREAL,
-complete mixed-type arithmetic and bitwise promotion, native overflow/status/
-fault/lifecycle and packed layout parity remain unfinished. In particular, the
-complete bitwise width-conversion matrix remains unqualified. ST expressions and FBD are unchanged; other controller
-profiles retain their separate validation paths.
+complete mixed-type arithmetic and the remaining bitwise type-conversion matrix,
+native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
+Other controller profiles retain their separate validation paths.
 
 Choose **Math lab** and enable `BasicMath`. `BasicA` and `BasicB` drive eleven
 named results for the operations above. Start with 7 and 3 to see sum 10,
@@ -65,7 +94,8 @@ ST examples remain available. Enable `RealModulo` separately to calculate
 its `real_remainder` contract.
 
 Reference basis: installed Studio 5000 v35 instruction help for these eleven
-instructions, including DIV 14621, MOD 14620 and Data Conversions 14451. The
+instructions, including DIV 14621, MOD 14620, NOT 14669, AND 14670, XOR 14683,
+OR 14687 and Data Conversions 14451. The
 [public MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 provides additional context; installed v35 help is the version-specific basis.
 Software-model and HTTP checks do not establish native controller equivalence.

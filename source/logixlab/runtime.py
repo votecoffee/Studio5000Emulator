@@ -626,6 +626,11 @@ class Engine:
             return p
         if n in numeric_storage.INSTRUCTIONS and numeric_storage.available(self.project):return numeric_storage.execute(self,op,p,scope)
         if n in bit_logic.INSTRUCTIONS and bit_logic.available(self.project):return bit_logic.execute(self.memory,op,p,scope)
+        if n in scalar_math.BITWISE and scalar_math.available(self.project):
+            if not p:return False
+            dtype=integer_math.profile(self,op,scope)
+            if dtype is not None:return integer_math.execute(self,op,scope,dtype)
+            return scalar_math.execute_bitwise(self.memory,op,scope)
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:

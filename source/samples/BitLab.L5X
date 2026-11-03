@@ -281,6 +281,51 @@
           <DataValue DataType="BOOL" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="BitwiseWidths" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicWord" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="LogicDword" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="65536" />
+        </Data>
+      </Tag>
+      <Tag Name="AndWidths" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="OrWidths" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="XorWidths" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NotWidened" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NotNarrowed" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -347,6 +392,21 @@
               </Rung>
               <Rung Number="19" Type="N">
                 <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text>XIC(BitwiseWidths)AND(LogicByte,LogicDword,AndWidths);</Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text>XIC(BitwiseWidths)OR(LogicWord,LogicDword,OrWidths);</Text>
+              </Rung>
+              <Rung Number="22" Type="N">
+                <Text>XIC(BitwiseWidths)XOR(LogicByte,LogicDword,XorWidths);</Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text>XIC(BitwiseWidths)NOT(LogicByte,NotWidened);</Text>
+              </Rung>
+              <Rung Number="24" Type="N">
+                <Text>XIC(BitwiseWidths)NOT(LogicDword,NotNarrowed);</Text>
               </Rung>
             </RLLContent>
           </Routine>
