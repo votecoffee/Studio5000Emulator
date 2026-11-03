@@ -450,6 +450,51 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="MixedConditions" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionAnd" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionOr" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionNot" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionXor" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionWords" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionGate" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedConditionExact" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -592,6 +637,31 @@
               </Rung>
               <Rung Number="43" Type="N">
                 <Text>XIC(RelationConstants)LIM(0,SignedInput,RelationWord)OTE(LimitConstantExact);</Text>
+              </Rung>
+              <Rung Number="44" Type="N">
+                <Text>XIC(MixedConditions)CMP(RelationExpected=RelationDword)OTE(MixedConditionEqual);</Text>
+                <Comment>Enable MixedConditions for exact mixed integer comparisons and eager Boolean composition without arithmetic conversion.</Comment>
+              </Rung>
+              <Rung Number="45" Type="N">
+                <Text>XIC(MixedConditions)CMP((SignedInput&gt;RelationDword)&amp;&amp;(NarrowSigned&lt;RelationWord))OTE(MixedConditionAnd);</Text>
+              </Rung>
+              <Rung Number="46" Type="N">
+                <Text>XIC(MixedConditions)CMP((RelationWord&lt;&gt;RelationExpected)||(RelationLow&gt;SignedInput))OTE(MixedConditionOr);</Text>
+              </Rung>
+              <Rung Number="47" Type="N">
+                <Text>XIC(MixedConditions)CMP(!(RelationExpected&lt;RelationDword))OTE(MixedConditionNot);</Text>
+              </Rung>
+              <Rung Number="48" Type="N">
+                <Text>XIC(MixedConditions)CMP((RelationWord&lt;RelationExpected)^^(RelationLow&gt;SignedInput))OTE(MixedConditionXor);</Text>
+              </Rung>
+              <Rung Number="49" Type="N">
+                <Text>XIC(MixedConditions)CMP((RelationExpected&gt;=RelationDword) AND (RelationLow&lt;=SignedInput))OTE(MixedConditionWords);</Text>
+              </Rung>
+              <Rung Number="50" Type="N">
+                <Text>XIC(MixedConditions)CMP((SignedInput&gt;RelationDword)&amp;&amp;MixedRelations)OTE(MixedConditionGate);</Text>
+              </Rung>
+              <Rung Number="51" Type="N">
+                <Text>XIC(MixedConditions)CMP((SignedInput=RelationHigh)&amp;&amp;(RelationWord=65535))OTE(MixedConditionExact);</Text>
               </Rung>
             </RLLContent>
           </Routine>

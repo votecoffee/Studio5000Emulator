@@ -2413,3 +2413,15 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'RelationConstants','value':False});rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(all(rows[name] is False for name in true+['LimitConstantReversed','LimitConstantExact']))
         report=self.post('report',{})['numeric_comparisons']['mixed_integer_ordering'];self.assertIn('signed-DINT',report['constants']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_integer_lab_mixed_cmp_boolean_composition_and_gate_through_http(self):
+        state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
+        self.post('write',{'tag':'MixedConditions','value':True});state=self.post('step',{'dt':10});rows={r['name']:r['value'] for r in state['tags']}
+        true=['MixedConditionEqual','MixedConditionAnd','MixedConditionOr','MixedConditionNot','MixedConditionXor','MixedConditionWords']
+        self.assertTrue(all(rows[name] for name in true));self.assertFalse(rows['MixedConditionGate']);self.assertFalse(rows['MixedConditionExact'])
+        self.assertEqual(rows['SignedInput'],'9007199254740993');self.assertEqual(rows['RelationHigh'],'9007199254740992');self.assertTrue(rows['StAllMatches'])
+        self.post('write',{'tag':'MixedRelations','value':True});self.post('write',{'tag':'RelationHigh','value':'9007199254740993'})
+        rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertTrue(rows['MixedConditionGate']);self.assertTrue(rows['MixedConditionExact'])
+        self.post('write',{'tag':'MixedConditions','value':False});rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(all(rows[name] is False for name in true+['MixedConditionGate','MixedConditionExact']))
+        report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_comparisons'];self.assertEqual(report['instructions'],['CMP']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])

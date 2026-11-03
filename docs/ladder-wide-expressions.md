@@ -5,7 +5,8 @@ homogeneous `LINT`, `USINT`, `UINT`, `UDINT` and `ULINT` tags in the Standard
 v35 ControlLogix 5580 profile (`1756-L81E` through `1756-L85E`). Existing
 SINT/INT/DINT/REAL expression and narrow MEQ behavior remains available.
 App `26.1103.081017` extends tag-only MEQ to all eight integer types; CPT/CMP
-wide expressions retain their homogeneous rules.
+wide arithmetic expressions retain their homogeneous rules.
+App `26.1103.113157` adds the mixed integer CMP profile below.
 
 Development order is ladder, then Structured Text, then FBD, then SFC. This
 increment extends ladder operand forms; it adds no ST, FBD or SFC features.
@@ -47,6 +48,46 @@ Aliases, program-local tags, selected array/UDT members, typed JSR parameters
 and supported RLL AOI bindings use the same memory resolver. Standard periodic,
 instruction-only Event and isolated-routine execution share these forms.
 
+## Mixed integer CMP
+
+CMP accepts compatible mixed integer tags for direct comparisons and Boolean
+composition in the v35 5580 profile. The highest-ranked numeric tag type in the
+**whole expression** must cover every numeric tag's complete declared range.
+Rank order is SINT, USINT, INT, UINT, DINT, UDINT, LINT, ULINT. No larger type is
+invented and positive saved values do not justify signed-to-unsigned conversion.
+BOOL tags do not select the numeric type. Integer immediates must be signed-DINT
+values representable in the chosen type.
+
+For example, `CMP((WideCount>SmallCount)&&Enabled)` can compare LINT and DINT tags
+without losing the sign or exact 64-bit values. Numeric relations `=`, `<>`, `<`,
+`<=`, `>` and `>=` can be joined with `&&`, `||`, `^^`, `!`, BOOL AND/OR/XOR/NOT
+and BOOL equality/inequality. Both logical operands are consumed, including when
+the left operand already determines the truth value. Every required unknown or
+invalid index faults rather than being hidden by a known logical operand.
+
+This mixed profile accepts direct tag/constant comparisons only. Mixed arithmetic,
+numeric bitwise, unary signs on tags, functions, REAL/LREAL mixtures, wider/typed
+literals and lossy type combinations remain blocked even on false rungs. Existing
+homogeneous CMP arithmetic/bitwise, narrow/REAL CMP, CPT, ST and MEQ profiles remain
+separate. Expression-wide qualification is deliberately conservative; independently
+safe subexpressions do not bypass an incompatible whole-expression type set.
+
+Wide CMP preflight checks scalar shapes, static references, constant bounds and
+index grammar structurally. Unknown saved operands and dynamic indices can remain
+until a true rung reaches them; literal out-of-range indices remain blockers.
+False rungs/prescan skip live values and indices while downstream OTE clears.
+Sources remain read-only through constant tags, aliases, UDT members and supported
+AOI Input/InOut/local bindings. Runtime faults restore prior writes/coils,
+scheduler state and AOI bindings; completed deferred prescan remains a separate
+lifecycle boundary. These checks establish software behavior, not native parity.
+
+Enable **MixedConditions** in **Integer lab** for eight gated examples. Six outputs
+start true; `MixedConditionGate` and `MixedConditionExact` start false. Enabling
+`MixedRelations` makes the BOOL-gated result true. Setting `RelationHigh` to
+9007199254740993 makes the adjacent-value comparison true. Disabling MixedConditions
+clears all eight outputs. The report exposes
+`wide_ladder_expressions.mixed_integer_comparisons`.
+
 ## Scans and faults
 
 A false rung skips expression evaluation. CPT retains its destination on
@@ -87,7 +128,7 @@ or native import acceptance of the public fixture.
 
 ## Remaining work
 
-Mixed arithmetic/expression types and their conversion rules, wide immediate
+Mixed arithmetic and additional expression conversions, wide immediate
 syntax, LREAL/time expressions, power and other functions, wide file-expression
 consumers and wide array indices remain unsupported. General ladder and ST
 coverage is still incomplete. No new FBD/SFC forms are included.

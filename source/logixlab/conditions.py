@@ -16,8 +16,11 @@ class Condition(Expression):
 
     def wide_profile(self,memory,scope):
         if not self.allow_wide:return None
-        from . import wide_st
-        profile=wide_st.analyze(self,memory,scope,consumer='CMP')
+        from . import wide_st, comparisons
+        previous=memory.structural
+        if comparisons.available(memory.project):memory.structural=True
+        try:profile=wide_st.analyze(self,memory,scope,consumer='CMP')
+        finally:memory.structural=previous
         if profile is not None and profile[1]!='bool':raise ModelError('CMP requires a BOOL result or comparison')
         return profile
 

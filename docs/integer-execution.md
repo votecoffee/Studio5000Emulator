@@ -26,7 +26,7 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 89-root fixture combines forty-four ladder rungs with fifteen called ST statements.
+The 98-root fixture combines fifty-two ladder rungs with fifteen called ST statements.
 Enable `MixedArithmetic` for eight widening-tag examples; its new rungs are gated
 independently of the existing homogeneous ladder/ST comparison. Enable
 `ArithmeticConstants` for eight additional tag/constant examples and
@@ -68,6 +68,10 @@ while signed LINT bitwise results retain two's-complement interpretation.
 Enable `RelationConstants` for [mixed limits with bounded constants](numeric-comparisons.md#bounded-constants-in-mixed-limits)
 in all three operand positions, inclusive/reversed endpoints and read-only exact
 wide values. Complete tag ranges still govern the chosen type.
+
+Enable `MixedConditions` for [mixed integer CMP conditions](ladder-wide-expressions.md#mixed-integer-cmp):
+exact direct comparisons, Boolean composition and independent condition outputs.
+The highest-ranked actual numeric tag type must cover all expression tag ranges.
 
 ## Division and failures
 

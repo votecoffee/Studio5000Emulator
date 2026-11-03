@@ -50,20 +50,29 @@ def ordering_profile(engine, op, scope):
         else:constants.append(value)
     if not set(types) & integer_math.WIDE_TYPES or len(set(types)) == 1:
         return integer_math.profile(engine, op, scope)
-    if any(dtype not in INT_BITS for dtype in types):
-        raise ModelError('Mixed ordering comparisons require integer scalar tags')
-    common = max(types, key=INTEGER_RANK.__getitem__)
-    def bounds(dtype):
-        bits = INT_BITS[dtype]
-        return (0, (1 << bits) - 1) if dtype in UNSIGNED_BITS else (-(1 << (bits - 1)), (1 << (bits - 1)) - 1)
-    low, high = bounds(common)
-    if any(bounds(dtype)[0] < low or bounds(dtype)[1] > high for dtype in types):
-        raise ModelError('Highest-ranked comparison type must cover every operand type range')
+    common = ordering_type(types)
+    low, high = integer_bounds(common)
     for value in constants:
         if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
             raise ModelError('Mixed ordering constants require signed DINT literals')
         if not low <= value <= high:
             raise ModelError('Mixed ordering constant must fit the highest-ranked tag type')
+    return common
+
+
+def integer_bounds(dtype):
+    bits = INT_BITS[dtype]
+    return (0, (1 << bits) - 1) if dtype in UNSIGNED_BITS else (-(1 << (bits - 1)), (1 << (bits - 1)) - 1)
+
+
+def ordering_type(types):
+    """Choose an actual tag type that preserves every complete source range."""
+    if any(dtype not in INT_BITS for dtype in types):
+        raise ModelError('Mixed ordering comparisons require integer scalar tags')
+    common = max(types, key=INTEGER_RANK.__getitem__)
+    low, high = integer_bounds(common)
+    if any(integer_bounds(dtype)[0] < low or integer_bounds(dtype)[1] > high for dtype in types):
+        raise ModelError('Highest-ranked comparison type must cover every operand type range')
     return common
 
 

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.111942`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.113157`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -130,6 +130,8 @@ use the highest-ranked source tag type when it covers every input range. Enable
 `MixedRelations` in **Integer lab** for six comparisons and three LIM examples.
 [Bounded constants in mixed limits](docs/numeric-comparisons.md#bounded-constants-in-mixed-limits)
 can occupy any LIM operand position. Enable `RelationConstants` for eight examples.
+[Mixed integer CMP conditions](docs/ladder-wide-expressions.md#mixed-integer-cmp)
+combine exact comparisons with Boolean logic. Enable `MixedConditions` for eight examples.
 
 [Array size and truncation](docs/size-truncate.md) add selected array/string DATA
 size reads, lazy unknown-value handling and signed/unsigned TRN results. In

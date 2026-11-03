@@ -1,5 +1,6 @@
 """Shared exact wide-integer expressions for bounded ST and ladder consumers."""
 from .conditions import RELATIONS
+from .comparisons import ordering_type, INTEGER_RANK
 from .integer_math import CONTROLLERS,WIDE_TYPES,bit_value,quotient
 from .model import ModelError,coerce
 
@@ -12,9 +13,14 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     if not wide:return None
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError(label+' requires the v35 ControlLogix 5580 profile')
-    if len(wide)!=1 or set(declared.values())-wide-{'BOOL'}:
-        raise ModelError(label+' numeric tag operands must have one matching declared type')
-    dtype=next(iter(wide))
+    numeric=set(declared.values())-{'BOOL'}
+    mixed=consumer=='CMP' and len(numeric)>1 and not expression.typed_types
+    if mixed:
+        dtype=ordering_type(numeric)
+    else:
+        if len(wide)!=1 or set(declared.values())-wide-{'BOOL'}:
+            raise ModelError(label+' numeric tag operands must have one matching declared type')
+        dtype=next(iter(wide))
     if destination_type not in (None,'BOOL',dtype):
         raise ModelError(label+' numeric destination must match the expression type')
     if expression.functions-{'ABS'} or '**' in expression.operators:
@@ -44,9 +50,11 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
                 return 'number'
             result=infer(node[2])
             if (value=='NOT' or consumer=='CMP' and value=='!') and result=='bool':return 'bool'
+            if mixed:raise ModelError('Mixed CMP permits unary signs on constants and BOOL negation only')
             if result!='number' or value=='!':raise ModelError('Invalid wide ST unary operand')
             return 'number'
         if kind=='call':
+            if mixed:raise ModelError('Mixed CMP functions remain unqualified')
             if infer(node[2])!='number':raise ModelError('Wide ST ABS requires a numeric operand')
             return 'number'
         left,right=infer(node[2]),infer(node[3])
@@ -58,6 +66,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
             if left!=right or left!='bool':raise ModelError('Wide CMP logical operators require BOOL expressions')
             return 'bool'
         if value in ('AND','OR','XOR') and left==right=='bool':return 'bool'
+        if mixed:raise ModelError('Mixed CMP supports direct comparisons and BOOL composition; arithmetic remains unqualified')
         if left!='number' or right!='number':raise ModelError('Wide ST arithmetic requires numeric operands')
         return 'number'
     return dtype,infer(expression.tree),types
@@ -104,6 +113,13 @@ def ladder_description(project):
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
                 cmp_logic=['&&','||','^^','!','BOOL AND/OR/XOR/NOT'],eager_cmp=True,
+                mixed_integer_comparisons=dict(instructions=['CMP'],types=list(INTEGER_RANK),
+                    operands='Highest-ranked actual numeric tag type covers every complete declared numeric tag range in the expression',
+                    operators='Direct numeric relations and BOOL composition, including BOOL equality, eager AND/OR/XOR/NOT and symbolic forms',
+                    constants='Signed-DINT integers representable in the common tag type; no invented larger type or value-based tag conversion',
+                    selection='Structural preflight; false/prescan skip live values and indices; true expressions consume both logical operands',
+                    excluded='Mixed arithmetic, numeric bitwise, unary tag signs, functions, REAL/LREAL, typed/larger constants, CPT/ST and native parity',
+                    native_runtime_parity=False),
                 meq='All eight integer tag types may mix; zero-extend each read-only declared pattern; legacy immediates remain homogeneous',
                 meq_mixed_integer_tags=True,
                 literals='Signed DINT integers representable in the matching declared type; store larger constants in tags',
