@@ -2532,3 +2532,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for wanted in (10,20,30):row=values(step());self.assertEqual(row['LadderOff.ACC'],wanted)
         self.assertFalse(row['LadderOff.DN']);self.assertFalse(row['LadderOff.TT']);self.assertEqual(row['LadderRetained.ACC'],50)
         report=self.post('report',{})['ladder_timers'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_data_lab_aggregate_fill_unknowns_typed_records_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['ZeroRecords[1].Enabled']);self.assertIsNone(row['ZeroTimers[1].ACC']);write('FillAggregates',True);fault('Unknown');write('AggregateLength[0]',1);fault('outside bounds');write('AggregateIndex',1);fault('Unknown');write('AggregateSource[0]',0)
+        row=values(step());self.assertIs(row['ZeroRecords[1].Enabled'],False);self.assertEqual(row['ZeroRecords[1].Count'],0);self.assertIs(type(row['ZeroRecords[1].Measure']),float);self.assertEqual(row['ZeroRecords[1].Measure'],0.0);self.assertIs(row['ZeroRecords[1].Timer.EN'],False);self.assertIs(row['ZeroRecords[1].Counter.CU'],False)
+        self.assertEqual(row['ZeroTimers[1].ACC'],0);self.assertIs(row['ZeroTimers[1].EN'],False);self.assertIs(row['ZeroCounters[1].CU'],False);self.assertEqual(row['ZeroStrings[1]'],'');self.assertEqual(row['ZeroStrings[1].DATA[81]'],0);self.assertEqual((row['ZeroRecords[0].Count'],row['ZeroRecords[2].Count']),(111,999));self.assertIsNone(row['ZeroTimers[0].ACC'])
+        write('FillAggregates',False);write('AggregateIndex',99);row=values(step());self.assertEqual(row['ZeroRecords[1].Count'],0);write('AggregateIndex',1);write('AggregateSource[0]',1);write('FillAggregates',True);fault('integer zero only');write('AggregateSource[0]',0);step()
+        report=self.post('report',{})['aggregate_fill'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])

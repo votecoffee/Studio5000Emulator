@@ -1,7 +1,18 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="DataLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="DataLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
-    <DataTypes />
+    <DataTypes>
+    <DataType Name="ZeroFillCell" Family="NoFamily" Class="User">
+      <Members>
+        <Member Name="Enabled" DataType="BOOL" Dimension="0" />
+        <Member Name="Count" DataType="DINT" Dimension="0" />
+        <Member Name="Measure" DataType="REAL" Dimension="0" />
+        <Member Name="Flags" DataType="BOOL" Dimension="3" />
+        <Member Name="Timer" DataType="TIMER" Dimension="0" />
+        <Member Name="Counter" DataType="COUNTER" Dimension="0" />
+      </Members>
+    </DataType>
+    </DataTypes>
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
@@ -351,6 +362,50 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="FillAggregates" DataType="BOOL" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="AggregateIndex" DataType="DINT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="AggregateLength" DataType="DINT" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="AggregateSource" DataType="DINT" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ZeroRecords" DataType="ZeroFillCell" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="ZeroFillCell" Dimensions="3">
+            <Element Index="[0]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Enabled" DataType="BOOL" Value="1" /><DataValueMember Name="Count" DataType="DINT" Value="111" /><DataValueMember Name="Measure" DataType="REAL" Value="1.5" /></Structure></Element>
+            <Element Index="[2]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Enabled" DataType="BOOL" Value="1" /><DataValueMember Name="Count" DataType="DINT" Value="999" /><DataValueMember Name="Measure" DataType="REAL" Value="1.5" /></Structure></Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ZeroTimers" DataType="TIMER" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="TIMER" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ZeroCounters" DataType="COUNTER" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="COUNTER" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ZeroStrings" DataType="STRING" TagType="Base" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="STRING" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -413,62 +468,74 @@
                 <Text>XIC(FillNumeric)FLL(FillReal,RealFill[FillIndex],FillLength);</Text>
               </Rung>
               <Rung Number="18" Type="N">
+                <Text>XIC(FillAggregates)FLL(AggregateSource[0],ZeroRecords[AggregateIndex],AggregateLength[0]);</Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text>XIC(FillAggregates)FLL(AggregateSource[0],ZeroTimers[AggregateIndex],AggregateLength[0]);</Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text>XIC(FillAggregates)FLL(AggregateSource[0],ZeroCounters[AggregateIndex],AggregateLength[0]);</Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text>XIC(FillAggregates)FLL(AggregateSource[0],ZeroStrings[AggregateIndex],AggregateLength[0]);</Text>
+              </Rung>
+              <Rung Number="22" Type="N">
                 <Comment>Initialize a numeric array once.</Comment>
                 <Text>XIC(S:FS)FLL(7,Buffer[0],6);</Text>
               </Rung>
-              <Rung Number="19" Type="N">
+              <Rung Number="23" Type="N">
                 <Comment>Copy six elements into a two-dimensional array.</Comment>
                 <Text>XIC(CopyEnable)COP(Source[0],Buffer[0],6)CPS(Buffer[0],Grid[0,0],6);</Text>
               </Rung>
-              <Rung Number="20" Type="N">
+              <Rung Number="24" Type="N">
                 <Comment>Read the second dimension length.</Comment>
                 <Text>SIZE(Grid,1,Columns);</Text>
               </Rung>
-              <Rung Number="21" Type="N">
+              <Rung Number="25" Type="N">
                 <Comment>Evaluate an expression with an indexed array operand.</Comment>
                 <Text>CPT(Scaled,(Grid[Index,1]+5)*2.0);</Text>
               </Rung>
-              <Rung Number="22" Type="N">
+              <Rung Number="26" Type="N">
                 <Comment>Build text from a numeric value.</Comment>
                 <Text>DTOS(Grid[Index,1],NumberText)CONCAT(Prefix,NumberText,Message);</Text>
               </Rung>
-              <Rung Number="23" Type="N">
+              <Rung Number="27" Type="N">
                 <Comment>Extract text and convert a string back to a number.</Comment>
                 <Text>MID(Message,3,1,Snippet)STOD(NumberText,ParsedNumber);</Text>
               </Rung>
-              <Rung Number="24" Type="N">
+              <Rung Number="28" Type="N">
                 <Comment>Preserve wide integer values and read an unsigned word bit.</Comment>
                 <Text>MOV(WideSource,WideDest)XIC(PackedStatus.15)OTE(HighBit);</Text>
               </Rung>
-              <Rung Number="25" Type="N">
+              <Rung Number="29" Type="N">
                 <Comment>Prepare a bounded loop.</Comment>
                 <Text>CLR(LoopCount);</Text>
               </Rung>
-              <Rung Number="26" Type="N">
+              <Rung Number="30" Type="N">
                 <Comment>Repeat until the count reaches three.</Comment>
                 <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
               </Rung>
-              <Rung Number="27" Type="N">
+              <Rung Number="31" Type="N">
                 <Comment>Zero-fill a negative signed byte before applying a wide mask.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedSmall,MixedMask,MixedExpected)OTE(MixedMaskMatch);</Text>
               </Rung>
-              <Rung Number="28" Type="N">
+              <Rung Number="32" Type="N">
                 <Comment>Compare adjacent exact signed and unsigned 64-bit values.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedExact,MixedFullMask,MixedExpectedExact)OTE(MixedExactMatch);</Text>
               </Rung>
-              <Rung Number="29" Type="N">
+              <Rung Number="33" Type="N">
                 <Comment>Zero-fill a negative DINT before comparing its wide pattern.</Comment>
                 <Text>XIC(MixedCompare)MEQ(MixedNarrow,MixedFullMask,MixedExpected)OTE(MixedWidthMatch);</Text>
               </Rung>
-              <Rung Number="30" Type="N">
+              <Rung Number="34" Type="N">
                 <Comment>Skip the next write when Bypass is set.</Comment>
                 <Text>XIC(Bypass)JMP(Finish);</Text>
               </Rung>
-              <Rung Number="31" Type="N">
+              <Rung Number="35" Type="N">
                 <Comment>This write is skipped in the default demo.</Comment>
                 <Text>MOV(999,SkippedValue);</Text>
               </Rung>
-              <Rung Number="32" Type="N">
+              <Rung Number="36" Type="N">
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>

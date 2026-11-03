@@ -898,6 +898,7 @@ class Engine:
                     boundaries='Completed prescan separate from runtime rollback; timer algorithms, CONTROL RES and other profiles unchanged',
                     native_runtime_parity=False),
                 'numeric_fill':numeric_fill.description(self.project),
+                'aggregate_fill':numeric_fill.aggregate_description(self.project),
                 'size_truncate':size_truncate.description(self.project),
                 'numeric_comparisons':comparisons.description(self.project),
                 'function_blocks':fbd_description(),

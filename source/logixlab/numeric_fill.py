@@ -1,6 +1,7 @@
 """Numeric FLL selection and conversion for the bounded v35 5580 profile."""
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError, coerce, literal
+from .model import INT_BITS, ModelError, coerce, literal
+from .numeric_copy import static_reference
 from .real_math import real
 
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
@@ -67,6 +68,85 @@ def handle(engine, op, scope, *, execute=False):
     return True
 
 
+def aggregate_template(project,dtype,seen=()):
+    """Use declared schemas, never the Python types of unknown saved values."""
+    if dtype.upper() in ('TIMER','COUNTER','CONTROL','STRING'):return project.default(dtype)
+    name=dtype.lower();definition=project.udts.get(name)
+    if definition is None or dtype.upper() in project.aois:
+        raise ModelError('Aggregate FLL supports basic records and explicit UDTs, not operational/AOI records')
+    if name in seen or len(seen)>=32:raise ModelError('Aggregate FLL schema nesting exceeds its bounded profile')
+    for member in definition.findall('./Members/Member'):
+        if member.get('Hidden','false').lower()=='true':continue
+        kind=member.get('DataType')
+        if kind not in {*INT_BITS,'BOOL','REAL','BIT'}:aggregate_template(project,kind,seen+(name,))
+    return project.default(dtype)
+
+
+def zero_value(value):
+    if type(value) is bool:return False
+    if type(value) is int:return 0
+    if type(value) is float:return 0.0
+    if isinstance(value,list):return [zero_value(v) for v in value]
+    if isinstance(value,dict):return {k:zero_value(v) for k,v in value.items()}
+    raise ModelError('Aggregate FLL cannot infer an unsupported member type')
+
+
+def scalar_count(value):
+    if isinstance(value,dict):return sum(map(scalar_count,value.values()))
+    if isinstance(value,list):return sum(map(scalar_count,value))
+    return 1
+
+
+def aggregate_handle(engine,op,scope,*,execute=False):
+    project=engine.project
+    if project.version!='35' or project.processor.upper() not in CONTROLLERS:return False
+    memory=engine.memory;previous=memory.structural;memory.structural=True
+    try:
+        _,_,dtype=memory.check_writable(op.args[1],scope)
+        if dtype not in ('TIMER','COUNTER','CONTROL','STRING') and dtype.lower() not in project.udts:return False
+        template=aggregate_template(project,dtype)
+        pattern=template if dtype=='CONTROL' else zero_value(template)
+        memory.region(op.args[1],0,scope)
+        try:source=literal(op.args[0])
+        except ValueError:
+            key,parts,source_type=memory.resolve(op.args[0],scope)
+            if source_type not in INTEGERS or isinstance(memory.at(key,parts),(dict,list)):
+                raise ModelError('Aggregate FLL source requires scalar SINT, INT or DINT')
+        else:
+            if type(source) is not int or source!=0:raise ModelError('Aggregate FLL currently supports integer zero only')
+        operand_type(memory,op.args[2],scope,length=True)
+        try:count=literal(op.args[2])
+        except ValueError:pass
+        else:
+            if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Aggregate FLL length must be an integer in 0..100000')
+            if static_reference(memory,op.args[1],scope):memory.region(op.args[1],count,scope)
+    finally:memory.structural=previous
+    if not execute:return True
+    count=memory.read(op.args[2],scope)
+    if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Aggregate FLL length must be an integer in 0..100000')
+    key,paths,_=memory.region(op.args[1],count,scope);memory.check_writable(op.args[1],scope)
+    if count:
+        source=memory.read(op.args[0],scope)
+        if type(source) is not int or source!=0:raise ModelError('Aggregate FLL currently supports integer zero only')
+        engine.budget-=len(paths)*scalar_count(pattern)
+        if engine.budget<0:raise ModelError('Aggregate FLL scalar-member budget exceeded')
+        for path in paths:memory.store(key,path,pattern)
+    return True
+
+
+def aggregate_description(project):
+    return dict(available=project.version=='35' and project.processor.upper() in CONTROLLERS,language='RLL',instructions=['FLL'],
+                source='Scalar SINT/INT/DINT zero or integer-zero immediate; length SINT/INT/DINT or bounded DINT immediate',
+                destinations='TIMER/COUNTER/CONTROL/STRING and explicit nested basic UDTs, selected arrays, aliases and existing AOI bindings',
+                zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL members and unused string DATA',
+                control='Top-level CONTROL retains its existing logical-default reset; nested CONTROL members are zeroed',
+                selection='Structural preflight; false/prescan skip live operands; true captures length, complete window and zero source before stores',
+                zero_length='Validate live destination, skip source value and its live index',
+                work='One instruction-budget unit per scalar member filled; strict logical region bounds, no native byte clipping',
+                remaining=['Nonzero/REAL/wider source patterns, operational/AOI aggregate records, packed ABI and native faults/partial effects',
+                           'Native scan/lifecycle/clock/internal-history reset parity and other profiles/languages'],native_runtime_parity=False)
+
+
 def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS, profile='v35-5580-numeric-FLL', language='RLL', types=sorted(NUMERIC),
                 integer_conversion='Preserve low destination bits when narrowing; sign-extend when widening',
@@ -80,4 +160,4 @@ def description(project):
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Native clipping/base-tag cross-member traversal and packed layouts',
                            'REAL overflow bits/flags, wider types and broader controller/language/lifecycle qualification',
-                           'Aggregate zero fills and other controller profiles retain their separate legacy contract'])
+                           'Aggregate zero fills have a separate declared-schema profile; other controller profiles retain legacy behavior'])

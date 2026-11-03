@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.165339`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.172122`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -36,6 +36,10 @@ and branch wiring, ST syntax coloring and FBD pin connections. Select a node
 for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
+
+[Aggregate zero fills](docs/aggregate-fill.md) initialize unknown TIMER, COUNTER,
+CONTROL, strings and explicit UDTs with declared member types. **Data lab** adds
+guarded record, timer, counter and string fill examples.
 
 [Ladder timers](docs/ladder-timers.md) check the saved values and history each
 TON/TOF/RTO path consumes. **Timer lab** adds ladder delay, retention and pause

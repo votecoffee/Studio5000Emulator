@@ -49,9 +49,10 @@ they are not clipped or allowed to cross other members/base tags. Native FLL
 can use different packed-memory boundaries and clipping; that behavior remains
 unqualified. Timing, native partial effects and math-status parity remain open.
 
-Aggregate zero fills, other controller profiles and other languages retain
-their separate earlier contracts. The new numeric conversion path does not
-enable general structure patterns, wide types, ST FLL calls or FBD forms.
+[Aggregate zero fills](aggregate-fill.md) have a separate declared-schema
+profile. Other controller profiles and languages retain their earlier contracts.
+The numeric conversion path does not enable general structure patterns, wide
+types, ST FLL calls or FBD forms.
 
 ## Data lab
 

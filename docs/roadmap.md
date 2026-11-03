@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.172122`: [declared-schema aggregate zero FLL](aggregate-fill.md).
+Basic records, strings and explicit nested UDTs receive typed zero values even
+when saved fields are unknown. Structural/lazy selection, captured windows and
+source/length aliases, guarded records and AOI rollback are modeled. Data lab
+adds four gated fills. Nonzero/REAL/wider source patterns, operational/AOI records,
+packed layouts, native clipping/history resets and parity remain separate.
+
 Available in `26.1103.165339`: [ladder timer state selection](ladder-timers.md).
 TON/TOF/RTO require known nonnegative DINT PRE/ACC and only consume EN/DN when
 that path needs their history. Unknown retained DN is preserved while false
