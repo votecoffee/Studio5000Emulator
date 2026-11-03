@@ -11,6 +11,39 @@ MAX_BYTES=32768
 MAX_VISITS=100000
 
 
+def static_reference(memory,ref,scope):
+    if scope in memory.frames:return False
+    match=re.fullmatch(r'(?:Program:(\w+)\.)?([A-Za-z_]\w*)(?:\[\s*\d+(?:\s*,\s*\d+)*\s*\]|\.\w+)*',ref)
+    if not match:return False
+    owner,name=match.groups();key=f'Program:{owner or scope}.{name}'.lower()
+    tag=memory.project.tags.get(key) or memory.project.tags.get(name.lower())
+    return tag is not None and not tag.alias
+
+
+def preflight(engine,op,scope):
+    """Check numeric copy structure without live lengths, values or indices."""
+    memory=engine.memory;project=memory.project
+    if project.version!='35' or project.processor.upper() not in CONTROLLERS:return False
+    previous=memory.structural;memory.structural=True
+    try:
+        st=memory.resolve(op.args[0],scope)[2];dt=memory.check_writable(op.args[1],scope)[2]
+        if st not in FORMATS or dt not in FORMATS:return False
+        location(memory,op.args[0],scope);location(memory,op.args[1],scope,writable=True)
+        try:count=literal(op.args[2])
+        except ValueError:
+            key,parts,dtype=memory.resolve(op.args[2],scope)
+            if dtype not in ('SINT','INT','DINT') or isinstance(memory.at(key,parts),(dict,list)):
+                raise ModelError('Numeric-copy length requires scalar SINT, INT or DINT')
+        else:
+            if type(count) is not int or not 0<=count<=100000:
+                raise ModelError('Block length must be an integer in 0..100000')
+            # Retain static transfer-cap diagnostics only for fully known regions.
+            # Aliases/AOI bindings can contain indirect starts outside the text.
+            if all(static_reference(memory,ref,scope) for ref in op.args[:2]):plan(engine,op,scope,count)
+    finally:memory.structural=previous
+    return True
+
+
 def location(memory,ref,scope,*,writable=False):
     key,parts,dtype=(memory.check_writable if writable else memory.resolve)(ref,scope)
     if key is None or any(isinstance(p,tuple) for p in parts):raise ModelError('Numeric copy operands must be declared non-bit tags')
@@ -114,6 +147,8 @@ def description(project):
                 boundaries='Scalar, member or array region; row-major multidimensional arrays and resolved member arrays; no crossing structure members',
                 overlap='Same-type copies propagate forward sequentially for COP and CPS, preserving established model behavior',
                 unknowns='Same-type copies retain logical unknowns; mixed-type reads require known finite source values and representable finite REAL results',
+                selection='Structural numeric preflight; false/prescan skip live lengths, indices and values; true retains actual region and byte checks',
+                zero_length='Resolve live source/destination addresses without reading their numeric values',
                 atomicity='Both execute inside one model instruction; no native task/I/O/remote-client synchronization claim',
                 budget='One budget unit per actual transferred byte; whole-advance rollback on failure',
                 native_runtime_parity=False,

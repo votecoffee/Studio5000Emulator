@@ -2474,3 +2474,21 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'StringIndex','value':0});row=values(self.post('step',{'dt':10}));self.assertTrue(row['IndexedMatch'])
         report=self.post('report',{})['string_operations']['operand_selection'];self.assertEqual(len(report['instructions']),18);self.assertFalse(report['native_runtime_parity'])
+
+    def test_copy_lab_indexed_unknown_lengths_and_ladder_recovery_through_http(self):
+        state=self.post('demo',{'sample':'CopyLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        row=values(self.post('step',{'dt':10}));self.assertIsNone(row['SelectedBytes[0]']);self.assertFalse(row['CopyMatches'])
+        self.post('write',{'tag':'IndexedCopy','value':True})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        fault('Unknown');self.post('write',{'tag':'SelectedLength[0]','value':4});fault('outside bounds')
+        for tag,value in [('CopyIndex',0),('OutputIndex',0)]:self.post('write',{'tag':tag,'value':value})
+        fault('known integer');self.post('write',{'tag':'SelectedSource[0]','value':16909060});row=values(self.post('step',{'dt':10}))
+        self.assertEqual([row[f'SelectedBytes[{i}]'] for i in range(4)],[4,3,2,1]);self.assertEqual(row['SelectedRoundtrip[0]'],16909060);self.assertTrue(row['CopyMatches']);self.assertIsNone(row['SelectedBytes[4]']);self.assertIsNone(row['SelectedRoundtrip[1]'])
+        self.post('write',{'tag':'IndexedCopy','value':False});self.post('write',{'tag':'CopyIndex','value':99});row=values(self.post('step',{'dt':10}));self.assertEqual(row['SelectedRoundtrip[0]'],16909060);self.assertFalse(row['CopyMatches'])
+        self.assertIn('Structural',self.post('report',{})['numeric_copy']['selection'])

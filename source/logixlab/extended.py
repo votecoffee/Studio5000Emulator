@@ -99,6 +99,7 @@ class Extensions:
     def block(self,op,scope,execute=False):
         n,a=op.name,op.args
         if n=='FLL' and numeric_fill.handle(self.engine,op,scope,execute=execute):return
+        if n in ('COP','CPS') and not execute and numeric_copy.preflight(self.engine,op,scope):return
         count=self.integer(a[2],scope)
         self.memory.check_writable(a[1],scope)
         if n in ('COP','CPS'):

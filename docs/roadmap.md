@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.161651`: [numeric COP/CPS operand selection](numeric-copies.md#operand-selection).
+Structural preflight checks types, shapes, permissions and literal bounds without
+saved lengths, dynamic indices or numeric values. Reached copies retain byte
+clipping, overlap, unknown/full/partial-write rules and runtime limits. Byte copy
+lab adds a called ladder round trip. Existing ST calls share validation; aggregate
+layouts, synchronization and native parity remain separate.
+
 Available in `26.1103.155205`: [ladder string operand selection](string-operations.md#operand-selection).
 String calls, direct string relations and string-bearing CMP validate types,
 shapes and permissions without consuming saved data or dynamic indices. False

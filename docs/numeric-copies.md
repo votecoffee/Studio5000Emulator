@@ -61,6 +61,33 @@ COP and CPS execute inside one model instruction. This does not establish
 native task/I/O interruption behavior, remote-client synchronization or a
 complete CPS concurrency model.
 
+## Operand selection
+
+Numeric COP/CPS preflight validates declared types, reference shapes, destination
+permissions and length syntax without reading saved numeric values, dynamic
+indices or a saved Length tag. Length tags remain scalar SINT/INT/DINT; immediate
+lengths remain integers in 0..100000. Literal index bounds and fully static
+transfer-cap violations are still diagnosed before execution.
+
+False ladder rungs and prescan skip live operands. When reached, copies consume
+the actual length and source/destination addresses, then apply the existing
+clipped region and byte rules. A dynamic length or indirect alias/AOI start can
+only determine actual transfer size at execution, including the 32768-byte cap.
+Zero length validates both live addresses but reads no numeric values.
+
+Full destination elements can be established from unknown values; partial
+elements still need known bytes to preserve. Mixed-type copies require known
+source values, while same-type copies retain their logical unknown propagation.
+Aliased and AOI InOut/local regions use the same rules. Copy faults and later
+instruction faults restore earlier writes and AOI bindings within the advance;
+completed prescan remains a separate lifecycle boundary. AOI argument binding
+and copied inputs retain their separate contract.
+
+Existing ST calls share this validation without new syntax. ST FOR destination
+protection retains its existing conservative analysis and separate restrictions.
+This changes operand selection, not transfer algorithms, numeric encodings,
+aggregate layouts, synchronization or native fault/status/lifecycle claims.
+
 ## Unknowns, finite values and rollback
 
 Same-type copies retain logical unknown values as before. Mixed-type reads
@@ -86,6 +113,23 @@ reinterpreted as FloatOutput. Bytes[0..4] are copied into Packed using
 CopyLength, demonstrating clipped transfers and preserved upper bytes. Further
 copies expose the packet as DecodedBytes and UnpackedWords. EnableCopy skips the
 group; FaultDivisor provides a late-fault rollback test.
+
+The ST routine also calls a three-rung ladder routine, CopyIndexed. Its
+IndexedCopy gate starts false, both indices are 99, and selected lengths/data
+are unknown. Step once to observe dormant operands. Set CopyIndex=0,
+OutputIndex=0, SelectedLength[0]=4 and SelectedSource[0]=16909060, enable
+IndexedCopy and step again:
+
+| Result | Value |
+| --- | --- |
+| SelectedBytes[0..3] | `4, 3, 2, 1` |
+| SelectedRoundtrip[0] | `16909060` |
+| CopyMatches | true |
+
+Unused bytes and sibling results stay unknown. Disable IndexedCopy before
+changing an index to 99 to retain outputs and clear CopyMatches. Re-enable at
+that index to fault; correct it and retry. Unknown consumed length/source values
+also fault without leaving earlier ST or ladder writes behind.
 
 The public sample is synthetic. Software tests and live application checks are
 separate from native Studio transfer and controller execution acceptance.

@@ -139,6 +139,30 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="IndexedCopy" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="CopyIndex" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="OutputIndex" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="CopyMatches" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="SelectedLength" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="SelectedSource" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="SelectedBytes" TagType="Base" DataType="SINT" Dimensions="12">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="12" /></Data>
+      </Tag>
+      <Tag Name="SelectedRoundtrip" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -154,7 +178,21 @@
               <Line Number="5">COP(BitPattern,Roundtrip,1); CallCount:=CallCount+1;</Line>
               <Line Number="6">END_IF;</Line>
               <Line Number="7">GuardResult:=1/FaultDivisor;</Line>
+              <Line Number="8">JSR(CopyIndexed,0);</Line>
             </STContent>
+          </Routine>
+          <Routine Name="CopyIndexed" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(IndexedCopy)COP(SelectedSource[CopyIndex],SelectedBytes[OutputIndex],SelectedLength[0]);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(IndexedCopy)CPS(SelectedBytes[OutputIndex],SelectedRoundtrip[CopyIndex],1);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(IndexedCopy)EQU(SelectedSource[CopyIndex],SelectedRoundtrip[CopyIndex])OTE(CopyMatches);</Text>
+              </Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>
