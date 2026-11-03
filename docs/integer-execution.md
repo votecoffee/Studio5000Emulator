@@ -7,7 +7,9 @@ math-status/fault parity are not established.
 
 Standalone v35 MOV/CLR now use the separate [numeric storage profile](numeric-storage.md),
 including mixed numeric moves and full writes to unknown scalar destinations.
-The homogeneous type and overflow rules below continue to apply to arithmetic.
+The homogeneous and wide-immediate profile below remains available. Standalone
+[widening arithmetic](scalar-math.md#widening-integer-tag-arithmetic) additionally
+accepts mixed integer tags when the destination covers every source type range.
 Standalone v35 [integer-tag bitwise operations](scalar-math.md#mixed-integer-tag-widths)
 now mix all eight integer types with zero extension and signed/unsigned result
 bits. Wide operands with immediates retain the homogeneous rules below.
@@ -20,7 +22,9 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 40-root fixture combines eleven ladder rungs with fifteen called ST statements.
+The 53-root fixture combines nineteen ladder rungs with fifteen called ST statements.
+Enable `MixedArithmetic` for eight widening-tag examples; its new rungs are gated
+independently of the existing homogeneous ladder/ST comparison.
 It demonstrates exact 64-bit addition, division/remainder, an unsigned complement
 and all four unsigned widths. StAllMatches compares the results across languages.
 Values beyond browser-safe integer precision remain decimal text in the tag watch.
@@ -43,7 +47,8 @@ storage behavior remains available independently of the new processor gate.
 
 Immediate operands must be signed DINT integer literals representable in the
 chosen operand type. For example, `ADD(Ticks,1,NextTicks)` accepts two LINT tags;
-`ADD(Ticks,OtherDint,NextTicks)` remains blocked. Store larger constants in a
+`ADD(Ticks,OtherDint,NextTicks)` uses the separate widening-tag profile when
+Ticks/NextTicks are LINT and OtherDint is DINT. Store larger constants in a
 properly declared LINT/ULINT tag instead of assuming a wide immediate literal.
 Unsigned operations reject negative immediates. Typed literals and broader
 promotion/conversion rules remain future work.

@@ -186,7 +186,7 @@ class MixedBitwiseTests(unittest.TestCase):
         self.assertTrue(self.engine(source='REAL',value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
-        self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);']).blockers)
+        self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);'],source='LINT').blockers)
         for processor,version in (('1756-L75','35'),('1756-L85E','34')):
             def old(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',version);root.set('SoftwareRevision',version+'.01')
             self.assertTrue(self.engine(mutate=old).blockers)

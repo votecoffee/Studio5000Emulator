@@ -205,6 +205,71 @@
           <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="MixedArithmetic" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="NarrowDelta" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="NarrowDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="NarrowSigned" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-7" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedSmall" TagType="Base" DataType="USINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedSum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedDifference" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedProduct" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedNegated" TagType="Base" DataType="INT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedAbs" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedUnsignedDifference" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -244,6 +309,31 @@
               </Rung>
               <Rung Number="10" Type="N">
                 <Text>EQU(SignedSum,StSignedSum)EQU(SignedQuotient,StSignedQuotient)EQU(SignedRemainder,StSignedRemainder)EQU(UnsignedSum,StUnsignedSum)EQU(UnsignedComplement,StUnsignedComplement)EQU(ByteSum,StByteSum)EQU(WordSum,StWordSum)EQU(DwordSum,StDwordSum)XIC(StExactComparison)OTE(StAllMatches);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(MixedArithmetic)ADD(SignedInput,NarrowDelta,MixedSum);</Text>
+                <Comment>Enable MixedArithmetic for exact mixed integer tags with a destination that covers all source type ranges.</Comment>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(MixedArithmetic)SUB(SignedInput,MixedSmall,MixedDifference);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(MixedArithmetic)MUL(NarrowSigned,MixedSmall,MixedProduct);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(MixedArithmetic)DIV(SignedInput,NarrowDivisor,MixedQuotient);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(MixedArithmetic)MOD(SignedInput,NarrowDivisor,MixedRemainder);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(MixedArithmetic)NEG(MixedSmall,MixedNegated);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(MixedArithmetic)ABS(NarrowSigned,MixedAbs);</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text>XIC(MixedArithmetic)SUB(UnsignedInput,MixedSmall,MixedUnsignedDifference);</Text>
               </Rung>
             </RLLContent>
           </Routine>

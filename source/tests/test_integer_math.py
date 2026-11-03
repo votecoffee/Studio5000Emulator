@@ -130,7 +130,7 @@ class IntegerMathTests(unittest.TestCase):
         self.assertEqual(e.memory.read('SpeedCommand'), 0)
 
     def test_mixed_types_real_bool_and_unbounded_immediates_stay_blocked(self):
-        for types in (('LINT', 'DINT', 'LINT'), ('LINT', 'ULINT', 'LINT'),
+        for types in (('LINT', 'DINT', 'UDINT'), ('LINT', 'ULINT', 'LINT'),
                       ('LINT', 'LINT', 'DINT'), ('LINT', 'REAL', 'LINT'), ('LINT', 'BOOL', 'LINT')):
             with self.subTest(types=types):
                 self.assertTrue(self.engine(['ADD(WideA,WideB,WideDest);'], types=types).blockers)

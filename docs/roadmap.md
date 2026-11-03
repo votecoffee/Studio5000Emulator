@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.101035`: [widening integer tag arithmetic](scalar-math.md#widening-integer-tag-arithmetic),
+for standalone ladder ADD/SUB/MUL/DIV/MOD/NEG/ABS. Mixed tag types are accepted
+when the destination covers every complete source type range. Integer-exact
+results, false/prescan selection, unknown writes, AOI binding and rollback remain.
+Integer lab adds eight gated examples; mixed literals, narrowing, signed-to-
+unsigned/REAL promotion and native status/fault parity remain separate.
+
 Available in `26.1103.095341`: [scoped monitoring and label navigation](logic-viewer.md#instruction-presentation),
 with program-local shadowing, AOI InOut aggregate resolution, exact snapshot-only
 value lookup and JMP-to-LBL links through the inspector, double-click or Ctrl+Enter.

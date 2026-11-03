@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.095341`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.101035`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -102,6 +102,10 @@ Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned exampl
 `BitwiseWidths` retains the narrow-width examples. Wide immediate literals keep
 their separate homogeneous restrictions. Enable
 `BasicMath` in **Math lab** for eleven common operations.
+[Widening integer arithmetic](docs/scalar-math.md#widening-integer-tag-arithmetic)
+allows mixed integer tags when the destination covers every source type range.
+Enable `MixedArithmetic` in **Integer lab** for exact LINT/DINT and unsigned
+examples across ADD/SUB/MUL/DIV/MOD/NEG/ABS.
 Ladder `MOD` also supports finite REAL sources mixed with SINT/INT/DINT and
 representable narrow integer results. Enable `RealModulo` for fractional
 remainders and rounded results; zero divisors retain the model's rollback policy.
@@ -188,7 +192,7 @@ bounded profile. General CPU preemption, other event sources and Safety remain u
 [wide Structured Text](docs/wide-st.md) support homogeneous LINT/unsigned
 arithmetic, comparisons and bitwise operations for the v35 ControlLogix 5580
 model. **Integer lab** compares RLL/ST results and demonstrates exact
-[L/U/UL integer literals](docs/st-integer-literals.md). Mixed-type arithmetic,
+[L/U/UL integer literals](docs/st-integer-literals.md). Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 
 [Numeric CASE selection](docs/st-case-selection.md) supports integer and REAL

@@ -632,7 +632,8 @@ class Engine:
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:
-            dtype=integer_math.profile(self,op,scope)
+            dtype=(scalar_math.arithmetic_profile(self,op,scope) if n in scalar_math.ARITHMETIC and scalar_math.available(self.project)
+                   else integer_math.profile(self,op,scope))
             if dtype is not None:return integer_math.execute(self,op,scope,dtype)
         if n=='LBL':return p
         if n=='JMP':

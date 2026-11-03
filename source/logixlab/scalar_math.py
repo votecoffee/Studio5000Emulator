@@ -4,11 +4,12 @@ import operator
 
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile
-from .model import INT_BITS, ModelError, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, literal
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
-INSTRUCTIONS = BITWISE | {'ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS'}
+ARITHMETIC = frozenset(('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS'))
+INSTRUCTIONS = BITWISE | ARITHMETIC
 
 
 def available(project):
@@ -31,10 +32,36 @@ def validate(engine, op, scope):
         if op.name in BITWISE:
             bitwise_specification(engine, op, scope)
         else:
-            profile(engine, op, scope)
+            arithmetic_profile(engine, op, scope)
     finally:
         memory.structural = previous
     return True
+
+
+def arithmetic_profile(engine, op, scope):
+    """Exact mixed tag arithmetic when destination promotion loses no source range.
+
+    Keep legacy homogeneous/immediate and narrow paths separate. In particular,
+    a positive saved signed value does not authorize an unsigned mixed form.
+    """
+    if op.name not in ARITHMETIC or not available(engine.project):
+        return profile(engine, op, scope)
+    types = []
+    for ref in op.args:
+        try:literal(ref)
+        except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
+        else:return profile(engine, op, scope)
+    if not set(types) & WIDE_TYPES or len(set(types)) == 1:
+        return profile(engine, op, scope)
+    if any(dtype not in INT_BITS for dtype in types):
+        raise ModelError('Mixed widening arithmetic requires integer scalar tags')
+    def bounds(dtype):
+        bits = INT_BITS[dtype]
+        return (0, (1 << bits) - 1) if dtype in UNSIGNED_BITS else (-(1 << (bits - 1)), (1 << (bits - 1)) - 1)
+    low, high = bounds(types[-1])
+    if any(bounds(dtype)[0] < low or bounds(dtype)[1] > high for dtype in types[:-1]):
+        raise ModelError('Mixed arithmetic destination must cover every source type range')
+    return types[-1]
 
 
 def bitwise_specification(engine, op, scope):
@@ -95,7 +122,13 @@ def description(project):
                 language='RLL', instructions=sorted(INSTRUCTIONS),
                 validation='Declared scalar types, references, permissions and existing wide-profile rules; no saved values/live indices',
                 selection='False/prescan skip operands; true instructions require all source values; full writes establish unknown destinations',
-                arithmetic='Existing integer quotient/remainder, destination coercion and homogeneous wide-integer limits retained',
+                arithmetic='Exact integer quotient/remainder and checked destination writes; homogeneous/immediate rules retained',
+                widening_arithmetic=dict(instructions=sorted(ARITHMETIC), types=list(INT_BITS),
+                    operands='Tags only, mixed integer types, destination covers every complete source type range',
+                    conversion='Signed values retain their sign; unsigned values retain their nonnegative value; all arithmetic stays integer-exact',
+                    selection='Declared-type checks even false; false/prescan skip live values and indices; true full writes establish unknowns',
+                    excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and mixed immediate forms; native overflow/status/fault parity',
+                    native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',
                                     conversion='Integer results round nearest, ties to even; out-of-range results roll back',
@@ -109,5 +142,5 @@ def description(project):
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Complete arithmetic promotion, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and wide/unsigned/LREAL remainder mixtures',
+                remaining=['Arithmetic narrowing/mixed signed-to-unsigned/REAL promotion, mixed arithmetic immediates, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

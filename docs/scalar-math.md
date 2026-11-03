@@ -8,9 +8,10 @@ without requiring saved scalar values or live indices:
 | ADD, SUB, MUL, DIV, MOD, NEG, ABS | AND, OR, XOR, NOT |
 
 Declared scalar types, references, destination permissions and the existing
-homogeneous wide-integer rules remain checked. Invalid shapes, BOOL operands,
-unsupported bitwise floating-point forms and mixed wide arithmetic types still
-fail static validation, including on false rungs. Standalone bitwise integer tags
+homogeneous wide/immediate rules remain checked, with the widening tag-only
+arithmetic extension below. Invalid shapes, BOOL operands, unsupported bitwise
+floating-point forms and excluded arithmetic type mixes still fail static
+validation, including on false rungs. Standalone bitwise integer tags
 use the separate mixed-type profile below.
 
 False rungs and ordinary prescan skip operand values and dynamic indices. A true
@@ -23,9 +24,54 @@ including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
 Integer division into integer destinations truncates toward zero; integer remainder retains the
-dividend's sign. Wide arithmetic stays homogeneous and exact. Arithmetic overflow
+dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact. Arithmetic overflow
 still stops and rolls back the model rather than reproducing native status and
 partial effects.
+
+## Widening integer tag arithmetic
+
+Standalone ADD, SUB, MUL, DIV, MOD, NEG and ABS may mix integer tag types when
+the destination can represent the **complete declared range** of each source.
+This is a v35 5580 ladder profile. It does not infer eligibility from the current
+saved values. Signed values keep their sign, unsigned values keep their numeric
+value, and no floating-point conversion occurs.
+
+| Destination | Source types whose complete range it covers |
+| --- | --- |
+| SINT | SINT |
+| USINT | USINT |
+| INT | SINT, USINT, INT |
+| UINT | USINT, UINT |
+| DINT | SINT, USINT, INT, UINT, DINT |
+| UDINT | USINT, UINT, UDINT |
+| LINT | SINT, USINT, INT, UINT, DINT, UDINT, LINT |
+| ULINT | USINT, UINT, UDINT, ULINT |
+
+This extends mixed forms involving LINT or unsigned tags. Existing narrow and
+homogeneous rules remain available separately. For example, adding DINT -1 to
+UDINT 4294967295 into LINT produces 4294967294; negating USINT 255 into INT
+produces -255. ABS of DINT -2147483648 into LINT produces 2147483648.
+DIV truncates toward zero; MOD follows the dividend's sign. Results must fit the
+destination even when its type covers all source ranges: overflow/underflow and
+zero divisors stop and roll back the entire advance under the model policy.
+Native overflow bits, minor faults and partial destination effects are not modeled.
+
+Structural checks apply even to false rungs. False/prescan skip live values and
+indices; true instructions require each source and may establish an unknown
+scalar destination. Selected array elements, UDT members, aliases and existing
+AOI InOut/local bindings share these rules. Late faults restore prior writes,
+unknown siblings, scheduler state and AOI bindings.
+
+Enable **MixedArithmetic** in **Integer lab** for eight gated examples, including
+LINT/DINT exact sums, quotient/remainder, signed/unsigned products, widening NEG/ABS
+and an ULINT/USINT difference. The report exposes `scalar_math.widening_arithmetic`.
+
+Mixed immediates, narrowing, mixed signed-to-unsigned destinations, REAL/LREAL
+mixtures, complete instruction/ST/CPT/CMP promotion and other controller families
+remain separate qualification work. Homogeneous wide immediates keep their
+existing signed-DINT, representable-value rules. ST and FBD are unchanged.
+Installed v35 Data Conversions (14451) supplies the integer rank/sign-extension
+basis; model validation does not establish native runtime equivalence.
 
 ## SINT/INT/DINT bitwise widths
 
@@ -114,9 +160,9 @@ very small nonzero divisors without quotient overflow or cancellation; native
 intermediate rounding and bit-for-bit results remain unqualified.
 
 Two integer sources retain the existing exact quotient/remainder calculation,
-including when the destination is REAL. Homogeneous wide-integer operations
-retain their separate profile. Mixed wide/unsigned and REAL operands, LREAL,
-complete mixed-type arithmetic, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
+including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations
+retain their separate profiles. Mixed wide/unsigned and REAL operands, LREAL,
+arithmetic narrowing/mixed literals/signed-to-unsigned promotion, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
 native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
 Other controller profiles retain their separate validation paths.
 

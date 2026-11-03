@@ -2361,3 +2361,18 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(popped['visible']);self.assertFalse(popped['required'])
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','aoi_definitions','aoi_bindings','routine_edits'):self.assertEqual(after[key],state[key])
+
+    def test_integer_lab_widening_arithmetic_and_atomic_failure_through_http(self):
+        state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10})
+        self.post('write',{'tag':'MixedArithmetic','value':True})
+        state=self.post('step',{'dt':10});row={r['name']:r['value'] for r in state['tags']}
+        self.assertEqual({name:row[name] for name in ('MixedSum','MixedDifference','MixedProduct','MixedQuotient','MixedRemainder','MixedNegated','MixedAbs','MixedUnsignedDifference')},
+                         dict(MixedSum='9007199254740995',MixedDifference='9007199254740990',MixedProduct='-21',MixedQuotient='3002399751580331',MixedRemainder='0',MixedNegated=-3,MixedAbs='7',MixedUnsignedDifference='18446744073709551611'))
+        report=self.post('report',{})['scalar_math']['widening_arithmetic'];self.assertEqual(len(report['instructions']),7);self.assertFalse(report['native_runtime_parity'])
+        before=self.post('write',{'tag':'NarrowDivisor','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'NarrowDivisor','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
