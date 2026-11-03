@@ -445,6 +445,16 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="IndexedStatistics" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StatisticsSourceIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="StatisticsResultIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SelectedSamples" DataType="REAL" TagType="Base" Dimensions="5"><Data Format="Decorated"><Array DataType="REAL" Dimensions="5"><Element Index="[0]" Value="111" /><Element Index="[4]" Value="999" /></Array></Data></Tag>
+      <Tag Name="IndexedMeans" DataType="REAL" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedDeviations" DataType="REAL" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedIntegerMeans" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedMeanControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="IndexedDeviationControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="IndexedIntegerControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -503,12 +513,20 @@
               <Rung Number="16" Type="N">
                 <Text>XIC(Calculate)AVE(RoundingValues[0],0,DintAverage,DintMeanControl,?,?);</Text>
               </Rung>
+              <Rung Number="17" Type="N"><Text>JSR(StatisticsIndexed,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="SortText" Type="ST">
             <STContent>
               <Line Number="0">SRT(SortGrid[0,1],0,TextSortControl);</Line>
             </STContent>
+          </Routine>
+          <Routine Name="StatisticsIndexed" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(IndexedStatistics)AVE(SelectedSamples[StatisticsSourceIndex],0,IndexedMeans[StatisticsResultIndex],IndexedMeanControl,?,?);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(IndexedStatistics)STD(SelectedSamples[StatisticsSourceIndex],0,IndexedDeviations[StatisticsResultIndex],IndexedDeviationControl,?,?);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(IndexedStatistics)AVE(SelectedSamples[StatisticsSourceIndex],0,IndexedIntegerMeans[StatisticsResultIndex],IndexedIntegerControl,?,?);</Text></Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

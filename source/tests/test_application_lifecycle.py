@@ -2606,3 +2606,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexedPatterns[1]',4);write('FeedbackInputs[1]',4);write('TeachInputs[1]',77);row=values(step());self.assertEqual((row['IndexedOutputs[1]'],row['IndexedLearned[1]']),(4,77));self.assertEqual((row['IndexedSequenceControl.POS'],row['IndexedTeachControl.POS']),(1,1));self.assertTrue(row['IndexedMatches']);self.assertEqual((row['IndexedPatterns[3]'],row['IndexedLearned[0]'],row['IndexedLearned[3]']),(999,111,999))
         write('IndexedTeach',False);write('Masks[1]',0);write('OutputIndex',99);write('SourceIndex',99);row=values(step());self.assertEqual(row['IndexedOutputs[1]'],4);self.assertTrue(row['IndexedMatches']);write('Masks[1]',-1);fault('outside bounds');write('OutputIndex',1);fault('outside bounds');write('SourceIndex',1);step()
         profile=self.post('report',{})['sequencer_operations'];self.assertIn('Structural',profile['selection']);self.assertIn('table window',profile['zero_mask'])
+
+    def test_stats_lab_indirect_unknown_results_latch_and_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'StatsLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['IndexedMeans[1]']);write('IndexedStatistics',True);fault('outside bounds');write('StatisticsSourceIndex',1);fault('outside bounds');write('StatisticsResultIndex',1);fault('Unknown')
+        for i,value in enumerate((2,4,6),1):write(f'SelectedSamples[{i}]',value)
+        write('IndexedDeviationControl.LEN',1);fault('at least two');write('IndexedDeviationControl.LEN',3);row=values(step());self.assertEqual((row['IndexedMeans[1]'],row['IndexedDeviations[1]'],row['IndexedIntegerMeans[1]']),(4.0,2.0,4));self.assertIs(type(row['IndexedMeans[1]']),float);self.assertIs(type(row['IndexedIntegerMeans[1]']),int);self.assertIsNone(row['IndexedMeans[0]'])
+        write('StatisticsSourceIndex',99);write('StatisticsResultIndex',99);row=values(step());self.assertEqual(row['IndexedMeans[1]'],4.0);write('IndexedStatistics',False);step();write('IndexedStatistics',True);fault('outside bounds');write('StatisticsSourceIndex',1);write('StatisticsResultIndex',2);write('SelectedSamples[1]',8);row=values(step());self.assertEqual((row['IndexedMeans[1]'],row['IndexedMeans[2]'],row['IndexedDeviations[2]'],row['IndexedIntegerMeans[2]']),(4.0,6.0,2.0,6));self.assertEqual((row['SelectedSamples[0]'],row['SelectedSamples[4]']),(111.0,999.0))
+        profile=self.post('report',{})['array_statistics'];self.assertIn('result indices',profile['selection']);self.assertIn('unknown',profile['result_writes'])

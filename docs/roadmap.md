@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.184412`: [statistics operand selection](statistics-operands.md).
+AVE/STD structurally validate result references without saved dynamic indices.
+False and EN/DN/ER-inhibited calls skip result selection; fresh calculations
+resolve actual results and full writes establish unknown elements. Stats lab
+adds three called examples. Existing CONTROL/prescan, float32 calculations,
+rounding, bounds, latches and native parity remain separate.
+
 Available in `26.1103.182714`: [sequencer operand selection](sequencer-operands.md).
 SQI/SQO/SQL structurally validate masks and payloads without saved dynamic
 indices. False/invalid-state calls skip those operands; zero masks skip live

@@ -49,6 +49,14 @@ A one-element DINT source of 2147483647 first rounds to 2147483648, so a DINT
 result fails its range check. Wider intermediates and native precision remain
 unqualified. STD is not widened by the integer AVE profile.
 
+## Operand selection
+
+[Statistics operand selection](statistics-operands.md) adds structural preflight
+for result references. False and EN/DN/ER-inhibited calls skip live result
+indices; fresh calculations resolve actual results before reading samples and
+full writes establish unknown elements. Actual CONTROL addresses/prescan and
+existing flag, length and position reads remain required.
+
 ## CONTROL transitions
 
 A fresh operation requires POS=0 with EN/DN/ER clear. A true rung completes

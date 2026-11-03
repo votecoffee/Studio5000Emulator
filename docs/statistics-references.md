@@ -80,3 +80,7 @@ Published [AVE guidance](https://www.rockwellautomation.com/en-us/docs/studio-50
 also describes selecting a dimension and keeping CONTROL.POS out of the
 starting subscript; newer-release type availability is not imported into this
 bounded v35 profile.
+
+Indirect result selection is documented in [Statistics operands](statistics-operands.md).
+The source-start rules above remain; false or EN/DN/ER-inhibited calls now also
+skip live result indices. Actual CONTROL/prescan and state reads remain.

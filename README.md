@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.182714`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.184412`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -36,6 +36,9 @@ and branch wiring, ST syntax coloring and FBD pin connections. Select a node
 for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
+
+[Statistics operand selection](docs/statistics-operands.md) defers dormant
+AVE/STD result indices and establishes unknown REAL/integer result elements.
 
 [Sequencer operand selection](docs/sequencer-operands.md) defers dormant mask
 and payload indices while preserving held output/teach updates and table checks.

@@ -50,6 +50,13 @@ def selected_region(memory, op, scope, count, *, writable, references):
 
 
 def validate(memory, op, scope):
+    previous = memory.structural
+    memory.structural = True
+    try:_validate(memory, op, scope)
+    finally:memory.structural = previous
+
+
+def _validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Array statistics require the v35 ControlLogix 5580 software profile')
     if op.args[4:] != ['?', '?']:
@@ -116,6 +123,9 @@ def description():
                 destinations={'AVE':sorted(controls.NUMERIC),'STD':['REAL']}, max_elements=controls.MAX_ELEMENTS,
                 integer_ave='Float32 mean rounded to nearest integer, ties to even; rounded range errors roll back the advance',
                 result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',
+                selection='Structural source/result/control preflight; false or EN/DN/ER-inhibited calls skip live result indices and values',
+                result_writes='A fresh calculation resolves the actual result before reading samples; full writes establish unknown destinations',
+                control_selection='Actual CONTROL addresses remain required in prescan/runtime, with existing flag and LEN/POS reads',
                 dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
                 starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',
                 aoi='RLL bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; disjoint sibling results and existing copied-input/Prescan/EnableInFalse/binding rollback rules',
