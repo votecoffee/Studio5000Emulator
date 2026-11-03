@@ -2318,3 +2318,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.post('write',{'tag':tag,'value':value})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual(row['Decoded[1]'],'9007199254740993');self.assertIsNone(row['Results[0]']);self.assertIsNone(row['Decoded[2]'])
+
+    def test_logic_view_assets_are_served_with_graph_modules_before_app_and_no_state_changes(self):
+        page=self.get('/').decode('utf8')
+        self.assertLess(page.index('src="/ladder-graph.js"'),page.index('src="/logic-view.js"'))
+        self.assertLess(page.index('src="/logic-view.js"'),page.index('src="/app.js"'))
+        self.assertIn('id="instruction-inspector"',page);self.assertIn('id="logic-fit"',page)
+        self.assertIn('Read-only monitor',page)
+        self.post('demo',{'sample':'ConveyorDemo'})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        before=current()
+        for name in ('ladder-graph.js','logic-view.js','logic-view.css'):
+            self.assertEqual(self.get('/'+name),(Path(__file__).resolve().parents[1]/'web'/name).read_bytes())
+        after=current()
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
+        with self.assertRaises(HTTPError) as error:self.get('/web/logic-view.js')
+        self.assertEqual(error.exception.code,404);error.exception.close()
+
+    def test_logic_view_aoi_bindings_expose_canonical_tag_references_without_writes(self):
+        state=self.post('demo',{'sample':'AOIQueueLab'})
+        bindings={name.lower():value for name,value in state['aoi_bindings'].items()}
+        self.assertEqual(bindings['drivera']['buffer'],'BufferA')
+        self.assertEqual(bindings['driverb']['buffer'],'BufferB')
+        self.assertEqual(bindings['drivera']['value'],'DriverA.Value')
+        self.assertTrue(all(isinstance(ref,str) and not ref.startswith('@') for fields in bindings.values() for ref in fields.values()))
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','aoi_bindings','routine_edits'):self.assertEqual(after[key],state[key])

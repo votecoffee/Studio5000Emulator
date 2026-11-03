@@ -239,6 +239,9 @@ class Application:
                 "changes": e.changes, "provenance": self.provenance,
                 "tasks": e.project.tasks, "task_schedule":e.scheduler_description(), "converter": self.converter,
                 'aoi_instances':e.addons.instances,
+                'aoi_bindings':{address:{name:target[0] for name,target in e.memory.frames.get(instance.get('scope',''),{}).items()
+                                        if isinstance(target,tuple) and len(target)==2 and isinstance(target[0],str) and target[1]==''}
+                                for address,instance in e.addons.instances.items()},
                 "routines": [{"key": r.key, "kind": r.kind, "problems": r.problems,
                               "active": r.key.lower() in e.active or r.program[4:] in e.addons.active,
                               'harness':not r.program.startswith('AOI:'),
@@ -638,6 +641,8 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
                 with app.lock: return self.send(200, app.state())
             assets = {"/": ("index.html", "text/html; charset=utf-8"),
                       "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"),
+                      "/ladder-graph.js": ("ladder-graph.js", "text/javascript"),
+                      "/logic-view.js": ("logic-view.js", "text/javascript"), "/logic-view.css": ("logic-view.css", "text/css"),
                       "/favicon.ico": ("icons/plc-simulator.ico", "image/vnd.microsoft.icon"),
                       "/icons/plc-simulator-64.png": ("icons/plc-simulator-64.png", "image/png"),
                       "/icons/plc-simulator-128.png": ("icons/plc-simulator-128.png", "image/png")}

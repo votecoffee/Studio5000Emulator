@@ -5,6 +5,20 @@ let connectivityPoll = null;
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
+  onOpenRoutine(key) {selected=key;renderExplorer();renderLadder();},onZoom(value) {updateZoom(value);}});
+let logicZoom = 1;
+function updateZoom(value) {
+  logicZoom=value;const percent=Math.round(value*100), select=$('logic-zoom');
+  if(![...select.options].some(option=>option.value===String(percent)))select.add(new Option(percent+'%',String(percent)));
+  select.value=String(percent);
+}
+$('logic-zoom').onchange=()=>updateZoom(logicView.zoom(Number($('logic-zoom').value)/100));
+$('logic-zoom-in').onclick=()=>updateZoom(logicView.zoom(logicZoom*1.25));
+$('logic-zoom-out').onclick=()=>updateZoom(logicView.zoom(logicZoom/1.25));
+$('logic-fit').onclick=()=>updateZoom(logicView.fit());
+$('logic-values').onchange=()=>logicView.values($('logic-values').checked);
+$('logic-comments').onchange=()=>logicView.comments($('logic-comments').checked);
 async function api(action, data = {}) {
   const response = await fetch('/api/' + action, {method:'POST', headers:{'Content-Type':'application/json','X-Logix-Token':window.LOGIX_TOKEN}, body:JSON.stringify(data)});
   const result = await response.json();
@@ -28,7 +42,7 @@ function render() {
   $('file').accept=appliance?'.l5x':'.acd,.l5x';
   $('footer-text').textContent=appliance?'VMware host-only execution · ACD import uses the Windows tray':'ACD import uses your installed Rockwell SDK · engine runs independently';
   const loaded = !!state?.loaded;
-  ['reset','step','run','apply','snapshot','report','mode'].forEach(id => $(id).disabled = !loaded);
+  ['reset','step','run','apply','snapshot','report','mode','logic-fit','logic-zoom','logic-zoom-in','logic-zoom-out','logic-values','logic-comments'].forEach(id => $(id).disabled = !loaded);
   $('save-logic').disabled=!loaded||running||!state?.routine_edits?.l5x_export_available||!!state?.connectivity?.native_programming_lease?.owned;
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
   renderConnectivity();
@@ -110,27 +124,6 @@ function renderTags() {
   });
   if (tags.length > 3000) {const note=document.createElement('p');note.textContent='Showing first 3,000 results. Narrow the filter.';$('tags').append(note);}
 }
-function sequence(nodes, events, cursor) {
-  const div=document.createElement('div'); div.className='seq';
-  for (const node of nodes) {
-    const wire=document.createElement('div');wire.className='wire';div.append(wire);
-    if (node.branch) {
-      const branch=document.createElement('div');branch.className='branch';
-      node.branch.forEach(path=>branch.append(sequence(path,events,cursor)));div.append(branch);
-    } else {
-      const event=events[cursor.value++];
-      const op=document.createElement('div');op.className='op' + (event?.out ? ' live' : '') + (report && !recognized(node.name) ? ' bad' : '');
-      op.innerHTML=`<div class="op-name">${escapeHtml(node.name)}</div><div class="op-args">${node.args.map(escapeHtml).join('<br>')}</div>`;
-      op.title=event ? `Condition in: ${event.in}\nCondition out: ${event.out}` : 'No execution trace for this instruction';div.append(op);
-      if(node.name==='JSR'||node.name==='FOR'){
-        const target=state.routines.find(r=>r.key.toLowerCase()===(selected.split('/')[0]+'/'+node.args[0]).toLowerCase());
-        if(target){op.classList.add('call-link');op.setAttribute('role','button');op.setAttribute('tabindex','0');op.setAttribute('aria-label','Open routine '+node.args[0]);op.title+='\nOpen '+target.key;
-          op.onclick=()=>{selected=target.key;renderExplorer();renderLadder();};op.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();op.click();}};}
-      }
-    }
-  }
-  const wire=document.createElement('div');wire.className='wire';div.append(wire);return div;
-}
 function renderLadder() {
   const routine=state.routines.find(r=>r.key===selected);if(!routine)return;
   const aoi=routine.key.startsWith('AOI:') ? routine.key.split('/')[0].slice(4) : '';
@@ -141,47 +134,8 @@ function renderLadder() {
   for(const name of contexts){const option=document.createElement('option');option.value=name;option.textContent=name;$('aoi-context').append(option);}
   $('aoi-context').value=selectedContext;
   $('routine-name').textContent=routine.key; $('routine-type').textContent=routine.kind + (routine.active ? ' · IN EXECUTION SCOPE' : ' · OUTSIDE EXECUTION SCOPE');
-  $('rungs').replaceChildren();
-  if(routine.kind==='FBD'){renderFunctionBlocks(routine);return;}
-  if(routine.kind==='ST'){
-    const note=document.createElement('div');note.className='st-note';note.textContent='Structured Text · Green lines executed this scan. Details show the last visit.';$('rungs').append(note);
-    for(const line of routine.lines || []){
-      const trace=state.trace.findLast(t=>t.routine===routine.key && t.number===line.number && (!aoi || t.context===selectedContext));
-      const row=document.createElement('div');row.className='st-row'+(trace ? trace.power ? ' executed' : ' condition-false' : '');
-      row.innerHTML=`<span class="st-number">${escapeHtml(line.number.padStart(3,'0'))}</span><code class="st-source">${escapeHtml(line.text) || ' '}</code><span class="st-result">${escapeHtml(trace?.detail || '')}</span>`;
-      row.title=trace ? `${trace.statement}: ${trace.detail}` : 'No executed statement starts on this line in the current scan';
-      const call=routine.rungs.find(r=>r.number===line.number)?.nodes.find(n=>n.name==='JSR');
-      if(call){const target=state.routines.find(r=>r.key.toLowerCase()===(routine.key.split('/')[0]+'/'+call.args[0]).toLowerCase());
-        if(target){const button=document.createElement('button');button.className='st-call';button.textContent='↗';button.setAttribute('aria-label','Open routine '+call.args[0]);button.onclick=()=>{selected=target.key;renderExplorer();renderLadder();};row.append(button);}}
-      $('rungs').append(row);
-    }
-    return;
-  }
-  if (!routine.rungs.length) {const el=document.createElement('p');el.className='limits';el.style.padding='24px';el.textContent=routine.problems.join('\n') || 'No ladder rungs.';$('rungs').append(el);}
-  routine.rungs.forEach(rung=>{
-    const trace=state.trace.findLast(t=>t.routine===routine.key && t.number===rung.number && (!aoi || t.context===selectedContext));
-    const row=document.createElement('div');row.className='rung';
-    row.innerHTML=`<div class="rung-meta"><b>${escapeHtml(rung.number.padStart(3,'0'))}</b><span class="rung-comment">${escapeHtml(rung.comment)}</span></div>`;
-    const rail=document.createElement('div');rail.className='rail'+(trace?.power ? ' live' : '');rail.append(sequence(rung.nodes,trace?.events || [],{value:0}));row.append(rail);$('rungs').append(row);
-  });
-}
-function renderFunctionBlocks(routine) {
-  const graph=routine.diagram;
-  if(!graph?.nodes?.length){const p=document.createElement('p');p.className='st-note';p.textContent=routine.problems.join('\n') || 'No function blocks.';$('rungs').append(p);return;}
-  const note=document.createElement('div');note.className='st-note';note.textContent='Function Block Diagram · Green blocks executed with EnableIn. Wires show source and destination pins.';$('rungs').append(note);
-  const ns='http://www.w3.org/2000/svg';
-  const make=(name,attrs={},text)=>{const el=document.createElementNS(ns,name);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;return el;};
-  const box=document.createElement('div');box.className='fbd-sheet';const svg=make('svg',{role:'img','aria-label':'Function blocks for '+routine.key});box.append(svg);$('rungs').append(box);
-  const nodes=new Map(graph.nodes.map(n=>[n.id,n]));
-  const width=Math.max(...graph.nodes.map(n=>n.x+240),600),height=Math.max(...graph.nodes.map(n=>n.y+140),220);
-  svg.setAttribute('width',width);svg.setAttribute('height',height);svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
-  for(const w of graph.wires){const a=nodes.get(w.source),b=nodes.get(w.target);if(!a||!b)continue;const x=a.x+200,y=a.y+45,tx=b.x,ty=b.y+45;
-    const line=make('path',{d:`M${x} ${y} H${(x+tx)/2} V${ty} H${tx}`,class:'fbd-wire'});line.append(make('title',{},`${a.operand}.${w.source_pin} → ${b.operand}.${w.target_pin}`));svg.append(line);}
-  for(const n of graph.nodes){const trace=state.trace.findLast(t=>t.routine===routine.key&&t.language==='FBD'&&t.number===String(n.id));
-    const g=make('g',{class:'fbd-node'+(trace?.power?' live':''),transform:`translate(${n.x},${n.y})`});
-    g.append(make('rect',{width:200,height:90,rx:6}),make('text',{x:12,y:22,class:'fbd-kind'},n.type||n.kind),make('text',{x:12,y:45},n.operand));
-    const label=graph.wires.filter(w=>w.target===n.id).map(w=>w.target_pin).join(', ');g.append(make('text',{x:12,y:68,class:'fbd-pins'},label));
-    g.append(make('title',{},`${n.type||n.kind} ${n.operand} · ID ${n.id}${trace?' · last execution '+trace.release_ms+' ms':''}`));svg.append(g);}
+  $('logic-comments-label').hidden=routine.kind!=='RLL';
+  logicView.render({routine, state, context: aoi ? selectedContext : '', recognized});
 }
 function renderCoverage() {
   if (!report) return;
@@ -202,7 +156,7 @@ function renderChanges() {
   $('changes-body').innerHTML=state.changes.slice(0,500).map(c=>`<tr><td>${c.scan} / ${c.ms}</td><td>${escapeHtml(c.tag)}</td><td>${escapeHtml(c.before)} → ${escapeHtml(c.after)}</td></tr>`).join('');
 }
 function selectTab(name) {currentTab=name;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));document.querySelectorAll('.tab-content').forEach(panel=>panel.hidden=panel.id!==name);}
-async function loadDemo(sample='ConveyorDemo') {$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
+async function loadDemo(sample='ConveyorDemo') {$('sample-menu').open=false;$('busy-text').textContent='Opening demo…';$('busy').hidden=false;try{selected='';await accept(await api('demo',{sample}),true);$('mode').value='project';render();}catch(e){error(e);}finally{$('busy').hidden=true;}}
 async function scan() {
   if(stepping)return;stepping=true;
   try{await accept(await api('step',{dt:Number($('dt').value),count:1}));}catch(e){error(e);try{const res=await fetch('/api/state',{headers:{'X-Logix-Token':window.LOGIX_TOKEN}});await accept(await res.json());}catch(_){} }finally{stepping=false;}

@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.084226`: [Studio-style logic documents](logic-viewer.md),
+ladder contact/coil symbols, rails and explicit branch wiring, read-only node
+selection and operand details, exact values, zoom/fit, ST highlighting/call
+navigation and FBD pins. The ladder graph separates nodes/ports/edges, source
+mapping, layout and monitoring. Offline node and wire authoring is planned.
+
 Available in `26.1103.082411`: [32/64-bit BCD conversions](numeric-conversions.md#exact-64-bit-bcd),
 DINT/UDINT/LINT/ULINT packed words, sixteen-digit wide capacity, exact signed/
 unsigned patterns, representable results and existing aliases/AOI rollback.
@@ -430,6 +436,14 @@ reference comparisons where available. No physical-drive equivalence is implied.
 Scope: C01–C05 and V01–V03. Exercise realistic sanitized projects combining
 tasks, languages, AOIs, UDTs/strings, messages, devices and motion. Add repeatable
 snapshot/restart/replay, resource limits and useful module/axis/chart monitors.
+
+The [graph editor foundation](logic-viewer.md#planned-node-and-wire-editor)
+now provides read-only instruction nodes and power connections. Planned authoring
+adds durable document identities, node insertion/connection and operand commands,
+undo/redo, topology/type validation, graph-to-neutral-text round trips and explicit
+save/export to new working copies. Coordinate/selection changes stay separate
+from executable logic revisions. Native transfers and online authoring require
+their own qualification.
 
 Acceptance: a versioned controller/firmware capability matrix with traceable
 passing/failing cases, repeatable long runs and preserved source/current values.

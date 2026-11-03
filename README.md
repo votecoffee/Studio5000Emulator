@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.082411`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.084226`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,12 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+The [logic viewer](docs/logic-viewer.md) uses Studio-style ladder symbols, rails
+and branch wiring, ST syntax coloring and FBD pin connections. Select a node
+for operand details; zoom and fit the document. Ladder topology has explicit
+instruction/junction nodes, typed ports and edges for a future node and wire
+editor. The current monitor remains read-only.
 
 [Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous
 LINT/unsigned CPT and CMP forms for v35 5580. Ladder MEQ additionally mixes
@@ -408,7 +414,8 @@ are kept in the [connectivity history](docs/connectivity-history.md).
 
 ## Usage
 
-Choose a bundled demo or open a complete L5X export. Check **Coverage**, then use
+Choose a bundled demo from **Examples** or open a complete L5X export. Check
+**Coverage**, then use
 **Step scan** or **Run**. Edit inputs in **Tag Watch** and inspect the logic trace.
 **Program** stops continuous scans and preserves the current values. The same
 state is used by native Remote Run/Program requests. Scanning runs in the app
@@ -554,6 +561,15 @@ Run the behavioral suite from the repository root:
 Set-Location source
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
+
+With Node.js installed for development, run the dependency-free viewer checks
+from the project root:
+
+```powershell
+node --test source/tests/web/logic-view.test.cjs
+```
+
+See the [viewer architecture and planned graph editor](docs/logic-viewer.md).
 
 Store machine-specific notes, private PLC files, settings, captures and test
 receipts in ignored `.local/` storage. Generated builds and local reports are
