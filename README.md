@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.073819`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.075330`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -86,9 +86,11 @@ skip their values while false or in prescan. Set `MathIndex` to 1 and enable
 
 [Basic scalar arithmetic and bitwise operations](docs/scalar-math.md) validate
 unknown values structurally, skip false-rung operands and establish full numeric
-destinations. SINT/INT/DINT `AND`/`OR`/`XOR`/`NOT` use declared source widths,
-zero extension and destination low-bit conversion. Enable `BitwiseWidths` in
-**Bit lab** for mixed widths and complement narrowing/widening. Enable
+destinations. Integer-tag `AND`/`OR`/`XOR`/`NOT` mix all eight signed/unsigned
+integer types using declared widths, zero extension and destination low bits.
+Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned examples;
+`BitwiseWidths` retains the narrow-width examples. Wide immediate literals keep
+their separate homogeneous restrictions. Enable
 `BasicMath` in **Math lab** for eleven common operations.
 Ladder `MOD` also supports finite REAL sources mixed with SINT/INT/DINT and
 representable narrow integer results. Enable `RealModulo` for fractional

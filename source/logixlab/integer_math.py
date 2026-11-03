@@ -21,6 +21,7 @@ def description(project):
                 types=sorted(WIDE_TYPES), controllers=sorted(CONTROLLERS),
                 instructions=sorted(INSTRUCTIONS), mixed_types=False,
                 storage_moves='Standalone v35 MOV/CLR use the separate numeric_storage type/conversion profile',
+                bitwise_tags='Standalone v35 AND/OR/XOR/NOT tags use the scalar_math mixed-integer profile; wide immediate forms retain these homogeneous rules',
                 immediate_type='signed DINT, representable in operand type',
                 division='Exact integer quotient truncated toward zero',
                 overflow='Stop and roll back modeled scan; native status/fault flags not emulated')

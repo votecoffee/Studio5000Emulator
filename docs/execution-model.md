@@ -510,10 +510,11 @@ Native status/overflow/lifecycle and additional forms remain unfinished.
 [Scalar arithmetic/bitwise operand selection](scalar-math.md) validates v35 5580
 ADD/SUB/MUL/DIV/MOD/NEG/ABS/AND/OR/XOR/NOT structurally. False/prescan skip live
 values/indices; true sources must be known and complete writes establish unknown
-destinations. SINT/INT/DINT bitwise sources are zero extended before calculation;
-NOT complements after promotion, and results keep destination low bits with signed
-interpretation. Decimal DINT/32-bit radix immediates are supported. Homogeneous
-wide rules and AOI rollback apply. MOD adds finite
+destinations. Bitwise tag sources may mix all eight integer types and are zero
+extended before calculation. NOT complements after promotion; destination low
+bits use signed/unsigned interpretation, with exact 64-bit values. Narrow forms
+retain DINT/32-bit radix immediates; wide operands with immediates retain their
+homogeneous profile. Arithmetic wide rules and AOI rollback apply. MOD adds finite
 REAL-source remainders, float32 input/result conversion and representable narrow
 integer results rounded to even. Zero after REAL conversion and nonfinite/range
 errors roll back; integer-only remainders retain exact calculation. Complete

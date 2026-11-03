@@ -2056,7 +2056,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('BitwiseWidths',False);write('LogicByte',0);write('LogicWord',0);write('LogicDword',255)
         row=step();self.assertEqual(tuple(row[t] for t in names),(0,131071,65791,-256,-1))
         write('BitwiseWidths',True);row=step();self.assertEqual(tuple(row[t] for t in names),(0,255,255,-1,0))
-        report=self.post('report',{})['scalar_math']['bitwise'];self.assertEqual(report['types'],['SINT','INT','DINT']);self.assertFalse(report['native_precision'])
+        report=self.post('report',{})['scalar_math']['bitwise'];self.assertEqual(report['types'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertFalse(report['native_precision'])
 
     def test_imported_unknown_bitwise_widths_and_late_failure_are_atomic_through_http(self):
         import base64
@@ -2204,4 +2204,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.post('write',{'tag':tag,'value':value})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(305397760,4660,1234))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+
+    def test_bit_lab_mixed_integer_tags_preserve_exact_values_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        self.assertEqual(step()['MixedOr'],'0');write('MixedBitwise',True);row=step()
+        names=('MixedAnd','MixedOr','MixedXor','MixedNot','MixedLow')
+        self.assertEqual(tuple(row[t] for t in names),(0,'9007199254741247','-65537','18446744073709551360',255))
+        write('MixedBitwise',False);write('MixedSmall',0);write('MixedDwordMask',1)
+        write('MixedWide','9007199254740994');write('MixedSigned','-9223372036854775808')
+        row=step();self.assertEqual(tuple(row[t] for t in names),(0,'9007199254741247','-65537','18446744073709551360',255))
+        write('MixedBitwise',True);row=step()
+        self.assertEqual(tuple(row[t] for t in names),(0,'9007199254740994','-9223372036854775807','18446744073709551615',0))
+        report=self.post('report',{})['scalar_math']['bitwise'];self.assertEqual(len(report['types']),8);self.assertFalse(report['native_precision'])
+
+    def test_imported_mixed_bitwise_unknowns_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_mixed_bitwise import MixedBitwiseTests
+        fixture=MixedBitwiseTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)DIV(1,LateValues[0],SpeedCommand);']);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'MixedBitwiseUnknowns.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Index',1),('Inputs[1]',2147483649),('LateValues[0]',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(None,'2147483903','18446744071562067966'))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})

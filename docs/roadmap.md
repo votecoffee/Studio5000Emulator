@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.075330`: [mixed integer-tag bitwise forms](scalar-math.md#mixed-integer-tag-widths),
+all eight signed/unsigned integer tag types for AND/OR/XOR/NOT, zero extension,
+exact 64-bit values and typed destination bits. Bit Lab adds `MixedBitwise`.
+Wide immediate forms retain homogeneous restrictions; arithmetic promotion,
+floating-point bitwise and native status/fault/layout qualification remain open.
+
 Available in `26.1103.073819`: [FRD/TOD/SWPB operand selection](numeric-conversions.md#operand-selection),
 structural index preflight, false/prescan operand skips, actual true-call checks
 and full writes to unknown results. Conversion Lab adds indexed round trips and

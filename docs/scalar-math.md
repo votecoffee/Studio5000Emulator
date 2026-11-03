@@ -9,8 +9,9 @@ without requiring saved scalar values or live indices:
 
 Declared scalar types, references, destination permissions and the existing
 homogeneous wide-integer rules remain checked. Invalid shapes, BOOL operands,
-unsupported bitwise floating-point forms and mixed wide types still fail static
-validation, including on false rungs.
+unsupported bitwise floating-point forms and mixed wide arithmetic types still
+fail static validation, including on false rungs. Standalone bitwise integer tags
+use the separate mixed-type profile below.
 
 False rungs and ordinary prescan skip operand values and dynamic indices. A true
 instruction consumes every required source value. Its complete numeric write
@@ -48,13 +49,47 @@ required, including an unknown input combined with a zero mask. False/prescan
 skip live values/indices. Unknowns, reached invalid indices and later faults roll
 back the whole advance and existing AOI bindings.
 
-Homogeneous wide-integer bitwise forms retain their separate rules. Mixed wide/
-unsigned/REAL bitwise forms and native status/fault/lifecycle/packed layout
-qualification remain unfinished. ST expressions and FBD are unchanged.
+The narrow forms retain their existing immediate rules. Wide operands with
+immediates use the separate homogeneous profile described below. Floating-point
+bitwise operands and native status/fault/lifecycle/packed layout qualification
+remain unfinished. ST expressions and FBD are unchanged.
 
 Choose **Bit lab** and enable `BitwiseWidths`. Its default inputs produce
 `AndWidths` 0, `OrWidths` 131071, `XorWidths` 65791, `NotWidened` -256 and
 `NotNarrowed` -1. The report describes this profile under `scalar_math.bitwise`.
+
+## Mixed integer tag widths
+
+When all operands are tags, standalone ladder AND/OR/XOR/NOT may combine
+SINT, INT, DINT, LINT, USINT, UINT, UDINT and ULINT sources and destinations.
+Selected elements, members, aliases and existing AOI bindings use their declared
+types. Source patterns are zero extended; NOT complements after promotion. The
+result keeps the destination's low bits and uses its signed/unsigned
+interpretation. All calculations stay integer-exact, including 64-bit values
+beyond browser-safe numeric precision. LINT/ULINT watches use decimal text.
+
+For example, SINT -1 contributes the bit pattern 255 when ORed with an ULINT value.
+NOT of that SINT into ULINT produces 18446744073709551360. XOR of LINT -1 and
+UDINT 65536 into LINT produces -65537. Narrowing an all-one LINT into USINT
+produces 255. These logical bit conversions do not use arithmetic sign extension.
+
+Literal handling remains deliberately bounded. If any operand is LINT or unsigned
+and an immediate is present, the existing homogeneous rules still apply: all tag
+operands and destination must match, and the signed-DINT immediate must fit that
+type. Negative unsigned immediates, full 32-bit radix patterns above signed DINT
+in these wide forms, mixed-wide/immediate combinations and typed/wider immediates
+remain unqualified. The existing narrow forms retain their signed decimal DINT/
+32-bit radix-pattern rules. Arithmetic, CPT/CMP/MEQ, ST and FBD keep separate rules.
+
+Structural validation, false/prescan skipping, required true-source reads, full
+unknown writes and whole-advance/AOI rollback remain. Invalid indices, unknown
+sources and later faults restore exact values and bindings. Integer bitwise
+sources are required even if another source is zero. REAL/LREAL, native status/
+fault/lifecycle/packed layouts and broader controller profiles remain unqualified.
+
+Choose **Bit lab** and enable `MixedBitwise`. Defaults produce `MixedAnd` 0,
+`MixedOr` 9007199254741247, `MixedXor` -65537, `MixedNot` 18446744073709551360
+and `MixedLow` 255. The mask tag is `MixedDwordMask`. Existing demos remain.
 
 ## Finite REAL remainder
 
@@ -81,7 +116,7 @@ intermediate rounding and bit-for-bit results remain unqualified.
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer operations
 retain their separate profile. Mixed wide/unsigned and REAL operands, LREAL,
-complete mixed-type arithmetic and the remaining bitwise type-conversion matrix,
+complete mixed-type arithmetic, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
 native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
 Other controller profiles retain their separate validation paths.
 

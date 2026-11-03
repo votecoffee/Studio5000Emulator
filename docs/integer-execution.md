@@ -8,6 +8,9 @@ math-status/fault parity are not established.
 Standalone v35 MOV/CLR now use the separate [numeric storage profile](numeric-storage.md),
 including mixed numeric moves and full writes to unknown scalar destinations.
 The homogeneous type and overflow rules below continue to apply to arithmetic.
+Standalone v35 [integer-tag bitwise operations](scalar-math.md#mixed-integer-tag-widths)
+now mix all eight integer types with zero extension and signed/unsigned result
+bits. Wide operands with immediates retain the homogeneous rules below.
 
 ## Try the bundled demo
 
@@ -31,7 +34,8 @@ See the [ST profile and independent demo inputs](wide-st.md), including
 | LINT, USINT, UINT, UDINT, ULINT | ADD, SUB, MUL, DIV, MOD, NEG, ABS, AND, OR, XOR, NOT, MOV, CLR |
 | The same types | EQU, NEQ, LES, LEQ, GRT, GEQ and LIM |
 
-All tag operands of one operation must have exactly the same declared type,
+In this homogeneous arithmetic and wide-immediate profile, all tag operands of
+one operation must have exactly the same declared type,
 including the numeric destination. Scalar array elements, members and aliases
 use their resolved type. Mixed signed/unsigned widths and REAL conversions
 remain blocked for this profile. Existing same-type MOV/CLR and bounded COP/CPS

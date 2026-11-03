@@ -628,9 +628,7 @@ class Engine:
         if n in bit_logic.INSTRUCTIONS and bit_logic.available(self.project):return bit_logic.execute(self.memory,op,p,scope)
         if n in scalar_math.BITWISE and scalar_math.available(self.project):
             if not p:return False
-            dtype=integer_math.profile(self,op,scope)
-            if dtype is not None:return integer_math.execute(self,op,scope,dtype)
-            return scalar_math.execute_bitwise(self.memory,op,scope)
+            return scalar_math.execute_bitwise(self,op,scope)
         extra=self.extensions.execute(op,p,scope)
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:
@@ -831,7 +829,7 @@ class Engine:
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
                            "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
-                           "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP/MEQ also support homogeneous wide operands; mixed types and native math status remain unsupported",
+                           "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP/MEQ retain homogeneous wide operands; standalone bitwise tags use a separate mixed-integer profile; arithmetic promotion and native math status remain incomplete",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",
                            "JSR/SBR/RET use exact parameter counts/types/dimensions, static references and by-value copies; cross-parameter overlap is rejected",

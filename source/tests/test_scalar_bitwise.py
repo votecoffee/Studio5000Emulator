@@ -144,7 +144,7 @@ class ScalarBitwiseTests(unittest.TestCase):
     def test_homogeneous_wide_rules_and_other_controller_path_are_unchanged(self):
         e=self.checked(['NOT(Source,Results[0]);','XOR(Source,Mask,Results[1]);'],source='ULINT',other='ULINT',dest='ULINT',value=9007199254740993,mask=1)
         e.step();self.assertEqual(e.memory.read('Results')[:2],[18437736874454810622,9007199254740992])
-        self.assertTrue(self.engine(source='LINT',other='DINT').blockers)
+        self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);'],source='LINT',other='DINT').blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         e=self.checked(['OR(Source,Mask,Dest);'],mutate=old);e.step();self.assertEqual(e.memory.read('Dest'),-1)
         report=self.checked().report()['scalar_math']['bitwise'];self.assertFalse(report['native_precision'])

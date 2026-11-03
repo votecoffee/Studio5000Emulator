@@ -357,6 +357,56 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="MixedBitwise" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedSmall" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedDwordMask" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Value="65536" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedWide" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedAnd" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedOr" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedXor" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedNot" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedLow" DataType="USINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -444,6 +494,21 @@
               </Rung>
               <Rung Number="26" Type="N">
                 <Text>XIC(IndexedTransfers)BTD(TransferInputs[TransferIndex],8,TransferBits[TransferIndex],0,16);</Text>
+              </Rung>
+              <Rung Number="27" Type="N">
+                <Text>XIC(MixedBitwise)AND(MixedSmall,MixedDwordMask,MixedAnd);</Text>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Text>XIC(MixedBitwise)OR(MixedSmall,MixedWide,MixedOr);</Text>
+              </Rung>
+              <Rung Number="29" Type="N">
+                <Text>XIC(MixedBitwise)XOR(MixedSigned,MixedDwordMask,MixedXor);</Text>
+              </Rung>
+              <Rung Number="30" Type="N">
+                <Text>XIC(MixedBitwise)NOT(MixedSmall,MixedNot);</Text>
+              </Rung>
+              <Rung Number="31" Type="N">
+                <Text>XIC(MixedBitwise)OR(MixedSigned,MixedSmall,MixedLow);</Text>
               </Rung>
             </RLLContent>
           </Routine>
