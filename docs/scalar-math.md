@@ -8,7 +8,7 @@ without requiring saved scalar values or live indices:
 | ADD, SUB, MUL, DIV, MOD, NEG, ABS | AND, OR, XOR, NOT |
 
 Declared scalar types, references, destination permissions and the existing
-homogeneous wide/immediate rules remain checked, with the widening tag-only
+homogeneous wide/immediate rules remain checked, with the widening tag/constant
 arithmetic extension below. Invalid shapes, BOOL operands, unsupported bitwise
 floating-point forms and excluded arithmetic type mixes still fail static
 validation, including on false rungs. Standalone bitwise integer tags
@@ -66,12 +66,46 @@ Enable **MixedArithmetic** in **Integer lab** for eight gated examples, includin
 LINT/DINT exact sums, quotient/remainder, signed/unsigned products, widening NEG/ABS
 and an ULINT/USINT difference. The report exposes `scalar_math.widening_arithmetic`.
 
-Mixed immediates, narrowing, mixed signed-to-unsigned destinations, REAL/LREAL
+Larger/typed arithmetic constants, narrowing, mixed signed-to-unsigned destinations, REAL/LREAL
 mixtures, complete instruction/ST/CPT/CMP promotion and other controller families
 remain separate qualification work. Homogeneous wide immediates keep their
 existing signed-DINT, representable-value rules. ST and FBD are unchanged.
 Installed v35 Data Conversions (14451) supplies the integer rank/sign-extension
 basis; model validation does not establish native runtime equivalence.
+
+## Bounded arithmetic constants
+
+Widening ladder ADD, SUB, MUL, DIV and MOD also accept integer constants mixed
+with tag types. Source tags must still have their complete declared ranges
+covered by the destination. Each constant must be within signed DINT range
+(-2147483648 through 2147483647) and representable in the destination. Its known
+value is checked; a positive saved value in a signed tag does not relax the tag
+range rule. Both source positions work, retaining noncommutative operand order.
+
+For example, DINT `Count` plus literal 1 into LINT `Total` is supported. USINT 255
+plus 1 into UINT gives 256. DIV of DINT -7 by literal 3 into LINT produces -2;
+MOD produces -1. Reversing the operands gives 0 and 3 respectively. Integer
+calculations never pass through REAL. Existing NEG/ABS and homogeneous constant
+forms retain their signed-DINT, destination-representability limits.
+
+False/prescan skip live values and indices, but invalid constant/type/permission
+combinations remain static blockers even on false rungs. Multiplication by zero
+still requires the tag source; unknown data is not folded away. Full writes can
+establish unknown destinations through arrays, UDT members, aliases and AOI
+InOut/local bindings. Zero divisors, overflow/underflow, bad indices, unknowns and
+later faults retain whole-advance rollback, including AOI bindings and siblings.
+
+Enable **ArithmeticConstants** in **Integer lab** for eight examples, including
+reversed operands, unsigned widening, the minimum DINT constant, and existing
+ABS behavior. The report includes the constant contract under
+`scalar_math.widening_arithmetic.constants`.
+
+Larger decimal constants, typed RLL literals, radix patterns above signed-DINT
+range, REAL/LREAL constants, negative constants into unsigned destinations and
+tag narrowing or signed-to-unsigned promotion remain unqualified. Use typed tags
+for larger values. Existing narrow/homogeneous rules remain separate. ST/CPT/CMP,
+bitwise and FBD rules are unchanged; native status, fault and intermediate parity
+are not established.
 
 ## SINT/INT/DINT bitwise widths
 
@@ -162,7 +196,7 @@ intermediate rounding and bit-for-bit results remain unqualified.
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations
 retain their separate profiles. Mixed wide/unsigned and REAL operands, LREAL,
-arithmetic narrowing/mixed literals/signed-to-unsigned promotion, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
+arithmetic narrowing/larger or typed constants/signed-to-unsigned promotion, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
 native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
 Other controller profiles retain their separate validation paths.
 

@@ -10,6 +10,8 @@ including mixed numeric moves and full writes to unknown scalar destinations.
 The homogeneous and wide-immediate profile below remains available. Standalone
 [widening arithmetic](scalar-math.md#widening-integer-tag-arithmetic) additionally
 accepts mixed integer tags when the destination covers every source type range.
+[Bounded constants](scalar-math.md#bounded-arithmetic-constants) may be included
+when each signed-DINT literal is representable in that destination.
 Standalone v35 [integer-tag bitwise operations](scalar-math.md#mixed-integer-tag-widths)
 now mix all eight integer types with zero extension and signed/unsigned result
 bits. Wide operands with immediates retain the homogeneous rules below.
@@ -22,9 +24,10 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 53-root fixture combines nineteen ladder rungs with fifteen called ST statements.
+The 62-root fixture combines twenty-seven ladder rungs with fifteen called ST statements.
 Enable `MixedArithmetic` for eight widening-tag examples; its new rungs are gated
-independently of the existing homogeneous ladder/ST comparison.
+independently of the existing homogeneous ladder/ST comparison. Enable
+`ArithmeticConstants` for eight additional tag/constant examples.
 It demonstrates exact 64-bit addition, division/remainder, an unsigned complement
 and all four unsigned widths. StAllMatches compares the results across languages.
 Values beyond browser-safe integer precision remain decimal text in the tag watch.

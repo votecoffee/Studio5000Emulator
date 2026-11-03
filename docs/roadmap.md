@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.103340`: [bounded arithmetic constants](scalar-math.md#bounded-arithmetic-constants),
+for widening ladder ADD/SUB/MUL/DIV/MOD forms. Constants are signed-DINT integers
+representable in the destination; source tags retain full-range type checks.
+Both operand positions, exact integer results, lazy selection, unknown writes,
+AOI bindings and rollback are modeled. Integer lab adds eight gated examples;
+larger/typed/REAL literals and broader promotion remain separate.
+
 Available in `26.1103.101035`: [widening integer tag arithmetic](scalar-math.md#widening-integer-tag-arithmetic),
 for standalone ladder ADD/SUB/MUL/DIV/MOD/NEG/ABS. Mixed tag types are accepted
 when the destination covers every complete source type range. Integer-exact

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.101035`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.103340`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -105,7 +105,9 @@ their separate homogeneous restrictions. Enable
 [Widening integer arithmetic](docs/scalar-math.md#widening-integer-tag-arithmetic)
 allows mixed integer tags when the destination covers every source type range.
 Enable `MixedArithmetic` in **Integer lab** for exact LINT/DINT and unsigned
-examples across ADD/SUB/MUL/DIV/MOD/NEG/ABS.
+examples across ADD/SUB/MUL/DIV/MOD/NEG/ABS. Enable `ArithmeticConstants`
+for mixed tag/constant examples: signed DINT literals must fit the destination,
+while the destination covers every source tag type's full range.
 Ladder `MOD` also supports finite REAL sources mixed with SINT/INT/DINT and
 representable narrow integer results. Enable `RealModulo` for fractional
 remainders and rounded results; zero divisors retain the model's rollback policy.

@@ -270,6 +270,51 @@
           <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="ArithmeticConstants" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantSum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantDifference" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantProduct" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantUnsignedSum" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantReverseQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ConstantAbs" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -334,6 +379,31 @@
               </Rung>
               <Rung Number="18" Type="N">
                 <Text>XIC(MixedArithmetic)SUB(UnsignedInput,MixedSmall,MixedUnsignedDifference);</Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text>XIC(ArithmeticConstants)ADD(NarrowSigned,1,ConstantSum);</Text>
+                <Comment>Enable ArithmeticConstants for bounded DINT constants, operand order, signed quotient/remainder and widening results.</Comment>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text>XIC(ArithmeticConstants)SUB(10,NarrowSigned,ConstantDifference);</Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text>XIC(ArithmeticConstants)MUL(NarrowSigned,3,ConstantProduct);</Text>
+              </Rung>
+              <Rung Number="22" Type="N">
+                <Text>XIC(ArithmeticConstants)DIV(NarrowSigned,3,ConstantQuotient);</Text>
+              </Rung>
+              <Rung Number="23" Type="N">
+                <Text>XIC(ArithmeticConstants)MOD(NarrowSigned,3,ConstantRemainder);</Text>
+              </Rung>
+              <Rung Number="24" Type="N">
+                <Text>XIC(ArithmeticConstants)ADD(MixedSmall,1,ConstantUnsignedSum);</Text>
+              </Rung>
+              <Rung Number="25" Type="N">
+                <Text>XIC(ArithmeticConstants)DIV(-2147483648,MixedSmall,ConstantReverseQuotient);</Text>
+              </Rung>
+              <Rung Number="26" Type="N">
+                <Text>XIC(ArithmeticConstants)ABS(-2147483648,ConstantAbs);</Text>
               </Rung>
             </RLLContent>
           </Routine>

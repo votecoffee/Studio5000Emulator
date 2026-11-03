@@ -152,7 +152,7 @@ class WideningArithmeticTests(unittest.TestCase):
         self.assertEqual(e.memory.read('BufferA[1]'), 101);self.assertEqual(e.memory.read('DriverA.Stack[3]'), 777)
 
     def test_immediate_real_narrowing_permissions_and_controller_gates_remain(self):
-        for text, options in [('ADD(Source,1,Results[0]);', {'source':'DINT'}),
+        for text, options in [('ADD(Source,1,Results[0]);', {'source':'DINT','dest':'ULINT'}),
                               ('ADD(Source,2147483648,Results[0]);', {}),
                               ('ADD(Source,-1,Results[0]);', {'source':'ULINT','dest':'ULINT'}),
                               ('ADD(Source,Mask,Results[0]);', {'source':'LINT','dest':'DINT'}),

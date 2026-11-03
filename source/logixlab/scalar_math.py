@@ -4,7 +4,7 @@ import operator
 
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile
-from .model import INT_BITS, UNSIGNED_BITS, ModelError, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
@@ -39,28 +39,33 @@ def validate(engine, op, scope):
 
 
 def arithmetic_profile(engine, op, scope):
-    """Exact mixed tag arithmetic when destination promotion loses no source range.
+    """Mixed tag arithmetic with lossless source ranges and bounded constants.
 
     Keep legacy homogeneous/immediate and narrow paths separate. In particular,
     a positive saved signed value does not authorize an unsigned mixed form.
     """
     if op.name not in ARITHMETIC or not available(engine.project):
         return profile(engine, op, scope)
-    types = []
+    types, constants = [], []
     for ref in op.args:
-        try:literal(ref)
+        try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
-        else:return profile(engine, op, scope)
-    if not set(types) & WIDE_TYPES or len(set(types)) == 1:
+        else:types.append(None);constants.append(value)
+    declared = set(types) - {None}
+    if not declared & WIDE_TYPES or len(declared) == 1:
         return profile(engine, op, scope)
-    if any(dtype not in INT_BITS for dtype in types):
+    if any(dtype not in INT_BITS for dtype in declared):
         raise ModelError('Mixed widening arithmetic requires integer scalar tags')
     def bounds(dtype):
         bits = INT_BITS[dtype]
         return (0, (1 << bits) - 1) if dtype in UNSIGNED_BITS else (-(1 << (bits - 1)), (1 << (bits - 1)) - 1)
     low, high = bounds(types[-1])
-    if any(bounds(dtype)[0] < low or bounds(dtype)[1] > high for dtype in types[:-1]):
+    if any(bounds(dtype)[0] < low or bounds(dtype)[1] > high for dtype in types[:-1] if dtype is not None):
         raise ModelError('Mixed arithmetic destination must cover every source type range')
+    for value in constants:
+        if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
+            raise ModelError('Widening arithmetic constants require signed DINT literals')
+        coerce(value, types[-1])
     return types[-1]
 
 
@@ -124,10 +129,11 @@ def description(project):
                 selection='False/prescan skip operands; true instructions require all source values; full writes establish unknown destinations',
                 arithmetic='Exact integer quotient/remainder and checked destination writes; homogeneous/immediate rules retained',
                 widening_arithmetic=dict(instructions=sorted(ARITHMETIC), types=list(INT_BITS),
-                    operands='Tags only, mixed integer types, destination covers every complete source type range',
+                    operands='Mixed integer tags with optional signed-DINT constants; destination covers every complete source tag type range',
+                    constants='Known integer literals in signed DINT range, representable in destination; larger/typed/REAL constants remain excluded',
                     conversion='Signed values retain their sign; unsigned values retain their nonnegative value; all arithmetic stays integer-exact',
                     selection='Declared-type checks even false; false/prescan skip live values and indices; true full writes establish unknowns',
-                    excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and mixed immediate forms; native overflow/status/fault parity',
+                    excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
                     native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',
@@ -142,5 +148,5 @@ def description(project):
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Arithmetic narrowing/mixed signed-to-unsigned/REAL promotion, mixed arithmetic immediates, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and wide/unsigned/LREAL remainder mixtures',
+                remaining=['Arithmetic narrowing/mixed signed-to-unsigned/REAL promotion, larger/typed arithmetic constants, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

@@ -2376,3 +2376,16 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'NarrowDivisor','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
+
+    def test_integer_lab_arithmetic_constants_and_zero_divisor_rollback_through_http(self):
+        state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
+        self.post('write',{'tag':'ArithmeticConstants','value':True});state=self.post('step',{'dt':10})
+        row={r['name']:r['value'] for r in state['tags']}
+        wanted=dict(ConstantSum='-6',ConstantDifference='17',ConstantProduct='-21',ConstantQuotient='-2',ConstantRemainder='-1',ConstantUnsignedSum=4,ConstantReverseQuotient='-715827882',ConstantAbs='2147483648')
+        self.assertEqual({name:row[name] for name in wanted},wanted);self.assertTrue(row['StAllMatches'])
+        before=self.post('write',{'tag':'MixedSmall','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'MixedSmall','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
