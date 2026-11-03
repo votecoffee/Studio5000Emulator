@@ -81,3 +81,7 @@ Reference basis: installed Studio 5000 v35 help 14703/14704/14706 and 3232.
 Published [SQO guidance](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/sequencer-instructions/sequencer-output--sqo-.html)
 also describes the separate starting element and CONTROL.POS offset. These
 software tests do not establish native Studio import or controller equivalence.
+
+Mask and scalar payload selection is documented in [Sequencer operands](sequencer-operands.md).
+These array-start rules remain; false/invalid-state paths skip live mask/payload
+indices, and held true SQO/SQL calls still read current operands.

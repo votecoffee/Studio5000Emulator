@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.182714`: [sequencer operand selection](sequencer-operands.md).
+SQI/SQO/SQL structurally validate masks and payloads without saved dynamic
+indices. False/invalid-state calls skip those operands; zero masks skip live
+compared-source/output references after table checks. Held SQO/SQL still consume
+live data without advancing again. Sequence lab adds a called routine. Existing
+CONTROL/prescan, bounds/ER policies, algorithms and native parity remain separate.
+
 Available in `26.1103.181119`: [CONTROL operand selection](control-operands.md).
 Shift and FIFO/LIFO payloads use structural preflight and are consumed only on
 paths that need data. CONTROL RES skips false/prescan live indices, establishes

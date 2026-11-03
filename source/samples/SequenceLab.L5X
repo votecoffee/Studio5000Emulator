@@ -145,6 +145,21 @@
           <DataValue DataType="DINT" Value="40" />
         </Data>
       </Tag>
+      <Tag Name="IndexedAdvance" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexedCompare" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexedTeach" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexedMatches" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MaskIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="OutputIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SourceIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="Masks" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="FeedbackInputs" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="TeachInputs" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedOutputs" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedPatterns" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="1" /><Element Index="[2]" Value="2" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="IndexedLearned" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="111" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="IndexedSequenceControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="2" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="IndexedTeachControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="2" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -170,6 +185,14 @@
               <Rung Number="5" Type="N">
                 <Text>XIC(Teach)SQL(Learned[0],TeachValue,TeachControl,?,?);</Text>
               </Rung>
+              <Rung Number="6" Type="N"><Text>JSR(IndirectOperands,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IndirectOperands" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(IndexedAdvance)SQO(IndexedPatterns[0],Masks[MaskIndex],IndexedOutputs[OutputIndex],IndexedSequenceControl,?,?);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(IndexedCompare)SQI(IndexedPatterns[0],Masks[MaskIndex],FeedbackInputs[SourceIndex],IndexedSequenceControl,?,?)OTE(IndexedMatches);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(IndexedTeach)SQL(IndexedLearned[0],TeachInputs[SourceIndex],IndexedTeachControl,?,?);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

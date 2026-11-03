@@ -2589,3 +2589,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexedUnload',False);write('IndexedReset',True);fault('outside bounds');write('ResetControlIndex',1);row=values(step());self.assertIsNone(row['ResetControls[1].LEN']);self.assertEqual(row['ResetControls[1].POS'],0);self.assertIs(row['ResetControls[1].EN'],False);self.assertIs(row['ResetControls[1].FD'],False);self.assertIsNone(row['ResetControls[0].POS'])
         write('IndexedReset',False);write('ResetControlIndex',99);row=values(step());self.assertEqual(row['ResetControls[1].POS'],0)
         profile=self.post('report',{})['control_operations'];self.assertIn('payload',profile['skipped_references']);self.assertIn('CONTROL RES',profile['reset_selection'])
+
+    def test_sequence_lab_lazy_masks_payloads_held_calls_and_recovery_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'SequenceLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['IndexedOutputs[1]']);write('IndexedAdvance',True);fault('outside bounds');write('MaskIndex',1);fault('Unknown');write('Masks[1]',-1);fault('outside bounds');write('OutputIndex',1);row=values(step());self.assertEqual(row['IndexedOutputs[1]'],1)
+        write('IndexedCompare',True);fault('outside bounds');write('SourceIndex',1);fault('Unknown');write('FeedbackInputs[1]',1);row=values(step());self.assertTrue(row['IndexedMatches']);write('IndexedTeach',True);fault('Unknown');write('TeachInputs[1]',67);row=values(step());self.assertEqual(row['IndexedLearned[1]'],67)
+        write('IndexedPatterns[1]',4);write('FeedbackInputs[1]',4);write('TeachInputs[1]',77);row=values(step());self.assertEqual((row['IndexedOutputs[1]'],row['IndexedLearned[1]']),(4,77));self.assertEqual((row['IndexedSequenceControl.POS'],row['IndexedTeachControl.POS']),(1,1));self.assertTrue(row['IndexedMatches']);self.assertEqual((row['IndexedPatterns[3]'],row['IndexedLearned[0]'],row['IndexedLearned[3]']),(999,111,999))
+        write('IndexedTeach',False);write('Masks[1]',0);write('OutputIndex',99);write('SourceIndex',99);row=values(step());self.assertEqual(row['IndexedOutputs[1]'],4);self.assertTrue(row['IndexedMatches']);write('Masks[1]',-1);fault('outside bounds');write('OutputIndex',1);fault('outside bounds');write('SourceIndex',1);step()
+        profile=self.post('report',{})['sequencer_operations'];self.assertIn('Structural',profile['selection']);self.assertIn('table window',profile['zero_mask'])

@@ -34,6 +34,14 @@ equality. It does not advance POS or change EN/DN, so it can share the SQO
 position to check feedback. A zero mask passes comparison or leaves SQO output
 unchanged without requiring known source/destination data.
 
+## Operand selection
+
+[Sequencer operand selection](sequencer-operands.md) adds structural preflight
+for masks and scalar payloads. False/invalid-state paths skip their live
+indices; zero masks skip compared-source/output references after the full table
+window is checked. Held SQO/SQL still consume current data on every true call.
+Actual CONTROL addresses, prescan, row/edge and error policies remain.
+
 ## Errors and limits
 
 SQO/SQL clear ER on a new enable edge; SQI clears ER on a true evaluation.

@@ -27,6 +27,13 @@ def starting_array(memory, ref, scope, *, writable=False, structural=False):
 
 
 def validate(memory, op, scope):
+    previous = memory.structural
+    memory.structural = True
+    try:_validate(memory, op, scope)
+    finally:memory.structural = previous
+
+
+def _validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Sequencers require the v35 ControlLogix 5580 software profile')
     a = op.args;control_index = 2 if op.name == 'SQL' else 3
@@ -118,7 +125,10 @@ def description():
                 held_true='SQO rewrites masked output; SQL reloads current row; SQI compares without advancing',
                 masks='SINT/INT/DINT zero-filled patterns and 32-bit radix immediates',
                 bounds='Selected array/member region including LEN+1 rows, maximum 4096 elements; live starts consumed on reached data operations, including held calls',
-                starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live indices',
+                starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live table indices',
+                selection='Structural preflight for table, mask and payload references; false/invalid-state paths skip live mask/source/destination indices',
+                zero_mask='Full table window checked first; zero mask skips row values and live compared-source/output references',
+                control_selection='Actual CONTROL address still required at runtime; SQO/SQL prescan sets actual EN; held true calls consume live data without advancing again',
                 aoi='RLL bodies with exact one-dimensional InOut/local DINT arrays and selected element starts; disjoint instance members allowed; existing Prescan/EnableInFalse/binding rollback rules',
                 invalid_state='ER with data retained for modeled SQI/SQO cases; SQL bounds stop and roll back',
                 native_scan_parity=False, native_control_layout=False,
