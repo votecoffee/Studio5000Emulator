@@ -83,6 +83,37 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="LadderCounter" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ResetCount" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="CounterIndex" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LadderDone" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ResetRecord" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ResetIndex" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="LadderCounts" TagType="Base" DataType="COUNTER" Dimensions="3">
+        <Data Format="Decorated">
+          <Array DataType="COUNTER" Dimensions="3">
+            <Element Index="[0]"><Structure DataType="COUNTER"><DataValueMember Name="PRE" DataType="DINT" Value="3" /></Structure></Element>
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="ResetCounters" TagType="Base" DataType="COUNTER" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="COUNTER" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="ResetTimers" TagType="Base" DataType="TIMER" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="TIMER" Dimensions="3" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -103,7 +134,37 @@
               <Line Number="10">Overflow := Counter.OV;</Line>
               <Line Number="11">Underflow := Counter.UN;</Line>
               <Line Number="12">GuardResult := 1 / FaultDivisor;</Line>
+              <Line Number="13">IF LadderCounter THEN</Line>
+              <Line Number="14">    JSR(CountLadder,0);</Line>
+              <Line Number="15">END_IF;</Line>
+              <Line Number="16">JSR(ResetLadderRecords,0);</Line>
             </STContent>
+          </Routine>
+          <Routine Name="CountLadder" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ResetCount)RES(LadderCounts[CounterIndex]);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(UpInput)CTU(LadderCounts[CounterIndex],?,?);</Text>
+              </Rung>
+              <Rung Number="2" Type="N">
+                <Text>XIC(DownInput)CTD(LadderCounts[CounterIndex],?,?);</Text>
+              </Rung>
+              <Rung Number="3" Type="N">
+                <Text>XIC(LadderCounts[CounterIndex].DN)OTE(LadderDone);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ResetLadderRecords" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(ResetRecord)RES(ResetCounters[ResetIndex]);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(ResetRecord)RES(ResetTimers[ResetIndex]);</Text>
+              </Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

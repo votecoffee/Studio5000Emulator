@@ -386,6 +386,7 @@ class Engine:
         if n in array_sort.INSTRUCTIONS:array_sort.validate(self.memory,op,scope);return
         if n in file_search.INSTRUCTIONS:file_search.validate(self,op,scope);return
         if n in file_arithmetic.INSTRUCTIONS:file_arithmetic.validate(self,op,scope);return
+        if self._counter_preflight(op,scope):return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.preflight(self.memory,op,scope);return
         if scalar_math.validate(self,op,scope):return
@@ -422,6 +423,52 @@ class Engine:
             for arg in a:
                 if isinstance(self.memory.read(arg, scope), (bool, float)): raise ModelError("Bitwise operands require integers")
         integer_math.profile(self,op,scope)
+
+    def _counter_record(self,ref,scope,expected=None):
+        key,parts,dtype=self.memory.check_writable(ref,scope)
+        if dtype not in ('COUNTER','TIMER') or expected is not None and dtype!=expected:
+            raise ModelError('A scalar writable '+(expected or 'TIMER or COUNTER')+' record is required')
+        obj=self.memory.at(key,parts)
+        if not isinstance(obj,dict) or set(obj)!=set(self.project.default(dtype)):
+            raise ModelError('Timer/counter operand must select one complete record')
+        return obj
+
+    def _counter_preflight(self,op,scope):
+        if op.name not in ('CTU','CTD','RES') or not bit_logic.available(self.project):return False
+        previous=self.memory.structural;self.memory.structural=True
+        try:
+            if op.name=='RES' and self.memory.resolve(op.args[0],scope)[2]=='CONTROL':return False
+            self._counter_record(op.args[0],scope,'COUNTER' if op.name!='RES' else None)
+            if op.name!='RES' and op.args[1:]!=['?','?']:
+                raise ModelError('Use neutral-text ?,? operands; PRE/ACC are taken from tag data')
+        finally:self.memory.structural=previous
+        return True
+
+    def _counter_execute(self,op,power,scope):
+        if op.name not in ('CTU','CTD','RES') or not bit_logic.available(self.project):return None
+        if op.name=='RES':
+            previous=self.memory.structural;self.memory.structural=True
+            try:dtype=self.memory.resolve(op.args[0],scope)[2]
+            finally:self.memory.structural=previous
+            if dtype=='CONTROL':return None
+            if not power:return False
+            obj=self._counter_record(op.args[0],scope)
+            obj.update({name:0 if name=='ACC' else False for name in obj if name!='PRE'})
+            return True
+        obj=self._counter_record(op.args[0],scope,'COUNTER')
+        for member in ('PRE','ACC'):
+            if type(obj[member]) is not int or not -2147483648<=obj[member]<=2147483647:
+                raise ModelError('COUNTER.'+member+' is unknown or outside DINT')
+        edge='CU' if op.name=='CTU' else 'CD'
+        if power and type(obj[edge]) is not bool:
+            raise ModelError('COUNTER.'+edge+' is unknown or not BOOL')
+        value=obj['ACC'];updates={edge:power}
+        if power and not obj[edge]:
+            value+=1 if op.name=='CTU' else -1
+            if value>2147483647:value=-2147483648;updates['OV']=True
+            if value< -2147483648:value=2147483647;updates['UN']=True
+        updates.update(ACC=value,DN=value>=obj['PRE']);obj.update(updates)
+        return power
 
     def _prescan(self):
         for key in sorted(self.active):
@@ -619,6 +666,8 @@ class Engine:
         if n in array_sort.INSTRUCTIONS:return array_sort.execute(self.memory,op,p,scope)
         if n in file_search.INSTRUCTIONS:return file_search.execute(self,op,p,scope)
         if n in file_arithmetic.INSTRUCTIONS:return file_arithmetic.execute(self,op,p,scope)
+        counter=self._counter_execute(op,p,scope)
+        if counter is not None:return counter
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
             if p:
                 control_operations.reset(self.memory,a[0],scope)
@@ -785,6 +834,13 @@ class Engine:
                 'numeric_storage':numeric_storage.description(self.project),
                 'scalar_math':scalar_math.description(self.project),
                 'numeric_copy':numeric_copy.description(self.project),
+                'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
+                    counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',
+                    unknowns='False CTU/CTD establish their edge flag without old history; unread opposite-edge/overflow flags are retained',
+                    reset='TIMER/COUNTER RES preserves PRE, establishes zero ACC and false status bits without old field values',
+                    selection='Structural counter/reset preflight; false RES skips live indices; counter prescan and execution require actual record addresses',
+                    boundaries='Completed prescan separate from runtime rollback; timer algorithms, CONTROL RES and other profiles unchanged',
+                    native_runtime_parity=False),
                 'numeric_fill':numeric_fill.description(self.project),
                 'size_truncate':size_truncate.description(self.project),
                 'numeric_comparisons':comparisons.description(self.project),

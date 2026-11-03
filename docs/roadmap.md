@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.163323`: [ladder counter/reset state selection](ladder-counters.md).
+CTU/CTD require known DINT PRE/ACC and required BOOL history instead of treating
+unknown edges as false. False counter rungs establish their own edge flag;
+TIMER/COUNTER RES establishes ACC/status while preserving PRE and skips live
+indices when false. Counter lab adds two ladder routines. Counter prescan still
+needs actual indices; timer clocks, CONTROL RES and native parity remain separate.
+
 Available in `26.1103.161651`: [numeric COP/CPS operand selection](numeric-copies.md#operand-selection).
 Structural preflight checks types, shapes, permissions and literal bounds without
 saved lengths, dynamic indices or numeric values. Reached copies retain byte

@@ -842,7 +842,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag':'Preset','value':30});self.post('write', {'tag':'ResetTimers','value':True})
         v=values(self.post('step', {'dt':10}));self.assertFalse(v['AnyFault'])
         self.assertEqual((v['On.ACC'],v['Retained.ACC'],v['Off.ACC']),(0,0,30))
-        profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','DEG','FRD','LN','LOG','MOD','RAD','RTOR','SIN','SQR','TAN','TOD','TOFR','TONR','TRN','UPDN','XOR','XPY'])
+        profile=self.post('report', {})['st_timers'];self.assertEqual(profile['instructions'],['RTOR','TOFR','TONR'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_rate_lab_timing_bypass_status_and_clock_rollback_through_http(self):
@@ -997,7 +997,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(v['Overflow']);self.assertTrue(v['Underflow'])
         self.post('write', {'tag':'ResetCounter','value':True});v=values(self.post('step', {'dt':10}))
         self.assertEqual(v['Count'],0);self.assertFalse(v['Overflow']);self.assertFalse(v['Underflow'])
-        profile=self.post('report', {})['st_counter'];self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','CTUD','DEG','FRD','LN','LOG','MOD','RAD','SIN','SQR','TAN','TOD','TRN','XPY'])
+        profile=self.post('report', {})['st_counter'];self.assertEqual(profile['instructions'],['CTUD'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_selector_lab_function_blocks_and_rollback_through_http(self):
@@ -2492,3 +2492,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual([row[f'SelectedBytes[{i}]'] for i in range(4)],[4,3,2,1]);self.assertEqual(row['SelectedRoundtrip[0]'],16909060);self.assertTrue(row['CopyMatches']);self.assertIsNone(row['SelectedBytes[4]']);self.assertIsNone(row['SelectedRoundtrip[1]'])
         self.post('write',{'tag':'IndexedCopy','value':False});self.post('write',{'tag':'CopyIndex','value':99});row=values(self.post('step',{'dt':10}));self.assertEqual(row['SelectedRoundtrip[0]'],16909060);self.assertFalse(row['CopyMatches'])
         self.assertIn('Structural',self.post('report',{})['numeric_copy']['selection'])
+
+    def test_counter_lab_ladder_unknown_initialization_resets_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'CounterLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['LadderCounts[0].ACC']);self.assertIsNone(row['ResetTimers[0].ACC'])
+        write('LadderCounter',True);fault('COUNTER.ACC');write('ResetCount',True);row=values(step());self.assertEqual(row['LadderCounts[0].ACC'],0);self.assertEqual(row['LadderCounts[0].PRE'],3);write('ResetCount',False)
+        for i in range(1,4):
+            write('UpInput',True);row=values(step());self.assertEqual(row['LadderCounts[0].ACC'],i);write('UpInput',False);step()
+        self.assertTrue(row['LadderDone']);write('DownInput',True);row=values(step());self.assertEqual(row['LadderCounts[0].ACC'],2);self.assertFalse(row['LadderDone'])
+        write('ResetRecord',True);fault('outside bounds');write('ResetIndex',0);row=values(step())
+        for name in ('ResetCounters','ResetTimers'):self.assertEqual(row[name+'[0].ACC'],0);self.assertIsNone(row[name+'[0].PRE']);self.assertFalse(row[name+'[0].DN']);self.assertIsNone(row[name+'[1].ACC'])
+        report=self.post('report',{})['ladder_counters'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
