@@ -122,7 +122,7 @@ class LadderWideExpressionTests(unittest.TestCase):
                            'Source+RunLatch','NOT RunLatch','Source+1L','Source+Unknown'):
             self.assertTrue(self.engine(['AFI()CPT(Dest,'+expression+');']).blockers,expression)
         for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','LINT','REAL'),('LINT','LINT','DINT')):
-            self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],types=types).blockers)
+            self.assertTrue(self.engine(['AFI()CPT(Dest,Source+(Mask+1));'],types=types).blockers)
         for expression in ('Source','Source&&StartPB','!(Source)','Source=1.0','Source**2=1','Source>Mask>Dest'):
             self.assertTrue(self.engine(['AFI()CMP('+expression+')OTE(RunLatch);']).blockers,expression)
 
@@ -212,7 +212,7 @@ class LadderWideExpressionTests(unittest.TestCase):
         from logixlab.model import ARITIES, ST_ONLY_ARITIES
         e=self.checked(['CPT(Dest,Source+Mask);']);profile=e.report()['wide_ladder_expressions']
         self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29));self.assertEqual(profile['instructions'],['CPT','CMP','MEQ'])
-        self.assertTrue(profile['available']);self.assertFalse(profile['mixed_numeric_types']);self.assertFalse(profile['native_runtime_parity'])
+        self.assertTrue(profile['available']);self.assertTrue(profile['mixed_numeric_types']);self.assertFalse(profile['native_runtime_parity'])
 
     def test_wide_cmp_opt_in_does_not_expand_file_expression_consumers(self):
         from logixlab.model import Op

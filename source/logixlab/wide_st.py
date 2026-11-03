@@ -14,7 +14,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError(label+' requires the v35 ControlLogix 5580 profile')
     numeric=set(declared.values())-{'BOOL'}
-    mixed=consumer=='CMP' and len(numeric)>1 and not expression.typed_types
+    mixed=consumer in ('CPT','CMP') and len(numeric)>1 and not expression.typed_types
     if mixed:
         dtype=ordering_type(numeric)
     else:
@@ -33,6 +33,16 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         if type(value) is not int or not -(1<<31)<=value<1<<31:
             raise ModelError(label+' immediates require signed DINT integers representable in the operand type')
         coerce(value,dtype)
+    origins={}
+    def common_operand(node):
+        key=id(node)
+        if key not in origins:
+            origins[key]=(node[0]=='ref' and declared[node[1]]==dtype or
+                          any(common_operand(child) for child in node[2:] if isinstance(child,tuple)))
+        return origins[key]
+    def require_common(node):
+        if not common_operand(node):
+            raise ModelError('Mixed ladder arithmetic requires the common tag type in every arithmetic subexpression')
     def infer(node):
         kind,value=node[:2]
         if kind=='literal':
@@ -50,12 +60,14 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
                 return 'number'
             result=infer(node[2])
             if (value=='NOT' or consumer=='CMP' and value=='!') and result=='bool':return 'bool'
-            if mixed:raise ModelError('Mixed CMP permits unary signs on constants and BOOL negation only')
             if result!='number' or value=='!':raise ModelError('Invalid wide ST unary operand')
+            if mixed:
+                if value=='NOT':raise ModelError('Mixed numeric bitwise expressions remain unqualified')
+                require_common(node)
             return 'number'
         if kind=='call':
-            if mixed:raise ModelError('Mixed CMP functions remain unqualified')
             if infer(node[2])!='number':raise ModelError('Wide ST ABS requires a numeric operand')
+            if mixed:require_common(node)
             return 'number'
         left,right=infer(node[2]),infer(node[3])
         if value in RELATIONS:
@@ -66,8 +78,10 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
             if left!=right or left!='bool':raise ModelError('Wide CMP logical operators require BOOL expressions')
             return 'bool'
         if value in ('AND','OR','XOR') and left==right=='bool':return 'bool'
-        if mixed:raise ModelError('Mixed CMP supports direct comparisons and BOOL composition; arithmetic remains unqualified')
         if left!='number' or right!='number':raise ModelError('Wide ST arithmetic requires numeric operands')
+        if mixed:
+            if value not in ('+','-','*','/','MOD'):raise ModelError('Mixed numeric bitwise expressions remain unqualified')
+            require_common(node)
         return 'number'
     return dtype,infer(expression.tree),types
 
@@ -107,9 +121,9 @@ def evaluate(expression,memory,scope,profile):
 
 
 def ladder_description(project):
-    return dict(profile='v35-5580-homogeneous-wide-ladder-expressions',types=sorted(WIDE_TYPES),
+    return dict(profile='v35-5580-integer-ladder-expressions',types=list(INTEGER_RANK),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                instructions=['CPT','CMP','MEQ'],mixed_numeric_types=False,
+                instructions=['CPT','CMP','MEQ'],mixed_numeric_types=True,
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
                 cmp_logic=['&&','||','^^','!','BOOL AND/OR/XOR/NOT'],eager_cmp=True,
@@ -118,14 +132,23 @@ def ladder_description(project):
                     operators='Direct numeric relations and BOOL composition, including BOOL equality, eager AND/OR/XOR/NOT and symbolic forms',
                     constants='Signed-DINT integers representable in the common tag type; no invented larger type or value-based tag conversion',
                     selection='Structural preflight; false/prescan skip live values and indices; true expressions consume both logical operands',
-                    excluded='Mixed arithmetic, numeric bitwise, unary tag signs, functions, REAL/LREAL, typed/larger constants, CPT/ST and native parity',
+                    arithmetic='Bounded mixed arithmetic is described in mixed_integer_arithmetic',
+                    excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, typed/larger constants, CPT comparison results, ST and native parity',
+                    native_runtime_parity=False),
+                mixed_integer_arithmetic=dict(instructions=['CPT','CMP'],types=list(INTEGER_RANK),
+                    operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
+                    operands='Highest-ranked actual source tag type covers every complete numeric source range; CPT destination matches that type',
+                    intermediates='Every arithmetic subexpression contains an actual source tag of the selected common type; every result must fit',
+                    constants='Signed-DINT integers representable in the common type; destination and constants do not invent a wider source type',
+                    arithmetic='Exact integers; quotient toward zero; remainder has dividend sign; all required sources consumed',
+                    excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions/power, REAL/LREAL, typed/larger constants, ST and native parity',
                     native_runtime_parity=False),
                 meq='All eight integer tag types may mix; zero-extend each read-only declared pattern; legacy immediates remain homogeneous',
                 meq_mixed_integer_tags=True,
                 literals='Signed DINT integers representable in the matching declared type; store larger constants in tags',
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['Mixed arithmetic/expression types and wider immediate literals','Power and other functions',
+                remaining=['Other mixed arithmetic intermediates and wider immediate literals','Numeric bitwise mixtures, power and functions beyond ABS',
                            'LREAL/time types, file-expression and array-index consumers','Native status/fault/intermediate/partial-effect parity'])
 
 

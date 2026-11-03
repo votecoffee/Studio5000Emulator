@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.114348`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.151913`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -37,7 +37,7 @@ for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
 
-[Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous
+[Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous and bounded mixed
 LINT/unsigned CPT and CMP forms for v35 5580. Ladder MEQ additionally mixes
 all eight integer tag types with zero extension and exact 64-bit masks. **Ladder wide expression lab**
 demonstrates values beyond floating-point precision, high-bit masks and fault recovery.
@@ -135,6 +135,9 @@ combine exact comparisons with Boolean logic. Enable `MixedConditions` for eight
 [Numeric CPT/CMP selection](docs/integer-expressions.md#operand-selection) keeps saved
 unknowns and dynamic indices dormant on false rungs. **Ladder wide expression lab**
 adds an `ExecuteIndexed` section for full writes, faults and recovery.
+[Mixed expression arithmetic](docs/ladder-wide-expressions.md#mixed-integer-arithmetic)
+adds CPT/CMP calculations with explicit intermediate checks. Enable
+`MixedExpressionMath` in that lab for nine examples.
 
 [Array size and truncation](docs/size-truncate.md) add selected array/string DATA
 size reads, lazy unknown-value handling and signed/unsigned TRN results. In

@@ -1,7 +1,7 @@
 # Integer expression division
 
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) now have a separate
-v35 5580 profile: CPT arithmetic remains homogeneous; CMP has a separate
+v35 5580 profile with [bounded mixed CPT/CMP arithmetic](ladder-wide-expressions.md#mixed-integer-arithmetic). CMP also has a separate
 [direct mixed integer condition profile](ladder-wide-expressions.md#mixed-integer-cmp),
 and tag-only MEQ accepts mixed integer types. The rules below describe the narrow expression
 model; file-expression consumers remain narrow.

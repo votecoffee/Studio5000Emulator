@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.151913`: [mixed CPT/CMP integer arithmetic](ladder-wide-expressions.md#mixed-integer-arithmetic).
+Exact basic operations, unary signs and ABS use a common actual source type that
+covers all source ranges. Every arithmetic subtree must contain that type; CPT's
+destination matches it. Structural/lazy selection, required unknowns, full writes
+and runtime/AOI rollback are modeled. The ladder expression lab adds nine gated
+examples. Other intermediates, numeric bitwise mixtures, ST and native parity
+remain separate.
+
 Available in `26.1103.114348`: [numeric CPT/CMP operand selection](integer-expressions.md#operand-selection).
 Structural preflight retains declared types, shapes, grammar and permissions while
 allowing unknown saved operands and dynamic indices until reached. False/prescan

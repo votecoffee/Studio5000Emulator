@@ -2442,3 +2442,17 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'ExecuteIndexed','value':False});self.post('write',{'tag':'ExpressionIndex','value':99});row=values(self.post('step',{'dt':10}))
         self.assertEqual(row['ExpressionResults[0]'],'9007199254740995');self.assertFalse(row['ExpressionWideMatches']);self.assertFalse(row['ExpressionNarrowMatches'])
         report=self.post('report',{})['integer_expression_execution']['ladder_selection'];self.assertEqual(report['instructions'],['CPT','CMP']);self.assertEqual(len(report['types']),9);self.assertFalse(report['native_runtime_parity'])
+
+    def test_mixed_expression_math_exact_results_zero_divisor_and_gate_through_http(self):
+        state=self.post('demo',{'sample':'WideExpressionLab'});self.assertEqual(state['blockers'],[])
+        self.post('write',{'tag':'MixedExpressionMath','value':True});state=self.post('step',{'dt':10});values=lambda s:{r['name']:r['value'] for r in s['tags']};row=values(state)
+        expected=dict(ExpressionSum='9007199254740996',ExpressionDifference='9007199254740990',ExpressionProduct='-14',ExpressionQuotient='-3074457345618258602',ExpressionRemainder='-2',ExpressionUnsigned='18446744073709551611',ExpressionAbsolute='14',ExpressionNested='4503599627370498')
+        self.assertEqual({name:row[name] for name in expected},expected);self.assertTrue(row['MixedExpressionMatches']);self.assertEqual(row['ExpressionDelta'],3)
+        before=self.post('write',{'tag':'ExpressionDelta','value':0})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);self.assertIn('zero',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'ExpressionDelta','value':3});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected)
+        self.post('write',{'tag':'MixedExpressionMath','value':False});self.post('write',{'tag':'ExpressionDelta','value':0});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected);self.assertFalse(row['MixedExpressionMatches'])
+        report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_arithmetic'];self.assertEqual(report['instructions'],['CPT','CMP']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])

@@ -155,6 +155,66 @@
           <Array DataType="DINT" Dimensions="3" />
         </Data>
       </Tag>
+      <Tag Name="MixedExpressionMath" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionDelta" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionSmall" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-7" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionSum" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionDifference" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionProduct" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionQuotient" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionRemainder" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionUnsigned" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionAbsolute" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionNested" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedExpressionMatches" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -201,6 +261,34 @@
               </Rung>
               <Rung Number="12" Type="N">
                 <Text>XIC(ExecuteIndexed)CMP((ExpressionNarrowResults[ExpressionIndex]&gt;ExpressionNarrow[ExpressionIndex])&amp;&amp;Execute)OTE(ExpressionNarrowMatches);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionSum,SignedInput+ExpressionDelta);</Text>
+                <Comment>Enable MixedExpressionMath for exact mixed integer arithmetic. Every arithmetic subtree contains an actual tag of its common type.</Comment>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionDifference,SignedInput-ExpressionDelta);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionProduct,SignedDelta*ExpressionSmall);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionQuotient,SignedMinimum/ExpressionDelta);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionRemainder,SignedMinimum MOD ExpressionDelta);</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionUnsigned,UnsignedInput-ByteDelta);</Text>
+              </Rung>
+              <Rung Number="19" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionAbsolute,ABS(SignedDelta*ExpressionSmall));</Text>
+              </Rung>
+              <Rung Number="20" Type="N">
+                <Text>XIC(MixedExpressionMath)CMP((SignedInput+ExpressionDelta&gt;SignedInput)&amp;&amp;(ExpressionSmall&lt;SignedDelta))OTE(MixedExpressionMatches);</Text>
+              </Rung>
+              <Rung Number="21" Type="N">
+                <Text>XIC(MixedExpressionMath)CPT(ExpressionNested,(SignedInput+ExpressionDelta)/SignedDelta);</Text>
               </Rung>
             </RLLContent>
           </Routine>

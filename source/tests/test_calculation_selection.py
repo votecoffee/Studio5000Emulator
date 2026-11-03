@@ -123,7 +123,7 @@ class CalculationSelectionTests(unittest.TestCase):
             e=self.engine(['AFI()'+rung]);self.assertTrue(e.blockers,rung);self.assertFalse(e.memory.structural)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()CPT(Results[Index],Source+Mask);'],mutate=constant).blockers)
-        self.assertTrue(self.engine(['AFI()CPT(Results[0],Source+Mask);'],types=('LINT','DINT','LINT')).blockers)
+        self.assertTrue(self.engine(['AFI()CPT(Results[0],Source+(Mask+1));'],types=('LINT','DINT','LINT')).blockers)
         self.assertTrue(self.engine(['AFI()CPT(Results[0],Source+2147483648);'],dtype='LINT').blockers)
 
     def test_other_targets_direct_evaluators_and_file_consumers_do_not_gain_this_preflight(self):

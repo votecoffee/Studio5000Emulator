@@ -4,9 +4,9 @@ App `26.1102.075653` adds bounded ladder `CPT`, `CMP` and `MEQ` forms for
 homogeneous `LINT`, `USINT`, `UINT`, `UDINT` and `ULINT` tags in the Standard
 v35 ControlLogix 5580 profile (`1756-L81E` through `1756-L85E`). Existing
 SINT/INT/DINT/REAL expression and narrow MEQ behavior remains available.
-App `26.1103.081017` extends tag-only MEQ to all eight integer types; CPT/CMP
-wide arithmetic expressions retain their homogeneous rules.
-App `26.1103.113157` adds the mixed integer CMP profile below.
+App `26.1103.081017` extends tag-only MEQ to all eight integer types.
+App `26.1103.113157` adds direct mixed integer CMP conditions;
+`26.1103.151913` adds bounded mixed CPT/CMP arithmetic as described below.
 
 Development order is ladder, then Structured Text, then FBD, then SFC. This
 increment extends ladder operand forms; it adds no ST, FBD or SFC features.
@@ -20,8 +20,8 @@ CMP((Result>Input)&&!Blocked)OTE(ExactCompare);
 MEQ(Pattern,Mask,Expected)OTE(MaskMatches);
 ```
 
-Numeric tags within one wide expression, including the CPT destination, must
-have the same declared type. Literals must be signed DINT integers that also
+Homogeneous wide expressions use matching numeric tag types, including the CPT
+destination. The mixed profiles below have separate range and intermediate rules. Literals must be signed DINT integers that also
 fit that type. Store larger constants in typed tags. CPT can infer its type
 from the destination for literal-only expressions. A destination's previous
 value may be unknown if the expression does not read it.
@@ -65,11 +65,10 @@ and BOOL equality/inequality. Both logical operands are consumed, including when
 the left operand already determines the truth value. Every required unknown or
 invalid index faults rather than being hidden by a known logical operand.
 
-This mixed profile accepts direct tag/constant comparisons only. Mixed arithmetic,
-numeric bitwise, unary signs on tags, functions, REAL/LREAL mixtures, wider/typed
-literals and lossy type combinations remain blocked even on false rungs. Existing
-homogeneous CMP arithmetic/bitwise, narrow/REAL CMP, CPT, ST and MEQ profiles remain
-separate. Expression-wide qualification is deliberately conservative; independently
+Direct tag/constant comparisons use this profile; arithmetic uses the bounded
+profile below. Numeric bitwise mixtures, other functions, REAL/LREAL mixtures,
+wider/typed literals and lossy type combinations remain blocked even on false
+rungs. Homogeneous and narrow/REAL calculations, ST and MEQ remain separate. Expression-wide qualification is deliberately conservative; independently
 safe subexpressions do not bypass an incompatible whole-expression type set.
 
 Wide CMP preflight checks scalar shapes, static references, constant bounds and
@@ -87,6 +86,45 @@ start true; `MixedConditionGate` and `MixedConditionExact` start false. Enabling
 9007199254740993 makes the adjacent-value comparison true. Disabling MixedConditions
 clears all eight outputs. The report exposes
 `wide_ladder_expressions.mixed_integer_comparisons`.
+
+## Mixed integer arithmetic
+
+CPT and CMP accept bounded mixed integer arithmetic in Standard v35 ControlLogix
+5580 projects. The highest-ranked **actual numeric source tag type** in the whole
+expression must cover every source tag's complete declared range. CPT's destination
+must match that source type. Destination context and constants do not invent a
+larger source type; positive saved values do not justify lossy signed/unsigned
+conversion. Types rank SINT, USINT, INT, UINT, DINT, UDINT, LINT, ULINT.
+
+Supported mixed operations are `+`, `-`, `*`, `/`, `MOD`, unary signs and `ABS`.
+Every arithmetic subexpression must contain an actual source tag of the selected
+common type. Thus a LINT Wide and DINT Small permit `(Wide+Small)+1`, while
+`Wide+(Small+1)` remains blocked: its inner arithmetic has no LINT source. Unary
+signs and ABS follow that same rule. This keeps intermediate widths explicit;
+independent lower-type arithmetic, mixed numeric bitwise and functions beyond
+ABS remain unqualified. Existing homogeneous expressions keep their prior rules.
+
+Every result must fit the selected type. Calculations use exact integers, quotient
+truncation toward zero and dividend-sign remainders. A later operation does not
+cancel an earlier overflow. Constants remain signed-DINT integers representable
+in the selected type, including existing radix spellings within that value range.
+Larger/typed/REAL constants, REAL/LREAL mixtures, narrowing and destination-only
+promotion remain outside this mixed profile. ST and file/index consumers do not
+expand. Native intermediate, flags, fault and partial-effect parity are unverified.
+
+Structural preflight and false/prescan selection follow the rules below. Enabled
+expressions consume every required source, including a source multiplied by zero
+or an arithmetic operand on the right of a known Boolean result. Complete CPT
+writes establish unknown selected results; self-read results must first be known.
+Source aliases, constants and UDT/AOI members stay read-only. Faults restore the
+whole runtime advance, including prior writes, scheduler state and AOI bindings.
+The report describes this under `wide_ladder_expressions.mixed_integer_arithmetic`.
+
+Enable **MixedExpressionMath** in **Ladder wide expression lab** for eight numeric
+results and one arithmetic condition: sums, differences, products, exact minimum-
+LINT quotient/remainder, unsigned subtraction, ABS and nested arithmetic. Set
+`ExpressionDelta` to zero while enabled to test rollback, then restore it to 3.
+Disabling the gate retains numeric outputs and clears `MixedExpressionMatches`.
 
 ## Scans and faults
 
@@ -109,7 +147,7 @@ force; full CPT writes establish selected unknown results without reading them.
 
 Choose **Ladder wide expression lab** or load
 [WideExpressionLab.L5X](../source/samples/WideExpressionLab.L5X). It contains
-30 controller tags, thirteen rungs and only ladder routines. One step produces:
+42 controller tags, twenty-two rungs and only ladder routines. One step produces:
 
 | Tag | Expected value |
 | --- | --- |
@@ -133,7 +171,7 @@ or native import acceptance of the public fixture.
 
 ## Remaining work
 
-Mixed arithmetic and additional expression conversions, wide immediate
+Additional arithmetic intermediates and expression conversions, wide immediate
 syntax, LREAL/time expressions, power and other functions, wide file-expression
 consumers and wide array indices remain unsupported. General ladder and ST
 coverage is still incomplete. No new FBD/SFC forms are included.

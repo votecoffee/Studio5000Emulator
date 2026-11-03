@@ -101,14 +101,14 @@ class MixedConditionTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.memory.write('IndexB',2);e.step();self.assertTrue(e.memory.read('DriverA.EnableOut'));self.assertEqual(e.memory.read('DriverA.Stack[3]'),777)
 
     def test_arithmetic_bitwise_functions_shapes_and_unbounded_literals_remain_blocked(self):
-        for expr in ('Source+Mask>0','Source/Mask=1','(Source AND Mask)>0','(NOT Source)=Mask','-Source<Mask',
-                     'ABS(Source)>Mask','Source>Mask>Dest','Source>RunLatch','Values>Mask','Source>2147483648','Source>1.0','Source>1L'):
+        for expr in ('Source+(Mask+1)>0','Source/(Mask+1)=1','(Source AND Mask)>0','(NOT Source)=Mask','-Mask<Source',
+                     'ABS(Mask)>Source','Source>Mask>Dest','Source>RunLatch','Values>Mask','Source>2147483648','Source>1.0','Source>1L'):
             e=self.engine(['AFI()CMP('+expr+')OTE(RunLatch);'],types=('LINT','DINT','DINT'));self.assertTrue(e.blockers,expr);self.assertFalse(e.memory.structural)
         self.assertTrue(self.engine(['CMP((Source>Mask)&&(Mask>-1))OTE(RunLatch);'],types=('ULINT','UDINT','DINT')).blockers)
         self.assertTrue(self.engine(['AFI()CMP(Source>Mask)OTE(RunLatch);'],types=('LINT','REAL','DINT')).blockers)
 
     def test_cpt_st_legacy_homogeneous_and_controller_boundaries_remain_separate(self):
-        self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],types=('LINT','DINT','LINT')).blockers)
+        self.assertTrue(self.engine(['AFI()CPT(Dest,Source+(Mask+1));'],types=('LINT','DINT','LINT')).blockers)
         e=self.checked(['CMP((Source AND Mask)>0)OTE(RunLatch);'],types=('LINT',)*3,values=(7,3,0));e.step();self.assertTrue(e.memory.read('RunLatch'))
         for processor,revision in [('1756-L75','35'),('1756-L85E','34')]:
             def old(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',revision)
