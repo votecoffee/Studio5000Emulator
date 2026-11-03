@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.111942`: [bounded constants in mixed limits](numeric-comparisons.md#bounded-constants-in-mixed-limits).
+LIM accepts signed-DINT integer constants in Low, Test or High alongside mixed
+integer tags, without relaxing complete tag ranges or unsigned representability.
+Exact/read-only values, lazy selection, required unknowns, AOI bindings and
+runtime rollback are modeled. Integer lab adds eight gated examples. Larger,
+typed and REAL constants, broader promotion and native parity remain separate.
+
 Available in `26.1103.110037`: [mixed integer ordering and limits](numeric-comparisons.md#mixed-integer-ordering-and-limits),
 for standalone EQU/NEQ/LES/LEQ/GRT/GEQ/LIM. The highest-ranked declared tag type
 must cover all complete operand ranges; numeric values and 64-bit precision

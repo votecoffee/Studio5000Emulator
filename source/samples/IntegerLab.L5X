@@ -405,6 +405,51 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="RelationConstants" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantLow" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantTest" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantHigh" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantMinimum" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantReversed" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantEndpoint" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantMaximum" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="LimitConstantExact" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -522,6 +567,31 @@
               </Rung>
               <Rung Number="35" Type="N">
                 <Text>XIC(MixedRelations)LIM(RelationReversedLow,RelationTest,RelationReversedHigh)OTE(RelationReversed);</Text>
+              </Rung>
+              <Rung Number="36" Type="N">
+                <Text>XIC(RelationConstants)LIM(0,RelationDword,RelationExpected)OTE(LimitConstantLow);</Text>
+                <Comment>Enable RelationConstants for mixed integer limits with bounded constants in every operand position.</Comment>
+              </Rung>
+              <Rung Number="37" Type="N">
+                <Text>XIC(RelationConstants)LIM(RelationLow,5,RelationExpected)OTE(LimitConstantTest);</Text>
+              </Rung>
+              <Rung Number="38" Type="N">
+                <Text>XIC(RelationConstants)LIM(RelationLow,RelationWord,2147483647)OTE(LimitConstantHigh);</Text>
+              </Rung>
+              <Rung Number="39" Type="N">
+                <Text>XIC(RelationConstants)LIM(-2147483648,NarrowSigned,RelationExpected)OTE(LimitConstantMinimum);</Text>
+              </Rung>
+              <Rung Number="40" Type="N">
+                <Text>XIC(RelationConstants)LIM(RelationReversedLow,RelationTest,2)OTE(LimitConstantReversed);</Text>
+              </Rung>
+              <Rung Number="41" Type="N">
+                <Text>XIC(RelationConstants)LIM(RelationReversedLow,2,RelationReversedHigh)OTE(LimitConstantEndpoint);</Text>
+              </Rung>
+              <Rung Number="42" Type="N">
+                <Text>XIC(RelationConstants)LIM(2147483647,RelationDword,RelationExpected)OTE(LimitConstantMaximum);</Text>
+              </Rung>
+              <Rung Number="43" Type="N">
+                <Text>XIC(RelationConstants)LIM(0,SignedInput,RelationWord)OTE(LimitConstantExact);</Text>
               </Rung>
             </RLLContent>
           </Routine>

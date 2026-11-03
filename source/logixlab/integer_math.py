@@ -21,7 +21,7 @@ def description(project):
                 types=sorted(WIDE_TYPES), controllers=sorted(CONTROLLERS),
                 instructions=sorted(INSTRUCTIONS), mixed_types=False,
                 arithmetic_tags='Standalone v35 ADD/SUB/MUL/DIV/MOD/NEG/ABS also use the separate scalar_math widening tag profile',
-                ordering_tags='Standalone v35 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM use the separate numeric_comparisons range-preserving mixed tag profile',
+                ordering_tags='Standalone v35 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM use the separate numeric_comparisons range-preserving mixed tag/constant profile',
                 storage_moves='Standalone v35 MOV/CLR use the separate numeric_storage type/conversion profile',
                 bitwise_tags='Standalone v35 AND/OR/XOR/NOT tags use the scalar_math mixed-integer profile; wide immediate forms retain these homogeneous rules',
                 immediate_type='signed DINT, representable in operand type',

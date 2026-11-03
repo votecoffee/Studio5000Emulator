@@ -38,8 +38,8 @@ comparisons consume every operand, including a missing high limit when another
 comparison already appears false. Unknowns, bad indices and later faults restore
 prior writes/coils, task/time state and AOI bindings. Source values are not written.
 
-Immediate, homogeneous and existing narrow/REAL rules remain separate. This new
-mixed profile is tag-only; mixed wide literals, lossy signed/unsigned conversion,
+Homogeneous and existing narrow/REAL rules remain separate. Mixed limits also
+accept bounded constants as described below. Lossy signed/unsigned conversion,
 REAL/LREAL mixtures, ST/CPT/CMP/FBD forms, other targets and native status/fault/
 lifecycle parity remain unqualified. MEQ uses the separate bit-pattern rules below.
 The report exposes `numeric_comparisons.mixed_integer_ordering`.
@@ -49,6 +49,37 @@ examples. Initially the six relations and `RelationInRange` are true;
 `RelationExactLimit` and `RelationReversed` are false. Raising `RelationHigh` to
 9007199254740993 makes the exact limit true. Setting `RelationTest` to 2 or 8
 makes the reversed limit true. Disabling the gate clears all nine coils.
+
+## Bounded constants in mixed limits
+
+LIM can combine two different integer tag types with a constant in the Low,
+Test or High position. For example, `LIM(0,WideValue,UpperLimit)` accepts a LINT
+Test tag and a DINT High tag. `LIM(LowLimit,5,HighLimit)` accepts DINT/LINT limit
+tags. Each constant must be an integer in signed DINT range and representable
+in the highest-ranked **tag** type. Decimal and existing binary/octal/hexadecimal
+integer spellings follow this same value rule; radix patterns above signed DINT
+range do not acquire a negative interpretation.
+
+Constants do not select a larger common type or relax complete tag-range checks.
+Thus a zero constant cannot authorize a DINT/UDINT or LINT/ULINT mixture, and a
+negative constant cannot be used with a highest-ranked unsigned tag type. Larger,
+typed and REAL/LREAL constants remain outside this mixed profile. Homogeneous
+LIM, binary comparison immediates, narrow/REAL rules and MEQ keep their existing
+profiles, including homogeneous unsigned representability restrictions.
+
+A known Test or limit does not skip another required unknown operand. False
+rungs and ordinary prescan skip values and live indices; true LIM consumes every
+source. Comparands stay read-only, including aliases and AOI sources. Scan faults
+roll back runtime changes; completed deferred prescan effects precede that scan
+transaction and remain visible. Native lifecycle equivalence is unverified.
+
+Enable **RelationConstants** in **Integer lab** for eight gated examples. Six
+outputs start true; `LimitConstantReversed` and `LimitConstantExact` start false.
+Setting `RelationTest` to 2 makes the reversed endpoint true. Setting `SignedInput`
+to 65535 makes the exact-value test true. The original value 9007199254740993
+remains exact when it exceeds the UINT high limit. Disabling the gate clears all
+eight outputs. The report describes this boundary in
+`numeric_comparisons.mixed_integer_ordering.constants`.
 
 ## Mixed integer tag widths
 

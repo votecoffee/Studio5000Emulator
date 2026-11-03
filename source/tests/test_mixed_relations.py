@@ -124,7 +124,7 @@ class MixedRelationTests(unittest.TestCase):
     def test_lossy_types_immediates_shapes_and_other_profiles_remain_blocked(self):
         for types,values in [(('DINT','UDINT','DINT'),(1,1,0)),(('LINT','ULINT','DINT'),(1,1,0)),(('SINT','USINT','DINT'),(1,1,0)),(('LINT','REAL','DINT'),(1,1,0))]:
             self.assertTrue(self.engine(['AFI()EQU(Source,Mask)OTE(RunLatch);'],types=types,values=values).blockers)
-        for text in ('LIM(0,Source,Mask)','EQU(Source,2147483648)','EQU(Source,TRUE)','EQU(Values,Mask)','EQU(Missing,Mask)'):
+        for text in ('LIM(2147483648,Source,Mask)','EQU(Source,2147483648)','EQU(Source,TRUE)','EQU(Values,Mask)','EQU(Missing,Mask)'):
             self.assertTrue(self.engine(['AFI()'+text+'OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)
         e=self.checked(['LIM(0,Source,10)OTE(RunLatch);'],types=('LINT','LINT','LINT'),values=(7,0,0));e.step();self.assertTrue(e.memory.read('RunLatch'))
         for processor,revision in [('1756-L75','35'),('1756-L85E','34')]:

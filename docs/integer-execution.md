@@ -26,7 +26,7 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 80-root fixture combines thirty-six ladder rungs with fifteen called ST statements.
+The 89-root fixture combines forty-four ladder rungs with fifteen called ST statements.
 Enable `MixedArithmetic` for eight widening-tag examples; its new rungs are gated
 independently of the existing homogeneous ladder/ST comparison. Enable
 `ArithmeticConstants` for eight additional tag/constant examples and
@@ -64,6 +64,10 @@ integer calculations throughout. A value such as `9007199254740993` therefore
 retains its exact bits rather than being rounded through floating point.
 AND/OR/XOR/NOT use the declared width; unsigned NOT produces an unsigned result,
 while signed LINT bitwise results retain two's-complement interpretation.
+
+Enable `RelationConstants` for [mixed limits with bounded constants](numeric-comparisons.md#bounded-constants-in-mixed-limits)
+in all three operand positions, inclusive/reversed endpoints and read-only exact
+wide values. Complete tag ranges still govern the chosen type.
 
 ## Division and failures
 
