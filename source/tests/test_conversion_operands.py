@@ -88,7 +88,7 @@ class ConversionOperandTests(unittest.TestCase):
                      'FRD(2147483648,Results[0]);','TOD(1.0,Results[0]);','TOD(Inputs[Missing],Results[0]);',
                      'FRD(Inputs[Source/2],Results[0]);','FRD(Source,Results[99]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
-        for source,dest in (('SINT','DINT'),('INT','DINT'),('LINT','DINT'),('REAL','DINT'),('DINT','ULINT')):
+        for source,dest in (('SINT','DINT'),('INT','DINT'),('USINT','DINT'),('UINT','DINT'),('REAL','DINT'),('DINT','BOOL')):
             self.assertTrue(self.engine(source=source,dest=dest,value=1).blockers,(source,dest))
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)

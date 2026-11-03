@@ -115,7 +115,7 @@ class NumericConversionTests(unittest.TestCase):
         self.assertTrue(self.engine(['CPT(Dest,FRD(Source));']).blockers)
 
     def test_unqualified_types_immediates_modes_and_arities_block(self):
-        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','REAL','BOOL'):
+        for dtype in ('REAL','BOOL'):
             for text in ('FRD(Source,Dest);','TOD(Source,Dest);'):
                 for types in ((dtype,'DINT','DINT'),('DINT','DINT',dtype)):
                     self.assertTrue(self.engine([text],types=types).blockers,(text,types))

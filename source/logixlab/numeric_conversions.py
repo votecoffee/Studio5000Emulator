@@ -1,10 +1,11 @@
-"""Bounded BCD operand conversions and INT/DINT byte order for v35 5580."""
+"""Bounded 32/64-bit BCD conversions and INT/DINT byte order for v35 5580."""
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import INT_BITS, ModelError, literal
 
 INSTRUCTIONS = frozenset(('FRD', 'TOD', 'SWPB'))
 ORDERS = frozenset(('REVERSE', 'WORD', 'HIGHLOW'))
+PACKED_TYPES = ('DINT', 'UDINT', 'LINT', 'ULINT')
 
 
 def scalar(memory, ref, scope, *, destination=False):
@@ -26,12 +27,20 @@ def validate(memory, op, scope):
         if op.args[1].upper() not in ORDERS:
             raise ModelError('SWPB order must be REVERSE, WORD or HIGHLOW')
         return 16 if stype == 'INT' else 32
-    width = operand(memory, source, scope)
+    try:
+        literal(source)
+    except ValueError:
+        stype = scalar(memory, source, scope)
+        if stype not in INT_BITS:
+            raise ModelError('BCD source requires a scalar signed/unsigned integer')
+        width = INT_BITS[stype]
+    else:
+        width = operand(memory, source, scope)
     if op.name == 'FRD':
-        if width != 32 or dtype not in ('SINT', 'INT', 'DINT'):
-            raise ModelError('FRD requires a DINT source/immediate and SINT/INT/DINT destination')
-    elif dtype != 'DINT':
-        raise ModelError('TOD requires a SINT/INT/DINT source/immediate and DINT destination')
+        if width not in (32, 64) or dtype not in INT_BITS:
+            raise ModelError('FRD requires a 32/64-bit packed source and integer destination')
+    elif dtype not in PACKED_TYPES:
+        raise ModelError('TOD requires an integer source and DINT/UDINT/LINT/ULINT destination')
     return width
 
 
@@ -45,19 +54,22 @@ def preflight(memory, op, scope):
         memory.structural = previous
 
 
-def from_bcd(value):
-    value &= 0xffffffff
-    return sum(((value >> (4 * index)) & 15) * 10 ** index for index in range(8))
+def from_bcd(value, width=32):
+    # Default width preserves the separate DINT FBD contract.
+    value &= (1 << width) - 1
+    return sum(((value >> (4 * index)) & 15) * 10 ** index for index in range(width // 4))
 
 
-def to_bcd(value):
-    if not 0 <= value <= 99999999:
-        raise ModelError('TOD source outside the qualified 0..99999999 range')
+def to_bcd(value, dtype='DINT'):
+    digits = INT_BITS[dtype] // 4
+    maximum = 10 ** digits - 1
+    if not 0 <= value <= maximum:
+        raise ModelError(f'TOD source outside the qualified 0..{maximum} range')
     result = 0
-    for index in range(8):
+    for index in range(digits):
         value, digit = divmod(value, 10)
         result |= digit << (4 * index)
-    return bit_value(result, 'DINT')
+    return bit_value(result, dtype)
 
 
 def execute(memory, op, power, scope):
@@ -67,9 +79,9 @@ def execute(memory, op, power, scope):
     value = unsigned(memory, op.args[0], scope, width)
     if op.name == 'FRD':
         # v35 explicitly defines weighted hex nibbles, including A..F.
-        result = from_bcd(value)
+        result = from_bcd(value, width)
     elif op.name == 'TOD':
-        result = to_bcd(memory.read(op.args[0], scope))
+        result = to_bcd(memory.read(op.args[0], scope), scalar(memory, op.args[-1], scope))
     else:
         order = op.args[1].upper()
         if width == 16:
@@ -87,14 +99,16 @@ def execute(memory, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-conversions', instructions=sorted(INSTRUCTIONS),
-                bcd='RLL FRD decodes DINT source/immediate into SINT/INT/DINT; shared FBD calculation retains eight weighted nibbles',
-                rll_operands={'FRD':{'sources':['DINT'],'destinations':['SINT','INT','DINT']},
-                              'TOD':{'sources':['SINT','INT','DINT'],'destinations':['DINT']}},
+                bcd='RLL FRD decodes 32/64-bit patterns; TOD packs 8/16 decimal digits by destination width; shared FBD defaults remain DINT',
+                rll_operands={'FRD':{'sources':list(PACKED_TYPES),'destinations':list(INT_BITS)},
+                              'TOD':{'sources':list(INT_BITS),'destinations':list(PACKED_TYPES)}},
                 preflight='Declared scalar types/shapes, index grammar, permissions, immediate bounds and SWPB selectors; no saved dynamic indices or tag values',
                 selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
-                frd_range='Decoded value must fit the signed destination; range errors roll back the advance',
-                tod_range='SINT/INT/DINT decimal inputs within 0..99999999; packed signed DINT result',
+                frd_range='Eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
+                tod_range='Nonnegative integer input: 0..99999999 for DINT/UDINT or 0..9999999999999999 for LINT/ULINT; exact packed destination bits',
+                immediates='Existing signed DINT decimal or 32-bit radix sources; store larger values in typed tags',
+                native_runtime_parity=False,
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
-                remaining=['FRD narrow sources, TOD narrow destinations and wide/unsigned BCD operands', 'BCD expression and remaining FBD forms',
+                remaining=['FRD 8/16-bit sources and TOD 8/16-bit packed destinations', 'BCD expression and remaining FBD forms',
                            'TOD saturation, math status and native fault parity'])

@@ -3,8 +3,8 @@
 The v35 ControlLogix 5580 software profile supports these forms:
 
 ```text
-FRD(Source,Dest);                 // Ladder, DINT -> SINT/INT/DINT
-TOD(Source,Dest);                 // Ladder, SINT/INT/DINT -> DINT
+FRD(Source,Dest);                 // Ladder, 32/64-bit packed -> integer
+TOD(Source,Dest);                 // Ladder, integer -> 32/64-bit packed
 SWPB(Source,REVERSE,Dest);         // Ladder and ST, INT/DINT
 SWPB(Source,WORD,Dest);
 SWPB(Source,HIGHLOW,Dest);
@@ -12,13 +12,15 @@ SWPB(Source,HIGHLOW,Dest);
 
 ## BCD conversions
 
-FRD reads a DINT bit pattern and weights its eight nibbles by successive decimal
+FRD reads a 32/64-bit bit pattern and weights its eight/sixteen nibbles by decimal
 powers. The installed v35 definition explicitly includes hex digits A–F: source
 16#1234567E produces 12345684. A signed source is interpreted through its full
-32-bit pattern; -1 produces 166666665. FRD does not reject nondecimal nibbles.
+declared pattern; DINT -1 produces 166666665 and LINT -1 produces
+16666666666666665. FRD does not reject nondecimal nibbles.
 
-TOD accepts decimal values from 0 through 99999999 and packs their digits into
-eight nibbles. Results preserve the signed DINT bit pattern: 80000000 produces
+TOD accepts nonnegative decimal integers and packs their digits into the
+destination width: 0..99999999 for DINT/UDINT and 0..9999999999999999 for
+LINT/ULINT. Signed destinations retain the packed bit pattern: in DINT, 80000000 produces
 -2147483648, and 99999999 produces -1717986919 (16#99999999). FRD reverses this
 packing for ordinary decimal digits. Neither conversion needs an initialized
 destination value.
@@ -27,19 +29,18 @@ The qualified ladder combinations are:
 
 | Instruction | Source | Destination |
 | --- | --- | --- |
-| FRD | DINT tag or bounded signed DINT/32-bit radix immediate | Writable SINT/INT/DINT scalar |
-| TOD | SINT/INT/DINT tag or bounded DINT immediate | Writable DINT scalar |
+| FRD | DINT/UDINT/LINT/ULINT tag or bounded signed DINT/32-bit radix immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| TOD | Any of the eight signed/unsigned integer tags or bounded DINT immediate | Writable DINT/UDINT/LINT/ULINT scalar |
 
-FRD checks the decoded integer against the destination's signed range. Thus
+FRD checks the decoded integer against the destination's signed/unsigned range. Thus
 16#127 decodes to SINT 127; 16#128 decodes to 128 and faults on a SINT result.
 It does not store truncated overflow bits. The eight-nibble calculation is
-unchanged, including signed DINT sources and A-F digits.
+retained for 32-bit sources, including signed DINT sources and A-F digits.
 
-TOD consumes the signed decimal value directly, without a float32 conversion:
+TOD consumes the integer decimal value directly, without a float32 conversion:
 SINT 99 packs to DINT 16#99, INT 32767 packs to DINT 16#32767, and either
-round-trips through FRD into its original signed type. Narrow FRD sources,
-narrow packed TOD destinations, wide/unsigned types and BCD expression functions
-remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
+round-trips through FRD into its original signed type. FRD 8/16-bit sources,
+TOD 8/16-bit packed destinations and BCD expression functions remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
 v35 language list. Existing [FBD conversion records](fbd-conversions.md) retain
 their separate DINT-only BCD contract; no new FBD forms are added here.
 
@@ -48,6 +49,40 @@ Decoded FRD results outside the destination range also stop and roll back.
 Native TOD saturation, truncation/overflow bits, math flags and configurable minor faults remain
 unfinished. This valid-range profile must not be treated as native overflow
 behavior.
+
+## Exact 64-bit BCD
+
+App `26.1103.082411` adds the wide/unsigned combinations above. A 64-bit packed
+result holds sixteen decimal digits, including values beyond floating-point
+precision. For example, 9007199254740993 packs as `16#9007199254740993`:
+ULINT stores 10378291982571407763 and LINT stores -8068452091138143853. Either
+packed type decodes back to the original decimal value. ULINT `16#FFFFFFFFFFFFFFFF`
+decodes to 16666666666666665 by weighting its sixteen A-F-capable nibbles.
+
+DINT/UDINT retain eight-nibble capacity even with a 64-bit decimal source.
+TOD rejects negative inputs or values above the destination's decimal capacity.
+FRD rejects decoded results that do not fit the destination. It does not clip
+or wrap decoded overflows. Narrow packed types and native saturation/overflow
+flags remain separate work. No REAL/LREAL conversion is introduced.
+
+Source immediates retain signed-DINT decimal or 32-bit radix bounds. Larger
+values must be held in typed tags; wider/typed literal syntax is not added.
+A source literal is still a 32-bit pattern for FRD, even with a 64-bit result.
+Aliases, selected array/UDT members, constant sources and supported AOI local/
+InOut bindings retain structural preflight, lazy false/prescan reads, complete
+unknown-result writes and whole-advance rollback. In-place conversions capture
+the source before writing. FBD keeps the shared helpers' DINT defaults and gains
+no wide form; ST FRD/TOD remain unavailable.
+
+Enable `WideConversions` in **Conversion lab**. The default signed/unsigned
+round trips yield 9007199254740993, `WideWeighted` yields 16666666666666665,
+and `UnsignedPacked` yields 2576980377 (`16#99999999`). Set `WideDecimal` to
+9999999999999999 to exercise full capacity. A value of 10000000000000000 faults
+and rolls back the advance; correct it and retry. Wide watches use decimal text.
+
+The 64-bit weighted-nibble software model extends the documented 32-bit formula
+to sixteen nibbles using the listed LINT/ULINT operand types. Native calculation,
+import, status, fault and lifecycle parity still need qualification.
 
 ## Byte orders
 

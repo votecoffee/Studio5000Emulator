@@ -13,7 +13,8 @@ live operands; zero length checks the destination but skips the source value.
 Unknown destinations can be established; bounds and later faults roll back.
 
 [BCD operand combinations](numeric-conversions.md) permit narrow decimal TOD
-inputs and narrow decoded FRD results around a DINT packed value. Calculations
+inputs and narrow decoded FRD results, plus 32/64-bit packed signed/unsigned
+forms with eight/sixteen decimal digits. Calculations
 remain exact integer operations. Decoded result overflow and invalid TOD ranges
 use the existing whole-advance rollback policy.
 
@@ -227,12 +228,13 @@ Domain/overflow failures retain advance rollback; native NaN/infinity, precision
 and math-status behavior remain separate work.
 
 [Numeric conversions](numeric-conversions.md) provide ladder BCD forms around
-DINT packed words and ladder/ST INT/DINT SWPB. Structural preflight checks
+DINT/UDINT/LINT/ULINT packed words and ladder/ST INT/DINT SWPB. Structural preflight checks
 declared operands without consuming saved dynamic indices; false/prescan skip
 live operands. Enabled calls retain actual indices/source/range checks and full
 unknown-result writes, with whole-advance/AOI rollback.
-FRD weights all eight hex nibbles, including A–F;
-TOD packs qualified decimal values into a signed DINT bit pattern. SWPB uses
+FRD weights eight/sixteen hex nibbles, including A–F; TOD accepts all eight
+integer source types and packs eight/sixteen decimal digits by destination
+width, retaining signed/unsigned bit patterns and exact 64-bit values. SWPB uses
 explicit byte-order selectors and sign-extends swapped INT results to DINT.
 Native TOD saturation/math flags remain separate from modeled rollback.
 

@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.082411`: [32/64-bit BCD conversions](numeric-conversions.md#exact-64-bit-bcd),
+DINT/UDINT/LINT/ULINT packed words, sixteen-digit wide capacity, exact signed/
+unsigned patterns, representable results and existing aliases/AOI rollback.
+Conversion Lab adds `WideConversions`. FRD/TOD 8/16-bit packed forms, saturation,
+flags and native calculation/fault/lifecycle parity remain unfinished.
+
 Available in `26.1103.081017`: [mixed integer-tag MEQ](numeric-comparisons.md#mixed-integer-tag-widths),
 all eight signed/unsigned integer input types, zero-filled declared patterns,
 read-only constants and exact 64-bit masks. Data Lab adds `MixedCompare`.

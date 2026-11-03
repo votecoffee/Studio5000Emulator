@@ -180,6 +180,66 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="WideConversions" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WideDecimal" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="WidePacked" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WideDecoded" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedPacked" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="SignedDecoded" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WeightedWide" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="18446744073709551615" />
+        </Data>
+      </Tag>
+      <Tag Name="WideWeighted" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedDecimal" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="99999999" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedPacked" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="UnsignedDecoded" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="WideOK" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -228,6 +288,21 @@
               </Rung>
               <Rung Number="13" Type="N">
                 <Text>XIC(IndexedConversions)SWPB(IndexedPacked[ConversionIndex],WORD,IndexedSwapped[ConversionIndex]);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(WideConversions)TOD(WideDecimal,WidePacked)FRD(WidePacked,WideDecoded);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(WideConversions)TOD(WideDecimal,SignedPacked)FRD(SignedPacked,SignedDecoded);</Text>
+              </Rung>
+              <Rung Number="16" Type="N">
+                <Text>XIC(WideConversions)FRD(WeightedWide,WideWeighted);</Text>
+              </Rung>
+              <Rung Number="17" Type="N">
+                <Text>XIC(WideConversions)TOD(UnsignedDecimal,UnsignedPacked)FRD(UnsignedPacked,UnsignedDecoded);</Text>
+              </Rung>
+              <Rung Number="18" Type="N">
+                <Text>XIC(WideConversions)EQU(WideDecimal,WideDecoded)EQU(WideDecimal,SignedDecoded)OTE(WideOK);</Text>
               </Rung>
             </RLLContent>
           </Routine>

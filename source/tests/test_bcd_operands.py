@@ -65,7 +65,7 @@ class BCDOperandTests(unittest.TestCase):
         for dtype in ('SINT','INT'):
             self.assertTrue(self.engine(['FRD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers)
             self.assertTrue(self.engine(['TOD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers)
-        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','REAL','BOOL'):
+        for dtype in ('REAL','BOOL'):
             self.assertTrue(self.engine(['TOD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers)
             self.assertTrue(self.engine(['FRD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers)
 
@@ -141,7 +141,7 @@ class BCDOperandTests(unittest.TestCase):
 
     def test_report_keeps_packed_boundary_and_remaining_forms_explicit(self):
         e=self.checked(['FRD(Source,Dest);']);report=e.report()['numeric_conversions']
-        self.assertEqual(report['rll_operands']['FRD']['destinations'],['SINT','INT','DINT']);self.assertEqual(report['rll_operands']['TOD']['sources'],['SINT','INT','DINT'])
+        self.assertEqual(report['rll_operands']['FRD']['destinations'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertEqual(report['rll_operands']['TOD']['sources'],report['rll_operands']['FRD']['destinations'])
         self.assertIn('range errors',report['frd_range']);self.assertFalse(report['native_math_status'])
 
 

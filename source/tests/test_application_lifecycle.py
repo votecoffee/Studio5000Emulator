@@ -1794,7 +1794,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('WordDecimal',9999);row=step();self.assertEqual((row['ByteDecoded'],row['WordDecoded'],row['NarrowOK']),(100,9999,True))
-        report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['TOD']['sources'],['SINT','INT','DINT']);self.assertFalse(report['native_math_status'])
+        report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['TOD']['sources'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertFalse(report['native_math_status'])
 
     def test_data_lab_numeric_fill_conversions_lazy_indices_and_retry_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
@@ -2277,3 +2277,44 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.post('write',{'tag':tag,'value':value})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(row['RunLatch']);self.assertEqual(row['Values[0]'],'9007199254740993');self.assertEqual(row['Dest'],7)
+
+    def test_conversion_lab_wide_bcd_exact_values_capacity_and_retry_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'ConversionLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        row=step();self.assertEqual(row['WidePacked'],'0');self.assertFalse(row['WideOK'])
+        write('WideConversions',True);row=step()
+        self.assertEqual(row['WidePacked'],'10378291982571407763');self.assertEqual(row['SignedPacked'],'-8068452091138143853')
+        self.assertEqual((row['WideDecoded'],row['SignedDecoded'],row['WideWeighted']),('9007199254740993','9007199254740993','16666666666666665'))
+        self.assertEqual(row['UnsignedPacked'],2576980377);self.assertTrue(row['WideOK'])
+        before=write('WideDecimal','10000000000000000')
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('WideDecimal','9999999999999999');row=step();self.assertEqual(row['WideDecoded'],'9999999999999999');self.assertEqual(row['WidePacked'],'11068046444225730969')
+        write('WideConversions',False);write('WideDecimal','10000000000000000');row=step();self.assertEqual(row['WidePacked'],'11068046444225730969');self.assertFalse(row['WideOK'])
+        report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['FRD']['sources'],['DINT','UDINT','LINT','ULINT']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_imported_wide_bcd_unknown_results_indices_and_late_fault_are_atomic_through_http(self):
+        import base64
+        from test_wide_bcd import WideBCDTests
+        f=WideBCDTests();f.setUp()
+        try:
+            engine=f.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Decoded[Index]);','XIC(StartPB)DIV(1,SpeedCommand,SpeedCommand);'])
+            raw=engine.project.path.read_bytes()
+        finally:f.doCleanups()
+        self.assertEqual(self.post('load',{'name':'UnknownWideBCD.L5X','content':base64.b64encode(raw).decode()})['blockers'],[])
+        self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True});self.post('write',{'tag':'SpeedCommand','value':0})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Index',1),('Inputs[1]','9007199254740993'),('SpeedCommand',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual(row['Decoded[1]'],'9007199254740993');self.assertIsNone(row['Results[0]']);self.assertIsNone(row['Decoded[2]'])
