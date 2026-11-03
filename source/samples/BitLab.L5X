@@ -326,6 +326,37 @@
           <DataValue DataType="SINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="IndexedTransfers" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="TransferIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="TransferInputs" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+            <Element Index="[0]" Value="305419896" />
+            <Element Index="[1]" Value="1431655765" />
+            <Element Index="[2]" Value="-1" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="TransferMoved" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="TransferBits" DataType="INT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="INT" Dimensions="3">
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -407,6 +438,12 @@
               </Rung>
               <Rung Number="24" Type="N">
                 <Text>XIC(BitwiseWidths)NOT(LogicDword,NotNarrowed);</Text>
+              </Rung>
+              <Rung Number="25" Type="N">
+                <Text>XIC(IndexedTransfers)MVM(TransferInputs[TransferIndex],-1,TransferMoved[TransferIndex]);</Text>
+              </Rung>
+              <Rung Number="26" Type="N">
+                <Text>XIC(IndexedTransfers)BTD(TransferInputs[TransferIndex],8,TransferBits[TransferIndex],0,16);</Text>
               </Rung>
             </RLLContent>
           </Routine>

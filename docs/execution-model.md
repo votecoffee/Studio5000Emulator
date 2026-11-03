@@ -234,7 +234,12 @@ Native TOD saturation/math flags remain separate from modeled rollback.
 [Masked moves and bit fields](bit-transfer.md) use declared SINT/INT/DINT
 widths, zero-fill, snapshot overlap and preserved destination bits. BTD positions
 and length are immediate; its excess bits never wrap to another array element.
-Native math/status flags and ST/FBD variants remain unfinished.
+v35 5580 preflight validates references structurally; false/prescan skip live
+indices/values. Enabled calls check actual addresses before zero-mask value skips.
+Full writes establish unknowns; partial writes require preserved bits. Whole-
+advance/AOI rollback remains. Other controller paths retain prior validation.
+Native math/status/fault qualification remains unfinished; ST/FBD target moves
+have [separate support](target-bit-moves.md).
 
 [String search/editing](string-operations.md) supports FIND, INSERT and DELETE
 in RLL/ST with one-based byte positions, represented user-string capacities

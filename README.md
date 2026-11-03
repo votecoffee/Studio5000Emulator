@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.071432`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.072635`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -146,7 +146,10 @@ Choose **String lab** for a combined ladder/ST example.
 
 [Masked moves and bit fields](docs/bit-transfer.md) add ladder MVM/BTD for
 SINT/INT/DINT values, including mixed widths and scalar/member/array operands.
-Choose **Bit lab** to try packing and extracting data.
+Choose **Bit lab** to try packing and extracting data. In the v35 5580 profile,
+false/prescan skip saved dynamic indices; enabled transfers keep address and
+preserved-bit checks. Set `TransferIndex` to 0 and enable `IndexedTransfers`
+for selected full writes into unknown result arrays.
 [Data transition](docs/data-transition.md) adds DINT DTR change detection,
 including reference updates during prescan and false scans.
 [FBC/DDT references and AOIs](docs/bit-diagnostic-references.md) add alias/indirect

@@ -28,7 +28,27 @@ Indirect array subscripts follow the existing bounded reference rules.
 Types and shapes are checked before execution. BOOL/bit references, REAL, wide
 and unsigned types, whole aggregates and read-only destinations are blocked.
 BTD positions and length cannot be tag operands. MVM/BTD calls remain blocked
-in ST; their distinct MVMT/BTDT instruction families are unimplemented.
+in ST. Their distinct [ST/FBD MVMT/BTDT families](target-bit-moves.md) have
+separate bounded support and operand/lifecycle contracts.
+
+## Operand selection
+
+For the v35 ControlLogix 5580 (L81E–L85E) profile, preflight checks declared
+scalar types/shapes, index grammar, destination permissions, immediates and BTD
+field bounds without evaluating saved dynamic indices or reading operand values.
+False rungs and prescan skip live operands. Unknown or out-of-range saved dynamic
+indices can remain until an enabled transfer reaches them. Nonnegative literal
+indices still undergo bounds checks. Invalid declarations, references, grammar,
+field specifications and read-only targets remain blocked, including while false.
+
+Enabled transfers retain their existing runtime address checks for source, mask
+and destination, before any zero-mask value optimization. A zero MVM mask skips
+source/old-destination **values** after their addresses are valid. It does not
+permit invalid or unknown indices. Partial writes require preserved destination
+bits to be known; full writes need no old destination value. These rules apply to
+existing aliases, selected array elements, UDT members and AOI local/InOut bindings.
+The structural context is restored after success and validation errors; other
+controller profiles retain their prior validation path.
 
 ## Unknown values and faults
 
@@ -36,7 +56,9 @@ A partial write requires the preserved destination bits to be known. A full
 replacement can establish an unknown destination, and a zero MVM mask is a
 no-op. Other reached unknown source/mask reads and invalid indirect references
 stop and roll back the whole simulation advance, including earlier changes and
-task scheduling state. This is the existing emulator fault policy, separate
+task scheduling state and existing AOI bindings. Calculations, zero extension,
+mask/field selection, overlap capture and clipping are unchanged. This is the
+existing emulator fault policy, separate
 from native controller major/minor faults and math flags.
 
 ## Bit Lab
@@ -56,6 +78,12 @@ excess. Its first scan produces:
 | Overlap | 9028 | `00002344` |
 | Truncated | -15150 | `C4D2` |
 | BitOK | true | — |
+
+Enable the separate `IndexedTransfers` section after setting `TransferIndex`
+to 0. Its saved index starts at 99 while disabled, and result arrays start
+unknown. Input 305419896 (`12345678`) establishes `TransferMoved[0]` 305419896
+and the extracted INT `TransferBits[0]` 13398 (`3456`), retaining unknown siblings.
+An enabled invalid index faults and rolls back; select a valid index and retry.
 
 The scope follows installed Logix Designer v35 help topics 14691 (MVM) and
 14677 (BTD). Rockwell's published [MVM reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/move-logical-instructions/masked-move--mvm-.html)

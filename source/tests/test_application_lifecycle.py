@@ -2122,3 +2122,42 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(None,4.0,None))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+
+    def test_bit_lab_indexed_transfers_skip_false_indices_and_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        row=step();self.assertEqual(row['TransferIndex'],99);self.assertIsNone(row['TransferMoved[0]'])
+        before=write('IndexedTransfers',True)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('TransferIndex',0);row=step();self.assertEqual((row['TransferMoved[0]'],row['TransferBits[0]']),(305419896,13398))
+        self.assertIsNone(row['TransferMoved[1]']);write('IndexedTransfers',False);write('TransferIndex',999);row=step()
+        self.assertEqual((row['TransferMoved[0]'],row['TransferBits[0]']),(305419896,13398))
+        write('TransferIndex',2);write('IndexedTransfers',True);row=step()
+        self.assertEqual((row['TransferMoved[2]'],row['TransferBits[2]']),(-1,-1));self.assertIsNone(row['TransferMoved[1]'])
+        report=self.post('report',{})['bit_transfer'];self.assertIn('5580',report['preflight']);self.assertFalse(report['native_math_status'])
+
+    def test_imported_unknown_bit_transfer_indices_masks_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_bit_transfer_operands import BitTransferOperandTests
+        fixture=BitTransferOperandTests();fixture.setUp()
+        try:
+            engine=fixture.checked(['XIC(StartPB)MVM(Inputs[Index],Masks[Index],Results[Index]);','XIC(StartPB)BTD(Inputs[Index],0,Results[Index],8,8);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=None);raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownBitTransferOperands.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Index',1),('Masks[1]',-1),('Inputs[1]',4660),('Inputs[2]',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close();after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(None,13364,None))
+        self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})

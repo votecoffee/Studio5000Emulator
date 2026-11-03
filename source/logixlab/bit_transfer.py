@@ -1,6 +1,7 @@
 """Width-aware SINT/INT/DINT ladder MVM and BTD; no native fault flags."""
 import re
 
+from .integer_math import CONTROLLERS
 from .model import ModelError, literal
 
 INSTRUCTIONS = frozenset(('MVM', 'BTD'))
@@ -50,6 +51,18 @@ def specification(memory, op, scope):
     return source_width, source_bit, dest_width, dest_bit, length
 
 
+def preflight(memory, op, scope):
+    """Structurally check v35 5580 references; retain older validation paths."""
+    if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
+        return specification(memory, op, scope)
+    previous = memory.structural
+    memory.structural = True
+    try:
+        return specification(memory, op, scope)
+    finally:
+        memory.structural = previous
+
+
 def unsigned(memory, ref, scope, width):
     value = memory.read(ref, scope)
     if type(value) is not int:
@@ -85,6 +98,8 @@ def execute(memory, op, power, scope):
 def description():
     return dict(language='RLL', instructions=sorted(INSTRUCTIONS), types=list(WIDTHS),
                 mixed_widths='Zero-fill; preserve destination bits outside the selected mask/field',
+                preflight='v35 ControlLogix 5580 checks declared scalar types/shapes, index grammar, permissions and immediate bounds without saved dynamic indices',
+                selection='False/prescan skip values/indices; enabled calls check addresses before zero-mask value skips; full writes establish unknowns, partial writes require old bits',
                 btd_fields='Immediate source/destination bit within declared width; length 1..32',
                 btd_excess='Source high bits zero-filled; destination excess discarded without array wrap',
                 native_math_status=False, native_fault_classification=False)
