@@ -7,6 +7,11 @@
   'use strict';
   const KEYWORDS = new Set(('IF THEN ELSIF ELSE END_IF CASE OF END_CASE FOR TO BY DO END_FOR WHILE END_WHILE REPEAT UNTIL END_REPEAT EXIT RETURN AND OR XOR NOT MOD TRUE FALSE').split(' '));
   const faceplates = root.LogixInstructionView || (typeof require === 'function' ? require('./instruction-view.js') : null);
+  const values = root.LogixLogicValues || (typeof require === 'function' ? require('./logic-values.js') : null);
+  function labelTarget(graphs, label) {
+    const matches = graphs.flatMap(graph => graph.nodes.filter(node => node.kind === 'instruction' && node.opcode === 'LBL' && node.operands[0]?.toLowerCase() === String(label).toLowerCase()).map(node => ({nodeId: node.id, graphId: graph.id})));
+    return matches.length === 1 ? matches[0] : null;
+  }
   const short = (text, limit = 28) => String(text).length > limit ? String(text).slice(0, limit - 1) + '…' : String(text);
   const valueText = row => !row || row.value == null ? '?' : typeof row.value === 'boolean' ? (row.value ? '1' : '0') : String(row.value);
   function html(tag, className, text) {
@@ -52,47 +57,17 @@
 
   function create(options) {
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
-    let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), aggregates = new Set(), lastTraces = new Map();
+    let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
     let inspection = '';
-    function read(ref) {
-      const name = String(ref).trim(), scoped = current?.routine.key.split('/')[0];
-      const resolved = name.replace(/\[([A-Za-z_][\w.:]*)\]/g, (all, index) => {
-        const tag = lookup(index);return tag && /^\d+$/.test(String(tag.value)) ? '[' + tag.value + ']' : all;
-      });
-      function lookup(tag) {
-        if (current?.routine.key.startsWith('AOI:')) {
-          const root = tag.match(/^([A-Za-z_][\w]*)(.*)$/), bindings = current.state.aoi_bindings?.[current.context] || {};
-          const bound = root && Object.hasOwn(bindings, root[1].toLowerCase()) ? bindings[root[1].toLowerCase()] : null;
-          if (bound) return valueMap.get((bound + root[2]).toLowerCase());
-          return current.context ? valueMap.get((current.context + '.' + tag).toLowerCase()) || valueMap.get(tag.startsWith('Program:') ? tag.toLowerCase() : '\0') : null;
-        }
-        return valueMap.get(('Program:' + scoped + '.' + tag).toLowerCase()) || valueMap.get(tag.toLowerCase());
-      }
-      const tag = lookup(resolved);if (tag) return tag;
-      const bit = resolved.match(/^(.*)\.(\d+)$/), base = bit && lookup(bit[1]);
-      if (base && base.value != null && /^(?:U?SINT|U?INT|U?DINT|U?LINT)$/.test(base.type)) {
-        const widths = {SINT: 8, USINT: 8, INT: 16, UINT: 16, DINT: 32, UDINT: 32, LINT: 64, ULINT: 64};
-        if (Number(bit[2]) < widths[base.type]) return {name, type: 'BOOL', value: !!((BigInt(base.value) >> BigInt(bit[2])) & 1n)};
-      }
-      if (/^(TRUE|FALSE)$/i.test(name)) return {name, type: 'BOOL literal', value: name.toUpperCase() === 'TRUE'};
-      if (/^[+-]?\d+(?:\.\d*)?(?:[Ee][+-]?\d+)?$/.test(name)) return {name, type: 'Literal', value: name};
-      const radix = name.match(/^(2|8|16)#([\da-fA-F_]+)$/);
-      if (radix) {
-        try {return {name, type: 'Literal', value: BigInt(({'2': '0b', '8': '0o', '16': '0x'})[radix[1]] + radix[2].replaceAll('_', '')).toString()};} catch (_) { /* Keep invalid expressions unavailable. */ }
-      }
-      const prefixes = current?.context ? [current.context + '.' + resolved] : ['Program:' + scoped + '.' + resolved, resolved];
-      if (prefixes.some(prefix => aggregates.has(prefix.toLowerCase()))) return {name, type: 'Aggregate', value: 'Members', aggregate: true};
-      return null;
-    }
+    function read(ref) {return snapshot?.read(ref) || null;}
     function trace(rung) {return lastTraces.get(rung);}
     function presentation(node) {return faceplates.describe(node, current.state.aoi_definitions);}
     function parameters(node) {return presentation(node).fields;}
     function openAOI(node) {
       const face = presentation(node);if (face.kind !== 'aoi') return null;
       const target = current.state.routines.find(r => r.key.toLowerCase() === ('AOI:' + face.title + '/Logic').toLowerCase());
-      const instance = node.operands[0], scope = current.routine.key.split('/')[0];
-      const candidates = current.context ? [current.context + '.' + instance] : ['Program:' + scope + '.' + instance, instance];
-      const context = candidates.map(name => Object.keys(current.state.aoi_instances || {}).find(key => key.toLowerCase() === name.toLowerCase())).find(Boolean);
+      const address = snapshot.resolve(node.operands[0]);
+      const context = Object.keys(current.state.aoi_instances || {}).find(key => key.toLowerCase() === address?.toLowerCase());
       return target && context ? {key: target.key, context} : null;
     }
     function select(id, focus = false) {
@@ -106,10 +81,12 @@
       canvas.dispatchEvent(new CustomEvent('logic-node-selected', {bubbles: true, detail: {nodeId: id,
         graphId: documents.find(doc => doc.graph?.nodes.some(n => n.id === id))?.graph.id || current?.routine.key}}));
     }
-    function bind(group, id, description) {
+    function bind(group, id, description, navigate) {
       group.setAttribute('tabindex', '0');group.setAttribute('role', 'button');group.setAttribute('aria-label', description);
       group.addEventListener('click', () => select(id));
+      if (navigate) group.addEventListener('dblclick', navigate);
       group.addEventListener('keydown', event => {
+        if (navigate && event.ctrlKey && event.key === 'Enter') {event.preventDefault();navigate();return;}
         if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();select(id);}
         if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
           const ids = documents.flatMap(doc => [...doc.instructions.keys()]), at = ids.indexOf(id);
@@ -131,6 +108,8 @@
       const close = html('button', '', 'Close');close.setAttribute('aria-label', 'Close instruction details');close.onclick = () => {selected = '';select('');};head.append(close);
       const target = ['JSR', 'FOR'].includes(item.node.opcode) && current.state.routines.find(r => r.key.toLowerCase() === (current.routine.key.split('/')[0] + '/' + item.node.operands[0]).toLowerCase());
       if (target) {const open = html('button', '', 'Open routine ↗');open.onclick = () => options.onOpenRoutine(target.key);head.insertBefore(open, close);}
+      const jump = item.node.opcode === 'JMP' && labelTarget(documents.filter(d => d.graph).map(d => d.graph), item.node.operands[0]);
+      if (jump) {const open = html('button', '', 'Go to label ↗');open.onclick = () => select(jump.nodeId, true);head.insertBefore(open, close);}
       const aoi = item.graph && openAOI(item.node);
       if (aoi) {const open = html('button', '', 'Open AOI logic ↗');open.onclick = () => options.onOpenRoutine(aoi.key, aoi.context);head.insertBefore(open, close);}
       inspector.append(head);
@@ -168,7 +147,7 @@
         group.append(svg('rect', {class: 'lv-block' + (face.kind === 'aoi' ? ' lv-aoi-block' : ''), x: 0, y: -24, width: boxWidth, height}),
           svg('path', {class: 'lv-block-rule', d: `M0 5 H${boxWidth}`}),
           svg('text', {x: 9, y: -7, class: face.kind === 'aoi' ? 'lv-aoi-name' : 'lv-block-title'}, face.title));
-        if (face.kind !== 'aoi') group.append(svg('text', {x: boxWidth - 8, y: -7, class: 'lv-block-opcode'}, op));
+        if (face.kind !== 'aoi' && face.known) group.append(svg('text', {x: boxWidth - 8, y: -7, class: 'lv-block-opcode'}, op));
         face.flags.forEach((flag, i) => {
           const x = boxWidth + 24, y = i * 22;
           group.append(svg('path', {class: 'lv-status-coil', d: `M${boxWidth} ${y} H${x - 12} M${x - 6} ${y - 7} C${x - 15} ${y - 4} ${x - 15} ${y + 4} ${x - 6} ${y + 7} M${x + 6} ${y - 7} C${x + 15} ${y - 4} ${x + 15} ${y + 4} ${x + 6} ${y + 7}`}));
@@ -194,7 +173,8 @@
       }
       for (const name of ['in', 'out']) group.append(svg('circle', {class: 'lv-port', cx: name === 'in' ? 0 : width, cy: 0, r: 3,
         'data-port-id': name, 'data-port-direction': name === 'in' ? 'in' : 'out'}));
-      bind(group, node.id, `${op} ${node.operands.join(', ')}. Select instruction details.`);
+      const navigate = op === 'JMP' ? () => {const target = labelTarget(documents.map(d => d.graph), node.operands[0]);if (target) select(target.nodeId, true);} : null;
+      bind(group, node.id, `${op} ${node.operands.join(', ')}. Select instruction details.${navigate ? ' Ctrl+Enter to follow label.' : ''}`, navigate);
       return {group, monitors: fields, node, graph, title};
     }
     function renderLadder() {
@@ -325,7 +305,7 @@
     return {
       render(value) {
         current = value;valueMap = new Map(value.state.tags.map(row => [row.name.toLowerCase(), row]));
-        aggregates = new Set();for (const name of valueMap.keys()) for (let i = 0; i < name.length; i++) if (name[i] === '.' || name[i] === '[') aggregates.add(name.slice(0, i));
+        snapshot = values.create(value.state.tags, {routine: value.routine.key, context: value.context, bindings: value.state.aoi_bindings?.[value.context] || {}});
         const source = JSON.stringify([value.state.connectivity?.source_l5x_sha256 || value.state.name, value.routine.key, value.routine.rungs, value.routine.lines, value.routine.diagram, value.state.aoi_definitions]);
         if (source !== sourceIdentity) {selected = '';sourceIdentity = source;zoom = 1;canvas.scrollTo(0, 0);options.onZoom?.(zoom);}
         const next = JSON.stringify([source, value.context]);
@@ -340,5 +320,5 @@
       dispose() {documents = [];current = null;}
     };
   }
-  return {create, tokenizeST};
+  return {create, tokenizeST, labelTarget};
 });

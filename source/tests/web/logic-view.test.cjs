@@ -1,7 +1,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const graph = require('../../web/ladder-graph.js');
-const {tokenizeST} = require('../../web/logic-view.js');
+const {tokenizeST, labelTarget} = require('../../web/logic-view.js');
 const instruction = require('../../web/instruction-view.js');
 const op = (name, ...args) => ({name, args});
 const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained', nodes});
@@ -165,4 +165,15 @@ test('unknown instructions retain all source operands without inventing a suppor
   const node = {opcode: 'VENDOR_CUSTOM', operands: Array.from({length: 9}, (_, i) => 'Argument' + i)};
   const face = instruction.describe(node);assert.equal(face.known, false);assert.equal(face.rows.length, 9);
   assert.deepEqual(face.rows.map(row => row.ref), node.operands);assert.equal(instruction.dimensions(node, face).rows, 9);
+});
+
+test('label navigation finds a unique target across rungs, including branch labels', () => {
+  const a = graph.compile(rung([op('JMP', 'Finish')]), 'Main/Logic');
+  const b = graph.compile({...rung([{branch: [[op('LBL', 'FINISH')], [op('NOP')]]}]), number: '9'}, 'Main/Logic');
+  const original = structuredClone([a, b]), target = labelTarget([a, b], 'finish');
+  assert.deepEqual(target, {nodeId: b.order[0], graphId: b.id});assert.deepEqual([a, b], original);
+});
+test('missing and ambiguous labels do not invent a navigation destination', () => {
+  const a = graph.compile(rung([op('LBL', 'Again'), op('LBL', 'AGAIN')]));
+  assert.equal(labelTarget([a], 'Missing'), null);assert.equal(labelTarget([a], 'Again'), null);
 });

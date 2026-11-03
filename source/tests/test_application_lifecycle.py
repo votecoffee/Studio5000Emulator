@@ -2323,6 +2323,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         page=self.get('/').decode('utf8')
         self.assertLess(page.index('src="/ladder-graph.js"'),page.index('src="/logic-view.js"'))
         self.assertLess(page.index('src="/instruction-view.js"'),page.index('src="/logic-view.js"'))
+        self.assertLess(page.index('src="/logic-values.js"'),page.index('src="/logic-view.js"'))
         self.assertLess(page.index('src="/logic-view.js"'),page.index('src="/app.js"'))
         self.assertIn('id="instruction-inspector"',page);self.assertIn('id="logic-fit"',page)
         self.assertIn('Read-only monitor',page)
@@ -2330,7 +2331,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         def current():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
         before=current()
-        for name in ('ladder-graph.js','instruction-view.js','logic-view.js','logic-view.css'):
+        for name in ('ladder-graph.js','instruction-view.js','logic-values.js','logic-view.js','logic-view.css'):
             self.assertEqual(self.get('/'+name),(Path(__file__).resolve().parents[1]/'web'/name).read_bytes())
         after=current()
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])

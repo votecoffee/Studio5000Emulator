@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.095341`: [scoped monitoring and label navigation](logic-viewer.md#instruction-presentation),
+with program-local shadowing, AOI InOut aggregate resolution, exact snapshot-only
+value lookup and JMP-to-LBL links through the inspector, double-click or Ctrl+Enter.
+The viewer remains read-only; runtime execution coverage is unchanged.
+
 Available in `26.1103.093714`: [AOI and instruction faceplates](logic-viewer.md#instruction-presentation),
 with definition/instance headers, named and visible AOI parameters, Input/Output/
 InOut markers, EN/ENO status, definition-logic navigation, built-in titles and

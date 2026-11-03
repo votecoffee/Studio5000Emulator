@@ -650,6 +650,7 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
                       "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"),
                       "/ladder-graph.js": ("ladder-graph.js", "text/javascript"),
                       "/instruction-view.js": ("instruction-view.js", "text/javascript"),
+                      "/logic-values.js": ("logic-values.js", "text/javascript"),
                       "/logic-view.js": ("logic-view.js", "text/javascript"), "/logic-view.css": ("logic-view.css", "text/css"),
                       "/favicon.ico": ("icons/plc-simulator.ico", "image/vnd.microsoft.icon"),
                       "/icons/plc-simulator-64.png": ("icons/plc-simulator-64.png", "image/png"),

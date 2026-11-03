@@ -47,6 +47,17 @@ rows and status decorations are not additional executable graph nodes or wires.
 The viewer remains read-only. This is a Studio-style presentation, not a claim
 of pixel-for-pixel native UI or instruction execution equivalence.
 
+JMP instructions offer **Go to label** in the inspector. Double-click the JMP
+or press Ctrl+Enter while it has focus to select and reveal its unique LBL target.
+Missing or duplicate labels have no invented destination. This navigation changes
+only the viewport and selection, not program execution or the scan position.
+
+Value lookup respects program-local shadowing, including arrays and structures.
+An unavailable local member does not fall back to a same-named controller member.
+AOI InOut structures/arrays resolve to their actual backing storage; aggregates
+show **Members** in the inspector. Indirect indices require known integer snapshot
+values. Address expressions remain unevaluated, and unknown values remain `?`.
+
 ## Separation of responsibilities
 
 The viewer uses plain JavaScript and SVG, with no browser framework or graph
@@ -56,6 +67,7 @@ library required at runtime.
 | --- | --- |
 | [ladder-graph.js](../source/web/ladder-graph.js) | Adapt imported rung nodes into an explicit graph, compute layout, associate last-scan power |
 | [instruction-view.js](../source/web/instruction-view.js) | Describe built-in/AOI faceplates, operand roles, visible rows and measured extents |
+| [logic-values.js](../source/web/logic-values.js) | Resolve scoped snapshot references, AOI bindings, aggregates, indices and integer bits without evaluating logic |
 | [logic-view.js](../source/web/logic-view.js) | Render symbols, wires, text, values, selection and instruction details |
 | [logic-view.css](../source/web/logic-view.css) | Document colors, typography and selection/monitor styles |
 | [server.py](../source/logixlab/server.py) | Existing authenticated snapshots, plus read-only AOI definitions and canonical binding references |
@@ -114,7 +126,7 @@ With Node.js installed for development, run the dependency-free graph and ST
 token tests from the project root:
 
 ```powershell
-node --test source/tests/web/logic-view.test.cjs
+node --test source/tests/web/logic-view.test.cjs source/tests/web/logic-values.test.cjs
 ```
 
 The focused tests cover branch topology, stable monitoring identities, source
