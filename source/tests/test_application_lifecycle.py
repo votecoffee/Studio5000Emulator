@@ -2425,3 +2425,20 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'MixedConditions','value':False});rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(all(rows[name] is False for name in true+['MixedConditionGate','MixedConditionExact']))
         report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_comparisons'];self.assertEqual(report['instructions'],['CMP']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_indexed_calculations_unknown_inputs_rollback_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'WideExpressionLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        state=self.post('step',{'dt':10});self.assertIsNone(values(state)['ExpressionResults[0]']);self.assertFalse(values(state)['ExpressionWideMatches'])
+        for tag,value in [('ExpressionIndex',0),('ExpressionValues[0]','9007199254740993'),('ExecuteIndexed',True)]:state=self.post('write',{'tag':tag,'value':value})
+        before=state
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);self.assertIn('Unknown',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'ExpressionNarrow[0]','value':5});state=self.post('step',{'dt':10});row=values(state)
+        self.assertEqual(row['ExpressionResults[0]'],'9007199254740995');self.assertEqual(row['ExpressionNarrowResults[0]'],6);self.assertTrue(row['ExpressionWideMatches']);self.assertTrue(row['ExpressionNarrowMatches'])
+        self.assertIsNone(row['ExpressionResults[1]']);self.assertIsNone(row['ExpressionNarrowResults[2]']);self.assertEqual(row['ExpressionValues[0]'],'9007199254740993')
+        self.post('write',{'tag':'ExecuteIndexed','value':False});self.post('write',{'tag':'ExpressionIndex','value':99});row=values(self.post('step',{'dt':10}))
+        self.assertEqual(row['ExpressionResults[0]'],'9007199254740995');self.assertFalse(row['ExpressionWideMatches']);self.assertFalse(row['ExpressionNarrowMatches'])
+        report=self.post('report',{})['integer_expression_execution']['ladder_selection'];self.assertEqual(report['instructions'],['CPT','CMP']);self.assertEqual(len(report['types']),9);self.assertFalse(report['native_runtime_parity'])

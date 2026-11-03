@@ -100,11 +100,16 @@ simulation advance, including earlier writes, task scheduling and traces.
 This is the emulator's transactional policy. Native partial effects, math
 flags, minor/major faults and intermediate precision still need qualification.
 
+Numeric CPT/CMP also use [structural calculation preflight](integer-expressions.md#operand-selection)
+in the v35 5580 profile. Saved unknown inputs/results and dynamic indices are
+consumed only on enabled rungs. Existing calculations and type rules stay in
+force; full CPT writes establish selected unknown results without reading them.
+
 ## Try it
 
 Choose **Ladder wide expression lab** or load
 [WideExpressionLab.L5X](../source/samples/WideExpressionLab.L5X). It contains
-22 controller tags, nine rungs and only ladder routines. One step produces:
+30 controller tags, thirteen rungs and only ladder routines. One step produces:
 
 | Tag | Expected value |
 | --- | --- |

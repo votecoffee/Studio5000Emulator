@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.114348`: [numeric CPT/CMP operand selection](integer-expressions.md#operand-selection).
+Structural preflight retains declared types, shapes, grammar and permissions while
+allowing unknown saved operands and dynamic indices until reached. False/prescan
+skip values, full CPT writes establish unknown results, true CMP remains eager,
+and runtime/AOI rollback is modeled. Ladder wide expression lab adds four indexed
+calculation examples. Calculations, promotion and native parity remain separate.
+
 Available in `26.1103.113157`: [mixed integer CMP conditions](ladder-wide-expressions.md#mixed-integer-cmp).
 Direct integer comparisons combine with eager Boolean logic when the highest-ranked
 numeric tag type covers every tag range in the whole expression. Structural wide

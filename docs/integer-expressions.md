@@ -1,8 +1,9 @@
 # Integer expression division
 
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) now have a separate
-v35 5580 profile: CPT/CMP remain homogeneous; tag-only MEQ accepts mixed integer
-types. The rules below describe the narrow expression
+v35 5580 profile: CPT arithmetic remains homogeneous; CMP has a separate
+[direct mixed integer condition profile](ladder-wide-expressions.md#mixed-integer-cmp),
+and tag-only MEQ accepts mixed integer types. The rules below describe the narrow expression
 model; file-expression consumers remain narrow.
 
 App `26.1029.231505` adds integer division to the existing narrow ST, CPT and
@@ -41,6 +42,44 @@ Use an explicit REAL operand when a fractional result is needed. In ST,
 Result:=(Dividend+0.0)/Divisor retains a REAL quotient. Existing float32 rounding
 and REAL-to-integer conversion rules remain; 7.0/2 assigned to DINT rounds 3.5
 to 4. A REAL literal in a comparison also promotes its numeric operands.
+
+## Operand selection
+
+For numeric CPT and CMP in Standard v35 ControlLogix 5580 projects, import
+preflight checks declared scalar types, expression/index grammar, references,
+destination permissions and the existing literal/conversion rules structurally.
+Saved scalar values and dynamic indices are not consumed during that check.
+Unknown input/result array elements or UDT members and unknown/out-of-range
+saved dynamic indices can remain until execution reaches them. Literal
+out-of-range indices, invalid shapes/references, read-only destinations and
+unsupported operand forms remain blockers even on false rungs.
+
+False rungs and ordinary prescan skip live calculation operands. CPT retains
+its destination; CMP propagates false so downstream OTE coils clear. Enabled
+calculations retain their existing address checks, consume required operands
+and evaluate logical operands eagerly. A zero multiplier, true OR operand or
+false AND operand does not conceal missing data. Full CPT writes can establish
+unknown scalar results; untouched elements and members remain unknown. Runtime
+faults restore prior writes/coils, unknown state, task/time state and AOI bindings.
+Completed deferred prescan remains a separate lifecycle boundary.
+
+The selection rule covers existing signed/unsigned integer and finite REAL
+profiles, plus BOOL references in supported CMP composition. Calculations,
+intermediate widths, rounding, type promotion and supported syntax do not expand.
+String CMP, ST, FAL/FSC, direct expression evaluators, array-index consumers,
+other controller profiles and native fault/status/lifecycle parity remain separate.
+The report describes the boundary under
+`integer_expression_execution.ladder_selection`.
+
+In **Ladder wide expression lab**, the `ExecuteIndexed` section begins disabled,
+with `ExpressionIndex` 99 and four unknown arrays. Set the index to 0, write
+`ExpressionValues[0]` as 9007199254740993 and `ExpressionNarrow[0]` as 5, then
+enable the section and step. `ExpressionResults[0]` becomes 9007199254740995,
+`ExpressionNarrowResults[0]` becomes 6, and both expression-match coils become
+true. Unwritten siblings remain unknown. Disable the section to retain results
+and clear those coils, even with the index set back to 99. Enabling before
+initializing both inputs demonstrates a runtime fault with earlier work rolled
+back; provide the missing input and retry. These are software-model checks.
 
 ## Execution and failures
 

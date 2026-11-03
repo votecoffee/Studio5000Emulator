@@ -132,6 +132,23 @@ class Extensions:
                 if execute:
                     for dest in dparts:self.memory.store(dk,dest,value)
 
+    def calculation_preflight(self,op,scope):
+        """Check numeric CPT/CMP without consuming saved values or indices."""
+        if op.name not in ('CPT','CMP') or not comparisons.available(self.engine.project):return False
+        previous=self.memory.structural
+        self.memory.structural=True
+        try:
+            expression=self.expression(op.args[1]) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True)
+            for ref in expression.refs:
+                dtype=self.memory.resolve(ref,scope)[2]
+                if dtype not in {*INT_BITS,'REAL','BOOL'}:return False
+                if isinstance(self.memory.read(ref,scope),(list,dict)):
+                    raise ModelError('CPT/CMP references require scalar numeric or BOOL elements')
+            if op.name=='CPT':self.compute(op.args,scope)
+            else:expression.validate(self.memory,scope)
+        finally:self.memory.structural=previous
+        return True
+
     def validate(self,op,scope):
         n,a=op.name,op.args
         if n in COMPARE and any(self.is_string(x,scope) for x in a):
@@ -143,6 +160,7 @@ class Extensions:
             string_operations.validate(self.memory,op,scope);return True
         if comparisons.validate(self.engine,op,scope):return True
         if n not in EXTENDED:return False
+        if self.calculation_preflight(op,scope):return True
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope):return True
         if n=='CMP':self.condition(a[0],allow_wide=True).validate(self.memory,scope)
         elif n=='MEQ':

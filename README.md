@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.113157`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.114348`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -132,6 +132,9 @@ use the highest-ranked source tag type when it covers every input range. Enable
 can occupy any LIM operand position. Enable `RelationConstants` for eight examples.
 [Mixed integer CMP conditions](docs/ladder-wide-expressions.md#mixed-integer-cmp)
 combine exact comparisons with Boolean logic. Enable `MixedConditions` for eight examples.
+[Numeric CPT/CMP selection](docs/integer-expressions.md#operand-selection) keeps saved
+unknowns and dynamic indices dormant on false rungs. **Ladder wide expression lab**
+adds an `ExecuteIndexed` section for full writes, faults and recovery.
 
 [Array size and truncation](docs/size-truncate.md) add selected array/string DATA
 size reads, lazy unknown-value handling and signed/unsigned TRN results. In

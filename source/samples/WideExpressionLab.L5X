@@ -115,6 +115,46 @@
           <DataValue DataType="LINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="ExecuteIndexed" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="99" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionWideMatches" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionNarrowMatches" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionValues" TagType="Base" DataType="LINT" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LINT" Dimensions="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionNarrow" TagType="Base" DataType="DINT" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionResults" TagType="Base" DataType="LINT" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LINT" Dimensions="3" />
+        </Data>
+      </Tag>
+      <Tag Name="ExpressionNarrowResults" TagType="Base" DataType="DINT" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -148,6 +188,19 @@
               </Rung>
               <Rung Number="8" Type="N">
                 <Text>XIC(Execute)CPT(GuardResult,SignedResult/FaultDivisor);</Text>
+              </Rung>
+              <Rung Number="9" Type="N">
+                <Text>XIC(ExecuteIndexed)CPT(ExpressionResults[ExpressionIndex],ExpressionValues[ExpressionIndex]+SignedDelta);</Text>
+                <Comment>Indexed calculations stay disabled with index 99 and unknown arrays. Select index 0 and initialize both input elements before enabling ExecuteIndexed.</Comment>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>XIC(ExecuteIndexed)CPT(ExpressionNarrowResults[ExpressionIndex],ExpressionNarrow[ExpressionIndex]+1);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(ExecuteIndexed)CMP(ExpressionResults[ExpressionIndex]&gt;ExpressionValues[ExpressionIndex])OTE(ExpressionWideMatches);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(ExecuteIndexed)CMP((ExpressionNarrowResults[ExpressionIndex]&gt;ExpressionNarrow[ExpressionIndex])&amp;&amp;Execute)OTE(ExpressionNarrowMatches);</Text>
               </Rung>
             </RLLContent>
           </Routine>
