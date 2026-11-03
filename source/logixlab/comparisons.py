@@ -3,11 +3,12 @@ import operator
 
 from . import integer_math
 from .bit_transfer import unsigned
-from .model import INT_BITS, ModelError, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, literal
 
 RELATIONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
              'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
 INSTRUCTIONS = frozenset((*RELATIONS, 'LIM', 'MEQ'))
+INTEGER_RANK = {dtype: rank for rank, dtype in enumerate(('SINT','USINT','INT','UINT','DINT','UDINT','LINT','ULINT'))}
 
 
 def available(project):
@@ -28,10 +29,36 @@ def validate(engine, op, scope):
                 value = memory.read(arg, scope)
                 if isinstance(value, (list, dict, bool)):
                     raise ModelError('Numeric comparison requires scalar numeric operands')
-            integer_math.profile(engine, op, scope)
+            ordering_profile(engine, op, scope)
     finally:
         memory.structural = previous
     return True
+
+
+def ordering_profile(engine, op, scope):
+    """Preserve every declared tag range in the highest-ranked operand type.
+
+    Do not invent a larger type or use saved values to justify signed/unsigned
+    conversion. Immediates, homogeneous and narrow forms retain their profiles.
+    """
+    if not available(engine.project):return integer_math.profile(engine, op, scope)
+    types = []
+    for ref in op.args:
+        try:literal(ref)
+        except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
+        else:return integer_math.profile(engine, op, scope)
+    if not set(types) & integer_math.WIDE_TYPES or len(set(types)) == 1:
+        return integer_math.profile(engine, op, scope)
+    if any(dtype not in INT_BITS for dtype in types):
+        raise ModelError('Mixed ordering comparisons require integer scalar tags')
+    common = max(types, key=INTEGER_RANK.__getitem__)
+    def bounds(dtype):
+        bits = INT_BITS[dtype]
+        return (0, (1 << bits) - 1) if dtype in UNSIGNED_BITS else (-(1 << (bits - 1)), (1 << (bits - 1)) - 1)
+    low, high = bounds(common)
+    if any(bounds(dtype)[0] < low or bounds(dtype)[1] > high for dtype in types):
+        raise ModelError('Highest-ranked comparison type must cover every operand type range')
+    return common
 
 
 def masked_values(engine, args, scope):
@@ -74,6 +101,12 @@ def description(project):
     return dict(available=available(project), profile='v35-5580-lazy-numeric-comparisons',
                 language='RLL', instructions=sorted(INSTRUCTIONS),
                 selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls consume every operand',
+                mixed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')), types=list(INTEGER_RANK),
+                    operands='Tags only; highest-ranked operand type must cover every complete declared operand range',
+                    promotion='Preserve numeric values and signs; no floating-point conversion and no invented wider common type',
+                    selection='Read-only inputs; false/prescan skip live values and indices; true calls consume every source',
+                    immediates='Retain the separate homogeneous representable signed-DINT wide rules and existing narrow rules',
+                    native_runtime_parity=False),
                 masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,
                 meq_immediates='Existing narrow signed DINT/32-bit radix patterns; any wide/unsigned tag retains homogeneous representable signed-DINT rules',

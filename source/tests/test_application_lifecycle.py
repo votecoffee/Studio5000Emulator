@@ -2389,3 +2389,15 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'MixedSmall','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
+
+    def test_integer_lab_mixed_relations_exact_limits_and_gate_through_http(self):
+        state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
+        self.post('write',{'tag':'MixedRelations','value':True});state=self.post('step',{'dt':10});rows={r['name']:r['value'] for r in state['tags']}
+        true=['RelationEqual','RelationNotEqual','RelationLess','RelationLessEqual','RelationGreater','RelationGreaterEqual','RelationInRange']
+        self.assertTrue(all(rows[name] for name in true));self.assertFalse(rows['RelationExactLimit']);self.assertFalse(rows['RelationReversed'])
+        self.assertEqual(rows['SignedInput'],'9007199254740993');self.assertEqual(rows['RelationHigh'],'9007199254740992')
+        self.post('write',{'tag':'RelationHigh','value':'9007199254740993'});self.post('write',{'tag':'RelationTest','value':2})
+        rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']};self.assertTrue(rows['RelationExactLimit']);self.assertTrue(rows['RelationReversed'])
+        self.post('write',{'tag':'MixedRelations','value':False});rows={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(all(rows[name] is False for name in true+['RelationExactLimit','RelationReversed']))
+        report=self.post('report',{})['numeric_comparisons']['mixed_integer_ordering'];self.assertEqual(len(report['instructions']),7);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])

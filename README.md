@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.103340`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.110037`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -125,6 +125,9 @@ without consuming them on false rungs, including MEQ and LIM dynamic indices.
 Enable `CompareEnable` in **Data lab** to try mask, range and equality tests.
 Enable `MixedCompare` for signed/unsigned MEQ examples, including adjacent
 64-bit values. All three operands are read-only; wide immediate restrictions remain.
+[Mixed integer ordering and limits](docs/numeric-comparisons.md#mixed-integer-ordering-and-limits)
+use the highest-ranked source tag type when it covers every input range. Enable
+`MixedRelations` in **Integer lab** for six comparisons and three LIM examples.
 
 [Array size and truncation](docs/size-truncate.md) add selected array/string DATA
 size reads, lazy unknown-value handling and signed/unsigned TRN results. In

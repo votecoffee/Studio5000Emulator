@@ -11,6 +11,45 @@ consume every comparison operand; reached unknowns or invalid indices fail the
 advance. A zero MEQ mask does not infer a result from unknown operands. Earlier
 writes, coils, task/time state and existing AOI bindings roll back on failure.
 
+## Mixed integer ordering and limits
+
+Standalone EQU, NEQ, LES, LEQ, GRT, GEQ and LIM accept mixed integer tags in the
+v35 5580 profile when the highest-ranked operand type can represent the complete
+declared range of every input. The rank, from low to high, is SINT, USINT, INT,
+UINT, DINT, UDINT, LINT, ULINT. A larger common type is not invented when no
+operand has that type; saved values do not relax declared-range checks.
+
+For example, DINT -1 compares less than LINT 4294967295; UDINT 4294967295 equals
+LINT 4294967295. UINT 65535 compares greater than DINT -1. INT/USINT and all-
+unsigned width mixtures can retain their numeric values. SINT/USINT, DINT/UDINT
+and LINT/ULINT pairs remain blocked because their highest-ranked unsigned type
+cannot represent every negative source value. Adding an actual LINT operand to
+a LIM can cover DINT/UDINT ranges; adding ULINT cannot cover a signed tag's range.
+
+No floating-point conversion or bitwise zero extension is used. Comparands are
+read-only, including constant tags, selected array/UDT members, program aliases
+and AOI Input/InOut/local bindings. LIM remains inclusive: reversed limits select
+values at or outside the endpoints, and equal endpoints select only that value.
+Mixed narrow/wide limits retain exact adjacent 64-bit values.
+
+Structural validation permits unknown saved values. False/prescan skip operand
+values and dynamic indices, and downstream OTE coils still clear. Reached true
+comparisons consume every operand, including a missing high limit when another
+comparison already appears false. Unknowns, bad indices and later faults restore
+prior writes/coils, task/time state and AOI bindings. Source values are not written.
+
+Immediate, homogeneous and existing narrow/REAL rules remain separate. This new
+mixed profile is tag-only; mixed wide literals, lossy signed/unsigned conversion,
+REAL/LREAL mixtures, ST/CPT/CMP/FBD forms, other targets and native status/fault/
+lifecycle parity remain unqualified. MEQ uses the separate bit-pattern rules below.
+The report exposes `numeric_comparisons.mixed_integer_ordering`.
+
+Enable **MixedRelations** in **Integer lab** for six relation and three limit
+examples. Initially the six relations and `RelationInRange` are true;
+`RelationExactLimit` and `RelationReversed` are false. Raising `RelationHigh` to
+9007199254740993 makes the exact limit true. Setting `RelationTest` to 2 or 8
+makes the reversed limit true. Disabling the gate clears all nine coils.
+
 ## Mixed integer tag widths
 
 App `26.1103.081017` allows all tag-only combinations of SINT, INT, DINT, LINT,

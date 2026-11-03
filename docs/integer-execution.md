@@ -14,7 +14,9 @@ accepts mixed integer tags when the destination covers every source type range.
 when each signed-DINT literal is representable in that destination.
 Standalone v35 [integer-tag bitwise operations](scalar-math.md#mixed-integer-tag-widths)
 now mix all eight integer types with zero extension and signed/unsigned result
-bits. Wide operands with immediates retain the homogeneous rules below.
+bits. [Mixed ordering and limits](numeric-comparisons.md#mixed-integer-ordering-and-limits)
+use the highest-ranked actual source tag type only when it covers all input
+ranges. Wide operands with immediates retain the homogeneous rules below.
 
 ## Try the bundled demo
 
@@ -24,10 +26,11 @@ Choose **Integer lab** in the app, then **Step scan**, or start it from source:
 py -3.13 -X utf8 source/launch.py --sample IntegerLab --data-dir .local/integer-lab
 ```
 
-The 62-root fixture combines twenty-seven ladder rungs with fifteen called ST statements.
+The 80-root fixture combines thirty-six ladder rungs with fifteen called ST statements.
 Enable `MixedArithmetic` for eight widening-tag examples; its new rungs are gated
 independently of the existing homogeneous ladder/ST comparison. Enable
-`ArithmeticConstants` for eight additional tag/constant examples.
+`ArithmeticConstants` for eight additional tag/constant examples and
+`MixedRelations` for nine mixed ordering/limit examples.
 It demonstrates exact 64-bit addition, division/remainder, an unsigned complement
 and all four unsigned widths. StAllMatches compares the results across languages.
 Values beyond browser-safe integer precision remain decimal text in the tag watch.

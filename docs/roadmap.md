@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.110037`: [mixed integer ordering and limits](numeric-comparisons.md#mixed-integer-ordering-and-limits),
+for standalone EQU/NEQ/LES/LEQ/GRT/GEQ/LIM. The highest-ranked declared tag type
+must cover all complete operand ranges; numeric values and 64-bit precision
+remain exact. Read-only/constant/alias/AOI sources, lazy selection and atomic
+rollback are modeled. Integer lab adds nine gated examples. Lossy signed/unsigned
+conversion, wide mixed literals, REAL/LREAL and native parity remain separate.
+
 Available in `26.1103.103340`: [bounded arithmetic constants](scalar-math.md#bounded-arithmetic-constants),
 for widening ladder ADD/SUB/MUL/DIV/MOD forms. Constants are signed-DINT integers
 representable in the destination; source tags retain full-range type checks.

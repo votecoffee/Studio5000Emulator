@@ -315,6 +315,96 @@
           <DataValue DataType="LINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="MixedRelations" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationLow" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationWord" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="65535" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationDword" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Radix="Decimal" Value="4294967295" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationExpected" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="4294967295" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationHigh" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="9007199254740992" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationReversedLow" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="8" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationReversedHigh" TagType="Base" DataType="UINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Radix="Decimal" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationTest" TagType="Base" DataType="DINT" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="5" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationNotEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationLess" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationLessEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationGreater" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationGreaterEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationInRange" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationExactLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RelationReversed" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -404,6 +494,34 @@
               </Rung>
               <Rung Number="26" Type="N">
                 <Text>XIC(ArithmeticConstants)ABS(-2147483648,ConstantAbs);</Text>
+              </Rung>
+              <Rung Number="27" Type="N">
+                <Text>XIC(MixedRelations)EQU(RelationDword,RelationExpected)OTE(RelationEqual);</Text>
+                <Comment>Enable MixedRelations for read-only mixed integer ordering and limits whose highest-ranked tag type covers every source range.</Comment>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Text>XIC(MixedRelations)NEQ(RelationWord,RelationExpected)OTE(RelationNotEqual);</Text>
+              </Rung>
+              <Rung Number="29" Type="N">
+                <Text>XIC(MixedRelations)LES(NarrowSigned,RelationWord)OTE(RelationLess);</Text>
+              </Rung>
+              <Rung Number="30" Type="N">
+                <Text>XIC(MixedRelations)LEQ(RelationDword,RelationExpected)OTE(RelationLessEqual);</Text>
+              </Rung>
+              <Rung Number="31" Type="N">
+                <Text>XIC(MixedRelations)GRT(SignedInput,RelationDword)OTE(RelationGreater);</Text>
+              </Rung>
+              <Rung Number="32" Type="N">
+                <Text>XIC(MixedRelations)GEQ(RelationExpected,RelationDword)OTE(RelationGreaterEqual);</Text>
+              </Rung>
+              <Rung Number="33" Type="N">
+                <Text>XIC(MixedRelations)LIM(RelationLow,RelationDword,RelationExpected)OTE(RelationInRange);</Text>
+              </Rung>
+              <Rung Number="34" Type="N">
+                <Text>XIC(MixedRelations)LIM(RelationLow,SignedInput,RelationHigh)OTE(RelationExactLimit);</Text>
+              </Rung>
+              <Rung Number="35" Type="N">
+                <Text>XIC(MixedRelations)LIM(RelationReversedLow,RelationTest,RelationReversedHigh)OTE(RelationReversed);</Text>
               </Rung>
             </RLLContent>
           </Routine>
