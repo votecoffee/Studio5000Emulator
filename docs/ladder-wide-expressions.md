@@ -4,6 +4,8 @@ App `26.1102.075653` adds bounded ladder `CPT`, `CMP` and `MEQ` forms for
 homogeneous `LINT`, `USINT`, `UINT`, `UDINT` and `ULINT` tags in the Standard
 v35 ControlLogix 5580 profile (`1756-L81E` through `1756-L85E`). Existing
 SINT/INT/DINT/REAL expression and narrow MEQ behavior remains available.
+App `26.1103.081017` extends tag-only MEQ to all eight integer types; CPT/CMP
+wide expressions retain their homogeneous rules.
 
 Development order is ladder, then Structured Text, then FBD, then SFC. This
 increment extends ladder operand forms; it adds no ST, FBD or SFC features.
@@ -34,11 +36,12 @@ CMP adds exact relations `=`, `<>`, `<`, `<=`, `>` and `>=`, BOOL tags and
 expression precedence applies. Both logical operands are evaluated: a true
 left side does not conceal unknown data or division by zero on the right.
 
-Wide MEQ requires matching declared types, with the same bounded immediate
-rule. It compares `(Source & Mask)` with `(Compare & Mask)` at the declared
-width, including bit 63 and negative LINT patterns. All three operands must
-be known even when the mask is zero. The existing narrow MEQ path continues
-to zero-extend signed SINT/INT operands.
+[Tag-only MEQ](numeric-comparisons.md#mixed-integer-tag-widths) permits mixed
+signed/unsigned integer types. Each read-only operand uses its declared pattern
+with zero extension before masked equality, including bit 63 and negative LINT
+patterns. All three operands must be known even when the mask is zero. Any wide
+operand with an immediate retains matching tag types and the bounded immediate
+rule above. CPT/CMP expression promotion remains separate.
 
 Aliases, program-local tags, selected array/UDT members, typed JSR parameters
 and supported RLL AOI bindings use the same memory resolver. Standard periodic,
@@ -84,7 +87,7 @@ or native import acceptance of the public fixture.
 
 ## Remaining work
 
-Mixed declared numeric types and their conversion rules, wide immediate
+Mixed arithmetic/expression types and their conversion rules, wide immediate
 syntax, LREAL/time expressions, power and other functions, wide file-expression
 consumers and wide array indices remain unsupported. General ladder and ST
 coverage is still incomplete. No new FBD/SFC forms are included.

@@ -1,7 +1,8 @@
 # Integer expression division
 
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) now have a separate
-homogeneous v35 5580 profile. The rules below describe the narrow expression
+v35 5580 profile: CPT/CMP remain homogeneous; tag-only MEQ accepts mixed integer
+types. The rules below describe the narrow expression
 model; file-expression consumers remain narrow.
 
 App `26.1029.231505` adds integer division to the existing narrow ST, CPT and

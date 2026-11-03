@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.075330`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.081017`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -29,7 +29,8 @@ and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
 
 [Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous
-LINT/unsigned CPT, CMP and MEQ forms for v35 5580. **Ladder wide expression lab**
+LINT/unsigned CPT and CMP forms for v35 5580. Ladder MEQ additionally mixes
+all eight integer tag types with zero extension and exact 64-bit masks. **Ladder wide expression lab**
 demonstrates values beyond floating-point precision, high-bit masks and fault recovery.
 
 [Event tasks](docs/event-tasks.md) add EVENT calls in ladder/ST for qualified
@@ -107,6 +108,8 @@ needed. **Bit lab** adds contact, latch and rising/falling pulse examples.
 [Numeric ladder comparisons](docs/numeric-comparisons.md) validate unknown values
 without consuming them on false rungs, including MEQ and LIM dynamic indices.
 Enable `CompareEnable` in **Data lab** to try mask, range and equality tests.
+Enable `MixedCompare` for signed/unsigned MEQ examples, including adjacent
+64-bit values. All three operands are read-only; wide immediate restrictions remain.
 
 [Array size and truncation](docs/size-truncate.md) add selected array/string DATA
 size reads, lazy unknown-value handling and signed/unsigned TRN results. In

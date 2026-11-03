@@ -296,6 +296,61 @@
           <DataValue DataType="LINT" Value="99" />
         </Data>
       </Tag>
+      <Tag Name="MixedCompare" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedSmall" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedMask" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="65536" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedExpected" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedExact" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Radix="Decimal" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedExpectedExact" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="9007199254740992" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedFullMask" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedNarrow" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Radix="Decimal" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedMaskMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedExactMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="MixedWidthMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -394,14 +449,26 @@
                 <Text>LBL(Again)ADD(LoopCount,1,LoopCount)LES(LoopCount,3)JMP(Again);</Text>
               </Rung>
               <Rung Number="27" Type="N">
+                <Comment>Zero-fill a negative signed byte before applying a wide mask.</Comment>
+                <Text>XIC(MixedCompare)MEQ(MixedSmall,MixedMask,MixedExpected)OTE(MixedMaskMatch);</Text>
+              </Rung>
+              <Rung Number="28" Type="N">
+                <Comment>Compare adjacent exact signed and unsigned 64-bit values.</Comment>
+                <Text>XIC(MixedCompare)MEQ(MixedExact,MixedFullMask,MixedExpectedExact)OTE(MixedExactMatch);</Text>
+              </Rung>
+              <Rung Number="29" Type="N">
+                <Comment>Zero-fill a negative DINT before comparing its wide pattern.</Comment>
+                <Text>XIC(MixedCompare)MEQ(MixedNarrow,MixedFullMask,MixedExpected)OTE(MixedWidthMatch);</Text>
+              </Rung>
+              <Rung Number="30" Type="N">
                 <Comment>Skip the next write when Bypass is set.</Comment>
                 <Text>XIC(Bypass)JMP(Finish);</Text>
               </Rung>
-              <Rung Number="28" Type="N">
+              <Rung Number="31" Type="N">
                 <Comment>This write is skipped in the default demo.</Comment>
                 <Text>MOV(999,SkippedValue);</Text>
               </Rung>
-              <Rung Number="29" Type="N">
+              <Rung Number="32" Type="N">
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>

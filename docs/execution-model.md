@@ -70,8 +70,9 @@ and scheduling, so correcting the index permits retry of the same edge.
 
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) share exact integer
 expression evaluation with ST. Each wide numeric intermediate must fit the
-matching declared type. CMP eagerly evaluates both logical sides; MEQ reads
-all operands even with a zero mask. False rungs skip computation, CPT retains
+matching declared type for CPT/CMP. CMP eagerly evaluates both logical sides;
+tag-only MEQ accepts all eight mixed integer types, zero-extends each declared
+pattern and reads all operands even with a zero mask. False rungs skip computation, CPT retains
 its destination through prescan, and failures roll back the whole advance.
 These software policies do not establish native intermediate/fault parity.
 
@@ -492,7 +493,9 @@ Native status/overflow/lifecycle and broader profiles remain unqualified.
 [Numeric ladder comparisons](numeric-comparisons.md) separate static checks from
 live operands for v35 5580 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ. False/prescan skip
 values and dynamic indices; true calls consume every operand, including MEQ under
-a zero mask. Existing exact wide/mask/limit rules and AOI rollback are retained.
+a zero mask. MEQ mixes all eight integer tag types using zero-extended declared
+patterns and read-only inputs. Wide operands with immediates retain homogeneous
+restrictions. Exact integer masks, limit rules and AOI rollback are retained.
 Complete native promotion/status/fault/lifecycle parity remains unfinished.
 
 [Ladder bit logic](bit-logic.md) validates scalar BOOL shapes/references without

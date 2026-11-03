@@ -104,11 +104,12 @@ def ladder_description(project):
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
                 cmp_logic=['&&','||','^^','!','BOOL AND/OR/XOR/NOT'],eager_cmp=True,
-                meq='Matching declared integer types; mask each source at its declared width',
+                meq='All eight integer tag types may mix; zero-extend each read-only declared pattern; legacy immediates remain homogeneous',
+                meq_mixed_integer_tags=True,
                 literals='Signed DINT integers representable in the matching declared type; store larger constants in tags',
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['Mixed numeric types/conversions and wider immediate literals','Power and other functions',
+                remaining=['Mixed arithmetic/expression types and wider immediate literals','Power and other functions',
                            'LREAL/time types, file-expression and array-index consumers','Native status/fault/intermediate/partial-effect parity'])
 
 

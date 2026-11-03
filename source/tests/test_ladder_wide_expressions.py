@@ -126,9 +126,11 @@ class LadderWideExpressionTests(unittest.TestCase):
         for expression in ('Source','Source&&StartPB','!(Source)','Source=1.0','Source**2=1','Source>Mask>Dest'):
             self.assertTrue(self.engine(['AFI()CMP('+expression+')OTE(RunLatch);']).blockers,expression)
 
-    def test_meq_mixed_types_bad_literals_and_nonintegers_remain_blocked(self):
-        for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','REAL','LINT'),('USINT','UINT','USINT')):
+    def test_meq_mixed_wide_immediates_bad_literals_and_nonintegers_remain_blocked(self):
+        for types in (('LINT','REAL','LINT'),('USINT','BOOL','USINT')):
             self.assertTrue(self.engine(['AFI()MEQ(Source,Mask,Dest)OTE(RunLatch);'],types=types).blockers)
+        for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('USINT','UINT','USINT')):
+            self.assertTrue(self.engine(['AFI()MEQ(Source,Mask,1)OTE(RunLatch);'],types=types).blockers)
         for operand in ('2147483648','16#FFFFFFFF','1.0','RunLatch'):
             self.assertTrue(self.engine([f'AFI()MEQ(Source,{operand},Dest)OTE(RunLatch);']).blockers)
         self.assertTrue(self.engine(['MEQ(Source,-1,0)OTE(RunLatch);'],dtype='ULINT').blockers)

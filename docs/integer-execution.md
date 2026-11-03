@@ -85,7 +85,8 @@ rejections and the processor/firmware gate. These are model-level checks.
 
 [Homogeneous wide ST](wide-st.md) now supports bounded assignments, arithmetic,
 comparisons and bitwise expressions. [Ladder CPT/CMP/MEQ](ladder-wide-expressions.md)
-now accept homogeneous wide operands under a separate bounded profile. Remaining
+accept homogeneous wide CPT/CMP operands and mixed integer tag-only MEQ under
+separate bounded rules. Wide MEQ immediates retain matching tag types. Remaining
 ST/expression forms, mixed-type promotions, conversions, flags, LREAL and time
 types remain unfinished.
 Other controller families need explicit qualification. See the

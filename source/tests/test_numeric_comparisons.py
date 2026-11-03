@@ -133,7 +133,7 @@ class NumericComparisonTests(unittest.TestCase):
         for text in ('MEQ(TRUE,1,1)', 'MEQ(1.0,1,1)', 'MEQ(Values,1,1)', 'MEQ(16#100000000,1,1)',
                      'LIM(0,StartPB,10)', 'EQU(Values,7)', 'EQU(Values[999],7)'):
             self.assertTrue(self.engine(['AFI()' + text + 'OTE(RunLatch);']).blockers, text)
-        for types in (('LINT', 'DINT', 'LINT'), ('USINT', 'UINT', 'USINT')):
+        for types in (('LINT', 'REAL', 'LINT'), ('USINT', 'BOOL', 'USINT')):
             self.assertTrue(self.engine(types=types).blockers)
 
     def test_later_unknown_comparison_rolls_back_prior_writes_coils_and_time(self):

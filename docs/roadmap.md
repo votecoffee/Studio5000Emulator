@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.081017`: [mixed integer-tag MEQ](numeric-comparisons.md#mixed-integer-tag-widths),
+all eight signed/unsigned integer input types, zero-filled declared patterns,
+read-only constants and exact 64-bit masks. Data Lab adds `MixedCompare`.
+Wide immediate restrictions and arithmetic promotion remain separate; native
+status/fault/lifecycle/layout parity remains unqualified.
+
 Available in `26.1103.075330`: [mixed integer-tag bitwise forms](scalar-math.md#mixed-integer-tag-widths),
 all eight signed/unsigned integer tag types for AND/OR/XOR/NOT, zero extension,
 exact 64-bit values and typed destination bits. Bit Lab adds `MixedBitwise`.

@@ -2240,3 +2240,40 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(None,'2147483903','18446744071562067966'))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
+
+    def test_data_lab_mixed_integer_meq_preserves_exact_inputs_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return values(self.post('step',{'dt':10}))
+        row=step();self.assertFalse(any(row[t] for t in ('MixedMaskMatch','MixedExactMatch','MixedWidthMatch')))
+        write('MixedCompare',True);row=step()
+        self.assertEqual((row['MixedMaskMatch'],row['MixedExactMatch'],row['MixedWidthMatch']),(True,False,False))
+        self.assertEqual((row['MixedSmall'],row['MixedMask'],row['MixedExact'],row['MixedFullMask']),(-1,'65536','9007199254740993','-1'))
+        write('MixedExpectedExact','9007199254740993');write('MixedExpected','4294967295');row=step()
+        self.assertEqual((row['MixedMaskMatch'],row['MixedExactMatch'],row['MixedWidthMatch']),(False,True,True))
+        write('MixedCompare',False);row=step();self.assertFalse(any(row[t] for t in ('MixedMaskMatch','MixedExactMatch','MixedWidthMatch')))
+        report=self.post('report',{})['numeric_comparisons'];self.assertTrue(report['meq_mixed_integer_tags']);self.assertEqual(len(report['meq_types']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_imported_mixed_meq_unknowns_zero_mask_and_late_failure_are_atomic_through_http(self):
+        import base64
+        from test_mixed_meq import MixedMeqTests
+        fixture=MixedMeqTests();fixture.setUp()
+        try:
+            def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant','true')
+            engine=fixture.checked(['XIC(StartPB)MEQ(Values[Index],Mask,Dest)OTE(RunLatch);','XIC(StartPB)DIV(1,SpeedCommand,SpeedCommand);'],types=('ULINT','USINT','DINT'),values=(7,0,7),mutate=constant)
+            raw=engine.project.path.read_bytes()
+        finally:fixture.doCleanups()
+        state=self.post('load',{'name':'UnknownMixedMEQ.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
+        self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True});self.post('write',{'tag':'SpeedCommand','value':0})
+        def current():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        for tag,value in (('Index',0),('Values[0]','9007199254740993'),('SpeedCommand',1)):
+            before=current()
+            with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+            self.assertEqual(error.exception.code,400);error.exception.close()
+            after=current()
+            for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+            self.post('write',{'tag':tag,'value':value})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(row['RunLatch']);self.assertEqual(row['Values[0]'],'9007199254740993');self.assertEqual(row['Dest'],7)
