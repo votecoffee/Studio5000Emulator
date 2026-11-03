@@ -149,8 +149,46 @@ class Extensions:
         finally:self.memory.structural=previous
         return True
 
+    def string_preflight(self,op,scope):
+        """Validate represented strings without reading live data or indices."""
+        if not comparisons.available(self.engine.project):return False
+        n,a=op.name,op.args
+        calls={'CONCAT','MID','DTOS','STOD'}|string_operations.INSTRUCTIONS|string_conversions.INSTRUCTIONS
+        if n not in calls|COMPARE|{'CMP'}:return False
+        previous=self.memory.structural
+        self.memory.structural=True
+        try:
+            def text(ref,write=False):string_operations.string_operand(self.memory,ref,scope,destination=write)
+            def integer(ref,write=False):string_operations.integer_operand(self.memory,ref,scope,destination=write)
+            if n in COMPARE:
+                if not any(self.is_string(ref,scope) for ref in a):return False
+                for ref in a:text(ref)
+            elif n=='CMP':
+                condition=self.condition(a[0],allow_wide=True)
+                strings=[ref for ref in condition.refs if self.is_string(ref,scope)]
+                if not strings:return False
+                for ref in condition.refs:
+                    if ref in strings:text(ref)
+                    elif isinstance(self.memory.read(ref,scope),(dict,list)):
+                        raise ModelError('String CMP requires scalar operands')
+                condition.validate(self.memory,scope)
+            elif n in string_operations.INSTRUCTIONS:string_operations.validate(self.memory,op,scope)
+            elif n in string_conversions.INSTRUCTIONS:string_conversions.validate(self.memory,op,scope)
+            elif n=='CONCAT':text(a[0]);text(a[1]);text(a[2],True)
+            elif n=='MID':
+                text(a[0]);integer(a[1]);integer(a[2]);text(a[3],True)
+                for ref,minimum in ((a[1],0),(a[2],1)):
+                    try:value=literal(ref)
+                    except ValueError:continue
+                    if value<minimum:raise ModelError('MID requires nonnegative length and a one-based start')
+            elif n=='DTOS':integer(a[0]);text(a[1],True)
+            else:text(a[0]);integer(a[1],True)
+        finally:self.memory.structural=previous
+        return True
+
     def validate(self,op,scope):
         n,a=op.name,op.args
+        if self.string_preflight(op,scope):return True
         if n in COMPARE and any(self.is_string(x,scope) for x in a):
             for arg in a:self.memory.string(arg,scope)
             return True

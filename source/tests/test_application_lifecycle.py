@@ -2456,3 +2456,21 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'ExpressionDelta','value':3});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected)
         self.post('write',{'tag':'MixedExpressionMath','value':False});self.post('write',{'tag':'ExpressionDelta','value':0});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected);self.assertFalse(row['MixedExpressionMatches'])
         report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_arithmetic'];self.assertEqual(report['instructions'],['CPT','CMP']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_string_lab_indexed_unknown_operands_gate_rollback_and_recovery_through_http(self):
+        state=self.post('demo',{'sample':'StringLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        row=values(self.post('step',{'dt':10}));self.assertIsNone(row['IndexedJoined[0].LEN']);self.assertFalse(row['IndexedMatch'])
+        for tag,value in [('StringIndex',0),('IndexedSource[0]','ABC STATE'),('IndexedStrings',True)]:self.post('write',{'tag':tag,'value':value})
+        state=self.post('step',{'dt':10});row=values(state)
+        for tag,wanted in [('IndexedJoined[0]','ABC STATE<OK>'),('IndexedSlice[0]','STATE'),('IndexedLower[0]','abc state<ok>'),('IndexedNumber[0]','5')]:
+            self.assertEqual(row[tag+'.LEN'],len(wanted));self.assertEqual(row[tag],wanted)
+        self.assertEqual(row['IndexedPosition[0]'],5);self.assertTrue(row['IndexedMatch']);self.assertIsNone(row['IndexedJoined[1].LEN']);self.assertIsNone(row['IndexedJoined[0].DATA[31]'])
+        self.post('write',{'tag':'IndexedStrings','value':False});self.post('write',{'tag':'StringIndex','value':99});row=values(self.post('step',{'dt':10}));self.assertFalse(row['IndexedMatch']);self.assertEqual(row['IndexedJoined[0].LEN'],13)
+        before=self.post('write',{'tag':'IndexedStrings','value':True})
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);self.assertIn('outside bounds',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'StringIndex','value':0});row=values(self.post('step',{'dt':10}));self.assertTrue(row['IndexedMatch'])
+        report=self.post('report',{})['string_operations']['operand_selection'];self.assertEqual(len(report['instructions']),18);self.assertFalse(report['native_runtime_parity'])

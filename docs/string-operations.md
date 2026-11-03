@@ -34,6 +34,30 @@ including unknown unused bytes. Represented NUL and high bytes are ordinary
 single-byte data; positions count bytes. False ladder rungs, unreached ST branches
 and prescan retain destinations. Reached calls execute on every scan.
 
+## Operand selection
+
+For v35 ControlLogix 5580 (1756-L81E through L85E), ladder CONCAT, MID, DTOS,
+STOD, FIND, INSERT, DELETE, LOWER, UPPER, STOR and RTOS validate declared
+operand shapes, index grammar and destination permissions without consuming
+saved values or dynamic indices. The same preflight covers six direct string
+relations and string-bearing CMP. Existing literal/type restrictions remain.
+Shared call validation is also used by existing ST calls; this adds no ST syntax.
+
+Unknown LEN, active DATA, numeric inputs and dynamic index values can remain
+at import. False rungs and prescan skip those operands. Reached calls still
+resolve actual addresses and require every consumed source value, including
+active string bytes, numeric conversions, positions and quantities. MID with
+zero length still consumes its source. String comparisons do not fold identical
+references; CMP consumes both logical operands even when one determines the result.
+
+Full logical string writes establish unknown LEN/active DATA and preserve unused
+bytes and other array elements. Numeric results can likewise establish unknown
+scalars. Destination permissions, runtime ranges and result capacity still apply.
+Aliases, explicit user strings/UDT members and existing AOI InOut/local bindings
+use this selection. Fault rollback restores earlier writes, AOI bindings and
+the modeled advance. AOI call-argument binding retains its separate contract.
+No string algorithms, encoding or native fault/status/lifecycle claims change.
+
 ## Remaining cases and faults
 
 Empty FIND sources are invalid. Empty search strings, zero-quantity DELETE and
@@ -66,6 +90,25 @@ with a called ST routine and an explicit 32-byte user string. It also includes
 
 Changing SearchText to `PART` makes both positions one and AllOK false on the
 next scan. Enable gates the ladder FIND, allowing retained output to be observed.
+
+The lab also has six indexed ladder rungs, disabled by IndexedStrings at import.
+StringIndex starts at 99 and the three-element string/result arrays are unknown.
+Step once to observe that these dormant operands do not block execution. Set
+StringIndex to 0, write `ABC STATE` to IndexedSource[0], enable IndexedStrings
+and step again:
+
+| Tag | Result |
+| --- | --- |
+| IndexedJoined[0] | `ABC STATE<OK>` |
+| IndexedSlice[0] | `STATE` |
+| IndexedLower[0] | `abc state<ok>` |
+| IndexedPosition[0] | `5` |
+| IndexedNumber[0] | `5` |
+| IndexedMatch | true |
+
+Unused DATA and sibling elements remain unknown. Disable IndexedStrings before
+setting StringIndex back to 99 to retain outputs; enabling it at that index
+faults and rolls back the scan. Restore index 0 to resume.
 
 The baseline was checked against installed Logix Designer v35 help topics
 14570 (FIND), 14567 (INSERT) and 14566 (DELETE). Published Rockwell references

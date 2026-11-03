@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.155205`: [ladder string operand selection](string-operations.md#operand-selection).
+String calls, direct string relations and string-bearing CMP validate types,
+shapes and permissions without consuming saved data or dynamic indices. False
+rungs and prescan skip live inputs; reached calls require source LEN/active DATA,
+retain runtime range/capacity checks and can populate unknown destinations.
+String lab adds six gated indexed rungs. AOI bindings and whole-advance rollback
+are modeled; algorithms, encoding, broader types and native parity remain separate.
+
 Available in `26.1103.151913`: [mixed CPT/CMP integer arithmetic](ladder-wide-expressions.md#mixed-integer-arithmetic).
 Exact basic operations, unary signs and ABS use a common actual source type that
 covers all source ranges. Every arithmetic subtree must contain that type; CPT's

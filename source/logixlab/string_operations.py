@@ -1,5 +1,6 @@
 """Bounded FIND/INSERT/DELETE on represented single-byte LEN/DATA strings."""
 from .model import ModelError, coerce, literal
+from .integer_math import CONTROLLERS
 
 INSTRUCTIONS = frozenset(('FIND', 'INSERT', 'DELETE'))
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
@@ -92,5 +93,13 @@ def description():
                 strings='STRING and explicit DINT LEN / one-dimensional SINT DATA user strings',
                 positions='One-based SINT/INT/DINT tag or bounded DINT immediate; no expression operands',
                 search='Case-sensitive; first match at/after Start, zero when absent',
+                operand_selection=dict(language='RLL',firmware='35',controllers=sorted(CONTROLLERS),
+                    instructions=['CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EQU','NEQ','LES','LEQ','GRT','GEQ','CMP'],
+                    preflight='Declared string/scalar shapes, index grammar, permissions and existing literal bounds without saved values or dynamic indices',
+                    selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
+                    writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
+                    comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
+                    excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',
+                    native_runtime_parity=False),
                 remaining=['Empty FIND search', 'Zero-quantity DELETE', 'INSERT beyond active text plus one',
                            'Native minor faults and math/status parity', 'FBD execution'])

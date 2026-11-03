@@ -26,7 +26,9 @@ Writes replace LEN and active result bytes, retaining unused destination DATA,
 including unknown tail bytes. Output must fit the declared capacity. An unknown
 destination LEN/active byte can be established by a write, while unknown active
 source bytes or invalid LEN fail explicitly. Constant sources are allowed;
-constant destinations remain blocked.
+constant destinations remain blocked. [Operand selection](string-operations.md#operand-selection)
+checks shapes and permissions without saved values or dynamic indices in the
+v35 5580 profile; reached calls still require their actual inputs.
 
 Prescan, false ladder rungs and skipped ST branches retain outputs. Reached
 calls execute each scan and ladder output follows input power. ST FOR checks

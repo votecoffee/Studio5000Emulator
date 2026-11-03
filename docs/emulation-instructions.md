@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; 32/64-bit BCD forms added for app `26.1103.082411`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; lazy ladder string operands added for app `26.1103.155205`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -144,7 +144,7 @@ schema/behavior backlog separately from instruction names.
 | FOR/BRK | [Ladder indexed routine loops](ladder-loops.md), signed inclusive bounds, early exits, nested calls and task-isolated frames. Native operand sampling/overflow/watchdog/postscan parity, recursion, AOI and SFC forms remain unfinished. |
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static references, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
-| CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [TRN](size-truncate.md) adds lazy REAL reads and representable signed/unsigned destinations. [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
+| CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [TRN](size-truncate.md) adds lazy REAL reads and representable signed/unsigned destinations. [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. [Operand selection](string-operations.md#operand-selection) adds structural preflight, lazy dynamic references and unknown full writes for string calls/relations/CMP in v35 5580. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
 | EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/ST FOR forms and CPU/status parity remain unfinished. |
 | GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and broader SSV remain unfinished. |
 | SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. Other classes/attributes, Event/Safety targets, AOIs and harness calls remain unfinished. |

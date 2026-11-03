@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.151913`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.155205`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -52,7 +52,10 @@ watchdogs in microseconds, typed priorities, names and controller settings.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.
-**String lab** demonstrates case conversion and decimal/REAL exchange.
+**String lab** demonstrates case conversion, decimal/REAL exchange and
+[lazy indexed string operands](docs/string-operations.md#operand-selection).
+Enabled instructions can populate unknown string destinations while retaining
+unused bytes; false rungs skip dynamic indices and saved operand values.
 
 [File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for
 indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.

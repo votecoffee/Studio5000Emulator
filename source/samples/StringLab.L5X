@@ -982,6 +982,33 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="IndexedStrings" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="StringIndex" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="IndexedMatch" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="IndexedSource" TagType="Base" DataType="LabText32" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="LabText32" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="IndexedJoined" TagType="Base" DataType="LabText32" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="LabText32" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="IndexedSlice" TagType="Base" DataType="LabText32" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="LabText32" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="IndexedLower" TagType="Base" DataType="LabText32" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="LabText32" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="IndexedNumber" TagType="Base" DataType="LabText32" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="LabText32" Dimensions="3" /></Data>
+      </Tag>
+      <Tag Name="IndexedPosition" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1018,6 +1045,24 @@
               </Rung>
               <Rung Number="9" Type="N">
                 <Text>XIC(Convert)RTOS(RealSource,FormattedReal);</Text>
+              </Rung>
+              <Rung Number="10" Type="N">
+                <Text>XIC(IndexedStrings)CONCAT(IndexedSource[StringIndex],Addition,IndexedJoined[StringIndex]);</Text>
+              </Rung>
+              <Rung Number="11" Type="N">
+                <Text>XIC(IndexedStrings)MID(IndexedSource[StringIndex],5,5,IndexedSlice[StringIndex]);</Text>
+              </Rung>
+              <Rung Number="12" Type="N">
+                <Text>XIC(IndexedStrings)LOWER(IndexedJoined[StringIndex],IndexedLower[StringIndex]);</Text>
+              </Rung>
+              <Rung Number="13" Type="N">
+                <Text>XIC(IndexedStrings)FIND(IndexedSource[StringIndex],SearchText,1,IndexedPosition[StringIndex]);</Text>
+              </Rung>
+              <Rung Number="14" Type="N">
+                <Text>XIC(IndexedStrings)DTOS(IndexedPosition[StringIndex],IndexedNumber[StringIndex]);</Text>
+              </Rung>
+              <Rung Number="15" Type="N">
+                <Text>XIC(IndexedStrings)EQU(IndexedSlice[StringIndex],SearchText)OTE(IndexedMatch);</Text>
               </Rung>
             </RLLContent>
           </Routine>
