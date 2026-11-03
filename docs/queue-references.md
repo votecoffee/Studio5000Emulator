@@ -92,3 +92,7 @@ Arrays. Rockwell's [array indexing reference](https://www.rockwellautomation.com
 [FFL operand reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-load--ffl-.html)
 and [General Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 provide context. Later references do not extend this emulator's v35 profile claims.
+
+Payload and CONTROL-reset selection is documented in [CONTROL operands](control-operands.md).
+The array-start rules above remain; payload indices now wait until a data path
+needs them. Actual shift/queue prescan and runtime CONTROL selection remain.

@@ -70,6 +70,14 @@ and [DINT sequencers](sequencer-operations.md). Step once to rearm, then pulse
 Push for each StackValue. Pulse Pop to inspect reverse order through Popped.
 The fourth array element is a guard and stays 999.
 
+## Operand selection
+
+[CONTROL operand selection](control-operands.md) adds structural v35 5580
+preflight for payload references and CONTROL RES. Shift/queue operands are
+consumed only on paths that need them; ordinary prescan/runtime CONTROL state
+requirements remain. False CONTROL RES skips live indices and true resets
+establish unknown POS/flags while retaining LEN.
+
 ## Reset, observation and limits
 
 RES clears POS and all CONTROL flags, retaining LEN and array data. FLL of DINT

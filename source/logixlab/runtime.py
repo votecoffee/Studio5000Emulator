@@ -388,6 +388,7 @@ class Engine:
         if n in file_arithmetic.INSTRUCTIONS:file_arithmetic.validate(self,op,scope);return
         if self._timer_preflight(op,scope):return
         if self._counter_preflight(op,scope):return
+        if control_operations.reset_preflight(self.memory,op,scope):return
         if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.preflight(self.memory,op,scope);return
         if scalar_math.validate(self,op,scope):return
@@ -717,7 +718,7 @@ class Engine:
         if timer is not None:return timer
         counter=self._counter_execute(op,p,scope)
         if counter is not None:return counter
-        if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
+        if n=='RES' and (control_operations.reset_preflight(self.memory,op,scope) or self.memory.resolve(a[0],scope)[2]=='CONTROL'):
             if p:
                 control_operations.reset(self.memory,a[0],scope)
                 file_incremental.reset(self,a[0],scope)

@@ -2571,3 +2571,21 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('CopyAggregates',False);write('AggregateCopySourceIndex',99);write('AggregateCopyDestIndex',99);row=values(step());self.assertEqual(row['CopyRecords[1].Count'],73)
         write('CopyAggregates',True);fault('outside bounds');write('AggregateCopySourceIndex',1);write('AggregateCopyDestIndex',1);step()
         report=self.post('report',{})['aggregate_copy'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_control_lab_lazy_payloads_and_control_reset_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'ControlLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['ResetControls[1].POS']);write('IndexedShift',True);fault('outside bounds');write('PayloadIndex',1);fault('Unknown');write('PayloadBits[1]',True);row=values(step());self.assertEqual(row['IndexedBits[0]'],1)
+        write('PayloadIndex',99);row=values(step());self.assertEqual(row['IndexedBits[0]'],1);write('IndexedShift',False);write('IndexedLoad',True);fault('outside bounds');write('PayloadIndex',1);write('PayloadValues[1]',67);row=values(step());self.assertEqual(row['IndexedQueue[0]'],67)
+        write('PayloadIndex',99);row=values(step());self.assertEqual(row['IndexedQueueControl.POS'],1);write('IndexedLoad',False);write('IndexedUnload',True);fault('outside bounds');write('OutputIndex',1);row=values(step());self.assertEqual(row['UnloadedValues[1]'],67);self.assertIsNone(row['UnloadedValues[0]']);self.assertEqual(row['IndexedQueue[2]'],999)
+        write('IndexedUnload',False);write('IndexedReset',True);fault('outside bounds');write('ResetControlIndex',1);row=values(step());self.assertIsNone(row['ResetControls[1].LEN']);self.assertEqual(row['ResetControls[1].POS'],0);self.assertIs(row['ResetControls[1].EN'],False);self.assertIs(row['ResetControls[1].FD'],False);self.assertIsNone(row['ResetControls[0].POS'])
+        write('IndexedReset',False);write('ResetControlIndex',99);row=values(step());self.assertEqual(row['ResetControls[1].POS'],0)
+        profile=self.post('report',{})['control_operations'];self.assertIn('payload',profile['skipped_references']);self.assertIn('CONTROL RES',profile['reset_selection'])

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.181119`: [CONTROL operand selection](control-operands.md).
+Shift and FIFO/LIFO payloads use structural preflight and are consumed only on
+paths that need data. CONTROL RES skips false/prescan live indices, establishes
+unknown POS/flags, retains LEN and clears resolved modeled incremental progress.
+Control lab adds a called indirect-operand routine. Existing prescan, edge/data
+algorithms, runtime CONTROL reads and native parity remain separate.
+
 Available in `26.1103.175514`: [matching aggregate COP/CPS](aggregate-copies.md).
 Basic records, strings and explicit nested UDTs use structural/lazy operand
 selection, captured complete windows, unknown propagation, independent storage

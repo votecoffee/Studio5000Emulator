@@ -162,7 +162,27 @@ def scalar(memory, ref, scope, dtype, *, destination=False):
         raise ModelError('FIFO requires one element with the exact matching declared numeric, string or UDT type')
 
 
+def reset_preflight(memory, op, scope):
+    if op.name != 'RES' or memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
+        return False
+    previous = memory.structural
+    memory.structural = True
+    try:
+        if memory.resolve(op.args[0], scope)[2] != 'CONTROL':return False
+        control(memory, op.args[0], scope)
+    finally:memory.structural = previous
+    return True
+
+
 def validate(memory, op, scope):
+    previous = memory.structural
+    if memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS:
+        memory.structural = True
+    try:_validate(memory, op, scope)
+    finally:memory.structural = previous
+
+
+def _validate(memory, op, scope):
     n, a = op.name, op.args
     shift = n in ('BSL', 'BSR')
     ctrl = a[1] if shift else a[2]
@@ -304,7 +324,9 @@ def description():
                 aggregate_values='Whole logical records including backing bytes; unknown represented fields remain unknown; no native byte-layout claim',
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
-                skipped_references='False or latched calls structurally check starts without consuming dynamic indices',
+                skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',
+                reset_selection='v35 5580 CONTROL RES skips live indices on false/prescan; true establishes POS/flags, retains LEN and clears modeled incremental progress',
+                lifecycle='Shift/queue prescan still requires actual CONTROL addresses and queue LEN/POS; algorithms and runtime state selection unchanged',
                 aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
                 remaining=['FIFO scalar wide/unsigned types, mixed conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
