@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.182610`: [typed bitwise operands](typed-bitwise-operands.md).
+AND/OR/XOR/NOT/MEQ accept decimal L/U/UL sources under declared-width pattern
+rules, mixing integer tags and legacy 32-bit immediates. Zero extension, integer
+result truncation/reinterpretation, lazy operands and AOI rollback are covered.
+Wide expression lab adds BitwiseOperandConstants. Other types/consumers, typed
+radix and native status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.180138`: [typed integer operands](typed-integer-operands.md).
 Seven integer-result arithmetic forms and seven integer comparisons accept
 decimal L/U/UL constants under existing range-preserving rules. Source ranges

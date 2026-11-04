@@ -1,5 +1,10 @@
 # Scalar arithmetic and bitwise operand selection
 
+[Typed bitwise operands](typed-bitwise-operands.md) extend the integer pattern
+profile in app `26.1104.182610`: decimal L/U/UL constants preserve their declared
+widths in AND/OR/XOR/NOT/MEQ. The arithmetic range-preservation rules remain
+separate from these bit-pattern conversions.
+
 [Typed integer operands](typed-integer-operands.md) extend this profile in app
 `26.1104.180138`: decimal L/U/UL constants participate in the existing complete
 source-range checks and exact integer calculations. Other consumer and narrowing

@@ -200,6 +200,25 @@ def read_source(memory, ref, scope):
     return typed[1] if typed is not None else memory.read(ref,scope)
 
 
+def pattern_width(memory, ref, scope):
+    """Declared integer width, or the existing 32-bit immediate pattern."""
+    typed=typed_integer(ref)
+    if typed is not None:return INT_BITS[typed[0]]
+    try:literal(ref)
+    except ValueError:
+        dtype,_=integer_operand(memory,ref,scope)
+        return INT_BITS[dtype]
+    from .bit_transfer import operand
+    return operand(memory,ref,scope)
+
+
+def pattern(memory, ref, scope, width):
+    typed=typed_integer(ref)
+    if typed is not None:return typed[1]&((1<<width)-1)
+    from .bit_transfer import unsigned
+    return unsigned(memory,ref,scope,width)
+
+
 def bit_value(value, dtype):
     """Interpret exactly the declared number of bits, including unsigned NOT."""
     bits = INT_BITS[dtype]

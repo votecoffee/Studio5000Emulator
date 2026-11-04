@@ -114,6 +114,9 @@ def ordering_type(types):
 def masked_values(engine, args, scope):
     """Read-only tag patterns; keep the legacy immediate qualification separate."""
     memory = engine.memory
+    if any(integer_math.typed_integer(ref) is not None for ref in args):
+        widths=[integer_math.pattern_width(memory,ref,scope) for ref in args]
+        return [integer_math.pattern(memory,ref,scope,width) for ref,width in zip(args,widths)]
     widths = []
     immediate = False
     for ref in args:
@@ -181,6 +184,12 @@ def description(project):
                     constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants checked at their declared range before float32 conversion; an actual REAL tag is required',
                     calculation='Convert every required source to finite float32 before comparison; inclusive/reversed limits use converted bounds; large integers and literals may round',
                     precedence='LREAL tags or floating L/l literals retain the separate binary64 profile; integer-only comparisons retain their existing exact rules',
+                    native_runtime_parity=False),
+                typed_integer_masked_equal=dict(instruction='MEQ',constant_types=['LINT','UDINT','ULINT'],
+                    operands='At least one decimal L/U/UL source, mask or compare; scalar integer tags and existing DINT/32-bit radix patterns may mix',
+                    calculation='Zero-extend each declared pattern, then compare source AND mask with compare AND mask; no numeric signed comparison or floating conversion',
+                    selection='Read-only operands; structural/lazy preflight and all required known values even for a zero mask',
+                    scope='RLL v35 5580; other types/consumers/typed radix and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
                 masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,

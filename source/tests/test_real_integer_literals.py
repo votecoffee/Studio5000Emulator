@@ -139,7 +139,7 @@ class RealIntegerLiteralTests(unittest.TestCase):
     def test_other_results_integer_only_comparisons_and_profiles_do_not_widen(self):
         for dest in ('SINT','INT','DINT','LINT'):
             self.assertTrue(self.engine(['AFI()'+('ADD(1UL,1UL,Results[1]);' if dest=='LINT' else 'ADD(1L,1U,Results[1]);')],dest=dest).blockers,dest)
-        for call in ('EQU(1L,1UL)','LIM(0L,1U,2UL)','MEQ(Source,1UL,Source)'):
+        for call in ('EQU(1L,1UL)','LIM(0L,1U,2UL)','MEQ(Source,1.0L,Source)'):
             self.assertTrue(self.comparison([call+'OTE(RunLatch);'],source='DINT',checked=False).blockers,call)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             change=lambda root:root.find('Controller').set(key,value)

@@ -875,6 +875,17 @@
       <Tag Name="TypedIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="TypedIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="TypedIntSelected" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="TypedBitsEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedBitsIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsSigned" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="TypedBitsZeroExtended" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsFull" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsNot" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedBitsLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TypedBitsLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedBitsSelected" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -956,7 +967,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1141,6 +1152,17 @@
               <Rung Number="7" Type="N"><Text>XIC(TypedIntEnabled)ADD(18446744073709551615UL,0UL,TypedIntSelected[TypedIntIndex]);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(TypedIntEnabled)XIC(TypedIntOverflow)ADD(9223372036854775807L,1L,TypedIntFaultResult);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(TypedIntEnabled)DIV(1,TypedIntLateDivisor,TypedIntLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="BitwiseOperandConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(TypedBitsEnabled)OR(TypedBitsSigned,0L,TypedBitsZeroExtended);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(TypedBitsEnabled)OR(-1L,0UL,TypedBitsFull);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(TypedBitsEnabled)NOT(4294967295U,TypedBitsNot);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(TypedBitsEnabled)AND(4294967295U,255UL,TypedBitsByte);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(TypedBitsEnabled)MEQ(TypedBitsSigned,4294967295U,18446744073709551615UL)OTE(TypedBitsMatch);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(TypedBitsEnabled)XOR(18446744073709551615UL,0UL,TypedBitsSelected[TypedBitsIndex]);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(TypedBitsEnabled)DIV(1,TypedBitsLateDivisor,TypedBitsLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

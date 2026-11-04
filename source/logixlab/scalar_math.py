@@ -3,7 +3,7 @@ import math
 import operator
 
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile, typed_integer, pattern_width, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 
@@ -26,6 +26,9 @@ def validate(engine, op, scope):
             arithmetic_profile(engine,op,scope)
             return True
         if op.name in ARITHMETIC and typed_profile(engine,op,scope,arithmetic=True):return True
+        if op.name in BITWISE and any(typed_integer(ref) is not None for ref in op.args[:-1]):
+            bitwise_specification(engine,op,scope)
+            return True
         for ref in op.args:
             value = memory.read(ref, scope)
             if isinstance(value, (list, dict, bool)):
@@ -145,6 +148,12 @@ def arithmetic_profile(engine, op, scope):
 def bitwise_specification(engine, op, scope):
     """Integer tag widths; retain the separate legacy wide-immediate rules."""
     memory = engine.memory
+    if any(typed_integer(ref) is not None for ref in op.args[:-1]):
+        widths=[pattern_width(memory,ref,scope) for ref in op.args[:-1]]
+        key,parts,dtype=memory.check_writable(op.args[-1],scope)
+        if dtype not in INT_BITS or isinstance(memory.at(key,parts),(list,dict)):
+            raise ModelError('Typed bitwise result requires one scalar integer destination')
+        return widths+[INT_BITS[dtype]],dtype,None
     widths, types, immediate = [], [], False
     for index, ref in enumerate(op.args):
         destination = index == len(op.args) - 1
@@ -171,7 +180,7 @@ def execute_bitwise(engine, op, scope):
     widths, dtype, legacy = bitwise_specification(engine, op, scope)
     if legacy is not None:
         return execute_integer(engine, op, scope, legacy)
-    values = [unsigned(memory, ref, scope, width)
+    values = [pattern(memory, ref, scope, width)
               for ref, width in zip(op.args[:-1], widths[:-1])]
     value = ~values[0] if op.name == 'NOT' else {
         'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[op.name](*values)
@@ -239,6 +248,12 @@ def description(project):
                              immediates='Narrow forms retain signed DINT/32-bit radix patterns; any wide operand with an immediate retains homogeneous, representable signed-DINT rules',
                              destination='Keep destination low bits and reinterpret signed/unsigned; full writes establish unknowns without floating-point conversion',
                              wide='All eight integer tag types may mix; wide immediate and arithmetic profiles remain separate', native_precision=False),
+                typed_integer_bitwise=dict(instructions=sorted(BITWISE),constant_types=['LINT','UDINT','ULINT'],
+                    operands='At least one decimal L/U/UL source; scalar integer tags and existing bounded DINT/32-bit radix patterns may mix',
+                    conversion='Preserve each declared-width bit pattern, zero-extend before combining; NOT inverts after promotion and result keeps destination low bits',
+                    range='Typed source bounds checked structurally; integer destinations may truncate/reinterpret complete bit patterns',
+                    scope='RLL v35 5580 only; REAL/LREAL/BOOL, typed radix, MVM/BTD/other consumers and native status/fault/lifecycle parity remain separate',
+                    native_runtime_parity=False),
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,

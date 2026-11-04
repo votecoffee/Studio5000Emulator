@@ -48,7 +48,8 @@ UDINT maximum, mixed safe signed arithmetic and ordering beyond binary64
 precision. TypedIntSelected retains an unknown neighbor and a 903 guard.
 Overflow and a zero LateDivisor demonstrate separate atomic fault/retry paths.
 
-Narrowing, non-covering signed/unsigned mixtures, typed bitwise/MEQ/radix forms,
+[Typed bitwise/MEQ operands](typed-bitwise-operands.md) have a separate pattern
+profile. Narrowing, non-covering signed/unsigned mixtures and typed radix forms,
 wide integer XPY, expression/file/ST/FBD consumers and other controller profiles
 remain separate. General memory literal parsing is unchanged. The source basis
 is installed v35 Immediate values (14454), ADD (14623), EQU (14589), LIM (14610),
