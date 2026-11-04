@@ -91,3 +91,7 @@ See [implementation](../source/logixlab/scalar_math.py),
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
 tag sources or signed DINT-range integer constants, one actual LREAL input and
 a LREAL result. Other advanced math and expression profiles remain separate.
+
+[Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
+source tag types and signed DINT-range constants for eleven standalone unary
+math forms. A LREAL destination selects this finite binary64 software profile.

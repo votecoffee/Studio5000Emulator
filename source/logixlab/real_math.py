@@ -17,6 +17,7 @@ FUNCTIONS = {'SQR': square_root, 'LN': math.log, 'LOG': math.log10,
 INSTRUCTIONS = frozenset((*FUNCTIONS, 'XPY'))
 SOURCE_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 DESTINATION_TYPES = SOURCE_TYPES
+LREAL_SOURCE_TYPES = frozenset((*INT_BITS, 'REAL', 'LREAL'))
 
 
 def real(value):
@@ -49,12 +50,14 @@ def validate(memory, op, scope):
                 else:types.append(None);constants.append(value)
             return lreal_profile([*types,'LREAL'],constants,arithmetic=True)
         for ref in op.args[:-1]:
-            try:literal(ref)
+            try:value=literal(ref)
             except ValueError:
                 key,parts,source_type=memory.resolve(ref,scope)
-                if source_type!='LREAL' or isinstance(memory.at(key,parts),(list,dict)):
-                    raise ModelError('LREAL math requires matching scalar LREAL tags; mixed types remain unqualified')
-            else:raise ModelError('LREAL math requires tagged sources; immediates remain unqualified')
+                if source_type not in LREAL_SOURCE_TYPES or isinstance(memory.at(key,parts),(list,dict)):
+                    raise ModelError('LREAL unary math requires scalar numeric source tags')
+            else:
+                if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
+                    raise ModelError('LREAL unary constants require signed DINT integer literals')
         return 'LREAL'
     if dtype not in DESTINATION_TYPES or isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Standalone math requires a scalar SINT/INT/DINT/REAL destination')
@@ -103,7 +106,11 @@ def description():
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
-                lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Matching scalar LREAL tags',destination='Scalar LREAL tag',
+                lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
+                    unary=dict(instructions=sorted(FUNCTIONS),source_types=sorted(LREAL_SOURCE_TYPES),
+                        constants='Signed DINT integer literals promoted exactly to binary64; floating, typed and larger literals remain excluded',
+                        selection='A scalar LREAL destination selects finite binary64 input and result; sources retain their declared numeric values and stored REAL precision',
+                        native_runtime_parity=False),
                     power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                         operands='Scalar numeric sources with at least one LREAL input and a LREAL result',
                         constants='Signed DINT integer literals in either source position, promoted exactly to binary64',
@@ -111,11 +118,11 @@ def description():
                         native_runtime_parity=False),
                     arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
                     selection='Structural/lazy operands, complete unknown writes and existing aliases/member/AOI references',
-                    excluded='Other mixed types/immediates, floating/typed/larger power constants, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
+                    excluded='Other mixed types/immediates, floating/typed/larger constants, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
                     native_runtime_parity=False),
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',
                 failures='Unknown values, domains and nonfinite/overflow results stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
-                remaining=['Wide/unsigned sources or destinations and mixed LREAL forms',
+                remaining=['Other wide/unsigned results and operand forms',
                            'FBD Blocks share these functions; native precision/status/NaN/infinity behavior remains unqualified'])

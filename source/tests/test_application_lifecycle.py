@@ -3193,3 +3193,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('MixedPowerValues[1]',3);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
         write('MixedPowerEnabled',False);write('MixedPowerIndex',99);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
         power=self.post('report',{})['real_math']['lreal']['power'];self.assertEqual(len(power['source_types']),10);self.assertIn('Signed DINT',power['constants']);self.assertFalse(power['native_runtime_parity'])
+
+    def test_math_lab_numeric_unary_lreal_results_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace','aoi_bindings'):self.assertEqual(before[key],after[key])
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['UnaryDoubleIndex'],99);self.assertIsNone(row['UnaryDoubleResults[1]'])
+        write('UnaryDoubleEnabled',True);fault('outside bounds');write('UnaryDoubleIndex',1);row=values(step())
+        self.assertEqual(tuple(row['UnaryDouble'+name] for name in ('DintRoot','RealRoot','UnsignedRoot','SignedRoot','LiteralRoot')),(4096.000122070311,4096.0,4294967296.0,4.0,3.0))
+        self.assertEqual(tuple(row['UnaryDoubleResults['+str(i)+']'] for i in range(3)),(101.125,3.0,999.5))
+        self.assertAlmostEqual(row['UnaryDoubleRadians'],1.5707963267948966);self.assertEqual(row['UnaryDoubleLn'],0);self.assertEqual(row['UnaryDoubleLog'],2)
+        self.assertAlmostEqual(row['UnaryDoubleSine'],0.8414709848078965);self.assertEqual(row['UnaryDoubleCosine'],1);self.assertEqual(row['UnaryDoubleTangent'],0)
+        for name in ('DomainFault','LiteralFault','OverflowFault'):
+            write('UnaryDouble'+name,True);fault('finite LREAL');write('UnaryDouble'+name,False)
+        write('UnaryDoubleLateDivisor',0);fault('zero');write('UnaryDoubleLateDivisor',1)
+        write('UnaryDoubleInputs[1]',16);row=values(step());self.assertEqual(row['UnaryDoubleResults[1]'],4.0)
+        write('UnaryDoubleEnabled',False);write('UnaryDoubleIndex',99);row=values(step());self.assertEqual(row['UnaryDoubleResults[1]'],4.0)
+        unary=self.post('report',{})['real_math']['lreal']['unary'];self.assertEqual(len(unary['instructions']),11);self.assertEqual(len(unary['source_types']),10);self.assertFalse(unary['native_runtime_parity'])

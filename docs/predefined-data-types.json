@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
   "audited_date": "2026-11-04",
-  "audited_app_version": "26.1104.083644",
+  "audited_app_version": "26.1104.085804",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -170,7 +170,7 @@
     },
     "lreal_storage": {
       "label": "LREAL model (bounded)",
-      "remaining": "Finite binary64 storage/MOV/CLR, matching-tag ladder arithmetic/comparisons/advanced math, REAL/LREAL TRN, numeric COP/CPS byte images, mixed-tag arithmetic with one LREAL input/result, mixed comparisons/LIM with one LREAL input, signed DINT-range constants, mixed XPY powers and atomic tag access; other mixed forms, ST expressions, aggregate copy/layout and native parity remain unfinished.",
+      "remaining": "Finite binary64 storage/MOV/CLR, matching-tag ladder arithmetic/comparisons/advanced math, REAL/LREAL TRN, numeric COP/CPS byte images, mixed-tag arithmetic with one LREAL input/result, mixed comparisons/LIM with one LREAL input, signed DINT-range constants, mixed XPY powers, numeric unary sources for LREAL results and atomic tag access; other mixed forms, ST expressions, aggregate copy/layout and native parity remain unfinished.",
       "source": "source/logixlab/numeric_storage.py"
     },
     "no_dedicated_model": {

@@ -5,6 +5,41 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="UnaryDoubleEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLiteralFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleOverflowFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="UnaryDoubleDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="UnaryDoubleReal" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777217.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleUlint" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="UnaryDoubleSigned" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="-16" /></Data></Tag>
+      <Tag Name="UnaryDoubleOne" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="UnaryDoubleZero" TagType="Base" DataType="USINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleDomain" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLarge" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1e308" /></Data></Tag>
+      <Tag Name="UnaryDoubleLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="UnaryDoubleLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="UnaryDoubleDintRoot" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleRealRoot" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleUnsignedRoot" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleSignedRoot" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLiteralRoot" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleDegrees" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleRadians" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLn" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLog" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleSine" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleCosine" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleTangent" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleAsin" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleAcos" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleAtan" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleDomainResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleLiteralResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleOverflowResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="UnaryDoubleInputs" TagType="Base" DataType="DINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="9" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="UnaryDoubleResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="MixedPowerEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="MixedPowerDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="MixedPowerOverflowFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -509,6 +544,31 @@
               <Rung Number="29" Type="N"><Text>JSR(LrealAdvanced,0);</Text></Rung>
               <Rung Number="30" Type="N"><Text>JSR(LrealTruncate,0);</Text></Rung>
               <Rung Number="31" Type="N"><Text>JSR(MixedPower,0);</Text></Rung>
+              <Rung Number="32" Type="N"><Text>JSR(UnaryDouble,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="UnaryDouble" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(UnaryDoubleInputs[UnaryDoubleIndex],UnaryDoubleResults[UnaryDoubleIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(UnaryDoubleDint,UnaryDoubleDintRoot);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(UnaryDoubleReal,UnaryDoubleRealRoot);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(UnaryDoubleUlint,UnaryDoubleUnsignedRoot);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(UnaryDoubleSigned,UnaryDoubleSignedRoot);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(UnaryDoubleEnabled)SQR(9,UnaryDoubleLiteralRoot);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(UnaryDoubleEnabled)DEG(UnaryDoubleOne,UnaryDoubleDegrees);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(UnaryDoubleEnabled)RAD(90,UnaryDoubleRadians);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(UnaryDoubleEnabled)LN(UnaryDoubleOne,UnaryDoubleLn);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(UnaryDoubleEnabled)LOG(100,UnaryDoubleLog);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(UnaryDoubleEnabled)SIN(UnaryDoubleOne,UnaryDoubleSine);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(UnaryDoubleEnabled)COS(UnaryDoubleZero,UnaryDoubleCosine);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(UnaryDoubleEnabled)TAN(0,UnaryDoubleTangent);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(UnaryDoubleEnabled)ASN(UnaryDoubleOne,UnaryDoubleAsin);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(UnaryDoubleEnabled)ACS(UnaryDoubleZero,UnaryDoubleAcos);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(UnaryDoubleEnabled)ATN(UnaryDoubleOne,UnaryDoubleAtan);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleDomainFault)LN(UnaryDoubleDomain,UnaryDoubleDomainResult);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleLiteralFault)LN(0,UnaryDoubleLiteralResult);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleOverflowFault)DEG(UnaryDoubleLarge,UnaryDoubleOverflowResult);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(UnaryDoubleEnabled)DIV(1,UnaryDoubleLateDivisor,UnaryDoubleLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedPower" Type="RLL">

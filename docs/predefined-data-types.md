@@ -1,7 +1,7 @@
 # Predefined data-type coverage
 
 Baseline: **222 supplied Studio 5000 catalog entries**, audited against app
-`26.1104.083644` on 2026-11-04. Every supplied entry appears below in its original
+`26.1104.085804` on 2026-11-04. Every supplied entry appears below in its original
 order. Asterisks are retained as annotations, not as type-identifier characters.
 This is an implementation backlog, not a declaration that all types are
 available on every controller/firmware or that any type has full native parity.
@@ -18,7 +18,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | --- | --- | --- |
 | Numeric model, bounded | 5 | BOOL, SINT, INT, DINT, REAL storage and supported operations; incomplete conversions/status/native parity |
 | Wide integer profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous [ladder](integer-execution.md) and [ST](wide-st.md) operations; profile restrictions apply |
-| LREAL model, bounded | 1 | [Finite storage/MOV/CLR](lreal-storage.md), [matching-tag ladder arithmetic/comparisons](lreal-math.md), [advanced math](lreal-advanced.md), [TRN](lreal-truncate.md), [numeric COP/CPS](lreal-copy.md), [mixed-tag arithmetic](mixed-lreal-math.md), [mixed comparisons/LIM](mixed-lreal-comparisons.md), [integer constants](lreal-constants.md), [mixed XPY powers](mixed-lreal-power.md) and atomic tag access; mixed types, ST expressions and aggregate layouts remain unfinished |
+| LREAL model, bounded | 1 | [Finite storage/MOV/CLR](lreal-storage.md), [matching-tag ladder arithmetic/comparisons](lreal-math.md), [advanced math](lreal-advanced.md), [TRN](lreal-truncate.md), [numeric COP/CPS](lreal-copy.md), [mixed-tag arithmetic](mixed-lreal-math.md), [mixed comparisons/LIM](mixed-lreal-comparisons.md), [integer constants](lreal-constants.md), [mixed XPY powers](mixed-lreal-power.md), [numeric unary sources](lreal-unary-sources.md) and atomic tag access; mixed types, ST expressions and aggregate layouts remain unfinished |
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |

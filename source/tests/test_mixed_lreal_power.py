@@ -109,7 +109,7 @@ class MixedLrealPowerTests(unittest.TestCase):
             for args in ('Source,'+token,token+',Source'):
                 self.assertTrue(self.engine(['AFI()XPY('+args+',Dest);']).blockers,args)
         for call in ('XPY(Inputs,Mask,Dest);','XPY(Source,RunLatch,Dest);','XPY(Source,Mask,SpeedCommand);',
-                     'XPY(2,3,Dest);','CPT(Dest,Source**2);','EXPT(Source,Mask,Dest);','SQR(Mask,Dest);'):
+                     'XPY(2,3,Dest);','CPT(Dest,Source**2);','EXPT(Source,Mask,Dest);','SQR(TRUE,Dest);'):
             self.assertTrue(self.engine([call]).blockers,call)
         self.assertTrue(self.engine(source='DINT',other='REAL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
@@ -117,7 +117,7 @@ class MixedLrealPowerTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(mutate=old).blockers)
 
-    def test_report_separates_mixed_power_from_matching_unary_forms(self):
+    def test_report_separates_mixed_power_from_unary_forms(self):
         d=self.checked().report()['real_math'];p=d['lreal']['power']
         self.assertEqual(len(p['source_types']),10);self.assertEqual(p['instruction'],'XPY')
         self.assertIn('Signed DINT',p['constants']);self.assertFalse(p['native_runtime_parity'])

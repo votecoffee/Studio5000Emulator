@@ -81,7 +81,7 @@ class LrealAdvancedTests(unittest.TestCase):
     def test_mixed_types_immediates_aggregates_readonly_and_old_profiles_remain_guarded(self):
         for name in CASES:
             for source,dest in [('REAL','LREAL'),('LREAL','REAL'),('DINT','LREAL'),('LREAL','LINT')]:
-                if name=='XPY' and dest=='LREAL':continue
+                if dest=='LREAL':continue
                 self.assertTrue(self.engine([operation(name)+';'],source=source,dest=dest).blockers,(name,source,dest))
             self.assertTrue(self.engine([operation(name,source='1.0')+';']).blockers,name)
             self.assertTrue(self.engine([operation(name,source='Inputs')+';']).blockers,name)

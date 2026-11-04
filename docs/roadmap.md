@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.085804`: [numeric unary inputs with LREAL results](lreal-unary-sources.md).
+Eleven roots/logs/angle/trig forms accept all ten numeric tag types and bounded
+signed DINT constants when the destination is LREAL. Binary64 conversion, stored
+REAL precision, unknown full writes, lazy operands and advance/AOI rollback are
+covered. Math lab adds precision, unsigned roots and separate domain/overflow/
+late-fault examples. Other result types, floating/typed/larger literals, broader
+expressions and native numerical/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.083644`: [mixed numeric LREAL powers](mixed-lreal-power.md).
 XPY accepts all numeric tag pairs containing LREAL and bounded signed DINT
 constants in either source position, with a LREAL result. Finite binary64 math,

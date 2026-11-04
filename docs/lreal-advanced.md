@@ -12,7 +12,9 @@ forms in the v35 ControlLogix 5580 software profile:
 
 The original forms require matching scalar LREAL source and destination tags.
 [Mixed XPY sources and constants](mixed-lreal-power.md) additionally qualify
-powers with at least one LREAL input and a LREAL result. Selected array elements,
+powers with at least one LREAL input and a LREAL result.
+[Numeric unary sources](lreal-unary-sources.md) additionally accept numeric tags
+and signed DINT constants with a LREAL result. Selected array elements,
 aliases and explicit UDT members retain their declared types. Matching AOI InOut
 arrays and represented local arrays have focused cases. Other mixed types,
 immediates and broader copied LREAL AOI parameters remain unqualified. Existing

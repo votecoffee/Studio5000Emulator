@@ -56,7 +56,8 @@ demonstrates overflow; MixedPowerLateDivisor=0 demonstrates a later failure.
 Restore both fault switches to false and the divisor to 1. Disable the section
 before returning its index to 99. Existing Math lab sections remain available.
 
-Other advanced math retains its matching LREAL-tag rules. Narrowing results,
+[Unary LREAL results](lreal-unary-sources.md) additionally accept all numeric tag
+inputs and signed DINT constants for eleven unary math forms. Narrowing results,
 floating/typed/larger constants, CPT/CMP/ST expressions, EXPT aliases, new FBD/SFC
 forms and broader controller profiles remain separate work.
 
