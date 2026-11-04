@@ -502,7 +502,11 @@ def start(directory, open_browser=True, tray=True):
     deadline = time.monotonic() + 180
     ip = None
     while time.monotonic() < deadline:
-        candidate = run([vmrun(), '-T', 'ws', 'getGuestIPAddress', config['vmx']], check=False, timeout=8)
+        try:
+            candidate = run([vmrun(), '-T', 'ws', 'getGuestIPAddress', config['vmx']], check=False, timeout=8)
+        except subprocess.TimeoutExpired:
+            print('Guest address query timed out; trying DHCP and pinned SSH', flush=True)
+            candidate = ''
         try:
             address = ipaddress.ip_address(candidate)
         except ValueError:

@@ -51,6 +51,15 @@ py -3.13 -X utf8 source/tools/vmware_appliance.py start
 
 The launcher starts the VM in the background, discovers its DHCP address, verifies
 its SSH host key and opens the browser through a localhost-only SSH tunnel.
+If the VMware guest-address query times out, startup continues through the
+existing DHCP lease lookup and pinned SSH probe instead of exiting the manager.
+The lease must match the appliance MAC, belong to its host-only subnet and differ
+from the host address. A missing/rejected lease or failed SSH probe keeps waiting
+within the existing 180-second address-discovery window. A later successful
+VMware query can also complete startup. Expiry reports that the guest address
+is unavailable; it does not restart or power off the VM. Other command errors
+still surface, and guest version/endpoint checks remain required before a session
+is published. The query timeout and retry message are retained in the launcher log.
 The web service remains on guest loopback; the forwarded Windows address is
 `http://127.0.0.1:8786`. The header shows the exact running version, PLC endpoint IP and VMware appliance
 status. The Windows launcher supplies the tray controls.

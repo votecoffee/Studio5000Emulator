@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.155948`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.162321`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,11 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+**Appliance startup recovery** now handles a timed-out VMware guest-address
+query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
+keeps its bounded retry window and version checks; see
+[appliance startup](docs/vmware-appliance.md).
 
 **Typed MOV constants** now support decimal L/U/UL integers and finite LREAL
 floating constants, with declared source precision and existing numeric conversion.

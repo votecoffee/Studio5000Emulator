@@ -1002,3 +1002,9 @@ remain separate.
 sources or finite LREAL floating constants, checked before existing numeric
 conversion. The viewer retains integer digits and declared literal types.
 Other arguments/consumers, typed radix forms and native parity remain separate.
+
+The observed appliance guest-address query timeout now falls through existing
+MAC-matched DHCP and pinned SSH discovery. The bounded wait, endpoint/version
+checks and separate shutdown-intent rules are retained. See
+[appliance startup](vmware-appliance.md). This maintenance change does not expand
+PLC instruction or native Studio/controller qualification.
