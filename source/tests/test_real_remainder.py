@@ -113,16 +113,17 @@ class RealRemainderTests(unittest.TestCase):
     def test_invalid_shapes_types_constants_and_wide_real_mixtures_stay_blocked(self):
         for rung in ('MOD(StartPB,Mask,Results[0]);','MOD(Source,Mask,Results);','MOD(Inputs,Mask,Results[0]);','MOD(Missing,Mask,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+rung]).blockers,rung)
-        for kwargs in ({'source':'LINT','value':7},{'other':'ULINT'},{'dest':'UDINT'},{'dest':'BOOL'}):
+        for kwargs in ({'source':'LREAL','value':7},{'other':'LREAL'},{'dest':'UDINT'},{'dest':'BOOL'}):
             self.assertTrue(self.engine(**kwargs).blockers,kwargs)
+        for kwargs in ({'source':'LINT','value':7},{'other':'ULINT','value':7}):
+            e=self.checked(**kwargs);e.step();self.assertEqual(e.memory.read('Results[1]'),1)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()MOD(Source,Mask,Results[0]);'],mutate=constant).blockers)
 
     def test_nonfinite_and_out_of_range_real_immediates_stop_without_partial_writes(self):
         for text in ('MOD(1e309,2,Results[0]);','MOD(Source,1e309,Results[0]);','MOD(1e40,2,Results[0]);'):
-            e=self.checked(['MOV(99,SpeedCommand);',text]);before=self.snapshot(e)
-            with self.assertRaises(ModelError):e.step()
-            self.assertEqual(self.snapshot(e),before)
+            e=self.engine(['MOV(99,SpeedCommand);',text]);self.assertTrue(e.blockers)
+            self.assertEqual(e.scan_count,0);self.assertEqual(e.memory.read('SpeedCommand'),0)
 
     @staticmethod
     def aoi_logic(root):
@@ -148,9 +149,9 @@ class RealRemainderTests(unittest.TestCase):
         self.assertEqual(e.memory.read('DriverA.Stack[3]'),777)
 
     def test_exact_integer_remainders_and_other_controller_boundary_remain(self):
-        for dest in ('DINT','REAL'):
+        for dest,expected in (('DINT',2),('REAL',1)):
             e=self.checked(source='DINT',other='DINT',dest=dest,value=16777217,divisor=3);e.step()
-            self.assertEqual(e.memory.read('Results[1]'),2)
+            self.assertEqual(e.memory.read('Results[1]'),expected)
         e=self.checked(source='LINT',other='LINT',dest='LINT',value=9007199254740993,divisor=7);e.step()
         self.assertEqual(e.memory.read('Results[1]'),5)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')

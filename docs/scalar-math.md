@@ -229,3 +229,8 @@ LREAL input; arithmetic can use the [LREAL result](lreal-destination-math.md).
 [LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
 for basic arithmetic and XPY without a LREAL source, including bounded
 constant-only calls. Direct ordering still requires a LREAL input for binary64.
+
+[REAL-result math](real-destination-math.md) additionally selects float32
+inputs and result for arithmetic, XPY and eleven unary forms, across all nine
+integer/REAL source types and bounded integer/finite floating constants.
+LREAL result rules and other destination/consumer profiles remain separate.

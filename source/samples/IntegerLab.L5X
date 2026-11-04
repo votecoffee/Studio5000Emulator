@@ -5,6 +5,41 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="RealResultsEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="RealResultsDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="3" /></Data></Tag>
+      <Tag Name="RealResultsOther" TagType="Base" DataType="UINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UINT" Value="2" /></Data></Tag>
+      <Tag Name="RealResultsWide" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="RealResultsPrecisionInput" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="RealResultsLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealResultsLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsZeroFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsOverflowFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsSub" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsMul" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsDiv" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsMod" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsPower" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsNeg" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsAbs" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsSqrt" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsLn" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsLog" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsDeg" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsRad" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsSin" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsCos" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsTan" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsAsn" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsAcs" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsAtn" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsPrecision" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsWideRemainder" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsWideNeg" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsLiteral" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsNegativeZero" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealResultsValues" TagType="Base" DataType="REAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="RealCompareEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="RealCompareIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="RealCompareDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
@@ -837,6 +872,39 @@
               <Rung Number="56" Type="N"><Text>JSR(DoubleConstants,0);</Text></Rung>
               <Rung Number="57" Type="N"><Text>JSR(DoubleResults,0);</Text></Rung>
               <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
+              <Rung Number="59" Type="N"><Text>JSR(RealResults,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealResults" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealResultsEnabled)ADD(RealResultsDint,RealResultsOther,RealResultsValues[RealResultsIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealResultsEnabled)SUB(RealResultsDint,RealResultsOther,RealResultsSub);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealResultsEnabled)MUL(RealResultsDint,RealResultsOther,RealResultsMul);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealResultsEnabled)DIV(RealResultsDint,RealResultsOther,RealResultsDiv);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealResultsEnabled)MOD(RealResultsDint,RealResultsOther,RealResultsMod);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealResultsEnabled)XPY(RealResultsDint,RealResultsOther,RealResultsPower);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RealResultsEnabled)NEG(RealResultsDint,RealResultsNeg);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RealResultsEnabled)ABS(RealResultsDint,RealResultsAbs);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RealResultsEnabled)SQR(RealResultsWide,RealResultsSqrt);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RealResultsEnabled)LN(1,RealResultsLn);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(RealResultsEnabled)LOG(100,RealResultsLog);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(RealResultsEnabled)DEG(1,RealResultsDeg);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(RealResultsEnabled)RAD(90,RealResultsRad);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(RealResultsEnabled)SIN(1,RealResultsSin);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(RealResultsEnabled)COS(0,RealResultsCos);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(RealResultsEnabled)TAN(0,RealResultsTan);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(RealResultsEnabled)ASN(1,RealResultsAsn);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(RealResultsEnabled)ACS(0,RealResultsAcs);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>XIC(RealResultsEnabled)ATN(1,RealResultsAtn);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(RealResultsEnabled)ADD(RealResultsPrecisionInput,1,RealResultsPrecision);</Text></Rung>
+              <Rung Number="20" Type="N"><Text>XIC(RealResultsEnabled)MOD(RealResultsWide,3,RealResultsWideRemainder);</Text></Rung>
+              <Rung Number="21" Type="N"><Text>XIC(RealResultsEnabled)NEG(RealResultsWide,RealResultsWideNeg);</Text></Rung>
+              <Rung Number="22" Type="N"><Text>XIC(RealResultsEnabled)ADD(1.1,0,RealResultsLiteral);</Text></Rung>
+              <Rung Number="23" Type="N"><Text>XIC(RealResultsEnabled)NEG(0,RealResultsNegativeZero);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsDomainFault)XPY(0,-1,RealResultsSub);</Text></Rung>
+              <Rung Number="25" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsZeroFault)DIV(1,1e-50,RealResultsSub);</Text></Rung>
+              <Rung Number="26" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsOverflowFault)MUL(3.4e38,2,RealResultsSub);</Text></Rung>
+              <Rung Number="27" Type="N"><Text>XIC(RealResultsEnabled)DIV(1,RealResultsLateDivisor,RealResultsLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealCompare" Type="RLL">

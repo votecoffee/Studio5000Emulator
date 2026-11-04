@@ -71,3 +71,8 @@ See [arithmetic implementation](../source/logixlab/scalar_math.py),
 [power implementation](../source/logixlab/real_math.py),
 [focused cases](../source/tests/test_lreal_destination_math.py) and
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
+
+[REAL-result math](real-destination-math.md) additionally selects float32
+inputs and result for arithmetic, XPY and eleven unary forms, across all nine
+integer/REAL source types and bounded integer/finite floating constants.
+LREAL result rules and other destination/consumer profiles remain separate.

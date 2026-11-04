@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.100623`: [REAL-result math](real-destination-math.md).
+A REAL destination selects finite float32 inputs and result for seven arithmetic
+forms, XPY and eleven unary forms. All nine integer/REAL tag types and bounded
+integer/finite floating constants qualify. Integer lab demonstrates corrected
+DINT input rounding, wide inputs, unary/power results and independent domain/
+zero/overflow/late-fault recovery. LREAL narrowing and native numerical/status/
+fault/lifecycle parity remain separate.
+
 Available in `26.1104.094330`: [REAL comparison promotion](mixed-real-comparisons.md).
 Six direct relations and LIM convert all operands to finite float32 when a REAL
 tag is present and no LREAL input selects binary64. All nine numeric source

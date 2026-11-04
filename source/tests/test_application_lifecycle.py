@@ -3269,3 +3269,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('RealCompareEnabled',False);write('RealCompareIndex',99);row=values(step())
         for name in expected:self.assertFalse(row['RealCompare'+name])
         report=self.post('report',{})['numeric_comparisons']['real_ordering'];self.assertEqual(len(report['source_types']),9);self.assertFalse(report['native_runtime_parity'])
+
+    def test_integer_lab_real_result_math_precision_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'IntegerLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['RealResultsIndex'],99);self.assertIsNone(row['RealResultsValues[1]'])
+        write('RealResultsEnabled',True);fault('outside bounds');write('RealResultsIndex',1);row=values(step())
+        self.assertEqual(tuple(row['RealResults'+n] for n in ('Sub','Mul','Div','Mod','Power','Neg','Abs','Sqrt','Ln','Log','Precision','WideRemainder')),(1.0,6.0,1.5,1.0,9.0,-3.0,3.0,4294967296.0,0.0,2.0,16777216.0,1.0))
+        self.assertEqual(row['RealResultsWideNeg'],-float(2**64));self.assertEqual(row['RealResultsWide'],'18446744073709551615');self.assertEqual(row['RealResultsPrecisionInput'],16777217)
+        self.assertEqual(tuple(row['RealResultsValues['+str(i)+']'] for i in range(3)),(101.125,5.0,999.5))
+        for name in ('DomainFault','ZeroFault','OverflowFault'):
+            write('RealResults'+name,True);fault('zero' if name=='ZeroFault' else 'REAL');write('RealResults'+name,False)
+        write('RealResultsLateDivisor',0);fault('zero');write('RealResultsLateDivisor',1);write('RealResultsOther',4);row=values(step());self.assertEqual(row['RealResultsValues[1]'],7.0);self.assertEqual(row['RealResultsPower'],81.0)
+        write('RealResultsEnabled',False);write('RealResultsIndex',99);self.assertEqual(values(step())['RealResultsValues[1]'],7.0)
+        report=self.post('report',{});self.assertEqual(len(report['scalar_math']['real_arithmetic']['source_types']),9);self.assertEqual(len(report['real_math']['real_destination']['instructions']),12)

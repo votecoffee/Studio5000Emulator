@@ -116,8 +116,10 @@ class RealMathTests(unittest.TestCase):
         self.assertTrue(self.engine(['SQR(Source,Dest);'],mutate=dest).blockers)
 
     def test_unqualified_types_immediates_arities_and_mnemonics_block(self):
-        for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
+        for dtype in ('BOOL','LREAL'):
             self.assertTrue(self.engine(['SQR(Source,Dest);'],types=(dtype,'REAL','REAL'),values=(0,2,7)).blockers)
+        for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
+            e=self.checked(['SQR(Source,Dest);'],types=(dtype,'REAL','REAL'),values=(4,2,7));e.step();self.assertEqual(e.memory.read('Dest'),2)
         for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL',dtype),values=(0.5,2,0)).blockers)
         for text in ('SQR(TRUE,Dest);','SQR(2147483648,Dest);','SQR(16#FFFF_FFFF,Dest);',

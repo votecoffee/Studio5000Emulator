@@ -59,6 +59,20 @@ def validate(memory, op, scope):
                 if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
                     raise ModelError('LREAL unary constants require signed DINT integer literals')
         return 'LREAL'
+    if dtype=='REAL':
+        from .scalar_math import real_profile
+        if isinstance(memory.at(key,parts),(list,dict)):
+            raise ModelError('REAL math requires a scalar REAL destination')
+        types,constants=[],[]
+        for ref in op.args[:-1]:
+            try:value=literal(ref)
+            except ValueError:
+                key,parts,source_type=memory.resolve(ref,scope)
+                if isinstance(memory.at(key,parts),(list,dict)):
+                    raise ModelError('REAL math requires scalar numeric sources')
+                types.append(source_type)
+            else:types.append(None);constants.append(value)
+        return real_profile([*types,'REAL'],constants)
     if dtype not in DESTINATION_TYPES or isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Standalone math requires a scalar SINT/INT/DINT/REAL destination')
     for ref in op.args[:-1]:
@@ -106,6 +120,12 @@ def description():
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
+                real_destination=dict(instructions=sorted(INSTRUCTIONS),source_types=sorted({*INT_BITS,'REAL'}),
+                    destination='Scalar REAL tag selects float32 sources and result, including constant-only calls',
+                    constants='Signed DINT integer literals and finite REAL-convertible floating literals',
+                    calculation='All required sources convert to finite float32 before the existing unary/power solver; result rounds to float32',
+                    excluded='LREAL source narrowing, broader integer results/expressions and native precision/status/fault/lifecycle parity',
+                    native_runtime_parity=False),
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
                     unary=dict(instructions=sorted(FUNCTIONS),source_types=sorted(LREAL_SOURCE_TYPES),
                         constants='Signed DINT integer literals promoted exactly to binary64; floating, typed and larger literals remain excluded',

@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; REAL comparison promotion added for app `26.1104.094330`. **Full Logix emulation is not
+Audited 2026-11-04; REAL-result math added for app `26.1104.100623`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -346,3 +346,8 @@ The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
 added by project AOIs are counted separately from the 104 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.
+
+[REAL-result math](real-destination-math.md) additionally selects float32
+inputs and result for arithmetic, XPY and eleven unary forms, across all nine
+integer/REAL source types and bounded integer/finite floating constants.
+LREAL result rules and other destination/consumer profiles remain separate.

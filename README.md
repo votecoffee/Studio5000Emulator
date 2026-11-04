@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.094330`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.100623`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -44,6 +44,10 @@ gated Program timing reads in ladder and ST.
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. **System lab** includes gated timestamp examples.
+
+[REAL-result math](docs/real-destination-math.md) adds float32 input conversion
+for basic arithmetic, power and eleven unary forms across integer/REAL sources.
+**Integer lab** demonstrates precision, wide values and recovery.
 
 [REAL comparison promotion](docs/mixed-real-comparisons.md) adds numeric tag
 mixtures for six ladder relations and LIM, including float32 rounding before

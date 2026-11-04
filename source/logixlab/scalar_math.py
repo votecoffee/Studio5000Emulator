@@ -67,6 +67,32 @@ def execute_lreal(engine,op,scope):
     return True
 
 
+def real_profile(types, constants):
+    """A REAL result selects finite float32 inputs without LREAL narrowing."""
+    if types[-1]!='REAL':return None
+    if any(dtype not in {None,*INT_BITS,'REAL'} for dtype in types):
+        raise ModelError('REAL result math requires scalar integer/REAL sources')
+    for value in constants:
+        if type(value) is int:coerce(value,'DINT')
+        elif type(value) is not float:raise ModelError('REAL math constants require numeric literals')
+        real(value)
+    return 'REAL'
+
+
+def execute_real(engine,op,scope):
+    """Convert required sources before the operation and round its REAL result."""
+    memory=engine.memory
+    values=[real(memory.read(ref,scope)) for ref in op.args[:-1]]
+    a=values[0]
+    if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
+    else:
+        b=values[1]
+        if op.name in ('DIV','MOD') and b==0:raise ModelError(op.name+' REAL divide by zero')
+        result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
+    memory.write(op.args[-1],real(result),scope)
+    return True
+
+
 def arithmetic_profile(engine, op, scope):
     """Mixed tag arithmetic with lossless source ranges and bounded constants.
 
@@ -82,6 +108,8 @@ def arithmetic_profile(engine, op, scope):
         else:types.append(None);constants.append(value)
     lreal=lreal_profile(types,constants,arithmetic=True)
     if lreal:return lreal
+    single=real_profile(types,constants)
+    if single:return single
     declared = set(types) - {None}
     if not declared & WIDE_TYPES or len(declared) == 1:
         return profile(engine, op, scope)
@@ -175,6 +203,12 @@ def description(project):
                     calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
+                real_arithmetic=dict(instructions=sorted(ARITHMETIC),source_types=sorted({*INT_BITS,'REAL'}),
+                    destination='Scalar REAL tag; no REAL source is required; constant-only calls execute',
+                    constants='Signed DINT integer literals and finite REAL-convertible floating literals',
+                    calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
+                    boundaries='LREAL sources, integer-result conversions and other consumer profiles remain separate',
+                    native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',
                                     conversion='Integer results round nearest, ties to even; out-of-range results roll back',
@@ -188,5 +222,5 @@ def description(project):
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Arithmetic narrowing/mixed signed-to-unsigned/REAL promotion, larger/typed arithmetic constants, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and wide/unsigned/LREAL remainder mixtures',
+                remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, mixed-wide/typed bitwise immediates, REAL/LREAL bitwise and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])
