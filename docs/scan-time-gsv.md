@@ -16,6 +16,9 @@ selects the current ordinary scheduled Program or its owner Task. Empty/numeric
 instances and AOI/harness/Event THIS contexts remain unqualified. Existing configuration and
 [wall-clock GSV](wall-clock-gsv.md) profiles remain separate.
 
+[Task start and interval GSV](task-start-gsv.md) also reads committed Task
+StartTime, MinimumInterval and MaximumInterval through complete 64-bit windows.
+
 ## Measurement and visibility
 
 Values come from the existing committed interpreter measurements using host

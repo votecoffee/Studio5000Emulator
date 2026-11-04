@@ -6,6 +6,17 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadTaskStarts" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TaskStartIndex" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="TaskStartDivisor" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TaskStartResult" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ThisTaskStart" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+      <Tag Name="StTaskStart" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+      <Tag Name="TaskStartWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="TaskMinWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="TaskMaxWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="StTaskMin" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="StTaskMax" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadTaskTiming" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="TaskTimingIndex" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="BackgroundTaskMax" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -530,7 +541,25 @@
               <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
               <Rung Number="16" Type="N"><Text>JSR(ReadCurrentInstances,0)JSR(ReadProgramTimes,0);</Text></Rung>
               <Rung Number="17" Type="N"><Text>JSR(ReadTaskTimes,0);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>JSR(ReadTaskStarts,0);</Text></Rung>
             </RLLContent>
+          </Routine>
+          <Routine Name="ReadTaskStarts" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,THIS,StartTime,ThisTaskStart);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,StartTime,TaskStartWords[TaskStartIndex]);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,MinimumInterval,TaskMinWords[1]);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,MaximumInterval,TaskMaxWords[1]);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadTaskStarts)JSR(ReadTaskStartsST,0);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadTaskStarts)DIV(1,TaskStartDivisor,TaskStartResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadTaskStartsST" Type="ST">
+            <STContent>
+              <Line Number="0">GSV(Task,THIS,StartTime,StTaskStart);</Line>
+              <Line Number="1">GSV(Task,FastTask,MinimumInterval,StTaskMin[1]);</Line>
+              <Line Number="2">GSV(Task,FastTask,MaximumInterval,StTaskMax[1]);</Line>
+            </STContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
             <STContent>

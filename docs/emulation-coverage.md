@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; Event overlap count added for app `26.1103.235756`. **Full Logix emulation is not
+Audited 2026-11-04; Task start/interval GSV added for app `26.1104.001622`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -34,6 +34,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Event task inhibition | [Named/THIS InhibitTask](event-task-inhibition.md), live new/pending request checks, active-body completion, explicit Event configuration and atomic rollback | Other Event sources/Safety/AOI/harness control, native abort/resume/cancellation/status/lifecycle parity |
 | Event overlap count | [Live GSV/SSV counter](event-overlap-count.md), named/THIS exact DINT reads and zero resets, independent Status, current instruction order and rollback | Periodic/Safety/other Event/AOI/harness profiles, native overflow/protocol/status/lifecycle parity |
 | Event task status | [GSV/SSV Status](event-task-status.md), live accepted-request/active-overlap bits, named and Event THIS contexts, exact DINT replacements, lazy operands and rollback | Other status bits, timeout/external events, Continuous/Periodic/Safety status setters, AOI/harness contexts, native protocol/status/fault/lifecycle parity |
+| Task start/interval GSV | [StartTime/MinimumInterval/MaximumInterval](task-start-gsv.md), named/THIS ladder/ST, prior committed host UTC starts/monotonic intervals, complete DINT pairs and StartTime LINTs, independent task histories and rollback | TIME/DT destinations, setters, Safety/other Event/AOI/harness profiles, simulated-rate and native clock/visibility/lifecycle parity |
 | Scan-time GSV | [Program/Task LastScanTime/MaxScanTime](scan-time-gsv.md), committed interpreter microseconds, exact DINT words, lazy full writes, typed AOIs and ST FOR effects | [THIS](current-instance-gsv.md) supports ordinary scheduled contexts; whole-Task last/max metrics support eligible Continuous/Periodic and instruction-only Event tasks independently; AOI/harness THIS, setters, other fields/profiles and native timing/visibility/status/lifecycle parity remain separate |
 | Wall-clock GSV | [CurrentValue/DateTime/qualified LocalDateTime](wall-clock-gsv.md), host UTC microseconds, LINT/two-DINT counters, seven-DINT calendars, lazy full writes, AOIs and complete ST FOR effects | Clock setting, DT/TIME/DATETIMESTRUCT destinations, non-UTC/DST and other attributes, native sampling/interruption/status/layout/lifecycle parity remain separate |
 | System values | [Task/Controller GSV settings](gsv-configuration.md), [ordinary Task THIS](current-instance-gsv.md), structural/lazy scalar/string destinations and complete conservative ST FOR effects, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |

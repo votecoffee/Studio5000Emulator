@@ -4,10 +4,11 @@ import struct
 from .integer_math import CONTROLLERS
 from .model import ModelError
 from .numeric_copy import static_reference
+from . import gsv_wall_clock
 from .gsv_configuration import current_instance
 
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
-            'task':{'lastscantime':8,'maxscantime':7}}
+            'task':{'lastscantime':8,'maxscantime':7,'starttime':13,'minimuminterval':14,'maximuminterval':15}}
 
 
 def matches(op):
@@ -44,29 +45,35 @@ def specification(engine,op,scope='',*,executing=False):
     return cls,name,ATTRIBUTES[cls][attribute]
 
 
-def destination(memory,ref,scope):
+def destination(memory,ref,scope,number):
+    if number in (13,14,15):
+        if number!=13 and memory.check_writable(ref,scope)[2]!='DINT':
+            raise ModelError('Task interval GSV destination requires two contiguous DINT elements')
+        return gsv_wall_clock.destination(memory,ref,scope,2)
+
     key,parts,dtype=memory.check_writable(ref,scope)
     if dtype!='DINT' or isinstance(memory.at(key,parts),(dict,list)):
         raise ModelError('Timing GSV destination requires one writable DINT scalar element')
-    return key,parts
+    return key,[parts],dtype
 
 
 def validate(engine,op,scope):
-    specification(engine,op,scope);memory=engine.memory;previous=memory.structural;memory.structural=True
+    _,_,number=specification(engine,op,scope);memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
-        key,parts=destination(memory,op.args[3],scope)
-        return key,[parts],'DINT'
+        return destination(memory,op.args[3],scope,number)
     finally:memory.structural=previous
 
 
 def execute(engine,op,scope):
     cls,name,number=specification(engine,op,scope,executing=True);memory=engine.memory
-    key,parts=destination(memory,op.args[3],scope)
+    key,paths,dtype=destination(memory,op.args[3],scope,number)
     reader=engine.task_scan_timing_attributes if cls=='task' else engine.program_timing_attributes
     raw=reader(name,source_sha256=engine.project.sha256).get(number)
-    if raw is None or len(raw)!=4:raise ModelError('Timing GSV measurement is unavailable')
+    count=2 if number in (13,14,15) else 1
+    if raw is None or len(raw)!=count*4:raise ModelError('Timing GSV measurement is unavailable')
     # Keep the same DWORD bits as the existing protocol counters in signed DINT storage.
-    memory.store(key,parts,struct.unpack('<i',raw)[0])
+    values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
+    for path,value in zip(paths,values,strict=True):memory.store(key,path,value)
 
 
 def write_effects(engine,op,scope):
@@ -74,7 +81,7 @@ def write_effects(engine,op,scope):
     try:
         key,paths,_=validate(engine,op,scope)
         if static_reference(memory,op.args[3],scope):return [(key,path) for path in paths]
-        key,parts=destination(memory,op.args[3],scope)
+        key,parts,_=memory.check_writable(op.args[3],scope)
         boundary=next((i for i,part in enumerate(parts) if isinstance(part,int)),len(parts))
         return [(key,parts[:boundary])]
     finally:memory.structural=previous
@@ -83,8 +90,11 @@ def write_effects(engine,op,scope):
 def description():
     return dict(profile='v35-5580-committed-GSV-timing',languages=['RLL','ST'],
                 classes=['Program','Task'],attributes=['LastScanTime','MaxScanTime'],
-                destination='One exact writable DINT scalar element; same 32-bit word as existing timing protocol attributes',
-                source='Existing committed host perf_counter_ns interpreter measurements, in whole microseconds',
+                task_attributes=['StartTime','MinimumInterval','MaximumInterval'],
+                destination='Scan durations: exact DINT; Task intervals: two contiguous DINTs; Task StartTime: scalar LINT or two contiguous DINTs',
+                source='Committed host perf_counter_ns interpreter durations/start intervals, in whole microseconds; StartTime samples existing host UTC WallClockTime',
+                intervals='Independent successive actual host invocation starts; zero until two executions; include host idle time, not simulated rate',
+                start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
                 visibility='Zero until a successful advance; reads during an advance see the preceding committed timing snapshot',
                 task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',
@@ -94,5 +104,6 @@ def description():
                 native_runtime_parity=False,controller_performance_prediction=False,
                 current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
                 remaining=['Empty/numeric instances, AOI/harness THIS contexts, additional attributes and timing setters',
+                           'TIME/DT destination types, simulated-time intervals and newer shortened interval names',
                            'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

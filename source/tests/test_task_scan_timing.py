@@ -7,7 +7,7 @@ from xml.etree import ElementTree as E
 import test_gsv_this as current
 import test_gsv_configuration as config
 from logixlab.model import ModelError
-from logixlab.program_timing import ProgramTiming
+from logixlab.task_runtime import TaskMeasurements
 
 
 class TaskScanTimingTests(unittest.TestCase):
@@ -61,7 +61,7 @@ class TaskScanTimingTests(unittest.TestCase):
 
     def test_unreleased_and_runtime_inhibited_task_retain_measurements(self):
         e=self.checked(self.reads(),mutate=self.outputs);e.step(5)
-        self.assertEqual(e._task_scan_timings['fasttask'],ProgramTiming());self.assertEqual(e.memory.read('FastLast'),0)
+        self.assertEqual(e._task_scan_timings['fasttask'],TaskMeasurements());self.assertEqual(e.memory.read('FastLast'),0)
         e.step(25);prior=e._task_scan_timings['fasttask'];e._task_scheduler.inhibitions[1]=True;e.step(25)
         self.assertEqual(e._task_scan_timings['fasttask'],prior);self.assertEqual(e.memory.read('FastLast'),prior.last_ns//1000)
         e._task_scheduler.inhibitions[1]=False;e.step(25);self.assertGreater(e._task_scan_timings['fasttask'].executions,prior.executions)
@@ -81,9 +81,9 @@ class TaskScanTimingTests(unittest.TestCase):
 
     def test_signed_words_and_independent_field_availability(self):
         e=self.checked(['GSV(Task,FastTask,LastScanTime,Out);'])
-        e._task_scan_timings['fasttask']=ProgramTiming(0x80000000*1000,0xffffffff*1000,1);e.step(25);self.assertEqual(e.memory.read('Out'),-2147483648)
-        e._task_scan_timings['fasttask']=ProgramTiming(5000,0x100000000*1000,1);e.step(25);self.assertEqual(e.memory.read('Out'),5)
-        e=self.checked(['GSV(Task,FastTask,MaxScanTime,Out);']);e._task_scan_timings['fasttask']=ProgramTiming(5000,0x100000000*1000,1);self.fault(e,'unavailable')
+        e._task_scan_timings['fasttask']=TaskMeasurements(0x80000000*1000,0xffffffff*1000,executions=1,last_start_ns=0);e.step(25);self.assertEqual(e.memory.read('Out'),-2147483648)
+        e._task_scan_timings['fasttask']=TaskMeasurements(5000,0x100000000*1000,executions=1,last_start_ns=0);e.step(25);self.assertEqual(e.memory.read('Out'),5)
+        e=self.checked(['GSV(Task,FastTask,MaxScanTime,Out);']);e._task_scan_timings['fasttask']=TaskMeasurements(5000,0x100000000*1000,executions=1,last_start_ns=0);self.fault(e,'unavailable')
 
     def test_drift_harness_event_inhibited_and_incomplete_source_are_guarded(self):
         e=self.checked(['GSV(Task,FastTask,LastScanTime,Out);']);digest=e.project.sha256
@@ -109,7 +109,7 @@ class TaskScanTimingTests(unittest.TestCase):
     def test_run_entry_retains_committed_timings_and_fresh_engine_resets(self):
         e=self.checked(self.reads(),mutate=self.outputs);e.step(25);before=dict(e._task_scan_timings);e.enter_run();self.assertEqual(e._task_scan_timings,before)
         from logixlab.runtime import Engine
-        fresh=Engine(e.project);self.assertTrue(all(v==ProgramTiming() for v in fresh._task_scan_timings.values()))
+        fresh=Engine(e.project);self.assertTrue(all(v==TaskMeasurements() for v in fresh._task_scan_timings.values()))
 
     def test_multitask_gsv_does_not_expand_native_task_measurement_or_status(self):
         e=self.checked(self.reads(),mutate=self.outputs);e.step(25)

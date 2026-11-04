@@ -274,6 +274,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
             if key!='ThisIndex':self.assertEqual(v[key],value)
         report=self.post('report',{})['system_values'];self.assertIn('THIS',report['configuration']['current_instance']);self.assertFalse(report['timing']['native_runtime_parity'])
 
+    def test_system_lab_task_starts_intervals_st_windows_and_rollback(self):
+        self.post('demo',{'sample':'SystemLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':25})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        t=step();v=values(t);self.assertEqual(v['TaskStartIndex'],99);self.assertIsNone(v['TaskStartWords[1]'])
+        write('TaskStartIndex',1);write('ReadTaskStarts',True);prior=self.post('report',{})['task_scan_timing']['tasks'];v=values(step())
+        self.assertEqual(int(v['ThisTaskStart']),prior['backgroundtask']['start_time_us']);self.assertEqual(v['StTaskStart'],v['ThisTaskStart'])
+        import struct
+        word=lambda prefix:struct.unpack('<Q',struct.pack('<ii',v[prefix+'[1]'],v[prefix+'[2]']))[0]
+        self.assertEqual(word('TaskStartWords'),prior['fasttask']['start_time_us'])
+        self.assertEqual(word('TaskMinWords'),word('StTaskMin'));self.assertEqual(word('TaskMaxWords'),word('StTaskMax'))
+        for prefix in ('TaskStartWords','TaskMinWords','TaskMaxWords','StTaskMin','StTaskMax'):
+            self.assertEqual((v[prefix+'[0]'],v[prefix+'[3]']),(101,999))
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        timings=self.post('report',{})['task_scan_timing'];write('TaskStartDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+        self.assertEqual(self.post('report',{})['task_scan_timing'],timings)
+        write('TaskStartDivisor',1);step();write('ReadTaskStarts',False);write('TaskStartIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

@@ -18,7 +18,11 @@ WORDS=list(struct.unpack('<ii',struct.pack('<q',MICROSECONDS)))
 
 
 class GsvWallClockTests(unittest.TestCase):
-    setUp=configuration.GsvConfigurationTests.setUp
+    def setUp(self):
+        configuration.GsvConfigurationTests.setUp(self)
+        # Isolate per-invocation Task diagnostics from the GSV calls under test.
+        clock=patch('logixlab.runtime.current_value_microseconds',return_value=MICROSECONDS)
+        clock.start();self.addCleanup(clock.stop)
 
     def engine(self,logic,*,mutate=None,local=True,**kwargs):
         def fields(root):

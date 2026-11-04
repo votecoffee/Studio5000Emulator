@@ -89,7 +89,7 @@ class Engine:
                 self._measured_task=task.casefold()
                 self._task_measurements=task_runtime.TaskMeasurements()
             else:
-                self._task_scan_timings={t['name'].casefold():ProgramTiming() for t in project.tasks
+                self._task_scan_timings={t['name'].casefold():task_runtime.TaskMeasurements() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
             self._task_event_status=event_status.initial(self)
 
@@ -126,10 +126,7 @@ class Engine:
         if source_sha256!=self.project.sha256 or self.blockers or not self.task_scan_timing_eligible(task):return {}
         timing=self._task_scan_timings.get(task.casefold())
         if timing is None:return {}
-        # Last and maximum availability are independent, as for single-Task counters.
-        import struct
-        return {number:struct.pack('<I',value//1000) for number,value in
-                ((8,timing.last_ns),(7,timing.maximum_ns)) if value//1000<1<<32}
+        return timing.attributes()
 
     def component_tracking_attributes(self,*,idle):
         if (self.mode!='project' or self.blockers or self.fault or self._native_fault_history_uncertain
@@ -620,6 +617,7 @@ class Engine:
                 self.time_ms=due;self._executing_task=task
                 previous_calls=self.calls.stack;self.calls.stack=[]
                 measured_task=task.casefold() if isinstance(task,str) else None
+                task_scan_wall=current_value_microseconds() if measured_task in task_timings else None
                 task_scan_start=task_runtime.perf_counter_ns() if measured_task in task_timings else None
                 try:
                     for entry in entries:
@@ -633,7 +631,7 @@ class Engine:
                         scanned.add(name)
                     if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
                     if task_scan_start is not None:
-                        task_timings[measured_task]=task_timings[measured_task].record(task_runtime.perf_counter_ns()-task_scan_start)
+                        task_timings[measured_task]=task_timings[measured_task].record(task_scan_start,task_runtime.perf_counter_ns(),start_time_us=task_scan_wall)
                 finally:
                     self.calls.stack=previous_calls
                     self._executing_task,self.memory.first_scan=previous_task,previous_first
@@ -971,7 +969,9 @@ class Engine:
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
                 'task_scan_timing':dict(tasks_available=len(self._task_scan_timings),
-                    tasks={name:dict(last_us=t.last_ns//1000,maximum_us=t.maximum_ns//1000,executions=t.executions)
+                    tasks={name:dict(last_us=t.last_ns//1000,maximum_us=t.maximum_ns//1000,executions=t.executions,
+                                    minimum_interval_us=t.minimum_interval_ns//1000,maximum_interval_us=t.maximum_interval_ns//1000,
+                                    start_time_us=t.start_time_us)
                            for name,t in self._task_scan_timings.items()},
                     visibility='Previous successful advance; independent Task invocation measurements',
                     native_protocol_expanded=False,native_runtime_parity=False),

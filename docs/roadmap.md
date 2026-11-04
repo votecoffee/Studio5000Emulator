@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.001622`: [Task start/interval GSV](task-start-gsv.md).
+Named/THIS ladder and ST read committed StartTime and minimum/maximum intervals
+for eligible Continuous/Periodic/instruction-only Event tasks. Independent
+actual host starts share prior-advance visibility, complete 64-bit output
+windows and whole-advance rollback. System lab adds guarded ladder/ST examples.
+These measurements do not predict simulated task rates or native performance;
+SSV/time types/Safety/native visibility and lifecycle parity remain separate.
+
 Available in `26.1103.235756`: [Event OverlapCount GSV/SSV](event-overlap-count.md).
 Named and THIS ladder/ST calls read the live active-request count and reset it
 from an exact known-zero DINT. Counter reset and Status clearing are independent;
