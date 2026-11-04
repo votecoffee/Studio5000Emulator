@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; wall-clock GSV reads added for app `26.1103.204552`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; scan-time GSV reads added for app `26.1103.210811`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -105,6 +105,11 @@ schema/behavior backlog separately from instruction names.
 UTC-local LocalDateTime reads to existing RLL/ST calls. Exact LINT/two-DINT
 counters, seven-DINT calendar windows, lazy references and whole-advance rollback
 are modeled; no clock setters, time-zone/DST changes or native parity is implied.
+
+[Scan-time GSV](scan-time-gsv.md) adds Program/Task LastScanTime and MaxScanTime
+reads to existing RLL/ST calls. Values are committed interpreter measurements;
+whole-Task reads retain the guarded single-Task profile. They do not predict
+controller performance or establish native per-execution visibility.
 
 ## Remaining forms of existing instructions
 

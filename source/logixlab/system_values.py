@@ -1,7 +1,7 @@
 """Bounded GSV audit values and explicit source-configuration reads."""
 import struct
 from .model import ModelError
-from . import gsv_configuration, gsv_wall_clock, task_inhibit
+from . import gsv_configuration, gsv_timing, gsv_wall_clock, task_inhibit
 
 
 def source(engine,op):
@@ -36,6 +36,7 @@ def legacy(op):
 
 
 def validate(engine,op,scope):
+    if gsv_timing.matches(op):return gsv_timing.validate(engine,op,scope)
     if gsv_wall_clock.matches(op):return gsv_wall_clock.validate(engine,op,scope)
     if not legacy(op):return gsv_configuration.validate(engine,op,scope)
     source(engine,op)
@@ -46,6 +47,9 @@ def execute(engine,op,scope):
     # Resolve and validate the complete destination before the first write.
     # Indirect indices are re-evaluated each execution; scan rollback retains
     # the previous values if a later instruction fails.
+    if gsv_timing.matches(op):
+        gsv_timing.execute(engine,op,scope)
+        return
     if gsv_wall_clock.matches(op):
         gsv_wall_clock.execute(engine,op,scope)
         return
@@ -59,6 +63,7 @@ def execute(engine,op,scope):
 
 
 def write_effects(engine,op,scope):
+    if gsv_timing.matches(op):return gsv_timing.write_effects(engine,op,scope)
     if gsv_wall_clock.matches(op):return gsv_wall_clock.write_effects(engine,op,scope)
     key,parts,_=validate(engine,op,scope)
     return [(key,part) for part in parts]
@@ -67,4 +72,5 @@ def write_effects(engine,op,scope):
 def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
+                timing=gsv_timing.description(),
                 ssv=True, task_inhibition=task_inhibit.description())

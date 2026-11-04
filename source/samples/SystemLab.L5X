@@ -438,6 +438,16 @@
       <Tag Name="ClockUtc" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="ClockLocal" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="StClockUtc" DataType="DINT" TagType="Base" Dimensions="7"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /></Array></Data></Tag>
+      <Tag Name="ReadTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TimingIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ProgramMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SlowLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SlowMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StProgramLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StProgramMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="TimingWords" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="-1" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -491,6 +501,7 @@
                 <Text>XIC(ControlTasks)DIV(1,ControlDivisor,ControlResult);</Text>
               </Rung>
               <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>JSR(ReadProgramTimes,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
@@ -501,6 +512,7 @@
               <Line Number="3">IF StApplyInhibit THEN SSV(Task,SlowTask,InhibitTask,StTaskInhibitCommand); END_IF;</Line>
               <Line Number="4">GSV(Task,SlowTask,InhibitTask,StSlowInhibit);</Line>
               <Line Number="5">IF ReadClock THEN GSV(WallClockTime,,CurrentValue,StClockMicros); GSV(WallClockTime,,DateTime,StClockUtc[0]); END_IF;</Line>
+              <Line Number="6">IF ReadTiming THEN GSV(Program,BackgroundProgram,LastScanTime,StProgramLast); GSV(Program,BackgroundProgram,MaxScanTime,StProgramMax); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -509,6 +521,16 @@
               <Rung Number="1" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CurrentValue,ClockWords[1]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockUtc[ClockIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,LocalDateTime,ClockLocal[1]);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadProgramTimes" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadTiming)GSV(Program,BackgroundProgram,LastScanTime,TimingWords[TimingIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadTiming)GSV(Program,BackgroundProgram,MaxScanTime,ProgramMax);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadTiming)GSV(Program,FastProgram,LastScanTime,FastLast);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadTiming)GSV(Program,FastProgram,MaxScanTime,FastMax);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadTiming)GSV(Program,SlowProgram,LastScanTime,SlowLast);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadTiming)GSV(Program,SlowProgram,MaxScanTime,SlowMax);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

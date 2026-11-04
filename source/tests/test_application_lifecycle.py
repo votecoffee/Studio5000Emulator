@@ -2746,3 +2746,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         retained={k:v for k,v in row.items() if k.startswith(('Clock','StClock'))}
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_system_lab_scan_time_gsv_keeps_committed_values_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        write('TimingIndex',99);row=values(step());self.assertEqual(row['TimingWords[1]'],-1)
+        write('ReadTiming',True)
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);self.assertIn('outside bounds',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        write('TimingIndex',1);row=values(step());self.assertEqual(row['TimingWords[1]'],row['StProgramLast']);self.assertEqual(row['ProgramMax'],row['StProgramMax'])
+        for last,maximum in [('TimingWords[1]','ProgramMax'),('FastLast','FastMax'),('SlowLast','SlowMax')]:self.assertGreaterEqual(row[last],0);self.assertGreaterEqual(row[maximum],row[last])
+        self.assertEqual([row[f'TimingWords[{i}]'] for i in (0,2,3)],[101,77,999])
+        retained={k:v for k,v in row.items() if k in ('ProgramMax','FastLast','FastMax','SlowLast','SlowMax','StProgramLast','StProgramMax') or k.startswith('TimingWords[')}
+        write('ReadTiming',False);write('TimingIndex',99);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
+        report=self.post('report',{})['system_values']['timing'];self.assertIn('committed',report['visibility']);self.assertFalse(report['controller_performance_prediction'])

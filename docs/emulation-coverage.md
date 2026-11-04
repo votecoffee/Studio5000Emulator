@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; wall-clock GSV reads added for app `26.1103.204552`. **Full Logix emulation is not
+Audited 2026-11-03; scan-time GSV reads added for app `26.1103.210811`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -31,6 +31,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Ladder (RLL) | 104 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | User interrupt control | [UID/UIE](interrupt-control.md), balanced task-local nesting in RLL/ST, queued EVENT requests, outer-UIE priority drain, called routines and transactional guards | Native unmatched/persistent-state behavior, CPU/Periodic preemption, latency, watchdog/fault/Safety/AOI/harness and other profiles remain separate |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
+| Scan-time GSV | [Program/Task LastScanTime/MaxScanTime](scan-time-gsv.md), committed interpreter microseconds, exact DINT words, lazy full writes, typed AOIs and ST FOR effects | Whole-Task metrics retain the single-Task profile; current-instance aliases, setters, other fields/profiles and native timing/visibility/status/lifecycle parity remain separate |
 | Wall-clock GSV | [CurrentValue/DateTime/qualified LocalDateTime](wall-clock-gsv.md), host UTC microseconds, LINT/two-DINT counters, seven-DINT calendars, lazy full writes, AOIs and complete ST FOR effects | Clock setting, DT/TIME/DATETIMESTRUCT destinations, non-UTC/DST and other attributes, native sampling/interruption/status/layout/lifecycle parity remain separate |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
 | String operand selection | [Structural/lazy string preflight](string-operations.md#operand-selection) for 11 calls, six string relations and string-bearing CMP; unknown full writes, preserved unused bytes, aliases/UDTs/AOIs and whole-advance rollback | New algorithms, broader types/encoding, other profiles and native status/fault/lifecycle parity |

@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.210811`: [scan-time GSV](scan-time-gsv.md).
+Program and Task LastScanTime/MaxScanTime read the preceding committed
+interpreter timing snapshot in whole microseconds. Programs retain existing
+scheduled-source eligibility; whole-Task metrics keep the guarded single-Task
+profile. Structural/lazy outputs, typed AOIs, complete conservative ST FOR
+effects and timing/value rollback are modeled. System lab adds gated Program
+examples. Native timing/visibility, broader fields/profiles and setters remain
+separate.
+
 Available in `26.1103.204552`: [wall-clock GSV](wall-clock-gsv.md).
 Ladder and existing ST GSV calls read host UTC microseconds and seven-field
 calendars, sharing the existing CIP clock. LocalDateTime requires the explicit

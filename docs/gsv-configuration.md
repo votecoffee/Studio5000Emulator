@@ -5,6 +5,8 @@ in ladder and Structured Text. Existing [audit-value GSV](controller-gsv.md)
 keeps its original 64-bit destination contract. [Wall-clock GSV](wall-clock-gsv.md)
 adds separate host UTC CurrentValue/DateTime and qualified LocalDateTime reads;
 these are runtime clock samples rather than source-configuration attributes.
+[Scan-time GSV](scan-time-gsv.md) separately reads committed Program/Task
+LastScanTime and MaxScanTime through the existing interpreter counters.
 
 ```text
 GSV(Task,FastTask,Rate,FastRate);
