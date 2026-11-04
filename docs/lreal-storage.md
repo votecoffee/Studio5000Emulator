@@ -76,7 +76,9 @@ and comparisons](lreal-math.md), plus [matching-tag advanced math](lreal-advance
 additionally execute. [TRN](lreal-truncate.md) additionally handles REAL/LREAL sources and integer/REAL/LREAL
 results. [Numeric COP/CPS](lreal-copy.md) additionally handles finite binary64 byte
 images and partial writes. [Mixed-tag arithmetic](mixed-lreal-math.md) promotes
-numeric tag inputs when one input and the result are LREAL. Other mixed forms/
+numeric tag inputs when one input and the result are LREAL.
+[Mixed comparisons/LIM](mixed-lreal-comparisons.md) promote numeric tags when one
+input is LREAL. Other mixed forms/
 immediates, ST expressions/assignments, general AOI parameter forms and FLL,
 new literal syntax, aggregate wire layouts and native rounding/status/fault/
 lifecycle equivalence remain unfinished. These unsupported instruction forms

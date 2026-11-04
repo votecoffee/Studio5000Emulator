@@ -94,7 +94,7 @@ class LrealMathTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Pair.Value'),e.memory.read('Pair.Guard'),e.memory.read('Source')),(10.5,777,22.5))
 
     def test_mixed_types_immediates_aggregates_constants_and_other_profiles_are_guarded(self):
-        for text in ('ADD(Source,1,Dest);','SUB(1.0,Source,Dest);','ADD(Source,SpeedCommand,SpeedCommand);','MUL(Source,Mask,SpeedCommand);','EQU(Source,1);','EQU(Source,SpeedCommand);','LIM(Source,1.0,Mask);','ADD(Inputs,Mask,Dest);'):
+        for text in ('ADD(Source,1,Dest);','SUB(1.0,Source,Dest);','ADD(Source,SpeedCommand,SpeedCommand);','MUL(Source,Mask,SpeedCommand);','EQU(Source,1);','EQU(Source,TRUE);','LIM(Source,1.0,Mask);','ADD(Inputs,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()ADD(Source,Mask,Results[1]);'],mutate=constant).blockers)

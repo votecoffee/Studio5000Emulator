@@ -53,7 +53,8 @@ The remaining boundaries are explicit:
 - Immediates remain outside LREAL arithmetic; prepare typed source tags with MOV.
 - A LREAL destination with only integer/REAL inputs does not select this profile.
 - LREAL arithmetic with a non-LREAL result remains guarded.
-- Direct comparisons/LIM and advanced math retain matching-LREAL-tag rules.
+- [Mixed direct comparisons/LIM](mixed-lreal-comparisons.md) additionally promote
+  numeric tags when at least one input is LREAL. Advanced math remains separate.
 - LREAL ST expressions, CPT/CMP, bitwise arithmetic, time/date and aggregate
   operands remain outside this extension. No new FBD or SFC forms are added.
 

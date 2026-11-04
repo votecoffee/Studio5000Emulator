@@ -130,6 +130,11 @@ Reference basis: installed Studio 5000 v35 **Compare Instructions** (14591),
 also documents narrow zero extension and false-rung propagation. Software-model
 and HTTP checks do not establish native controller equivalence.
 
+[Mixed LREAL comparisons/LIM](mixed-lreal-comparisons.md) promote numeric tag
+inputs to binary64 when at least one input is LREAL. This includes both source
+orders and any limit position; large integers can round before comparison.
+Immediates and CMP/ST expressions remain separate.
+
 [Matching-tag LREAL ladder math](lreal-math.md) adds a separate finite binary64
-profile for seven basic operations and six direct relations/LIM. Mixed types,
+profile for seven basic operations and six direct relations/LIM. Other operand forms,
 immediates, ST/CPT/CMP and native precision/status/lifecycle parity remain open.

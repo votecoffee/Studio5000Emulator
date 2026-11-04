@@ -38,9 +38,11 @@ def validate(engine, op, scope):
     return True
 
 
-def lreal_profile(types, constants, *, arithmetic=False):
-    """Select binary64 tags; mixed arithmetic requires an actual LREAL input."""
+def lreal_profile(types, constants, *, arithmetic=False, ordering=False):
+    """Select binary64 tag profiles without saved-value promotion."""
     if 'LREAL' not in types:return None
+    if ordering and not constants and all(dtype in {*INT_BITS,'REAL','LREAL'} for dtype in types):
+        return 'LREAL'
     if (arithmetic and not constants and types[-1]=='LREAL' and
         'LREAL' in types[:-1] and all(dtype in {*INT_BITS,'REAL','LREAL'} for dtype in types)):
         return 'LREAL'

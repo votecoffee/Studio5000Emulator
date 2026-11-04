@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.021141`: [mixed-tag LREAL comparisons](mixed-lreal-comparisons.md).
+Six direct relations and LIM promote numeric tag inputs to finite binary64 when
+at least one input is LREAL. Both source orders, all limit positions, inclusive/
+reversed limits, read-only operands and existing lazy/rollback rules are covered.
+Integer lab adds gated precision, stored-REAL, large-integer rounding and fault
+examples. Immediates, CMP/ST expressions, MEQ, broader profiles and native
+numerical/status/fault/lifecycle equivalence remain separate.
+
 Available in `26.1104.020009`: [mixed-tag LREAL arithmetic](mixed-lreal-math.md).
 ADD/SUB/MUL/DIV/MOD accept all ten numeric source tag types when at least one
 input and the result are LREAL. Inputs promote to finite binary64 before math.

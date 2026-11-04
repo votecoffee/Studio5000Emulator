@@ -36,9 +36,9 @@ def validate(engine, op, scope):
 
 
 def ordering_profile(engine, op, scope):
-    """Preserve every declared tag range in the highest-ranked operand type.
+    """Preserve integer ranges, or promote a tagged LREAL comparison to binary64.
 
-    Do not invent a larger type or use saved values to justify signed/unsigned
+    Integer-only forms do not invent a larger type or use saved values to justify signed/unsigned
     conversion. Mixed LIM constants are bounded; homogeneous/narrow forms retain
     their existing profiles.
     """
@@ -48,7 +48,7 @@ def ordering_profile(engine, op, scope):
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:constants.append(value)
-    lreal=scalar_math.lreal_profile(types,constants)
+    lreal=scalar_math.lreal_profile(types,constants,ordering=True)
     if lreal:return lreal
     if not set(types) & integer_math.WIDE_TYPES or len(set(types)) == 1:
         return integer_math.profile(engine, op, scope)
@@ -127,8 +127,9 @@ def description(project):
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
                     native_runtime_parity=False),
                 lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
-                    operands='Homogeneous scalar LREAL tags only; no mixed types or immediates',
-                    calculation='Exact comparisons of stored finite binary64 values; inclusive/reversed limits; no tolerance',
+                    operands='Scalar numeric tags with at least one LREAL input; no immediates',
+                    source_types=sorted({*INT_BITS,'REAL','LREAL'}),
+                    calculation='Compare promoted finite binary64 values; signed/unsigned numeric conversion, stored REAL precision, inclusive/reversed limits; no tolerance; large integers may round',
                     native_runtime_parity=False),
                 masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,

@@ -5,6 +5,32 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="EnableDoubleCompare" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleCompareDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="DoubleCompareReal" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
+      <Tag Name="DoubleCompareLint" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="DoubleCompareUlint" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="DoubleCompareWide" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9007199254740992.0" /></Data></Tag>
+      <Tag Name="DoubleCompareMax" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="18446744073709551616.0" /></Data></Tag>
+      <Tag Name="DoubleCompareLow" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777216" /></Data></Tag>
+      <Tag Name="DoubleCompareHigh" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="16777218" /></Data></Tag>
+      <Tag Name="DoubleCompareZero" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareTiny" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="5e-324" /></Data></Tag>
+      <Tag Name="DoubleCompareLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleCompareLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareEq" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareNe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareLt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareLe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareGt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareGe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareInLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareReverseLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareWideEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareUnsignedEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareTinyGreater" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCompareValues" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[1]" Value="16777217.0" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="EnableMixedDouble" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="MixedDoubleIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="MixedDoubleDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
@@ -718,6 +744,23 @@
               <Rung Number="52" Type="N"><Text>JSR(DoubleStorage,0);</Text></Rung>
               <Rung Number="53" Type="N"><Text>JSR(DoubleMath,0);</Text></Rung>
               <Rung Number="54" Type="N"><Text>JSR(MixedDouble,0);</Text></Rung>
+              <Rung Number="55" Type="N"><Text>JSR(MixedDoubleCompare,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MixedDoubleCompare" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(EnableDoubleCompare)EQU(DoubleCompareValues[DoubleCompareIndex],DoubleCompareDint)OTE(DoubleCompareEq);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(EnableDoubleCompare)NEQ(DoubleCompareValues[DoubleCompareIndex],DoubleCompareDint)OTE(DoubleCompareNe);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(EnableDoubleCompare)LES(DoubleA,DoubleCompareReal)OTE(DoubleCompareLt);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(EnableDoubleCompare)LEQ(DoubleA,DoubleCompareReal)OTE(DoubleCompareLe);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(EnableDoubleCompare)GRT(DoubleA,DoubleCompareReal)OTE(DoubleCompareGt);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableDoubleCompare)GEQ(DoubleA,DoubleCompareReal)OTE(DoubleCompareGe);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(EnableDoubleCompare)LIM(DoubleCompareLow,DoubleCompareValues[DoubleCompareIndex],DoubleCompareHigh)OTE(DoubleCompareInLimit);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(EnableDoubleCompare)LIM(DoubleCompareHigh,DoubleCompareValues[DoubleCompareIndex],DoubleCompareLow)OTE(DoubleCompareReverseLimit);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(EnableDoubleCompare)EQU(DoubleCompareLint,DoubleCompareWide)OTE(DoubleCompareWideEqual);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(EnableDoubleCompare)EQU(DoubleCompareUlint,DoubleCompareMax)OTE(DoubleCompareUnsignedEqual);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(EnableDoubleCompare)GRT(DoubleCompareTiny,DoubleCompareZero)OTE(DoubleCompareTinyGreater);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(EnableDoubleCompare)DIV(1,DoubleCompareLateDivisor,DoubleCompareLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedDouble" Type="RLL">

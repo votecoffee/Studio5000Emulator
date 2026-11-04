@@ -420,6 +420,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
             write(tag,good);step()
         write('EnableMixedDouble',False);write('MixedDoubleIndex',99);step()
 
+    def test_integer_lab_mixed_lreal_comparisons_and_atomic_recovery(self):
+        self.post('demo',{'sample':'IntegerLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['DoubleCompareIndex'],99);self.assertFalse(v['DoubleCompareEq'])
+        write('DoubleCompareIndex',1);write('EnableDoubleCompare',True);v=values(step())
+        expected=dict(Eq=True,Ne=False,Lt=False,Le=False,Gt=True,Ge=True,InLimit=True,ReverseLimit=False,WideEqual=True,UnsignedEqual=True,TinyGreater=True)
+        for suffix,value in expected.items():self.assertIs(v['DoubleCompare'+suffix],value)
+        self.assertEqual(v['DoubleCompareLint'],'9007199254740993');self.assertEqual(v['DoubleCompareUlint'],'18446744073709551615')
+        self.assertEqual((v['DoubleCompareValues[0]'],v['DoubleCompareValues[1]'],v['DoubleCompareValues[2]']),(101.125,16777217.0,999.5))
+        for tag,bad,good in [('DoubleCompareIndex',99,1),('DoubleCompareLateDivisor',0,1)]:
+            write(tag,bad);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,good);step()
+        write('DoubleCompareValues[1]',16777218.0);v=values(step());self.assertTrue(v['DoubleCompareInLimit']);self.assertTrue(v['DoubleCompareReverseLimit']);self.assertTrue(v['DoubleCompareNe'])
+        write('EnableDoubleCompare',False);write('DoubleCompareIndex',99);v=values(step())
+        for suffix in expected:self.assertFalse(v['DoubleCompare'+suffix])
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()
