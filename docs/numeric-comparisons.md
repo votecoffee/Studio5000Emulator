@@ -129,3 +129,7 @@ Reference basis: installed Studio 5000 v35 **Compare Instructions** (14591),
 [MEQ reference](https://www.rockwellautomation.com/en-nl/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/mask-equal-to--meq-.html)
 also documents narrow zero extension and false-rung propagation. Software-model
 and HTTP checks do not establish native controller equivalence.
+
+[Matching-tag LREAL ladder math](lreal-math.md) adds a separate finite binary64
+profile for seven basic operations and six direct relations/LIM. Mixed types,
+immediates, ST/CPT/CMP and native precision/status/lifecycle parity remain open.

@@ -1,9 +1,9 @@
 """Lazy numeric ladder comparisons for the bounded v35 5580 profile."""
 import operator
 
-from . import integer_math
+from . import integer_math, scalar_math
 from .bit_transfer import unsigned
-from .model import INT_BITS, UNSIGNED_BITS, ModelError, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 
 RELATIONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
              'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
@@ -48,6 +48,8 @@ def ordering_profile(engine, op, scope):
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:constants.append(value)
+    lreal=scalar_math.lreal_profile(types,constants)
+    if lreal:return lreal
     if not set(types) & integer_math.WIDE_TYPES or len(set(types)) == 1:
         return integer_math.profile(engine, op, scope)
     common = ordering_type(types)
@@ -106,6 +108,7 @@ def execute(engine, op, power, scope):
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
     values = [memory.read(arg, scope) for arg in op.args]
+    if ordering_profile(engine,op,scope)=='LREAL':values=[coerce(value,'LREAL') for value in values]
     if op.name == 'LIM':
         low, value, high = values
         return low <= value <= high if low <= high else value >= low or value <= high
@@ -122,6 +125,10 @@ def description(project):
                     selection='Read-only inputs; false/prescan skip live values and indices; true calls consume every source',
                     constants='Mixed LIM accepts signed-DINT integer literals in any operand position, representable in the highest-ranked tag type; constants do not justify tag-range conversion',
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
+                    native_runtime_parity=False),
+                lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
+                    operands='Homogeneous scalar LREAL tags only; no mixed types or immediates',
+                    calculation='Exact comparisons of stored finite binary64 values; inclusive/reversed limits; no tolerance',
                     native_runtime_parity=False),
                 masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,

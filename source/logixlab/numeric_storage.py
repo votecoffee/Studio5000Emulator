@@ -73,10 +73,10 @@ def description(project):
                 operands='One numeric scalar element; bounded DINT/finite REAL MOV immediates; aliases and existing AOI bindings',
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
                 real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
-                lreal='Declared LREAL tags only; binary64 storage/MOV/CLR and atomic tag access; no new LREAL literals, arithmetic, ST expressions or aggregate wire layouts',
+                lreal='Declared LREAL tags only; binary64 storage/MOV/CLR and atomic tag access; separate homogeneous-tag ladder arithmetic/comparison profile; no new LREAL literals, ST expressions or aggregate wire layouts',
                 selection='Structural preflight; false/prescan skip values and live indices; true full writes establish unknown destinations',
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['LREAL arithmetic/expressions/AOI parameter qualification; time/date, string and aggregate forms; broader literals/controllers',
+                remaining=['Mixed LREAL arithmetic and expression/AOI parameter qualification; time/date, string and aggregate forms; broader literals/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

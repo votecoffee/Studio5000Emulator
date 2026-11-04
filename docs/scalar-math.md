@@ -195,7 +195,7 @@ intermediate rounding and bit-for-bit results remain unqualified.
 
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations
-retain their separate profiles. Mixed wide/unsigned and REAL operands, LREAL,
+retain their separate profiles. Mixed wide/unsigned and REAL operands, mixed LREAL forms,
 arithmetic narrowing/larger or typed constants/signed-to-unsigned promotion, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
 native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
 Other controller profiles retain their separate validation paths.
@@ -214,3 +214,7 @@ OR 14687 and Data Conversions 14451. The
 [public MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 provides additional context; installed v35 help is the version-specific basis.
 Software-model and HTTP checks do not establish native controller equivalence.
+
+[Matching-tag LREAL ladder math](lreal-math.md) adds a separate finite binary64
+profile for seven basic operations and six direct relations/LIM. Mixed types,
+immediates, ST/CPT/CMP and native precision/status/lifecycle parity remain open.

@@ -38,6 +38,27 @@ def validate(engine, op, scope):
     return True
 
 
+def lreal_profile(types, constants):
+    """Select declared homogeneous binary64 tags without saved-value promotion."""
+    if 'LREAL' not in types:return None
+    if constants or set(types)!={'LREAL'}:
+        raise ModelError('LREAL ladder operations require matching scalar LREAL tags; mixed types and immediates remain unqualified')
+    return 'LREAL'
+
+
+def execute_lreal(engine,op,scope):
+    memory=engine.memory
+    values=[coerce(memory.read(ref,scope),'LREAL') for ref in op.args[:-1]]
+    a=values[0]
+    if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
+    else:
+        b=values[1]
+        if op.name in ('DIV','MOD') and b==0:raise ModelError(op.name+' LREAL divide by zero')
+        result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
+    memory.write(op.args[-1],coerce(result,'LREAL'),scope)
+    return True
+
+
 def arithmetic_profile(engine, op, scope):
     """Mixed tag arithmetic with lossless source ranges and bounded constants.
 
@@ -51,6 +72,8 @@ def arithmetic_profile(engine, op, scope):
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:types.append(None);constants.append(value)
+    lreal=lreal_profile(types,constants)
+    if lreal:return lreal
     declared = set(types) - {None}
     if not declared & WIDE_TYPES or len(declared) == 1:
         return profile(engine, op, scope)
@@ -134,6 +157,11 @@ def description(project):
                     conversion='Signed values retain their sign; unsigned values retain their nonnegative value; all arithmetic stays integer-exact',
                     selection='Declared-type checks even false; false/prescan skip live values and indices; true full writes establish unknowns',
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
+                    native_runtime_parity=False),
+                lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
+                    operands='Homogeneous scalar LREAL source/destination tags; no mixed types or immediates',
+                    calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',
+                    selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',

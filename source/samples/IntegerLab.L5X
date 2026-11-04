@@ -5,6 +5,29 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="EnableDoubleMath" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleMathIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleA" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="DoubleB" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
+      <Tag Name="DoubleLow" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
+      <Tag Name="DoubleHigh" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="2.0" /></Data></Tag>
+      <Tag Name="DoubleMathDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleMathFaultResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleSum" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleDifference" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleProduct" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleQuotient" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleRemainder" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleNegated" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleAbsolute" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleEq" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleNe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleLt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleLe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleGt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleGe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleInLimits" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleMathResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="EnableDouble" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="DoubleInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
@@ -675,6 +698,27 @@
                 <Text>XIC(MixedConditions)CMP((SignedInput=RelationHigh)&amp;&amp;(RelationWord=65535))OTE(MixedConditionExact);</Text>
               </Rung>
               <Rung Number="52" Type="N"><Text>JSR(DoubleStorage,0);</Text></Rung>
+              <Rung Number="53" Type="N"><Text>JSR(DoubleMath,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleMath" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(EnableDoubleMath)ADD(DoubleA,DoubleB,DoubleMathResults[DoubleMathIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(EnableDoubleMath)MOV(DoubleMathResults[DoubleMathIndex],DoubleSum);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(EnableDoubleMath)SUB(DoubleA,DoubleB,DoubleDifference);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(EnableDoubleMath)MUL(DoubleA,DoubleB,DoubleProduct);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(EnableDoubleMath)DIV(DoubleA,DoubleB,DoubleQuotient);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableDoubleMath)MOD(DoubleA,DoubleB,DoubleRemainder);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(EnableDoubleMath)NEG(DoubleA,DoubleNegated);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(EnableDoubleMath)ABS(DoubleNegated,DoubleAbsolute);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(EnableDoubleMath)EQU(DoubleA,DoubleB)OTE(DoubleEq);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(EnableDoubleMath)NEQ(DoubleA,DoubleB)OTE(DoubleNe);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(EnableDoubleMath)LES(DoubleA,DoubleB)OTE(DoubleLt);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(EnableDoubleMath)LEQ(DoubleA,DoubleB)OTE(DoubleLe);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(EnableDoubleMath)GRT(DoubleA,DoubleB)OTE(DoubleGt);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(EnableDoubleMath)GEQ(DoubleA,DoubleB)OTE(DoubleGe);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(EnableDoubleMath)LIM(DoubleLow,DoubleA,DoubleHigh)OTE(DoubleInLimits);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(EnableDoubleMath)DIV(1,DoubleMathDivisor,DoubleMathFaultResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleStorage" Type="RLL">

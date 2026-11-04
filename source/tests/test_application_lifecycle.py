@@ -316,6 +316,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('DoubleDivisor',1);v=values(step());self.assertEqual(v['DoubleCopies[1]'],3.5);self.assertEqual(int(v['DoubleAsInteger']),4)
         write('EnableDouble',False);write('DoubleIndex',99);step()
 
+    def test_integer_lab_lreal_math_precision_conditions_and_atomic_recovery(self):
+        self.post('demo',{'sample':'IntegerLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['DoubleMathIndex'],99);self.assertIsNone(v['DoubleMathResults[1]'])
+        write('DoubleMathIndex',1);write('EnableDoubleMath',True);v=values(step())
+        self.assertEqual(v['DoubleSum'],2.0);self.assertEqual(v['DoubleDifference'],2**-52);self.assertEqual(v['DoubleRemainder'],2**-52)
+        self.assertEqual(v['DoubleProduct'],1.0000000000000002);self.assertEqual(v['DoubleQuotient'],1.0000000000000002)
+        self.assertEqual(v['DoubleNegated'],-1.0000000000000002);self.assertEqual(v['DoubleAbsolute'],1.0000000000000002)
+        self.assertEqual([v[n] for n in ('DoubleEq','DoubleNe','DoubleLt','DoubleLe','DoubleGt','DoubleGe','DoubleInLimits')],[False,True,False,False,True,True,True])
+        self.assertEqual((v['DoubleMathResults[0]'],v['DoubleMathResults[2]']),(101.125,999.5))
+        for tag in ('DoubleB','DoubleMathDivisor'):
+            write(tag,0);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,1);step()
+        write('EnableDoubleMath',False);write('DoubleMathIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

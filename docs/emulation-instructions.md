@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; finite LREAL storage added for app `26.1104.003503`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; LREAL ladder arithmetic/comparisons added for app `26.1104.005430`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -115,8 +115,8 @@ controller performance or establish native per-execution visibility.
 Program/Task contexts without expanding the existing timing/attribute profile.
 
 [Finite LREAL storage](lreal-storage.md) adds binary64 MOV/CLR conversions and
-atomic tag access; it does not enable LREAL arithmetic, ST expressions or
-aggregate byte-copy layouts.
+atomic tag access; [homogeneous tagged ladder math](lreal-math.md) additionally executes. ST expressions and
+aggregate byte-copy layouts remain unqualified.
 
 ## Remaining forms of existing instructions
 

@@ -68,7 +68,7 @@ def profile(engine, op, scope):
         else:
             types.append(None)
             immediates.append(value)
-    if 'LREAL' in types:raise ModelError('LREAL is qualified for v35 5580 MOV/CLR storage only; this instruction remains unsupported')
+    if 'LREAL' in types:raise ModelError('LREAL requires a qualified v35 5580 storage/arithmetic/comparison profile; this instruction remains unsupported')
     wide = set(types) & WIDE_TYPES
     if not wide:
         return None

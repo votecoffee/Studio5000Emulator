@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.005430`: [tagged LREAL ladder math](lreal-math.md).
+ADD/SUB/MUL/DIV/MOD/NEG/ABS and six direct relations/LIM retain finite binary64
+values through matching LREAL tags. Structural/lazy references, unknown complete
+writes, selected AOI arrays and whole-advance rollback remain. Integer lab adds
+gated math, comparison and zero-divisor/late-fault examples. Mixed types and
+immediates, ST/CPT/CMP, advanced math and native precision/status/lifecycle parity
+remain separate.
+
 Available in `26.1104.003503`: [finite LREAL storage](lreal-storage.md).
 Scalar/array/member values retain binary64 precision. Ladder MOV/CLR converts
 across ten numeric types; atomic tag reads/writes use eight-byte LREAL values.
