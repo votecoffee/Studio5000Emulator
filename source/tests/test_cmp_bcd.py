@@ -97,7 +97,7 @@ class CmpBcdTests(unittest.TestCase):
         for dtype in ('BOOL','REAL','LREAL','LINT','USINT','UINT','UDINT','ULINT'):
             for function in ('FRD','TOD'):
                 self.assertTrue(self.engine([f'AFI()CMP({function}(Source)>0)OTE(RunLatch);'],source_type=dtype,value=1).blockers,(dtype,function))
-        for expression in ('FRD(Source)>0.0','TOD(Source+0.5)>0','FRD(Source)+SQR(4)>0','TOD(Source)**2.0>0','FRD(StartPB)>0','FRD(Source)=StartPB','TOD(1L)>0','FRD(Source,1)>0'):
+        for expression in ('FRD(Source)>0.0','TOD(Source+0.5)>0','FRD(Source)+SQR(4.0)>0','TOD(Source)**2.0>0','FRD(StartPB)>0','FRD(Source)=StartPB','TOD(1L)>0','FRD(Source,1)>0'):
             self.assertTrue(self.engine([f'AFI()CMP({expression})OTE(RunLatch);']).blockers,expression)
         e=self.engine(['AFI()CMP((TextValue=TextValue)&&(FRD(Source)>0))OTE(RunLatch);'],mutate=self.text_tag);self.assertEqual(e.memory.string('TextValue'),'A');self.assertTrue(e.blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')

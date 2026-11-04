@@ -75,3 +75,6 @@ unverified. See [condition implementation](../source/logixlab/conditions.py),
 
 [Bounded integer powers](ladder-integer-power.md) now compose with these
 FRD/TOD expressions; exponents remain in 0..31 with checked DINT results.
+
+[Integer SQR nodes](ladder-integer-roots.md) now retain narrow integer arithmetic
+in eligible ladder expressions, including composition with these operations.

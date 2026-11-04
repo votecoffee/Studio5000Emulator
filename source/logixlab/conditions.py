@@ -28,6 +28,7 @@ class Condition(Expression):
         wide=self.wide_profile(memory,scope)
         if wide is not None:return False,wide[2]
         types={};real=False
+        integer_root = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
         for ref in self.refs:
             dtype=memory.resolve(ref,scope)[2]
             if dtype=='BOOL':types[ref]='bool';memory.read(ref,scope)
@@ -45,7 +46,7 @@ class Condition(Expression):
             if kind=='ref':return types[value]
             if kind=='call':
                 if infer(node[2])!='number':raise ModelError('CMP math functions require numeric operands')
-                real|=value not in {'ABS','TRN','TRUNC',*BCD_FUNCTIONS};return 'number'
+                real|=value not in {'ABS','TRN','TRUNC',*BCD_FUNCTIONS} and not (integer_root and value=='SQR');return 'number'
             if kind=='unary':
                 operand=infer(node[2])
                 if value=='!':
@@ -92,7 +93,7 @@ class Condition(Expression):
                 if types[value]=='string':return memory.string(value,scope)
                 x=memory.read(value,scope);return number(x) if types[value]=='number' else bool(x)
             if kind=='call':
-                x=visit(node[2]);return number(index_function(value,x) if value in BCD_FUNCTIONS else FUNCTIONS[value](x))
+                x=visit(node[2]);return number(index_function(value,x) if value in BCD_FUNCTIONS or not real and value=='SQR' else FUNCTIONS[value](x))
             if kind=='unary':
                 if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2])

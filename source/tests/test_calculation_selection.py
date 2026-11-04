@@ -119,7 +119,7 @@ class CalculationSelectionTests(unittest.TestCase):
 
     def test_shapes_permissions_index_grammar_and_existing_type_rules_remain_blockers(self):
         for rung in ('CPT(Results,Source+Mask);','CPT(Results[0],Values);','CPT(Results[0],StartPB);','CPT(Results[0],Values[999]);',
-                     'CPT(Results[0],Values[Index/2]);','CPT(Results[0],Missing+1);','CMP(Values>Mask)OTE(RunLatch);'):
+                     'CPT(Results[0],Values[Index MOD 2]);','CPT(Results[0],Missing+1);','CMP(Values>Mask)OTE(RunLatch);'):
             e=self.engine(['AFI()'+rung]);self.assertTrue(e.blockers,rung);self.assertFalse(e.memory.structural)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()CPT(Results[Index],Source+Mask);'],mutate=constant).blockers)

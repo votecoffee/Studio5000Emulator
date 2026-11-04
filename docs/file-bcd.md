@@ -101,3 +101,6 @@ acceptance remain unverified. See [FAL](../source/logixlab/file_arithmetic.py),
 [focused cases](../source/tests/test_file_bcd.py),
 [ControlLab.L5X](../source/samples/ControlLab.L5X) and
 [existing incremental rules](file-incremental.md).
+
+[Integer SQR nodes](ladder-integer-roots.md) now retain narrow integer arithmetic
+in eligible ladder expressions, including composition with these operations.

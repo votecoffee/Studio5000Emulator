@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.132555`: [integer SQR expressions](ladder-integer-roots.md).
+SQR no longer forces eligible narrow CPT/CMP/FAL/FSC expressions to REAL. Each
+integer root uses finite float32 input/result and nearest-even DINT conversion
+before the next operator. Existing REAL/ST/alias and file/AOI behavior retains
+its rules. Control lab contrasts both results. Wider forms and native numerical/
+status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.130831`: [integer expression powers](ladder-integer-power.md).
 CPT/CMP and FAL/FSC support SINT/INT/DINT bases and exponents with checked
 DINT intermediates and exponents 0..31. Arithmetic/BCD composition, lazy

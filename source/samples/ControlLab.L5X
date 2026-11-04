@@ -325,6 +325,121 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="RootEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootReset" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootInput" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="RootExpected" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="4" />
+        </Data>
+      </Tag>
+      <Tag Name="RootResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootMatches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootThreshold" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2" />
+        </Data>
+      </Tag>
+      <Tag Name="RootRealResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootRangeOffset" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="2147483647" />
+        </Data>
+      </Tag>
+      <Tag Name="RootRangeResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="RootLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="RootInputs" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="2" />
+            <Element Index="[1]" Value="3" />
+            <Element Index="[2]" Value="6" />
+            <Element Index="[3]" Value="7" />
+            <Element Index="[4]" Value="777" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="RootResults" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[4]" Value="902" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="RootCalc" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="RootFind" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -378,6 +493,7 @@
               <Rung Number="15" Type="N"><Text>JSR(NumericQueues,0);</Text></Rung>
               <Rung Number="16" Type="N"><Text>JSR(BcdFiles,0);</Text></Rung>
               <Rung Number="17" Type="N"><Text>JSR(IntegerPower,0);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>JSR(IntegerRoots,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IndirectOperands" Type="RLL">
@@ -414,6 +530,18 @@
               <Rung Number="3" Type="N"><Text>XIC(PowerEnabled)FAL(PowerCalc,?,?,ALL,PowerResults[PowerCalc.POS],PowerInputs[PowerCalc.POS]**2);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(PowerEnabled)FSC(PowerFind,?,?,ALL,PowerInputs[PowerFind.POS]**2&gt;=PowerThreshold);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(PowerEnabled)DIV(1,PowerLateDivisor,PowerLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IntegerRoots" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RootReset)RES(RootCalc)RES(RootFind);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RootEnabled)CPT(RootResult,SQR(RootInput)+SQR(RootInput));</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RootEnabled)CPT(RootRealResult,SQR(RootInput)+SQR(RootInput));</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RootEnabled)CMP(SQR(RootInput)+SQR(RootInput)=RootExpected)OTE(RootMatches);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RootEnabled)FAL(RootCalc,?,?,ALL,RootResults[RootCalc.POS],SQR(RootInputs[RootCalc.POS]) AND 16#FF);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RootEnabled)FSC(RootFind,?,?,ALL,SQR(RootInputs[RootFind.POS])&gt;=RootThreshold);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RootEnabled)XIC(RootRangeFault)CPT(RootRangeResult,SQR(RootInput+RootRangeOffset));</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RootEnabled)DIV(1,RootLateDivisor,RootLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

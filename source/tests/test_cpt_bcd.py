@@ -110,7 +110,7 @@ class CptBcdTests(unittest.TestCase):
             for function in ('FRD','TOD'):
                 self.assertTrue(self.engine([f'AFI()CPT(Dest,{function}(Source));'],source_type=dtype,value=1).blockers,(dtype,function))
                 self.assertTrue(self.engine([f'AFI()CPT(Dest,{function}(Source));'],dest_type=dtype,value=1).blockers,(dtype,function,'destination'))
-        for expr in ('FRD(1.0)','TOD(Source+0.5)','FRD(Source)+SQR(4)','TOD(Source)**2.0','TOD(TRUE)','TOD(1L)','FRD(Source,1)'):
+        for expr in ('FRD(1.0)','TOD(Source+0.5)','FRD(Source)+SQR(4.0)','TOD(Source)**2.0','TOD(TRUE)','TOD(1L)','FRD(Source,1)'):
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{expr});']).blockers,expr)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(['AFI()CPT(Dest,FRD(Source));'],mutate=old).blockers)

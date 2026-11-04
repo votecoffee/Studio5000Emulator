@@ -148,7 +148,9 @@ class Expression:
         def has_float(node):
             return node[0] == 'literal' and isinstance(node[1],float) or any(has_float(x) for x in node[1:] if isinstance(x,tuple))
         real |= has_float(self.tree)
-        real |= bool(self.functions - {'ABS','TRN','TRUNC'} - (INDEX_FUNCTIONS if index else BCD_FUNCTIONS if self.bcd else set()))
+        integer_root = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
+        real |= bool(self.functions - {'ABS','TRN','TRUNC'} - ({'SQR'} if integer_root else set())
+                     - (INDEX_FUNCTIONS if index else BCD_FUNCTIONS if self.bcd else set()))
         if index:
             if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions-INDEX_FUNCTIONS:
                 raise ModelError('Array index expressions require narrow integers and supported arithmetic/bitwise operators')
@@ -180,7 +182,7 @@ class Expression:
                 x=visit(node[2]);return number(x if value=='+' else -x if value=='-' else ~x)
             if kind == 'call':
                 x=visit(node[2])
-                return number(index_function(value,x) if index or value in BCD_FUNCTIONS else FUNCTIONS[value](x))
+                return number(index_function(value,x) if index or value in BCD_FUNCTIONS or not real and value=='SQR' else FUNCTIONS[value](x))
             x,y=visit(node[2]),visit(node[3])
             if value in ('/','MOD') and not y: raise ModelError('Expression divide by zero')
             if value=='**' and abs(y)>1024: raise ModelError('Expression exponent outside modeled range')

@@ -134,3 +134,6 @@ floating/wide mixtures and native parity retain separate requirements.
 [BCD file expressions](file-bcd.md) now qualify FRD/TOD in narrow FAL/FSC
 operands for existing ALL/numeric/INC modes. Conversion and progress/rollback
 rules are explicit; wider types, ST and native parity remain separate.
+
+[Integer SQR nodes](ladder-integer-roots.md) now retain narrow integer arithmetic
+in eligible ladder expressions, including composition with these operations.
