@@ -104,8 +104,8 @@ class CallTests(unittest.TestCase):
         self.root.find('./Controller/Tags/Tag[@Name="InputValue"]').set('Constant','true')
         e=self.engine();self.assertEqual(e.blockers,[]);e.step();self.assertEqual(e.memory.read('Result'),24)
 
-    def test_indirect_or_bit_parameter_references_block(self):
-        for text in ('JSR(DoubleValue,1,ArrayInput[InputValue],Result);','JSR(DoubleValue,1,PackedWord.0,Result);'):
+    def test_bit_parameter_references_block(self):
+        for text in ('JSR(DoubleValue,1,PackedWord.0,Result);',):
             with self.subTest(text=text):self.assertTrue(self.engine([text]).blockers)
 
     def test_cross_parameter_overlap_is_rejected(self):

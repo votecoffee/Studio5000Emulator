@@ -2623,3 +2623,19 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexedDeviationControl.LEN',1);fault('at least two');write('IndexedDeviationControl.LEN',3);row=values(step());self.assertEqual((row['IndexedMeans[1]'],row['IndexedDeviations[1]'],row['IndexedIntegerMeans[1]']),(4.0,2.0,4));self.assertIs(type(row['IndexedMeans[1]']),float);self.assertIs(type(row['IndexedIntegerMeans[1]']),int);self.assertIsNone(row['IndexedMeans[0]'])
         write('StatisticsSourceIndex',99);write('StatisticsResultIndex',99);row=values(step());self.assertEqual(row['IndexedMeans[1]'],4.0);write('IndexedStatistics',False);step();write('IndexedStatistics',True);fault('outside bounds');write('StatisticsSourceIndex',1);write('StatisticsResultIndex',2);write('SelectedSamples[1]',8);row=values(step());self.assertEqual((row['IndexedMeans[1]'],row['IndexedMeans[2]'],row['IndexedDeviations[2]'],row['IndexedIntegerMeans[2]']),(4.0,6.0,2.0,6));self.assertEqual((row['SelectedSamples[0]'],row['SelectedSamples[4]']),(111.0,999.0))
         profile=self.post('report',{})['array_statistics'];self.assertIn('result indices',profile['selection']);self.assertIn('unknown',profile['result_writes'])
+
+    def test_call_lab_indirect_arguments_capture_return_addresses_and_recover_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'CallLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertIsNone(row['IndexedCallResults[1]']);write('IndirectCall',True);fault('outside bounds');write('CallInputIndex',1);fault('outside bounds');write('CallOutputIndex',1);fault('Unknown');write('IndexedCallInputs[1]',7);write('RedirectReturn',True);row=values(step());self.assertEqual(row['IndexedCallResults[1]'],14);self.assertEqual(row['CallOutputIndex'],2);self.assertIsNone(row['IndexedCallResults[2]'])
+        write('IndirectCall',False);write('RedirectReturn',False);write('CallInputIndex',99);step();write('CallInputIndex',1);write('CallOutputIndex',2);write('IndexedCallInputs[1]',11);write('IndirectCall',True);row=values(step());self.assertEqual((row['IndexedCallResults[1]'],row['IndexedCallResults[2]']),(14,22));self.assertIsNone(row['IndexedCallResults[0]'])
+        write('IndirectCall',False);write('IndirectPairCall',True);write('CallOutputIndex',1);write('IndexedPairInputs[1].A',23);row=values(step());self.assertEqual(row['IndexedPairResults[1].A'],23);self.assertIsNone(row['IndexedPairResults[1].B']);self.assertIsNone(row['IndexedPairResults[0].A']);write('IndexedPairInputs[1].A',31);write('IndirectPairCall',False);row=values(step());self.assertEqual(row['IndexedPairResults[1].A'],23)
+        profile=self.post('report',{})['routine_parameters']['indirect'];self.assertTrue(profile['available']);self.assertIn('call entry',profile['capture']);self.assertFalse(profile['native_runtime_parity'])

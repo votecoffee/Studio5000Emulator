@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.190050`: [indirect routine arguments](indirect-routine-calls.md).
+JSR callers select complete scalar/logical-record elements through runtime
+indices. Structural preflight skips saved caller indices; true calls capture
+input/return addresses before input copies. Existing ST calls share validation.
+Call lab adds numeric and UDT examples. Exact type/dimension/count rules,
+static SBR/RET, conservative overlap guards and native parity remain separate.
+
 Available in `26.1103.184412`: [statistics operand selection](statistics-operands.md).
 AVE/STD structurally validate result references without saved dynamic indices.
 False and EN/DN/ER-inhibited calls skip result selection; fresh calculations

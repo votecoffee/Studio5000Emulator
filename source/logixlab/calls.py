@@ -35,7 +35,11 @@ class Calls:
     def __init__(self,engine):
         self.engine=engine;self.memory=engine.memory;self.stack=[];self.signatures={};self.edges={};self.loop_targets=set()
 
-    def operand(self,ref,scope,writable=False):
+    def indirect_profile(self,scope):
+        return (self.engine.project.version=='35' and self.engine.project.processor.upper() in CONTROLLERS
+                and scope not in self.memory.frames)
+
+    def operand(self,ref,scope,writable=False,*,indirect=False):
         try:
             value=literal(ref)
             if writable:raise ModelError('Parameter destination must be a writable tag')
@@ -43,12 +47,13 @@ class Calls:
             coerce(value,dtype)
             return Operand(ref,scope,None,[],dtype,())
         except ValueError:pass
-        # Native evaluation timing of aliased indirect operands is not assumed.
-        for indices in re.findall(r'\[([^\]]*)\]',ref):
-            if not re.fullmatch(r'\s*\d+\s*(?:,\s*\d+\s*)*',indices):raise ModelError('Routine parameters require static array indices')
+        dynamic=any(not re.fullmatch(r'\s*\d+\s*(?:,\s*\d+\s*)*',indices)
+                    for indices in re.findall(r'\[([^\]]*)\]',ref))
+        if dynamic and not indirect:raise ModelError('Routine parameters require static array indices')
         key,parts,dtype=self.memory.check_writable(ref,scope) if writable else self.memory.resolve(ref,scope)
         if key is None or any(isinstance(p,tuple) for p in parts):raise ModelError('Routine parameter system/bit selections are unsupported')
         value=self.memory.at(key,parts)
+        if dynamic and shape(value):raise ModelError('Indirect routine arguments must select one complete element')
         return Operand(self.memory.address(key,parts),'',key,parts,dtype,shape(value))
 
     def check_pairs(self,sources,destinations):
@@ -81,26 +86,38 @@ class Calls:
             raise ModelError('Parameterized routine requires a JSR caller; select its caller for the harness')
 
     def validate_operands(self,op,scope):
+        previous=self.memory.structural
+        if op.name=='JSR' and self.indirect_profile(scope):self.memory.structural=True
+        try:self._validate_operands(op,scope)
+        finally:self.memory.structural=previous
+
+    def _validate_operands(self,op,scope):
         problem=operand_problem(op)
         if problem:raise ModelError(problem)
         if op.name=='JSR':
             count=int(op.args[1])
-            for ref in op.args[2:2+count]:self.operand(ref,scope)
-            for ref in op.args[2+count:]:self.operand(ref,scope,writable=True)
+            for ref in op.args[2:2+count]:self.operand(ref,scope,indirect=self.indirect_profile(scope))
+            for ref in op.args[2+count:]:self.operand(ref,scope,writable=True,indirect=self.indirect_profile(scope))
         else:
             for ref in op.args:self.operand(ref,scope,writable=op.name=='SBR')
 
-    def call_spec(self,op,scope):
+    def call_spec(self,op,scope,*,execute=False):
+        previous=self.memory.structural
+        if not execute and self.indirect_profile(scope):self.memory.structural=True
+        try:return self._call_spec(op,scope)
+        finally:self.memory.structural=previous
+
+    def _call_spec(self,op,scope):
         problem=operand_problem(op)
         if problem:raise ModelError(problem)
         key=(scope+'/'+op.args[0]).lower();routine=self.engine.project.routines.get(key)
         if routine is None:raise ModelError('Routine '+key+' is missing')
         if routine.name.lower()==self.engine.project.programs[scope]['main'].lower():raise ModelError('JSR cannot call a main routine')
         header,returns=self.signature(routine);count=int(op.args[1])
-        sources=[self.operand(x,scope) for x in op.args[2:2+count]]
+        sources=[self.operand(x,scope,indirect=self.indirect_profile(scope)) for x in op.args[2:2+count]]
         inputs=[self.operand(x,scope,writable=True) for x in header.args] if header else []
         self.check_pairs(sources,inputs)
-        destinations=[self.operand(x,scope,writable=True) for x in op.args[2+count:]]
+        destinations=[self.operand(x,scope,writable=True,indirect=self.indirect_profile(scope)) for x in op.args[2+count:]]
         if destinations and not returns:raise ModelError('JSR return destinations require RET operands')
         for ret in returns:self.check_pairs([self.operand(x,scope) for x in ret.args],destinations)
         self.edges[key]={'inputs':count,'returns':len(destinations)}
@@ -171,7 +188,7 @@ class Calls:
 
     def call(self,op,scope,depth):
         if len(self.stack)>=25:raise ModelError('JSR nesting limit of 25 exceeded')
-        key,sources,inputs,destinations=self.call_spec(op,scope)
+        key,sources,inputs,destinations=self.call_spec(op,scope,execute=True)
         frame={'key':key,'inputs':inputs,'values':self.values(sources),'destinations':destinations,'received':False,'returned':False}
         self.stack.append(frame)
         try:
@@ -198,4 +215,9 @@ class Calls:
 
     def report(self):
         return {'calls':self.edges,'nesting_limit':25,'parameters_per_direction':40,
-                'contract':'Exact counts/types/dimensions; copied values; static references; cross-parameter overlap rejected; prescan does not transfer parameters'}
+                'contract':'Exact counts/types/dimensions; copied values; static formals/returns and bounded indirect caller elements; cross-parameter overlap rejected; prescan does not transfer parameters',
+                'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
+                                selection='Structural JSR preflight; false/prescan skip live caller indices and values',
+                                capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
+                                boundaries='One selected element for explicit indirect arguments; SBR/RET and FOR references retain static rules; conservative preflight overlap checks',
+                                native_runtime_parity=False)}

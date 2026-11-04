@@ -143,6 +143,18 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="IndirectCall" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndirectPairCall" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RedirectReturn" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CallInputIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="CallOutputIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SelectedInput" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="SelectedResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="IndexedCallInputs" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedCallResults" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedPairInputs" DataType="LabPair" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="LabPair" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="IndexedPairResults" DataType="LabPair" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="LabPair" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="SelectedPair" DataType="LabPair" TagType="Base"><Data Format="Decorated"><Structure DataType="LabPair"></Structure></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -162,6 +174,8 @@
               <Rung Number="3" Type="N">
                 <Text>MEQ(PackedWord,16#00F0,16#0030)OTE(MaskOK);</Text>
               </Rung>
+              <Rung Number="4" Type="N"><Text>XIC(IndirectCall)JSR(DoubleSelected,1,IndexedCallInputs[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(IndirectPairCall)JSR(EchoSelectedPair,1,IndexedPairInputs[CallInputIndex],IndexedPairResults[CallOutputIndex]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Calculate" Type="RLL">
@@ -210,6 +224,20 @@
               <Rung Number="2" Type="N">
                 <Text>RET(ArrayFormal,PairFormal);</Text>
               </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleSelected" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>SBR(SelectedInput);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RedirectReturn)MOV(2,CallOutputIndex);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>MUL(SelectedInput,2,SelectedResult);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>RET(SelectedResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EchoSelectedPair" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>SBR(SelectedPair);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>RET(SelectedPair);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
