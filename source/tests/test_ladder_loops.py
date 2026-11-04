@@ -255,7 +255,7 @@ class LadderLoopTests(unittest.TestCase):
     def test_application_sample_and_report_contract(self):
         app=Application(self.tmp.name);state=app.command('demo',{'sample':'LoopLab'});self.assertEqual(state['blockers'],[])
         state=app.command('step',{'count':1});self.assertEqual(state['scan'],1)
-        report=app.command('report',{})['ladder_loops'];self.assertEqual(report['targets'],['mainprogram/accumulate'])
+        report=app.command('report',{})['ladder_loops'];self.assertEqual(report['targets'],['mainprogram/accumulate','mainprogram/indirectaccumulate'])
         self.assertFalse(report['native_runtime_parity'])
 
 

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.191933`: [indirect FOR operands](ladder-loops.md#runtime-selected-operands).
+Ladder loops structurally validate runtime-selected scalar operands without
+saved indices. True loops retain their selected index element for one invocation
+and reselect terminal/step operands when read. Loop lab adds a gated example.
+Existing types, inclusive ranges, BRK, budgets and rollback remain; native
+sampling, overflow/status/lifecycle and hardware parity remain separate.
+
 Available in `26.1103.190050`: [indirect routine arguments](indirect-routine-calls.md).
 JSR callers select complete scalar/logical-record elements through runtime
 indices. Structural preflight skips saved caller indices; true calls capture

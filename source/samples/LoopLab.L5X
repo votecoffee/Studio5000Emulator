@@ -75,6 +75,16 @@
           <DataValue DataType="DINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="SelectedLoop" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="LoopSlot" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="BoundsSlot" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SelectedTotal" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="SelectedIterations" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="SelectedCompleted" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexSlots" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="InitialValues" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="TerminalValues" DataType="SINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="SINT" Dimensions="3"></Array></Data></Tag>
+      <Tag Name="StepValues" DataType="INT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="INT" Dimensions="3"></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" TestEdits="false" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -91,6 +101,8 @@
               <Rung Number="2" Type="N">
                 <Text>ADD(Scans,1,Scans)DIV(1,FaultDivisor,GuardResult);</Text>
               </Rung>
+              <Rung Number="3" Type="N"><Text>CLR(SelectedTotal)CLR(SelectedIterations);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(SelectedLoop)FOR(IndirectAccumulate,IndexSlots[LoopSlot],InitialValues[BoundsSlot],TerminalValues[BoundsSlot],StepValues[BoundsSlot])OTE(SelectedCompleted);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Accumulate" Type="RLL">
@@ -107,6 +119,12 @@
               <Rung Number="3" Type="N">
                 <Text>RET();</Text>
               </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IndirectAccumulate" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>ADD(SelectedIterations,1,SelectedIterations)ADD(SelectedTotal,IndexSlots[LoopSlot],SelectedTotal);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>RET();</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

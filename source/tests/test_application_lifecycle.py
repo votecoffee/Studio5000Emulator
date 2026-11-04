@@ -2639,3 +2639,24 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndirectCall',False);write('RedirectReturn',False);write('CallInputIndex',99);step();write('CallInputIndex',1);write('CallOutputIndex',2);write('IndexedCallInputs[1]',11);write('IndirectCall',True);row=values(step());self.assertEqual((row['IndexedCallResults[1]'],row['IndexedCallResults[2]']),(14,22));self.assertIsNone(row['IndexedCallResults[0]'])
         write('IndirectCall',False);write('IndirectPairCall',True);write('CallOutputIndex',1);write('IndexedPairInputs[1].A',23);row=values(step());self.assertEqual(row['IndexedPairResults[1].A'],23);self.assertIsNone(row['IndexedPairResults[1].B']);self.assertIsNone(row['IndexedPairResults[0].A']);write('IndexedPairInputs[1].A',31);write('IndirectPairCall',False);row=values(step());self.assertEqual(row['IndexedPairResults[1].A'],23)
         profile=self.post('report',{})['routine_parameters']['indirect'];self.assertTrue(profile['available']);self.assertIn('call entry',profile['capture']);self.assertFalse(profile['native_runtime_parity'])
+
+    def test_loop_lab_indirect_operands_and_completed_prescan_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'LoopLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            before=self.post('report',{})
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:old=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:new=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(new[key],old[key])
+            self.assertEqual(self.post('report',{})['ladder_loops'],before['ladder_loops'])
+        row=values(step());self.assertIsNone(row['IndexSlots[1]']);write('SelectedLoop',True);fault('outside bounds');write('LoopSlot',1);fault('outside bounds');write('BoundsSlot',1);fault('Unknown')
+        for tag,value in [('InitialValues[1]',0),('TerminalValues[1]',4),('StepValues[1]',1)]:write(tag,value)
+        row=values(step());self.assertEqual((row['SelectedTotal'],row['SelectedIterations'],row['IndexSlots[1]']),(10,5,5));self.assertTrue(row['SelectedCompleted']);self.assertIsNone(row['IndexSlots[0]'])
+        for tag,value in [('LoopSlot',2),('BoundsSlot',2),('InitialValues[2]',3),('TerminalValues[2]',-1),('StepValues[2]',-2)]:write(tag,value)
+        row=values(step());self.assertEqual((row['SelectedTotal'],row['SelectedIterations'],row['IndexSlots[2]']),(3,3,-3));self.assertEqual(row['IndexSlots[1]'],5)
+        write('FaultDivisor',0);fault('zero');write('FaultDivisor',1);write('SelectedLoop',False);write('LoopSlot',99);write('BoundsSlot',99);row=values(step());self.assertFalse(row['SelectedCompleted']);self.assertEqual(row['IndexSlots[2]'],-3)
+        report=self.post('report',{})['ladder_loops'];self.assertIn('Structural',report['selection']);self.assertIn('retained',report['index']);self.assertFalse(report['native_runtime_parity'])

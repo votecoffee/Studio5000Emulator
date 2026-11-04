@@ -47,7 +47,8 @@ program-local references retain canonical storage and scope.
 ## Guards and rollback
 
 Bit/system selections, constant destinations and mismatched signatures remain
-blocked. SBR/RET operands and FOR references retain static-index rules. Overlap
+blocked. SBR/RET operands retain static-index rules. FOR has a [separate selection
+profile](ladder-loops.md#runtime-selected-operands). Overlap
 is checked during preflight and again at actual call entry. Structural placeholder
 addresses make preflight conservative: some potentially disjoint indirect forms
 remain blocked. Multiple indirect results in separate arrays are supported.

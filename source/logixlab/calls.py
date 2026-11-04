@@ -124,6 +124,11 @@ class Calls:
         return key,sources,inputs,destinations
 
     def loop_spec(self,op,scope):
+        previous=self.memory.structural;self.memory.structural=True
+        try:return self._loop_spec(op,scope)
+        finally:self.memory.structural=previous
+
+    def _loop_spec(self,op,scope):
         if self.engine.project.version!='35' or self.engine.project.processor.upper() not in CONTROLLERS:
             raise ModelError('FOR/BRK requires the v35 ControlLogix 5580 software profile')
         if scope in self.memory.frames:raise ModelError('FOR/BRK within an AOI is unsupported')
@@ -133,9 +138,9 @@ class Calls:
         if not re.fullmatch(r'[A-Za-z_][\w]*',op.args[0]):raise ModelError('Invalid FOR routine name')
         # FOR passes no SBR/RET parameters. The same target/call graph rules apply.
         key,_,_,_=self.call_spec(Op('JSR',[op.args[0],'0']),scope)
-        index=self.operand(op.args[1],scope,writable=True)
+        index=self.operand(op.args[1],scope,writable=True,indirect=True)
         if index.dtype!='DINT' or index.dims:raise ModelError('FOR index requires a writable scalar DINT')
-        sources=[self.operand(ref,scope) for ref in op.args[2:]]
+        sources=[self.operand(ref,scope,indirect=True) for ref in op.args[2:]]
         if any(p.dtype not in ('SINT','INT','DINT') or p.dims for p in sources):
             raise ModelError('FOR initial/terminal/step requires scalar SINT, INT, DINT or DINT literals')
         self.loop_targets.add(key)
@@ -143,8 +148,11 @@ class Calls:
 
     def loop(self,op,scope,depth):
         if len(self.stack)>=25:raise ModelError('JSR/FOR nesting limit of 25 exceeded')
-        key,index,sources=self.loop_spec(op,scope)
-        self.memory.write(index.ref,self.values(sources[:1])[0],index.scope)
+        key,_,_=self.loop_spec(op,scope)
+        # Retain the selected index cell for this invocation. Bounds are live.
+        index=self.operand(op.args[1],scope,writable=True,indirect=True)
+        def value(ref):return self.values([self.operand(ref,scope,indirect=True)])[0]
+        self.memory.write(index.ref,value(op.args[2]),index.scope)
         frame={'key':key,'inputs':[],'values':[],'destinations':[],'received':False,'returned':False,'loop':True}
         self.stack.append(frame)
         try:
@@ -152,14 +160,14 @@ class Calls:
                 # Even an empty routine and a zero step consume a bounded budget.
                 self.engine.budget-=1
                 if self.engine.budget<0:raise ModelError('FOR instruction budget exceeded')
-                limit,step=self.values(sources[1:])
+                limit,step=(value(ref) for ref in op.args[3:])
                 current=self.memory.read(index.ref,index.scope)
                 if (step<0 and current<limit) or (step>=0 and current>limit):break
                 frame['received']=frame['returned']=False
                 try:self.engine._routine(key,depth+1)
                 except BreakLoop:break
                 # Reread after the routine: it may modify index or step.
-                self.memory.write(index.ref,self.memory.read(index.ref,index.scope)+self.values(sources[2:])[0],index.scope)
+                self.memory.write(index.ref,self.memory.read(index.ref,index.scope)+value(op.args[4]),index.scope)
         finally:self.stack.pop()
 
     def break_loop(self):
@@ -167,9 +175,10 @@ class Calls:
 
     def loop_description(self):
         return dict(profile='v35-5580-ladder-FOR-BRK',language='RLL',targets=sorted(self.loop_targets),
-                    index='Writable scalar DINT; static tag/member/element or alias',
+                    index='Writable scalar DINT tag/member/element or alias; selected index address retained for one invocation',
                     bounds='Scalar SINT/INT/DINT or signed DINT literals; inclusive, either direction',
-                    sampling='Initial read before assignment; terminal/step read for each test; index/step reread after each call',
+                    selection='Structural preflight; false/prescan skip live operand indices and values; complete scalar selections only',
+                    sampling='Index address retained at entry; initial selected before assignment; terminal/step reselected per test; step reselected after each normal call',
                     control='BRK unwinds to the nearest active FOR in the current task; outside FOR it has no action',
                     lifecycle='Reachable routines prescanned once; no parameters; shared 25-level call limit and instruction budget',
                     overflow='Modeled DINT overflow and budget exhaustion roll back the entire advance',
@@ -219,5 +228,5 @@ class Calls:
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
-                                boundaries='One selected element for explicit indirect arguments; SBR/RET and FOR references retain static rules; conservative preflight overlap checks',
+                                boundaries='One selected element for explicit indirect arguments; SBR/RET references retain static rules; FOR uses its separate selection profile; conservative preflight overlap checks',
                                 native_runtime_parity=False)}
