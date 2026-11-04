@@ -5,6 +5,24 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="EnableMixedDouble" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedDoubleIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="MixedDoubleDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="MixedDoubleReal" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
+      <Tag Name="MixedDoubleLint" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="MixedDoubleUlint" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="MixedDoubleDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="MixedDoubleAdd" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleSubtract" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleMultiply" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleDivide" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleRemainder" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleWide" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleUnsigned" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="MixedDoubleRounded" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9007199254740992.0" /></Data></Tag>
+      <Tag Name="MixedDoubleLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="MixedDoubleLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MixedDoubleResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="EnableDoubleMath" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleMathIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="DoubleA" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
@@ -699,6 +717,20 @@
               </Rung>
               <Rung Number="52" Type="N"><Text>JSR(DoubleStorage,0);</Text></Rung>
               <Rung Number="53" Type="N"><Text>JSR(DoubleMath,0);</Text></Rung>
+              <Rung Number="54" Type="N"><Text>JSR(MixedDouble,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MixedDouble" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(EnableMixedDouble)ADD(DoubleA,MixedDoubleDint,MixedDoubleResults[MixedDoubleIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(EnableMixedDouble)MOV(MixedDoubleResults[MixedDoubleIndex],MixedDoubleAdd);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(EnableMixedDouble)SUB(DoubleA,MixedDoubleReal,MixedDoubleSubtract);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(EnableMixedDouble)MUL(DoubleA,MixedDoubleDint,MixedDoubleMultiply);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(EnableMixedDouble)DIV(DoubleA,MixedDoubleDivisor,MixedDoubleDivide);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableMixedDouble)MOD(DoubleA,MixedDoubleDivisor,MixedDoubleRemainder);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(EnableMixedDouble)SUB(MixedDoubleLint,MixedDoubleRounded,MixedDoubleWide);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(EnableMixedDouble)ADD(MixedDoubleUlint,DoubleA,MixedDoubleUnsigned);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(EnableMixedDouble)DIV(1,MixedDoubleLateDivisor,MixedDoubleLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleMath" Type="RLL">

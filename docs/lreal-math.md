@@ -9,9 +9,11 @@ v35 ControlLogix 5580 software profile:
 | Direct ordering | EQU, NEQ, LES, LEQ, GRT, GEQ |
 | Limits | LIM |
 
-Every operand must be a scalar LREAL tag, including arithmetic destinations.
+The original homogeneous profile requires every operand to be a scalar LREAL tag,
+including arithmetic destinations. [Mixed-tag binary arithmetic](mixed-lreal-math.md)
+now has a separate extension with at least one LREAL input and a LREAL result.
 Selected array elements, aliases and explicit UDT members retain their declared
-type. Immediate constants and mixed integer/REAL/LREAL forms remain blocked even
+type. Immediate constants and other mixed integer/REAL/LREAL forms remain blocked even
 when their saved values happen to fit. Existing [MOV conversions](lreal-storage.md)
 can prepare matching LREAL source tags. No new mnemonic or language is added.
 
@@ -90,6 +92,7 @@ MOD14620, EQU14589 and LIM14610. Published Rockwell
 [ADD](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/add--add-.html)
 and [MOD](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 references give related context. [Matching-tag advanced math](lreal-advanced.md)
-additionally executes. Mixed types/immediates, ST expressions, CPT/CMP, mixed
+additionally executes, along with [mixed-tag binary arithmetic](mixed-lreal-math.md).
+Other mixed types/immediates, ST expressions, CPT/CMP, mixed
 advanced forms, bitwise LREAL operations, aggregate byte layouts and native
 precision/status/fault/lifecycle equivalence remain separate work.

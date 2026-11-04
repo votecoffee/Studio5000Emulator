@@ -400,6 +400,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('DoubleInput',5e-324);v=values(step());self.assertEqual(v['DoubleImage'],'1');self.assertEqual(v['DoubleRoundtrip'],5e-324)
         write('DoubleCopy',False);write('DoubleCopyIndex',99);step()
 
+    def test_integer_lab_mixed_lreal_precision_and_atomic_recovery(self):
+        self.post('demo',{'sample':'IntegerLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['MixedDoubleIndex'],99);self.assertIsNone(v['MixedDoubleResults[1]'])
+        write('MixedDoubleIndex',1);write('EnableMixedDouble',True);v=values(step())
+        expected=dict(MixedDoubleAdd=16777218.0,MixedDoubleSubtract=2**-52,MixedDoubleMultiply=16777217.000000004,MixedDoubleDivide=.5000000000000001,MixedDoubleRemainder=1.0000000000000002,MixedDoubleWide=0.0,MixedDoubleUnsigned=float(2**64))
+        for name,value in expected.items():self.assertEqual(v[name],value)
+        self.assertEqual((v['MixedDoubleResults[0]'],v['MixedDoubleResults[2]']),(101.125,999.5))
+        for tag,bad,good in [('MixedDoubleIndex',99,1),('MixedDoubleDivisor',0,2),('MixedDoubleLateDivisor',0,1)]:
+            write(tag,bad);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,good);step()
+        write('EnableMixedDouble',False);write('MixedDoubleIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

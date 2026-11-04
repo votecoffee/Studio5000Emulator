@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.020009`: [mixed-tag LREAL arithmetic](mixed-lreal-math.md).
+ADD/SUB/MUL/DIV/MOD accept all ten numeric source tag types when at least one
+input and the result are LREAL. Inputs promote to finite binary64 before math.
+Integer lab demonstrates DINT precision, stored REAL precision, signed/unsigned
+64-bit rounding and atomic fault recovery. Immediate operands, LREAL results
+without a LREAL input, narrowing results, mixed comparisons/advanced math, ST/
+CPT/CMP and native precision/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.014542`: [LREAL numeric byte copies](lreal-copy.md).
 COP/CPS add finite eight-byte little-endian images, mixed numeric regions and
 partial-byte preservation to the existing logical clipping/budget/rollback rules.

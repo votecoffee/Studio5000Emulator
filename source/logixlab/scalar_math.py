@@ -38,9 +38,12 @@ def validate(engine, op, scope):
     return True
 
 
-def lreal_profile(types, constants):
-    """Select declared homogeneous binary64 tags without saved-value promotion."""
+def lreal_profile(types, constants, *, arithmetic=False):
+    """Select binary64 tags; mixed arithmetic requires an actual LREAL input."""
     if 'LREAL' not in types:return None
+    if (arithmetic and not constants and types[-1]=='LREAL' and
+        'LREAL' in types[:-1] and all(dtype in {*INT_BITS,'REAL','LREAL'} for dtype in types)):
+        return 'LREAL'
     if constants or set(types)!={'LREAL'}:
         raise ModelError('LREAL ladder operations require matching scalar LREAL tags; mixed types and immediates remain unqualified')
     return 'LREAL'
@@ -72,7 +75,7 @@ def arithmetic_profile(engine, op, scope):
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:types.append(None);constants.append(value)
-    lreal=lreal_profile(types,constants)
+    lreal=lreal_profile(types,constants,arithmetic=True)
     if lreal:return lreal
     declared = set(types) - {None}
     if not declared & WIDE_TYPES or len(declared) == 1:
@@ -159,7 +162,9 @@ def description(project):
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
-                    operands='Homogeneous scalar LREAL source/destination tags; no mixed types or immediates',
+                    operands='Scalar numeric source tags, with at least one LREAL source and a LREAL destination; unary sources remain LREAL; no immediates',
+                    source_types=sorted({*INT_BITS,'REAL','LREAL'}),
+                    promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
                     calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
