@@ -12,7 +12,7 @@ CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
 
-def current_instance(engine, cls, instance, scope='', *, executing=False):
+def current_instance(engine, cls, instance, scope='', *, executing=False, allow_event=False):
     """Resolve THIS from a source-bound scheduled Program, never saved tag data."""
     if instance.casefold()!='this':return instance
     project=engine.project;configuration=project.task_configuration
@@ -28,7 +28,8 @@ def current_instance(engine, cls, instance, scope='', *, executing=False):
         raise ModelError('GSV THIS requires an eligible scheduled ordinary Standard Program and complete current source')
     owners=[task for task in project.tasks if any(p.casefold()==name.casefold() for p in task['programs'])]
     scheduler=engine._task_scheduler
-    if (len(owners)!=1 or owners[0]['class']!='Standard' or owners[0]['type'] not in ('Continuous','Periodic')
+    kinds=('Continuous','Periodic','Event') if allow_event else ('Continuous','Periodic')
+    if (len(owners)!=1 or owners[0]['class']!='Standard' or owners[0]['type'] not in kinds
             or scheduler is None or scheduler.source!=scheduler.configuration):
         raise ModelError('GSV THIS requires one unchanged Standard Continuous/Periodic owner Task')
     owner=owners[0]['name']

@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid
+from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
@@ -66,6 +66,7 @@ class Engine:
         self._program_timings = {}
         self._task_measurements = None
         self._task_scan_timings = {}
+        self._task_event_status = {}
         self._measured_task = None
         self._task_scheduler = None
         self._program_scanned = set()
@@ -90,6 +91,7 @@ class Engine:
             elif len(project.tasks)>1:
                 self._task_scan_timings={t['name'].casefold():ProgramTiming() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
+            self._task_event_status=event_status.initial(self)
 
     def _task_runtime_available(self,task,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
@@ -398,7 +400,10 @@ class Engine:
         if n=='MCR':mcr.profile(self.project);return
         if n=='DTR':data_transition.validate(self.memory,op,scope);return
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
-        if n=='SSV':task_inhibit.validate(self,op,scope);return
+        if n=='SSV':
+            if event_status.matches(op):event_status.validate(self,op,scope)
+            else:task_inhibit.validate(self,op,scope)
+            return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -649,6 +654,7 @@ class Engine:
             self._program_timings=timings
             self._task_measurements=measured
             self._task_scan_timings=task_timings
+            if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
@@ -729,7 +735,8 @@ class Engine:
         if n in ladder_pid.INSTRUCTIONS:return ladder_pid.execute(self,op,p,scope)
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
-        if n=='SSV':return task_inhibit.execute(self,op,p,scope)
+        if n=='SSV':return (event_status.execute(self,op,p,scope) if event_status.matches(op)
+                            else task_inhibit.execute(self,op,p,scope))
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n in ('UID','UIE'):return event_tasks.execute_interrupt(self,op,p,scope)
         if n=='GSV':
@@ -964,6 +971,7 @@ class Engine:
                     visibility='Previous successful advance; independent multi-Task invocation measurements',
                     native_protocol_expanded=False,native_runtime_parity=False),
                 'event_execution':event_tasks.description(),
+                'event_task_status':dict(values=dict(event_status.values(self)),**event_status.description()),
                 'user_interrupts':event_tasks.interrupt_description(),
                 'mcr_execution':mcr.description()|dict(planned_zones=sum(list(plan.values()).count('open') for plan in self._mcr_plans.values())),
                 'control_operations':control_operations.description(),

@@ -143,6 +143,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_event_lab_status_read_clear_this_st_guards_and_rollback(self):
+        self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['EventStatusWords[1]']);write('ReadEventStatus',True);before=now()
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        write('EventStatusIndex',1);write('TriggerRLL',True);v=values(step())
+        self.assertEqual([v[n] for n in ('WorkEntryStatus','WorkActiveStatus','WorkExitStatus','NamedWorkStatus','StWorkStatus')],[1]*5)
+        write('SelfTrigger',True);v=values(step());self.assertEqual(v['WorkActiveStatus'],5);self.assertEqual(v['EventStatusWords[1]'],5)
+        write('ClearEventStatus',True);write('EventStatusCommand',4);v=values(step());self.assertEqual(v['WorkExitStatus'],4);self.assertEqual(v['NamedWorkStatus'],4);self.assertEqual(v['EventStatusCommand'],4)
+        write('TriggerRLL',False);write('SelfTrigger',False);write('EventStatusCommand',0);step();self.assertEqual(self.post('report',{})['event_task_status']['values']['workevent'],0)
+        write('TriggerRLL',True);write('ClearEventStatus',False);write('StatusDivisor',0);before=now();status=self.post('report',{})['event_task_status']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        self.assertEqual(self.post('report',{})['event_task_status'],status);write('StatusDivisor',1);v=values(step());self.assertEqual(v['NamedWorkStatus'],1)
+        self.assertEqual([v[f'EventStatusWords[{i}]'] for i in (0,2)],[101,999])
+        profile=self.post('report',{})['event_task_status'];self.assertFalse(profile['native_protocol_expanded']);self.assertFalse(profile['native_runtime_parity'])
+
     def test_system_lab_multitask_timing_named_this_st_inhibition_and_rollback(self):
         state=self.post('demo',{'sample':'SystemLab'});self.assertEqual(state['blockers'],[])
         values=lambda s:{row['name']:row['value'] for row in s['tags']}

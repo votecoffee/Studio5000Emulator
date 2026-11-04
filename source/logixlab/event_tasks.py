@@ -76,6 +76,7 @@ class Dispatch:
         self.engine=engine;self.batch=batch;self.run=run;self.active=set()
         self.releases=[];self.overlaps={};self.coalesced={};self.accepted=0
         self.pending=set();self.queue=[];self.interrupt_depth={}
+        self.status=dict(engine._task_event_status)
 
     def masked(self):
         return self.interrupt_depth.get(self.engine._executing_task,0)>0
@@ -101,6 +102,7 @@ class Dispatch:
         if task.kind!='Event' or task.inhibited:return
         if index in self.active:
             self.overlaps[index]=self.overlaps.get(index,0)+1
+            if task.name.casefold() in self.status:self.status[task.name.casefold()]|=4
             return
         if index in self.pending:
             self.coalesced[index]=self.coalesced.get(index,0)+1
@@ -108,6 +110,7 @@ class Dispatch:
         caller=next(t for t in scheduler.tasks if t.name==self.engine._executing_task)
         self.accepted+=1
         if len(self.batch.releases)+self.accepted>MAX_RELEASES:raise ModelError('Event task release budget exceeded')
+        if task.name.casefold() in self.status:self.status[task.name.casefold()]|=1
         if task.priority<caller.priority and not self.masked():
             self._execute(index,self.engine.time_ms)
             # Newly queued work may outrank the restored caller, but not the child.

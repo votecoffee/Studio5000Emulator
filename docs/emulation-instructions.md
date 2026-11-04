@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; multi-task scan timing added for app `26.1103.224555`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; Event task status added for app `26.1103.230102`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -169,8 +169,8 @@ Program/Task contexts without expanding the existing timing/attribute profile.
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [TRN](size-truncate.md) adds lazy REAL reads and representable signed/unsigned destinations. [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. [Operand selection](string-operations.md#operand-selection) adds structural preflight, lazy dynamic references and unknown full writes for string calls/relations/CMP in v35 5580. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
 | UID/UIE | [Balanced task-local interrupt control](interrupt-control.md) defers higher-priority EVENT requests until the outermost UIE in RLL/ST, across routine calls and with advance rollback. Unmatched-pair/persistent-state behavior, CPU/Periodic preemption, native latency/watchdog/fault/Safety, AOI/harness/ST FOR and other profiles remain separate. |
 | EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/ST FOR forms and CPU/status parity remain unfinished. |
-| GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and broader SSV remain unfinished. |
-| SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. Other classes/attributes, Event/Safety targets, AOIs and harness calls remain unfinished. |
+| GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. [Program/Task timing](scan-time-gsv.md) and [logical Event Status](event-task-status.md) add bounded runtime reads. Other objects/attributes, native status, cross-type byte-copy forms and broader SSV remain unfinished. |
+| SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. [Event Task Status](event-task-status.md) additionally supports named/THIS logical bit replacement. Other classes/attributes, Event inhibition, Safety, AOIs and harness calls remain unfinished. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |
 
 The exact current dispatch table is `ARITIES` in

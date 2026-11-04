@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.230102`: [logical Event task Status](event-task-status.md).
+GSV/SSV read and replace accepted-request/active-overlap bits in ladder/ST,
+including THIS inside qualified Event tasks. Live words are latched until
+cleared; pending duplicates retain coalescing. Status, values and scheduling
+commit only with a successful advance. Event lab adds guarded read-clear,
+THIS/named/ST and rollback examples. Other bits, timeout/external events,
+AOI/harness/Safety and native protocol/status/lifecycle parity remain separate.
+
 Available in `26.1103.224555`: [multi-task scan-time GSV](scan-time-gsv.md).
 Eligible Standard Continuous/Periodic Tasks retain independent last/maximum
 interpreter invocation durations and execution counts. Named and ordinary THIS

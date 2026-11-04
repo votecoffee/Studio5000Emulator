@@ -5,6 +5,19 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadEventStatus" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClearEventStatus" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="EventStatusCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="EventStatusIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="StatusDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="StatusResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="WorkEntryStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="WorkActiveStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="WorkExitStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="NamedWorkStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StWorkStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="DeferredStatus" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="EventStatusWords" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="TriggerRLL" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="BOOL" Value="0" />
@@ -139,6 +152,7 @@
                 <Text>MOV(DeferredCount,RllDeferredSeen);</Text>
               </Rung>
               <Rung Number="7" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="GuardedEvent" Type="RLL">
@@ -146,6 +160,12 @@
               <Rung Number="0" Type="N"><Text>UID()UID()EVENT(WorkEvent)MOV(EventCount,GuardSeen);</Text></Rung>
               <Rung Number="1" Type="N"><Text>UIE()MOV(EventCount,GuardSeen);</Text></Rung>
               <Rung Number="2" Type="N"><Text>UIE()MOV(EventCount,ReleasedSeen);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadEventStatus" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,EventStatusWords[EventStatusIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,NamedWorkStatus);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -160,6 +180,8 @@
               <Line Number="2">IF TriggerST THEN EVENT(WorkEvent); END_IF;</Line>
               <Line Number="3">StSeen:=EventCount;</Line>
               <Line Number="4">StDeferredSeen:=DeferredCount;</Line>
+              <Line Number="5">IF ReadEventStatus THEN GSV(Task,WorkEvent,Status,StWorkStatus); GSV(Task,DeferredEvent,Status,DeferredStatus); IF ClearEventStatus THEN SSV(Task,WorkEvent,Status,EventStatusCommand); END_IF; END_IF;</Line>
+              <Line Number="6">IF ReadEventStatus THEN StatusResult:=1/StatusDivisor; END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>
@@ -178,9 +200,13 @@
               <Rung Number="2" Type="N">
                 <Text>TON(EventTimer,?,?);</Text>
               </Rung>
-              <Rung Number="3" Type="N">
+              <Rung Number="3" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkEntryStatus);</Text></Rung>
+              <Rung Number="4" Type="N">
                 <Text>XIC(SelfTrigger)EVENT(WorkEvent);</Text>
               </Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

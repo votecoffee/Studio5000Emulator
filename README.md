@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.224555`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.230102`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -44,6 +44,10 @@ gated Program timing reads in ladder and ST.
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. **System lab** includes gated timestamp examples.
+
+[Event task status](docs/event-task-status.md) adds ladder/ST trigger and active
+overlap reads and clears, including THIS inside instruction-only Event tasks.
+**Event lab** demonstrates latched bits and transactional read-clear behavior.
 
 [Current-instance GSV](docs/current-instance-gsv.md) lets ordinary scheduled
 ladder/ST routines use THIS for supported Program timing and Task settings.

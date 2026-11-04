@@ -37,7 +37,9 @@ and AOI outputs conservatively cover enclosing arrays so saved selections cannot
 hide a write to loop bounds or step. Invalid addresses, unavailable metadata or
 a later fault roll back data, bindings, scheduling and uncommitted measurements.
 
-THIS inside AOIs, Event tasks and isolated routine harnesses remains unqualified.
+[Event Task Status](event-task-status.md) separately supports Task THIS inside
+qualified instruction-only Event tasks for Status GSV/SSV. Other THIS reads
+inside Event tasks, AOIs and isolated routine harnesses remain unqualified.
 Empty/numeric instance aliases, broader SSV forms and current-instance setters
 are unchanged. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
