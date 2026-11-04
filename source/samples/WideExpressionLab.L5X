@@ -215,6 +215,147 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="F64Enabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Index" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Dint" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="16777217" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Real" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="16777217" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Unsigned" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="18446744073709551615" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Signed" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Value="9007199254740993" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Half" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0.5" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Precision" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Sum" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Integral" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64StoredReal" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64UnsignedResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64SignedResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Root" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Power" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Remainder" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Matches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64DomainFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64OverflowFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Domain" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="-1" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Big" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="1e+308" />
+        </Data>
+      </Tag>
+      <Tag Name="F64DomainResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64OverflowResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64LateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="F64LateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="F64Inputs" DataType="LREAL" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LREAL" Dimensions="3">
+            <Element Index="[0]" Value="1.0000000000000002" />
+            <Element Index="[1]" Value="3.0" />
+            <Element Index="[2]" Value="7.0" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="F64Results" DataType="LREAL" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LREAL" Dimensions="3">
+            <Element Index="[2]" Value="901.0" />
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -290,6 +431,25 @@
               <Rung Number="21" Type="N">
                 <Text>XIC(MixedExpressionMath)CPT(ExpressionNested,(SignedInput+ExpressionDelta)/SignedDelta);</Text>
               </Rung>
+              <Rung Number="22" Type="N"><Text>JSR(Binary64,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Binary64" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(F64Enabled)CPT(F64Results[F64Index],F64Inputs[F64Index]-1);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(F64Enabled)MOV(F64Results[F64Index],F64Precision);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(F64Enabled)CPT(F64Sum,(1/2)+(1/2));</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(F64Enabled)CPT(F64Integral,F64Dint+1);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(F64Enabled)CPT(F64StoredReal,F64Real+1);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(F64Enabled)CPT(F64UnsignedResult,F64Unsigned);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(F64Enabled)CPT(F64SignedResult,F64Signed);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(F64Enabled)CPT(F64Root,SQR(F64Inputs[1])+SQR(F64Inputs[1]));</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(F64Enabled)CPT(F64Power,F64Inputs[1]**F64Half);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(F64Enabled)CPT(F64Remainder,F64Inputs[2] MOD 3);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(F64Enabled)CMP((F64Inputs[0]&gt;1)&amp;&amp;(F64Integral&gt;F64StoredReal))OTE(F64Matches);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(F64Enabled)XIC(F64DomainFault)CPT(F64DomainResult,LN(F64Domain));</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(F64Enabled)XIC(F64OverflowFault)CPT(F64OverflowResult,F64Big*2);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(F64Enabled)DIV(1,F64LateDivisor,F64LateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -362,6 +362,9 @@ class Project:
             names=set()
             schema=ET.Element('DataType',Name=aoi.name,Class='AOI')
             members=ET.SubElement(schema,'Members')
+            from .integer_math import CONTROLLERS
+            copied_types = {'BOOL', *INT_BITS, 'REAL'}
+            if self.version == '35' and self.processor.upper() in CONTROLLERS:copied_types.add('LREAL')
             for item in aoi.parameters+aoi.locals:
                 name=item.get('Name','');usage=item.get('Usage','Local')
                 if not name or name.lower() in names:aoi.problems.append('Duplicate or missing parameter/local name')
@@ -376,7 +379,7 @@ class Project:
                 ET.SubElement(members,'Member',Name=name,DataType=item.get('DataType',''),
                               Dimension=item.get('Dimensions','0'),Hidden='false',AOILocal=str(usage=='Local').lower(),
                               ExternalAccess=item.get('ExternalAccess','None' if usage=='Local' else 'Read/Write'))
-                if usage in ('Input','Output') and (item.get('DataType','').upper() not in {'BOOL',*INT_BITS,'REAL'}
+                if usage in ('Input','Output') and (item.get('DataType','').upper() not in copied_types
                                                     or dimensions(item.get('Dimensions','0'))):
                     aoi.problems.append('Input/Output parameters require supported atomic scalar types')
             for name,usage in (('EnableIn','Input'),('EnableOut','Output')):

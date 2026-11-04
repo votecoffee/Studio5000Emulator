@@ -10,7 +10,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid
+from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, lreal_expressions
 from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
@@ -921,6 +921,7 @@ class Engine:
                                    'policy':'Typed structural preflight; actual unknown reads/bounds/arithmetic faults stop and roll back. Mixed numeric conversions, wide FOR/CASE/index forms and ST forms of FBD-only selectors remain unqualified.'},
                 'integer_execution':integer_math.description(self.project),
                 'integer_expression_execution':integer_math.expression_description(),
+                'lreal_expression_execution':lreal_expressions.description(self.project),
                 'wide_st_execution':wide_st.description(self.project),
                 'wide_ladder_expressions':wide_st.ladder_description(self.project),
                 'bit_transfer':bit_transfer.description(),

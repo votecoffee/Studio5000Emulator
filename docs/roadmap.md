@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.134906`: [LREAL CPT/CMP expressions](lreal-expressions.md).
+LREAL sources or CPT destinations select finite binary64 arithmetic, mixed
+numeric tags, thirteen functions, six relations and eager Boolean composition.
+Copied scalar AOI LREAL inputs/outputs retain source precision and exact output
+types. Wide expression lab adds Binary64. Narrowing destinations, floating/typed
+literals, other consumers and native numerical/status/fault parity remain separate.
+
 Available in `26.1104.132555`: [integer SQR expressions](ladder-integer-roots.md).
 SQR no longer forces eligible narrow CPT/CMP/FAL/FSC expressions to REAL. Each
 integer root uses finite float32 input/result and nearest-even DINT conversion

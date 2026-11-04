@@ -63,7 +63,7 @@ class LadderIntegerPowerTests(unittest.TestCase):
         import test_bit_transfer as fixture
         f=fixture.BitTransferTests();f.setUp();self.addCleanup(f.doCleanups)
         self.assertTrue(f.engine(['AFI()CPT(Dest,Source**Mask);'],mutate=old).blockers)
-        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','LREAL'):
+        for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
             e=f.engine(['AFI()CPT(Dest,Source**Mask);'],types=(dtype,dtype,dtype),values=(2,3,0));self.assertTrue(e.blockers,dtype)
         e=self.engine()
         with self.assertRaisesRegex(ModelError,'index'):Expression('2**3').validate(e.memory,index=True)

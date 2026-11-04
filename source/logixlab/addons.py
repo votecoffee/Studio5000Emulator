@@ -99,7 +99,11 @@ class AddOns:
         for parameter,argument in zip(definition.required,op.args[1:]):
             if parameter.get('Usage')=='Input':
                 value=self.memory.read(argument,scope)
-                if isinstance(value,float):value=coerce(value,'REAL')
+                if isinstance(value,float):
+                    try:literal(argument)
+                    except ValueError:source_type=self.memory.resolve(argument,scope)[2]
+                    else:source_type='REAL'
+                    value=coerce(value,source_type)
                 self.memory.write(parameter.get('Name'),value,frame)
         if prescan:
             self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)

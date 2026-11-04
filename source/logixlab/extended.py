@@ -3,7 +3,7 @@ import copy
 import re
 from .expressions import Expression
 from .conditions import Condition
-from . import string_operations, string_conversions, numeric_copy, numeric_fill, aggregate_copy, size_truncate, comparisons, wide_st
+from . import string_operations, string_conversions, numeric_copy, numeric_fill, aggregate_copy, size_truncate, comparisons, wide_st, lreal_expressions
 from .integer_math import WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
 from .model import ModelError, coerce
@@ -19,9 +19,9 @@ class Extensions:
         self.expressions={}
         self.conditions={}
 
-    def condition(self,text,*,allow_wide=False,bcd=False):
-        key=(text,allow_wide,bcd)
-        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd)
+    def condition(self,text,*,allow_wide=False,bcd=False,lreal=False):
+        key=(text,allow_wide,bcd,lreal)
+        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd,lreal=lreal)
         return self.conditions[key]
 
     def wide_mask_profile(self,args,scope):
@@ -68,7 +68,7 @@ class Extensions:
     def numeric_destination(self,ref,scope,integer=False,wide=False):
         key,parts,dtype=self.memory.check_writable(ref,scope)
         allowed=set(('SINT','INT','DINT') if integer else ('SINT','INT','DINT','REAL'))
-        if wide:allowed.update(WIDE_TYPES)
+        if wide:allowed.update((*WIDE_TYPES,'LREAL'))
         if dtype not in allowed:
             raise ModelError('Numeric scalar destination required')
         value=self.memory.at(key,parts) if wide else self.memory.read(ref,scope)
@@ -90,6 +90,10 @@ class Extensions:
     def compute(self,args,scope,execute=False):
         dtype=self.numeric_destination(args[0],scope,wide=True)
         expression=self.expression(args[1],bcd=True)
+        floating=lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT')
+        if floating is not None:
+            if execute:return lreal_expressions.evaluate(expression,self.memory,scope,floating)
+            return
         profile=wide_st.analyze(expression,self.memory,scope,dtype,consumer='CPT')
         if profile is not None:
             if profile[1]!='number':raise ModelError('CPT requires a numeric expression result')
@@ -149,10 +153,10 @@ class Extensions:
         previous=self.memory.structural
         self.memory.structural=True
         try:
-            expression=self.expression(op.args[1],bcd=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True)
+            expression=self.expression(op.args[1],bcd=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True)
             for ref in expression.refs:
                 dtype=self.memory.resolve(ref,scope)[2]
-                if dtype not in {*INT_BITS,'REAL','BOOL'}:return False
+                if dtype not in {*INT_BITS,'REAL','LREAL','BOOL'}:return False
                 if isinstance(self.memory.read(ref,scope),(list,dict)):
                     raise ModelError('CPT/CMP references require scalar numeric or BOOL elements')
             if op.name=='CPT':self.compute(op.args,scope)
@@ -175,7 +179,7 @@ class Extensions:
                 if not any(self.is_string(ref,scope) for ref in a):return False
                 for ref in a:text(ref)
             elif n=='CMP':
-                condition=self.condition(a[0],allow_wide=True,bcd=True)
+                condition=self.condition(a[0],allow_wide=True,bcd=True,lreal=True)
                 strings=[ref for ref in condition.refs if self.is_string(ref,scope)]
                 if not strings:return False
                 for ref in condition.refs:
@@ -211,7 +215,7 @@ class Extensions:
         if n not in EXTENDED:return False
         if self.calculation_preflight(op,scope):return True
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope):return True
-        if n=='CMP':self.condition(a[0],allow_wide=True,bcd=True).validate(self.memory,scope)
+        if n=='CMP':self.condition(a[0],allow_wide=True,bcd=True,lreal=True).validate(self.memory,scope)
         elif n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
             for arg in a:self.masked(arg,scope,dtype)
@@ -264,7 +268,7 @@ class Extensions:
         if n not in EXTENDED:return None
         if not power:return power
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope,execute=True):return power
-        if n=='CMP':return self.condition(a[0],allow_wide=True,bcd=True).evaluate(self.memory,scope)
+        if n=='CMP':return self.condition(a[0],allow_wide=True,bcd=True,lreal=True).evaluate(self.memory,scope)
         if n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
             source,mask,compare=(self.masked(x,scope,dtype) for x in a)

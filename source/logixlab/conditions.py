@@ -10,9 +10,18 @@ LOGICAL={'&&','^^','||'}
 
 
 class Condition(Expression):
-    def __init__(self,text,*,allow_wide=False,bcd=False):
+    def __init__(self,text,*,allow_wide=False,bcd=False,lreal=False):
         super().__init__(text,condition=True,bcd=bcd)
         self.allow_wide=allow_wide
+        self.allow_lreal=lreal
+
+    def floating_profile(self,memory,scope):
+        if not self.allow_lreal:return None
+        from . import lreal_expressions, comparisons
+        previous=memory.structural
+        if comparisons.available(memory.project):memory.structural=True
+        try:return lreal_expressions.analyze(self,memory,scope,consumer='CMP')
+        finally:memory.structural=previous
 
     def wide_profile(self,memory,scope):
         if not self.allow_wide:return None
@@ -25,6 +34,8 @@ class Condition(Expression):
         return profile
 
     def validate(self,memory,scope=''):
+        floating=self.floating_profile(memory,scope)
+        if floating is not None:return True,floating['types']
         wide=self.wide_profile(memory,scope)
         if wide is not None:return False,wide[2]
         types={};real=False
@@ -80,6 +91,10 @@ class Condition(Expression):
         return real,types
 
     def evaluate(self,memory,scope=''):
+        floating=self.floating_profile(memory,scope)
+        if floating is not None:
+            from . import lreal_expressions
+            return bool(lreal_expressions.evaluate(self,memory,scope,floating))
         wide=self.wide_profile(memory,scope)
         if wide is not None:
             from . import wide_st

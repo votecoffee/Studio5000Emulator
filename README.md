@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.132555`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.134906`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+**LREAL expressions** now execute in ladder CPT/CMP with finite binary64
+arithmetic, mixed numeric tags and copied AOI parameters. Wide expression lab
+adds precision and fault-recovery examples; see [LREAL expressions](docs/lreal-expressions.md).
 
 **Integer square-root expressions** now retain narrow integer arithmetic.
 Control lab contrasts integer and REAL results; see [integer roots](docs/ladder-integer-roots.md).

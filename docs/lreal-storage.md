@@ -100,3 +100,7 @@ math forms. A LREAL destination selects this finite binary64 software profile.
 [LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
 for basic arithmetic and XPY without a LREAL source, including bounded
 constant-only calls. Direct ordering still requires a LREAL input for binary64.
+
+[LREAL CPT/CMP expressions](lreal-expressions.md) now add mixed numeric-tag
+binary64 calculations and comparisons, plus copied scalar AOI LREAL parameters.
+Other expression consumers and native equivalence retain separate limits.

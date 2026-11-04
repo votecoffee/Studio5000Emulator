@@ -92,7 +92,7 @@ class LrealAdvancedTests(unittest.TestCase):
         self.assertTrue(self.engine(['SQR(Source,Dest);'],mutate=old).blockers)
 
     def test_lreal_st_cpt_and_newer_instruction_aliases_remain_guarded(self):
-        for text in ('CPT(Dest,SQR(Source));','SQRT(Source,Dest);','EXPT(Source,Mask,Dest);'):
+        for text in ('CPT(Dest,SQRT(Source));','SQRT(Source,Dest);','EXPT(Source,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
