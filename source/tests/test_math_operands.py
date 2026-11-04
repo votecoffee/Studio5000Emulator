@@ -96,7 +96,7 @@ class MathOperandTests(unittest.TestCase):
     def test_static_type_shape_permission_index_grammar_and_literal_guards_remain(self):
         for text in ('SQR(Inputs,Results[0]);','SQR(Source,Results);','SQR(StartPB,Results[0]);',
                      'SQR(Inputs[Missing],Results[0]);','SQR(Inputs[Source],Results[0]);',
-                     'SQR(Inputs[Index/2],Results[0]);','XPY(Source,2147483648,Results[0]);',
+                     'SQR(Inputs[Index MOD 2],Results[0]);','XPY(Source,2147483648,Results[0]);',
                      'LN(1e40,Results[0]);','SQR(Source,Results[99]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
         for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):

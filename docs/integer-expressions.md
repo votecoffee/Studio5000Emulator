@@ -94,7 +94,9 @@ This includes earlier writes, scheduler state and any INC progress. A failed
 incremental FAL iteration can be retried at the same element after correcting
 its input; earlier successful advances remain committed.
 
-Array-index division, integer CPT/CMP power, wider CPT/CMP/file-expression
+[Array-index division and bitwise operators](array-index-expressions.md) now
+execute with narrow integer expressions; a single integer tag retains its
+declared range. Integer CPT/CMP power, wider CPT/CMP/file-expression
 types, the complete numeric promotion/conversion matrix and native math flags,
 fault classification, partial effects and intermediate parity remain unfinished.
 These checks qualify software behavior; native controller/Studio acceptance

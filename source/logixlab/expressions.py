@@ -133,8 +133,13 @@ class Expression:
             return node[0] == 'literal' and isinstance(node[1],float) or any(has_float(x) for x in node[1:] if isinstance(x,tuple))
         real |= has_float(self.tree)
         real |= bool(self.functions - {'ABS','TRN','TRUNC'})
-        if index and (real or self.operators - {'+','-','*'} or self.functions):
-            raise ModelError('Array index expressions support integer +, -, * and parentheses only')
+        if index:
+            if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions:
+                raise ModelError('Array index expressions require narrow integers and supported arithmetic/bitwise operators')
+            if self.operators & {'/','AND','OR','XOR','NOT'}:
+                from .integer_math import CONTROLLERS
+                if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
+                    raise ModelError('Extended array index expressions require the v35 ControlLogix 5580 profile')
         if not real and '**' in self.operators:
             raise ModelError('Integer CPT power is not modeled; use a REAL operand or destination')
         if real and self.operators & {'AND','OR','XOR','NOT'}:

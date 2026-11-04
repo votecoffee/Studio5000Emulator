@@ -114,7 +114,9 @@ class IntegerExpressionTests(unittest.TestCase):
     def test_array_indices_remain_restricted_and_cpt_cmp_integer_power_stays_blocked(self):
         from logixlab.expressions import Expression
         e=self.engine(['NOP();'])
-        with self.assertRaisesRegex(ModelError,'index'):Expression('Source/Mask').validate(e.memory,index=True)
+        self.assertFalse(Expression('Source/Mask').validate(e.memory,index=True))
+        self.assertEqual(Expression('Source/Mask').evaluate(e.memory,index=True),-2)
+        with self.assertRaisesRegex(ModelError,'index'):Expression('Source MOD Mask').validate(e.memory,index=True)
         from logixlab.model import Op
         for op in (Op('CPT',['Dest','Source**2']),Op('CMP',['Source**2>0'])):
             with self.assertRaisesRegex(ModelError,'power'):e.extensions.validate(op,'MainProgram')

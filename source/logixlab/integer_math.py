@@ -44,9 +44,17 @@ def expression_description():
                     failures='Required unknowns, bad indices, arithmetic and later faults roll back runtime values, scheduler state and AOI bindings',
                     excluded='String CMP, ST/FAL/FSC/index consumers, broader type/promotion/controller rules and native fault/lifecycle parity',
                     native_runtime_parity=False),
+                array_indices=dict(firmware='35',controllers=sorted(CONTROLLERS),
+                    expression_types=['SINT','INT','DINT'],simple_tag_types=list(INT_BITS),
+                    operators=['+','-','*','/','AND','OR','XOR','NOT'],
+                    arithmetic='Checked DINT intermediates; exact division toward zero; bitwise integer operations',
+                    simple_tags='A single integer tag retains its full declared range without DINT or floating conversion',
+                    selection='Structural preflight skips saved indices; reached indices consume all required values; bounds and faults roll back the advance',
+                    excluded='Wide arithmetic subexpressions, MOD, functions, REAL/LREAL/BOOL, typed/larger literals and native parity',
+                    native_runtime_parity=False),
                 native_status_parity=False,
                 remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
-                           'Division in array indices','Native intermediate/status/fault/partial-effect parity'])
+                           'Remaining array subscript functions and controller profiles','Native intermediate/status/fault/partial-effect parity'])
 
 
 def quotient(a, b):

@@ -86,7 +86,7 @@ class ConversionOperandTests(unittest.TestCase):
         for text in ('FRD(Inputs,Results[0]);','TOD(Source,Results);','FRD(StartPB,Results[0]);',
                      'SWPB(1234,WORD,Results[0]);','SWPB(Source,Index,Results[0]);','SWPB(Source,HIGH/LOW,Results[0]);',
                      'FRD(2147483648,Results[0]);','TOD(1.0,Results[0]);','TOD(Inputs[Missing],Results[0]);',
-                     'FRD(Inputs[Source/2],Results[0]);','FRD(Source,Results[99]);'):
+                     'FRD(Inputs[Source MOD 2],Results[0]);','FRD(Source,Results[99]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
         for source,dest in (('REAL','DINT'),('DINT','BOOL')):
             self.assertTrue(self.engine(source=source,dest=dest,value=1).blockers,(source,dest))

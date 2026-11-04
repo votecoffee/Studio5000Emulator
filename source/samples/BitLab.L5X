@@ -5,6 +5,15 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="IndexMathEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexMathBase" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="7" /></Data></Tag>
+      <Tag Name="IndexMathDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="IndexMathWide" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="3" /></Data></Tag>
+      <Tag Name="IndexMathLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="IndexMathLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="IndexMathCheck" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexMathValues" DataType="DINT" TagType="Base" Dimensions="8" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="8"><Element Index="[0]" Value="10" /><Element Index="[1]" Value="11" /><Element Index="[2]" Value="22" /><Element Index="[3]" Value="33" /><Element Index="[4]" Value="44" /><Element Index="[5]" Value="55" /><Element Index="[6]" Value="66" /><Element Index="[7]" Value="77" /></Array></Data></Tag>
+      <Tag Name="IndexMathResults" DataType="DINT" TagType="Base" Dimensions="7" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="101" /><Element Index="[6]" Value="999" /></Array></Data></Tag>
       <Tag Name="SourceByte" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="SINT" Value="-86" />
@@ -510,6 +519,13 @@
               <Rung Number="31" Type="N">
                 <Text>XIC(MixedBitwise)OR(MixedSigned,MixedSmall,MixedLow);</Text>
               </Rung>
+              <Rung Number="32" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[IndexMathBase/IndexMathDivisor],IndexMathResults[1]);</Text></Rung>
+              <Rung Number="33" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[IndexMathBase AND 3],IndexMathResults[2]);</Text></Rung>
+              <Rung Number="34" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[(IndexMathBase XOR 3) OR 1],IndexMathResults[3]);</Text></Rung>
+              <Rung Number="35" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[(NOT IndexMathBase) AND 7],IndexMathResults[4]);</Text></Rung>
+              <Rung Number="36" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[IndexMathWide],IndexMathResults[5]);</Text></Rung>
+              <Rung Number="37" Type="N"><Text>XIC(IndexMathEnabled)EQU(IndexMathResults[1],33)EQU(IndexMathResults[2],33)EQU(IndexMathResults[3],55)EQU(IndexMathResults[4],10)EQU(IndexMathResults[5],33)OTE(IndexMathCheck);</Text></Rung>
+              <Rung Number="38" Type="N"><Text>XIC(IndexMathEnabled)DIV(1,IndexMathLateDivisor,IndexMathLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

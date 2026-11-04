@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.102844`: [array-index expressions](array-index-expressions.md).
+The v35 5580 model adds integer division and AND/OR/XOR/NOT in subscripts,
+checked DINT intermediates and exact single-tag indices for all eight integer
+types. Structural/lazy selection, aliases, UDT members, existing ST and warm AOI
+bindings retain rollback. Bit lab demonstrates division, masks and wide indices.
+Subscript functions, wide arithmetic, broader profiles and native parity remain
+separate.
+
 Available in `26.1104.100623`: [REAL-result math](real-destination-math.md).
 A REAL destination selects finite float32 inputs and result for seven arithmetic
 forms, XPY and eleven unary forms. All nine integer/REAL tag types and bounded

@@ -1,4 +1,4 @@
-/* Resolve snapshot addresses only. No expression execution, polling or tag writes. */
+/* Resolve references and bounded index arithmetic from snapshots; no PLC reads or writes. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -34,11 +34,90 @@
       }
       return null;
     }
-    function resolve(ref) {
-      const name = String(ref).trim().replace(/\[([A-Za-z_][\w.:]*)\]/g, (all, index) => {
-        const row = at(address(index));
-        return widths[row?.type] && /^\d+$/.test(String(row.value)) ? '[' + row.value + ']' : all;
-      });
+    function indexValue(text, depth) {
+      if (depth > 32 || text.length > 4096) throw Error('Index limit');
+      const tokens = [], precedence = {OR: 1, XOR: 2, AND: 3, '+': 4, '-': 4, '*': 5, '/': 5};
+      for (let i = 0; i < text.length;) {
+        if (/\s/.test(text[i])) {i++;continue;}
+        const rest = text.slice(i), number = rest.match(/^(?:(2|8|16)#([\da-fA-F_]+)|\d+)/);
+        if (number) {
+          const value = number[1] ? BigInt(({'2': '0b', '8': '0o', '16': '0x'})[number[1]] + number[2].replaceAll('_', '')) : BigInt(number[0]);
+          tokens.push(['number', value]);i += number[0].length;
+        } else if (/^[A-Za-z_]/.test(rest)) {
+          const start = i;i += rest.match(/^[A-Za-z_][\w:]*/)[0].length;
+          while (i < text.length) {
+            if (text[i] === '.') {
+              const member = text.slice(i).match(/^\.(?:[A-Za-z_]\w*|\d+)/);if (!member) throw Error('Index member');i += member[0].length;
+            } else if (text[i] === '[') {
+              let level = 1;i++;
+              while (i < text.length && level) {if (text[i] === '[') level++;if (text[i] === ']') level--;i++;}
+              if (level) throw Error('Index brackets');
+            } else break;
+          }
+          const name = text.slice(start, i), upper = name.toUpperCase();
+          tokens.push(upper in precedence || upper === 'NOT' ? [upper] : ['ref', name]);
+        } else if ('+-*/()'.includes(text[i])) tokens.push([text[i++]]);
+        else throw Error('Unsupported index token');
+        if (tokens.length > 256) throw Error('Index tokens');
+      }
+      let pos = 0, nesting = 0;
+      function parse(minimum = 0) {
+        if (++nesting > 32) throw Error('Index nesting');
+        const token = tokens[pos++];if (!token) throw Error('Index operand');let node;
+        if (token[0] === 'number' || token[0] === 'ref') node = token;
+        else if (['+', '-', 'NOT'].includes(token[0])) node = ['unary', token[0], parse(6)];
+        else if (token[0] === '(') {node = parse();if (tokens[pos++]?.[0] !== ')') throw Error('Index parentheses');}
+        else throw Error('Index operand');
+        while (tokens[pos]?.[0] in precedence && precedence[tokens[pos][0]] >= minimum) {
+          const op = tokens[pos++][0];node = ['binary', op, node, parse(precedence[op] + 1)];
+        }
+        nesting--;return node;
+      }
+      const tree = parse();if (pos !== tokens.length) throw Error('Index suffix');
+      const checked = value => {if (value < -2147483648n || value > 2147483647n) throw Error('Index overflow');return value;};
+      function visit(node) {
+        if (node[0] === 'number') return checked(node[1]);
+        if (node[0] === 'ref') {
+          const row = at(resolve(node[1], depth + 1));
+          if (!widths[row?.type] || !/^-?\d+$/.test(String(row.value)) ||
+              typeof row.value === 'number' && !Number.isSafeInteger(row.value)) throw Error('Unknown integer index');
+          const value = BigInt(row.value), bits = BigInt(widths[row.type]), unsigned = row.type.startsWith('U');
+          if (value < (unsigned ? 0n : -(1n << (bits - 1n))) || value >= (1n << (unsigned ? bits : bits - 1n))) throw Error('Index type range');
+          if (node === tree) return value;
+          if (!['SINT', 'INT', 'DINT'].includes(row.type)) throw Error('Wide index expression');
+          return checked(value);
+        }
+        if (node[0] === 'unary') {
+          if (node[1] === '-' && node[2][0] === 'number') return checked(-node[2][1]);
+          const x = visit(node[2]);return checked(node[1] === '+' ? x : node[1] === '-' ? -x : ~x);
+        }
+        const x = visit(node[2]), y = visit(node[3]);
+        return checked(node[1] === '+' ? x + y : node[1] === '-' ? x - y : node[1] === '*' ? x * y :
+          node[1] === '/' ? x / y : node[1] === 'AND' ? x & y : node[1] === 'OR' ? x | y : x ^ y);
+      }
+      return visit(tree);
+    }
+    function resolve(ref, depth = 0) {
+      if (depth > 32) return null;
+      const text = String(ref).trim();let name = '';
+      try {
+        for (let i = 0; i < text.length;) {
+          if (text[i] !== '[') {name += text[i++];continue;}
+          const start = ++i;let level = 1;
+          while (i < text.length && level) {if (text[i] === '[') level++;if (text[i] === ']') level--;i++;}
+          if (level) return null;
+          const content = text.slice(start, i - 1), indices = [];let part = 0, nested = 0;
+          for (let j = 0; j <= content.length; j++) {
+            if (content[j] === '[' || content[j] === '(') nested++;
+            if (content[j] === ']' || content[j] === ')') nested--;
+            if (j === content.length || content[j] === ',' && nested === 0) {
+              const value = indexValue(content.slice(part, j), depth + 1);if (value < 0n) return null;
+              indices.push(value.toString());part = j + 1;
+            }
+          }
+          name += '[' + indices.join(',') + ']';
+        }
+      } catch (_) {return null;}
       return address(name);
     }
     function read(ref) {

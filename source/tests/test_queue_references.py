@@ -172,9 +172,9 @@ class QueueReferenceTests(unittest.TestCase):
             def constant(root):root.find(f'./Controller/Tags/Tag[@Name="{name}"]').set('Constant','true')
             rung='FFL(Incoming,QueueAlias,Ctl,?,?);' if name=='Queue' else 'BSL(BitAlias,Ctl,BitIn,?);'
             self.assertTrue(self.engine([rung],mutate=constant).blockers)
-        for start in ('Outgoing','Outgoing.0','Queue[BitIn]','Queue[1.0]','Queue[100]','Queue[Index/2]'):
+        for start in ('Outgoing','Outgoing.0','Queue[BitIn]','Queue[1.0]','Queue[100]','Queue[Index MOD 2]'):
             self.assertTrue(self.engine([f'FFL(Incoming,{start},Ctl,?,?);']).blockers,start)
-        for dtype in ('BOOL','REAL','LINT'):
+        for dtype in ('BOOL','REAL','LREAL'):
             def index(root):
                 t=root.find('./Controller/Tags/Tag[@Name="Index"]');t.set('DataType',dtype);t.find('Data/DataValue').set('DataType',dtype)
             self.assertTrue(self.engine(['FFL(Incoming,Queue[Index],Ctl,?,?);'],mutate=index).blockers)

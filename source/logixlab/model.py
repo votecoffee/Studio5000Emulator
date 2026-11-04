@@ -676,6 +676,17 @@ class Memory:
     def index(self,expr,scope):
         from .expressions import Expression
         parsed=Expression(expr)
+        if parsed.tree[0]=='ref':
+            from .integer_math import CONTROLLERS
+            key,parts,dtype=self.resolve(parsed.tree[1],scope)
+            if (dtype in INT_BITS and dtype not in ('SINT','INT','DINT') and
+                    self.project.version=='35' and self.project.processor.upper() in CONTROLLERS):
+                if isinstance(self.at(key,parts),(list,dict)):
+                    raise ModelError('Array index requires one integer scalar tag')
+                if self.structural:return 0
+                value=self.read(parsed.tree[1],scope)
+                if type(value) is not int:raise ModelError('Array index tag requires a known integer')
+                return coerce(value,dtype)
         if self.structural and not re.fullmatch(r'\d+',expr.strip()):
             parsed.validate(self,scope,index=True);return 0
         return parsed.evaluate(self,scope,index=True)

@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; REAL-result math added for app `26.1104.100623`. **Full Logix emulation is not
+Audited 2026-11-04; Array-index expressions added for app `26.1104.102844`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -351,3 +351,7 @@ Update both this matrix and the instruction inventory when capabilities change.
 inputs and result for arithmetic, XPY and eleven unary forms, across all nine
 integer/REAL source types and bounded integer/finite floating constants.
 LREAL result rules and other destination/consumer profiles remain separate.
+
+[Array-index expressions](array-index-expressions.md) add division and integer
+bitwise operators with DINT intermediates, plus exact single-tag indices for
+all eight integer types. Existing consumer-specific reference rules remain.
