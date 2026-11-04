@@ -96,8 +96,8 @@ its input; earlier successful advances remain committed.
 
 [Array-index division and bitwise operators](array-index-expressions.md) now
 execute with narrow integer expressions; a single integer tag retains its
-declared range. Integer CPT/CMP power, wider CPT/CMP/file-expression
-types, the complete numeric promotion/conversion matrix and native math flags,
+declared range. [Integer powers](ladder-integer-power.md) now have a bounded
+v35 5580 CPT/CMP/FAL/FSC profile. Wider CPT/CMP/file-expression types, the complete numeric promotion/conversion matrix and native math flags,
 fault classification, partial effects and intermediate parity remain unfinished.
 These checks qualify software behavior; native controller/Studio acceptance
 of these new forms has not been demonstrated.

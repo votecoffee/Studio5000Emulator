@@ -111,7 +111,7 @@ class IntegerExpressionTests(unittest.TestCase):
         source='Dest:=0; CASE Source/Mask OF -2:Dest:=11; ELSE Dest:=12; END_CASE; FOR SpeedCommand:=0 TO 6/3 DO Dest:=Dest+1; END_FOR;'
         e=self.engine(source,st=True);e.step();self.assertEqual(e.memory.read('Dest'),14);self.assertEqual(e.memory.read('SpeedCommand'),3)
 
-    def test_array_indices_remain_restricted_and_cpt_cmp_integer_power_stays_blocked(self):
+    def test_array_indices_remain_restricted_and_cpt_cmp_integer_power_executes(self):
         from logixlab.expressions import Expression
         e=self.engine(['NOP();'])
         self.assertFalse(Expression('Source/Mask').validate(e.memory,index=True))
@@ -119,7 +119,9 @@ class IntegerExpressionTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'index'):Expression('Source MOD Mask').validate(e.memory,index=True)
         from logixlab.model import Op
         for op in (Op('CPT',['Dest','Source**2']),Op('CMP',['Source**2>0'])):
-            with self.assertRaisesRegex(ModelError,'power'):e.extensions.validate(op,'MainProgram')
+            e.extensions.validate(op,'MainProgram')
+        e=self.engine(['CPT(Dest,Source**2);','CMP(Source**2>0)OTE(RunLatch);']);e.step()
+        self.assertEqual(e.memory.read('Dest'),49);self.assertTrue(e.memory.read('RunLatch'))
 
     def file_engine(self,rungs,**kwargs):
         e=files.ArrayStatisticsTests.engine(self,rungs,queue=(-7,-4,4,7,999),**kwargs);self.assertEqual(e.blockers,[]);e.memory.write('Incoming',3);return e

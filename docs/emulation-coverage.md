@@ -190,6 +190,10 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   and 100,000 imported array elements, with narrower 32,768-byte wire layouts.
   These are implementation limits, not claimed controller capacities.
 
+[Integer expression powers](ladder-integer-power.md) now cover bounded narrow
+CPT/CMP and FAL/FSC forms. Negative/larger exponents, wide arithmetic and native
+numerical/status/fault/lifecycle parity remain open.
+
 ## Languages, calls and AOIs
 
 - [ ] **L01 — RLL:** implement the remaining mnemonics and remaining forms of

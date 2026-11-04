@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.130831`: [integer expression powers](ladder-integer-power.md).
+CPT/CMP and FAL/FSC support SINT/INT/DINT bases and exponents with checked
+DINT intermediates and exponents 0..31. Arithmetic/BCD composition, lazy
+selection, file distribution and AOI rollback retain existing rules. Control
+lab adds IntegerPower. Negative/larger exponents, wide forms and native
+numerical/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.123302`: [BCD FAL/FSC expressions](file-bcd.md).
 Narrow FRD/TOD expressions now share the CPT/CMP conversion rules in file
 transforms/searches. ALL/numeric/INC distribution, held/done/inhibit paths,

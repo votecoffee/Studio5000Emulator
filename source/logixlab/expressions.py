@@ -1,6 +1,6 @@
 """Bounded expression parser. No Python eval, attribute lookup, or function dispatch."""
 import math
-from .integer_math import quotient
+from .integer_math import CONTROLLERS, quotient, integer_power
 import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
@@ -153,18 +153,17 @@ class Expression:
             if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions-INDEX_FUNCTIONS:
                 raise ModelError('Array index expressions require narrow integers and supported arithmetic/bitwise operators')
             if self.operators & {'/','AND','OR','XOR','NOT'} or self.functions:
-                from .integer_math import CONTROLLERS
                 if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
                     raise ModelError('Extended array index expressions require the v35 ControlLogix 5580 profile')
         elif self.functions & BCD_FUNCTIONS:
             if not self.bcd:raise ModelError('BCD expression functions require an array subscript or qualified ladder expression')
-            from .integer_math import CONTROLLERS
             if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
                 raise ModelError('BCD arithmetic expressions require the v35 ControlLogix 5580 profile')
             if real or destination_type not in ('SINT','INT','DINT'):
                 raise ModelError('BCD arithmetic expressions require narrow integer operands, intermediates and destination')
         if not real and '**' in self.operators:
-            raise ModelError('Integer CPT power is not modeled; use a REAL operand or destination')
+            if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
+                raise ModelError('Integer expression power requires the v35 ControlLogix 5580 profile')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Bitwise CPT operators require integer expressions')
         return real
@@ -190,7 +189,7 @@ class Expression:
             elif value=='*': result=x*y
             elif value=='/': result=x/y if real else quotient(x,y)
             elif value=='MOD': result=math.fmod(x,y) if real else x-quotient(x,y)*y
-            elif value=='**': result=x**y
+            elif value=='**':result=x**y if real else integer_power(x,y)
             elif value=='AND': result=x&y
             elif value=='OR': result=x|y
             elif value=='XOR': result=x^y

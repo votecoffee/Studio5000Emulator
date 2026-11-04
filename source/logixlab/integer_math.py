@@ -77,8 +77,22 @@ def expression_description():
                     excluded='Wide/REAL/string BCD mixtures, saved active INC state, other language profiles and native numerical/status/cursor/fault/lifecycle parity',
                     native_runtime_parity=False),
                 native_status_parity=False,
-                remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
+                integer_power=dict(firmware='35',controllers=sorted(CONTROLLERS),consumers=['CPT','CMP','FAL','FSC'],
+                    types=['SINT','INT','DINT'],intermediate_type='DINT',exponent_range=[0,31],
+                    arithmetic='Exact checked DINT powers; zero exponent returns one including zero base; equal operators associate left to right',
+                    composition='Existing integer arithmetic, bitwise operators and FRD/TOD; eager CMP/FSC Boolean operands',
+                    execution='Existing lazy selection, file progress, AOI bindings and whole-advance rollback',
+                    excluded='Negative/larger integer exponents, wide arithmetic, other controller profiles and native numerical/status/fault/lifecycle parity',
+                    native_runtime_parity=False),
+                remaining=['Complete numeric promotion/conversion matrix','Wider and negative-exponent integer powers',
                            'Remaining array subscript operand/controller and native status qualification','Native intermediate/status/fault/partial-effect parity'])
+
+
+def integer_power(base, exponent):
+    """Bounded exact DINT power; no floating conversion or negative exponent."""
+    if not 0 <= exponent <= 31:
+        raise ModelError('Integer expression power exponent must be in 0..31')
+    return coerce(base ** exponent, 'DINT')
 
 
 def quotient(a, b):

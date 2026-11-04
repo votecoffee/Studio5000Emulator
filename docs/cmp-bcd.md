@@ -72,3 +72,6 @@ unverified. See [condition implementation](../source/logixlab/conditions.py),
 [focused cases](../source/tests/test_cmp_bcd.py),
 [BitLab.L5X](../source/samples/BitLab.L5X) and
 [comparison semantics](integer-expressions.md#operand-selection).
+
+[Bounded integer powers](ladder-integer-power.md) now compose with these
+FRD/TOD expressions; exponents remain in 0..31 with checked DINT results.

@@ -1,6 +1,6 @@
 """Typed CMP expressions using the same bounded parser as CPT."""
 import math
-from .integer_math import CONTROLLERS, quotient
+from .integer_math import CONTROLLERS, quotient, integer_power
 import operator
 from .expressions import Expression, FUNCTIONS, BCD_FUNCTIONS, index_function
 from .model import ModelError, coerce
@@ -74,7 +74,8 @@ class Condition(Expression):
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Mixed REAL and bitwise CMP expressions are unsupported')
         if not real and '**' in self.operators:
-            raise ModelError('Integer CMP power is unsupported; use a REAL operand')
+            if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
+                raise ModelError('Integer expression power requires the v35 ControlLogix 5580 profile')
         return real,types
 
     def evaluate(self,memory,scope=''):
@@ -109,7 +110,7 @@ class Condition(Expression):
             elif value=='*':result=x*y
             elif value=='/':result=x/y if real else quotient(x,y)
             elif value=='MOD':result=math.fmod(x,y) if real else x-quotient(x,y)*y
-            elif value=='**':result=x**y
+            elif value=='**':result=x**y if real else integer_power(x,y)
             elif value=='AND':result=x&y
             elif value=='OR':result=x|y
             elif value=='XOR':result=x^y

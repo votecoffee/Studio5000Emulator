@@ -191,7 +191,7 @@ class AOIFileTests(unittest.TestCase):
                 elif kind=='dimensions':root.find('.//Parameter[@Name="Input"]').set('Dimensions','4')
                 elif kind=='constant':root.find('./Controller/Tags/Tag[@Name="OutputA"]').set('Constant','true')
                 elif kind=='wide':body(root).find('Rung[@Number="1"]/Text').text='FAL(Calc,?,?,ALL,Output[Calc.POS],2147483648L);'
-                else:body(root).find('Rung[@Number="1"]/Text').text='FAL(Calc,?,?,ALL,Output[Calc.POS],Input[Calc.POS]**2);'
+                else:body(root).find('Rung[@Number="1"]/Text').text='FAL(Calc,?,?,ALL,Output[Calc.POS],EXP(Input[Calc.POS]));'
             self.assertTrue(self.engine(bad).blockers)
 
     def test_periodic_and_routine_harness_use_same_file_state(self):

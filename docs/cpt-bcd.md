@@ -75,3 +75,6 @@ See [expression parser](../source/logixlab/expressions.py),
 [focused cases](../source/tests/test_cpt_bcd.py),
 [BitLab.L5X](../source/samples/BitLab.L5X) and
 [standalone conversions](numeric-conversions.md).
+
+[Bounded integer powers](ladder-integer-power.md) now compose with these
+FRD/TOD expressions; exponents remain in 0..31 with checked DINT results.

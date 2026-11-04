@@ -230,6 +230,101 @@
       <Tag Name="BcdNumericFind" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
       <Tag Name="BcdIncCalc" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
       <Tag Name="BcdIncFind" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="PowerEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerReset" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerBase" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="-3" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerExponent" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerMatches" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerThreshold" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="8" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="PowerInputs" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[0]" Value="-3" />
+            <Element Index="[1]" Value="-2" />
+            <Element Index="[2]" Value="2" />
+            <Element Index="[3]" Value="3" />
+            <Element Index="[4]" Value="777" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="PowerResults" DataType="DINT" TagType="Base" Dimensions="5" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="5">
+            <Element Index="[4]" Value="901" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="PowerCalc" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="PowerFind" TagType="Base" DataType="CONTROL" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="4" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -282,6 +377,7 @@
               <Rung Number="14" Type="N"><Text>JSR(IndirectOperands,0);</Text></Rung>
               <Rung Number="15" Type="N"><Text>JSR(NumericQueues,0);</Text></Rung>
               <Rung Number="16" Type="N"><Text>JSR(BcdFiles,0);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>JSR(IntegerPower,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IndirectOperands" Type="RLL">
@@ -310,6 +406,16 @@
             <Rung Number="6" Type="N"><Text>XIC(BcdFileIncrement)FSC(BcdIncFind,?,?,INC,FRD(BcdPacked[BcdIncFind.POS])=BcdFindValue);</Text></Rung>
             <Rung Number="7" Type="N"><Text>DIV(1,BcdFileLateDivisor,BcdFileLateResult);</Text></Rung>
           </RLLContent></Routine>
+          <Routine Name="IntegerPower" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(PowerReset)RES(PowerCalc)RES(PowerFind);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(PowerEnabled)CPT(PowerResult,PowerBase**PowerExponent);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(PowerEnabled)CMP(PowerBase**PowerExponent=PowerResult)OTE(PowerMatches);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(PowerEnabled)FAL(PowerCalc,?,?,ALL,PowerResults[PowerCalc.POS],PowerInputs[PowerCalc.POS]**2);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(PowerEnabled)FSC(PowerFind,?,?,ALL,PowerInputs[PowerFind.POS]**2&gt;=PowerThreshold);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(PowerEnabled)DIV(1,PowerLateDivisor,PowerLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
         </Routines>
       </Program>
     </Programs>

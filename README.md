@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.123302`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.130831`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,10 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+**Integer powers** now execute in bounded narrow CPT/CMP and FAL/FSC
+expressions. Control lab includes a gated example with file search and atomic
+fault recovery; see [integer expression powers](docs/ladder-integer-power.md).
 
 The [logic viewer](docs/logic-viewer.md) includes AOI definition/instance headers,
 named visible parameters, input/output roles and status indicators. Built-in
