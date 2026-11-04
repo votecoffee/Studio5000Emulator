@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.235756`: [Event OverlapCount GSV/SSV](event-overlap-count.md).
+Named and THIS ladder/ST calls read the live active-request count and reset it
+from an exact known-zero DINT. Counter reset and Status clearing are independent;
+resets between requests preserve later increments. Absolute commit validates
+counts and retains whole-advance rollback and detached lifecycle. Event lab
+adds guarded count/reset and late-fault examples. Periodic/Safety/other Event,
+native overflow/protocol/status/lifecycle qualification remain separate.
+
 Available in `26.1103.233755`: [Event task scan-time GSV](event-task-timing.md).
 Qualified instruction-only Events retain independent successful last/maximum
 invocation durations, with prior-advance named/THIS/ST visibility. Program THIS

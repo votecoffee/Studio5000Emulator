@@ -17,6 +17,10 @@ The example clears the accepted-request bit while retaining the active-overlap
 bit. The scratch tag must be a scalar DINT. Other GSV classes, attributes and
 current-instance contexts keep their existing profiles.
 
+[OverlapCount GSV/SSV](event-overlap-count.md) additionally reads the live active-
+request count and resets it from known zero. Counter and Status changes are
+independent and commit with the same complete advance.
+
 ## Modeled bits and visibility
 
 | Bit | Meaning | Set by |
@@ -34,8 +38,8 @@ Other bits, including the timeout bit, remain unqualified and cause a reached
 setter to fault rather than accepting an unmodeled state.
 
 The state starts at zero when a model is loaded or reset. Run entry retains it;
-scheduler overlap/coalescing diagnostic counters have their separate existing
-reset behavior. Supported routine replacement copies status into its detached
+scheduler overlap/coalescing diagnostic counters have their separate Run-entry
+reset behavior. OverlapCount SSV additionally resets its counter independently. Supported routine replacement copies status into its detached
 candidate. A successful complete advance commits status with tags, bindings,
 scheduling, first scans and timings. Invalid indices, unsupported setter words,
 unknown required values or later faults discard all uncommitted work.

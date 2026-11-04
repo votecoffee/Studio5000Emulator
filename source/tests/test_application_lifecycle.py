@@ -143,6 +143,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_event_lab_overlap_count_read_reset_status_and_rollback(self):
+        self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['OverlapWords[1]']);write('ReadOverlap',True);before=now()
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        for tag,value in [('OverlapIndex',1),('TriggerRLL',True),('SelfTrigger',True)]:write(tag,value)
+        v=values(step());self.assertEqual([v[n] for n in ('ThisOverlapBefore','ThisOverlapAfter','ThisOverlapExit','NamedOverlap','StOverlap')],[0,1,1,1,1]);self.assertEqual(v['OverlapWords[1]'],1)
+        write('ResetOverlap',True);v=values(step());self.assertEqual((v['ThisOverlapAfter'],v['ThisOverlapExit'],v['NamedOverlap'],v['OverlapResetValue']),(2,0,0,0));report=self.post('report',{})['event_task_status'];self.assertEqual(report['overlap_counts']['workevent'],0);self.assertEqual(report['values']['workevent'],5)
+        write('OverlapResetValue',1);before=now();report=self.post('report',{})['event_task_status']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        self.assertEqual(self.post('report',{})['event_task_status'],report);write('OverlapResetValue',0);write('OverlapDivisor',0);before=now()
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        write('OverlapDivisor',1);v=values(step());self.assertEqual([v[f'OverlapWords[{i}]'] for i in (0,2)],[101,999]);self.assertEqual(self.post('report',{})['event_task_status']['overlap_counts']['workevent'],0)
+
     def test_event_lab_timing_named_this_st_inhibition_and_atomic_recovery(self):
         self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
         values=lambda s:{row['name']:row['value'] for row in s['tags']}

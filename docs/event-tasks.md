@@ -82,7 +82,9 @@ event_instruction_overlaps (active requests discarded) and
 event_pending_requests_coalesced (pending duplicates merged). They have no
 periodic next-release time. [Logical Status GSV/SSV](event-task-status.md) now
 provides latched accepted-request/active-overlap bits and supported clears.
-It does not expand native Task Status/OverlapCount protocol attributes.
+[OverlapCount GSV/SSV](event-overlap-count.md) additionally provides live reads
+and zero resets of the active-request counter, separately from Status clearing.
+Neither feature expands native Task Status/OverlapCount protocol attributes.
 Native interrupt latency, CPU preemption/time slicing, deadlines, watchdogs,
 external I/O/motion/consumed triggers and timeout queues remain unfinished.
 

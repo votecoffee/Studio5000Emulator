@@ -5,6 +5,18 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadOverlap" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ResetOverlap" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="OverlapResetValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="OverlapIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="OverlapDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="OverlapResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ThisOverlapBefore" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisOverlapAfter" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisOverlapExit" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="NamedOverlap" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StOverlap" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="OverlapWords" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadEventTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="EventTimingIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="TimingDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
@@ -201,6 +213,8 @@
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,EventStatusWords[EventStatusIndex]);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,NamedWorkStatus);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadOverlap)GSV(Task,WorkEvent,OverlapCount,OverlapWords[OverlapIndex]);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadOverlap)GSV(Task,WorkEvent,OverlapCount,NamedOverlap);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadEventTimings" Type="RLL">
@@ -229,6 +243,8 @@
               <Line Number="7">IF ControlEventInhibit OR ControlDeferredInhibit OR SelfInhibitEvent THEN InhibitResult:=1/InhibitDivisor; END_IF;</Line>
               <Line Number="8">IF ReadEventTiming THEN GSV(Task,WorkEvent,LastScanTime,StWorkTaskLast); GSV(Task,DeferredEvent,LastScanTime,StDeferredTaskLast); END_IF;</Line>
               <Line Number="9">IF ReadEventTiming THEN TimingResult:=1/TimingDivisor; END_IF;</Line>
+              <Line Number="10">IF ReadOverlap THEN GSV(Task,WorkEvent,OverlapCount,StOverlap); IF ResetOverlap THEN SSV(Task,WorkEvent,OverlapCount,OverlapResetValue); END_IF; END_IF;</Line>
+              <Line Number="11">IF ReadOverlap THEN OverlapResult:=1/OverlapDivisor; END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>
@@ -253,15 +269,19 @@
               <Rung Number="6" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Priority,ThisEventPriority);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Watchdog,ThisEventWatchdog);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Name,ThisEventTaskName);</Text></Rung>
-              <Rung Number="9" Type="N">
+              <Rung Number="9" Type="N"><Text>XIC(ReadOverlap)GSV(Task,THIS,OverlapCount,ThisOverlapBefore);</Text></Rung>
+              <Rung Number="10" Type="N">
                 <Text>XIC(SelfTrigger)EVENT(WorkEvent);</Text>
               </Rung>
-              <Rung Number="10" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
-              <Rung Number="11" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
-              <Rung Number="12" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
-              <Rung Number="13" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,LastScanTime,ThisWorkTaskLast);</Text></Rung>
-              <Rung Number="14" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,MaxScanTime,ThisWorkTaskMax);</Text></Rung>
-              <Rung Number="15" Type="N"><Text>XIC(ReadEventTiming)GSV(Program,THIS,LastScanTime,ThisWorkProgramLast);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(ReadOverlap)GSV(Task,THIS,OverlapCount,ThisOverlapAfter);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(ReadOverlap)XIC(ResetOverlap)SSV(Task,THIS,OverlapCount,OverlapResetValue);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(ReadOverlap)GSV(Task,THIS,OverlapCount,ThisOverlapExit);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,LastScanTime,ThisWorkTaskLast);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,MaxScanTime,ThisWorkTaskMax);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(ReadEventTiming)GSV(Program,THIS,LastScanTime,ThisWorkProgramLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

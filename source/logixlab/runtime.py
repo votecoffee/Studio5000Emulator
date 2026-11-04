@@ -651,7 +651,7 @@ class Engine:
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced)
+            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -976,7 +976,7 @@ class Engine:
                     visibility='Previous successful advance; independent Task invocation measurements',
                     native_protocol_expanded=False,native_runtime_parity=False),
                 'event_execution':event_tasks.description(),
-                'event_task_status':dict(values=dict(event_status.values(self)),**event_status.description()),
+                'event_task_status':dict(values=dict(event_status.values(self)),overlap_counts=event_status.overlap_counts(self),**event_status.description()),
                 'user_interrupts':event_tasks.interrupt_description(),
                 'mcr_execution':mcr.description()|dict(planned_zones=sum(list(plan.values()).count('open') for plan in self._mcr_plans.values())),
                 'control_operations':control_operations.description(),

@@ -109,7 +109,7 @@ class TaskScheduler:
         for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
-    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None):
+    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
         # Event eligibility is checked at dispatch. A completed body may now be
@@ -120,6 +120,12 @@ class TaskScheduler:
                 or any(i not in self.overlaps or type(n) is not int or n<0
                        for counts in (overlaps,coalesced) for i,n in (counts or {}).items())):
             raise ModelError('Invalid Event task completion batch')
+        if event_overlap_counts is not None and (
+                not isinstance(event_overlap_counts,dict) or event_overlap_counts.keys()!=self.overlaps.keys()
+                or any(type(i) is not int for i in event_overlap_counts)
+                or any(type(n) is not int or n<0 or n>self.overlaps[i]+(overlaps or {}).get(i,0)
+                       for i,n in event_overlap_counts.items())):
+            raise ModelError('Invalid absolute Event overlap counters')
         executed=tuple((due,i) for due,i in batch.releases if not self.inhibitions[i]) if executed is None else tuple(executed)
         positions={release:i for i,release in enumerate(batch.releases)}
         order=[positions.get(release,-1) for release in executed]
@@ -129,7 +135,9 @@ class TaskScheduler:
         for due, i in (*executed,*events):
             self.counts[i] += 1
             self.last[i] = due
-        for i,n in (overlaps or {}).items():self.overlaps[i]+=n
+        if event_overlap_counts is None:
+            for i,n in (overlaps or {}).items():self.overlaps[i]+=n
+        else:self.overlaps=dict(event_overlap_counts)
         for i,n in (coalesced or {}).items():self.coalesced[i]+=n
 
     def description(self):
