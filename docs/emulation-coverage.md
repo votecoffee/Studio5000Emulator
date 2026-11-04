@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; indirect FOR operands added for app `26.1103.191933`. **Full Logix emulation is not
+Audited 2026-11-03; UID/UIE interrupt control added for app `26.1103.193217`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -28,7 +28,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FBD math records | [Basic arithmetic](fbd-arithmetic.md) plus [SQR/LN/LOG/XPY/DEG/RAD/trig](fbd-advanced-math.md), 19 finite REAL Block forms over two records, prescan retention and transactional failures | Other math/forms/types, native precision/flags, minor-fault/domain/nonfinite/overflow/layout/lifecycle parity |
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
 | Function blocks | [Single-sheet signal graphs](function-blocks.md), Sixty-three blocks including target bit moves, conversions/remainder, advanced math, bitwise/masked operations, comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
-| Ladder (RLL) | 102 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 104 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| User interrupt control | [UID/UIE](interrupt-control.md), balanced task-local nesting in RLL/ST, queued EVENT requests, outer-UIE priority drain, called routines and transactional guards | Native unmatched/persistent-state behavior, CPU/Periodic preemption, latency, watchdog/fault/Safety/AOI/harness and other profiles remain separate |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, immediate higher priorities, deferred lower/equal priorities, first scans, separate active/pending diagnostics and transaction-wide limits/rollback | Native time slicing and pending-duplicate semantics, external triggers/timeouts, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
 | String operand selection | [Structural/lazy string preflight](string-operations.md#operand-selection) for 11 calls, six string relations and string-bearing CMP; unknown full writes, preserved unused bytes, aliases/UDTs/AOIs and whole-advance rollback | New algorithms, broader types/encoding, other profiles and native status/fault/lifecycle parity |
@@ -333,5 +334,5 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 102 built-in RLL entries.
+added by project AOIs are counted separately from the 104 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.

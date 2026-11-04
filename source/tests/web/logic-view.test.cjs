@@ -177,3 +177,13 @@ test('missing and ambiguous labels do not invent a navigation destination', () =
   const a = graph.compile(rung([op('LBL', 'Again'), op('LBL', 'AGAIN')]));
   assert.equal(labelTarget([a], 'Missing'), null);assert.equal(labelTarget([a], 'Again'), null);
 });
+
+test('UID and UIE are named operand-free inline instructions in the power graph', () => {
+  const g = graph.compile(rung([op('UID'), op('UID'), op('UIE'), op('UIE')]));validate(g);
+  for (const id of g.order) {
+    const node = g.nodes.find(n => n.id === id), face = instruction.describe(node);
+    assert.equal(face.known, true);assert.deepEqual(face.rows, []);
+    assert.equal(face.title, node.opcode === 'UID' ? 'User Interrupt Disable' : 'User Interrupt Enable');
+    assert.equal(face.kind, 'inline');assert.equal(instruction.dimensions(node, face).symbol, true);
+  }
+});

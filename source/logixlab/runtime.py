@@ -377,6 +377,7 @@ class Engine:
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
         if n=='SSV':task_inhibit.validate(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
+        if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
         if n in sequencer_operations.INSTRUCTIONS:sequencer_operations.validate(self.memory,op,scope);return
@@ -594,6 +595,7 @@ class Engine:
                             timings[name]=timings[name].record(perf_counter_ns()-start)
                         else:self._routine(entry, 0)
                         scanned.add(name)
+                    if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
                 finally:
                     self.calls.stack=previous_calls
                     self._executing_task,self.memory.first_scan=previous_task,previous_first
@@ -700,6 +702,7 @@ class Engine:
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
         if n=='SSV':return task_inhibit.execute(self,op,p,scope)
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
+        if n in ('UID','UIE'):return event_tasks.execute_interrupt(self,op,p,scope)
         if n=='GSV':
             if p:system_values.execute(self,op,scope)
             return p
@@ -927,6 +930,7 @@ class Engine:
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
                 'event_execution':event_tasks.description(),
+                'user_interrupts':event_tasks.interrupt_description(),
                 'mcr_execution':mcr.description()|dict(planned_zones=sum(list(plan.values()).count('open') for plan in self._mcr_plans.values())),
                 'control_operations':control_operations.description(),
                 'sequencer_operations':sequencer_operations.description(),
@@ -944,7 +948,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "Standard task releases are deterministic; qualified EVENT calls dispatch immediately at higher priority or at task returns for deferred work, without general CPU timing, other event sources, Safety or watchdog enforcement",
+                           "Standard task releases are deterministic; unmasked qualified EVENT calls dispatch at higher priority, outer UIE releases masked higher-priority work, and deferred work waits for task returns, without general CPU timing, other event sources, Safety or watchdog enforcement",
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP retain homogeneous wide operands; tag-only MEQ and standalone bitwise operations use separate mixed-integer profiles; arithmetic promotion and native math status remain incomplete",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",

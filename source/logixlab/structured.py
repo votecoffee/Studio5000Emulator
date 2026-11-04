@@ -7,7 +7,7 @@ from .st_expression import STExpression
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy
 from .integer_math import WIDE_TYPES
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS,*st_capture.INSTRUCTIONS,*st_filter.INSTRUCTIONS,*st_digital.INSTRUCTIONS,*st_accumulate.INSTRUCTIONS,*st_select.INSTRUCTIONS,*st_derivative.INSTRUCTIONS,*st_curves.INSTRUCTIONS,*st_pi.INSTRUCTIONS,*st_bit_moves.INSTRUCTIONS}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','UID','UIE','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS,*st_capture.INSTRUCTIONS,*st_filter.INSTRUCTIONS,*st_digital.INSTRUCTIONS,*st_accumulate.INSTRUCTIONS,*st_select.INSTRUCTIONS,*st_derivative.INSTRUCTIONS,*st_curves.INSTRUCTIONS,*st_pi.INSTRUCTIONS,*st_bit_moves.INSTRUCTIONS}
 
 
 @dataclass
@@ -220,7 +220,7 @@ class Structured:
             if item.kind in ('assign','for'):writes.append(item.target)
             elif item.kind=='call':
                 op=item.op
-                if op.name=='EVENT':raise ModelError('EVENT inside FOR remains unqualified because task logic may change the loop counter/bounds')
+                if op.name in ('EVENT','UID','UIE'):raise ModelError(op.name+' inside FOR remains unqualified because task logic may change the loop counter/bounds')
                 if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
                 if op.name=='GSV':
                     key,parts,_=system_values.validate(self.engine,op,scope)

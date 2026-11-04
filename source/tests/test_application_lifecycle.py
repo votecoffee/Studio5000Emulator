@@ -2660,3 +2660,13 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row=values(step());self.assertEqual((row['SelectedTotal'],row['SelectedIterations'],row['IndexSlots[2]']),(3,3,-3));self.assertEqual(row['IndexSlots[1]'],5)
         write('FaultDivisor',0);fault('zero');write('FaultDivisor',1);write('SelectedLoop',False);write('LoopSlot',99);write('BoundsSlot',99);row=values(step());self.assertFalse(row['SelectedCompleted']);self.assertEqual(row['IndexSlots[2]'],-3)
         report=self.post('report',{})['ladder_loops'];self.assertIn('Structural',report['selection']);self.assertIn('retained',report['index']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_event_lab_nested_interrupt_mask_drains_at_outer_enable_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        row=values(self.post('step',{'dt':10}));self.assertEqual(row['EventCount'],0)
+        self.post('write',{'tag':'GuardEvents','value':True});row=values(self.post('step',{'dt':10}))
+        self.assertEqual((row['GuardSeen'],row['ReleasedSeen'],row['EventCount']),(0,1,1))
+        row=values(self.post('step',{'dt':10}));self.assertEqual((row['GuardSeen'],row['ReleasedSeen'],row['EventCount']),(1,2,2))
+        self.post('write',{'tag':'GuardEvents','value':False});row=values(self.post('step',{'dt':10}));self.assertEqual(row['EventCount'],2)
+        report=self.post('report',{});self.assertTrue({'UID','UIE'}<=set(report['supported_instructions']));self.assertIn('outermost',report['user_interrupts']['nesting']);self.assertFalse(report['user_interrupts']['native_runtime_parity'])

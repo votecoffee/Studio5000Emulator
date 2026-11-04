@@ -1,7 +1,7 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; declared-schema aggregate zero fills added for app `26.1103.172122`. Language priority is ladder, then ST, then FBD, then SFC;
-new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **102 built-in
+Audited 2026-11-03; UID/UIE interrupt control added for app `26.1103.193217`. Language priority is ladder, then ST, then FBD, then SFC;
+new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -84,7 +84,7 @@ lack FBD forms.
 | Multi-Axis Coordinated Motion Instructions | — | — | `MCCD`, `MCCM`, `MCLM`, `MCPM`, `MCS`, `MCSD`, `MCSR`, `MCT`, `MCTO`, `MCTP`, `MCTPO`, `MDCC` |
 | PlantPAx instructions | — | — | `PAH`, `PAI`, `PAID`, `PAIM`, `PAO`, `PBL`, `PCMDSRC`, `PD4SD`, `PDBC`, `PDI`, `PDO`, `PDOSE`, `PFO`, `PHLS`, `PINTLK`, `PLLS`, `PMTR`, `PNPOS`, `PPERM`, `PPID`, `PPTC`, `PRI`, `PRT`, `PTST`, `PVLV`, `PVLVMP`, `PVLVS`, `PVSD` |
 | Process Control Instructions | — | — | `ALM`, `CC`, `D2SD`, `D3SD`, `IMC`, `LDLG`, `MMC`, `PIDE`, `POSP`, `RMPS`, `SRTP`, `TOT` |
-| Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND` | — | `EOT`, `JXR`, `SFP`, `SFR`, `UID`, `UIE` |
+| Program Control Instructions | `AFI`, `EVENT`, `JMP`, `JSR`, `LBL`, `MCR`, `NOP`, `RET`, `SBR`, `TND`, `UID`, `UIE` | — | `EOT`, `JXR`, `SFP`, `SFR` |
 | Safety Instructions | — | — | `CROUT`, `DCA`, `DCAF`, `DCM`, `DCS`, `DCSRT`, `DCST`, `DCSTL`, `DCSTM`, `DIN`, `ENPEN`, `ESTOP`, `FPMS`, `FSBM`, `LC`, `RIN`, `ROUT`, `SMAT`, `THRS`, `THRSE`, `TSAM`, `TSSM` |
 | Select/Limit Instructions | — | — | — (FBD-only SEL/MUX, ST/FBD HLL/SNEG/SSUM and ST/FBD ESEL/RLIM listed above) |
 | Sequencer Instructions | `SQI`, `SQL`, `SQO` | — | — |
@@ -153,6 +153,7 @@ schema/behavior backlog separately from instruction names.
 | JSR/SBR/RET/JMP/LBL/TND | Remaining legal parameter/reference and control-flow forms, task/language interactions and prescan behavior. Current calls use static formals/RET and bounded v35 5580 indirect caller elements, exact counts/types/dimensions and bounded nesting. |
 | LOWER/UPPER/STOR/RTOS | [ASCII case and decimal/REAL conversion](string-conversions.md) in RLL/ST, explicit user strings, aliases, UDTs and existing AOI bindings. RTOS uses a documented software format; native formatting/status/fault parity and STOR exponent/no-digit edge behavior remain unfinished. |
 | CONCAT/MID/FIND/INSERT/DELETE/DTOS/STOD/TRN | [TRN](size-truncate.md) adds lazy REAL reads and representable signed/unsigned destinations. [Common search/editing forms](string-operations.md) support RLL/ST and represented user strings. [Operand selection](string-operations.md#operand-selection) adds structural preflight, lazy dynamic references and unknown full writes for string calls/relations/CMP in v35 5580. Empty-search/zero-delete and broader range/type/conversion/status/encoding behavior remain unfinished. |
+| UID/UIE | [Balanced task-local interrupt control](interrupt-control.md) defers higher-priority EVENT requests until the outermost UIE in RLL/ST, across routine calls and with advance rollback. Unmatched-pair/persistent-state behavior, CPU/Periodic preemption, native latency/watchdog/fault/Safety, AOI/harness/ST FOR and other profiles remain separate. |
 | EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/ST FOR forms and CPU/status parity remain unfinished. |
 | GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. Runtime timing/status, other objects/attributes, cross-type byte-copy forms and broader SSV remain unfinished. |
 | SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. Other classes/attributes, Event/Safety targets, AOIs and harness calls remain unfinished. |

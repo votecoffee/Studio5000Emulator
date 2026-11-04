@@ -6,13 +6,13 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.191933`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.193217`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
 emulation remains ahead of further Studio 5000 connectivity work.
-The current model is partial: 102 built-in RLL instruction entries, a bounded ST
+The current model is partial: 104 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
@@ -36,6 +36,9 @@ and branch wiring, ST syntax coloring and FBD pin connections. Select a node
 for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
+
+[UID/UIE interrupt control](docs/interrupt-control.md) lets nested critical
+sections defer higher-priority EVENT work until their outer UIE.
 
 [Indirect FOR operands](docs/ladder-loops.md#runtime-selected-operands) let ladder
 loops select index and bound elements at runtime with explicit sampling and

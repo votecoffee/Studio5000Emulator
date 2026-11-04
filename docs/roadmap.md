@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.193217`: [UID/UIE interrupt control](interrupt-control.md).
+Nested task-local masks defer higher-priority EVENT work until the outer UIE,
+including called routines and existing ST calls. Event lab adds a gated nested
+example. False/prescan and whole-advance rollback are covered. Unmatched pairs
+are guarded software forms; native CPU/Periodic preemption, watchdog/fault and
+persistent-state behavior remain separate.
+
 Available in `26.1103.191933`: [indirect FOR operands](ladder-loops.md#runtime-selected-operands).
 Ladder loops structurally validate runtime-selected scalar operands without
 saved indices. True loops retain their selected index element for one invocation

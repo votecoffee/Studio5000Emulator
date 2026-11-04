@@ -54,11 +54,47 @@ def execute(engine,op,power,scope):
     return power
 
 
+def interrupt_target(engine,op,scope):
+    profile(engine.project)
+    if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
+        raise ModelError('UID/UIE requires project task context; routine harness/AOI calls remain unqualified')
+    if op.args:raise ModelError(op.name+' requires no operands')
+    if not any(scope.casefold() in {p.casefold() for p in task['programs']} for task in engine.project.tasks):
+        raise ModelError('UID/UIE caller has no scheduled task context')
+
+
+def execute_interrupt(engine,op,power,scope):
+    interrupt_target(engine,op,scope)
+    if power:
+        if engine._event_dispatch is None:raise ModelError('UID/UIE has no active simulation advance')
+        engine._event_dispatch.interrupt(op.name)
+    return power
+
+
 class Dispatch:
     def __init__(self,engine,batch,run):
         self.engine=engine;self.batch=batch;self.run=run;self.active=set()
         self.releases=[];self.overlaps={};self.coalesced={};self.accepted=0
-        self.pending=set();self.queue=[]
+        self.pending=set();self.queue=[];self.interrupt_depth={}
+
+    def masked(self):
+        return self.interrupt_depth.get(self.engine._executing_task,0)>0
+
+    def interrupt(self,name):
+        task=self.engine._executing_task
+        if task is None:raise ModelError('UID/UIE has no executing task')
+        depth=self.interrupt_depth.get(task,0)
+        if name=='UID':self.interrupt_depth[task]=depth+1
+        elif depth==0:raise ModelError('UIE requires an active UID in this software profile')
+        elif depth>1:self.interrupt_depth[task]=depth-1
+        else:
+            del self.interrupt_depth[task]
+            priority=next(t.priority for t in self.engine._task_scheduler.tasks if t.name==task)
+            self.drain(priority)
+
+    def complete_task(self,task):
+        if self.interrupt_depth.get(task,0):
+            raise ModelError('Unbalanced UID/UIE at task completion in this software profile')
 
     def trigger(self,index):
         scheduler=self.engine._task_scheduler;task=scheduler.tasks[index]
@@ -72,7 +108,7 @@ class Dispatch:
         caller=next(t for t in scheduler.tasks if t.name==self.engine._executing_task)
         self.accepted+=1
         if len(self.batch.releases)+self.accepted>MAX_RELEASES:raise ModelError('Event task release budget exceeded')
-        if task.priority<caller.priority:
+        if task.priority<caller.priority and not self.masked():
             self._execute(index,self.engine.time_ms)
             # Newly queued work may outrank the restored caller, but not the child.
             self.drain(caller.priority)
@@ -89,7 +125,7 @@ class Dispatch:
 
     def drain(self,ceiling=17):
         """Run ready Events before lower-priority work, using FIFO for Event ties."""
-        while self.queue and self.queue[0][0]<ceiling:
+        while self.queue and self.queue[0][0]<ceiling and not self.masked():
             _,_,index,due=heapq.heappop(self.queue)
             self.pending.remove(index)
             self._execute(index,due)
@@ -98,7 +134,7 @@ class Dispatch:
 def description():
     return dict(profile='v35-5580-instruction-EVENT', languages=['RLL','ST'],
                 source='Standard EventInfo EVENT Instruction Only; explicit EnableTimeout false',
-                dispatch='Higher-priority target runs immediately; lower/equal targets wait for a task return at the same simulated time',
+                dispatch='Unmasked higher-priority target runs immediately; UID queues requests until outer UIE; lower/equal targets wait for task return at the same simulated time',
                 ordering='Ready Event priority then request order; coincident base releases precede queued Events at equal priority',
                 retrigger='Active requests are discarded as modeled overlaps; pending duplicates coalesce and have a separate diagnostic',
                 pending_policy='At most one pending execution per task; software policy, native pending-duplicate parity unverified',
@@ -107,3 +143,16 @@ def description():
                 native_cpu_timing=False, native_status_parity=False,
                 remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed/timeout event sources',
                            'AOI/routine harness and ST FOR-loop EVENT calls','Native interrupt latency, watchdog/status/fault parity'])
+
+
+def interrupt_description():
+    return dict(profile='v35-5580-balanced-UID-UIE',languages=['RLL','ST'],
+                operands='No operands; complete Standard project task context, outside AOIs',
+                nesting='Task-local depth shared across calls and Programs in one invocation; only the outermost UIE enables dispatch',
+                dispatch='EVENT requests queue while masked; outer UIE drains higher-priority requests before the next instruction; lower/equal wait for task return',
+                duplicates='Existing pending coalescing, active-overlap and release/instruction budgets apply',
+                lifecycle='False/prescan do nothing; transient depth discarded with the advance',
+                guards='UIE without UID and nonzero depth at task completion fault and roll back the advance; conservative software boundaries',
+                native_runtime_parity=False,
+                remaining=['Native unmatched-pair and persistent-state behavior','CPU/Periodic preemption, interrupt latency, watchdogs and communications',
+                           'Fault routines/Controller Fault Handler, Safety, other event sources','AOI, routine harness, ST FOR and other profiles'])

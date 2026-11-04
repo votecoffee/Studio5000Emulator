@@ -264,7 +264,7 @@ class AOIFileTests(unittest.TestCase):
     def test_report_and_bundled_ladder_fixture_keep_native_limits_explicit(self):
         from logixlab.model import ARITIES,ST_ONLY_ARITIES
         from logixlab.server import SAMPLES
-        self.assertIn('AOIFileLab',SAMPLES);e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
+        self.assertIn('AOIFileLab',SAMPLES);e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(104,29))
         for name in ('file_arithmetic','file_search'):
             p=e.report()[name];self.assertIn('InOut',p['aoi']);self.assertFalse(p['native_cursor_parity'])
 

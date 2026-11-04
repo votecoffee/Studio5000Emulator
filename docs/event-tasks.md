@@ -18,7 +18,8 @@ Instruction Only" and EnableTimeout="false". Priority and inhibition must be
 explicit and unambiguous. Other trigger kinds, timeouts, Safety and incomplete
 source are blocked. The target name is a literal configured task name.
 
-A higher-priority target runs synchronously at the EVENT instruction, at the
+When no [UID/UIE mask](interrupt-control.md) is active, a higher-priority target
+runs synchronously at the EVENT instruction, at the
 same simulated timestamp, before the caller's next instruction. Lower/equal-
 priority targets wait for a task return. Ready Event tasks drain by priority,
 then FIFO request order. Coincident Periodic releases precede queued Events at

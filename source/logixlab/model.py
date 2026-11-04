@@ -56,7 +56,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "JMP": 1, "LBL": 1, "TND": 0, "FOR": 5, "BRK": 0,
            "CONCAT": 3, "MID": 4, "DTOS": 2, "STOD": 2, "TRN": 2,
            'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4,'BSL':4,'BSR':4,'FFL':5,'FFU':5,'LFL':5,'LFU':5,'SQO':6,'SQI':6,'SQL':5,'FRD':2,'TOD':2,'SWPB':3,
-           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9,'PID':7}
+           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'UID':0,'UIE':0,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9,'PID':7}
 
 
 ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1,"BTDT":1,"MVMT":1}

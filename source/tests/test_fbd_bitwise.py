@@ -176,7 +176,7 @@ class FBDBitwiseTests(unittest.TestCase):
             dtype=e.memory.resolve(tag)[2];self.assertNotIn(dtype,e.project.data_only_types)
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+member)[2],kind)
             self.assertTrue(default(dtype)['EnableIn'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(102,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(104,29))
 
     def test_local_alias_and_nested_array_record(self):
         def nested(root):

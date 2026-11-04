@@ -9,7 +9,7 @@
   function add(op, title, labels = '') {catalog[op] = {title, labels: labels ? labels.split('|') : []};}
   for (const [op, title] of Object.entries({XIC: 'Examine On', XIO: 'Examine Off', OTE: 'Output Energize',
     OTL: 'Output Latch', OTU: 'Output Unlatch', ONS: 'One Shot', AFI: 'Always False', NOP: 'No Operation',
-    MCR: 'Master Control Reset', TND: 'Temporary End', BRK: 'Break'})) add(op, title, ['XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS'].includes(op) ? 'Bit' : '');
+    MCR: 'Master Control Reset', TND: 'Temporary End', BRK: 'Break', UID: 'User Interrupt Disable', UIE: 'User Interrupt Enable'})) add(op, title, ['XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS'].includes(op) ? 'Bit' : '');
   add('OSR', 'One Shot Rising', 'Storage Bit|Output Bit');add('OSF', 'One Shot Falling', 'Storage Bit|Output Bit');
   for (const [op, title] of Object.entries({EQU: 'Equal', NEQ: 'Not Equal', LES: 'Less Than', LEQ: 'Less Than or Equal',
     GRT: 'Greater Than', GEQ: 'Greater Than or Equal'})) add(op, title, 'Source A|Source B');
@@ -51,7 +51,7 @@
   add('PID', 'PID', 'PID|Process Variable|Tieback|Control Variable|PID Master Loop|Inhold Bit|Inhold Value');
 
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
-  const inline = new Set([...contacts, ...coils, 'ONS', 'AFI', 'NOP', 'MCR', 'TND', 'BRK', 'JMP', 'LBL']);
+  const inline = new Set([...contacts, ...coils, 'ONS', 'AFI', 'NOP', 'MCR', 'TND', 'BRK', 'UID', 'UIE', 'JMP', 'LBL']);
   const control = {BSL: 1, BSR: 1, FFL: 2, FFU: 2, LFL: 2, LFU: 2, SQL: 2, SQO: 3, SQI: 3, AVE: 3, STD: 3, SRT: 2, FSC: 0, FAL: 0};
   function describe(node, definitions = {}) {
     const op = node.opcode.toUpperCase(), args = node.operands;

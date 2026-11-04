@@ -107,6 +107,9 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="GuardEvents" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="GuardSeen" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ReleasedSeen" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="ProducerProgram" MainRoutineName="Main" Class="Standard">
@@ -135,6 +138,14 @@
               <Rung Number="6" Type="N">
                 <Text>MOV(DeferredCount,RllDeferredSeen);</Text>
               </Rung>
+              <Rung Number="7" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="GuardedEvent" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>UID()UID()EVENT(WorkEvent)MOV(EventCount,GuardSeen);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>UIE()MOV(EventCount,GuardSeen);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>UIE()MOV(EventCount,ReleasedSeen);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
