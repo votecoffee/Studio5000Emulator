@@ -110,7 +110,7 @@ class MixedRealComparisonTests(unittest.TestCase):
         e=self.checked(['GRT(Source,1e-50)OTE(RunLatch);'],values=(1.401298464324817e-45,3,10));e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_literal_type_shape_and_other_family_guards_remain_structural(self):
-        for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1L','Values'):
+        for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Values'):
             self.assertTrue(self.engine([f'AFI()EQU(Source,{token});']).blockers,token)
         self.assertTrue(self.engine(['MEQ(Source,Mask,Dest);']).blockers)
         self.assertTrue(self.engine(['CMP(Source>Mask);'],other='ULINT').blockers)

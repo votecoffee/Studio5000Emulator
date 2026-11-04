@@ -22,7 +22,7 @@ def validate(engine, op, scope):
     previous = memory.structural
     memory.structural = True
     try:
-        if op.name in ARITHMETIC and memory.check_writable(op.args[-1],scope)[2]=='LREAL':
+        if op.name in ARITHMETIC and memory.check_writable(op.args[-1],scope)[2] in ('REAL','LREAL'):
             arithmetic_profile(engine,op,scope)
             return True
         for ref in op.args:
@@ -86,7 +86,8 @@ def real_profile(types, constants):
 def execute_real(engine,op,scope):
     """Convert required sources before the operation and round its REAL result."""
     memory=engine.memory
-    values=[real(memory.read(ref,scope)) for ref in op.args[:-1]]
+    from .numeric_storage import real_math_source
+    values=[real_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
     a=values[0]
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
@@ -108,6 +109,9 @@ def arithmetic_profile(engine, op, scope):
     if engine.memory.check_writable(op.args[-1],scope)[2]=='LREAL':
         from .numeric_storage import lreal_math_sources
         return lreal_math_sources(engine.memory,op,scope)
+    if engine.memory.check_writable(op.args[-1],scope)[2]=='REAL':
+        from .numeric_storage import real_math_sources
+        return real_math_sources(engine.memory,op,scope)
     types, constants = [], []
     for ref in op.args:
         try:value = literal(ref)
@@ -212,7 +216,7 @@ def description(project):
                     native_runtime_parity=False),
                 real_arithmetic=dict(instructions=sorted(ARITHMETIC),source_types=sorted({*INT_BITS,'REAL'}),
                     destination='Scalar REAL tag; no REAL source is required; constant-only calls execute',
-                    constants='Signed DINT integer literals and finite REAL-convertible floating literals',
+                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared integer range checked before float32 conversion; LREAL source narrowing remains excluded',
                     calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
                     boundaries='LREAL sources, integer-result conversions and other consumer profiles remain separate',
                     native_runtime_parity=False),

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.174245`: [typed integers in REAL operations](real-integer-literals.md).
+Decimal L/U/UL constants now work across nineteen REAL-result ladder math forms
+and seven actual-REAL-tag comparisons. Declared integer ranges precede float32
+conversion; LREAL comparison selection retains priority, and REAL math narrowing
+from LREAL stays excluded. Wide expression lab adds RealIntegerConstants.
+Other result/consumer profiles, typed radix and native parity remain separate.
+
 Available in `26.1104.172031`: [LREAL comparison constants](lreal-comparison-literals.md).
 Six relations and LIM accept bounded DINT/finite REAL and decimal typed integer
 or floating L/l constants when a declared LREAL tag or floating L/l literal

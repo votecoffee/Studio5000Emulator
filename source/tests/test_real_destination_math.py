@@ -125,7 +125,7 @@ class RealDestinationMathTests(unittest.TestCase):
         for name in (*EXPECTED,'NEG','ABS',*CASES):
             args='Source,2' if name in EXPECTED else 'Source'
             self.assertTrue(self.engine([f'AFI(){name}({args},Results[1]);'],source='LREAL').blockers,name)
-        for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1L','Inputs','RunLatch'):
+        for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Inputs','RunLatch'):
             for call in (f'ADD(Source,{token},Results[1]);',f'SQR({token},Results[1]);'):
                 self.assertTrue(self.engine(['AFI()'+call]).blockers,call)
         self.assertTrue(self.engine(['SQR(Source,SpeedCommand);'],source='ULINT').blockers)

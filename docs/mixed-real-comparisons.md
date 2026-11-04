@@ -1,5 +1,10 @@
 # REAL comparison promotion
 
+[Typed integer constants](real-integer-literals.md) extend this profile in app
+`26.1104.174245`: decimal L/U/UL integers are checked at their declared ranges
+before the existing float32 conversion. Other result and consumer profiles
+retain their scope.
+
 App `26.1104.094330` extends the v35 ControlLogix 5580 ladder software profile
 for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. A scalar REAL tag selects finite
 float32 comparison when no actual LREAL input selects the separate binary64

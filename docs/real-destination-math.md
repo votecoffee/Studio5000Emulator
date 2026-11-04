@@ -1,5 +1,10 @@
 # REAL-result ladder math
 
+[Typed integer constants](real-integer-literals.md) extend this profile in app
+`26.1104.174245`: decimal L/U/UL integers are checked at their declared ranges
+before the existing float32 conversion. Other result and consumer profiles
+retain their scope.
+
 App `26.1104.100623` extends the v35 ControlLogix 5580 software profile when
 the destination is a scalar REAL. Supported forms are ADD, SUB, MUL, DIV, MOD,
 NEG, ABS, XPY, SQR, LN, LOG, DEG, RAD, SIN, COS, TAN, ASN, ACS and ATN.

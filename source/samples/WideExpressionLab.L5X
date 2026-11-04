@@ -846,6 +846,21 @@
       <Tag Name="CompareLitConstantOnly" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="CompareLitSelected" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="CompareLitInputs" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="0.1" /><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
+      <Tag Name="RealIntEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealIntIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntSum" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntRoot" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntRemainder" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntDivide" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntPower" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntThreshold" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777216" /></Data></Tag>
+      <Tag Name="RealIntEqual" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealIntLimit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealIntRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealIntFaultResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -927,7 +942,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1084,6 +1099,20 @@
               <Rung Number="6" Type="N"><Text>XIC(CompareLitEnabled)LIM(0.0L,0.5L,1.0L)OTE(CompareLitConstantOnly);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(CompareLitEnabled)EQU(CompareLitInputs[CompareLitIndex],0.1L)OTE(CompareLitSelected);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(CompareLitEnabled)DIV(1,CompareLitLateDivisor,CompareLitLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealIntegerConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealIntEnabled)ADD(16777217U,1L,RealIntSum);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealIntEnabled)SQR(16777217U,RealIntRoot);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealIntEnabled)MOD(18446744073709551615UL,3UL,RealIntRemainder);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealIntEnabled)DIV(3L,2U,RealIntDivide);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealIntEnabled)XPY(2L,3UL,RealIntPower);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealIntEnabled)EQU(RealIntThreshold,16777217U)OTE(RealIntEqual);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RealIntEnabled)LIM(16777216L,RealIntThreshold,16777217UL)OTE(RealIntLimit);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RealIntEnabled)ADD(4294967295U,0L,RealIntSelected[RealIntIndex]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RealIntEnabled)XIC(RealIntRangeFault)XPY(18446744073709551615UL,3L,RealIntFaultResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RealIntEnabled)DIV(1,RealIntLateDivisor,RealIntLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

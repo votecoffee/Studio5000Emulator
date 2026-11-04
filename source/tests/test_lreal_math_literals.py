@@ -134,7 +134,7 @@ class LrealMathLiteralTests(unittest.TestCase):
 
     def test_other_result_comparison_and_firmware_profiles_do_not_widen(self):
         for dest in ('SINT','INT','DINT','LINT','REAL'):
-            for call in ('ADD(1L,1L,Results[1]);','XPY(1.0L,1L,Results[1]);','SQR(1.0L,Results[1]);'):
+            for call in (('ADD(1.0L,1L,Results[1]);' if dest=='REAL' else 'ADD(1L,1L,Results[1]);'),'XPY(1.0L,1L,Results[1]);','SQR(1.0L,Results[1]);'):
                 self.assertTrue(self.engine([call],dest=dest).blockers,(call,dest))
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()ADD(1L,1L,Results[1]);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)

@@ -84,6 +84,23 @@ def lreal_math_sources(memory, op, scope):
     return 'LREAL'
 
 
+def real_math_source(memory, ref, scope, *, execute=False):
+    """Selected REAL input; validate its declared type before float32 conversion."""
+    dtype=lreal_math_source(memory,ref,scope)
+    if dtype=='LREAL':raise ModelError('REAL math source narrowing from LREAL is not qualified')
+    if not execute:return dtype
+    typed=typed_literal(ref) if '#' not in ref else None
+    return real(typed[1] if typed is not None else memory.read(ref,scope))
+
+
+def real_math_sources(memory, op, scope):
+    """Preflight REAL-result math without saved values or live indirect indices."""
+    if destination(memory,op.args[-1],scope)[2]!='REAL':
+        raise ModelError('REAL math requires a scalar REAL destination')
+    for ref in op.args[:-1]:real_math_source(memory,ref,scope)
+    return 'REAL'
+
+
 def specification(memory, op, scope):
     previous = memory.structural
     memory.structural = True
