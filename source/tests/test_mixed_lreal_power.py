@@ -109,9 +109,9 @@ class MixedLrealPowerTests(unittest.TestCase):
             for args in ('Source,'+token,token+',Source'):
                 self.assertTrue(self.engine(['AFI()XPY('+args+',Dest);']).blockers,args)
         for call in ('XPY(Inputs,Mask,Dest);','XPY(Source,RunLatch,Dest);','XPY(Source,Mask,SpeedCommand);',
-                     'XPY(2,3,Dest);','CPT(Dest,Source**2);','EXPT(Source,Mask,Dest);','SQR(TRUE,Dest);'):
+                     'XPY(2.0,3,Dest);','CPT(Dest,Source**2);','EXPT(Source,Mask,Dest);','SQR(TRUE,Dest);'):
             self.assertTrue(self.engine([call]).blockers,call)
-        self.assertTrue(self.engine(source='DINT',other='REAL').blockers)
+        self.assertEqual(self.checked(source='DINT',other='REAL').blockers,[])
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['XPY(Source,2,Results[1]);'],mutate=constant).blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')

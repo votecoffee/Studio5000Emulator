@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.092011`: [LREAL arithmetic result selection](lreal-destination-math.md).
+The result selects finite binary64 for seven basic math instructions and XPY
+across all numeric tag types and bounded signed DINT constants. Constant-only
+calls and sources without LREAL now execute. Fractional division, precision and
+wide promotion rounding are explicit; comparison selection is unchanged. Integer
+lab adds guarded examples and faults. Floating/typed/larger literals, other
+result conversions, expressions and native parity remain separate.
+
 Available in `26.1104.085804`: [numeric unary inputs with LREAL results](lreal-unary-sources.md).
 Eleven roots/logs/angle/trig forms accept all ten numeric tag types and bounded
 signed DINT constants when the destination is LREAL. Binary64 conversion, stored

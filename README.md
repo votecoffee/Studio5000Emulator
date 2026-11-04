@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.085804`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.092011`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -45,12 +45,16 @@ gated Program timing reads in ladder and ST.
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. **System lab** includes gated timestamp examples.
 
+[LREAL arithmetic results](docs/lreal-destination-math.md) select binary64 for
+ADD/SUB/MUL/DIV/MOD/NEG/ABS and XPY across numeric tags and bounded integer
+constants, including calls without a LREAL source. **Integer lab** has examples.
+
 [Numeric unary inputs with LREAL results](docs/lreal-unary-sources.md) extends
 eleven ladder math forms to all numeric tag types and signed DINT-range
 constants. **Math lab** demonstrates roots, angles, logs, trig and fault recovery.
 
 [Mixed LREAL powers](docs/mixed-lreal-power.md) adds XPY with numeric tag pairs
-and signed DINT-range constants, while retaining a LREAL input and result.
+and signed DINT-range constants, with a LREAL result.
 **Math lab** includes precision, wide-integer rounding and fault examples.
 
 [Integer constants with LREAL](docs/lreal-constants.md) adds signed DINT-range
@@ -62,8 +66,7 @@ ladder relations and inclusive/reversed LIM across numeric tag types.
 **Integer lab** demonstrates precision, promotion rounding and fault recovery.
 
 [Mixed numeric arithmetic with LREAL](docs/mixed-lreal-math.md) adds five binary
-ladder operations with numeric tag sources, at least one LREAL input and a LREAL
-result. **Integer lab** includes conversion, precision and fault examples.
+ladder operations with numeric tag sources and a LREAL result. **Integer lab** includes conversion, precision and fault examples.
 
 [LREAL byte copies](docs/lreal-copy.md) adds COP/CPS binary64 images, integer
 round trips and partial writes. **Byte copy lab** includes precision, selected

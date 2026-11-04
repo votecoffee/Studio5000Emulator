@@ -13,7 +13,8 @@ v35 ControlLogix 5580 software profile:
 tag inputs when at least one is LREAL. The original homogeneous profile requires
 every operand to be a scalar LREAL tag,
 including arithmetic destinations. [Mixed-tag binary arithmetic](mixed-lreal-math.md)
-now has a separate extension with at least one LREAL input and a LREAL result.
+now has a separate extension selected by a LREAL result, including numeric-only
+and constant-only sources through [result selection](lreal-destination-math.md).
 Selected array elements, aliases and explicit UDT members retain their declared
 type. Floating/typed/larger constants and other mixed forms remain blocked even
 when their saved values happen to fit. Existing [MOV conversions](lreal-storage.md)
@@ -102,12 +103,16 @@ precision/status/fault/lifecycle equivalence remain separate work.
 
 [Integer constants with LREAL](lreal-constants.md) additionally qualify signed
 DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
-typed and larger literals remain excluded; an actual LREAL source is required.
+typed and larger literals remain excluded. Direct ordering still requires a
+LREAL input; arithmetic can use the [LREAL result](lreal-destination-math.md).
 
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
-tag sources or signed DINT-range integer constants, one actual LREAL input and
-a LREAL result. Other advanced math and expression profiles remain separate.
+tag sources or signed DINT-range integer constants with a LREAL result. Other advanced math and expression profiles remain separate.
 
 [Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
 source tag types and signed DINT-range constants for eleven standalone unary
 math forms. A LREAL destination selects this finite binary64 software profile.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.

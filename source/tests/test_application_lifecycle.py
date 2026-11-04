@@ -3219,3 +3219,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('UnaryDoubleInputs[1]',16);row=values(step());self.assertEqual(row['UnaryDoubleResults[1]'],4.0)
         write('UnaryDoubleEnabled',False);write('UnaryDoubleIndex',99);row=values(step());self.assertEqual(row['UnaryDoubleResults[1]'],4.0)
         unary=self.post('report',{})['real_math']['lreal']['unary'];self.assertEqual(len(unary['instructions']),11);self.assertEqual(len(unary['source_types']),10);self.assertFalse(unary['native_runtime_parity'])
+
+    def test_integer_lab_lreal_result_selection_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'IntegerLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace','aoi_bindings'):self.assertEqual(before[key],after[key])
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['DoubleResultsIndex'],99);self.assertIsNone(row['DoubleResultsValues[1]'])
+        write('DoubleResultsEnabled',True);fault('outside bounds');write('DoubleResultsIndex',1);row=values(step())
+        self.assertEqual(tuple(row['DoubleResults'+n] for n in ('Sub','Mul','Div','Mod','Power','Neg','Abs','LiteralDivide','LiteralPower','Precision','WideRemainder')),(1.0,6.0,1.5,1.0,9.0,-3.0,3.0,1.5,8.0,16777218.0,1.0))
+        self.assertEqual(row['DoubleResultsWideNeg'],-float(2**64));self.assertEqual(row['DoubleResultsWide'],'18446744073709551615')
+        self.assertEqual(tuple(row['DoubleResultsValues['+str(i)+']'] for i in range(3)),(101.125,5.0,999.5))
+        for name in ('DomainFault','ZeroFault','OverflowFault'):
+            write('DoubleResults'+name,True);fault('zero' if name=='ZeroFault' else 'finite LREAL');write('DoubleResults'+name,False)
+        write('DoubleResultsLateDivisor',0);fault('zero');write('DoubleResultsLateDivisor',1)
+        write('DoubleResultsInputs[1]',4);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
+        write('DoubleResultsEnabled',False);write('DoubleResultsIndex',99);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
+        report=self.post('report',{});self.assertIn('no LREAL source',report['scalar_math']['lreal_arithmetic']['operands']);self.assertIn('no LREAL source',report['real_math']['lreal']['power']['operands']);self.assertIn('at least one LREAL',report['numeric_comparisons']['lreal_ordering']['operands'])

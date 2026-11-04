@@ -1,10 +1,10 @@
 # Mixed numeric LREAL powers
 
 App `26.1104.083644` extends standalone ladder XPY in the v35 ControlLogix 5580
-software profile. Both sources may be scalar numeric tags, with at least one
-actual LREAL input and a LREAL destination. The other tag may be SINT, INT, DINT,
+software profile. Both sources may be scalar numeric tags with a LREAL destination. The other tag may be SINT, INT, DINT,
 LINT, USINT, UINT, UDINT, ULINT, REAL or LREAL. Either source may instead be a
-signed DINT-range integer constant when the remaining source is LREAL.
+signed DINT-range integer constant. [Result-selected math](lreal-destination-math.md)
+additionally covers calls without a LREAL input and constant-only powers.
 
 ```text
 XPY(DoubleBase,DintExponent,DoubleResult);
@@ -17,8 +17,8 @@ Every required source is read and converted to finite binary64 before the host
 real-valued power operation. Integer signs and unsigned numeric values are
 preserved. REAL contributes its already stored float32 value. Integer constants
 between -2147483648 and 2147483647 inclusive promote exactly; floating, Boolean,
-typed and larger literals remain excluded. Constant-only powers or a LREAL
-destination with no actual LREAL source remain outside this extension.
+typed and larger literals remain excluded. A LREAL destination selects this profile even without a LREAL source, including
+constant-only calls.
 
 DINT 16777217 squared with a LREAL exponent produces 281475010265089. A REAL
 source assigned 16777217 first stores 16777216, so its square is

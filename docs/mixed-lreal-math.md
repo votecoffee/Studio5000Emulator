@@ -1,10 +1,11 @@
 # Mixed numeric tag arithmetic with LREAL
 
 App `26.1104.020009` extends the v35 ControlLogix 5580 ladder software profile
-for ADD, SUB, MUL, DIV and MOD. The original form requires scalar numeric tags; at least
-one source must be LREAL, and the destination must be LREAL. The other source
-can be SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL or LREAL. Both source
-orders are supported. NEG/ABS retain their existing LREAL-source/result forms.
+for ADD, SUB, MUL, DIV and MOD. The current [result-selected profile](lreal-destination-math.md)
+accepts scalar numeric tags and bounded integer constants with a LREAL result.
+Sources may be SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL or LREAL.
+Neither source has to be LREAL; constant-only calls also execute. NEG/ABS share
+this destination selection.
 
 ```text
 ADD(DoubleInput,DintInput,DoubleResult);
@@ -15,7 +16,7 @@ MOD(DoubleInput,DintDivisor,DoubleRemainder);
 ```
 
 [Signed DINT-range constants](lreal-constants.md) additionally replace either
-source when the other source is an actual LREAL tag. Floating/typed/larger
+source; the result must be LREAL. Floating/typed/larger
 literals remain outside the profile.
 
 Declared types select the profile independently of saved values. Every required
@@ -55,7 +56,7 @@ parameters and broader AOI forms remain separate.
 The remaining boundaries are explicit:
 
 - Floating/typed/larger immediates remain outside LREAL arithmetic.
-- A LREAL destination with only integer/REAL inputs does not select this profile.
+- [LREAL result selection](lreal-destination-math.md) now includes integer/REAL-only inputs and constant-only calls.
 - LREAL arithmetic with a non-LREAL result remains guarded.
 - [Mixed direct comparisons/LIM](mixed-lreal-comparisons.md) additionally promote
   numeric tags when at least one input is LREAL. Advanced math remains separate.
@@ -81,17 +82,21 @@ before returning its index to 99. Other Integer lab sections remain available.
 The source basis is installed v35 arithmetic help, including ADD14623 and
 MOD14620, plus Data Conversions14451, which ranks LREAL highest. The published
 [Rockwell data-conversion reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/data-conversions.html)
-provides related context. Requiring a LREAL input avoids extending the solver
-to unqualified integer/REAL intermediate and destination-conversion rules.
+provides related context. The original source-selected profile is additionally
+extended by [LREAL result selection](lreal-destination-math.md); other destination
+conversion rules remain unqualified.
 
 See [implementation](../source/logixlab/scalar_math.py),
 [focused cases](../source/tests/test_mixed_lreal_math.py) and
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
 
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
-tag sources or signed DINT-range integer constants, one actual LREAL input and
-a LREAL result. Other advanced math and expression profiles remain separate.
+tag sources or signed DINT-range integer constants with a LREAL result. Other advanced math and expression profiles remain separate.
 
 [Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
 source tag types and signed DINT-range constants for eleven standalone unary
 math forms. A LREAL destination selects this finite binary64 software profile.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.

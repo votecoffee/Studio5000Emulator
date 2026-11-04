@@ -39,7 +39,7 @@ def validate(engine, op, scope):
 
 
 def lreal_profile(types, constants, *, arithmetic=False, ordering=False):
-    """Select binary64 from actual LREAL tags and bounded integer constants."""
+    """Select binary64 for LREAL results or actual LREAL comparison inputs."""
     if 'LREAL' not in types:return None
     for value in constants:
         if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
@@ -47,10 +47,10 @@ def lreal_profile(types, constants, *, arithmetic=False, ordering=False):
     numeric=all(dtype in {None,*INT_BITS,'REAL','LREAL'} for dtype in types)
     if ordering and numeric:
         return 'LREAL'
-    if (arithmetic and types[-1]=='LREAL' and 'LREAL' in types[:-1] and numeric):
+    if arithmetic and types[-1]=='LREAL' and numeric:
         return 'LREAL'
     if constants or set(types)!={'LREAL'}:
-        raise ModelError('LREAL ladder operations require matching scalar LREAL tags; mixed types and immediates remain unqualified')
+        raise ModelError('LREAL operations require qualified scalar numeric operands; arithmetic requires a LREAL destination')
     return 'LREAL'
 
 
@@ -167,7 +167,8 @@ def description(project):
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
-                    operands='Scalar numeric source tags and bounded integer constants, with at least one LREAL source and a LREAL destination; unary sources remain LREAL',
+                    operands='Scalar numeric source tags and bounded integer constants with a LREAL destination; no LREAL source is required',
+                    selection_by_destination='The scalar LREAL result selects binary64 inputs and calculation, including constant-only calls and NEG/ABS',
                     constants='Signed DINT integer literals promoted exactly to binary64; floating, typed and larger literals remain excluded',
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',

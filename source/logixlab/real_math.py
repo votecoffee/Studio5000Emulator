@@ -112,7 +112,7 @@ def description():
                         selection='A scalar LREAL destination selects finite binary64 input and result; sources retain their declared numeric values and stored REAL precision',
                         native_runtime_parity=False),
                     power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
-                        operands='Scalar numeric sources with at least one LREAL input and a LREAL result',
+                        operands='Scalar numeric sources and bounded integer constants with a LREAL result; no LREAL source is required',
                         constants='Signed DINT integer literals in either source position, promoted exactly to binary64',
                         promotion='Convert all required numeric tag sources to finite binary64; stored REAL precision and wide integer rounding are retained',
                         native_runtime_parity=False),

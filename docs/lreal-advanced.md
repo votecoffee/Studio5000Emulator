@@ -12,7 +12,8 @@ forms in the v35 ControlLogix 5580 software profile:
 
 The original forms require matching scalar LREAL source and destination tags.
 [Mixed XPY sources and constants](mixed-lreal-power.md) additionally qualify
-powers with at least one LREAL input and a LREAL result.
+powers with a LREAL result; [result selection](lreal-destination-math.md) also
+permits numeric-only sources and constant-only calls.
 [Numeric unary sources](lreal-unary-sources.md) additionally accept numeric tags
 and signed DINT constants with a LREAL result. Selected array elements,
 aliases and explicit UDT members retain their declared types. Matching AOI InOut
@@ -92,3 +93,7 @@ and [power](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-desi
 references use newer mnemonics. This increment retains v35 SQR/XPY; standalone
 SQRT/EXPT aliases, LREAL ST/CPT/CMP expressions and general FBD LREAL execution
 remain separate work.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.

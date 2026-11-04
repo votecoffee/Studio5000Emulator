@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; numeric unary LREAL results added for app `26.1104.085804`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; LREAL arithmetic result selection added for app `26.1104.092011`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -122,14 +122,16 @@ aggregate byte-copy layouts remain unqualified.
 logarithms, angle conversion and trigonometry; ST/CPT/CMP remain unqualified.
 
 [Mixed-tag LREAL arithmetic](mixed-lreal-math.md) adds five binary operations
-with all ten numeric source tag types, at least one LREAL input and a LREAL result.
+with all ten numeric source tag types and a LREAL result.
 [Mixed-tag comparisons/LIM](mixed-lreal-comparisons.md) additionally promote
 numeric tag inputs when at least one is LREAL. [Signed DINT-range constants](lreal-constants.md)
 add binary arithmetic, direct relations and limits; floating/typed/larger literals
 and other advanced math remain separate. [Mixed XPY powers](mixed-lreal-power.md)
-qualify numeric tag pairs and signed DINT constants with a LREAL input/result.
+qualify numeric tag pairs and signed DINT constants with a LREAL result.
 [Unary LREAL results](lreal-unary-sources.md) additionally accept all numeric tag
 sources and signed DINT constants across eleven roots/logs/angle/trig forms.
+[LREAL arithmetic results](lreal-destination-math.md) now select binary64 for
+seven basic operations and XPY without requiring an actual LREAL source.
 
 ## Remaining forms of existing instructions
 

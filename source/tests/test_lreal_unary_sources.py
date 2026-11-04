@@ -116,7 +116,7 @@ class LrealUnarySourceTests(unittest.TestCase):
             for token in ('TRUE','1.0','1e0','2147483648','-2147483649','1L','Inputs','RunLatch'):
                 self.assertTrue(self.engine([f'AFI(){name}({token},Dest);']).blockers,(name,token))
         self.assertTrue(self.engine(['SQR(Source,Dest);'],source='LREAL',dest='REAL').blockers)
-        self.assertTrue(self.engine(['XPY(Source,Mask,Dest);'],source='DINT',other='REAL').blockers)
+        self.assertEqual(self.checked(['XPY(Source,Mask,Dest);'],source='DINT',other='REAL').blockers,[])
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['SQR(9,Results[1]);'],mutate=constant).blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
@@ -126,4 +126,4 @@ class LrealUnarySourceTests(unittest.TestCase):
         data=self.checked().report()['real_math'];unary=data['lreal']['unary']
         self.assertEqual(set(unary['instructions']),set(CASES));self.assertEqual(len(unary['source_types']),10)
         self.assertIn('Signed DINT',unary['constants']);self.assertFalse(unary['native_runtime_parity'])
-        self.assertIn('at least one LREAL',data['lreal']['power']['operands'])
+        self.assertIn('no LREAL source',data['lreal']['power']['operands'])

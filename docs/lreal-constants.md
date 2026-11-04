@@ -12,11 +12,12 @@ LIM(0,DoubleInput,100)OTE(InRange);
 LIM(DoubleLow,25,IntegerHigh)OTE(ConstantInRange);
 ```
 
-At least one source must be an actual scalar LREAL tag. Arithmetic requires a
+[Result-selected arithmetic](lreal-destination-math.md) no longer requires a
+LREAL source, including NEG/ABS and constant-only calls. Arithmetic requires a
 LREAL destination; either binary source position can contain the constant.
 Relations allow either position and LIM allows any position, including both
 bounds or the tested value. Existing mixed numeric tag forms retain their rules.
-NEG/ABS still require a LREAL source; this does not add constant-only arithmetic.
+Comparisons still require an actual LREAL source to select binary64.
 
 Constants must parse as integers between -2147483648 and 2147483647 inclusive.
 Decimal signs, underscores and existing binary/octal/hexadecimal syntax follow
@@ -71,9 +72,12 @@ See [focused cases](../source/tests/test_lreal_constants.py),
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
 
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
-tag sources or signed DINT-range integer constants, one actual LREAL input and
-a LREAL result. Other advanced math and expression profiles remain separate.
+tag sources or signed DINT-range integer constants with a LREAL result. Other advanced math and expression profiles remain separate.
 
 [Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
 source tag types and signed DINT-range constants for eleven standalone unary
 math forms. A LREAL destination selects this finite binary64 software profile.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.

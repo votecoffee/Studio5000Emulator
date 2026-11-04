@@ -5,6 +5,38 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="DoubleResultsEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleResultsDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleResultsZeroFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleResultsOverflowFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleResultsIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleResultsDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="3" /></Data></Tag>
+      <Tag Name="DoubleResultsOther" TagType="Base" DataType="INT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="2" /></Data></Tag>
+      <Tag Name="DoubleResultsNegative" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-3" /></Data></Tag>
+      <Tag Name="DoubleResultsPrecise" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="DoubleResultsWide" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="DoubleResultsThree" TagType="Base" DataType="USINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="3" /></Data></Tag>
+      <Tag Name="DoubleResultsHalf" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.5" /></Data></Tag>
+      <Tag Name="DoubleResultsLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleResultsLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleResultsSub" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsMul" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsDiv" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsMod" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsPower" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsNeg" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsAbs" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsLiteralDivide" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsLiteralPower" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsNegativeZero" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsPrecision" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsWideRemainder" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsWideNeg" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsDomainResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsZeroResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsOverflowResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleResultsInputs" TagType="Base" DataType="DINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="3" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="DoubleResultsValues" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="EnableDoubleConstants" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleConstantsZeroFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleConstantsIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
@@ -770,6 +802,29 @@
               <Rung Number="54" Type="N"><Text>JSR(MixedDouble,0);</Text></Rung>
               <Rung Number="55" Type="N"><Text>JSR(MixedDoubleCompare,0);</Text></Rung>
               <Rung Number="56" Type="N"><Text>JSR(DoubleConstants,0);</Text></Rung>
+              <Rung Number="57" Type="N"><Text>JSR(DoubleResults,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleResults" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(DoubleResultsEnabled)ADD(DoubleResultsInputs[DoubleResultsIndex],DoubleResultsOther,DoubleResultsValues[DoubleResultsIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(DoubleResultsEnabled)SUB(DoubleResultsDint,DoubleResultsOther,DoubleResultsSub);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(DoubleResultsEnabled)MUL(DoubleResultsDint,DoubleResultsOther,DoubleResultsMul);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(DoubleResultsEnabled)DIV(DoubleResultsDint,DoubleResultsOther,DoubleResultsDiv);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(DoubleResultsEnabled)MOD(DoubleResultsDint,DoubleResultsOther,DoubleResultsMod);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(DoubleResultsEnabled)XPY(DoubleResultsDint,DoubleResultsOther,DoubleResultsPower);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(DoubleResultsEnabled)NEG(DoubleResultsDint,DoubleResultsNeg);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(DoubleResultsEnabled)ABS(DoubleResultsNegative,DoubleResultsAbs);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(DoubleResultsEnabled)DIV(3,2,DoubleResultsLiteralDivide);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(DoubleResultsEnabled)XPY(2,3,DoubleResultsLiteralPower);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(DoubleResultsEnabled)NEG(0,DoubleResultsNegativeZero);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(DoubleResultsEnabled)ADD(DoubleResultsPrecise,1,DoubleResultsPrecision);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(DoubleResultsEnabled)MOD(DoubleResultsWide,DoubleResultsThree,DoubleResultsWideRemainder);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(DoubleResultsEnabled)NEG(DoubleResultsWide,DoubleResultsWideNeg);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsDomainFault)XPY(DoubleResultsNegative,DoubleResultsHalf,DoubleResultsDomainResult);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsZeroFault)DIV(3,0,DoubleResultsZeroResult);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsOverflowFault)XPY(2147483647,2147483647,DoubleResultsOverflowResult);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(DoubleResultsEnabled)DIV(1,DoubleResultsLateDivisor,DoubleResultsLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleConstants" Type="RLL">

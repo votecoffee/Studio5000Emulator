@@ -76,7 +76,8 @@ and comparisons](lreal-math.md), plus [matching-tag advanced math](lreal-advance
 additionally execute. [TRN](lreal-truncate.md) additionally handles REAL/LREAL sources and integer/REAL/LREAL
 results. [Numeric COP/CPS](lreal-copy.md) additionally handles finite binary64 byte
 images and partial writes. [Mixed-tag arithmetic](mixed-lreal-math.md) promotes
-numeric tag inputs when one input and the result are LREAL.
+numeric tag inputs with a LREAL result, including numeric-only and constant-only
+sources through [result selection](lreal-destination-math.md).
 [Mixed comparisons/LIM](mixed-lreal-comparisons.md) promote numeric tags when one
 input is LREAL. Other mixed forms/
 immediates, ST expressions/assignments, general AOI parameter forms and FLL,
@@ -86,12 +87,16 @@ stay guarded rather than falling through to the REAL implementation.
 
 [Integer constants with LREAL](lreal-constants.md) additionally qualify signed
 DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
-typed and larger literals remain excluded; an actual LREAL source is required.
+typed and larger literals remain excluded. Direct ordering still requires a
+LREAL input; arithmetic can use the [LREAL result](lreal-destination-math.md).
 
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
-tag sources or signed DINT-range integer constants, one actual LREAL input and
-a LREAL result. Other advanced math and expression profiles remain separate.
+tag sources or signed DINT-range integer constants with a LREAL result. Other advanced math and expression profiles remain separate.
 
 [Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
 source tag types and signed DINT-range constants for eleven standalone unary
 math forms. A LREAL destination selects this finite binary64 software profile.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.

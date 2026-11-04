@@ -60,8 +60,8 @@ OverflowFault demonstrate independent failures; LateDivisor=0 demonstrates a
 later fault. Restore the switches to false and the divisor to 1. Disable the
 section before returning its index to 99. Other Math lab sections remain available.
 
-XPY retains its [separate mixed-source rules](mixed-lreal-power.md), including a
-required LREAL input. This extension adds no wide/unsigned result types, broader
+XPY uses its [separate mixed-source rules](mixed-lreal-power.md) and now supports
+[LREAL result selection](lreal-destination-math.md) without a LREAL input. This extension adds no wide/unsigned result types, broader
 CPT/CMP/ST expressions, floating literals, new aliases or new FBD/SFC forms.
 
 The source basis is installed v35 SQR (14617), LN (14479) and Data Conversions

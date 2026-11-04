@@ -136,9 +136,12 @@ not replace this model's range rollback policy. Software tests do not establish
 native controller or Studio acceptance.
 
 [Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
-tag sources or signed DINT-range integer constants, one actual LREAL input and
-a LREAL result. Other advanced math and expression profiles remain separate.
+tag sources or signed DINT-range integer constants with a LREAL result. Other advanced math and expression profiles remain separate.
 
 [Unary LREAL results](lreal-unary-sources.md) additionally qualify all ten numeric
 source tag types and signed DINT-range constants for eleven standalone unary
 math forms. A LREAL destination selects this finite binary64 software profile.
+
+[LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
+for basic arithmetic and XPY without a LREAL source, including bounded
+constant-only calls. Direct ordering still requires a LREAL input for binary64.
