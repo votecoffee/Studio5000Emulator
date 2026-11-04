@@ -83,7 +83,7 @@ class NumericFillTests(unittest.TestCase):
         e=self.checked(['FLL(Fills[2],Fills[1],Fills[0]);'],count=3);e.memory.write('Fills[0]',3);e.step();self.assertEqual(e.memory.read('Fills'),[3,33,33,33,55])
 
     def test_lengths_and_member_bounds_retain_whole_advance_rollback(self):
-        for count in (-1,100001,5):
+        for count in (-1,100001):
             e=self.checked(count=count);before=self.snapshot(e)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e),before)
@@ -152,7 +152,7 @@ class NumericFillTests(unittest.TestCase):
         for tag,value in guards.items():self.assertEqual(e.memory.read(tag),value)
 
     def test_report_exposes_partial_native_boundaries(self):
-        e=self.checked();report=e.report()['numeric_fill'];self.assertIn('low destination bits',report['integer_conversion']);self.assertFalse(report['clipping']);self.assertEqual(report['max_elements'],100000);self.assertFalse(report['native_runtime_parity'])
+        e=self.checked();report=e.report()['numeric_fill'];self.assertIn('low destination bits',report['integer_conversion']);self.assertTrue(report['clipping']);self.assertEqual(report['max_elements'],100000);self.assertFalse(report['native_runtime_parity'])
 
 
 if __name__=='__main__':unittest.main()

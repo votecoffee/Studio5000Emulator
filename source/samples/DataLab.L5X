@@ -427,6 +427,12 @@
       <Tag Name="CopyStrings" DataType="STRING" TagType="Base" Dimensions="3">
         <Data Format="Decorated"><Array DataType="STRING" Dimensions="3"></Array></Data>
       </Tag>
+      <Tag Name="ClipNumeric" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClipIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="ClipLength" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="100000" /></Data></Tag>
+      <Tag Name="ClipSource" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="305419896" /></Data></Tag>
+      <Tag Name="ClipScalar" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="7" /></Data></Tag>
+      <Tag Name="ClipValues" DataType="SINT" TagType="Base" Dimensions="5"><Data Format="Decorated"><Array DataType="SINT" Dimensions="5"><Element Index="[0]" Value="11" /><Element Index="[1]" Value="22" /><Element Index="[2]" Value="33" /><Element Index="[3]" Value="44" /><Element Index="[4]" Value="55" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -435,7 +441,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(MoveNumeric)MOV(MoveSource,MoveByte);</Text>
+                <Text>JSR(ClippedFill,0)XIC(MoveNumeric)MOV(MoveSource,MoveByte);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(MoveNumeric)MOV(MoveSource,MoveWord);</Text>
@@ -569,6 +575,12 @@
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ClippedFill" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ClipNumeric)FLL(ClipSource,ClipValues[ClipIndex],ClipLength);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ClipNumeric)FLL(ClipSource,ClipScalar,ClipLength);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

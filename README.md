@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.195250`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.201221`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -36,6 +36,10 @@ and branch wiring, ST syntax coloring and FBD pin connections. Select a node
 for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
+
+[Clipped numeric fills](docs/clipped-fills.md) let FLL stop oversized requests
+at the selected logical array boundary while preserving source capture and
+transactional rollback.
 
 [Wide integer file operations](docs/integer-files.md) add exact LINT and
 unsigned FAL transforms and wide FSC comparisons, including values beyond

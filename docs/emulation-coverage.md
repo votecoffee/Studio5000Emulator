@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; wide integer file operations added for app `26.1103.195250`. **Full Logix emulation is not
+Audited 2026-11-03; clipped numeric fills added for app `26.1103.201221`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -57,6 +57,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Numeric calculation selection | [CPT/CMP structural preflight](integer-expressions.md#operand-selection), lazy numeric values/indices, full unknown CPT writes, eager CMP operands, [bounded mixed integer arithmetic](ladder-wide-expressions.md#mixed-integer-arithmetic) and transaction/AOI recovery | Other arithmetic intermediates, broader syntax/promotion, string/file/index consumers and native status/fault/lifecycle parity |
 | Numeric ladder comparisons | [EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ](numeric-comparisons.md), structural preflight, false/prescan operand skips, all-eight-integer tag-only MEQ with zero extension/read-only inputs, retained immediate rules, [mixed integer CMP with Boolean composition](ladder-wide-expressions.md#mixed-integer-cmp) and AOI rollback | Mixed CMP arithmetic, complete numeric promotion matrix, broader profiles and native status/fault/lifecycle qualification |
 | SIZE/TRN | [Array size and truncation](size-truncate.md), selected arrays/string DATA, metadata-only size reads, lazy references, REAL SIZE results and signed/unsigned TRN destinations | Direct string SIZE, LREAL, native overflow/status/lifecycle and broader profiles; dynamic dimension tags remain a software extension |
+| Clipped numeric fills | [FLL logical windows](clipped-fills.md), oversized requests clipped at numeric array/member or scalar boundaries, captured inputs, lazy references, AOI rollback and conservative ST FOR effects | Native packed cross-member/base-tag traversal, wide types, overflow/status/partial-effect/lifecycle parity and native ST availability remain separate |
 | Numeric FLL | [Narrow numeric fills](numeric-fill.md), integer truncation/sign extension, representable REAL conversion, structural preflight, lazy reads and existing AOI bindings | Native clipping/base-tag traversal, REAL overflow bits/status, wider types and other profiles; aggregate zero fills keep their separate contract |
 | Numeric COP/CPS | [Little-endian byte copies](numeric-copies.md) across nine numeric types, clipped lengths, preserved partial elements, row-major/member arrays, budget/rollback and ST loop write effects | Native aggregate/BOOL/string/LREAL layouts, cross-member/base-tag copying, synchronization and fault/partial-effect parity |
 | Masked/bit-field moves | [MVM/BTD ladder forms](bit-transfer.md) for SINT/INT/DINT, structural dynamic-index preflight, false/prescan skips, full unknown writes, partial-bit preservation, mixed widths and bounded fields | Wide/unsigned types, remaining forms and native status/fault parity; separate ST/FBD target moves are listed above |

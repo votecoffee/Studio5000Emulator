@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.201221`: [clipped numeric FLL](clipped-fills.md).
+Oversized numeric requests stop at the selected logical array/member or scalar.
+Source/length capture, conversions, lazy operands and rollback remain. Data lab
+adds array/scalar examples. Existing emulator ST FLL calls share clipping with
+complete conservative FOR write effects; native ST availability is separate.
+Wide types, packed cross-member copying and native partial-effect parity remain
+unqualified; aggregate zero fills retain their strict logical-region contract.
+
 Available in `26.1103.195250`: [wide integer file operations](integer-files.md).
 FAL adds exact matching LINT/unsigned transforms; FSC uses the existing wide/mixed
 CMP profile. ALL, numeric and idle-source INC retain their current CONTROL and

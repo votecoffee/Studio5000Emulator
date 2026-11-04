@@ -44,15 +44,17 @@ Required copied AOI inputs are still consumed before the body, independently
 of an FLL instruction's lazy reads.
 
 The window can traverse adjacent rows in row-major order within the selected
-logical array/member. It must fit that boundary. Oversized requests fault;
-they are not clipped or allowed to cross other members/base tags. Native FLL
+logical array/member. [Oversized requests now clip](clipped-fills.md) at that boundary. Invalid
+starting indices still fault. Requests do not cross other members/base tags. Native FLL
 can use different packed-memory boundaries and clipping; that behavior remains
 unqualified. Timing, native partial effects and math-status parity remain open.
 
 [Aggregate zero fills](aggregate-fill.md) have a separate declared-schema
 profile. Other controller profiles and languages retain their earlier contracts.
 The numeric conversion path does not enable general structure patterns, wide
-types, ST FLL calls or FBD forms.
+types or FBD forms. Existing emulator ST FLL calls share the software path,
+including clipped windows and conservative FOR write effects. Native v35 ST FLL
+is unavailable; these calls are an emulator extension, not native language parity.
 
 ## Data lab
 

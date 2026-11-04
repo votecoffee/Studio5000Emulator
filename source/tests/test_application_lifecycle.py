@@ -2686,3 +2686,18 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'WideFactor','value':3});row=values(self.post('step',{'dt':10}));self.assertEqual(int(row['WideMapped[0]']),27021597764222980)
+
+    def test_data_lab_numeric_fill_clips_requests_and_keeps_runtime_guards_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def fault(expected):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(expected,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        row=values(step());self.assertEqual(row['ClipValues[3]'],44);write('ClipNumeric',True);fault('outside bounds');write('ClipIndex',3);row=values(step());self.assertEqual([row[f'ClipValues[{i}]'] for i in range(5)],[11,22,33,120,120]);self.assertEqual(row['ClipScalar'],22136)
+        write('ClipLength',100001);fault('0..100000');write('ClipLength',100000);write('ClipSource',-1);write('ClipIndex',1);row=values(step());self.assertEqual([row[f'ClipValues[{i}]'] for i in range(5)],[11,-1,-1,-1,-1]);self.assertEqual(row['ClipScalar'],-1)
+        write('ClipNumeric',False);write('ClipIndex',99);row=values(step());self.assertEqual(row['ClipValues[4]'],-1);report=self.post('report',{})['numeric_fill'];self.assertTrue(report['clipping']);self.assertIn('logical',report['clipping_boundary']);self.assertFalse(report['native_runtime_parity'])

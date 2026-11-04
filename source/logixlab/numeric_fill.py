@@ -1,7 +1,7 @@
 """Numeric FLL selection and conversion for the bounded v35 5580 profile."""
 from .integer_math import CONTROLLERS, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
-from .numeric_copy import static_reference
+from .numeric_copy import static_reference, location, prefix
 from .real_math import real
 
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
@@ -60,12 +60,35 @@ def handle(engine, op, scope, *, execute=False):
         raise ModelError('Numeric FLL length must be an integer in 0..100000')
     # Capture the complete target window before writing. Keep the existing
     # logical array/member boundary rather than assuming a native packed layout.
-    key, paths, dtype = memory.region(op.args[1], count, scope)
+    key, paths, dtype = prefix(memory,op.args[1],scope,count,writable=True)
     memory.check_writable(op.args[1], scope)
     if count:
         value = converted(memory.read(op.args[0], scope), source_type, dtype)
         for path in paths:memory.store(key, path, value)
     return True
+
+
+def write_effects(engine,op,scope):
+    """Protect the complete numeric fill window in existing ST FOR extensions."""
+    memory=engine.memory;project=engine.project
+    if project.version!='35' or project.processor.upper() not in CONTROLLERS:return None
+    previous=memory.structural;memory.structural=True
+    try:
+        if memory.check_writable(op.args[1],scope)[2] not in NUMERIC:return None
+        handle(engine,op,scope)
+        try:count=literal(op.args[2])
+        except ValueError:count=None
+        if count is not None:
+            if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Numeric FLL length must be an integer in 0..100000')
+            if count==0:return []
+            if static_reference(memory,op.args[1],scope):
+                key,paths,_=prefix(memory,op.args[1],scope,count,writable=True)
+                return [(key,path) for path in paths]
+        key,parts,_,candidate=location(memory,op.args[1],scope,writable=True)
+        path=candidate[0] if candidate is not None else parts
+        path=path[:next((i for i,part in enumerate(path) if isinstance(part,int)),len(path))]
+        return [(key,path)]
+    finally:memory.structural=previous
 
 
 def aggregate_template(project,dtype,seen=(),*,instruction="FLL"):
@@ -155,9 +178,11 @@ def description(project):
                 selection='Structural preflight; false/prescan skip live operands; true calls sample length, destination window and source before stores',
                 zero_length='Validate the live destination reference without reading the source value',
                 storage='Whole arrays or selected elements; row-major traversal within the logical array/member; aliases and existing AOI bindings',
-                max_elements=MAX_ELEMENTS, clipping=False,
+                max_elements=MAX_ELEMENTS, clipping=True,
+                clipping_boundary='Selected logical numeric array/member or scalar; requests stop at its end, without crossing sibling members',
+                st_for_effects='Complete clipped static window; dynamic/alias selections conservatively cover the member and enclosing parent arrays',
                 failures='Unknown consumed values, invalid indices/lengths, REAL range errors and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Native clipping/base-tag cross-member traversal and packed layouts',
-                           'REAL overflow bits/flags, wider types and broader controller/language/lifecycle qualification',
+                           'REAL overflow bits/flags, wider types and native/controller/language/lifecycle qualification',
                            'Aggregate zero fills have a separate declared-schema profile; other controller profiles retain legacy behavior'])
