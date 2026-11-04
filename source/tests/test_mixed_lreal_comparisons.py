@@ -94,7 +94,7 @@ class MixedLrealComparisonTests(unittest.TestCase):
         self.assertTrue(e.memory.read('DriverA.Latched'));self.assertTrue(e.memory.read('DriverB.Latched'));self.assertTrue(e.memory.read('DriverA.CompareEqual'));self.assertTrue(e.memory.read('DriverB.CompareEqual'))
 
     def test_immediates_bool_aggregate_cmp_and_other_profiles_remain_guarded(self):
-        for text in ('EQU(Source,1);','LIM(1,Source,High);','LIM(Source,Mask,3);','EQU(Source,TRUE);','EQU(Inputs,Mask);','MEQ(Source,Mask,Source);','CMP(Source>Mask);'):
+        for text in ('EQU(Source,1.0);','LIM(1.0,Source,High);','LIM(Source,Mask,2147483648);','EQU(Source,TRUE);','EQU(Inputs,Mask);','MEQ(Source,Mask,Source);','CMP(Source>Mask);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(mutate=old).blockers)

@@ -220,3 +220,7 @@ profile for seven basic operations and six direct relations/LIM.
 [Mixed-tag binary arithmetic](mixed-lreal-math.md) additionally promotes numeric
 tags when at least one input and the result are LREAL. Other mixed forms,
 immediates, ST/CPT/CMP and native precision/status/lifecycle parity remain open.
+
+[Integer constants with LREAL](lreal-constants.md) additionally qualify signed
+DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
+typed and larger literals remain excluded; an actual LREAL source is required.

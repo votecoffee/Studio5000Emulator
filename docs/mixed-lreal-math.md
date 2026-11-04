@@ -1,7 +1,7 @@
 # Mixed numeric tag arithmetic with LREAL
 
 App `26.1104.020009` extends the v35 ControlLogix 5580 ladder software profile
-for ADD, SUB, MUL, DIV and MOD. Both sources must be scalar numeric tags, at least
+for ADD, SUB, MUL, DIV and MOD. The original form requires scalar numeric tags; at least
 one source must be LREAL, and the destination must be LREAL. The other source
 can be SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL or LREAL. Both source
 orders are supported. NEG/ABS retain their existing LREAL-source/result forms.
@@ -13,6 +13,10 @@ MUL(SignedWide,DoubleInput,SelectedResults[Index]);
 DIV(DoubleInput,UnsignedWide,DoubleResult);
 MOD(DoubleInput,DintDivisor,DoubleRemainder);
 ```
+
+[Signed DINT-range constants](lreal-constants.md) additionally replace either
+source when the other source is an actual LREAL tag. Floating/typed/larger
+literals remain outside the profile.
 
 Declared types select the profile independently of saved values. Every required
 source is read and converted to finite host binary64 before the operation;
@@ -50,7 +54,7 @@ parameters and broader AOI forms remain separate.
 
 The remaining boundaries are explicit:
 
-- Immediates remain outside LREAL arithmetic; prepare typed source tags with MOV.
+- Floating/typed/larger immediates remain outside LREAL arithmetic.
 - A LREAL destination with only integer/REAL inputs does not select this profile.
 - LREAL arithmetic with a non-LREAL result remains guarded.
 - [Mixed direct comparisons/LIM](mixed-lreal-comparisons.md) additionally promote

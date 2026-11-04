@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; mixed-tag LREAL comparisons added for app `26.1104.021141`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; LREAL integer constants added for app `26.1104.081351`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -124,7 +124,9 @@ logarithms, angle conversion and trigonometry; ST/CPT/CMP remain unqualified.
 [Mixed-tag LREAL arithmetic](mixed-lreal-math.md) adds five binary operations
 with all ten numeric source tag types, at least one LREAL input and a LREAL result.
 [Mixed-tag comparisons/LIM](mixed-lreal-comparisons.md) additionally promote
-numeric tag inputs when at least one is LREAL. Advanced math remains separate.
+numeric tag inputs when at least one is LREAL. [Signed DINT-range constants](lreal-constants.md)
+add binary arithmetic, direct relations and limits; floating/typed/larger literals
+and advanced math remain separate.
 
 ## Remaining forms of existing instructions
 

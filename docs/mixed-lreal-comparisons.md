@@ -1,8 +1,8 @@
 # Mixed numeric comparisons with LREAL
 
 App `26.1104.021141` extends the v35 ControlLogix 5580 ladder software profile
-for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. Every operand must be a scalar numeric
-tag, and at least one operand must be LREAL. The other operands can be SINT,
+for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. The original form uses scalar numeric
+tags, with at least one LREAL operand. The other operands can be SINT,
 INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL or LREAL. Both relation source
 orders and all three LREAL positions in LIM are supported.
 
@@ -13,6 +13,10 @@ LES(SignedWide,DoubleInput)OTE(Less);
 LIM(IntegerLow,DoubleInput,UnsignedHigh)OTE(InRange);
 LIM(DoubleLow,IntegerInput,UnsignedHigh)OTE(InRange);
 ```
+
+[Signed DINT-range constants](lreal-constants.md) additionally occupy either
+relation position or any LIM position while one actual LREAL input remains.
+Floating/typed/larger literals remain excluded.
 
 Declared types select the profile independently of saved values. Every required
 source is read, then all operands promote to finite host binary64 before
@@ -51,7 +55,7 @@ including earlier writes, result coils, task progress/timing and AOI local/
 external values and bindings. Copied DINT AOI inputs with represented LREAL
 locals have independent warm-state cases. Run-entry initialization remains a
 separate preceding prescan boundary. Broader copied LREAL AOI parameters remain
-unqualified. Immediate operands, BOOL/aggregate operands, MEQ, CMP/ST expressions,
+unqualified. Floating/typed/larger immediates, BOOL/aggregate operands, MEQ, CMP/ST expressions,
 time/date types and new FBD/SFC forms remain outside this extension.
 
 Open **Integer lab** and Step with EnableDoubleCompare false. DoubleCompareIndex

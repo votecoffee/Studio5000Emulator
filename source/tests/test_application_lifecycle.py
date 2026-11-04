@@ -3144,3 +3144,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         retained={k:v for k,v in row.items() if k in ('ProgramMax','FastLast','FastMax','SlowLast','SlowMax','StProgramLast','StProgramMax') or k.startswith('TimingWords[')}
         write('ReadTiming',False);write('TimingIndex',99);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['timing'];self.assertIn('committed',report['visibility']);self.assertFalse(report['controller_performance_prediction'])
+
+    def test_integer_lab_lreal_constants_precision_limits_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'IntegerLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace','aoi_bindings'):self.assertEqual(before[key],after[key])
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['DoubleConstantsIndex'],99)
+        write('EnableDoubleConstants',True);fault('outside bounds');write('DoubleConstantsIndex',1)
+        row=values(step());self.assertEqual(tuple(row['DoubleConstants'+name] for name in ('Add','Sub','Mul','Div','Mod','Precision')),(10.5,-4.5,22.5,0.4,1.5,0.0))
+        expected=dict(Eq=False,Ne=True,Lt=False,Le=False,Gt=True,Ge=True,NormalLimit=True,ReverseLimit=False,ConstantTest=True,PrecisionGreater=True)
+        for name,want in expected.items():self.assertIs(row['DoubleConstants'+name],want)
+        self.assertEqual(tuple(row['DoubleConstantsValues['+str(i)+']'] for i in range(3)),(101.125,7.5,999.5))
+        write('DoubleConstantsZeroFault',True);fault('zero');write('DoubleConstantsZeroFault',False)
+        write('DoubleConstantsLateDivisor',0);fault('zero');write('DoubleConstantsLateDivisor',1);step()
+        write('EnableDoubleConstants',False);write('DoubleConstantsIndex',99);row=values(step())
+        for name in expected:self.assertFalse(row['DoubleConstants'+name])
+        for item in (self.post('report',{})['scalar_math']['lreal_arithmetic'],self.post('report',{})['numeric_comparisons']['lreal_ordering']):self.assertIn('Signed DINT',item['constants'])

@@ -5,6 +5,30 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="EnableDoubleConstants" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsZeroFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleConstantsPrecise" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="16777217.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleConstantsLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsAdd" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsSub" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsMul" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsDiv" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsMod" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsPrecision" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsFaultResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="DoubleConstantsEq" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsNe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsLt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsLe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsGt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsGe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsNormalLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsReverseLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsConstantTest" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsPrecisionGreater" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleConstantsValues" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[1]" Value="7.5" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="EnableDoubleCompare" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleCompareIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="DoubleCompareDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
@@ -745,6 +769,29 @@
               <Rung Number="53" Type="N"><Text>JSR(DoubleMath,0);</Text></Rung>
               <Rung Number="54" Type="N"><Text>JSR(MixedDouble,0);</Text></Rung>
               <Rung Number="55" Type="N"><Text>JSR(MixedDoubleCompare,0);</Text></Rung>
+              <Rung Number="56" Type="N"><Text>JSR(DoubleConstants,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(EnableDoubleConstants)ADD(DoubleConstantsValues[DoubleConstantsIndex],3,DoubleConstantsAdd);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(EnableDoubleConstants)SUB(3,DoubleConstantsValues[DoubleConstantsIndex],DoubleConstantsSub);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(EnableDoubleConstants)MUL(DoubleConstantsValues[DoubleConstantsIndex],3,DoubleConstantsMul);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(EnableDoubleConstants)DIV(3,DoubleConstantsValues[DoubleConstantsIndex],DoubleConstantsDiv);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(EnableDoubleConstants)MOD(DoubleConstantsValues[DoubleConstantsIndex],3,DoubleConstantsMod);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableDoubleConstants)EQU(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsEq);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(EnableDoubleConstants)NEQ(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsNe);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(EnableDoubleConstants)LES(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsLt);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(EnableDoubleConstants)LEQ(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsLe);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(EnableDoubleConstants)GRT(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsGt);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(EnableDoubleConstants)GEQ(DoubleConstantsValues[DoubleConstantsIndex],3)OTE(DoubleConstantsGe);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(EnableDoubleConstants)LIM(0,DoubleConstantsValues[DoubleConstantsIndex],10)OTE(DoubleConstantsNormalLimit);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(EnableDoubleConstants)LIM(10,DoubleConstantsValues[DoubleConstantsIndex],0)OTE(DoubleConstantsReverseLimit);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(EnableDoubleConstants)LIM(DoubleConstantsValues[DoubleConstantsIndex],8,10)OTE(DoubleConstantsConstantTest);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(EnableDoubleConstants)SUB(DoubleConstantsPrecise,16777217,DoubleConstantsPrecision);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(EnableDoubleConstants)GRT(DoubleA,1)OTE(DoubleConstantsPrecisionGreater);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(EnableDoubleConstants)XIC(DoubleConstantsZeroFault)DIV(DoubleConstantsValues[DoubleConstantsIndex],0,DoubleConstantsFaultResult);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(EnableDoubleConstants)DIV(1,DoubleConstantsLateDivisor,DoubleConstantsLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedDoubleCompare" Type="RLL">

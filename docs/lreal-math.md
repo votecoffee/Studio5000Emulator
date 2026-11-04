@@ -15,7 +15,7 @@ every operand to be a scalar LREAL tag,
 including arithmetic destinations. [Mixed-tag binary arithmetic](mixed-lreal-math.md)
 now has a separate extension with at least one LREAL input and a LREAL result.
 Selected array elements, aliases and explicit UDT members retain their declared
-type. Immediate constants and other mixed integer/REAL/LREAL forms remain blocked even
+type. Floating/typed/larger constants and other mixed forms remain blocked even
 when their saved values happen to fit. Existing [MOV conversions](lreal-storage.md)
 can prepare matching LREAL source tags. No new mnemonic or language is added.
 
@@ -99,3 +99,7 @@ additionally executes, along with [mixed-tag binary arithmetic](mixed-lreal-math
 types/immediates, ST expressions, CPT/CMP, mixed
 advanced forms, bitwise LREAL operations, aggregate byte layouts and native
 precision/status/fault/lifecycle equivalence remain separate work.
+
+[Integer constants with LREAL](lreal-constants.md) additionally qualify signed
+DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
+typed and larger literals remain excluded; an actual LREAL source is required.

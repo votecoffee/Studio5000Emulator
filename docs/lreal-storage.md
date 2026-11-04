@@ -83,3 +83,7 @@ immediates, ST expressions/assignments, general AOI parameter forms and FLL,
 new literal syntax, aggregate wire layouts and native rounding/status/fault/
 lifecycle equivalence remain unfinished. These unsupported instruction forms
 stay guarded rather than falling through to the REAL implementation.
+
+[Integer constants with LREAL](lreal-constants.md) additionally qualify signed
+DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
+typed and larger literals remain excluded; an actual LREAL source is required.

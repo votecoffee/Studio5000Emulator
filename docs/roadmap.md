@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.081351`: [integer constants with LREAL](lreal-constants.md).
+ADD/SUB/MUL/DIV/MOD, six direct relations and LIM accept signed DINT-range
+integer constants promoted exactly to binary64. An actual LREAL source is still
+required; arithmetic results stay LREAL. Lazy references, unknown full writes,
+source ordering and whole-advance/AOI rollback remain covered. Integer lab adds
+a gated constant section. Floating/typed/larger literals, advanced math and
+expressions, other controller profiles and native parity remain separate.
+
 Available in `26.1104.021141`: [mixed-tag LREAL comparisons](mixed-lreal-comparisons.md).
 Six direct relations and LIM promote numeric tag inputs to finite binary64 when
 at least one input is LREAL. Both source orders, all limit positions, inclusive/

@@ -138,3 +138,7 @@ Immediates and CMP/ST expressions remain separate.
 [Matching-tag LREAL ladder math](lreal-math.md) adds a separate finite binary64
 profile for seven basic operations and six direct relations/LIM. Other operand forms,
 immediates, ST/CPT/CMP and native precision/status/lifecycle parity remain open.
+
+[Integer constants with LREAL](lreal-constants.md) additionally qualify signed
+DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
+typed and larger literals remain excluded; an actual LREAL source is required.
