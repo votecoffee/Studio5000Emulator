@@ -1,7 +1,7 @@
 # Current-instance GSV
 
 In the v35 ControlLogix 5580 software profile, ordinary scheduled ladder and ST
-Program routines can use THIS for existing Program timing and Task configuration
+Program routines can use THIS for existing Program/Task timing and Task configuration
 reads. Called routines in the same Program keep that context.
 
 ```text
@@ -24,8 +24,9 @@ fails instead of guessing a task from a saved value or the first configured row.
 Existing [configuration](gsv-configuration.md) and [timing](scan-time-gsv.md)
 contracts still apply. Rate/Priority require a Periodic Task; configuration times
 use microseconds and exact destination types. Program LastScanTime/MaxScanTime
-read the preceding committed interpreter snapshot. Task timing keeps its existing
-single-Task measurement restriction, even with THIS. No new attribute is added.
+read the preceding committed interpreter snapshot. [Task timing](scan-time-gsv.md)
+also supports independent last/maximum durations in eligible multi-task projects,
+including THIS reads in the executing Program. No new attribute is added.
 
 Prescan, false ladder rungs and skipped ST statements retain output values.
 Configuration destination validation is now structural for named and THIS reads:

@@ -65,6 +65,7 @@ class Engine:
         self.function_blocks = FunctionBlocks(self)
         self._program_timings = {}
         self._task_measurements = None
+        self._task_scan_timings = {}
         self._measured_task = None
         self._task_scheduler = None
         self._program_scanned = set()
@@ -86,6 +87,9 @@ class Engine:
             if len(project.tasks)==1 and project.task_configuration.measurement_supported(task,source_sha256=project.sha256):
                 self._measured_task=task.casefold()
                 self._task_measurements=task_runtime.TaskMeasurements()
+            elif len(project.tasks)>1:
+                self._task_scan_timings={t['name'].casefold():ProgramTiming() for t in project.tasks
+                                         if self.task_scan_timing_eligible(t['name'])}
 
     def _task_runtime_available(self,task,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
@@ -100,6 +104,25 @@ class Engine:
 
     def task_measurement_attributes(self,task,*,source_sha256):
         return self._task_measurements.attributes() if self._task_runtime_available(task,source_sha256) else {}
+
+    def task_scan_timing_eligible(self,task):
+        project=self.project;scheduler=self._task_scheduler
+        row=next((t for t in project.tasks if isinstance(task,str) and t['name'].casefold()==task.casefold()),None)
+        return bool(project.version=='35' and project.processor.upper() in integer_math.CONTROLLERS
+                    and self.mode=='project' and scheduler is not None and scheduler.source==scheduler.configuration
+                    and row and row['class']=='Standard' and row['type'] in ('Continuous','Periodic')
+                    and project.task_configuration.measurement_supported(row['name'],source_sha256=project.sha256))
+
+    def task_scan_timing_attributes(self,task,*,source_sha256):
+        # Preserve the established single-Task native measurement contract.
+        if len(self.project.tasks)==1:return self.task_measurement_attributes(task,source_sha256=source_sha256)
+        if source_sha256!=self.project.sha256 or self.blockers or not self.task_scan_timing_eligible(task):return {}
+        timing=self._task_scan_timings.get(task.casefold())
+        if timing is None:return {}
+        # Last and maximum availability are independent, as for single-Task counters.
+        import struct
+        return {number:struct.pack('<I',value//1000) for number,value in
+                ((8,timing.last_ns),(7,timing.maximum_ns)) if value//1000<1<<32}
 
     def component_tracking_attributes(self,*,idle):
         if (self.mode!='project' or self.blockers or self.fault or self._native_fault_history_uncertain
@@ -575,6 +598,7 @@ class Engine:
         self.trace = []
         self.budget = self.instruction_limit
         timings=dict(self._program_timings)
+        task_timings=dict(self._task_scan_timings)
         inhibitions=dict(self._task_scheduler.inhibitions) if batch else None
         completed=[]
         try:
@@ -585,6 +609,8 @@ class Engine:
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
                 self.time_ms=due;self._executing_task=task
                 previous_calls=self.calls.stack;self.calls.stack=[]
+                measured_task=task.casefold() if isinstance(task,str) else None
+                task_scan_start=task_runtime.perf_counter_ns() if measured_task in task_timings else None
                 try:
                     for entry in entries:
                         name=self.project.routines[entry].program.casefold()
@@ -596,6 +622,8 @@ class Engine:
                         else:self._routine(entry, 0)
                         scanned.add(name)
                     if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
+                    if task_scan_start is not None:
+                        task_timings[measured_task]=task_timings[measured_task].record(task_runtime.perf_counter_ns()-task_scan_start)
                 finally:
                     self.calls.stack=previous_calls
                     self._executing_task,self.memory.first_scan=previous_task,previous_first
@@ -620,6 +648,7 @@ class Engine:
             self.fault = ""
             self._program_timings=timings
             self._task_measurements=measured
+            self._task_scan_timings=task_timings
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
@@ -929,6 +958,11 @@ class Engine:
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
+                'task_scan_timing':dict(tasks_available=len(self._task_scan_timings),
+                    tasks={name:dict(last_us=t.last_ns//1000,maximum_us=t.maximum_ns//1000,executions=t.executions)
+                           for name,t in self._task_scan_timings.items()},
+                    visibility='Previous successful advance; independent multi-Task invocation measurements',
+                    native_protocol_expanded=False,native_runtime_parity=False),
                 'event_execution':event_tasks.description(),
                 'user_interrupts':event_tasks.interrupt_description(),
                 'mcr_execution':mcr.description()|dict(planned_zones=sum(list(plan.values()).count('open') for plan in self._mcr_plans.values())),

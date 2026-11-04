@@ -6,6 +6,20 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadTaskTiming" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TaskTimingIndex" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="BackgroundTaskMax" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastTaskMax" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SlowTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SlowTaskMax" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StBackgroundTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StFastTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StSlowTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisFastTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisSlowTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisBackgroundTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="TaskWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadThis" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ThisIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="ThisWatchdog" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -515,6 +529,7 @@
               </Rung>
               <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
               <Rung Number="16" Type="N"><Text>JSR(ReadCurrentInstances,0)JSR(ReadProgramTimes,0);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>JSR(ReadTaskTimes,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
@@ -527,6 +542,7 @@
               <Line Number="5">IF ReadClock THEN GSV(WallClockTime,,CurrentValue,StClockMicros); GSV(WallClockTime,,DateTime,StClockUtc[0]); END_IF;</Line>
               <Line Number="6">IF ReadTiming THEN GSV(Program,BackgroundProgram,LastScanTime,StProgramLast); GSV(Program,BackgroundProgram,MaxScanTime,StProgramMax); END_IF;</Line>
               <Line Number="7">IF ReadThis THEN GSV(Task,THIS,Name,StThisTaskName); GSV(Task,THIS,Watchdog,StThisWatchdog); GSV(Program,THIS,LastScanTime,StThisProgramLast); END_IF;</Line>
+              <Line Number="8">IF ReadTaskTiming THEN GSV(Task,BackgroundTask,LastScanTime,StBackgroundTaskLast); GSV(Task,FastTask,LastScanTime,StFastTaskLast); GSV(Task,SlowTask,LastScanTime,StSlowTaskLast); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -553,6 +569,17 @@
               <Rung Number="3" Type="N"><Text>XIC(ReadTiming)GSV(Program,FastProgram,MaxScanTime,FastMax);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadTiming)GSV(Program,SlowProgram,LastScanTime,SlowLast);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(ReadTiming)GSV(Program,SlowProgram,MaxScanTime,SlowMax);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadTaskTimes" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,BackgroundTask,LastScanTime,TaskWords[TaskTimingIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,BackgroundTask,MaxScanTime,BackgroundTaskMax);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,FastTask,LastScanTime,FastTaskLast);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,FastTask,MaxScanTime,FastTaskMax);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,SlowTask,LastScanTime,SlowTaskLast);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,SlowTask,MaxScanTime,SlowTaskMax);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,THIS,LastScanTime,ThisBackgroundTaskLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -586,6 +613,7 @@
               <Rung Number="7" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Rate,ThisFastRate);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Priority,ThisFastPriority);</Text>
               </Rung>
+              <Rung Number="9" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,THIS,LastScanTime,ThisFastTaskLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -602,6 +630,7 @@
               <Rung Number="2" Type="N">
                 <Text>XIC(S:FS)ADD(SlowFirst,1,SlowFirst);</Text>
               </Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,THIS,LastScanTime,ThisSlowTaskLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

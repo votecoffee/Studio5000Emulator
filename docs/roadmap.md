@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.224555`: [multi-task scan-time GSV](scan-time-gsv.md).
+Eligible Standard Continuous/Periodic Tasks retain independent last/maximum
+interpreter invocation durations and execution counts. Named and ordinary THIS
+reads use the previous successful advance; runtime inhibition retains counters.
+Failed advances discard all uncommitted timings; routine replacement preserves
+detached timing state. System lab demonstrates ladder/ST/THIS equality and
+selected output guards. The existing single-Task protocol profile is unchanged;
+Event/Safety timing and native timing/status/visibility parity remain separate.
+
 Available in `26.1103.222552`: [current-instance GSV](current-instance-gsv.md).
 THIS resolves to the ordinary scheduled Program or its unique Standard
 Continuous/Periodic owner Task for existing settings/timing reads. Reached
@@ -39,8 +48,8 @@ base-tag traversal, native synchronization and lifecycle parity remain separate.
 Available in `26.1103.210811`: [scan-time GSV](scan-time-gsv.md).
 Program and Task LastScanTime/MaxScanTime read the preceding committed
 interpreter timing snapshot in whole microseconds. Programs retain existing
-scheduled-source eligibility; whole-Task metrics keep the guarded single-Task
-profile. Structural/lazy outputs, typed AOIs, complete conservative ST FOR
+scheduled-source eligibility; whole-Task last/max metrics now include independent
+Standard Continuous/Periodic Tasks. Structural/lazy outputs, typed AOIs, complete conservative ST FOR
 effects and timing/value rollback are modeled. System lab adds gated Program
 examples. Native timing/visibility, broader fields/profiles and setters remain
 separate.

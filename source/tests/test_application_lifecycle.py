@@ -143,6 +143,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_system_lab_multitask_timing_named_this_st_inhibition_and_rollback(self):
+        state=self.post('demo',{'sample':'SystemLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        def now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['TaskWords[1]']);write('ReadTaskTiming',True);before=now()
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        write('TaskTimingIndex',1);v=values(step())
+        self.assertEqual(v['TaskWords[1]'],v['StBackgroundTaskLast']);self.assertEqual(v['TaskWords[1]'],v['ThisBackgroundTaskLast'])
+        for task in ('Fast','Slow'):
+            self.assertEqual(v[task+'TaskLast'],v['St'+task+'TaskLast']);self.assertEqual(v[task+'TaskLast'],v['This'+task+'TaskLast']);self.assertGreaterEqual(v[task+'TaskMax'],v[task+'TaskLast'])
+        self.assertEqual([v[f'TaskWords[{i}]'] for i in (0,2,3)],[101,77,999])
+        write('ControlTasks',True);write('TaskInhibitCommand',1);step();first=self.post('report',{})['task_scan_timing']['tasks']['fasttask'];step();second=self.post('report',{})['task_scan_timing']['tasks']['fasttask'];self.assertEqual(first,second)
+        write('ReadTaskTiming',False);write('TaskTimingIndex',99);old=values(now());v=values(step());self.assertEqual(v['FastTaskLast'],old['FastTaskLast']);self.assertEqual(v['TaskWords[1]'],old['TaskWords[1]'])
+        report=self.post('report',{})['task_scan_timing'];self.assertEqual(report['tasks_available'],3);self.assertFalse(report['native_protocol_expanded']);self.assertFalse(report['native_runtime_parity'])
+
     def test_system_lab_this_contexts_named_snapshots_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'SystemLab'});self.assertEqual(state['blockers'],[])
         values=lambda s:{row['name']:row['value'] for row in s['tags']}

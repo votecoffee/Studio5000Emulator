@@ -104,7 +104,7 @@ class GsvConfigurationTests(unittest.TestCase):
 
     def test_current_task_aliases_unknown_tasks_and_runtime_attributes_stay_blocked(self):
         for instance,attribute in (('','Rate'),('THIS','Rate'),('Missing','Name'),('FastTask','Instance'),
-                                  ('FastTask','LastScanTime'),('FastTask','Status'),('FastTask','OverlapCount')):
+                                  ('FastTask','Status'),('FastTask','OverlapCount')):
             self.assertTrue(self.engine([f'GSV(Task,{instance},{attribute},Out);']).blockers)
         for text in ('GSV(Controller,This,TimeSlice,PriorityOut);','GSV(Module,,EntryStatus,Out);',
                      'SSV(Task,FastTask,Rate,Out);','GSV(Task,FastTask,Rate);'):

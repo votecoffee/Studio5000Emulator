@@ -103,11 +103,13 @@ class GsvTimingTests(unittest.TestCase):
             e.step();e.step()
         self.assertEqual(e.memory.read('ProgramLast'),7);self.assertEqual(e.memory.read('ProgramMax'),3)
 
-    def test_multitask_program_reads_work_while_whole_task_reads_stay_guarded(self):
+    def test_multitask_program_and_whole_task_reads_use_committed_measurements(self):
         def tasks(root):
             tasks=root.find('./Controller/Tasks');other=copy.deepcopy(tasks[0]);other.attrib.update(Name='OtherTask',Type='Periodic',Rate='20',Priority='5');other.find('ScheduledPrograms').clear();tasks.append(other)
         e=self.checked(['GSV(Program,MainProgram,LastScanTime,ProgramLast);'],mutate=tasks);e.step();e.step();self.assertGreaterEqual(e.memory.read('ProgramLast'),0)
-        self.assertTrue(self.engine(['AFI()GSV(Task,MainTask,LastScanTime,TaskLast);'],mutate=tasks).blockers)
+        e=self.checked(['GSV(Task,MainTask,LastScanTime,TaskLast);','GSV(Task,OtherTask,MaxScanTime,TaskMax);'],mutate=tasks);e.step()
+        self.assertEqual(e.memory.read('TaskLast'),0);self.assertEqual(e.memory.read('TaskMax'),0)
+        e.step();self.assertGreaterEqual(e.memory.read('TaskLast'),0);self.assertGreaterEqual(e.memory.read('TaskMax'),0)
 
     def test_zero_initialized_scheduled_program_without_main_is_available(self):
         def empty(root):

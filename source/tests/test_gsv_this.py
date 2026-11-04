@@ -66,11 +66,11 @@ class GsvThisTests(unittest.TestCase):
             e=self.checked(logic,st=True,mutate=move);e.step(25);e.step(25)
             self.assertEqual(e.memory.read('CurrentLast'),e.memory.read('NamedLast'));self.assertEqual(e.memory.read('CurrentMax'),e.memory.read('NamedMax'));self.assertGreaterEqual(e.memory.read('CurrentMax'),e.memory.read('CurrentLast'))
 
-    def test_single_task_timing_this_shares_named_measurement_and_multitask_stays_guarded(self):
+    def test_single_task_timing_this_shares_named_measurement_and_multitask_is_available(self):
         logic=['GSV(Task,THIS,LastScanTime,TaskLast);','GSV(Task,MainTask,LastScanTime,TaskMax);','GSV(Program,THIS,LastScanTime,ProgramLast);','GSV(Program,MainProgram,LastScanTime,ProgramMax);']
         e=timing.GsvTimingTests.engine(self,logic);self.assertEqual(e.blockers,[]);e.step();e.step()
         self.assertEqual(e.memory.read('TaskLast'),e.memory.read('TaskMax'));self.assertEqual(e.memory.read('ProgramLast'),e.memory.read('ProgramMax'))
-        self.assertTrue(self.engine(['GSV(Task,THIS,LastScanTime,Out);']).blockers)
+        e=self.checked(['GSV(Task,THIS,LastScanTime,Out);']);e.step(25);self.assertEqual(e.memory.read('Out'),0)
 
     def test_configuration_destinations_are_lazy_and_unknown_full_cells_can_be_written(self):
         for instance in ('THIS','FastTask'):

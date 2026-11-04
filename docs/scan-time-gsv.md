@@ -26,8 +26,14 @@ in one advance do not publish intermediate timings to GSV. This model does not
 establish native per-execution update ordering or predict hardware performance.
 
 Program timing covers the completed main routine and its nested calls.
-Whole-Task timing covers the complete scheduled interpreter execution in the
-existing [single-Task measurement profile](task-runtime.md). Prescan and failed
+The established [single-Task measurement profile](task-runtime.md) is retained.
+In projects with multiple tasks, each eligible Continuous/Periodic invocation
+measures its own completed body, including nested calls and synchronously
+dispatched Event work. Several releases of a periodic Task in one advance update
+its pending last/maximum durations independently. GSV observes the prior committed
+advance throughout that batch. Unreleased or runtime-inhibited tasks retain their
+measurements. Run entry retains committed values; reset/reload initializes them.
+Prescan and failed
 advances do not commit new measurements. Maximum values retain the longest
 successful execution since model reset. Existing counters and protocol reads
 are unchanged by GSV observation.
@@ -47,11 +53,18 @@ Programs remain unavailable. The existing explicitly qualified no-main Program
 profile retains its initialized zero values. Program reads work with supported
 multiple-task scheduling.
 
-Task reads retain the existing complete-source single Standard Continuous or
-Periodic Task profile, including explicit priority, output-update/inhibit
-settings, a known ordered Program schedule and current registry identity.
-Multiple Tasks, Event/Safety forms and routine harnesses do not acquire whole-Task
-measurements through this change. No source defaults fabricate availability.
+Task reads require complete current source, Standard Continuous/Periodic Tasks,
+explicit priority/output-update/inhibit settings and a known ordered Program
+schedule. Initially inhibited Tasks remain outside this measurement profile;
+a runtime-inhibited eligible Task retains readable committed values. The existing
+single-Task registry identity requirement is retained. Event/Safety Tasks and
+routine harnesses remain unqualified. No source defaults fabricate availability.
+
+Multi-task measurements are logical GSV data. They add no native Task identity,
+protocol timing/status attribute, watchdog enforcement or controller CPU model.
+The coverage report exposes per-task microseconds and successful invocation
+counts under task_scan_timing; native_protocol_expanded remains false.
+Routine replacement deep-copies this state into its detached candidate.
 
 Preflight validates destination type, shape, permissions and index grammar
 without reading timing values or saved dynamic indices. False ladder rungs,
@@ -77,8 +90,17 @@ Ladder and ST values for the same Program use the same committed snapshot.
 
 TimingIndex starts at 1; neighboring cells remain 101, 77 and 999. Set ReadTiming
 false to retain outputs. A dormant index99 is skipped; a reached invalid index
-faults atomically. Restore the index to 1 to recover. System lab has three Tasks,
-so the separate whole-Task GSV forms above require a qualifying single-Task project.
+faults atomically. Restore the index to 1 to recover.
+
+Enable ReadTaskTiming with TaskTimingIndex=1 to read all three whole-Task
+last/maximum values in the called ReadTaskTimes routine. TaskWords[1] is the
+background last duration; guards101/77/999 remain. TaskTimingIndex starts99 and
+is dormant while disabled. StBackgroundTaskLast/StFastTaskLast/StSlowTaskLast
+match the ladder values when the existing ReadConfig gate is enabled. Each
+Program also reads Task THIS LastScanTime; with25ms advances these match the
+named values. ControlTasks and TaskInhibitCommand can inhibit FastTask; its
+last/maximum durations retain while other tasks continue. Re-enable at the
+existing phase without catch-up. Disable ReadTaskTiming to retain outputs.
 
 The type/unit baseline follows installed v35 help 14638/14646 and Rockwell's
 [Program object](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
