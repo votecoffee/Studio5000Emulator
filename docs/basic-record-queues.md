@@ -28,8 +28,9 @@ FIFO unload returns element zero and shifts the configured region, including
 unused represented slots. LIFO unload returns POS-1 and clears only that slot.
 Both clear vacated records using the declared logical default: numeric members
 zero and BOOL members false. An empty unload edge establishes the same default
-output. Source and destination timer clocks, counter edge histories, incremental
-file progress and other private runtime state are not copied or reset.
+output. Private timer clocks, incremental file progress and other simulator-owned
+execution state are not copied or reset. Represented counter/control flags
+remain part of the payload data.
 
 Unknown members remain unknown. A whole unknown record faults if actually read.
 FIFO still requires its complete configured region; LIFO reads only its selected
