@@ -20,10 +20,12 @@ The documented dimension operand is an immediate 0, 1 or 2. The existing emulato
 extension accepting a SINT/INT/DINT dimension tag remains available, with rank and
 range checked when executed. This extension is not claimed as native syntax.
 
-TRN consumes a finite REAL source, first represented as float32, and truncates
-toward zero. It writes SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT/REAL destinations
-when the result fits. Bounded DINT and finite REAL immediates are accepted. LREAL
-sources/results remain unfinished. ST continues to use the TRUNC expression;
+TRN consumes a finite REAL or LREAL tag and truncates toward zero, preserving
+float32 or binary64 source precision respectively. It writes SINT/INT/DINT/LINT/
+USINT/UINT/UDINT/ULINT/REAL/LREAL destinations when the result fits. Bounded DINT
+and finite REAL immediates retain the existing float32 source policy. See
+[LREAL truncation](lreal-truncate.md) for precision and destination examples.
+ST continues to use its separate TRUNC expression;
 this change does not add a TRN ST call or expand FBD.
 
 Preflight checks types, shape and permissions without consuming saved scalar

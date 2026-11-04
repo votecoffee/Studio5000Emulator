@@ -5,6 +5,19 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="TrnEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TrnIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="TrnInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="16777217.875" /></Data></Tag>
+      <Tag Name="TrnSignedInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9007199254740991.0" /></Data></Tag>
+      <Tag Name="TrnUnsignedInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="18446744073709549568.0" /></Data></Tag>
+      <Tag Name="TrnFromReal" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="TrnDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TrnLint" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TrnUlint" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TrnReal" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="-1" /></Data></Tag>
+      <Tag Name="TrnDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TrnLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TrnResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="LrealMath" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="LrealIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="LrealRootInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9.000000000000004" /></Data></Tag>
@@ -465,6 +478,7 @@
                 <Text>XIC(IndexedMath)XPY(IndexedInputs[MathIndex],2.0,IndexedPowers[MathIndex]);</Text>
               </Rung>
               <Rung Number="29" Type="N"><Text>JSR(LrealAdvanced,0);</Text></Rung>
+              <Rung Number="30" Type="N"><Text>JSR(LrealTruncate,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="LrealAdvanced" Type="RLL">
@@ -483,6 +497,17 @@
               <Rung Number="11" Type="N"><Text>XIC(LrealMath)ACS(LrealInverse,LrealAcs);</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(LrealMath)ATN(LrealInverse,LrealAtn);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(LrealMath)DIV(1,LrealLateDivisor,LrealLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="LrealTruncate" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(TrnEnabled)TRN(TrnInput,TrnResults[TrnIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(TrnEnabled)TRN(TrnInput,TrnDint);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(TrnEnabled)TRN(TrnSignedInput,TrnLint);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(TrnEnabled)TRN(TrnUnsignedInput,TrnUlint);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(TrnEnabled)TRN(Input,TrnFromReal);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(TrnEnabled)TRN(TrnInput,TrnReal);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(TrnEnabled)DIV(1,TrnDivisor,TrnLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MathText" Type="ST">

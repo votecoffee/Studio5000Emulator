@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.013306`: [LREAL ladder truncation](lreal-truncate.md).
+TRN consumes REAL or LREAL tags and writes representable signed/unsigned integer
+or REAL/LREAL results. Binary64 sources retain their precision before truncation;
+REAL sources and untyped immediates retain float32 behavior. Math lab adds a
+gated example with selected outputs and signed/unsigned boundary inputs. Existing
+SIZE types, ST/FBD forms and native numerical/status/fault/lifecycle qualification
+remain separate.
+
 Available in `26.1104.011710`: [tagged LREAL advanced math](lreal-advanced.md).
 SQR/XPY/LN/LOG/DEG/RAD and six trigonometric forms use finite binary64
 inputs/results with matching LREAL tags. Structural/lazy selection, complete

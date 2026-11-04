@@ -359,6 +359,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
             write(tag,good);step()
         write('LrealMath',False);write('LrealIndex',99);step()
 
+    def test_math_lab_lreal_truncation_precision_wide_ranges_and_atomic_recovery(self):
+        self.post('demo',{'sample':'MathLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['TrnIndex'],99);self.assertIsNone(v['TrnResults[1]'])
+        write('TrnIndex',1);write('TrnEnabled',True);v=values(step())
+        for name,expected in [('TrnResults[1]',16777217.0),('TrnDint',16777217),('TrnReal',16777216.0),('TrnLint','9007199254740991'),('TrnUlint','18446744073709549568'),('TrnFromReal',-16.0)]:self.assertEqual(v[name],expected)
+        self.assertEqual((v['TrnResults[0]'],v['TrnResults[2]']),(101.125,999.5))
+        for tag,bad,good in [('TrnSignedInput',float(2**63),9007199254740991.0),('TrnUnsignedInput',float(2**64),18446744073709549568.0),('TrnDivisor',0,1)]:
+            write(tag,bad);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,good);step()
+        write('TrnInput',-3.9999999999999996);v=values(step());self.assertEqual(v['TrnDint'],-3)
+        write('TrnEnabled',False);write('TrnIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()
