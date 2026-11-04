@@ -87,11 +87,10 @@ class AggregateFillTests(unittest.TestCase):
         e=self.checked(['FLL(0,Timers[0],1);','FLL(0,Counters[0],1);','TON(Timers[0],?,?);','CTU(Counters[0],?,?);']);e.step();self.assertTrue(e.memory.read('Timers[0].DN'));self.assertEqual(e.memory.read('Counters[0].ACC'),1);self.assertTrue(e.memory.read('Counters[0].DN'))
 
     def test_static_and_dynamic_lengths_regions_and_budget_remain_bounded(self):
-        for count in ('-1','100001','4','1.0','StartPB'):
+        for count in ('-1','100001','1.0','StartPB'):
             self.assertTrue(self.engine([f'AFI()FLL(0,Records[0],{count});']).blockers,count)
-        e=self.checked(['MOV(99,SpeedCommand);','FLL(0,Records[Index],Lengths[0]);']);e.memory.write('Index',2);e.memory.write('Lengths[0]',2);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'boundary'):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('Index',0);e.memory.write('Lengths[0]',1);e.instruction_limit=10;before=self.snapshot(e)
+        e=self.checked(['MOV(99,SpeedCommand);','FLL(0,Records[Index],Lengths[0]);']);e.memory.write('Index',2);e.memory.write('Lengths[0]',2);e.step();self.assert_cell_zero(e.memory.read('Records')[2])
+        e.memory.write('Index',0);e.memory.write('Lengths[0]',1);e.instruction_limit=10;before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'scalar-member budget'):e.step()
         self.assertEqual(self.snapshot(e),before);e.instruction_limit=1000;e.step();self.assert_cell_zero(e.memory.read('Records')[0])
 

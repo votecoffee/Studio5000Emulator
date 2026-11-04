@@ -125,6 +125,9 @@ def execute(engine,specification):
 
 def write_effects(engine,op,scope):
     """Protect every written cell, conservatively for indirect/dynamic regions."""
+    from . import aggregate_copy
+    aggregate=aggregate_copy.write_effects(engine,op,scope)
+    if aggregate is not None:return aggregate
     memory=engine.memory;count=engine.extensions.integer(op.args[2],scope)
     spec=plan(engine,op,scope,count)
     if spec is None:key,parts,_=memory.region(op.args[1],count,scope)

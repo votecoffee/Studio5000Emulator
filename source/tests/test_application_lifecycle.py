@@ -64,6 +64,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(request, timeout=3) as response:
             return json.load(response)
 
+    def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
+        self.assertEqual(len(state['routines']),3)
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        def counts(s,name):
+            v=values(s);return [v[f'{name}[{i}].Count'] for i in range(3)]
+        state=step();self.assertEqual(counts(state,'ClipRecordSources'),[10,20,30])
+        write('ClipRecordIndex',2);write('ClipRecordFill',True);state=step()
+        self.assertEqual(counts(state,'ClipRecordSources'),[10,20,0])
+        self.assertIs(values(state)['ClipRecordSources[2].Enabled'],False)
+        self.assertEqual(values(state)['ClipRecordSources[2].Timer.ACC'],0)
+        write('ClipRecordFill',False);write('ClipRecordCopy',True);state=step()
+        for name in ('ClipRecordCopies','ClipRecordSync'):self.assertEqual(counts(state,name),[101,0,999])
+        write('ClipRecordSources[2].Count',77);state=step()
+        for name in ('ClipRecordCopies','ClipRecordSync'):self.assertEqual(counts(state,name),[101,77,999])
+        write('ClipRecordIndex',99)
+        before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','trace','routine_edits'):self.assertEqual(after[key],before[key])
+        write('ClipRecordIndex',2);state=step();self.assertFalse(state['fault'])
+        report=self.post('report',{})
+        for name in ('aggregate_copy','aggregate_fill'):
+            self.assertTrue(report[name]['clipping']);self.assertFalse(report[name]['native_runtime_parity'])
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

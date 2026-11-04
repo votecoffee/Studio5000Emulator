@@ -112,10 +112,10 @@ class ClippedFillTests(unittest.TestCase):
         e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,View,1); END_FOR;', dest_type='DINT', count=3, mutate=view); self.assertTrue(e.blockers)
         e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,View,0); END_FOR;', dest_type='DINT', count=3, mutate=view); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 44, 55])
 
-    def test_aggregate_strict_bounds_other_profiles_and_wide_types_stay_separate(self):
+    def test_aggregate_clipping_other_profiles_and_wide_types_stay_separate(self):
         import test_aggregate_fill as aggregate
         helper = aggregate.AggregateFillTests(); helper.setUp(); self.addCleanup(helper.doCleanups)
-        self.assertTrue(helper.engine(['AFI()FLL(0,Records[0],4);']).blockers)
+        self.assertEqual(helper.engine(['AFI()FLL(0,Records[0],4);']).blockers,[])
         for source in ('LINT', 'USINT', 'ULINT'):self.assertTrue(self.engine(source_type=source).blockers)
         def old(root):root.find('Controller').set('ProcessorType', '1756-L75')
         self.assertTrue(self.engine(count=100000, mutate=old).blockers)

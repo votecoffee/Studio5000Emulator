@@ -16,6 +16,31 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ClipRecordSources" TagType="Base" DataType="ZeroFillCell" Dimensions="3" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="ZeroFillCell" Dimensions="3">
+            <Element Index="[0]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="10" /></Structure></Element>
+            <Element Index="[1]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="20" /></Structure></Element>
+            <Element Index="[2]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="30" /></Structure></Element>
+        </Array></Data>
+      </Tag>
+      <Tag Name="ClipRecordCopies" TagType="Base" DataType="ZeroFillCell" Dimensions="3" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="ZeroFillCell" Dimensions="3">
+            <Element Index="[0]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="101" /></Structure></Element>
+            <Element Index="[1]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="202" /></Structure></Element>
+            <Element Index="[2]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="999" /></Structure></Element>
+        </Array></Data>
+      </Tag>
+      <Tag Name="ClipRecordSync" TagType="Base" DataType="ZeroFillCell" Dimensions="3" Constant="false" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="ZeroFillCell" Dimensions="3">
+            <Element Index="[0]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="101" /></Structure></Element>
+            <Element Index="[1]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="202" /></Structure></Element>
+            <Element Index="[2]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="999" /></Structure></Element>
+        </Array></Data>
+      </Tag>
+      <Tag Name="ClipRecordFill" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClipRecordCopy" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClipRecordIndex" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="ClipRecordLength" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="100000" /></Data></Tag>
       <Tag Name="Source" TagType="Base" DataType="DINT" Dimensions="6" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Array DataType="DINT" Dimensions="6" Radix="Decimal">
@@ -441,7 +466,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>JSR(ClippedFill,0)XIC(MoveNumeric)MOV(MoveSource,MoveByte);</Text>
+                <Text>JSR(ClippedRecords,0)JSR(ClippedFill,0)XIC(MoveNumeric)MOV(MoveSource,MoveByte);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(MoveNumeric)MOV(MoveSource,MoveWord);</Text>
@@ -581,6 +606,13 @@
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(ClipNumeric)FLL(ClipSource,ClipValues[ClipIndex],ClipLength);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ClipNumeric)FLL(ClipSource,ClipScalar,ClipLength);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ClippedRecords" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ClipRecordFill)FLL(0,ClipRecordSources[ClipRecordIndex],ClipRecordLength);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ClipRecordCopy)COP(ClipRecordSources[ClipRecordIndex],ClipRecordCopies[1],ClipRecordLength);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ClipRecordCopy)CPS(ClipRecordSources[ClipRecordIndex],ClipRecordSync[1],ClipRecordLength);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

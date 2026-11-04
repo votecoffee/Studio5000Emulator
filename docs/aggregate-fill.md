@@ -33,12 +33,13 @@ values, including unknowns.
 
 Whole arrays and selected elements, row-major multidimensional traversal,
 member regions, aliases and existing AOI local/InOut bindings use canonical
-storage. The complete destination window must fit its logical region. Native
-byte clipping, cross-member/base-tag traversal and packed layouts are unqualified.
+storage. Oversized lengths stop at the selected logical region, including a
+scalar record. See [clipped aggregate operations](clipped-aggregates.md). Native
+base-tag byte clipping, cross-member traversal and packed layouts are unqualified.
 
 Structural preflight checks declared schemas, types, permissions, index grammar
 and literal bounds without reading saved source/length values or dynamic indices.
-Fully static destination-window errors remain blockers. False ladder rungs and
+Invalid static starting addresses remain blockers. False ladder rungs and
 prescan skip the fill and its live operands. True calls capture the length,
 complete destination window and zero source before storing anything, including
 when source or length aliases a field that the fill will clear.
@@ -49,7 +50,7 @@ unknown records while retaining the declared member types.
 
 ## Work limits and rollback
 
-Each scalar member filled consumes one advance-budget unit. A budget failure,
+Each actual scalar member filled consumes one advance-budget unit. A budget failure,
 invalid region/index/length, unknown or nonzero consumed source and later
 instruction faults restore earlier writes, AOI bindings, time and scheduling
 within the modeled advance. Completed prescan is a separate lifecycle boundary.

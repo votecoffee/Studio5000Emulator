@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.213202`: [clipped aggregate operations](clipped-aggregates.md).
+Matching COP/CPS and zero FLL stop at the selected logical array/member or
+scalar; copies also stop at the remaining source. Complete records, unknowns,
+sequential overlap, captured operands and transactional work limits remain.
+Existing ST calls protect every written record in FOR analysis, with conservative
+effects for changing selections. Data lab adds a called ladder example. Packed
+base-tag traversal, native synchronization and lifecycle parity remain separate.
+
 Available in `26.1103.210811`: [scan-time GSV](scan-time-gsv.md).
 Program and Task LastScanTime/MaxScanTime read the preceding committed
 interpreter timing snapshot in whole microseconds. Programs retain existing
@@ -36,7 +44,7 @@ Source/length capture, conversions, lazy operands and rollback remain. Data lab
 adds array/scalar examples. Existing emulator ST FLL calls share clipping with
 complete conservative FOR write effects; native ST availability is separate.
 Wide types, packed cross-member copying and native partial-effect parity remain
-unqualified; aggregate zero fills retain their strict logical-region contract.
+unqualified; aggregate zero fills now use the logical clipping documented above.
 
 Available in `26.1103.195250`: [wide integer file operations](integer-files.md).
 FAL adds exact matching LINT/unsigned transforms; FSC uses the existing wide/mixed

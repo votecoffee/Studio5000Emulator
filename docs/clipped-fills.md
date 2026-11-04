@@ -36,8 +36,8 @@ False/prescan paths retain their existing lazy operand rules.
 
 Existing aliases and RLL AOI InOut/local arrays share clipping. Bounds/conversion
 errors and later faults restore values, bindings, time, traces and scheduler
-state for the complete advance. [Aggregate zero fills](aggregate-fill.md) keep
-their separate strict logical-region contract.
+state for the complete advance. [Aggregate zero fills](clipped-aggregates.md) also clip to the selected logical
+region, using declared records and their separate scalar-member work budget.
 
 ## Existing emulator ST extension
 

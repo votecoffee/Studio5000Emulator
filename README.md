@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.210811`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.213202`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -77,6 +77,10 @@ and payload indices while preserving held output/teach updates and table checks.
 
 [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
+
+[Clipped record operations](docs/clipped-aggregates.md) stop COP/CPS and zero
+FLL at the selected logical region. **Data lab** demonstrates source-limited
+copies with preserved neighboring records.
 
 [Matching aggregate copies](docs/aggregate-copies.md) give COP/CPS structural
 validation, lazy live operands, complete unknown-value copies and bounded work

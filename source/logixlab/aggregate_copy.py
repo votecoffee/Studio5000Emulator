@@ -1,7 +1,7 @@
 """Matching basic-record COP/CPS with structural, lazy operand selection."""
 from .integer_math import CONTROLLERS
 from .model import ModelError, literal
-from .numeric_copy import static_reference
+from .numeric_copy import prefix, static_reference
 from .numeric_fill import aggregate_template, scalar_count, MAX_ELEMENTS
 
 
@@ -31,7 +31,7 @@ def handle(engine, op, scope, *, execute=False):
             if type(count) is not int or not 0 <= count <= MAX_ELEMENTS:
                 raise ModelError('Aggregate COP/CPS length must be an integer in 0..100000')
             for ref in op.args[:2]:
-                if static_reference(memory, ref, scope):memory.region(ref, count, scope)
+                if static_reference(memory, ref, scope):prefix(memory, ref, scope, count)
     finally:memory.structural = previous
     if not execute:return True
 
@@ -40,9 +40,10 @@ def handle(engine, op, scope, *, execute=False):
         raise ModelError('Aggregate COP/CPS length must be an integer in 0..100000')
     # Capture all addresses before writing, including indices/lengths stored
     # inside the copied records. Values retain sequential overlap propagation.
-    sk, sources, _ = memory.region(op.args[0], count, scope)
-    dk, destinations, _ = memory.region(op.args[1], count, scope)
-    memory.check_writable(op.args[1], scope)
+    sk, sources, _ = prefix(memory, op.args[0], scope, count)
+    dk, destinations, _ = prefix(memory, op.args[1], scope, count, writable=True)
+    size = min(len(sources), len(destinations))
+    sources, destinations = sources[:size], destinations[:size]
     engine.budget -= len(destinations) * scalar_count(template)
     if engine.budget < 0:raise ModelError('Aggregate COP/CPS scalar-member budget exceeded')
     for source, dest in zip(sources, destinations):
@@ -50,16 +51,36 @@ def handle(engine, op, scope, *, execute=False):
     return True
 
 
+def write_effects(engine,op,scope):
+    """Track complete clipped records, conservatively for changing selections."""
+    memory=engine.memory;previous=memory.structural;memory.structural=True
+    try:
+        if not handle(engine,op,scope):return None
+        try:count=literal(op.args[2])
+        except ValueError:count=None
+        if count==0:return []
+        if count is not None and all(static_reference(memory,ref,scope) for ref in op.args[:2]):
+            _,sources,_=prefix(memory,op.args[0],scope,count)
+            key,paths,_=prefix(memory,op.args[1],scope,count,writable=True)
+            return [(key,path) for path in paths[:len(sources)]]
+        key,parts,_=memory.check_writable(op.args[1],scope)
+        boundary=next((i for i,part in enumerate(parts) if isinstance(part,int)),len(parts))
+        return [(key,parts[:boundary])]
+    finally:memory.structural=previous
+
+
 def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 instructions=['COP', 'CPS'], languages=['RLL', 'ST'],
                 types='Identical TIMER/COUNTER/CONTROL/STRING or explicit nested basic UDT element types',
                 selection='Structural preflight; false/prescan skip saved lengths, values and dynamic indices',
-                execution='Capture length and complete source/destination windows before sequential stores',
+                execution='Capture length and clipped source/destination windows before sequential stores; copy the minimum remaining element count',
+                clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',
+                st_for_effects='Complete clipped static windows; changing/alias/AOI selections conservatively cover the enclosing array',
                 zero_length='Resolve both live addresses without reading record values',
                 unknowns='Copy logical unknowns, full records and all string DATA; each destination owns independent storage',
                 overlap='Forward sequential propagation for both instructions, retaining existing logical-copy behavior',
-                work='One budget unit per scalar member copied; strict logical regions and whole-advance rollback',
+                work='One budget unit per actual scalar member copied; logical clipping and whole-advance rollback',
                 remaining=['Packed layouts, mixed aggregate types, native byte clipping and cross-member/base-tag traversal',
                            'Operational/AOI aggregate schemas, private instruction histories and native synchronization/fault/lifecycle parity'],
                 native_runtime_parity=False)

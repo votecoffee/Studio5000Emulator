@@ -22,12 +22,14 @@ outside this profile. Other controller profiles retain legacy copy behavior.
 Length is a scalar SINT/INT/DINT tag or an integer immediate in 0..100000.
 Preflight validates schemas, shapes, destination permissions, index grammar
 and literal bounds without consuming saved lengths, dynamic indices or record
-values. Fully static source/destination windows must fit before execution.
+values. Oversized static windows clip to the selected logical region.
 False ladder rungs, skipped ST statements and prescan perform no copy and
 skip these live operands. Existing ST FOR destination protections remain.
 
 Reached calls capture Length and complete source/destination windows before
-writing. Both windows must fit their logical scalar/member/array regions.
+writing. The count clips to the shorter remaining source/destination logical
+scalar/member/array region; sibling members are never traversed. See
+[clipped aggregate operations](clipped-aggregates.md), including ST FOR effects.
 Zero length still resolves both live addresses, and reads no record values.
 Unknown consumed lengths and invalid live indices fault; unknown record fields
 are copied as unknowns, without treating them as numeric or Boolean inputs.
@@ -47,7 +49,7 @@ fields that selected them; source values are read per element.
 
 ## Work limits and boundaries
 
-Each copied scalar member consumes one advance-budget unit. Budget failures,
+Each actual copied scalar member consumes one advance-budget unit. Budget failures,
 invalid windows/lengths/indices and later instruction faults restore earlier
 record writes, AOI bindings, time and scheduling within the modeled advance.
 Completed prescan is a separate lifecycle boundary.
@@ -84,6 +86,6 @@ See [DataLab.L5X](../source/samples/DataLab.L5X).
 
 Rockwell's [copy reference](https://www.rockwellautomation.com/en-ca/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/array--file--misc-instructions/copy-cop-synch-copy-cps.html)
 describes destination-element lengths and structure-copy examples. Declared
-schemas, strict logical windows, unknown propagation and transactional work
+schemas, logical-region clipping, unknown propagation and transactional work
 limits here are explicit software policies. These checks do not establish
 native Studio/controller equivalence.

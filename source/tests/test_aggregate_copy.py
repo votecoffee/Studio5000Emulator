@@ -85,12 +85,11 @@ class AggregateCopyTests(unittest.TestCase):
         e.memory.write('Index', 0); before = copy.deepcopy(e.memory.values); e.step()
         self.assertEqual(e.memory.values, before)
 
-    def test_complete_regions_are_strict_and_dynamic_lengths_are_checked_when_reached(self):
+    def test_regions_clip_and_dynamic_lengths_are_checked_when_reached(self):
         for ref in ('Records[0],CopyRecords[Index]', 'Records[Index],CopyRecords[0]'):
             e = self.checked(['MOV(55,SpeedCommand);', f'COP({ref},Lengths[0]);'])
-            e.memory.write('Index', 2); e.memory.write('Lengths[0]', 2); before = self.snapshot(e)
-            with self.assertRaisesRegex(ModelError, 'boundary'):e.step()
-            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('Index', 2); e.memory.write('Lengths[0]', 2); e.step()
+            self.assertEqual(e.memory.read('SpeedCommand'),55)
             for length in (-1, 100001):
                 e.memory.write('Lengths[0]', length); before = self.snapshot(e)
                 with self.assertRaisesRegex(ModelError, 'length'):e.step()
@@ -159,7 +158,7 @@ class AggregateCopyTests(unittest.TestCase):
 
     def test_structural_errors_constants_and_excluded_schemas_stay_blocked(self):
         for instruction in ('COP', 'CPS'):
-            for args in ('Records[99],CopyRecords[0],0', 'Records[0],CopyRecords[0],4', 'Records[0],CopyRecords[0],-1', 'Records[0],CopyRecords[0],1.0', 'Records[0],CopyTimers[0],1', 'Records[0],CopyRecords[0],StartPB', 'Records[0],CopyRecords[0],Records[0].Wide'):
+            for args in ('Records[99],CopyRecords[0],0', 'Records[0],CopyRecords[0],100001', 'Records[0],CopyRecords[0],-1', 'Records[0],CopyRecords[0],1.0', 'Records[0],CopyTimers[0],1', 'Records[0],CopyRecords[0],StartPB', 'Records[0],CopyRecords[0],Records[0].Wide'):
                 self.assertTrue(self.engine([f'AFI(){instruction}({args});']).blockers, args)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="CopyRecords"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()COP(Records[0],CopyRecords[0],1);'], constant).blockers)

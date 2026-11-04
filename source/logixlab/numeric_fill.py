@@ -69,13 +69,13 @@ def handle(engine, op, scope, *, execute=False):
 
 
 def write_effects(engine,op,scope):
-    """Protect the complete numeric fill window in existing ST FOR extensions."""
+    """Protect complete numeric/aggregate windows in existing ST FOR extensions."""
     memory=engine.memory;project=engine.project
     if project.version!='35' or project.processor.upper() not in CONTROLLERS:return None
     previous=memory.structural;memory.structural=True
     try:
-        if memory.check_writable(op.args[1],scope)[2] not in NUMERIC:return None
-        handle(engine,op,scope)
+        numeric=memory.check_writable(op.args[1],scope)[2] in NUMERIC
+        if not (handle if numeric else aggregate_handle)(engine,op,scope):return None
         try:count=literal(op.args[2])
         except ValueError:count=None
         if count is not None:
@@ -142,12 +142,12 @@ def aggregate_handle(engine,op,scope,*,execute=False):
         except ValueError:pass
         else:
             if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Aggregate FLL length must be an integer in 0..100000')
-            if static_reference(memory,op.args[1],scope):memory.region(op.args[1],count,scope)
+            if static_reference(memory,op.args[1],scope):prefix(memory,op.args[1],scope,count,writable=True)
     finally:memory.structural=previous
     if not execute:return True
     count=memory.read(op.args[2],scope)
     if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Aggregate FLL length must be an integer in 0..100000')
-    key,paths,_=memory.region(op.args[1],count,scope);memory.check_writable(op.args[1],scope)
+    key,paths,_=prefix(memory,op.args[1],scope,count,writable=True)
     if count:
         source=memory.read(op.args[0],scope)
         if type(source) is not int or source!=0:raise ModelError('Aggregate FLL currently supports integer zero only')
@@ -165,7 +165,9 @@ def aggregate_description(project):
                 control='Top-level CONTROL retains its existing logical-default reset; nested CONTROL members are zeroed',
                 selection='Structural preflight; false/prescan skip live operands; true captures length, complete window and zero source before stores',
                 zero_length='Validate live destination, skip source value and its live index',
-                work='One instruction-budget unit per scalar member filled; strict logical region bounds, no native byte clipping',
+                clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',
+                st_for_effects='Complete clipped static windows; changing/alias/AOI selections conservatively cover the enclosing array',
+                work='One instruction-budget unit per actual scalar member filled; logical clipping, no native byte clipping',
                 remaining=['Nonzero/REAL/wider source patterns, operational/AOI aggregate records, packed ABI and native faults/partial effects',
                            'Native scan/lifecycle/clock/internal-history reset parity and other profiles/languages'],native_runtime_parity=False)
 
