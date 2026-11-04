@@ -19,14 +19,18 @@ def available(project):
 
 
 def immediate(value):
+    if type(value) is float:
+        try:return coerce(value, 'REAL')
+        except (OverflowError, ValueError) as error:
+            raise ModelError('Floating immediate exceeds finite REAL range') from error
     if type(value) is not int:
-        raise ModelError('LREAL expressions require bounded DINT immediate values')
+        raise ModelError('LREAL expressions require bounded DINT or finite REAL immediate values')
     return coerce(value, 'DINT')
 
 
 def analyze(expression, memory, scope='', destination_type=None, *, consumer='CPT'):
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
-    if destination_type != 'LREAL' and 'LREAL' not in declared.values():
+    if destination_type != 'LREAL' and 'LREAL' not in declared.values() and 'LREAL' not in expression.literal_types:
         return None
     if not available(memory.project):
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
@@ -47,6 +51,9 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         kind, value = node[:2]
         if kind == 'literal':
             immediate(value)
+            return 'number'
+        if kind == 'lreal_literal':
+            coerce(value,'LREAL')
             return 'number'
         if kind == 'ref':
             return types[value]
@@ -91,6 +98,8 @@ def evaluate(expression, memory, scope, profile):
         kind, value = node[:2]
         if kind == 'literal':
             return number(immediate(value))
+        if kind == 'lreal_literal':
+            return number(value)
         if kind == 'ref':
             result = memory.read(value, scope)
             dtype = profile['declared'][value]
@@ -140,14 +149,14 @@ def description(project):
     return dict(available=available(project), profile='v35-5580-lreal-expressions',
                 consumers=['CPT', 'CMP'], types=sorted(NUMERIC), destination='CPT numeric scalar', destination_types=sorted(NUMERIC),
                 destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
-                selection='Any LREAL operand or CPT LREAL destination selects binary64 for every numeric node',
-                constants='Signed DINT-range integer literals promoted to binary64; no floating/typed/larger literals',
+                selection='Any LREAL tag/literal or CPT LREAL destination selects binary64 for every numeric node',
+                constants='Bounded DINT integers; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
                 comparisons='Six numeric relations, BOOL tags and eager Boolean composition',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Floating/typed/larger literals; FRD/TOD and numeric bitwise forms',
+                remaining=['Wide/unsigned integer literals and other typed literal forms; FRD/TOD and numeric bitwise forms',
                            'ST/FAL/FSC/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])

@@ -478,6 +478,122 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="FPLitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitInput" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="3" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitDefault" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitExplicit" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitDelta" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitPower" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitLarge" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitTiny" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitInteger" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitDifferent" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitDomainFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitDomainResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitRangeResult" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitLower" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitScientific" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="FPLitSelected" DataType="LREAL" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LREAL" Dimensions="3">
+            <Element Index="[2]" Value="903" />
+          </Array>
+        </Data>
+      </Tag>
+      <Tag Name="FPLitInputs" DataType="LREAL" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="LREAL" Dimensions="3">
+            <Element Index="[0]" Value="3" />
+            <Element Index="[1]" Value="7" />
+            <Element Index="[2]" Value="11" />
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -555,6 +671,7 @@
               </Rung>
               <Rung Number="22" Type="N"><Text>JSR(Binary64,0);</Text></Rung>
               <Rung Number="23" Type="N"><Text>JSR(Binary64Results,0);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>JSR(FloatingConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -592,6 +709,25 @@
               <Rung Number="12" Type="N"><Text>XIC(R64Enabled)XIC(R64RealFault)CPT(R64RealFaultResult,R64Big);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(R64Enabled)DIV(1,R64LateDivisor,R64LateResult);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(R64Enabled)CMP((R64REAL=R64Source)&amp;&amp;(R64DINT&gt;R64Source))OTE(R64Converted);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="FloatingConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitDefault,0.1);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitExplicit,0.1L);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitDelta,1.0000000000000002L-1.0);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitPower,FPLitInput**0.5);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitLarge,1e308L);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitTiny,5e-324L);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitInteger,3.5L);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitReal,1.0000000000000002L);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(FPLitEnabled)CMP(0.1L&lt;&gt;0.1)OTE(FPLitDifferent);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitSelected[FPLitIndex],FPLitInputs[FPLitIndex]+0.5L);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(FPLitEnabled)XIC(FPLitDomainFault)CPT(FPLitDomainResult,LN(-1.0L));</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(FPLitEnabled)XIC(FPLitRangeFault)CPT(FPLitRangeResult,128.0L);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(FPLitEnabled)DIV(1,FPLitLateDivisor,FPLitLateResult);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitLower,.5l);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitScientific,1e+2l+0.25);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

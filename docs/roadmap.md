@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.143546`: [floating constants in LREAL expressions](lreal-literals.md).
+Unsuffixed decimals/scientific constants use finite REAL precision before
+promotion; L/l-suffixed floating constants retain binary64 and can select the
+LREAL profile without tags. Scoped parsing/caches keep generic, file, ST and
+subscript consumers separate. Wide expression lab adds FloatingConstants.
+Other typed forms and native numerical/status/fault/lifecycle parity remain open.
+
 Available in `26.1104.141122`: [LREAL CPT result conversions](lreal-results.md).
 LREAL expressions can store representable results in all ten numeric types.
 Arithmetic stays binary64 until the final nearest-even integer or finite REAL

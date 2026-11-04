@@ -94,7 +94,7 @@ class CptBcdTests(unittest.TestCase):
     def test_scoped_cache_keeps_generic_and_st_forms_separate_from_ladder(self):
         e=self.checked();e.step()
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):e.extensions.expression('FRD(Source)')
-        self.assertIn(('FRD(Source)',True),e.extensions.expressions)
+        self.assertIn(('FRD(Source)',True,True),e.extensions.expressions)
         for code in ('Dest:=FRD(Source);','Dest:=TOD(Source);'):
             self.assertTrue(self.engine(code,st=True).blockers)
         for function in ('FRD','TOD'):

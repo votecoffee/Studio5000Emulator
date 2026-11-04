@@ -24,9 +24,10 @@ The existing software exponent bound is 1024 in magnitude; fractional and
 negative exponents are allowed when their results remain real and finite.
 
 Signed DINT-range integer constants convert directly to binary64. The full
-negative DINT literal is supported. Floating, typed and larger integer literals
-remain excluded, including inside false rungs. Use declared REAL/LREAL or wide
-integer tags for those values. Numeric bitwise operators, FRD/TOD and newer
+negative DINT literal is supported. [Floating constants](lreal-literals.md)
+without a suffix use finite REAL precision before promotion; a floating L/l
+suffix retains binary64. Explicit LREAL literals can select this profile.
+Other typed and larger integer literals remain excluded, including false rungs. Numeric bitwise operators, FRD/TOD and newer
 mnemonic aliases remain separate forms.
 
 Stored REAL tags retain their float32 precision before conversion to binary64.
@@ -71,7 +72,7 @@ earlier writes, warm bindings, trace and scheduler/timing state.
 
 Only direct ladder CPT/CMP opt into this evaluator. Generic condition caches,
 ST, FAL/FSC, FBD/SFC and other controller profiles retain their existing limits.
-Literal expansion and complete native math flags,
+Other typed literal forms and complete native math flags,
 fault records, partial effects, packed layouts and lifecycle equivalence remain
 unfinished. Host binary64 calculations are software behavior; these checks do
 not establish native numerical or Studio acceptance.

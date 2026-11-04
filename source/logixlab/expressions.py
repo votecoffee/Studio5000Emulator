@@ -30,12 +30,13 @@ PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
 
 
 class Expression:
-    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False):
+    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
         self.structured=structured
         self.bcd=bcd
+        self.floating_literals=floating_literals
         self.function_map=dict(FUNCTIONS)
         if subscript or bcd:self.function_map.update(FRD=None,TOD=None)
         if condition:self.precedence.update({'<':0,'<=':0,'>':0,'>=':0,'=':0,'<>':0,'&&':-1,'^^':-2,'||':-3})
@@ -48,6 +49,7 @@ class Expression:
         self.functions = set()
         self.operators = set()
         self.typed_types = set()
+        self.literal_types = set()
         pos = 0
         while pos < len(text):
             if text[pos].isspace(): pos += 1; continue
@@ -67,7 +69,13 @@ class Expression:
             number = re.match(r'(?:2|8|16)#[0-9a-fA-F_]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', text[pos:])
             if number:
                 value = number[0]
-                self.tokens.append(('number', value)); pos += len(value); continue
+                pos += len(value)
+                if (floating_literals and '#' not in value and any(c in value for c in '.eE')
+                        and pos < len(text) and text[pos] in 'lL'
+                        and (pos+1 == len(text) or not (text[pos+1].isalnum() or text[pos+1]=='_'))):
+                    self.tokens.append(('lreal', float(value)));pos+=1
+                else:self.tokens.append(('number', value))
+                continue
             if text[pos:pos+2] == '**': self.tokens.append(('**', '**')); pos += 2; continue
             if condition:
                 pair=text[pos:pos+2]
@@ -108,6 +116,8 @@ class Expression:
         if depth > 64: raise ModelError('Expression nesting limit exceeded')
         kind, value = self.tokens[self.pos]; self.pos += 1
         if kind == 'number': node = ('literal', literal(value))
+        elif kind == 'lreal':
+            node = ('lreal_literal',value);self.literal_types.add('LREAL')
         elif kind=='typed':
             node=('typed_literal',*value);self.typed_types.add(value[1])
         elif kind=='string':node=('string',value)
@@ -138,6 +148,7 @@ class Expression:
         return node
 
     def validate(self, memory, scope='', destination_type=None, index=False):
+        if self.literal_types:raise ModelError('LREAL literals require the qualified ladder floating expression profile')
         real = destination_type == 'REAL'
         for ref in self.refs:
             value = memory.read(ref, scope)

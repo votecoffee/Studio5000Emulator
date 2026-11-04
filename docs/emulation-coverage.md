@@ -390,3 +390,7 @@ AOI arrays and rollback. Wider/REAL mixtures, ST and native parity remain separa
 [LREAL CPT results](lreal-results.md) now convert the final binary64 value to
 all eight integer types or finite REAL/LREAL with checked ranges. Other forms
 and native equivalence retain separate limits.
+
+[LREAL floating constants](lreal-literals.md) now support unsuffixed REAL and
+explicit floating L/l suffixes in direct ladder CPT/CMP. Other consumers and
+native precision/status/fault/lifecycle qualification remain separate.

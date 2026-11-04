@@ -42,8 +42,9 @@ fault classification and partial-write behavior remain unverified.
 The original [LREAL expression](lreal-expressions.md) rules still govern math,
 source precision, DINT immediates, functions and operators. A nonfinite
 intermediate fails before a later operation could reduce the final magnitude.
-No new floating/typed/larger literal, BCD, numeric bitwise or language forms
-are introduced. BOOL and aggregate destinations remain excluded.
+[REAL/LREAL floating constants](lreal-literals.md) now have their own scoped
+profile. Other typed/larger literals, BCD, numeric bitwise and language forms
+remain separate. BOOL and aggregate destinations remain excluded.
 
 ## Selection, AOIs and faults
 
