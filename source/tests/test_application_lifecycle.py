@@ -3244,3 +3244,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('DoubleResultsInputs[1]',4);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
         write('DoubleResultsEnabled',False);write('DoubleResultsIndex',99);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
         report=self.post('report',{});self.assertIn('no LREAL source',report['scalar_math']['lreal_arithmetic']['operands']);self.assertIn('no LREAL source',report['real_math']['lreal']['power']['operands']);self.assertIn('at least one LREAL',report['numeric_comparisons']['lreal_ordering']['operands'])
+
+    def test_integer_lab_real_comparison_promotion_limits_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'IntegerLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace','aoi_bindings'):self.assertEqual(before[key],after[key])
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['RealCompareIndex'],99);self.assertFalse(row['RealCompareEq'])
+        write('RealCompareEnabled',True);fault('outside bounds');write('RealCompareIndex',1);row=values(step())
+        expected=dict(Eq=True,Ne=False,Lt=False,Le=True,Gt=False,Ge=True,NormalLimit=True,ReverseLimit=False,CollapsedLimit=False,WideEqual=True,LiteralEqual=True,TinyPositive=True,ZeroEqual=True,DoublePriority=True,ExactInteger=True)
+        for name,want in expected.items():self.assertIs(row['RealCompare'+name],want)
+        self.assertEqual(row['RealCompareDint'],16777217);self.assertEqual(row['RealCompareUlint'],'18446744073709551615')
+        self.assertEqual(tuple(row['RealCompareValues['+str(i)+']'] for i in range(3)),(101.125,16777216.0,999.5))
+        write('RealCompareLateDivisor',0);fault('zero');write('RealCompareLateDivisor',1)
+        write('RealCompareValue',16777216);write('RealCompareValues[1]',16777218);row=values(step());self.assertTrue(row['RealCompareCollapsedLimit']);self.assertTrue(row['RealCompareNormalLimit']);self.assertTrue(row['RealCompareReverseLimit']);self.assertFalse(row['RealCompareEq'])
+        write('RealCompareEnabled',False);write('RealCompareIndex',99);row=values(step())
+        for name in expected:self.assertFalse(row['RealCompare'+name])
+        report=self.post('report',{})['numeric_comparisons']['real_ordering'];self.assertEqual(len(report['source_types']),9);self.assertFalse(report['native_runtime_parity'])

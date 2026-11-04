@@ -83,3 +83,7 @@ native Studio/controller acceptance or numerical equivalence.
 See [implementation](../source/logixlab/comparisons.py),
 [focused cases](../source/tests/test_mixed_lreal_comparisons.py) and
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
+
+[REAL comparison promotion](mixed-real-comparisons.md) additionally converts
+numeric tag/constant operands to float32 when a REAL tag is present and no
+LREAL input selects binary64. Integer-only ordering remains exact.

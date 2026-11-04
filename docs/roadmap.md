@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.094330`: [REAL comparison promotion](mixed-real-comparisons.md).
+Six direct relations and LIM convert all operands to finite float32 when a REAL
+tag is present and no LREAL input selects binary64. All nine numeric source
+types, bounded integer/finite floating constants, inclusive/reversed limits and
+source preservation are covered. Integer lab demonstrates corrected DINT
+rounding, collapsed bounds, wide values, literal conversion and precedence.
+Integer-only ordering stays exact. Broader expressions/profiles and native
+precision/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.092011`: [LREAL arithmetic result selection](lreal-destination-math.md).
 The result selects finite binary64 for seven basic math instructions and XPY
 across all numeric tag types and bounded signed DINT constants. Constant-only

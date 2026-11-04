@@ -116,3 +116,7 @@ math forms. A LREAL destination selects this finite binary64 software profile.
 [LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
 for basic arithmetic and XPY without a LREAL source, including bounded
 constant-only calls. Direct ordering still requires a LREAL input for binary64.
+
+[REAL comparison promotion](mixed-real-comparisons.md) additionally converts
+numeric tag/constant operands to float32 when a REAL tag is present and no
+LREAL input selects binary64. Integer-only ordering remains exact.

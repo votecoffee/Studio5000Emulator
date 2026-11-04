@@ -5,6 +5,39 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="RealCompareEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="RealCompareDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="RealCompareUpper" TagType="Base" DataType="UDINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="16777218" /></Data></Tag>
+      <Tag Name="RealCompareUlint" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="18446744073709551615" /></Data></Tag>
+      <Tag Name="RealCompareWide" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="18446744073709551616" /></Data></Tag>
+      <Tag Name="RealCompareLow" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="RealCompareHigh" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777216" /></Data></Tag>
+      <Tag Name="RealCompareValue" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777215" /></Data></Tag>
+      <Tag Name="RealCompareFraction" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.1" /></Data></Tag>
+      <Tag Name="RealCompareTiny" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.401298464324817e-45" /></Data></Tag>
+      <Tag Name="RealCompareUnit" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
+      <Tag Name="RealCompareNegativeZero" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="-0.0" /></Data></Tag>
+      <Tag Name="RealCompareExact" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="RealComparePrevious" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740992" /></Data></Tag>
+      <Tag Name="RealCompareLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealCompareLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareEq" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareNe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareLt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareLe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareGt" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareGe" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareNormalLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareReverseLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareCollapsedLimit" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareWideEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareLiteralEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareTinyPositive" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareZeroEqual" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareDoublePriority" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareExactInteger" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealCompareValues" TagType="Base" DataType="REAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[1]" Value="16777216" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="DoubleResultsEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleResultsDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DoubleResultsZeroFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -803,6 +836,27 @@
               <Rung Number="55" Type="N"><Text>JSR(MixedDoubleCompare,0);</Text></Rung>
               <Rung Number="56" Type="N"><Text>JSR(DoubleConstants,0);</Text></Rung>
               <Rung Number="57" Type="N"><Text>JSR(DoubleResults,0);</Text></Rung>
+              <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealCompare" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealCompareEnabled)EQU(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareEq);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealCompareEnabled)NEQ(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareNe);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealCompareEnabled)LES(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareLt);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealCompareEnabled)LEQ(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareLe);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealCompareEnabled)GRT(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareGt);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealCompareEnabled)GEQ(RealCompareValues[RealCompareIndex],RealCompareDint)OTE(RealCompareGe);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RealCompareEnabled)LIM(0,RealCompareValues[RealCompareIndex],RealCompareUpper)OTE(RealCompareNormalLimit);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RealCompareEnabled)LIM(RealCompareUpper,RealCompareValues[RealCompareIndex],0)OTE(RealCompareReverseLimit);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RealCompareEnabled)LIM(RealCompareLow,RealCompareValue,RealCompareHigh)OTE(RealCompareCollapsedLimit);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RealCompareEnabled)EQU(RealCompareUlint,RealCompareWide)OTE(RealCompareWideEqual);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(RealCompareEnabled)EQU(RealCompareFraction,1.1)OTE(RealCompareLiteralEqual);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(RealCompareEnabled)GRT(RealCompareTiny,1e-50)OTE(RealCompareTinyPositive);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(RealCompareEnabled)EQU(RealCompareNegativeZero,0)OTE(RealCompareZeroEqual);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(RealCompareEnabled)GRT(DoubleA,RealCompareUnit)OTE(RealCompareDoublePriority);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(RealCompareEnabled)GRT(RealCompareExact,RealComparePrevious)OTE(RealCompareExactInteger);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(RealCompareEnabled)DIV(1,RealCompareLateDivisor,RealCompareLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleResults" Type="RLL">

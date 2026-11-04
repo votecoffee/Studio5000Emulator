@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; LREAL arithmetic result selection added for app `26.1104.092011`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; REAL comparison promotion added for app `26.1104.094330`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -132,6 +132,8 @@ qualify numeric tag pairs and signed DINT constants with a LREAL result.
 sources and signed DINT constants across eleven roots/logs/angle/trig forms.
 [LREAL arithmetic results](lreal-destination-math.md) now select binary64 for
 seven basic operations and XPY without requiring an actual LREAL source.
+[REAL comparison promotion](mixed-real-comparisons.md) additionally covers
+all nine numeric source types, constants and converted-limit behavior.
 
 ## Remaining forms of existing instructions
 
