@@ -3,7 +3,8 @@
 The bounded v35 ControlLogix 5580 model supports finite binary64 calculations
 in CPT and comparisons in CMP. An LREAL source or an LREAL CPT destination
 selects binary64 for every numeric node, including constant-only subexpressions.
-The initial CPT profile requires an LREAL destination. Numeric sources may use
+CPT can store representable results in all ten numeric destination types;
+[final result conversion](lreal-results.md) follows binary64 evaluation. Numeric sources may use
 any of the eight signed/unsigned integer types, REAL or LREAL.
 
 ```text
@@ -70,7 +71,7 @@ earlier writes, warm bindings, trace and scheduler/timing state.
 
 Only direct ladder CPT/CMP opt into this evaluator. Generic condition caches,
 ST, FAL/FSC, FBD/SFC and other controller profiles retain their existing limits.
-CPT narrowing destinations, literal expansion and complete native math flags,
+Literal expansion and complete native math flags,
 fault records, partial effects, packed layouts and lifecycle equivalence remain
 unfinished. Host binary64 calculations are software behavior; these checks do
 not establish native numerical or Studio acceptance.

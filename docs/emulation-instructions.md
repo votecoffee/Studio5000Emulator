@@ -254,3 +254,7 @@ AOI arrays and rollback. Wider/REAL mixtures, ST and native parity remain separa
 [LREAL CPT/CMP expressions](lreal-expressions.md) now add mixed numeric-tag
 binary64 calculations and comparisons, plus copied scalar AOI LREAL parameters.
 Other expression consumers and native equivalence retain separate limits.
+
+[LREAL CPT results](lreal-results.md) now convert the final binary64 value to
+all eight integer types or finite REAL/LREAL with checked ranges. Other forms
+and native equivalence retain separate limits.

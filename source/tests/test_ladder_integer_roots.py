@@ -109,7 +109,7 @@ class LadderIntegerRootTests(unittest.TestCase):
             self.assertEqual(e.memory.read('OutputA'),[5,9,13,17,901]);self.assertEqual(e.memory.read('OutputB'),[2,8,14,20,902]);self.assertEqual(e.memory.read('DriverA.Scratch'),[3,5,7,9,777]);e.memory.write('FaultDivisor',0);self.files.fault(e,'zero')
 
     def test_wide_operands_and_bcd_real_mixtures_remain_guarded(self):
-        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','LREAL','BOOL'):
+        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','BOOL'):
             e=self.scalar.engine(['AFI()CPT(Dest,SQR(Source));'],types=(dtype,'DINT','DINT'),values=(1,0,0));self.assertTrue(e.blockers,dtype)
         for expr in ('FRD(Source)+SQR(3.0)','TOD(SQR(Source)+0.0)'):
             self.assertTrue(self.scalar.engine(['AFI()CPT(Dest,'+expr+');']).blockers)

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.141122`: [LREAL CPT result conversions](lreal-results.md).
+LREAL expressions can store representable results in all ten numeric types.
+Arithmetic stays binary64 until the final nearest-even integer or finite REAL
+conversion; lazy selection, unknown full writes and AOI rollback retain their
+rules. Wide expression lab adds Binary64Results. Native numerical/status/fault
+behavior, broader literals and other consumers remain separate.
+
 Available in `26.1104.134906`: [LREAL CPT/CMP expressions](lreal-expressions.md).
 LREAL sources or CPT destinations select finite binary64 arithmetic, mixed
 numeric tags, thirteen functions, six relations and eager Boolean composition.

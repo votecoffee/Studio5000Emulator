@@ -386,3 +386,7 @@ rollback. Wider/REAL/string mixtures, other consumers and native parity remain s
 [BCD FAL/FSC expressions](file-bcd.md) add narrow FRD/TOD conversions to
 existing ALL/numeric/INC transforms and searches, including lazy progress paths,
 AOI arrays and rollback. Wider/REAL mixtures, ST and native parity remain separate.
+
+[LREAL CPT results](lreal-results.md) now convert the final binary64 value to
+all eight integer types or finite REAL/LREAL with checked ranges. Other forms
+and native equivalence retain separate limits.

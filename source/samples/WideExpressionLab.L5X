@@ -356,6 +356,128 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="R64Enabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Source" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="3.5" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Value" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="16777217" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Index" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="R64IntegerFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64RealFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64BadInteger" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="128" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Big" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="1e+308" />
+        </Data>
+      </Tag>
+      <Tag Name="R64IntegerFaultResult" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64RealFaultResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64LateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="1" />
+        </Data>
+      </Tag>
+      <Tag Name="R64LateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Converted" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="BOOL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64SINT" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="SINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64INT" DataType="INT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="INT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64DINT" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="DINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64LINT" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64USINT" DataType="USINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="USINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64UINT" DataType="UINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64UDINT" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="UDINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64ULINT" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="ULINT" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64REAL" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="REAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64LREAL" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <DataValue DataType="LREAL" Value="0" />
+        </Data>
+      </Tag>
+      <Tag Name="R64Selected" DataType="DINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Array DataType="DINT" Dimensions="3">
+            <Element Index="[2]" Value="902" />
+          </Array>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -432,6 +554,7 @@
                 <Text>XIC(MixedExpressionMath)CPT(ExpressionNested,(SignedInput+ExpressionDelta)/SignedDelta);</Text>
               </Rung>
               <Rung Number="22" Type="N"><Text>JSR(Binary64,0);</Text></Rung>
+              <Rung Number="23" Type="N"><Text>JSR(Binary64Results,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -450,6 +573,25 @@
               <Rung Number="11" Type="N"><Text>XIC(F64Enabled)XIC(F64DomainFault)CPT(F64DomainResult,LN(F64Domain));</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(F64Enabled)XIC(F64OverflowFault)CPT(F64OverflowResult,F64Big*2);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(F64Enabled)DIV(1,F64LateDivisor,F64LateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Binary64Results" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(R64Enabled)CPT(R64SINT,R64Source);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(R64Enabled)CPT(R64INT,R64Source);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(R64Enabled)CPT(R64DINT,R64Source);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(R64Enabled)CPT(R64LINT,R64Source);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(R64Enabled)CPT(R64USINT,R64Source);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(R64Enabled)CPT(R64UINT,R64Source);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(R64Enabled)CPT(R64UDINT,R64Source);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(R64Enabled)CPT(R64ULINT,R64Source);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(R64Enabled)CPT(R64REAL,R64Source);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(R64Enabled)CPT(R64LREAL,R64Source);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(R64Enabled)CPT(R64Selected[R64Index],R64Value);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(R64Enabled)XIC(R64IntegerFault)CPT(R64IntegerFaultResult,R64BadInteger);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(R64Enabled)XIC(R64RealFault)CPT(R64RealFaultResult,R64Big);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(R64Enabled)DIV(1,R64LateDivisor,R64LateResult);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(R64Enabled)CMP((R64REAL=R64Source)&amp;&amp;(R64DINT&gt;R64Source))OTE(R64Converted);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

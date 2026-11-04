@@ -249,9 +249,8 @@ class LrealExpressionTests(unittest.TestCase):
             tag.find('Data/DataValue').set('DataType', 'DINT')
         self.assertTrue(f.engine(wrong).blockers)
 
-    def test_narrowing_destinations_aliases_bitwise_and_literals_remain_guarded(self):
-        for dest in ('SINT', 'INT', 'DINT', 'REAL', 'LINT', 'ULINT'):
-            self.assertTrue(self.engine(['AFI()CPT(Results[1],Source);'], dest=dest).blockers)
+    def test_destination_shapes_aliases_bitwise_and_literals_remain_guarded(self):
+        self.assertTrue(self.engine(['AFI()CPT(Results,Source);']).blockers)
         for expr in ('Source+1.0', 'Source+2147483648', 'Source+1L', 'Source AND 1', 'NOT Source',
                      'FRD(Source)', 'TOD(Source)', 'SQRT(Source)', 'TRUNC(Source)'):
             self.assertTrue(self.engine(['AFI()CPT(Results[1],' + expr + ');']).blockers, expr)

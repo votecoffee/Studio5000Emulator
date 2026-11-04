@@ -30,8 +30,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         return None
     if not available(memory.project):
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
-    if consumer == 'CPT' and destination_type != 'LREAL':
-        raise ModelError('LREAL CPT requires an LREAL destination')
+    if consumer == 'CPT' and destination_type not in NUMERIC:
+        raise ModelError('LREAL CPT requires a numeric scalar destination')
     if expression.functions - MATH or expression.typed_types:
         raise ModelError('Unsupported LREAL expression function or typed literal')
     types = {}
@@ -138,7 +138,8 @@ def evaluate(expression, memory, scope, profile):
 
 def description(project):
     return dict(available=available(project), profile='v35-5580-lreal-expressions',
-                consumers=['CPT', 'CMP'], types=sorted(NUMERIC), destination='CPT LREAL only',
+                consumers=['CPT', 'CMP'], types=sorted(NUMERIC), destination='CPT numeric scalar', destination_types=sorted(NUMERIC),
+                destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
                 selection='Any LREAL operand or CPT LREAL destination selects binary64 for every numeric node',
                 constants='Signed DINT-range integer literals promoted to binary64; no floating/typed/larger literals',
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
@@ -147,6 +148,6 @@ def description(project):
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['CPT narrowing destinations; floating/typed/larger literals; FRD/TOD and numeric bitwise forms',
+                remaining=['Floating/typed/larger literals; FRD/TOD and numeric bitwise forms',
                            'ST/FAL/FSC/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])
