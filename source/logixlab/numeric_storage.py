@@ -56,6 +56,34 @@ def source_type(memory, ref, scope):
     raise ModelError('MOV immediate requires bounded DINT or finite REAL')
 
 
+def lreal_math_source(memory, ref, scope, *, execute=False):
+    """Selected LREAL math input; keep MOV radix and other consumers separate."""
+    typed=typed_literal(ref) if '#' not in ref else None
+    if typed is not None:
+        dtype,value=typed
+    else:
+        try:value=literal(ref)
+        except ValueError:
+            key,parts,dtype=memory.resolve(ref,scope)
+            if dtype not in TYPES or isinstance(memory.at(key,parts),(list,dict)):
+                raise ModelError('LREAL math source requires one numeric scalar')
+            if not execute:return dtype
+            value=memory.read(ref,scope)
+        else:
+            dtype='DINT' if type(value) is int else 'REAL' if type(value) is float else None
+            if dtype is None:raise ModelError('LREAL math immediate requires a numeric literal')
+    value=real(value) if dtype=='REAL' else coerce(value,dtype)
+    return coerce(value,'LREAL') if execute else dtype
+
+
+def lreal_math_sources(memory, op, scope):
+    """Preflight scalar LREAL-result math without consuming saved source values."""
+    if destination(memory,op.args[-1],scope)[2]!='LREAL':
+        raise ModelError('LREAL math requires a scalar LREAL destination')
+    for ref in op.args[:-1]:lreal_math_source(memory,ref,scope)
+    return 'LREAL'
+
+
 def specification(memory, op, scope):
     previous = memory.structural
     memory.structural = True

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.164359`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.165922`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -32,6 +32,11 @@ Development is maintained on `main`.
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
+
+**LREAL ladder math constants** now work across nineteen arithmetic, power,
+root, logarithm, angle and trigonometric instructions. Decimal typed integers
+and floating L/l constants preserve their source precision; see
+[LREAL math constants](docs/lreal-math-literals.md).
 
 **Radix MOV constants** now interpret binary, octal and hexadecimal values as
 32-bit DINT patterns, including signed top bits, zero-filled short constants and

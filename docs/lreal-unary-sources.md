@@ -1,5 +1,10 @@
 # Numeric unary inputs with LREAL results
 
+[LREAL math constants](lreal-math-literals.md) extend the immediate operands
+described below in app `26.1104.165922`; historical signed-DINT-only exclusions
+no longer apply to these LREAL-result instructions. Other result profiles retain
+their scope.
+
 App `26.1104.085804` extends eleven standalone ladder math instructions in the
 v35 ControlLogix 5580 software profile:
 

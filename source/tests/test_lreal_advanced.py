@@ -83,9 +83,9 @@ class LrealAdvancedTests(unittest.TestCase):
             for source,dest in [('REAL','LREAL'),('LREAL','REAL'),('DINT','LREAL'),('LREAL','LINT')]:
                 if dest=='LREAL':continue
                 self.assertTrue(self.engine([operation(name)+';'],source=source,dest=dest).blockers,(name,source,dest))
-            self.assertTrue(self.engine([operation(name,source='1.0')+';']).blockers,name)
+            self.assertTrue(self.engine([operation(name,source='1e39')+';']).blockers,name)
             self.assertTrue(self.engine([operation(name,source='Inputs')+';']).blockers,name)
-        self.assertTrue(self.engine(['XPY(Source,1.0,Dest);']).blockers)
+        self.assertTrue(self.engine(['XPY(Source,1e39,Dest);']).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()SQR(Source,Results[1]);'],mutate=constant).blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')

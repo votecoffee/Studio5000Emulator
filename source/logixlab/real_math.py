@@ -34,31 +34,8 @@ def validate(memory, op, scope):
         raise ModelError('Standalone math requires the v35 ControlLogix 5580 software profile')
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
     if dtype=='LREAL':
-        if isinstance(memory.at(key,parts),(list,dict)):
-            raise ModelError('LREAL math requires a scalar LREAL destination')
-        if op.name=='XPY':
-            # scalar_math imports real(); defer its shared profile selector.
-            from .scalar_math import lreal_profile
-            types,constants=[],[]
-            for ref in op.args[:-1]:
-                try:value=literal(ref)
-                except ValueError:
-                    key,parts,source_type=memory.resolve(ref,scope)
-                    if isinstance(memory.at(key,parts),(list,dict)):
-                        raise ModelError('LREAL power requires scalar numeric sources')
-                    types.append(source_type)
-                else:types.append(None);constants.append(value)
-            return lreal_profile([*types,'LREAL'],constants,arithmetic=True)
-        for ref in op.args[:-1]:
-            try:value=literal(ref)
-            except ValueError:
-                key,parts,source_type=memory.resolve(ref,scope)
-                if source_type not in LREAL_SOURCE_TYPES or isinstance(memory.at(key,parts),(list,dict)):
-                    raise ModelError('LREAL unary math requires scalar numeric source tags')
-            else:
-                if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
-                    raise ModelError('LREAL unary constants require signed DINT integer literals')
-        return 'LREAL'
+        from .numeric_storage import lreal_math_sources
+        return lreal_math_sources(memory,op,scope)
     if dtype=='REAL':
         from .scalar_math import real_profile
         if isinstance(memory.at(key,parts),(list,dict)):
@@ -102,7 +79,10 @@ def execute(memory, op, power, scope):
         return False
     profile=validate(memory,op,scope)
     convert=(lambda value:coerce(value,'LREAL')) if profile=='LREAL' else real
-    values = [convert(memory.read(ref, scope)) for ref in op.args[:-1]]
+    if profile=='LREAL':
+        from .numeric_storage import lreal_math_source
+        values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
+    else:values = [convert(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
         result = math.pow(*values) if op.name == 'XPY' else FUNCTIONS[op.name](*values)
         result = convert(result)
@@ -128,17 +108,17 @@ def description():
                     native_runtime_parity=False),
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
                     unary=dict(instructions=sorted(FUNCTIONS),source_types=sorted(LREAL_SOURCE_TYPES),
-                        constants='Signed DINT integer literals promoted exactly to binary64; floating, typed and larger literals remain excluded',
+                        constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants; source range/precision checked before binary64 promotion',
                         selection='A scalar LREAL destination selects finite binary64 input and result; sources retain their declared numeric values and stored REAL precision',
                         native_runtime_parity=False),
                     power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                         operands='Scalar numeric sources and bounded integer constants with a LREAL result; no LREAL source is required',
-                        constants='Signed DINT integer literals in either source position, promoted exactly to binary64',
+                        constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants in either source position; declared precision before binary64 promotion',
                         promotion='Convert all required numeric tag sources to finite binary64; stored REAL precision and wide integer rounding are retained',
                         native_runtime_parity=False),
                     arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
                     selection='Structural/lazy operands, complete unknown writes and existing aliases/member/AOI references',
-                    excluded='Other mixed types/immediates, floating/typed/larger constants, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
+                    excluded='Typed radix, unsuffixed integers outside DINT and radix patterns above signed DINT, other result/consumer/controller profiles and native precision/status/fault/lifecycle parity',
                     native_runtime_parity=False),
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',

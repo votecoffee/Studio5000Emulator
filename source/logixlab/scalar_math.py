@@ -22,6 +22,9 @@ def validate(engine, op, scope):
     previous = memory.structural
     memory.structural = True
     try:
+        if op.name in ARITHMETIC and memory.check_writable(op.args[-1],scope)[2]=='LREAL':
+            arithmetic_profile(engine,op,scope)
+            return True
         for ref in op.args:
             value = memory.read(ref, scope)
             if isinstance(value, (list, dict, bool)):
@@ -56,7 +59,8 @@ def lreal_profile(types, constants, *, arithmetic=False, ordering=False):
 
 def execute_lreal(engine,op,scope):
     memory=engine.memory
-    values=[coerce(memory.read(ref,scope),'LREAL') for ref in op.args[:-1]]
+    from .numeric_storage import lreal_math_source
+    values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
     a=values[0]
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
@@ -101,6 +105,9 @@ def arithmetic_profile(engine, op, scope):
     """
     if op.name not in ARITHMETIC or not available(engine.project):
         return profile(engine, op, scope)
+    if engine.memory.check_writable(op.args[-1],scope)[2]=='LREAL':
+        from .numeric_storage import lreal_math_sources
+        return lreal_math_sources(engine.memory,op,scope)
     types, constants = [], []
     for ref in op.args:
         try:value = literal(ref)
@@ -195,9 +202,9 @@ def description(project):
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
-                    operands='Scalar numeric source tags and bounded integer constants with a LREAL destination; no LREAL source is required',
+                    operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants with a LREAL destination; no LREAL source is required',
                     selection_by_destination='The scalar LREAL result selects binary64 inputs and calculation, including constant-only calls and NEG/ABS',
-                    constants='Signed DINT integer literals promoted exactly to binary64; floating, typed and larger literals remain excluded',
+                    constants='Bounded DINT, finite REAL, decimal L/U/UL integers and finite floating L/l LREAL; declared precision checked before binary64 promotion; existing radix must fit signed DINT',
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
                     calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',

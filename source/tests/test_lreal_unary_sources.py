@@ -113,7 +113,7 @@ class LrealUnarySourceTests(unittest.TestCase):
 
     def test_excluded_types_literals_destinations_and_profiles_remain_structural(self):
         for name in CASES:
-            for token in ('TRUE','1.0','1e0','2147483648','-2147483649','1L','Inputs','RunLatch'):
+            for token in ('TRUE','1e309L','1e39','2147483648','-2147483649','1LU','Inputs','RunLatch'):
                 self.assertTrue(self.engine([f'AFI(){name}({token},Dest);']).blockers,(name,token))
         self.assertTrue(self.engine(['SQR(Source,Dest);'],source='LREAL',dest='REAL').blockers)
         self.assertEqual(self.checked(['XPY(Source,Mask,Dest);'],source='DINT',other='REAL').blockers,[])
@@ -125,5 +125,5 @@ class LrealUnarySourceTests(unittest.TestCase):
     def test_report_separates_unary_destination_selection_from_power_rules(self):
         data=self.checked().report()['real_math'];unary=data['lreal']['unary']
         self.assertEqual(set(unary['instructions']),set(CASES));self.assertEqual(len(unary['source_types']),10)
-        self.assertIn('Signed DINT',unary['constants']);self.assertFalse(unary['native_runtime_parity'])
+        self.assertIn('L/U/UL',unary['constants']);self.assertFalse(unary['native_runtime_parity'])
         self.assertIn('no LREAL source',data['lreal']['power']['operands'])

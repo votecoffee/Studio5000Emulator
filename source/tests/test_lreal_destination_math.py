@@ -117,7 +117,7 @@ class LrealDestinationMathTests(unittest.TestCase):
 
     def test_excluded_constants_types_destinations_and_profiles_remain_guarded(self):
         for name in EXPECTED:
-            for token in ('TRUE','1.0','1e0','2147483648','1L','Inputs','RunLatch'):
+            for token in ('TRUE','1e309L','1e39','2147483648','1LU','Inputs','RunLatch'):
                 self.assertTrue(self.engine([f'AFI(){name}(Source,{token},Dest);']).blockers,(name,token))
         for call in ('ADD(Source,1,SpeedCommand);','XPY(Source,2,SpeedCommand);'):
             self.assertTrue(self.engine([call],source='LREAL').blockers)

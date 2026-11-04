@@ -79,7 +79,7 @@ class MixedLrealMathTests(unittest.TestCase):
         self.assertEqual((e.memory.read('BufferA[1]'),e.memory.read('BufferB[2]')),before);self.assertEqual((e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[1]')),(9.0,4.0))
 
     def test_immediates_comparisons_narrow_results_and_other_families_remain_guarded(self):
-        for text in ('ADD(Source,1.0,Dest);','EQU(Source,TRUE);','LIM(Source,1.0,Source);','ADD(Source,Mask,SpeedCommand);','CPT(Dest,Source+Mask);','SQR(TRUE,Dest);','AND(Source,Mask,Dest);','ADD(Inputs,Mask,Dest);'):
+        for text in ('ADD(Source,1e39,Dest);','EQU(Source,TRUE);','LIM(Source,1.0,Source);','ADD(Source,Mask,SpeedCommand);','CPT(Dest,Source+RunLatch);','SQR(TRUE,Dest);','AND(Source,Mask,Dest);','ADD(Inputs,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
         self.assertEqual(self.checked(source='DINT',other='REAL',value=1).blockers,[])
         def readonly(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')

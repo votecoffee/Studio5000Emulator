@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.165922`: [LREAL standalone math constants](lreal-math-literals.md).
+Nineteen arithmetic, power and unary forms accept bounded DINT/finite REAL and
+decimal L/U/UL integer or floating L/l constants with a scalar LREAL result.
+Declared source precision precedes binary64 calculation; selection, unknown
+writes and AOI rollback retain their rules. Wide expression lab adds MathConstants.
+Other result/consumer profiles, typed radix and native parity remain separate.
+
 Available in `26.1104.164359`: [DINT radix MOV constants](radix-mov-literals.md).
 Binary, octal and hexadecimal unsuffixed sources zero-fill to 32 bits and
 interpret bit 31 as the signed DINT top bit before numeric conversion. The

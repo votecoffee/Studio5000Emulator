@@ -811,6 +811,23 @@
       <Tag Name="RadixLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RadixLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RadixSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="MathLitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MathLitIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MathLitDouble" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitDefault" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitRounded" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitUnsigned" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitDivide" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitPower" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitRoot" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitLog" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitSine" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitDomainFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MathLitRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MathLitFaultResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="MathLitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="MathLitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MathLitSelected" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -892,7 +909,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1019,6 +1036,23 @@
               <Rung Number="4" Type="N"><Text>XIC(RadixEnabled)MOV(16#7FFF_FFFF,RadixReal);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF FFFF,RadixSelected[RadixIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(RadixEnabled)DIV(1,RadixLateDivisor,RadixLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MathConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(MathLitEnabled)ADD(0.1L,0.0L,MathLitDouble);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(MathLitEnabled)ADD(0.1,0.0L,MathLitDefault);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(MathLitEnabled)ADD(9007199254740993L,0.0L,MathLitRounded);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(MathLitEnabled)MOD(18446744073709551615UL,3U,MathLitUnsigned);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(MathLitEnabled)DIV(3L,2U,MathLitDivide);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(MathLitEnabled)XPY(2L,3.5L,MathLitPower);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(MathLitEnabled)SQR(16777217U,MathLitRoot);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(MathLitEnabled)LN(2.0L,MathLitLog);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(MathLitEnabled)SIN(0.5L,MathLitSine);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(MathLitEnabled)ADD(1.0000000000000002L,0.0L,MathLitSelected[MathLitIndex]);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(MathLitEnabled)XIC(MathLitDomainFault)LN(-1.0L,MathLitFaultResult);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(MathLitEnabled)XIC(MathLitRangeFault)MUL(1e308L,2L,MathLitFaultResult);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(MathLitEnabled)DIV(1,MathLitLateDivisor,MathLitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

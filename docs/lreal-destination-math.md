@@ -1,5 +1,10 @@
 # LREAL arithmetic result selection
 
+[LREAL math constants](lreal-math-literals.md) extend the immediate operands
+described below in app `26.1104.165922`; historical signed-DINT-only exclusions
+no longer apply to these LREAL-result instructions. Other result and ordering
+profiles retain their scope.
+
 App `26.1104.092011` extends standalone ladder ADD, SUB, MUL, DIV, MOD, NEG, ABS
 and XPY in the v35 ControlLogix 5580 software profile. A scalar LREAL destination
 selects finite binary64 inputs and calculation. Sources may be any of the ten
