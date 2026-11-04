@@ -145,10 +145,15 @@ def ladder_description(project):
                     native_runtime_parity=False),
                 meq='All eight integer tag types may mix; zero-extend each read-only declared pattern; legacy immediates remain homogeneous',
                 meq_mixed_integer_tags=True,
-                literals='Signed DINT integers representable in the matching declared type; store larger constants in tags',
+                literals='Signed DINT integers or matching decimal L/U/UL literals within declared range in direct CPT/CMP',
+                typed_integer_literals=dict(instructions=['CPT','CMP'],types=['LINT','UDINT','ULINT'],
+                    suffixes=['L/l','U/u','UL/ul/Ul/uL'],matching_numeric_types=True,
+                    range='Declared literal range checked in preflight with its immediate unary sign; exact integer evaluation',
+                    excluded='Mixed literal/tag types, typed radix forms, other consumers, LREAL combinations and native parity',
+                    native_runtime_parity=False),
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['Other mixed arithmetic intermediates and wider immediate literals','Numeric bitwise mixtures, power and functions beyond ABS',
+                remaining=['Other mixed arithmetic intermediates and typed/radix literal combinations','Numeric bitwise mixtures, power and functions beyond ABS',
                            'LREAL/time types, file-expression and array-index consumers','Native status/fault/intermediate/partial-effect parity'])
 
 

@@ -594,6 +594,48 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="ILitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitUnsigned" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="ULINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitDword" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="UDINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitNot" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="ULINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitQuotient" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="ULINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitExact" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitOffset" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="1" /></Data>
+      </Tag>
+      <Tag Name="ILitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitOverflow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ILitSelected" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[2]" Value="903" /></Array></Data>
+      </Tag>
+      <Tag Name="ILitInputs" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[0]" Value="2" /><Element Index="[1]" Value="6" /><Element Index="[2]" Value="10" /></Array></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -672,6 +714,7 @@
               <Rung Number="22" Type="N"><Text>JSR(Binary64,0);</Text></Rung>
               <Rung Number="23" Type="N"><Text>JSR(Binary64Results,0);</Text></Rung>
               <Rung Number="24" Type="N"><Text>JSR(FloatingConstants,0);</Text></Rung>
+              <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -728,6 +771,19 @@
               <Rung Number="12" Type="N"><Text>XIC(FPLitEnabled)DIV(1,FPLitLateDivisor,FPLitLateResult);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitLower,.5l);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(FPLitEnabled)CPT(FPLitScientific,1e+2l+0.25);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IntegerConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSigned,-9223372036854775808L+ILitOffset);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ILitEnabled)CPT(ILitUnsigned,18446744073709551615UL);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ILitEnabled)CPT(ILitDword,4294967295u);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ILitEnabled)CPT(ILitNot,NOT 0uL);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ILitEnabled)CPT(ILitQuotient,18446744073709551615UL/3UL);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ILitEnabled)CMP(9007199254740992L&lt;9007199254740993L)OTE(ILitExact);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSelected[ILitIndex],ILitInputs[ILitIndex]+9007199254740993L);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ILitEnabled)XIC(ILitOverflow)CPT(ILitSigned,9223372036854775807L+1L);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(ILitEnabled)DIV(1,ILitLateDivisor,ILitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

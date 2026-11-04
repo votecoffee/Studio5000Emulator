@@ -119,7 +119,7 @@ class LadderWideExpressionTests(unittest.TestCase):
 
     def test_mixed_types_float_power_functions_and_large_immediates_block_even_false(self):
         for expression in ('Source+1.0','Source+2147483648','Source+16#FFFFFFFF','Source**2','SQR(Source)','TRN(Source)',
-                           'Source+RunLatch','NOT RunLatch','Source+1L','Source+Unknown'):
+                           'Source+RunLatch','NOT RunLatch','Source+1UL','Source+Unknown'):
             self.assertTrue(self.engine(['AFI()CPT(Dest,'+expression+');']).blockers,expression)
         for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','LINT','REAL'),('LINT','LINT','DINT')):
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+(Mask+1));'],types=types).blockers)

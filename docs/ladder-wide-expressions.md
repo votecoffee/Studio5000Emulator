@@ -22,7 +22,8 @@ MEQ(Pattern,Mask,Expected)OTE(MaskMatches);
 
 Homogeneous wide expressions use matching numeric tag types, including the CPT
 destination. The mixed profiles below have separate range and intermediate rules. Literals must be signed DINT integers that also
-fit that type. Store larger constants in typed tags. CPT can infer its type
+fit that type. Matching decimal [L/U/UL constants](ladder-integer-literals.md)
+now cover the full LINT, UDINT and ULINT ranges in direct CPT/CMP. CPT can infer its type
 from the destination for literal-only expressions. A destination's previous
 value may be unknown if the expression does not read it.
 

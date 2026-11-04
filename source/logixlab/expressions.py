@@ -30,7 +30,7 @@ PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
 
 
 class Expression:
-    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False):
+    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
@@ -63,7 +63,7 @@ class Expression:
                 self.tokens.append(('string',bytes(x&255 for x in ascii_bytes(text[start:pos].replace('$I','$L').replace('$i','$L'))).decode('latin-1')))
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
-            typed=typed_integer(text,pos) if structured else None
+            typed=typed_integer(text,pos) if structured or integer_literals else None
             if typed is not None:
                 pos,value=typed;self.tokens.append(('typed',value));continue
             number = re.match(r'(?:2|8|16)#[0-9a-fA-F_]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', text[pos:])
@@ -148,6 +148,7 @@ class Expression:
         return node
 
     def validate(self, memory, scope='', destination_type=None, index=False):
+        if self.typed_types:raise ModelError('Typed integer literals require a qualified integer expression profile')
         if self.literal_types:raise ModelError('LREAL literals require the qualified ladder floating expression profile')
         real = destination_type == 'REAL'
         for ref in self.refs:

@@ -1,4 +1,4 @@
-"""Decimal ST integer suffixes; magnitude is checked with its unary sign."""
+"""Shared decimal integer suffixes; magnitude is checked with its unary sign."""
 import re
 
 TYPES={'L':'LINT','U':'UDINT','UL':'ULINT'}

@@ -394,3 +394,8 @@ and native equivalence retain separate limits.
 [LREAL floating constants](lreal-literals.md) now support unsuffixed REAL and
 explicit floating L/l suffixes in direct ladder CPT/CMP. Other consumers and
 native precision/status/fault/lifecycle qualification remain separate.
+
+Direct ladder CPT/CMP now accept matching decimal L/U/UL constants through the
+full LINT/UDINT/ULINT ranges, including exact arithmetic, comparisons and bitwise
+forms. See [integer constants](ladder-integer-literals.md). Mixed typed forms,
+other consumers and native precision/status/fault/lifecycle parity remain open.

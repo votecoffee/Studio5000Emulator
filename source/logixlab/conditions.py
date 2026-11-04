@@ -11,7 +11,7 @@ LOGICAL={'&&','^^','||'}
 
 class Condition(Expression):
     def __init__(self,text,*,allow_wide=False,bcd=False,lreal=False):
-        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal)
+        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal,integer_literals=lreal)
         self.allow_wide=allow_wide
         self.allow_lreal=lreal
 
@@ -38,6 +38,7 @@ class Condition(Expression):
         if floating is not None:return True,floating['types']
         wide=self.wide_profile(memory,scope)
         if wide is not None:return False,wide[2]
+        if self.typed_types:raise ModelError('Typed integer literals require the qualified integer expression profile')
         types={};real=False
         integer_root = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
         for ref in self.refs:

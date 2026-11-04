@@ -980,3 +980,8 @@ Use the [complete remaining-work checklist](emulation-coverage.md) and
 [instruction inventory](emulation-instructions.md) as the maintained baseline.
 Add supported forms with focused tests, keep unknown/unsupported data explicit
 and run broader integration checks at milestone gates.
+
+Direct ladder CPT/CMP now accept matching decimal L/U/UL constants through the
+full LINT/UDINT/ULINT ranges, including exact arithmetic, comparisons and bitwise
+forms. See [integer constants](ladder-integer-literals.md). Mixed typed forms,
+other consumers and native precision/status/fault/lifecycle parity remain open.

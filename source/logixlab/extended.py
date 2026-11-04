@@ -82,14 +82,14 @@ class Extensions:
         except ModelError:return False
         finally:self.memory.structural=previous
 
-    def expression(self,text,*,bcd=False,floating_literals=False):
-        key=(text,bcd,floating_literals)
-        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals)
+    def expression(self,text,*,bcd=False,floating_literals=False,integer_literals=False):
+        key=(text,bcd,floating_literals,integer_literals)
+        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals,integer_literals=integer_literals)
         return self.expressions[key]
 
     def compute(self,args,scope,execute=False):
         dtype=self.numeric_destination(args[0],scope,wide=True)
-        expression=self.expression(args[1],bcd=True,floating_literals=True)
+        expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True)
         floating=lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT')
         if floating is not None:
             if execute:return lreal_expressions.evaluate(expression,self.memory,scope,floating)
@@ -153,7 +153,7 @@ class Extensions:
         previous=self.memory.structural
         self.memory.structural=True
         try:
-            expression=self.expression(op.args[1],bcd=True,floating_literals=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True)
+            expression=self.expression(op.args[1],bcd=True,floating_literals=True,integer_literals=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True)
             for ref in expression.refs:
                 dtype=self.memory.resolve(ref,scope)[2]
                 if dtype not in {*INT_BITS,'REAL','LREAL','BOOL'}:return False

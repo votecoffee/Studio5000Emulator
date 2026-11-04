@@ -102,7 +102,7 @@ class MixedConditionTests(unittest.TestCase):
 
     def test_arithmetic_bitwise_functions_shapes_and_unbounded_literals_remain_blocked(self):
         for expr in ('Source+(Mask+1)>0','Source/(Mask+1)=1','(Source AND Mask)>0','(NOT Source)=Mask','-Mask<Source',
-                     'ABS(Mask)>Source','Source>Mask>Dest','Source>RunLatch','Values>Mask','Source>2147483648','Source>1.0','Source>1L'):
+                     'ABS(Mask)>Source','Source>Mask>Dest','Source>RunLatch','Values>Mask','Source>2147483648','Source>1.0','Source>1UL'):
             e=self.engine(['AFI()CMP('+expr+')OTE(RunLatch);'],types=('LINT','DINT','DINT'));self.assertTrue(e.blockers,expr);self.assertFalse(e.memory.structural)
         self.assertTrue(self.engine(['CMP((Source>Mask)&&(Mask>-1))OTE(RunLatch);'],types=('ULINT','UDINT','DINT')).blockers)
         self.assertTrue(self.engine(['AFI()CMP(Source>Mask)OTE(RunLatch);'],types=('LINT','REAL','DINT')).blockers)
