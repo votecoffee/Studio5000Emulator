@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.174245`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.180138`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -32,6 +32,10 @@ Development is maintained on `main`.
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
+
+**Typed integer arithmetic and comparisons** now accept decimal L/U/UL constants
+under the existing range-preserving integer rules, with exact division and
+ordering beyond floating precision. See [integer operands](docs/typed-integer-operands.md).
 
 **Typed integers in REAL ladder operations** now work across nineteen math forms
 and seven comparisons, using declared integer ranges and existing float32

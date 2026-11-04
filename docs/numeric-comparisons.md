@@ -1,5 +1,10 @@
 # Numeric ladder comparisons
 
+[Typed integer operands](typed-integer-operands.md) extend this profile in app
+`26.1104.180138`: decimal L/U/UL constants participate in the existing complete
+source-range checks and exact integer calculations. Other consumer and narrowing
+profiles retain their scope.
+
 The v35 ControlLogix 5580 software profile validates EQU, NEQ, LES, LEQ, GRT,
 GEQ, LIM and MEQ structurally. Saved numeric values may remain unknown at import.
 Declared types, scalar shape, static references and existing immediate/profile

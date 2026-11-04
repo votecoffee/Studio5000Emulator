@@ -11,7 +11,7 @@ and UL/ul/Ul/uL (ULINT) integer constants in these selected ladder operations:
 Both binary math/comparison operands and all three LIM operands support the
 same constant forms. Existing bounded DINT and finite REAL constants retain
 their rules. Constant-only math calls can select REAL through their destination;
-typed integer constants alone do not enable a new comparison profile.
+typed integer constants alone use the separate [exact integer profile](typed-integer-operands.md).
 
 ```text
 ADD(16777217U,1L,RealSum);

@@ -118,7 +118,7 @@ class LrealComparisonLiteralTests(unittest.TestCase):
             self.assertTrue(self.engine(['AFI()LIM(0.0L,'+token+',1.0L)OTE(RunLatch);']).blockers,token)
 
     def test_integer_only_typed_constants_meq_st_and_old_profiles_do_not_widen(self):
-        for call in ('EQU(1L,1L)','LIM(0L,1L,2L)','MEQ(Source,1.0L,Source)'):
+        for call in ('EQU(1L,1UL)','LIM(0L,1UL,2L)','MEQ(Source,1.0L,Source)'):
             self.assertTrue(self.engine([call+'OTE(RunLatch);'],source='DINT',value=1).blockers,call)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()EQU(Source,0.1L)OTE(RunLatch);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)

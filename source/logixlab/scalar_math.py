@@ -3,7 +3,7 @@ import math
 import operator
 
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 
@@ -25,6 +25,7 @@ def validate(engine, op, scope):
         if op.name in ARITHMETIC and memory.check_writable(op.args[-1],scope)[2] in ('REAL','LREAL'):
             arithmetic_profile(engine,op,scope)
             return True
+        if op.name in ARITHMETIC and typed_profile(engine,op,scope,arithmetic=True):return True
         for ref in op.args:
             value = memory.read(ref, scope)
             if isinstance(value, (list, dict, bool)):
@@ -112,6 +113,8 @@ def arithmetic_profile(engine, op, scope):
     if engine.memory.check_writable(op.args[-1],scope)[2]=='REAL':
         from .numeric_storage import real_math_sources
         return real_math_sources(engine.memory,op,scope)
+    typed=typed_profile(engine,op,scope,arithmetic=True)
+    if typed:return typed
     types, constants = [], []
     for ref in op.args:
         try:value = literal(ref)
@@ -204,6 +207,12 @@ def description(project):
                     conversion='Signed values retain their sign; unsigned values retain their nonnegative value; all arithmetic stays integer-exact',
                     selection='Declared-type checks even false; false/prescan skip live values and indices; true full writes establish unknowns',
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
+                    native_runtime_parity=False),
+                typed_integer_arithmetic=dict(instructions=sorted(ARITHMETIC),constant_types=['LINT','UDINT','ULINT'],
+                    constants='Decimal L/U/UL integers checked at their declared source range; existing bounded DINT constants must fit the result type',
+                    selection='An integer result covers every complete declared source type range; no saved value justifies narrowing or signed-to-unsigned conversion',
+                    calculation='Exact integer operations; DIV truncates toward zero, MOD has the dividend sign; result overflow faults atomically',
+                    scope='RLL v35 5580 only; bitwise/MEQ, floating sources, other results/consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
                     operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants with a LREAL destination; no LREAL source is required',

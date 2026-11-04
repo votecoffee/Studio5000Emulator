@@ -861,6 +861,20 @@
       <Tag Name="RealIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RealIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RealIntSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
+      <Tag Name="TypedIntEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedIntIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntQuotient" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntRemainder" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntDword" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntDifference" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntExact" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedIntLimit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedIntOverflow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TypedIntFaultResult" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TypedIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedIntSelected" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -942,7 +956,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1113,6 +1127,20 @@
               <Rung Number="7" Type="N"><Text>XIC(RealIntEnabled)ADD(4294967295U,0L,RealIntSelected[RealIntIndex]);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(RealIntEnabled)XIC(RealIntRangeFault)XPY(18446744073709551615UL,3L,RealIntFaultResult);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(RealIntEnabled)DIV(1,RealIntLateDivisor,RealIntLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IntegerOperandConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(TypedIntEnabled)ADD(9007199254740993L,1L,TypedIntSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(TypedIntEnabled)DIV(18446744073709551615UL,3UL,TypedIntQuotient);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(TypedIntEnabled)MOD(18446744073709551615UL,3UL,TypedIntRemainder);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(TypedIntEnabled)ADD(4294967294U,1U,TypedIntDword);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(TypedIntEnabled)SUB(0L,4294967295U,TypedIntDifference);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(TypedIntEnabled)GRT(9007199254740993L,9007199254740992L)OTE(TypedIntExact);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(TypedIntEnabled)LIM(-9223372036854775808L,TypedIntSigned,9223372036854775807L)OTE(TypedIntLimit);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(TypedIntEnabled)ADD(18446744073709551615UL,0UL,TypedIntSelected[TypedIntIndex]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(TypedIntEnabled)XIC(TypedIntOverflow)ADD(9223372036854775807L,1L,TypedIntFaultResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(TypedIntEnabled)DIV(1,TypedIntLateDivisor,TypedIntLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

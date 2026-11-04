@@ -103,7 +103,7 @@ class ComparisonConstantTests(unittest.TestCase):
         for types in (('DINT','UDINT','DINT'),('LINT','ULINT','DINT'),('SINT','USINT','DINT')):
             for args in ('0,Source,Mask','Source,0,Mask','Source,Mask,0'):
                 self.assertTrue(self.engine(['AFI()LIM('+args+')OTE(RunLatch);'],types=types,values=(1,1,0)).blockers)
-        for constant in ('2147483648','-2147483649','16#ffff_ffff','1.0','TRUE','1L','18446744073709551615UL'):
+        for constant in ('2147483648','-2147483649','16#ffff_ffff','1.0','TRUE','1LU','18446744073709551615UL'):
             for args in (f'{constant},Source,Mask',f'Source,{constant},Mask',f'Source,Mask,{constant}'):
                 self.assertTrue(self.engine(['AFI()LIM('+args+')OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)
         self.assertTrue(self.engine(['AFI()LIM(-1,Source,Mask)OTE(RunLatch);'],types=('ULINT','UDINT','DINT')).blockers)

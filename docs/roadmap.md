@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.180138`: [typed integer operands](typed-integer-operands.md).
+Seven integer-result arithmetic forms and seven integer comparisons accept
+decimal L/U/UL constants under existing range-preserving rules. Source ranges
+are checked structurally, calculation stays exact and constant-only forms work.
+Wide expression lab adds IntegerOperandConstants. Narrowing, invented common
+types, bitwise/MEQ/other consumers and native parity remain separate.
+
 Available in `26.1104.174245`: [typed integers in REAL operations](real-integer-literals.md).
 Decimal L/U/UL constants now work across nineteen REAL-result ladder math forms
 and seven actual-REAL-tag comparisons. Declared integer ranges precede float32

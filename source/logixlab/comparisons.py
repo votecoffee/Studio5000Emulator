@@ -28,6 +28,7 @@ def validate(engine, op, scope):
             masked_values(engine, op.args, scope)
         else:
             if lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope):return True
+            if integer_math.typed_profile(engine,op,scope):return True
             for arg in op.args:
                 value = memory.read(arg, scope)
                 if isinstance(value, (list, dict, bool)):
@@ -75,6 +76,8 @@ def ordering_profile(engine, op, scope):
     if not available(engine.project):return integer_math.profile(engine, op, scope)
     if lreal_specification(engine.memory,op.args,scope):return 'LREAL'
     if real_specification(engine.memory,op.args,scope):return 'REAL'
+    typed=integer_math.typed_profile(engine,op,scope)
+    if typed:return typed
     types, constants = [], []
     for ref in op.args:
         try:value = literal(ref)
@@ -140,7 +143,7 @@ def execute(engine, op, power, scope):
     profile=ordering_profile(engine,op,scope)
     if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
     elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
-    else:values = [memory.read(arg, scope) for arg in op.args]
+    else:values = [integer_math.read_source(memory,arg,scope) for arg in op.args]
     if op.name == 'LIM':
         low, value, high = values
         return low <= value <= high if low <= high else value >= low or value <= high
@@ -157,6 +160,12 @@ def description(project):
                     selection='Read-only inputs; false/prescan skip live values and indices; true calls consume every source',
                     constants='Mixed LIM accepts signed-DINT integer literals in any operand position, representable in the highest-ranked tag type; constants do not justify tag-range conversion',
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
+                    native_runtime_parity=False),
+                typed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),constant_types=['LINT','UDINT','ULINT'],
+                    selection='Highest-ranked actual integer tag or typed constant must cover every complete source type range; no invented larger common type',
+                    constants='Decimal L/U/UL ranges checked before exact comparison; existing bounded DINT constants must fit the selected type',
+                    calculation='Exact integers without floating conversion; inclusive and reversed LIM use the same exact values',
+                    scope='RLL v35 5580; REAL/LREAL priority unchanged, MEQ/bitwise/other consumers and native parity remain separate',
                     native_runtime_parity=False),
                 lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
                     operands='Scalar numeric tags and constants; at least one LREAL tag or floating L/l literal selects binary64, including constant-only calls',

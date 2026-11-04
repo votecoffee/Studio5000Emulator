@@ -1,5 +1,10 @@
 # Scalar arithmetic and bitwise operand selection
 
+[Typed integer operands](typed-integer-operands.md) extend this profile in app
+`26.1104.180138`: decimal L/U/UL constants participate in the existing complete
+source-range checks and exact integer calculations. Other consumer and narrowing
+profiles retain their scope.
+
 The v35 ControlLogix 5580 ladder profile validates these existing operations
 without requiring saved scalar values or live indices:
 

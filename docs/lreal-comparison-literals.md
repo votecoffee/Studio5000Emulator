@@ -17,7 +17,7 @@ Selected comparisons accept all ten numeric tag types, bounded DINT integers,
 finite REAL floating constants, decimal L/l (LINT), U/u (UDINT), UL/ul/Ul/uL
 (ULINT) integers and finite floating L/l (LREAL) constants. Both relation operands
 and all three LIM operands follow the same rules. Typed integer constants alone
-do not select binary64 or extend the existing integer comparison profile.
+keep integer calculation under the separate [exact integer profile](typed-integer-operands.md).
 
 Each source is checked at its declared range and precision before promotion.
 Unsuffixed 0.1 contributes the REAL-rounded value 0.10000000149011612; 0.1L

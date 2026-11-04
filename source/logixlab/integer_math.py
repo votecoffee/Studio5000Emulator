@@ -142,6 +142,64 @@ def profile(engine, op, scope):
     return dtype
 
 
+def typed_integer(ref):
+    """One decimal L/U/UL source; preserve all other literal consumers."""
+    from .numeric_storage import typed_literal
+    value=typed_literal(ref) if '#' not in ref else None
+    return value if value is not None and value[0] in INT_BITS else None
+
+
+def integer_operand(memory, ref, scope):
+    typed=typed_integer(ref)
+    if typed is not None:return typed[0],None
+    try:value=literal(ref)
+    except ValueError:
+        key,parts,dtype=memory.resolve(ref,scope)
+        if dtype not in INT_BITS or isinstance(memory.at(key,parts),(list,dict)):
+            raise ModelError('Typed integer operands require scalar integer sources')
+        return dtype,None
+    if type(value) is not int:raise ModelError('Typed integer profile requires integer constants')
+    return None,coerce(value,'DINT')
+
+
+def integer_bounds(dtype):
+    bits=INT_BITS[dtype]
+    return (0,(1<<bits)-1) if dtype in UNSIGNED_BITS else (-(1<<(bits-1)),(1<<(bits-1))-1)
+
+
+def typed_profile(engine, op, scope, *, arithmetic=False):
+    """Existing range-preserving integer rules with declared typed immediates."""
+    allowed={'ADD','SUB','MUL','DIV','MOD','NEG','ABS'} if arithmetic else {*COMPARISONS,'LIM'}
+    if op.name not in allowed:return None
+    sources=op.args[:-1] if arithmetic else op.args
+    if not any(typed_integer(ref) is not None for ref in sources):return None
+    if engine.project.version!='35' or engine.project.processor.upper() not in CONTROLLERS:
+        raise ModelError('Typed integer operands require the v35 ControlLogix 5580 profile')
+    memory=engine.memory;types=[];constants=[]
+    for ref in sources:
+        dtype,value=integer_operand(memory,ref,scope)
+        if dtype is not None:types.append(dtype)
+        else:constants.append(value)
+    if arithmetic:
+        key,parts,common=memory.check_writable(op.args[-1],scope)
+        if common not in INT_BITS or isinstance(memory.at(key,parts),(list,dict)):
+            raise ModelError('Typed integer arithmetic requires one integer destination')
+    else:
+        rank=('SINT','USINT','INT','UINT','DINT','UDINT','LINT','ULINT')
+        common=max(types,key=rank.index)
+    low,high=integer_bounds(common)
+    if any(integer_bounds(dtype)[0]<low or integer_bounds(dtype)[1]>high for dtype in types):
+        raise ModelError('Typed integer result/comparison type must cover every complete source type range')
+    for value in constants:
+        if not low<=value<=high:raise ModelError('DINT constant must fit the selected integer type')
+    return common
+
+
+def read_source(memory, ref, scope):
+    typed=typed_integer(ref)
+    return typed[1] if typed is not None else memory.read(ref,scope)
+
+
 def bit_value(value, dtype):
     """Interpret exactly the declared number of bits, including unsigned NOT."""
     bits = INT_BITS[dtype]
@@ -156,7 +214,7 @@ def execute(engine, op, scope, dtype):
     memory = engine.memory
     name = op.name
     sources = op.args if name in COMPARISONS or name == 'LIM' else op.args[:-1]
-    values = [memory.read(argument, scope) for argument in sources]
+    values = [read_source(memory, argument, scope) for argument in sources]
     if name in COMPARISONS:
         return COMPARISONS[name](*values)
     if name == 'LIM':
