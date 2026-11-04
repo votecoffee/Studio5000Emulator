@@ -3413,3 +3413,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('CmpBcdGate',True);write('CmpBcdPacked',34);write('CmpBcdDecimal',21);write('CmpBcdRows[1]',34);row=values(step());self.assertEqual(matches(row),(False,True,True,False,True,False))
         write('CmpBcdEnabled',False);write('CmpBcdDecimal',-1);write('CmpBcdIndex',99);self.assertEqual(matches(values(step())),(False,)*6)
         report=self.post('report',{})['integer_expression_execution']['bcd_cmp'];self.assertEqual(report['functions'],['FRD','TOD']);self.assertTrue(report['boolean_composition']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_control_lab_bcd_files_all_numeric_inc_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'ControlLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        def reset():
+            for mode in ('All','Numeric','Increment'):write('BcdFile'+mode,False)
+            write('BcdFileReset',True);step();write('BcdFileReset',False)
+        row=values(step());self.assertIsNone(row['BcdDecoded[0]']);self.assertIsNone(row['BcdRepacked[0]']);self.assertIsNone(row['BcdIncremented[0]'])
+        write('BcdFileAll',True);row=values(step());self.assertEqual(tuple(row[f'BcdDecoded[{i}]'] for i in range(5)),(12,21,20,99,901));self.assertTrue(row['BcdAllCalc.DN']);self.assertEqual(row['BcdAllFind.POS'],1);self.assertTrue(row['BcdAllFind.IN'])
+        write('BcdFindValue',99);write('BcdAllFind.IN',False);row=values(step());self.assertEqual(row['BcdAllFind.POS'],3);self.assertTrue(row['BcdAllFind.DN'])
+        reset();write('BcdFindValue',21);write('BcdPacked[0]',34);write('BcdFileAll',True);write('BcdFileLateDivisor',0);fault('zero');write('BcdFileLateDivisor',1);self.assertEqual(values(step())['BcdDecoded[0]'],22);write('BcdPacked[0]',18)
+        reset();write('BcdFileNumeric',True);row=values(step());self.assertEqual(tuple(row[f'BcdRepacked[{i}]'] for i in range(5)),(18,33,None,None,902))
+        write('BcdFileNumeric',False);write('BcdDecimal[2]',-1);fault('qualified');write('BcdDecimal[2]',20);row=values(step());self.assertEqual(tuple(row[f'BcdRepacked[{i}]'] for i in range(5)),(18,33,32,153,902));self.assertTrue(row['BcdNumericCalc.DN']);self.assertFalse(row['BcdNumericCalc.EN'])
+        reset();write('BcdFileIncrement',True);row=values(step());self.assertEqual(row['BcdIncremented[0]'],13);self.assertEqual(row['BcdIncCalc.POS'],0)
+        write('BcdDecimal[0]',-1);self.assertEqual(values(step())['BcdIncCalc.POS'],0)
+        write('BcdFileIncrement',False);step();write('BcdDecimal[1]',-1);write('BcdFileIncrement',True);fault('qualified');write('BcdDecimal[1]',21);row=values(step());self.assertEqual(row['BcdIncremented[1]'],22);self.assertEqual(row['BcdIncFind.POS'],1);self.assertTrue(row['BcdIncFind.IN'])
+        write('BcdFindValue',99);write('BcdIncFind.IN',False)
+        for _ in range(2):write('BcdFileIncrement',False);step();write('BcdFileIncrement',True);row=values(step())
+        self.assertEqual(tuple(row[f'BcdIncremented[{i}]'] for i in range(5)),(13,22,21,100,903));self.assertEqual(row['BcdIncFind.POS'],3);self.assertTrue(row['BcdIncFind.DN']);self.assertTrue(row['BcdIncFind.FD'])
+        self.assertEqual((row['BcdPacked[4]'],row['BcdDecimal[4]'],row['BcdDecoded[4]'],row['BcdRepacked[4]']),(777,777,901,902))
+        reset();row=values(step());self.assertEqual(row['BcdIncCalc.POS'],0);self.assertFalse(row['BcdIncCalc.DN']);self.assertEqual(row['BcdIncremented[3]'],100)
+        profile=self.post('report',{})['integer_expression_execution']['bcd_files'];self.assertEqual(profile['instructions'],['FAL','FSC']);self.assertFalse(profile['native_runtime_parity'])

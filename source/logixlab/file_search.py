@@ -24,7 +24,7 @@ def validate(engine, op, scope):
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
-    count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4],allow_wide=True)
+    count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4],allow_wide=True,bcd=True)
     if count=='INC':incremental.validate(engine,op,scope)
     # Type-check dynamic subscripts at a structural position, without consuming
     # unknown data or rejecting a saved final cursor before execution begins.
@@ -78,7 +78,7 @@ def execute(engine, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                expressions='Existing bounded CMP grammar and exact wide/mixed-integer profile; dynamic CONTROL.POS subscripts',
+                expressions='Existing bounded CMP grammar including qualified narrow FRD/TOD, exact wide/mixed-integer profile and dynamic CONTROL.POS subscripts',
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
                 cursor='Last compared position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric searches continue on false rungs; partial EN stays set',

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.123302`: [BCD FAL/FSC expressions](file-bcd.md).
+Narrow FRD/TOD expressions now share the CPT/CMP conversion rules in file
+transforms/searches. ALL/numeric/INC distribution, held/done/inhibit paths,
+canonical progress, copied AOI bindings and atomic recovery retain their
+existing contracts. Control lab adds BcdFiles examples. Broader types/languages,
+saved active INC and native conversion/cursor/fault/lifecycle parity remain separate.
+
 Available in `26.1104.120940`: [BCD CMP expressions](cmp-bcd.md).
 FRD/TOD compose with integer arithmetic, six relations and Boolean conditions.
 Scoped parsing/caches keep file/ST consumers separate. Lazy operands, required

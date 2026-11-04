@@ -91,7 +91,7 @@ class CptBcdTests(unittest.TestCase):
             self.assertEqual((e.memory.read('BufferA[1]'),e.memory.read('BufferB[2]'),e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[2]')),(21,34,15,22))
             e.memory.write('FaultDivisor',0);self.fault(e,'zero');e.memory.write('FaultDivisor',1);e.memory.write('ValueA',42);e.step();self.assertEqual(e.memory.read('BufferA[1]'),42)
 
-    def test_scoped_cache_keeps_generic_st_and_file_forms_separate_from_ladder(self):
+    def test_scoped_cache_keeps_generic_and_st_forms_separate_from_ladder(self):
         e=self.checked();e.step()
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):e.extensions.expression('FRD(Source)')
         self.assertIn(('FRD(Source)',True),e.extensions.expressions)
@@ -102,7 +102,7 @@ class CptBcdTests(unittest.TestCase):
         import test_file_arithmetic as files
         f=files.FileArithmeticTests();f.setUp();self.addCleanup(f.doCleanups)
         for function in ('FRD','TOD'):
-            self.assertTrue(f.engine([f'CPT(Outgoing,{function}(Incoming));',f'FAL(Ctl,?,?,ALL,Queue[Ctl.POS],{function}(Incoming));']).blockers)
+            e=f.checked([f'CPT(Outgoing,{function}(Incoming));',f'FAL(Ctl,?,?,ALL,Queue[Ctl.POS],{function}(Incoming));']);e.step();self.assertEqual(e.memory.read('Queue')[:4],[11 if function=='FRD' else 17]*4)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):Expression('TOD(Source)')
 
     def test_other_types_real_functions_and_profiles_remain_guarded(self):

@@ -77,7 +77,7 @@ class CmpBcdTests(unittest.TestCase):
             e=self.aoi(dtype);self.assertEqual(e.blockers,[]);e.step();self.assertEqual((e.memory.read('BufferA[1]'),e.memory.read('BufferB[2]'),e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[2]')),(21,34,21,34))
             e.memory.write('ValueA',0);e.memory.write('FaultDivisor',0);self.fault(e,'zero');e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('BufferA[1]'),0);self.assertEqual(e.memory.read('DriverA.Stack[1]'),21)
 
-    def test_scoped_parser_cache_keeps_st_file_and_direct_conditions_separate(self):
+    def test_scoped_parser_cache_keeps_st_and_direct_conditions_separate(self):
         expression='FRD(Source)>0';e=self.checked([f'CMP({expression})OTE(RunLatch);']);e.step();self.assertIn((expression,True,True),e.extensions.conditions)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):e.extensions.condition(expression,allow_wide=True)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):Condition(expression)
@@ -86,7 +86,7 @@ class CmpBcdTests(unittest.TestCase):
         import test_file_search as files
         f=files.FileSearchTests();f.setUp();self.addCleanup(f.doCleanups)
         for function in ('FRD','TOD'):
-            self.assertTrue(f.engine([f'CMP({function}(Incoming)>0)OTE(RunLatch);',f'FSC(Ctl,?,?,ALL,{function}(Incoming)>0);']).blockers)
+            e=f.checked([f'CMP({function}(Incoming)>0)OTE(RunLatch);',f'FSC(Ctl,?,?,ALL,{function}(Incoming)>0);']);e.step();self.assertTrue(e.memory.read('Ctl.FD'));self.assertEqual(e.memory.read('Ctl.POS'),0)
 
     @staticmethod
     def text_tag(root):

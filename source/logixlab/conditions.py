@@ -68,9 +68,9 @@ class Condition(Expression):
         if infer(self.tree)!='bool':raise ModelError('CMP requires a BOOL result or comparison')
         if self.functions & BCD_FUNCTIONS:
             if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
-                raise ModelError('BCD CMP expressions require the v35 ControlLogix 5580 profile')
+                raise ModelError('BCD conditions require the v35 ControlLogix 5580 profile')
             if real or 'string' in types.values():
-                raise ModelError('BCD CMP expressions require narrow integer arithmetic and Boolean composition')
+                raise ModelError('BCD conditions require narrow integer arithmetic and Boolean composition')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Mixed REAL and bitwise CMP expressions are unsupported')
         if not real and '**' in self.operators:

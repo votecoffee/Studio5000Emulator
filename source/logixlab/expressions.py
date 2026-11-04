@@ -157,12 +157,12 @@ class Expression:
                 if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
                     raise ModelError('Extended array index expressions require the v35 ControlLogix 5580 profile')
         elif self.functions & BCD_FUNCTIONS:
-            if not self.bcd:raise ModelError('BCD expression functions require an array subscript or qualified CPT')
+            if not self.bcd:raise ModelError('BCD expression functions require an array subscript or qualified ladder expression')
             from .integer_math import CONTROLLERS
             if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
-                raise ModelError('BCD CPT expressions require the v35 ControlLogix 5580 profile')
+                raise ModelError('BCD arithmetic expressions require the v35 ControlLogix 5580 profile')
             if real or destination_type not in ('SINT','INT','DINT'):
-                raise ModelError('BCD CPT expressions require narrow integer operands, intermediates and destination')
+                raise ModelError('BCD arithmetic expressions require narrow integer operands, intermediates and destination')
         if not real and '**' in self.operators:
             raise ModelError('Integer CPT power is not modeled; use a REAL operand or destination')
         if real and self.operators & {'AND','OR','XOR','NOT'}:

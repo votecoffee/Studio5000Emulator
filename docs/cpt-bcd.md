@@ -35,7 +35,8 @@ Existing expressions without FRD/TOD retain their previous profiles.
 
 CPT enables these operators through a scoped parser option.
 [BCD CMP expressions](cmp-bcd.md) now have a separate comparison profile.
-Generic expressions, FAL/FSC and ST retain their existing function sets. Array-index
+[FAL/FSC BCD expressions](file-bcd.md) now opt into the same conversions.
+Generic expressions and ST retain their existing function sets. Array-index
 FRD/TOD/SQR remain a separate profile. No new instruction mnemonic, FBD/SFC form,
 native expression spelling, math-status bit or controller fault class is added.
 

@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; BCD CMP expressions added for app `26.1104.120940`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; BCD FAL/FSC expressions added for app `26.1104.123302`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -246,3 +246,7 @@ REAL/wide mixtures and native numerical/status/fault/lifecycle parity remain sep
 [BCD CMP expressions](cmp-bcd.md) qualify FRD/TOD in narrow integer
 comparisons and eager Boolean composition, with lazy rung selection and AOI
 rollback. Wider/REAL/string mixtures, other consumers and native parity remain separate.
+
+[BCD FAL/FSC expressions](file-bcd.md) add narrow FRD/TOD conversions to
+existing ALL/numeric/INC transforms and searches, including lazy progress paths,
+AOI arrays and rollback. Wider/REAL mixtures, ST and native parity remain separate.

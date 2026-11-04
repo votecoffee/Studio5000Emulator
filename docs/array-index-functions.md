@@ -81,3 +81,7 @@ See [implementation](../source/logixlab/expressions.py),
 [BCD CPT expressions](cpt-bcd.md) now have a separate v35 5580 narrow-integer
 profile. CPT parser opt-in keeps other expression consumers and wider/REAL forms
 separate; array-index functions retain their existing conversion rules.
+
+[BCD file expressions](file-bcd.md) now qualify FRD/TOD in narrow FAL/FSC
+operands for existing ALL/numeric/INC modes. Conversion and progress/rollback
+rules are explicit; wider types, ST and native parity remain separate.

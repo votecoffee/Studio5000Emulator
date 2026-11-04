@@ -30,8 +30,8 @@ functions and string mixtures remain outside this BCD comparison profile.
 Ordinary comparisons without BCD operators retain their existing profiles.
 
 The condition parser explicitly enables these operators for ladder CMP and
-uses a separate cache key. FAL/FSC, ST and direct condition parsers retain their
-existing function sets. This adds no instruction mnemonic, new language form,
+uses a separate cache key. [FAL/FSC BCD expressions](file-bcd.md) now opt into
+these conversions; ST and direct condition parsers retain their function sets. This adds no instruction mnemonic, new language form,
 native alias spelling, math-status flag or controller fault class.
 
 Structural preflight checks types, scalar shapes, references and syntax without

@@ -196,3 +196,7 @@ separate; array-index functions retain their existing conversion rules.
 [BCD CMP expressions](cmp-bcd.md) now add scoped FRD/TOD conversion
 operators to integer relations and Boolean composition. File/ST expressions,
 floating/wide mixtures and native parity retain separate requirements.
+
+[BCD file expressions](file-bcd.md) now qualify FRD/TOD in narrow FAL/FSC
+operands for existing ALL/numeric/INC modes. Conversion and progress/rollback
+rules are explicit; wider types, ST and native parity remain separate.

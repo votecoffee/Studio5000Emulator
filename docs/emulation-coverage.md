@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; BCD CMP expressions added for app `26.1104.120940`. **Full Logix emulation is not
+Audited 2026-11-04; BCD FAL/FSC expressions added for app `26.1104.123302`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -370,3 +370,7 @@ REAL/wide mixtures and native numerical/status/fault/lifecycle parity remain sep
 [BCD CMP expressions](cmp-bcd.md) qualify FRD/TOD in narrow integer
 comparisons and eager Boolean composition, with lazy rung selection and AOI
 rollback. Wider/REAL/string mixtures, other consumers and native parity remain separate.
+
+[BCD FAL/FSC expressions](file-bcd.md) add narrow FRD/TOD conversions to
+existing ALL/numeric/INC transforms and searches, including lazy progress paths,
+AOI arrays and rollback. Wider/REAL mixtures, ST and native parity remain separate.

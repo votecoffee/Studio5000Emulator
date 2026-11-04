@@ -169,7 +169,7 @@ class FileSearchTests(unittest.TestCase):
         for mode in ('BAD','0','-1','1.5','Incoming','2147483648','TRUE'):
             self.assertTrue(self.engine([f'FSC(Ctl,?,?,{mode},Queue[Ctl.POS]>Incoming);']).blockers,mode)
         for text in ('FSC(Ctl,4,0,ALL,Queue[Ctl.POS]>Incoming);','FSC(Ctl,?,?,ALL);',
-                     'FSC(Ctl,?,?,ALL,Queue[Ctl.POS]+Incoming);','FSC(Ctl,?,?,ALL,FRD(Incoming)>0);'):
+                     'FSC(Ctl,?,?,ALL,Queue[Ctl.POS]+Incoming);','FSC(Ctl,?,?,ALL,FRD(Incoming)>0.0);'):
             self.assertTrue(self.engine([text]).blockers,text)
         self.assertTrue(self.engine(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>Incoming);'],dtype='LREAL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Ctl"]').set('Constant','true')

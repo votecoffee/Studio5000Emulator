@@ -76,3 +76,7 @@ plus 14509/14519/14521 mode diagrams. Rockwell's published
 [FSC reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
 provides context. Bounded software checks do not establish native controller or
 Studio acceptance.
+
+[BCD file expressions](file-bcd.md) now qualify FRD/TOD in narrow FAL/FSC
+operands for existing ALL/numeric/INC modes. Conversion and progress/rollback
+rules are explicit; wider types, ST and native parity remain separate.

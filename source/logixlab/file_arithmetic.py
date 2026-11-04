@@ -45,7 +45,7 @@ def validate(engine, op, scope):
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FAL LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
-    count = mode(op.args[3]);expression = engine.extensions.expression(op.args[5])
+    count = mode(op.args[3]);expression = engine.extensions.expression(op.args[5],bcd=True)
     if count=='INC':incremental.validate(engine,op,scope)
     previous = memory.structural
     try:
@@ -96,7 +96,7 @@ def execute(engine, op, power, scope):
 def description():
     return dict(profile='v35-5580-FAL-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
                 types=sorted(NUMERIC), exact_integer_types=sorted(WIDE_TYPES),
-                wide_expressions='Matching declared numeric tag/result type; exact intermediates, ABS/basic arithmetic/bitwise and representable signed-DINT literals', expressions='Existing bounded CPT grammar, destination-indexed per iteration',
+                wide_expressions='Matching declared numeric tag/result type; exact intermediates, ABS/basic arithmetic/bitwise and representable signed-DINT literals', expressions='Existing bounded CPT grammar including qualified narrow FRD/TOD, destination-indexed per iteration',
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
