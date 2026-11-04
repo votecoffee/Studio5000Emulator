@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; LREAL ladder arithmetic/comparisons added for app `26.1104.005430`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; LREAL advanced ladder math added for app `26.1104.011710`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -118,12 +118,15 @@ Program/Task contexts without expanding the existing timing/attribute profile.
 atomic tag access; [homogeneous tagged ladder math](lreal-math.md) additionally executes. ST expressions and
 aggregate byte-copy layouts remain unqualified.
 
+[LREAL advanced ladder math](lreal-advanced.md) adds matching-tag roots, powers,
+logarithms, angle conversion and trigonometry; ST/CPT/CMP remain unqualified.
+
 ## Remaining forms of existing instructions
 
 | Existing family | Remaining semantic/operand work |
 | --- | --- |
 | Bit logic, comparisons, MOV/CLR and math | Homogeneous LINT/unsigned operations have bounded [RLL](integer-execution.md) and [ST](wide-st.md) profiles, including [decimal ST L/U/UL literals](st-integer-literals.md). Mixed types, remaining conversions, status/fault behavior and native scan parity remain unfinished. |
-| SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources and results, nearest-even integer conversion and range rollback. Structural preflight skips saved dynamic indices; false/prescan skip operands, true math checks reached indices/values, and full writes establish unknown results. Wide/unsigned/LREAL operands and native precision/status/nonfinite/overflow behavior remain unfinished; FBD uses separate REAL-record forms. |
+| SQR/XPY/LN/LOG/DEG/RAD/ACS/ASN/ATN/COS/SIN/TAN | [Finite ladder forms](math-operations.md) for v35 5580, with SINT/INT/DINT/REAL sources and results, nearest-even integer conversion and range rollback. Structural preflight skips saved dynamic indices; false/prescan skip operands, true math checks reached indices/values, and full writes establish unknown results. Matching-tag [LREAL forms](lreal-advanced.md) additionally execute. Wide/unsigned and mixed LREAL operands, plus native precision/status/nonfinite/overflow behavior, remain unfinished; FBD uses separate REAL-record forms. |
 | FRD/TOD/SWPB | [8/16/32/64-bit signed/unsigned BCD with all-eight-integer FRD/TOD pairs](numeric-conversions.md), plus INT/DINT byte-order forms, for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Structural preflight skips saved dynamic indices; false/prescan skip live operands, true calls check actual indices/values, and full writes establish unknown results. TOD uses 2/4/8/16 decimal digits by destination width; FRD weights the declared nibbles including A-F. BCD expressions, broader FBD forms and native saturation/overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. v35 5580 structural preflight skips saved dynamic indices while false/prescan; enabled calls retain address, mask and preserved-bit requirements. Full writes establish unknown results. Wide/unsigned operands and native math/fault status remain unfinished; ST/FBD target moves have separate support above. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching strings/explicit UDTs](record-queues.md) and [TIMER/COUNTER/CONTROL payloads](basic-record-queues.md). [Aliases and bounded indirect starts](queue-references.md) are supported for these shift/queue forms. [One-dimensional AOI InOut/local arrays](aoi-queues.md) now work in RLL. [Numeric FIFO/LIFO conversions](queue-conversions.md) support narrow numeric payloads of different types in the v35 5580 profile, including independently typed AOI operands. Native layout/status/overflow parity, wide types, operational/AOI records and broader AOI shapes/lifecycle remain unfinished. |

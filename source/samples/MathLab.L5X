@@ -5,6 +5,30 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="LrealMath" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="LrealIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="LrealRootInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9.000000000000004" /></Data></Tag>
+      <Tag Name="LrealLogInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="LrealPowerBase" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="LrealExponent" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="2.0" /></Data></Tag>
+      <Tag Name="LrealRadians" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.5" /></Data></Tag>
+      <Tag Name="LrealDegrees" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="180.0" /></Data></Tag>
+      <Tag Name="LrealInverse" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.5" /></Data></Tag>
+      <Tag Name="LrealLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="LrealLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="LrealSqr" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealLn" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealLog" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealPower" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealDeg" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealRad" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealSin" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealCos" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealTan" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealAsn" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealAcs" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealAtn" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="LrealResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="Enable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="BOOL" Value="1" />
@@ -440,6 +464,25 @@
               <Rung Number="28" Type="N">
                 <Text>XIC(IndexedMath)XPY(IndexedInputs[MathIndex],2.0,IndexedPowers[MathIndex]);</Text>
               </Rung>
+              <Rung Number="29" Type="N"><Text>JSR(LrealAdvanced,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="LrealAdvanced" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(LrealMath)SQR(LrealRootInput,LrealResults[LrealIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(LrealMath)MOV(LrealResults[LrealIndex],LrealSqr);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(LrealMath)LN(LrealLogInput,LrealLn);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(LrealMath)LOG(LrealLogInput,LrealLog);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(LrealMath)XPY(LrealPowerBase,LrealExponent,LrealPower);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(LrealMath)DEG(LrealRadians,LrealDeg);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(LrealMath)RAD(LrealDegrees,LrealRad);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(LrealMath)SIN(LrealRadians,LrealSin);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(LrealMath)COS(LrealRadians,LrealCos);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(LrealMath)TAN(LrealRadians,LrealTan);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(LrealMath)ASN(LrealInverse,LrealAsn);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(LrealMath)ACS(LrealInverse,LrealAcs);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(LrealMath)ATN(LrealInverse,LrealAtn);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(LrealMath)DIV(1,LrealLateDivisor,LrealLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MathText" Type="ST">

@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.011710`: [tagged LREAL advanced math](lreal-advanced.md).
+SQR/XPY/LN/LOG/DEG/RAD and six trigonometric forms use finite binary64
+inputs/results with matching LREAL tags. Structural/lazy selection, complete
+unknown writes, alias/member/AOI arrays and advance rollback remain. Math lab
+adds a gated twelve-form example with precision/domain/late-fault controls.
+Mixed types/immediates, ST/CPT/CMP, newer mnemonic aliases and native numerical/
+status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.005430`: [tagged LREAL ladder math](lreal-math.md).
 ADD/SUB/MUL/DIV/MOD/NEG/ABS and six direct relations/LIM retain finite binary64
 values through matching LREAL tags. Structural/lazy references, unknown complete

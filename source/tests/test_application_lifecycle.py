@@ -338,6 +338,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
             write(tag,1);step()
         write('EnableDoubleMath',False);write('DoubleMathIndex',99);step()
 
+    def test_math_lab_lreal_advanced_precision_domains_and_atomic_recovery(self):
+        import math
+        self.post('demo',{'sample':'MathLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['LrealIndex'],99);self.assertIsNone(v['LrealResults[1]'])
+        write('LrealIndex',1);write('LrealMath',True);v=values(step())
+        self.assertEqual(v['LrealSqr'],3.0000000000000004);self.assertEqual(v['LrealLn'],2.2204460492503128e-16);self.assertEqual(v['LrealPower'],1.0000000000000004)
+        for name,expected in [('LrealLog',math.log10(1.0000000000000002)),('LrealDeg',math.degrees(0.5)),('LrealRad',math.pi),('LrealSin',math.sin(0.5)),('LrealCos',math.cos(0.5)),('LrealTan',math.tan(0.5)),('LrealAsn',math.asin(0.5)),('LrealAcs',math.acos(0.5)),('LrealAtn',math.atan(0.5))]:self.assertEqual(v[name],expected)
+        self.assertEqual((v['LrealResults[0]'],v['LrealResults[2]']),(101.125,999.5))
+        for tag,bad,good in [('LrealLogInput',0,1.0000000000000002),('LrealInverse',1.0000000000000002,0.5),('LrealLateDivisor',0,1)]:
+            write(tag,bad);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,good);step()
+        write('LrealMath',False);write('LrealIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

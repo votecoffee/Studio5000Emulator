@@ -89,6 +89,7 @@ The source basis is the installed v35 instruction help, including ADD14623,
 MOD14620, EQU14589 and LIM14610. Published Rockwell
 [ADD](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/add--add-.html)
 and [MOD](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
-references give related context. Mixed types/immediates, ST expressions, CPT/CMP,
-advanced math, bitwise LREAL operations, aggregate byte layouts and native
+references give related context. [Matching-tag advanced math](lreal-advanced.md)
+additionally executes. Mixed types/immediates, ST expressions, CPT/CMP, mixed
+advanced forms, bitwise LREAL operations, aggregate byte layouts and native
 precision/status/fault/lifecycle equivalence remain separate work.

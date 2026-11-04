@@ -32,6 +32,17 @@ def validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Standalone math requires the v35 ControlLogix 5580 software profile')
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
+    if dtype=='LREAL':
+        if isinstance(memory.at(key,parts),(list,dict)):
+            raise ModelError('LREAL math requires a scalar LREAL destination')
+        for ref in op.args[:-1]:
+            try:literal(ref)
+            except ValueError:
+                key,parts,source_type=memory.resolve(ref,scope)
+                if source_type!='LREAL' or isinstance(memory.at(key,parts),(list,dict)):
+                    raise ModelError('LREAL math requires matching scalar LREAL tags; mixed types remain unqualified')
+            else:raise ModelError('LREAL math requires tagged sources; immediates remain unqualified')
+        return 'LREAL'
     if dtype not in DESTINATION_TYPES or isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Standalone math requires a scalar SINT/INT/DINT/REAL destination')
     for ref in op.args[:-1]:
@@ -59,13 +70,14 @@ def preflight(memory, op, scope):
 def execute(memory, op, power, scope):
     if not power:
         return False
-    validate(memory, op, scope)
-    values = [real(memory.read(ref, scope)) for ref in op.args[:-1]]
+    profile=validate(memory,op,scope)
+    convert=(lambda value:coerce(value,'LREAL')) if profile=='LREAL' else real
+    values = [convert(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
         result = math.pow(*values) if op.name == 'XPY' else FUNCTIONS[op.name](*values)
-        result = real(result)
+        result = convert(result)
     except (ValueError, OverflowError) as error:
-        raise ModelError(op.name + ' outside the finite REAL math profile') from error
+        raise ModelError(op.name+' outside the finite '+('LREAL' if profile=='LREAL' else 'REAL')+' math profile') from error
     memory.write(op.args[-1], result, scope)
     return True
 
@@ -78,9 +90,14 @@ def description():
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
+                lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Matching scalar LREAL tags',destination='Scalar LREAL tag',
+                    arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
+                    selection='Structural/lazy operands, complete unknown writes and existing aliases/member/AOI references',
+                    excluded='Mixed types, immediates, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
+                    native_runtime_parity=False),
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',
                 failures='Unknown values, domains and nonfinite/overflow results stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
-                remaining=['Wide/unsigned sources or destinations and LREAL',
+                remaining=['Wide/unsigned sources or destinations and mixed LREAL forms',
                            'FBD Blocks share these functions; native precision/status/NaN/infinity behavior remains unqualified'])

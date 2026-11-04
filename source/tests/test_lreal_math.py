@@ -101,8 +101,8 @@ class LrealMathTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(mutate=old).blockers)
 
-    def test_st_expressions_cpt_cmp_bitwise_and_advanced_math_remain_guarded(self):
-        for text in ('CPT(Dest,Source+Mask);','CMP(Source>Mask);','AND(Source,Mask,Dest);','SQR(Source,Dest);'):
+    def test_st_expressions_cpt_cmp_bitwise_and_mixed_advanced_math_remain_guarded(self):
+        for text in ('CPT(Dest,Source+Mask);','CMP(Source>Mask);','AND(Source,Mask,Dest);','SQR(Source,SpeedCommand);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))

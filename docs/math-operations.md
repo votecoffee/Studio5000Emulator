@@ -22,7 +22,8 @@ Integer immediates must fit signed DINT; real immediates must fit finite REAL.
 Destinations may be writable scalar SINT/INT/DINT/REAL. Existing array elements,
 indirect indices, UDT members, aliases and supported AOI local/Output/InOut
 bindings are available. Whole aggregates, BOOL/bit targets, constants,
-wide/unsigned operands and LREAL remain unqualified.
+wide/unsigned operands remain unqualified. [Matching-tag LREAL forms](lreal-advanced.md)
+use a separate finite binary64 profile without changing the narrow conversions.
 
 ## Operand selection
 
