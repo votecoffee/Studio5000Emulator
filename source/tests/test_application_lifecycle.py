@@ -143,6 +143,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_system_lab_this_contexts_named_snapshots_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'SystemLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['ThisWords[1]']);write('ReadThis',True);before=state_now()
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=state_now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        write('ThisIndex',1);write('ReadTiming',True);write('TimingIndex',1);v=values(step())
+        self.assertEqual((v['ThisWatchdog'],v['StThisWatchdog'],v['ThisFastRate'],v['ThisSlowRate'],v['ThisFastPriority'],v['ThisSlowPriority']),(500000,500000,10000,25000,2,5))
+        self.assertEqual(v['ThisWords[1]'],v['StThisProgramLast']);self.assertEqual(v['ThisWords[1]'],v['TimingWords[1]']);self.assertGreaterEqual(v['ThisProgramMax'],v['ThisWords[1]'])
+        self.assertEqual([v[f'ThisWords[{i}]'] for i in (0,2)],[101,999])
+        before={k:value for k,value in v.items() if k.startswith(('This','StThis'))};write('ReadThis',False);write('ThisIndex',99);v=values(step())
+        for key,value in before.items():
+            if key!='ThisIndex':self.assertEqual(v[key],value)
+        report=self.post('report',{})['system_values'];self.assertIn('THIS',report['configuration']['current_instance']);self.assertFalse(report['timing']['native_runtime_parity'])
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

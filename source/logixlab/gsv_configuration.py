@@ -12,7 +12,32 @@ CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
 
-def source(engine, op):
+def current_instance(engine, cls, instance, scope='', *, executing=False):
+    """Resolve THIS from a source-bound scheduled Program, never saved tag data."""
+    if instance.casefold()!='this':return instance
+    project=engine.project;configuration=project.task_configuration
+    if (project.version!='35' or project.processor.upper() not in CONTROLLERS
+            or engine.mode!='project' or scope in engine.memory.frames):
+        raise ModelError('GSV THIS requires an ordinary v35 5580 project Program context; AOI/harness contexts remain unqualified')
+    name=next((n for n in project.programs if n.casefold()==scope.casefold()),None)
+    program=project.programs.get(name)
+    if (not program or program['class']!='Standard' or program['disabled'] or program['use_as_folder']
+            or not configuration.source_complete or configuration.source_sha256!=project.sha256
+            or not project.program_configuration.type_attributes(name,source_sha256=project.sha256)
+            or not any(project.routines[entry].program==name for entry in engine.entries if entry in project.routines)):
+        raise ModelError('GSV THIS requires an eligible scheduled ordinary Standard Program and complete current source')
+    owners=[task for task in project.tasks if any(p.casefold()==name.casefold() for p in task['programs'])]
+    scheduler=engine._task_scheduler
+    if (len(owners)!=1 or owners[0]['class']!='Standard' or owners[0]['type'] not in ('Continuous','Periodic')
+            or scheduler is None or scheduler.source!=scheduler.configuration):
+        raise ModelError('GSV THIS requires one unchanged Standard Continuous/Periodic owner Task')
+    owner=owners[0]['name']
+    if executing and (not isinstance(engine._executing_task,str) or engine._executing_task.casefold()!=owner.casefold()):
+        raise ModelError('GSV THIS has no matching active Task execution context')
+    return name if cls.casefold()=='program' else owner
+
+
+def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
     project=engine.project;configuration=project.task_configuration
@@ -35,6 +60,7 @@ def source(engine, op):
             return 'INT',coerce(value,'INT')
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls!='task':raise ModelError('GSV configuration supports Task and Controller only')
+    instance=current_instance(engine,cls,instance,scope,executing=executing)
     name=next((n for n in configuration.names if n.casefold()==instance.casefold()),None)
     task=next((t for t in project.tasks if name is not None and t['name']==name),None)
     if not task or task['class']!='Standard' or task['type'] not in ('Continuous','Periodic'):
@@ -68,15 +94,30 @@ def destination(memory, ref, scope, dtype):
 
 
 def validate(engine, op, scope):
-    dtype,_=source(engine,op)
-    return destination(engine.memory,op.args[3],scope,dtype)
+    memory=engine.memory;previous=memory.structural;memory.structural=True
+    try:
+        dtype,_=source(engine,op,scope)
+        return destination(memory,op.args[3],scope,dtype)
+    finally:memory.structural=previous
 
 
 def execute(engine, op, scope):
-    dtype,value=source(engine,op);memory=engine.memory
+    dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     destination(memory,op.args[3],scope,dtype)
     if dtype=='STRING':memory.write_string(op.args[3],value,scope)
     else:memory.write(op.args[3],value,scope)
+
+
+
+def write_effects(engine,op,scope):
+    from .numeric_copy import static_reference
+    memory=engine.memory;previous=memory.structural;memory.structural=True
+    try:
+        key,paths,_=validate(engine,op,scope)
+        if static_reference(memory,op.args[3],scope):return [(key,path) for path in paths]
+        parts=paths[0];boundary=next((i for i,part in enumerate(parts) if isinstance(part,int)),len(parts))
+        return [(key,parts[:boundary])]
+    finally:memory.structural=previous
 
 
 def description():
@@ -86,6 +127,9 @@ def description():
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact source milliseconds; no inferred defaults',
                 state='Source configuration; Task InhibitTask reads live runtime inhibition in project mode',
+                selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
+                st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                remaining=['Task current/THIS/empty instance and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
+                current_instance='Task THIS in ordinary scheduled Continuous/Periodic Program routines; named reads unchanged; AOI/harness THIS unqualified',
+                remaining=['Empty instance, native instance IDs and AOI/harness/Event THIS contexts','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

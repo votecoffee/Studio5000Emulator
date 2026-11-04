@@ -11,8 +11,9 @@ GSV(Task,MainTask,MaxScanTime,TaskMaximum);
 ```
 
 All four destinations are exact scalar DINT elements. Class, attribute and
-literal instance names are case insensitive. Empty, THIS, numeric instance and
-current-task/program aliases are not inferred. Existing configuration and
+literal instance names are case insensitive. [THIS](current-instance-gsv.md)
+selects the current ordinary scheduled Program or its owner Task. Empty/numeric
+instances and AOI/harness/Event THIS contexts remain unqualified. Existing configuration and
 [wall-clock GSV](wall-clock-gsv.md) profiles remain separate.
 
 ## Measurement and visibility

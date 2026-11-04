@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.222552`: [current-instance GSV](current-instance-gsv.md).
+THIS resolves to the ordinary scheduled Program or its unique Standard
+Continuous/Periodic owner Task for existing settings/timing reads. Reached
+calls verify active Task context; called ladder/ST routines retain their owner.
+Configuration destinations now use structural/lazy preflight and complete
+conservative ST FOR effects. System lab adds current-context examples. AOI,
+harness, Event, empty/numeric instances, setters and native parity remain separate.
+
 Available in `26.1103.220551`: [basic record queues](basic-record-queues.md).
 Matching TIMER/COUNTER/CONTROL records and explicit UDTs containing them now
 use ladder FFL/FFU/LFL/LFU. Full logical snapshots retain unknown fields; unloads

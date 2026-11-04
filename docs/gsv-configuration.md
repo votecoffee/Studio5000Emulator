@@ -30,9 +30,15 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 
 Class, attribute and task lookup are case insensitive. Returned names retain
-source spelling. Task instances are literal configured names; current-task,
-THIS/empty-instance aliases and native instance numbers are not inferred.
+source spelling. Task instances are literal configured names or
+[THIS in ordinary scheduled Program routines](current-instance-gsv.md). Empty
+instances, native instance numbers and AOI/harness/Event THIS contexts remain
+unqualified.
 Controller uses an empty instance operand.
+
+Structural preflight validates destinations without reading saved dynamic
+indices. ST FOR effects cover complete static cells/strings and conservatively
+widen changing/alias/AOI outputs across enclosing arrays.
 
 Metadata must come from a complete loaded source snapshot. Task times use the
 existing exact source milliseconds-to-microseconds conversion. For example,

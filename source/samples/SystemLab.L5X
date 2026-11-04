@@ -6,6 +6,19 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadThis" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ThisIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="ThisWatchdog" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisFastRate" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisSlowRate" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisFastPriority" TagType="Base" DataType="INT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisSlowPriority" TagType="Base" DataType="INT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisProgramMax" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StThisWatchdog" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StThisProgramLast" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisTaskName" TagType="Base" DataType="STRING" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="0" /><Element Index="[9]" Value="0" /><Element Index="[10]" Value="0" /><Element Index="[11]" Value="0" /><Element Index="[12]" Value="0" /><Element Index="[13]" Value="0" /><Element Index="[14]" Value="0" /><Element Index="[15]" Value="0" /><Element Index="[16]" Value="0" /><Element Index="[17]" Value="0" /><Element Index="[18]" Value="0" /><Element Index="[19]" Value="0" /><Element Index="[20]" Value="0" /><Element Index="[21]" Value="0" /><Element Index="[22]" Value="0" /><Element Index="[23]" Value="0" /><Element Index="[24]" Value="0" /><Element Index="[25]" Value="0" /><Element Index="[26]" Value="0" /><Element Index="[27]" Value="0" /><Element Index="[28]" Value="0" /><Element Index="[29]" Value="0" /><Element Index="[30]" Value="0" /><Element Index="[31]" Value="0" /><Element Index="[32]" Value="0" /><Element Index="[33]" Value="0" /><Element Index="[34]" Value="0" /><Element Index="[35]" Value="0" /><Element Index="[36]" Value="0" /><Element Index="[37]" Value="0" /><Element Index="[38]" Value="0" /><Element Index="[39]" Value="0" /><Element Index="[40]" Value="0" /><Element Index="[41]" Value="0" /><Element Index="[42]" Value="0" /><Element Index="[43]" Value="0" /><Element Index="[44]" Value="0" /><Element Index="[45]" Value="0" /><Element Index="[46]" Value="0" /><Element Index="[47]" Value="0" /><Element Index="[48]" Value="0" /><Element Index="[49]" Value="0" /><Element Index="[50]" Value="0" /><Element Index="[51]" Value="0" /><Element Index="[52]" Value="0" /><Element Index="[53]" Value="0" /><Element Index="[54]" Value="0" /><Element Index="[55]" Value="0" /><Element Index="[56]" Value="0" /><Element Index="[57]" Value="0" /><Element Index="[58]" Value="0" /><Element Index="[59]" Value="0" /><Element Index="[60]" Value="0" /><Element Index="[61]" Value="0" /><Element Index="[62]" Value="0" /><Element Index="[63]" Value="0" /><Element Index="[64]" Value="0" /><Element Index="[65]" Value="0" /><Element Index="[66]" Value="0" /><Element Index="[67]" Value="0" /><Element Index="[68]" Value="0" /><Element Index="[69]" Value="0" /><Element Index="[70]" Value="0" /><Element Index="[71]" Value="0" /><Element Index="[72]" Value="0" /><Element Index="[73]" Value="0" /><Element Index="[74]" Value="0" /><Element Index="[75]" Value="0" /><Element Index="[76]" Value="0" /><Element Index="[77]" Value="0" /><Element Index="[78]" Value="0" /><Element Index="[79]" Value="0" /><Element Index="[80]" Value="0" /><Element Index="[81]" Value="0" /></ArrayMember></Structure></Data></Tag>
+      <Tag Name="StThisTaskName" TagType="Base" DataType="STRING" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="0" /><Element Index="[9]" Value="0" /><Element Index="[10]" Value="0" /><Element Index="[11]" Value="0" /><Element Index="[12]" Value="0" /><Element Index="[13]" Value="0" /><Element Index="[14]" Value="0" /><Element Index="[15]" Value="0" /><Element Index="[16]" Value="0" /><Element Index="[17]" Value="0" /><Element Index="[18]" Value="0" /><Element Index="[19]" Value="0" /><Element Index="[20]" Value="0" /><Element Index="[21]" Value="0" /><Element Index="[22]" Value="0" /><Element Index="[23]" Value="0" /><Element Index="[24]" Value="0" /><Element Index="[25]" Value="0" /><Element Index="[26]" Value="0" /><Element Index="[27]" Value="0" /><Element Index="[28]" Value="0" /><Element Index="[29]" Value="0" /><Element Index="[30]" Value="0" /><Element Index="[31]" Value="0" /><Element Index="[32]" Value="0" /><Element Index="[33]" Value="0" /><Element Index="[34]" Value="0" /><Element Index="[35]" Value="0" /><Element Index="[36]" Value="0" /><Element Index="[37]" Value="0" /><Element Index="[38]" Value="0" /><Element Index="[39]" Value="0" /><Element Index="[40]" Value="0" /><Element Index="[41]" Value="0" /><Element Index="[42]" Value="0" /><Element Index="[43]" Value="0" /><Element Index="[44]" Value="0" /><Element Index="[45]" Value="0" /><Element Index="[46]" Value="0" /><Element Index="[47]" Value="0" /><Element Index="[48]" Value="0" /><Element Index="[49]" Value="0" /><Element Index="[50]" Value="0" /><Element Index="[51]" Value="0" /><Element Index="[52]" Value="0" /><Element Index="[53]" Value="0" /><Element Index="[54]" Value="0" /><Element Index="[55]" Value="0" /><Element Index="[56]" Value="0" /><Element Index="[57]" Value="0" /><Element Index="[58]" Value="0" /><Element Index="[59]" Value="0" /><Element Index="[60]" Value="0" /><Element Index="[61]" Value="0" /><Element Index="[62]" Value="0" /><Element Index="[63]" Value="0" /><Element Index="[64]" Value="0" /><Element Index="[65]" Value="0" /><Element Index="[66]" Value="0" /><Element Index="[67]" Value="0" /><Element Index="[68]" Value="0" /><Element Index="[69]" Value="0" /><Element Index="[70]" Value="0" /><Element Index="[71]" Value="0" /><Element Index="[72]" Value="0" /><Element Index="[73]" Value="0" /><Element Index="[74]" Value="0" /><Element Index="[75]" Value="0" /><Element Index="[76]" Value="0" /><Element Index="[77]" Value="0" /><Element Index="[78]" Value="0" /><Element Index="[79]" Value="0" /><Element Index="[80]" Value="0" /><Element Index="[81]" Value="0" /></ArrayMember></Structure></Data></Tag>
+      <Tag Name="ThisWords" TagType="Base" DataType="DINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="BackgroundCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="DINT" Value="0" />
@@ -501,7 +514,7 @@
                 <Text>XIC(ControlTasks)DIV(1,ControlDivisor,ControlResult);</Text>
               </Rung>
               <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
-              <Rung Number="16" Type="N"><Text>JSR(ReadProgramTimes,0);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>JSR(ReadCurrentInstances,0)JSR(ReadProgramTimes,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
@@ -513,6 +526,7 @@
               <Line Number="4">GSV(Task,SlowTask,InhibitTask,StSlowInhibit);</Line>
               <Line Number="5">IF ReadClock THEN GSV(WallClockTime,,CurrentValue,StClockMicros); GSV(WallClockTime,,DateTime,StClockUtc[0]); END_IF;</Line>
               <Line Number="6">IF ReadTiming THEN GSV(Program,BackgroundProgram,LastScanTime,StProgramLast); GSV(Program,BackgroundProgram,MaxScanTime,StProgramMax); END_IF;</Line>
+              <Line Number="7">IF ReadThis THEN GSV(Task,THIS,Name,StThisTaskName); GSV(Task,THIS,Watchdog,StThisWatchdog); GSV(Program,THIS,LastScanTime,StThisProgramLast); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -521,6 +535,14 @@
               <Rung Number="1" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CurrentValue,ClockWords[1]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockUtc[ClockIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,LocalDateTime,ClockLocal[1]);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadCurrentInstances" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Name,ThisTaskName);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Watchdog,ThisWatchdog);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,LastScanTime,ThisWords[ThisIndex]);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,MaxScanTime,ThisProgramMax);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadProgramTimes" Type="RLL">
@@ -561,6 +583,9 @@
               <Rung Number="6" Type="N">
                 <Text>XIC(ReadConfig)GSV(Task,FastTask,Priority,FastPriority);</Text>
               </Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Rate,ThisFastRate);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Priority,ThisFastPriority);</Text>
+              </Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -571,9 +596,10 @@
           <Routine Name="Main" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>ADD(SlowCount,1,SlowCount);</Text>
+                <Text>XIC(ReadThis)GSV(Task,THIS,Rate,ThisSlowRate)GSV(Task,THIS,Priority,ThisSlowPriority);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>ADD(SlowCount,1,SlowCount);</Text>
               </Rung>
-              <Rung Number="1" Type="N">
+              <Rung Number="2" Type="N">
                 <Text>XIC(S:FS)ADD(SlowFirst,1,SlowFirst);</Text>
               </Rung>
             </RLLContent>

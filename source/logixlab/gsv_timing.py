@@ -4,6 +4,7 @@ import struct
 from .integer_math import CONTROLLERS
 from .model import ModelError
 from .numeric_copy import static_reference
+from .gsv_configuration import current_instance
 
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
             'task':{'lastscantime':8,'maxscantime':7}}
@@ -14,7 +15,7 @@ def matches(op):
             and op.args[0].casefold() in ATTRIBUTES and op.args[2].casefold() in ATTRIBUTES[op.args[0].casefold()])
 
 
-def specification(engine,op):
+def specification(engine,op,scope='',*,executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('Timing GSV requires four neutral-text operands')
     project=engine.project
@@ -22,6 +23,7 @@ def specification(engine,op):
         raise ModelError('Timing GSV requires the v35 ControlLogix 5580 project execution profile')
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls not in ATTRIBUTES or attribute not in ATTRIBUTES[cls]:raise ModelError('Unsupported timing GSV class/attribute')
+    instance=current_instance(engine,cls,instance,scope,executing=executing)
     if cls=='task':
         if len(project.tasks)!=1:raise ModelError('Task timing GSV requires the existing single-Task measurement profile')
         task=project.tasks[0];name=task['name']
@@ -49,7 +51,7 @@ def destination(memory,ref,scope):
 
 
 def validate(engine,op,scope):
-    specification(engine,op);memory=engine.memory;previous=memory.structural;memory.structural=True
+    specification(engine,op,scope);memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         key,parts=destination(memory,op.args[3],scope)
         return key,[parts],'DINT'
@@ -57,7 +59,7 @@ def validate(engine,op,scope):
 
 
 def execute(engine,op,scope):
-    cls,name,number=specification(engine,op);memory=engine.memory
+    cls,name,number=specification(engine,op,scope,executing=True);memory=engine.memory
     key,parts=destination(memory,op.args[3],scope)
     reader=engine.task_measurement_attributes if cls=='task' else engine.program_timing_attributes
     raw=reader(name,source_sha256=engine.project.sha256).get(number)
@@ -89,6 +91,7 @@ def description():
                 failures='Unavailable measurements, invalid indices and later faults roll back tags, bindings, scheduling and uncommitted measurements',
                 st_for_effects='Exact static cells; aliases/AOI/indirect destinations conservatively cover their enclosing array',
                 native_runtime_parity=False,controller_performance_prediction=False,
-                remaining=['Current/THIS/empty instance aliases, additional attributes and timing setters',
+                current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic Program routines; existing single-Task timing limit remains',
+                remaining=['Empty/numeric instances, AOI/harness/Event THIS contexts, additional attributes and timing setters',
                            'Multi-Task whole-Task measurements, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

@@ -124,7 +124,7 @@ class GsvTimingTests(unittest.TestCase):
         e.project.sha256='0'*64;self.fault(e,'requires')
 
     def test_bad_names_types_permissions_modes_and_incomplete_task_settings_remain_blocked(self):
-        for cls,name in [('Task',''),('Task','THIS'),('Task','Missing'),('Program',''),('Program','THIS'),('Program','Missing')]:
+        for cls,name in [('Task',''),('Task','Missing'),('Program',''),('Program','Missing')]:
             self.assertTrue(self.engine([f'GSV({cls},{name},LastScanTime,ProgramLast);']).blockers,(cls,name))
         for dest in ('StartPB','StartDelay','Words','ProgramLast.0'):
             self.assertTrue(self.engine([f'GSV(Task,MainTask,LastScanTime,{dest});']).blockers,dest)

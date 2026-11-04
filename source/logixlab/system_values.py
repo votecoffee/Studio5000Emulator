@@ -65,6 +65,7 @@ def execute(engine,op,scope):
 def write_effects(engine,op,scope):
     if gsv_timing.matches(op):return gsv_timing.write_effects(engine,op,scope)
     if gsv_wall_clock.matches(op):return gsv_wall_clock.write_effects(engine,op,scope)
+    if not legacy(op):return gsv_configuration.write_effects(engine,op,scope)
     key,parts,_=validate(engine,op,scope)
     return [(key,part) for part in parts]
 
