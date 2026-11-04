@@ -114,6 +114,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('SmallBCD',False);write('SmallBCDIndex',99);retained=values(state)['SmallBytePacked[1]'];self.assertEqual(values(step())['SmallBytePacked[1]'],retained)
         report=self.post('report',{})['numeric_conversions'];self.assertEqual(len(report['rll_operands']['FRD']['sources']),8);self.assertFalse(report['native_runtime_parity'])
 
+    def test_record_lab_basic_record_snapshots_guards_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'RecordLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['SnapshotTimerOut.ACC'])
+        write('SnapshotIndex',1);write('SnapshotLoad',True);v=values(step())
+        for name in ('TimerQueue','CounterStack','ControlQueue','RecordQueue'):self.assertEqual(v['Snapshot'+name+'.POS'],1)
+        self.assertEqual((v['SnapshotTimers[1].ACC'],v['SnapshotCounters[1].ACC'],v['SnapshotControls[1].LEN'],v['SnapshotRecords[1].Id']),(125,3,7,42))
+        for tag,value in [('SnapshotTimerSource.ACC',999),('SnapshotCounterSource.ACC',8),('SnapshotControlSource.LEN',9),('SnapshotRecordSource.Id',84)]:write(tag,value)
+        v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],125);self.assertEqual(v['SnapshotTimerQueue.POS'],1)
+        write('SnapshotLoad',False);write('SnapshotUnload',True);v=values(step())
+        self.assertEqual((v['SnapshotTimerOut.ACC'],v['SnapshotCounterOut.ACC'],v['SnapshotControlOut.LEN'],v['SnapshotRecordOut.Id']),(125,3,7,42))
+        self.assertEqual((v['SnapshotRecordOut.Timer.ACC'],v['SnapshotRecordOut.Counter.ACC'],v['SnapshotRecordOut.Control.POS']),(125,3,2))
+        self.assertEqual((v['SnapshotTimers[2].ACC'],v['SnapshotControls[2].LEN'],v['SnapshotRecords[2].Id']),(0,0,0));self.assertIs(v['SnapshotRecords[2].Timer.EN'],False)
+        self.assertEqual((v['SnapshotTimers[0].PRE'],v['SnapshotTimers[3].PRE'],v['SnapshotRecords[0].Id'],v['SnapshotRecords[3].Id']),(1000,9000,1003,9003))
+        write('SnapshotIndex',99);v=values(step());self.assertEqual(v['SnapshotTimerOut.ACC'],125)
+        write('SnapshotUnload',False);step();write('SnapshotLoad',True)
+        for tag,value,recovery in [('SnapshotIndex',99,1),('FaultDivisor',0,1)]:
+            write(tag,value);before=state_now()
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);error.exception.close();after=state_now()
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key])
+            write(tag,recovery)
+        v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
+        report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

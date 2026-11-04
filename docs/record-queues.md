@@ -17,8 +17,10 @@ can contain represented integer/REAL/BOOL fields, arrays, strings and nested
 explicit UDTs. Nested 64-bit values stay exact because the operation copies
 logical values without numeric conversion.
 
-AOI instance types, operational predefined records such as TIMER/COUNTER/CONTROL,
-inferred data-only schemas and UDTs containing those types remain unqualified.
+[Basic TIMER/COUNTER/CONTROL records](basic-record-queues.md), including nested
+UDT members and their arrays, now use the same matching logical-copy rules.
+AOI instance types, other operational predefined records and inferred data-only
+schemas remain unqualified.
 Mixed-type conversions and aggregate/string immediates remain blocked. Existing
 numeric immediates retain their earlier rules. These are ladder forms; ST/FBD
 forms remain unfinished. [One-dimensional AOI queues](aoi-queues.md) now accept

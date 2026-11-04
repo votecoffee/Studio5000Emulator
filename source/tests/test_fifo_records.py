@@ -260,7 +260,7 @@ class RecordQueueTests(unittest.TestCase):
         e=self.engine(mutate=opaque);self.assertTrue(e.blockers)
 
     def test_operational_record_members_require_separate_qualification(self):
-        def timer(root):E.SubElement(root.find('./Controller/DataTypes/DataType[@Name="PartRecord"]/Members'),'Member',Name='TimerState',DataType='TIMER',Dimension='0')
+        def timer(root):E.SubElement(root.find('./Controller/DataTypes/DataType[@Name="PartRecord"]/Members'),'Member',Name='PIDState',DataType='PID',Dimension='0')
         self.assertTrue(self.engine(mutate=timer).blockers)
 
     def test_nested_explicit_udt_with_full_unsigned_width_is_copied_and_cleared(self):

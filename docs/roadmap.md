@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.220551`: [basic record queues](basic-record-queues.md).
+Matching TIMER/COUNTER/CONTROL records and explicit UDTs containing them now
+use ladder FFL/FFU/LFL/LFU. Full logical snapshots retain unknown fields; unloads
+clear typed data without transferring private instruction histories. Existing
+edges, bounds, aliases, exact AOI bindings and transactional rollback remain.
+Record lab adds a called snapshot example. Native packed layouts, hidden state,
+other operational/AOI schemas and broader language/profile parity remain separate.
+
 Available in `26.1103.214730`: [byte/word packed BCD](numeric-conversions.md#byte-and-word-packed-bcd).
 Ladder FRD/TOD accept all eight signed/unsigned integer source/destination types.
 FRD weights the declared 2/4/8/16 nibbles; TOD packs within the destination

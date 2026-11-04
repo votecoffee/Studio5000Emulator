@@ -1,10 +1,11 @@
-"""Logical STRING/UDT queue copies and qualified narrow numeric conversions."""
+"""Logical basic-record/STRING/UDT queue copies and qualified narrow numeric conversions."""
 import copy
 from .integer_math import CONTROLLERS
 from .model import ModelError,coerce,INT_BITS
 from . import numeric_storage
 
 NUMERIC=frozenset(('SINT','INT','DINT','REAL'))
+BASIC_RECORDS=frozenset(('TIMER','COUNTER','CONTROL'))
 
 
 def supported(memory,dtype):
@@ -15,7 +16,7 @@ def supported(memory,dtype):
 
 
 def record_type(project,dtype,seen=()):
-    if project.string_capacity(dtype) is not None:return True
+    if dtype.upper() in BASIC_RECORDS or project.string_capacity(dtype) is not None:return True
     name=dtype.casefold();definition=project.udts.get(name)
     if (name in seen or definition is None or definition.get('Class','User')!='User'
             or name in ('timer','counter','control') or any(name==item.casefold()

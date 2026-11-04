@@ -49,8 +49,10 @@ Scalar SINT/INT/DINT/REAL sources, destinations and arrays support
 Other profiles retain matching-type numeric rules. Bounded DINT/finite REAL
 load immediates convert when a reached edge needs them. [Matching strings and explicit UDT
 records](record-queues.md) add whole logical copies and typed zero clearing for
-the v35 5580 profile. The array region stays within its selected member. Mixed
-conversions and broader predefined/AOI records remain unfinished.
+the v35 5580 profile. [Basic TIMER/COUNTER/CONTROL payloads](basic-record-queues.md)
+and UDTs containing them use those matching logical copies. The array region
+stays within its selected member. Other operational/AOI record schemas and
+native data/history/layout parity remain unfinished.
 [One-dimensional AOI queues/shifts](aoi-queues.md) now support exact InOut
 bindings and represented local arrays, with scoped indices. [Alias and indirect starts](queue-references.md) are now available
 for shifts/FIFO/LIFO in the bounded v35 5580 profile. FFU/LFU
