@@ -4,7 +4,7 @@ from .model import INT_BITS, ModelError, coerce, literal
 from .real_math import real
 
 INSTRUCTIONS = frozenset(('MOV', 'CLR'))
-TYPES = frozenset((*INT_BITS, 'REAL'))
+TYPES = frozenset((*INT_BITS, 'REAL', 'LREAL'))
 
 
 def available(project):
@@ -52,9 +52,9 @@ def convert(value, source, dest):
     if source in INT_BITS:
         if type(value) is not int:raise ModelError('MOV requires a known integer source')
         value = coerce(value, source)
-        return bit_value(value, dest) if dest in INT_BITS else real(value)
+        return bit_value(value, dest) if dest in INT_BITS else coerce(value, dest)
     # Keep REAL overflow results/status outside this representable profile.
-    return coerce(real(value), dest)
+    return coerce(coerce(value, source), dest)
 
 
 def execute(engine, op, power, scope):
@@ -72,10 +72,11 @@ def description(project):
                 instructions=sorted(INSTRUCTIONS), types=sorted(TYPES),
                 operands='One numeric scalar element; bounded DINT/finite REAL MOV immediates; aliases and existing AOI bindings',
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
-                real='Float32 representation; nearest-even integer results must fit the signed/unsigned destination',
+                real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
+                lreal='Declared LREAL tags only; binary64 storage/MOV/CLR and atomic tag access; no new LREAL literals, arithmetic, ST expressions or aggregate wire layouts',
                 selection='Structural preflight; false/prescan skip values and live indices; true full writes establish unknown destinations',
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['LREAL, time/date, string and aggregate forms; broader literal/controller qualification',
+                remaining=['LREAL arithmetic/expressions/AOI parameter qualification; time/date, string and aggregate forms; broader literals/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

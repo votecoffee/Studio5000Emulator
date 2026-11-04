@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; Task start/interval GSV added for app `26.1104.001622`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; finite LREAL storage added for app `26.1104.003503`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -113,6 +113,10 @@ whole-Task reads now support independently measured Continuous/Periodic and
 controller performance or establish native per-execution visibility.
 [Current-instance THIS](current-instance-gsv.md) selects ordinary scheduled
 Program/Task contexts without expanding the existing timing/attribute profile.
+
+[Finite LREAL storage](lreal-storage.md) adds binary64 MOV/CLR conversions and
+atomic tag access; it does not enable LREAL arithmetic, ST expressions or
+aggregate byte-copy layouts.
 
 ## Remaining forms of existing instructions
 

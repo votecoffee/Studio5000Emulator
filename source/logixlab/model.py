@@ -235,6 +235,10 @@ def coerce(value, dtype):
         if not lower <= n < upper:
             raise ModelError(f"{dtype} overflow: {n}; overflow-status emulation is not implemented")
         return n
+    if dtype == "LREAL":
+        result = float(value)
+        if not __import__("math").isfinite(result):raise ModelError("Nonfinite LREAL")
+        return result
     if dtype == "REAL":
         result = struct.unpack("<f", struct.pack("<f", float(value)))[0]
         if not __import__("math").isfinite(result): raise ModelError("Nonfinite REAL")
@@ -388,7 +392,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','PID','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
+        builtin={'BOOL',*INT_BITS,'REAL','LREAL','PID','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -480,7 +484,7 @@ class Project:
 
     def default(self, dtype, stack=()):
         upper = dtype.upper()
-        if upper in INT_BITS or upper == "REAL": return 0.0 if upper == "REAL" else 0
+        if upper in INT_BITS or upper in ("REAL","LREAL"): return 0.0 if upper in ("REAL","LREAL") else 0
         if upper == "BOOL": return False
         if upper=='FBD_BIT_FIELD_DISTRIBUTE':
             from .st_bit_moves import default

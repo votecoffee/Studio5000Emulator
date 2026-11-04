@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.003503`: [finite LREAL storage](lreal-storage.md).
+Scalar/array/member values retain binary64 precision. Ladder MOV/CLR converts
+across ten numeric types; atomic tag reads/writes use eight-byte LREAL values.
+Existing permission, unknown-data, fragment and rollback checks remain. Integer
+lab adds a gated precision/conversion example. LREAL arithmetic, ST expressions,
+aggregate wire/copy forms and native precision/status/lifecycle parity remain
+separate.
+
 Available in `26.1104.001622`: [Task start/interval GSV](task-start-gsv.md).
 Named/THIS ladder and ST read committed StartTime and minimum/maximum intervals
 for eligible Continuous/Periodic/instruction-only Event tasks. Independent

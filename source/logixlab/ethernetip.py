@@ -42,7 +42,7 @@ from . import alarm_catalog, attribute_gaps, controller_configuration, controlle
 HEADER = struct.Struct('<HHII8sI')
 TYPES = {'BOOL':(0xC1,'B'), 'SINT':(0xC2,'b'), 'INT':(0xC3,'h'),
          'DINT':(0xC4,'i'), 'LINT':(0xC5,'q'), 'USINT':(0xC6,'B'),
-         'UINT':(0xC7,'H'), 'UDINT':(0xC8,'I'), 'ULINT':(0xC9,'Q'), 'REAL':(0xCA,'f')}
+         'UINT':(0xC7,'H'), 'UDINT':(0xC8,'I'), 'ULINT':(0xC9,'Q'), 'REAL':(0xCA,'f'), 'LREAL':(0xCB,'d')}
 REPLY_LIMIT = 480
 TRACE_EVENT_LIMIT = 2000
 TRACE_PACKET_LIMIT = signed_messages.MAX_MESSAGE
@@ -1202,7 +1202,7 @@ class Router:
         if not self.endpoint.allow_writes:raise CIPError(0x0F,'Network writes are disabled')
         need(data,2);mask_size=struct.unpack_from('<H',data)[0]
         dtype,refs=self.region(self.reference(path),1,True)
-        if dtype in ('BOOL','REAL'):raise CIPError(8,'Read Modify Write supports integer atoms only')
+        if dtype in ('BOOL','REAL','LREAL'):raise CIPError(8,'Read Modify Write supports integer atoms only')
         fmt='<'+TYPES[dtype][1];size=struct.calcsize(fmt)
         if mask_size not in (1,2,4,8) or mask_size>size:raise CIPError(3,'Mask size exceeds the integer atom')
         exact(data,2+2*mask_size)

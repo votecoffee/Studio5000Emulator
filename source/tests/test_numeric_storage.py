@@ -177,5 +177,5 @@ class NumericStorageTests(unittest.TestCase):
 
     def test_report_separates_storage_conversion_from_arithmetic(self):
         e = self.checked();report = e.report()['numeric_storage']
-        self.assertEqual(len(report['types']), 9);self.assertFalse(report['native_math_status']);self.assertFalse(report['native_runtime_parity'])
+        self.assertEqual(len(report['types']), 10);self.assertFalse(report['native_math_status']);self.assertFalse(report['native_runtime_parity'])
         self.assertIn('numeric_storage', e.report()['integer_execution']['storage_moves'])

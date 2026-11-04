@@ -5,6 +5,17 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="EnableDouble" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="DoubleInteger" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740991" /></Data></Tag>
+      <Tag Name="DoubleDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleFromInt" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleRounded" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleAsInteger" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleClear" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoubleCopies" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="SignedInput" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="9007199254740993" />
@@ -663,6 +674,17 @@
               <Rung Number="51" Type="N">
                 <Text>XIC(MixedConditions)CMP((SignedInput=RelationHigh)&amp;&amp;(RelationWord=65535))OTE(MixedConditionExact);</Text>
               </Rung>
+              <Rung Number="52" Type="N"><Text>JSR(DoubleStorage,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleStorage" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInput,DoubleCopies[DoubleIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInteger,DoubleFromInt);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInput,DoubleRounded);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInput,DoubleAsInteger);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(EnableDouble)CLR(DoubleClear);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableDouble)DIV(1,DoubleDivisor,DoubleLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="WideText" Type="ST">

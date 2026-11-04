@@ -1,7 +1,7 @@
 {
   "format": "logixlab-predefined-type-inventory-v1",
-  "audited_date": "2026-11-02",
-  "audited_app_version": "26.1102.073226",
+  "audited_date": "2026-11-04",
+  "audited_app_version": "26.1104.003503",
   "baseline": "222 supplied catalog entries; no claim of universal firmware/controller availability or full type emulation",
   "source_formatting": "HTML/trailing whitespace formatting removed; asterisks retained as catalog annotations, not identifier characters.",
   "starred_controller_families": [
@@ -168,6 +168,11 @@
       "remaining": "BAND/BOR/BNOT/BXOR logical BOOL records and Block execution; tagless Function forms, native initialization/layout/lifecycle/status/fault parity and other profiles remain unfinished.",
       "source": "source/logixlab/fbd_boolean.py"
     },
+    "lreal_storage": {
+      "label": "LREAL storage model (bounded)",
+      "remaining": "Finite binary64 storage/MOV/CLR and atomic tag access; arithmetic, ST expressions, aggregate copy/layout and native parity remain unfinished.",
+      "source": "source/logixlab/numeric_storage.py"
+    },
     "no_dedicated_model": {
       "label": "No dedicated model",
       "remaining": "Verified schema/layout plus associated stateful runtime behavior and conformance cases.",
@@ -293,11 +298,12 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 55,
-    "no_dedicated_model": 167,
+    "dedicated_bounded_models": 56,
+    "no_dedicated_model": 166,
     "status_counts": {
-      "no_dedicated_model": 167,
+      "no_dedicated_model": 166,
       "numeric_model": 5,
+      "lreal_storage": 1,
       "timer_counter_model": 2,
       "wide_rll_profile": 5,
       "string_model": 1,
@@ -1410,7 +1416,7 @@
       "identifier_candidate": "LREAL",
       "starred": false,
       "family": "atomic",
-      "model_status": "no_dedicated_model",
+      "model_status": "lreal_storage",
       "v35_listing": "exact",
       "v35_catalog_name": "LREAL",
       "notes": []

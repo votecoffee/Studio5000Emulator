@@ -4,9 +4,9 @@ The v35 ControlLogix 5580 ladder profile supports scalar MOV and CLR across:
 
 | Integer types | Floating point |
 | --- | --- |
-| SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT | REAL |
+| SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT | REAL, LREAL |
 
-MOV accepts any pairing of those nine source/destination types. CLR writes a
+MOV accepts any pairing of those ten source/destination types. CLR writes a
 typed zero. Operands are scalar tags, selected array elements, members or aliases,
 including existing AOI InOut/local bindings. MOV immediates are bounded DINT or
 finite REAL values. Full-width typed immediates and unsigned 32-bit radix patterns
@@ -17,6 +17,7 @@ sources and zero-extends unsigned sources. For example, DINT 16#12345678 becomes
 SINT 120 or INT 22136; signed -1 becomes the unsigned destination's all-ones value.
 Native overflow/status effects accompanying these conversions remain unmodeled.
 
+LREAL uses finite binary64 storage and conversion; see [its supported forms](lreal-storage.md).
 Integer-to-REAL conversion produces float32, including precision loss for large
 integers. REAL sources also use float32; integer results round to nearest, ties
 to even, and must fit the signed or unsigned destination. Excluded REAL ranges
@@ -35,7 +36,7 @@ Choose **Data lab** and enable `MoveNumeric`. Inspect `MoveByte`, `MoveWord`,
 `ByteFill[FillIndex]`. This scalar model is separate from byte-copy instructions
 and the homogeneous wide arithmetic profile. The report exposes `numeric_storage`.
 
-Other controllers retain their previous behavior. LREAL, time/date, string and
+Other controllers retain their previous behavior. LREAL arithmetic/expressions, time/date, string and
 aggregate MOV/CLR forms, broader literal support and native status/fault/lifecycle
 parity remain unfinished. ST assignments and FBD are unchanged.
 
@@ -44,3 +45,6 @@ Reference basis: installed Studio 5000 v35 **Data Conversions** (14451),
 [numeric conversion table](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/elementary-data-types.html)
 also describes integer narrowing and REAL rounding. Software-model and HTTP
 checks do not establish native controller equivalence.
+
+[Finite LREAL storage](lreal-storage.md) adds a tenth numeric type for the
+v35 5580 MOV/CLR profile and independent atomic tag access.

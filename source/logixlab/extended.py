@@ -102,6 +102,12 @@ class Extensions:
         if n=='FLL' and numeric_fill.aggregate_handle(self.engine,op,scope,execute=execute):return
         if n in ('COP','CPS') and aggregate_copy.handle(self.engine,op,scope,execute=execute):return
         if n in ('COP','CPS') and not execute and numeric_copy.preflight(self.engine,op,scope):return
+        if n in ('COP','CPS'):
+            previous=self.memory.structural;self.memory.structural=True
+            try:
+                if any(self.memory.resolve(ref,scope)[2]=='LREAL' for ref in a[:2]):
+                    raise ModelError('LREAL COP/CPS byte-copy forms remain unqualified')
+            finally:self.memory.structural=previous
         count=self.integer(a[2],scope)
         self.memory.check_writable(a[1],scope)
         if n in ('COP','CPS'):
