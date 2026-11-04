@@ -24,7 +24,7 @@ def validate(engine, op, scope):
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
-    count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4])
+    count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4],allow_wide=True)
     if count=='INC':incremental.validate(engine,op,scope)
     # Type-check dynamic subscripts at a structural position, without consuming
     # unknown data or rejecting a saved final cursor before execution begins.
@@ -78,7 +78,7 @@ def execute(engine, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                expressions='Existing bounded CMP grammar/types; dynamic CONTROL.POS subscripts',
+                expressions='Existing bounded CMP grammar and exact wide/mixed-integer profile; dynamic CONTROL.POS subscripts',
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
                 cursor='Last compared position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric searches continue on false rungs; partial EN stays set',
@@ -87,5 +87,5 @@ def description():
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False,
                 incremental=incremental.description(),
-                remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
+                remaining=['Saved active INC controls and native internal edge state', 'LREAL, wider literals and additional expression types/functions',
                            'Broader AOI lifecycle/schema and native faults/status/invalid-state parity'])

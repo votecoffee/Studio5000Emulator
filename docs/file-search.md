@@ -47,14 +47,15 @@ structural cursor, so unknown saved data is consumed only when actually compared
 No short-circuit assumption hides a required unknown value or invalid access.
 
 Integer division now follows the [narrow expression profile](integer-expressions.md).
-Existing CMP expression limits still apply. Wider/unsigned/LREAL types, BCD
-expression functions and additional native conversion forms remain unfinished.
+Existing CMP expression limits still apply. [LINT/unsigned searches](integer-files.md)
+now share the exact wide/mixed CMP profile. LREAL, BCD expression functions and
+additional native conversion forms remain unfinished.
 [INC mode](file-incremental.md) now supports one comparison per enable edge for
 idle-source controls, with explicit inhibit/rearming and transactional progress.
 Saved active INC controls remain blocked; native internal state stays unqualified.
 [RLL AOI execution](aoi-file-operations.md) now supports exact InOut/local
 operands, frame-scoped expressions and canonical per-CONTROL progress.
-FSC inside AOIs and ST/FBD instruction calls remain unsupported. CONTROL aliases
+ST/FBD instruction calls remain unsupported. CONTROL aliases
 and constant source arrays are supported; CONTROL must be writable.
 
 ## Stats Lab

@@ -40,7 +40,8 @@ classification and partial writes are not implemented by this profile.
 FAL reuses the bounded CPT grammar and SINT/INT/DINT/REAL scalar types. Integer
 arithmetic uses DINT intermediate values; REAL expressions use float32 rounding.
 Integer division now follows the [narrow expression profile](integer-expressions.md).
-Integer-only power, BCD expression functions, wider/unsigned/LREAL and
+[Matching LINT/unsigned expressions](integer-files.md) now use a separate exact
+integer profile. Integer-only power, BCD expression functions, LREAL and
 the full native conversion/status matrix remain unfinished. The existing
 arithmetic, bitwise operators and supported math functions are available.
 

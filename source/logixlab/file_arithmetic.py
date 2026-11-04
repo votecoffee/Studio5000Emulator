@@ -1,10 +1,12 @@
 """Bounded ladder FAL ALL/numeric/INC iteration with existing CPT expressions."""
 from . import control_operations as controls
 from . import file_incremental as incremental
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, WIDE_TYPES
+from . import wide_st
 from .model import ModelError, coerce, literal
 
 INSTRUCTIONS = frozenset(('FAL',))
+NUMERIC = controls.NUMERIC | WIDE_TYPES
 
 
 def mode(text):
@@ -19,12 +21,21 @@ def mode(text):
 
 def destination(memory, op, scope):
     key, parts, dtype = memory.check_writable(op.args[4], scope)
-    if dtype not in controls.NUMERIC or isinstance(memory.at(key, parts), (list, dict, bool)):
-        raise ModelError('FAL requires a writable scalar SINT/INT/DINT/REAL destination')
+    if dtype not in NUMERIC or isinstance(memory.at(key, parts), (list, dict, bool)):
+        raise ModelError('FAL requires a writable supported integer or REAL scalar destination')
     ck, cp, _ = memory.resolve(op.args[0], scope)
     if key == ck and parts[:len(cp)] == cp:
         raise ModelError('FAL destination must not overlap its CONTROL record')
     return dtype
+
+
+def calculate(engine,expression,scope,dtype,*,execute=False):
+    profile=wide_st.analyze(expression,engine.memory,scope,dtype,consumer='FAL')
+    if profile is not None:
+        if profile[1]!='number':raise ModelError('FAL requires a numeric expression result')
+        if execute:return wide_st.evaluate(expression,engine.memory,scope,profile)
+    elif execute:return expression.evaluate(engine.memory,scope,dtype)
+    else:expression.validate(engine.memory,scope,dtype)
 
 
 def validate(engine, op, scope):
@@ -39,7 +50,7 @@ def validate(engine, op, scope):
     previous = memory.structural
     try:
         memory.structural = True
-        expression.validate(memory, scope, destination(memory, op, scope))
+        calculate(engine,expression,scope,destination(memory,op,scope))
     finally:memory.structural = previous
     return count, expression
 
@@ -50,7 +61,7 @@ def execute(engine, op, power, scope):
     if count=='INC':
         def operation():
             dtype=destination(memory,op,scope)
-            memory.write(op.args[4],expression.evaluate(memory,scope,dtype),scope)
+            memory.write(op.args[4],calculate(engine,expression,scope,dtype,execute=True),scope)
         return incremental.execute(engine,op,power,scope,operation)
     obj = controls.control(memory, op.args[0], scope)
     if controls.flag(obj, 'ER'):return power
@@ -77,14 +88,15 @@ def execute(engine, op, power, scope):
         if engine.budget < 0:raise ModelError('FAL instruction budget exceeded')
         obj['POS'] = position
         dtype = destination(memory, op, scope)
-        memory.write(op.args[4], expression.evaluate(memory, scope, dtype), scope)
+        memory.write(op.args[4], calculate(engine,expression,scope,dtype,execute=True), scope)
     if end == length:obj.update(EN=bool(power), DN=True)
     return power
 
 
 def description():
     return dict(profile='v35-5580-FAL-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                types=sorted(controls.NUMERIC), expressions='Existing bounded CPT grammar, destination-indexed per iteration',
+                types=sorted(NUMERIC), exact_integer_types=sorted(WIDE_TYPES),
+                wide_expressions='Matching declared numeric tag/result type; exact intermediates, ABS/basic arithmetic/bitwise and representable signed-DINT literals', expressions='Existing bounded CPT grammar, destination-indexed per iteration',
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
@@ -93,5 +105,5 @@ def description():
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False, native_math_status=False,
                 incremental=incremental.description(),
-                remaining=['Saved active INC controls and native internal edge state', 'Additional expression types/functions',
+                remaining=['Saved active INC controls and native internal edge state', 'Mixed FAL numeric promotion, LREAL and additional expression functions',
                            'Broader AOI lifecycle/schema and native overflow/fault/status/partial-write parity'])

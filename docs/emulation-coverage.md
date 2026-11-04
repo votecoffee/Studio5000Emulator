@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-03; UID/UIE interrupt control added for app `26.1103.193217`. **Full Logix emulation is not
+Audited 2026-11-03; wide integer file operations added for app `26.1103.195250`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -34,6 +34,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | System values | [Explicit Task/Controller GSV settings](gsv-configuration.md), typed scalar/string destinations, existing Controller audit values and [SSV task inhibition](task-inhibition.md) | Runtime timing/status/fault attributes, broader SSV classes/forms and native execution parity |
 | String operand selection | [Structural/lazy string preflight](string-operations.md#operand-selection) for 11 calls, six string relations and string-bearing CMP; unknown full writes, preserved unused bytes, aliases/UDTs/AOIs and whole-advance rollback | New algorithms, broader types/encoding, other profiles and native status/fault/lifecycle parity |
 | String conversions | [LOWER/UPPER and STOR/RTOS](string-conversions.md) in RLL/ST, ASCII byte handling and decimal/float32 exchange | Native RTOS formatting, STOR exponent/no-digit edge parity, wider types, expression operands and native status/fault behavior |
+| Wide integer files | [Exact FAL/FSC](integer-files.md), matching LINT/unsigned FAL expressions and existing wide/mixed CMP searches across ALL/numeric/idle-source INC; qualified AOI bindings and rollback | Full FAL promotion, LREAL/wider literals, further functions and native precision/status/cursor/fault/lifecycle/layout parity remain separate |
 | File arithmetic | [FAL ALL/numeric modes](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed transforms, scalar accumulation, sequential writes and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/overflow/status/partial-fault parity |
 | File search | [FSC ALL/numeric modes](file-search.md) and [idle-source INC](file-incremental.md), comparisons, match/inhibit/resume, false-rung numeric continuation and [RLL AOI forms](aoi-file-operations.md) | Saved active INC/hidden state, mixed CONTROL consumers, broader AOI lifecycle/schema and expressions/types and native cursor/status/fault parity |
 | File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension, ST call transitions and [alias/indirect/AOI references](sort-references.md) | Native internal POS cursor, partial states/faults, wider types, broader lifecycle and conservative FOR effects |

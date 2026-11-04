@@ -214,7 +214,7 @@ class LadderWideExpressionTests(unittest.TestCase):
         self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(104,29));self.assertEqual(profile['instructions'],['CPT','CMP','MEQ'])
         self.assertTrue(profile['available']);self.assertTrue(profile['mixed_numeric_types']);self.assertFalse(profile['native_runtime_parity'])
 
-    def test_wide_cmp_opt_in_does_not_expand_file_expression_consumers(self):
+    def test_wide_helpers_stay_opt_in_and_file_consumers_qualify_separately(self):
         from logixlab.model import Op
         e=self.checked(['CMP(Source>Mask)OTE(RunLatch);'])
         with self.assertRaises(ModelError):e.extensions.condition('Source>Mask').validate(e.memory,'MainProgram')
@@ -222,7 +222,7 @@ class LadderWideExpressionTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.extensions.expression('Source+Mask').validate(e.memory,'MainProgram','LINT')
         import test_array_statistics as files
         for rung in ('FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>0);','FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+1);'):
-            self.assertTrue(files.ArrayStatisticsTests.engine(self,[rung],dtype='LINT').blockers)
+            file_engine=files.ArrayStatisticsTests.engine(self,[rung],dtype='LINT');self.assertEqual(file_engine.blockers,[]);file_engine.step()
 
     def test_bundled_ladder_lab_large_values_gating_and_late_fault_retry(self):
         from logixlab.server import SAMPLES

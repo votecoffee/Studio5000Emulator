@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.195250`: [wide integer file operations](integer-files.md).
+FAL adds exact matching LINT/unsigned transforms; FSC uses the existing wide/mixed
+CMP profile. ALL, numeric and idle-source INC retain their current CONTROL and
+iteration rules, including existing AOI forms. Stats lab adds exact signed and
+unsigned examples. LREAL, wider literals, full FAL promotion and native status/
+cursor/overflow/lifecycle parity remain separate.
+
 Available in `26.1103.193217`: [UID/UIE interrupt control](interrupt-control.md).
 Nested task-local masks defer higher-priority EVENT work until the outer UIE,
 including called routines and existing ST calls. Event lab adds a gated nested

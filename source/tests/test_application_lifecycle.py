@@ -2670,3 +2670,19 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row=values(self.post('step',{'dt':10}));self.assertEqual((row['GuardSeen'],row['ReleasedSeen'],row['EventCount']),(1,2,2))
         self.post('write',{'tag':'GuardEvents','value':False});row=values(self.post('step',{'dt':10}));self.assertEqual(row['EventCount'],2)
         report=self.post('report',{});self.assertTrue({'UID','UIE'}<=set(report['supported_instructions']));self.assertIn('outermost',report['user_interrupts']['nesting']);self.assertFalse(report['user_interrupts']['native_runtime_parity'])
+
+    def test_stats_lab_exact_wide_file_transforms_searches_and_rearm_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'StatsLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        row=values(self.post('step',{'dt':10}));self.assertIsNone(row['WideMapped[0]'])
+        self.post('write',{'tag':'WideFiles','value':True});row=values(self.post('step',{'dt':10}))
+        self.assertEqual(tuple(int(row[n]) for n in ('WideMapped[0]','WideMapped[1]','UnsignedMapped[0]','UnsignedMapped[1]')),(18014398509481987,18014398509481989,18446744073709551614,9007199254740992))
+        self.assertEqual((row['WideFindControl.POS'],row['UnsignedFindControl.POS']),(1,1));self.assertTrue(row['WideFindControl.IN']);self.assertIsNone(row['WideMapped[2]']);self.assertIsNone(row['UnsignedMapped[2]'])
+        self.post('write',{'tag':'WideFactor','value':9223372036854775807});self.post('step',{'dt':10})
+        self.post('write',{'tag':'WideFiles','value':False});self.post('step',{'dt':10});self.post('write',{'tag':'WideFiles','value':True})
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
+        self.assertEqual(error.exception.code,400);self.assertIn('overflow',error.exception.read().decode().lower());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        self.post('write',{'tag':'WideFactor','value':3});row=values(self.post('step',{'dt':10}));self.assertEqual(int(row['WideMapped[0]']),27021597764222980)
