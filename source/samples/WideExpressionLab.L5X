@@ -741,6 +741,66 @@
       <Tag Name="FILitIncrementFind" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
       </Tag>
+      <Tag Name="MovLitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitUnsigned" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="ULINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitDword" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="UDINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitWrapped" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="SINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitZeroExtended" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitDouble" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitDefault" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitRounded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitLarge" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitTiny" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitNegativeZero" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitRangeResult" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="SINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitFloatRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitFloatResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="REAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="1" /></Data>
+      </Tag>
+      <Tag Name="MovLitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="MovLitSelected" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[2]" Value="903" /></Array></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -822,6 +882,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -918,6 +979,25 @@
               <Rung Number="5" Type="N"><Text>XIC(FILitIncrement)FAL(FILitIncrementCalc,?,?,INC,FILitIncrements[FILitIncrementCalc.POS],18446744073709551615UL);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(FILitIncrement)FSC(FILitIncrementFind,?,?,INC,FILitIncrements[FILitIncrementFind.POS]=18446744073709551615UL);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(FILitEnabled)DIV(1,FILitLateDivisor,FILitLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="NumericMoveConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(MovLitEnabled)MOV(-9223372036854775808L,MovLitSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(MovLitEnabled)MOV(18446744073709551615UL,MovLitUnsigned);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(MovLitEnabled)MOV(4294967295u,MovLitDword);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(MovLitEnabled)MOV(4294967295U,MovLitWrapped);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(MovLitEnabled)MOV(4294967295U,MovLitZeroExtended);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(MovLitEnabled)MOV(0.1L,MovLitDouble);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(MovLitEnabled)MOV(0.1,MovLitDefault);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(MovLitEnabled)MOV(3.5L,MovLitRounded);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(MovLitEnabled)MOV(1e308L,MovLitLarge);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(MovLitEnabled)MOV(5e-324l,MovLitTiny);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(MovLitEnabled)MOV(-0.0L,MovLitNegativeZero);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(MovLitEnabled)MOV(9007199254740993L,MovLitSelected[MovLitIndex]);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(MovLitEnabled)XIC(MovLitRangeFault)MOV(128.0L,MovLitRangeResult);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(MovLitEnabled)XIC(MovLitFloatRangeFault)MOV(1e308L,MovLitFloatResult);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(MovLitEnabled)DIV(1,MovLitLateDivisor,MovLitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

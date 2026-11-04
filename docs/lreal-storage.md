@@ -30,7 +30,7 @@ ties to even, with a required representable signed/unsigned result.
 Large finite values, subnormals and signed zero are retained where representable.
 NaN/Infinity and REAL/integer destination overflow are outside the supported
 profile and fail. Whole advances roll back instead of fabricating native
-overflow/status results. Existing MOV literals remain bounded DINT/REAL inputs;
+overflow/status results. MOV now also accepts [typed integer and LREAL constants](typed-mov-literals.md);
 use a declared LREAL source tag for binary64 precision and range.
 
 Structural checks retain scalar types, write permissions and reference grammar

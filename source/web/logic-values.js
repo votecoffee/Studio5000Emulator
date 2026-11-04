@@ -142,6 +142,20 @@
     function read(ref) {
       const name = String(ref).trim(), row = at(resolve(name));
       if (row) return row;
+      const integer = name.match(/^([+-]?\d+)(UL|U|L)$/i);
+      if (integer) {
+        try {
+          const type = {L: 'LINT', U: 'UDINT', UL: 'ULINT'}[integer[2].toUpperCase()], value = BigInt(integer[1]);
+          const bits = BigInt(widths[type]), unsigned = type.startsWith('U');
+          if (value < (unsigned ? 0n : -(1n << (bits - 1n))) || value >= (1n << (unsigned ? bits : bits - 1n))) return null;
+          return {name, type: type + ' literal', value: value.toString()};
+        } catch (_) {return null;}
+      }
+      const floating = name.match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)[Ll]$/);
+      if (floating && /[.Ee]/.test(floating[1])) {
+        const value = Number(floating[1]);
+        return Number.isFinite(value) ? {name, type: 'LREAL literal', value} : null;
+      }
       if (/^(TRUE|FALSE)$/i.test(name)) return {name, type: 'BOOL literal', value: name.toUpperCase() === 'TRUE'};
       if (/^[+-]?\d+(?:\.\d*)?(?:[Ee][+-]?\d+)?$/.test(name)) return {name, type: 'Literal', value: name};
       const radix = name.match(/^(2|8|16)#([\da-fA-F_]+)$/);

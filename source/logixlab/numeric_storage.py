@@ -1,4 +1,6 @@
 """Scalar MOV/CLR and explicit numeric conversions for the v35 5580 model."""
+import re
+from .st_literals import scan as typed_integer
 from .integer_math import CONTROLLERS, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
 from .real_math import real
@@ -18,7 +20,22 @@ def destination(memory, ref, scope):
     return key, parts, dtype
 
 
+def typed_literal(ref):
+    """One typed MOV immediate; never widen general memory/expression parsing."""
+    text=ref.strip();offset=int(text[:1] in ('+','-'))
+    token=typed_integer(text,offset)
+    if token is not None and token[0]==len(text):
+        value,dtype=token[1]
+        return dtype,coerce(-value if text.startswith('-') else value,dtype)
+    floating=re.fullmatch(r'([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)[Ll]',text)
+    if floating and any(c in floating[1] for c in '.eE'):
+        return 'LREAL',coerce(float(floating[1]),'LREAL')
+    return None
+
+
 def source_type(memory, ref, scope):
+    typed=typed_literal(ref)
+    if typed is not None:return typed[0]
     try:value = literal(ref)
     except ValueError:
         key, parts, dtype = memory.resolve(ref, scope)
@@ -62,7 +79,8 @@ def execute(engine, op, power, scope):
     memory = engine.memory
     source = specification(memory, op, scope)
     key, parts, dtype = destination(memory, op.args[-1], scope)
-    value = convert(memory.read(op.args[0], scope), source, dtype) if op.name == 'MOV' else coerce(0, dtype)
+    typed=typed_literal(op.args[0]) if op.name=='MOV' else None
+    value = convert(typed[1] if typed is not None else memory.read(op.args[0], scope), source, dtype) if op.name == 'MOV' else coerce(0, dtype)
     memory.store(key, parts, value)
     return True
 
@@ -70,13 +88,18 @@ def execute(engine, op, power, scope):
 def description(project):
     return dict(available=available(project), profile='v35-5580-numeric-storage', language='RLL',
                 instructions=sorted(INSTRUCTIONS), types=sorted(TYPES),
-                operands='One numeric scalar element; bounded DINT/finite REAL MOV immediates; aliases and existing AOI bindings',
+                operands='One numeric scalar element; bounded DINT/finite REAL or typed L/U/UL integer and floating L/l MOV immediates; aliases and existing AOI bindings',
+                typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',
+                    range='Declared source range and precision checked structurally, before existing destination conversion',
+                    conversion='Same integer pattern, floating precision and checked nearest-even conversion as a source tag',
+                    scope='MOV source only; no expressions, typed radix/separators, other arguments/consumers or native parity',
+                    native_runtime_parity=False),
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
                 real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
-                lreal='Declared LREAL tags only; binary64 storage/MOV/CLR and atomic tag access; separate homogeneous-tag ladder arithmetic/comparison profile; no new LREAL literals, ST expressions or aggregate wire layouts',
+                lreal='Declared LREAL tags and finite floating L/l MOV literals; binary64 storage/conversion, CLR and atomic tag access; expression and wire-layout profiles remain separate',
                 selection='Structural preflight; false/prescan skip values and live indices; true full writes establish unknown destinations',
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['Mixed LREAL arithmetic and expression/AOI parameter qualification; time/date, string and aggregate forms; broader literals/controllers',
+                remaining=['Time/date, string and aggregate MOV/CLR forms; typed radix/other consumers/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

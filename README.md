@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.153313`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.155948`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,11 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+**Typed MOV constants** now support decimal L/U/UL integers and finite LREAL
+floating constants, with declared source precision and existing numeric conversion.
+The viewer preserves typed constants and exact integer digits; see
+[typed MOV constants](docs/typed-mov-literals.md).
 
 **Wide integer constants in file expressions** now work in FAL transforms and
 FSC searches with matching LINT/UDINT/ULINT operands, exact values and existing

@@ -411,3 +411,8 @@ matching LINT/UDINT/ULINT expressions, with exact arithmetic/comparisons and
 existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
 Mixed typed forms, floating/radix/file-argument expansion and native parity
 remain separate.
+
+[Typed MOV constants](typed-mov-literals.md) now use decimal L/U/UL integer
+sources or finite LREAL floating constants, checked before existing numeric
+conversion. The viewer retains integer digits and declared literal types.
+Other arguments/consumers, typed radix forms and native parity remain separate.
