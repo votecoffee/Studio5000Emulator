@@ -2,7 +2,9 @@
 
 The explicit v35 ControlLogix 5580 profile supports source-configuration reads
 in ladder and Structured Text. Existing [audit-value GSV](controller-gsv.md)
-keeps its original 64-bit destination contract.
+keeps its original 64-bit destination contract. [Wall-clock GSV](wall-clock-gsv.md)
+adds separate host UTC CurrentValue/DateTime and qualified LocalDateTime reads;
+these are runtime clock samples rather than source-configuration attributes.
 
 ```text
 GSV(Task,FastTask,Rate,FastRate);

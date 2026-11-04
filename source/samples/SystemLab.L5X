@@ -3,6 +3,7 @@
   <Controller Name="SystemLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11" TimeSlice="30" ShareUnusedTimeSlice="1">
     <DataTypes />
     <Modules />
+    <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="BackgroundCount" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
@@ -429,6 +430,14 @@
           <DataValue DataType="DINT" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="ReadClock" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClockIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ClockMicros" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="StClockMicros" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ClockWords" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="ClockUtc" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
+      <Tag Name="ClockLocal" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
+      <Tag Name="StClockUtc" DataType="DINT" TagType="Base" Dimensions="7"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -481,6 +490,7 @@
               <Rung Number="14" Type="N">
                 <Text>XIC(ControlTasks)DIV(1,ControlDivisor,ControlResult);</Text>
               </Rung>
+              <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
@@ -490,7 +500,16 @@
               <Line Number="2">GSV(Task,FastTask,Name,StFastTaskName);</Line>
               <Line Number="3">IF StApplyInhibit THEN SSV(Task,SlowTask,InhibitTask,StTaskInhibitCommand); END_IF;</Line>
               <Line Number="4">GSV(Task,SlowTask,InhibitTask,StSlowInhibit);</Line>
+              <Line Number="5">IF ReadClock THEN GSV(WallClockTime,,CurrentValue,StClockMicros); GSV(WallClockTime,,DateTime,StClockUtc[0]); END_IF;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="ReadClockValues" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CurrentValue,ClockMicros);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CurrentValue,ClockWords[1]);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockUtc[ClockIndex]);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,LocalDateTime,ClockLocal[1]);</Text></Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

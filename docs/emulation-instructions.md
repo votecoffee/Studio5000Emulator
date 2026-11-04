@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; numeric FIFO/LIFO conversions added for app `26.1103.203024`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; wall-clock GSV reads added for app `26.1103.204552`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -100,6 +100,11 @@ ASO is additionally confirmed in installed v35 instruction help for
 ALARM_SET_CONTROL; it is not implemented. The
 [predefined-type inventory](predefined-data-types.md) tracks its associated
 schema/behavior backlog separately from instruction names.
+
+[WallClockTime GSV](wall-clock-gsv.md) adds UTC CurrentValue/DateTime and explicit
+UTC-local LocalDateTime reads to existing RLL/ST calls. Exact LINT/two-DINT
+counters, seven-DINT calendar windows, lazy references and whole-advance rollback
+are modeled; no clock setters, time-zone/DST changes or native parity is implied.
 
 ## Remaining forms of existing instructions
 

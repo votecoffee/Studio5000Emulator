@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.204552`: [wall-clock GSV](wall-clock-gsv.md).
+Ladder and existing ST GSV calls read host UTC microseconds and seven-field
+calendars, sharing the existing CIP clock. LocalDateTime requires the explicit
+source UTC-local policy. Structural/lazy destinations, unknown full writes,
+AOI windows and complete conservative ST FOR effects retain rollback. System
+lab adds a called ladder routine and gated ST reads. Clock setters, non-UTC/DST,
+DT/TIME records, broader attributes and native parity remain separate.
+
 Available in `26.1103.203024`: [numeric FIFO/LIFO conversions](queue-conversions.md).
 FFL/LFL convert payloads to the selected queue element type; FFU/LFU convert
 unloaded values to their destination type. Narrow integer sign extension,

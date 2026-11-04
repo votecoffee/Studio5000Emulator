@@ -223,8 +223,7 @@ class Structured:
                 if op.name in ('EVENT','UID','UIE'):raise ModelError(op.name+' inside FOR remains unqualified because task logic may change the loop counter/bounds')
                 if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
                 if op.name=='GSV':
-                    key,parts,_=system_values.validate(self.engine,op,scope)
-                    extra_writes.extend((key,part) for part in parts)
+                    extra_writes.extend(system_values.write_effects(self.engine,op,scope))
                 elif op.name=='FLL':
                     effects=numeric_fill.write_effects(self.engine,op,scope)
                     if effects is None:writes.append(op.args[1])

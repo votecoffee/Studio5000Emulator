@@ -14,6 +14,43 @@ from tools import vmware_appliance as vm
 
 
 class ApplianceTests(unittest.TestCase):
+    def test_new_guest_clock_is_seeded_with_validated_utc_seconds_over_pinned_ssh(self):
+        with patch.object(vm.time,'time_ns',return_value=1793577600123456789), \
+                patch.object(vm,'ssh_args',return_value=['ssh','root@192.0.2.9']) as ssh, \
+                patch.object(vm,'run',return_value='1793577600') as command:
+            self.assertEqual(vm.synchronize_guest_clock(Path('appliance'),'192.0.2.9'),1793577600)
+        ssh.assert_called_once_with(Path('appliance'),'192.0.2.9')
+        command.assert_called_once_with(['ssh','root@192.0.2.9','date -u -s @1793577600 +%s'],timeout=10)
+
+    def test_invalid_launcher_clocks_do_not_issue_a_guest_set_command(self):
+        for value in (-1,True,None,(1<<63)*1000):
+            with self.subTest(value=value),patch.object(vm.time,'time_ns',return_value=value),patch.object(vm,'run') as command:
+                with self.assertRaisesRegex(RuntimeError,'invalid'):vm.synchronize_guest_clock(Path('appliance'),'192.0.2.9')
+                command.assert_not_called()
+        with patch.object(vm.time,'time_ns',side_effect=OSError('unavailable')),patch.object(vm,'run') as command:
+            with self.assertRaisesRegex(RuntimeError,'unavailable'):vm.synchronize_guest_clock(Path('appliance'),'192.0.2.9')
+            command.assert_not_called()
+
+    def test_guest_clock_bad_readback_does_not_claim_success(self):
+        for value in ('','unexpected output','1793577601'):
+            with patch.object(vm.time,'time_ns',return_value=1793577600000000000), \
+                    patch.object(vm,'ssh_args',return_value=['ssh']),patch.object(vm,'run',return_value=value):
+                with self.assertRaisesRegex(RuntimeError,'could not be verified'):vm.synchronize_guest_clock(Path('appliance'),'192.0.2.9')
+
+    def test_manager_seeds_only_a_vm_it_booted_before_publishing_the_tunnel(self):
+        for booted in (False,True):
+            with self.subTest(booted=booted),tempfile.TemporaryDirectory() as folder:
+                directory=Path(folder);config,state=self.manager_fixture(directory);tunnel=Mock(pid=123,poll=Mock(return_value=None));events=[]
+                replies=['','','192.0.2.9',''] if booted else [config['vmx'],'192.0.2.9','']
+                with patch.object(vm.subprocess,'Popen',side_effect=lambda *a,**k:events.append('tunnel') or tunnel), \
+                        patch.object(vm,'vmrun',return_value='vmrun'),patch.object(vm,'run',side_effect=replies), \
+                        patch.object(vm,'synchronize_guest_clock',side_effect=lambda *a:events.append('seed') or 1793577600) as seed, \
+                        patch.object(vm,'api',side_effect=[state,KeyboardInterrupt]),patch.object(vm.time,'sleep'):
+                    vm.start(directory,open_browser=False,tray=False)
+                self.assertEqual(events,['seed','tunnel'] if booted else ['tunnel'])
+                if booted:seed.assert_called_once_with(directory,'192.0.2.9')
+                else:seed.assert_not_called()
+
     def test_background_commands_capture_output_without_windows_console(self):
         with patch.object(subprocess, 'CREATE_NO_WINDOW', 0x08000000, create=True), \
                 patch.object(subprocess, 'run', return_value=Mock(returncode=0, stdout='ready\n')) as launch:

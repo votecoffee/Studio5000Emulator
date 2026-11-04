@@ -55,6 +55,13 @@ The web service remains on guest loopback; the forwarded Windows address is
 `http://127.0.0.1:8786`. The header shows the exact running version, PLC endpoint IP and VMware appliance
 status. The Windows launcher supplies the tray controls.
 
+When the launcher boots a new appliance VM, it initializes the guest UTC clock
+from the launcher host through pinned SSH before publishing the UI tunnel.
+This one-time seed uses whole-second resolution and verifies the guest reply.
+Attaching to an already running VM preserves its clock. Later clock accuracy
+depends on the guest/VM clock services; this seed is separate from CIP/PTP
+synchronization and [WallClockTime GSV](wall-clock-gsv.md) reads.
+
 On Windows, appliance commands and the persistent OpenSSH tunnel run without
 console windows, including when launched from the tray with `pythonw`. Output
 and failures remain captured in the private logs. The tunnel uses no interactive

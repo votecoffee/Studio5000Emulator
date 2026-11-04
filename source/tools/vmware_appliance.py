@@ -306,6 +306,21 @@ def ssh_args(directory, ip):
             f'root@{ip}']
 
 
+def synchronize_guest_clock(directory, ip):
+    """Seed only a newly booted owned VM from the launcher's UTC clock."""
+    try:nanoseconds=time.time_ns()
+    except (OSError,OverflowError,ValueError) as error:
+        raise RuntimeError('Launcher UTC clock is unavailable; guest clock was not seeded') from error
+    if type(nanoseconds) is not int or not 0<=nanoseconds<(1<<63)*1000:
+        raise RuntimeError('Launcher UTC clock is invalid; guest clock was not seeded')
+    seconds=nanoseconds//1000000000
+    # BusyBox formats the time after setting it. Only a validated integer is
+    # placed in this pinned-host SSH command; no host timezone is inferred.
+    observed=run(ssh_args(directory,ip)+[f'date -u -s @{seconds} +%s'],timeout=10)
+    if observed!=str(seconds):raise RuntimeError('Guest UTC clock initialization could not be verified')
+    return seconds
+
+
 def lease_address(config, text):
     candidates = []
     for address, body in re.findall(r'lease\s+([0-9.]+)\s*\{([^}]+)\}', text):
@@ -479,9 +494,11 @@ def start(directory, open_browser=True, tray=True):
             print(json.dumps(session, indent=2), flush=True)
             return
     running = run([vmrun(), '-T', 'ws', 'list'])
+    booted = False
     if config['vmx'].lower() not in running.lower():
         print('Starting isolated emulator VM', flush=True)
         run([vmrun(), '-T', 'ws', 'start', config['vmx'], 'nogui'], timeout=45)
+        booted = True
     deadline = time.monotonic() + 180
     ip = None
     while time.monotonic() < deadline:
@@ -507,6 +524,9 @@ def start(directory, open_browser=True, tray=True):
     if not ip:
         raise RuntimeError('Guest IP not available; inspect the private serial.log and vmware.log')
     print(f'Guest address: {ip}', flush=True)
+    if booted:
+        seconds=synchronize_guest_clock(directory,ip)
+        print(f'Guest UTC initialized from launcher host: {seconds}',flush=True)
     command = ssh_args(directory, ip)
     # Matching tunnel and guest ports preserve the HTTP Host/session boundary.
     tunnel_args = command[:-1] + ['-N', '-o', 'ExitOnForwardFailure=yes', '-L',

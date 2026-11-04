@@ -2721,3 +2721,28 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
         write('MixedSource',-3.5);row=values(step());self.assertEqual(row['MixedQueue[0]'],-4)
         report=self.post('report',{})['control_operations'];self.assertIn('FFL/FFU/LFL/LFU',report['numeric_conversions']);self.assertFalse(report['native_fault_classification'])
+
+    def test_system_lab_wall_clock_reads_typed_fields_and_keeps_lazy_rollback_through_http(self):
+        import struct
+        from datetime import datetime,timezone
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        write('ClockIndex',99);row=values(step());self.assertEqual(int(row['ClockMicros']),0)
+        write('ReadClock',True)
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);self.assertIn('outside bounds',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        write('ClockIndex',1);start=time.time_ns()//1000;row=values(step());end=time.time_ns()//1000
+        words=struct.unpack('<q',struct.pack('<ii',row['ClockWords[1]'],row['ClockWords[2]']))[0]
+        for value in (int(row['ClockMicros']),int(row['StClockMicros']),words):self.assertLessEqual(start,value);self.assertLessEqual(value,end)
+        for name,first in [('ClockUtc',1),('ClockLocal',1),('StClockUtc',0)]:
+            fields=[row[f'{name}[{i}]'] for i in range(first,first+7)];instant=datetime(*fields,tzinfo=timezone.utc)
+            self.assertLess(abs(instant.timestamp()*1000000-int(row['ClockMicros'])),5000000)
+        for name,last in [('ClockWords',3),('ClockUtc',8),('ClockLocal',8)]:self.assertEqual((row[f'{name}[0]'],row[f'{name}[{last}]']),(101,999))
+        retained={k:v for k,v in row.items() if k.startswith(('Clock','StClock'))}
+        write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
+        report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
