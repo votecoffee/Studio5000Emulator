@@ -3,8 +3,8 @@
 The v35 ControlLogix 5580 software profile supports these forms:
 
 ```text
-FRD(Source,Dest);                 // Ladder, 32/64-bit packed -> integer
-TOD(Source,Dest);                 // Ladder, integer -> 32/64-bit packed
+FRD(Source,Dest);                 // Ladder, 8/16/32/64-bit packed -> integer
+TOD(Source,Dest);                 // Ladder, integer -> 8/16/32/64-bit packed
 SWPB(Source,REVERSE,Dest);         // Ladder and ST, INT/DINT
 SWPB(Source,WORD,Dest);
 SWPB(Source,HIGHLOW,Dest);
@@ -12,14 +12,15 @@ SWPB(Source,HIGHLOW,Dest);
 
 ## BCD conversions
 
-FRD reads a 32/64-bit bit pattern and weights its eight/sixteen nibbles by decimal
+FRD reads an 8/16/32/64-bit bit pattern and weights its 2/4/8/16 nibbles by decimal
 powers. The installed v35 definition explicitly includes hex digits A–F: source
 16#1234567E produces 12345684. A signed source is interpreted through its full
 declared pattern; DINT -1 produces 166666665 and LINT -1 produces
 16666666666666665. FRD does not reject nondecimal nibbles.
 
 TOD accepts nonnegative decimal integers and packs their digits into the
-destination width: 0..99999999 for DINT/UDINT and 0..9999999999999999 for
+destination width: 0..99 for SINT/USINT, 0..9999 for INT/UINT,
+0..99999999 for DINT/UDINT and 0..9999999999999999 for
 LINT/ULINT. Signed destinations retain the packed bit pattern: in DINT, 80000000 produces
 -2147483648, and 99999999 produces -1717986919 (16#99999999). FRD reverses this
 packing for ordinary decimal digits. Neither conversion needs an initialized
@@ -29,8 +30,8 @@ The qualified ladder combinations are:
 
 | Instruction | Source | Destination |
 | --- | --- | --- |
-| FRD | DINT/UDINT/LINT/ULINT tag or bounded signed DINT/32-bit radix immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
-| TOD | Any of the eight signed/unsigned integer tags or bounded DINT immediate | Writable DINT/UDINT/LINT/ULINT scalar |
+| FRD | Any of the eight signed/unsigned integer tags or bounded signed DINT/32-bit radix immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| TOD | Any of the eight signed/unsigned integer tags or bounded DINT immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
 
 FRD checks the decoded integer against the destination's signed/unsigned range. Thus
 16#127 decodes to SINT 127; 16#128 decodes to 128 and faults on a SINT result.
@@ -39,8 +40,8 @@ retained for 32-bit sources, including signed DINT sources and A-F digits.
 
 TOD consumes the integer decimal value directly, without a float32 conversion:
 SINT 99 packs to DINT 16#99, INT 32767 packs to DINT 16#32767, and either
-round-trips through FRD into its original signed type. FRD 8/16-bit sources,
-TOD 8/16-bit packed destinations and BCD expression functions remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
+round-trips through FRD into its original signed type. BCD expression functions
+remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
 v35 language list. Existing [FBD conversion records](fbd-conversions.md) retain
 their separate DINT-only BCD contract; no new FBD forms are added here.
 
@@ -62,8 +63,8 @@ decodes to 16666666666666665 by weighting its sixteen A-F-capable nibbles.
 DINT/UDINT retain eight-nibble capacity even with a 64-bit decimal source.
 TOD rejects negative inputs or values above the destination's decimal capacity.
 FRD rejects decoded results that do not fit the destination. It does not clip
-or wrap decoded overflows. Narrow packed types and native saturation/overflow
-flags remain separate work. No REAL/LREAL conversion is introduced.
+or wrap decoded overflows. Native saturation/overflow flags remain separate
+work. No REAL/LREAL conversion is introduced.
 
 Source immediates retain signed-DINT decimal or 32-bit radix bounds. Larger
 values must be held in typed tags; wider/typed literal syntax is not added.
@@ -83,6 +84,39 @@ and rolls back the advance; correct it and retry. Wide watches use decimal text.
 The 64-bit weighted-nibble software model extends the documented 32-bit formula
 to sixteen nibbles using the listed LINT/ULINT operand types. Native calculation,
 import, status, fault and lifecycle parity still need qualification.
+
+## Byte and word packed BCD
+
+App `26.1103.214730` adds SINT/USINT and INT/UINT packed operands, completing
+all 64 integer source/destination type pairings for each ladder instruction.
+FRD interprets exactly the declared pattern: SINT -1 weights FF and produces
+165, INT -1 weights FFFF and produces 16665. A-F digits retain their weighted
+values. FRD checks the decimal result against the destination range; 165 does
+not fit SINT and faults transactionally, while it fits USINT or DINT.
+
+TOD qualifies nonnegative inputs up to the packed destination's decimal capacity:
+99 in a byte and 9999 in a word. Signed results preserve those packed bits:
+99 becomes SINT -103 (99 hex), and 9999 becomes INT -26215 (9999 hex). FRD can
+decode either signed pattern into a sufficiently large destination. In-place
+round trips capture each source before writing. Each conversion remains exact
+integer arithmetic, without float32 intermediates.
+
+This extends the existing width-based software model. Installed v35 help 14674
+and 14675 list the operand types; their native saturation/overflow behavior and
+the FRD description's 32-bit formula do not establish narrow calculation parity.
+The model rejects TOD inputs outside its per-width valid range and decoded FRD
+results outside their destination range. It does not infer native overflow bits,
+minor-fault settings or partial effects. FBD keeps the shared helpers' DINT
+defaults, and ST FRD/TOD remain unavailable.
+
+In **Conversion lab**, step with SmallBCD false; SmallBCDIndex=99 remains dormant.
+Set SmallBCDIndex=1, enable SmallBCD and step. SmallBytePacked[1] becomes -103,
+SmallByteUnsigned becomes 153, SmallWordSigned becomes -26215 and
+SmallWordUnsigned becomes 39321. SmallDecoded holds [99,99,9999,9999]; byte-array
+guards 11 and 77 remain. Set SmallDecimal=100 or SmallWordDecimal=10000 to observe
+whole-advance rollback; correct the value and retry. Disable SmallBCD before
+selecting an invalid index to retain the values. See
+[byte/word tests](../source/tests/test_small_bcd.py).
 
 ## Byte orders
 

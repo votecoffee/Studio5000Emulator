@@ -1,11 +1,11 @@
-"""Bounded 32/64-bit BCD conversions and INT/DINT byte order for v35 5580."""
+"""Bounded 8/16/32/64-bit BCD conversions and INT/DINT byte order for v35 5580."""
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, bit_value
 from .model import INT_BITS, ModelError, literal
 
 INSTRUCTIONS = frozenset(('FRD', 'TOD', 'SWPB'))
 ORDERS = frozenset(('REVERSE', 'WORD', 'HIGHLOW'))
-PACKED_TYPES = ('DINT', 'UDINT', 'LINT', 'ULINT')
+PACKED_TYPES = tuple(INT_BITS)
 
 
 def scalar(memory, ref, scope, *, destination=False):
@@ -37,10 +37,10 @@ def validate(memory, op, scope):
     else:
         width = operand(memory, source, scope)
     if op.name == 'FRD':
-        if width not in (32, 64) or dtype not in INT_BITS:
-            raise ModelError('FRD requires a 32/64-bit packed source and integer destination')
+        if dtype not in INT_BITS:
+            raise ModelError('FRD requires an integer packed source and integer destination')
     elif dtype not in PACKED_TYPES:
-        raise ModelError('TOD requires an integer source and DINT/UDINT/LINT/ULINT destination')
+        raise ModelError('TOD requires an integer source and signed/unsigned integer destination')
     return width
 
 
@@ -99,16 +99,16 @@ def execute(memory, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-conversions', instructions=sorted(INSTRUCTIONS),
-                bcd='RLL FRD decodes 32/64-bit patterns; TOD packs 8/16 decimal digits by destination width; shared FBD defaults remain DINT',
+                bcd='RLL FRD decodes 8/16/32/64-bit patterns; TOD packs 2/4/8/16 decimal digits by destination width; shared FBD defaults remain DINT',
                 rll_operands={'FRD':{'sources':list(PACKED_TYPES),'destinations':list(INT_BITS)},
                               'TOD':{'sources':list(INT_BITS),'destinations':list(PACKED_TYPES)}},
                 preflight='Declared scalar types/shapes, index grammar, permissions, immediate bounds and SWPB selectors; no saved dynamic indices or tag values',
                 selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
-                frd_range='Eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
-                tod_range='Nonnegative integer input: 0..99999999 for DINT/UDINT or 0..9999999999999999 for LINT/ULINT; exact packed destination bits',
+                frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
+                tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
                 immediates='Existing signed DINT decimal or 32-bit radix sources; store larger values in typed tags',
                 native_runtime_parity=False,
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
-                remaining=['FRD 8/16-bit sources and TOD 8/16-bit packed destinations', 'BCD expression and remaining FBD forms',
+                remaining=['BCD expression and remaining FBD forms',
                            'TOD saturation, math status and native fault parity'])

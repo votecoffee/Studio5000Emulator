@@ -147,9 +147,6 @@ class WideBCDTests(unittest.TestCase):
     def test_retained_literal_noninteger_shape_permission_and_profile_guards(self):
         for text in ('TOD(2147483648,Results[1]);','FRD(16#100000000,Results[1]);','TOD(TRUE,Results[1]);','FRD(Inputs,Results[1]);'):
             self.assertTrue(self.engine([text]).blockers,text)
-        for dtype in ('SINT','INT','USINT','UINT'):
-            self.assertTrue(self.engine(['FRD(Source,Results[1]);'],source=dtype,value=1).blockers)
-            self.assertTrue(self.engine(['TOD(Source,Results[1]);'],dest=dtype,value=1).blockers)
         for dtype in ('REAL','BOOL'):
             self.assertTrue(self.engine(['TOD(Source,Results[1]);'],source=dtype,value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
@@ -162,4 +159,4 @@ class WideBCDTests(unittest.TestCase):
         self.assertEqual(from_bcd(-1),166666665);self.assertEqual(to_bcd(99999999),-1717986919)
         with self.assertRaisesRegex(ModelError,'qualified'):to_bcd(100000000)
         e=self.checked();report=e.report()['numeric_conversions']
-        self.assertEqual(report['rll_operands']['FRD']['sources'],list(PACKED));self.assertFalse(report['native_runtime_parity'])
+        self.assertEqual(report['rll_operands']['FRD']['sources'],list(TYPES));self.assertFalse(report['native_runtime_parity'])

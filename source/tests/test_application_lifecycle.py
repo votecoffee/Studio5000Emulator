@@ -93,6 +93,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for name in ('aggregate_copy','aggregate_fill'):
             self.assertTrue(report[name]['clipping']);self.assertFalse(report[name]['native_runtime_parity'])
 
+    def test_conversion_lab_small_packed_bcd_guarded_values_and_rollback_through_http(self):
+        state=self.post('demo',{'sample':'ConversionLab'});self.assertEqual(state['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':25})
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['SmallBytePacked[1]'])
+        write('SmallBCDIndex',1);write('SmallBCD',True);state=step();v=values(state)
+        self.assertEqual([v[f'SmallBytePacked[{i}]'] for i in range(3)],[11,-103,77])
+        self.assertEqual([v[f'SmallDecoded[{i}]'] for i in range(4)],[99,99,9999,9999])
+        self.assertEqual((v['SmallByteUnsigned'],v['SmallWordSigned'],v['SmallWordUnsigned']),(153,-26215,39321))
+        for tag,value,recovery in [('SmallDecimal',100,88),('SmallWordDecimal',10000,1234),('SmallBCDIndex',99,1)]:
+            write(tag,value);before=state_now()
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);error.exception.close();after=state_now()
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key])
+            write(tag,recovery);state=step();self.assertFalse(state['fault'])
+        write('SmallBCD',False);write('SmallBCDIndex',99);retained=values(state)['SmallBytePacked[1]'];self.assertEqual(values(step())['SmallBytePacked[1]'],retained)
+        report=self.post('report',{})['numeric_conversions'];self.assertEqual(len(report['rll_operands']['FRD']['sources']),8);self.assertFalse(report['native_runtime_parity'])
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()
@@ -2324,7 +2345,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('WideDecimal','9999999999999999');row=step();self.assertEqual(row['WideDecoded'],'9999999999999999');self.assertEqual(row['WidePacked'],'11068046444225730969')
         write('WideConversions',False);write('WideDecimal','10000000000000000');row=step();self.assertEqual(row['WidePacked'],'11068046444225730969');self.assertFalse(row['WideOK'])
-        report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['FRD']['sources'],['DINT','UDINT','LINT','ULINT']);self.assertFalse(report['native_runtime_parity'])
+        report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['FRD']['sources'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertFalse(report['native_runtime_parity'])
 
     def test_imported_wide_bcd_unknown_results_indices_and_late_fault_are_atomic_through_http(self):
         import base64

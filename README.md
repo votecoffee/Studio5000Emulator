@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1103.213202`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1103.214730`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -215,7 +215,9 @@ size reads, lazy unknown-value handling and signed/unsigned TRN results. In
 structural validation and lazy operand reads for FLL. In **Data lab**, enable
 FillNumeric to compare guarded byte, word, signed and rounded REAL fills.
 
-[Numeric conversions](docs/numeric-conversions.md) support 32/64-bit packed BCD.
+[Numeric conversions](docs/numeric-conversions.md) support 8/16/32/64-bit packed BCD.
+All eight integer types work as ladder FRD/TOD sources and destinations.
+**Conversion lab** adds gated byte/word round trips with signed packed bits.
 TOD accepts all eight integer source types into DINT/UDINT/LINT/ULINT; FRD decodes
 those packed types into representable signed/unsigned integer results. Enable
 `WideConversions` in **Conversion lab** for exact 16-digit signed/unsigned round

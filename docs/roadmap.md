@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.214730`: [byte/word packed BCD](numeric-conversions.md#byte-and-word-packed-bcd).
+Ladder FRD/TOD accept all eight signed/unsigned integer source/destination types.
+FRD weights the declared 2/4/8/16 nibbles; TOD packs within the destination
+decimal capacity, retaining signed bit patterns. Lazy references, unknown full
+writes, typed AOIs and transactional range/fault rollback remain. Conversion lab
+adds a called byte/word example. Native saturation/status/fault equivalence,
+BCD expressions, ST availability and broader FBD forms remain separate.
+
 Available in `26.1103.213202`: [clipped aggregate operations](clipped-aggregates.md).
 Matching COP/CPS and zero FLL stop at the selected logical array/member or
 scalar; copies also stop at the remaining source. Complete records, unknowns,

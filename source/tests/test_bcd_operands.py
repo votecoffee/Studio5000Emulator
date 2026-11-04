@@ -61,10 +61,10 @@ class BCDOperandTests(unittest.TestCase):
             e=self.checked(['FRD(Source,Dest)OTE(RunLatch);'],types=('DINT','DINT',dtype),values=(0x99,0,7));e.memory.values['dest']=None;e.step()
             self.assertEqual(e.memory.read('Dest'),99);self.assertTrue(e.memory.read('RunLatch'))
 
-    def test_frd_narrow_sources_and_tod_narrow_results_remain_unqualified(self):
+    def test_frd_narrow_sources_and_tod_narrow_results_are_available(self):
         for dtype in ('SINT','INT'):
-            self.assertTrue(self.engine(['FRD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers)
-            self.assertTrue(self.engine(['TOD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers)
+            self.assertEqual(self.engine(['FRD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers,[])
+            self.assertEqual(self.engine(['TOD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers,[])
         for dtype in ('REAL','BOOL'):
             self.assertTrue(self.engine(['TOD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers)
             self.assertTrue(self.engine(['FRD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers)

@@ -5,6 +5,15 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="SmallBCD" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SmallBCDIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SmallDecimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SmallWordDecimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="9999" /></Data></Tag>
+      <Tag Name="SmallByteUnsigned" DataType="USINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
+      <Tag Name="SmallWordSigned" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="SmallWordUnsigned" DataType="UINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UINT" Value="0" /></Data></Tag>
+      <Tag Name="SmallBytePacked" DataType="SINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="SINT" Dimensions="3"><Element Index="[0]" Value="11" /><Element Index="[2]" Value="77" /></Array></Data></Tag>
+      <Tag Name="SmallDecoded" DataType="DINT" Dimensions="4" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4" /></Data></Tag>
       <Tag Name="Enable" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="BOOL" Value="1" />
@@ -248,7 +257,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(Enable)TOD(Decimal,Packed);</Text>
+                <Text>JSR(SmallPacked,0)XIC(Enable)TOD(Decimal,Packed);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(Enable)FRD(Packed,Decoded);</Text>
@@ -313,6 +322,14 @@
               <Line Number="2">SWPB(InputWords[Index],REVERSE,SwappedWords[Index]);</Line>
               <Line Number="3">END_FOR;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="SmallPacked" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(SmallBCD)TOD(SmallDecimal,SmallBytePacked[SmallBCDIndex])FRD(SmallBytePacked[SmallBCDIndex],SmallDecoded[0]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(SmallBCD)TOD(SmallDecimal,SmallByteUnsigned)FRD(SmallByteUnsigned,SmallDecoded[1]);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(SmallBCD)TOD(SmallWordDecimal,SmallWordSigned)FRD(SmallWordSigned,SmallDecoded[2]);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(SmallBCD)TOD(SmallWordDecimal,SmallWordUnsigned)FRD(SmallWordUnsigned,SmallDecoded[3]);</Text></Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

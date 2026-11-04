@@ -119,9 +119,6 @@ class NumericConversionTests(unittest.TestCase):
             for text in ('FRD(Source,Dest);','TOD(Source,Dest);'):
                 for types in ((dtype,'DINT','DINT'),('DINT','DINT',dtype)):
                     self.assertTrue(self.engine([text],types=types).blockers,(text,types))
-        for dtype in ('SINT','INT'):
-            self.assertTrue(self.engine(['FRD(Source,Dest);'],types=(dtype,'DINT','DINT')).blockers)
-            self.assertTrue(self.engine(['TOD(Source,Dest);'],types=('DINT','DINT',dtype)).blockers)
         for text in ('SWPB(1234,REVERSE,Dest);','SWPB(Source,Mask,Dest);','SWPB(Source,0,Dest);',
                      'SWPB(Source,HIGH/LOW,Dest);','SWPB(Source,REVERSE);', 'FRD(Source);','TOD(Source,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
