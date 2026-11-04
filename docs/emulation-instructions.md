@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; BCD CPT expressions added for app `26.1104.114926`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; BCD CMP expressions added for app `26.1104.120940`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -242,3 +242,7 @@ complete source patterns and dedicated guards; SQO output remains DINT.
 [BCD CPT expressions](cpt-bcd.md) qualify FRD/TOD with narrow integer
 arguments/results, composition, lazy selection and AOI rollback. Other consumers,
 REAL/wide mixtures and native numerical/status/fault/lifecycle parity remain separate.
+
+[BCD CMP expressions](cmp-bcd.md) qualify FRD/TOD in narrow integer
+comparisons and eager Boolean composition, with lazy rung selection and AOI
+rollback. Wider/REAL/string mixtures, other consumers and native parity remain separate.

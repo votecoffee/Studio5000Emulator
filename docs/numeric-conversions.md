@@ -192,3 +192,7 @@ controller or Studio acceptance.
 [BCD CPT expressions](cpt-bcd.md) now have a separate v35 5580 narrow-integer
 profile. CPT parser opt-in keeps other expression consumers and wider/REAL forms
 separate; array-index functions retain their existing conversion rules.
+
+[BCD CMP expressions](cmp-bcd.md) now add scoped FRD/TOD conversion
+operators to integer relations and Boolean composition. File/ST expressions,
+floating/wide mixtures and native parity retain separate requirements.

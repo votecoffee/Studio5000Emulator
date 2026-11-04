@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; BCD CPT expressions added for app `26.1104.114926`. **Full Logix emulation is not
+Audited 2026-11-04; BCD CMP expressions added for app `26.1104.120940`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -366,3 +366,7 @@ complete source patterns and dedicated guards; SQO output remains DINT.
 [BCD CPT expressions](cpt-bcd.md) qualify FRD/TOD with narrow integer
 arguments/results, composition, lazy selection and AOI rollback. Other consumers,
 REAL/wide mixtures and native numerical/status/fault/lifecycle parity remain separate.
+
+[BCD CMP expressions](cmp-bcd.md) qualify FRD/TOD in narrow integer
+comparisons and eager Boolean composition, with lazy rung selection and AOI
+rollback. Wider/REAL/string mixtures, other consumers and native parity remain separate.

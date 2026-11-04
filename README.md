@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.114926`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.120940`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -44,6 +44,9 @@ gated Program timing reads in ladder and ST.
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. **System lab** includes gated timestamp examples.
+
+[BCD CMP expressions](docs/cmp-bcd.md) add integer conversions inside ladder
+comparisons and Boolean conditions. **Bit lab** demonstrates live match coils.
 
 [BCD CPT expressions](docs/cpt-bcd.md) add integer FRD/TOD operators, nesting
 and arithmetic. **Bit lab** demonstrates conversions and rollback recovery.

@@ -110,5 +110,5 @@ def description():
                 native_runtime_parity=False,
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
-                remaining=['BCD CMP/ST/file expressions and remaining FBD forms',
+                remaining=['BCD ST/file expressions and remaining FBD forms',
                            'TOD saturation, math status and native fault parity'])

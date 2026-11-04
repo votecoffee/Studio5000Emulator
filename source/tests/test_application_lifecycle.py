@@ -3389,3 +3389,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((row['CptBcdResults[0]'],row['CptBcdResults[2]']),(101,999))
         write('CptBcdEnabled',False);write('CptBcdDecimal',-1);write('CptBcdIndex',99);self.assertEqual(values(step())['CptBcdResults[1]'],22)
         report=self.post('report',{})['integer_expression_execution']['bcd_cpt'];self.assertEqual(report['functions'],['FRD','TOD']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_bit_lab_bcd_cmp_match_coils_unknown_operands_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        matches=lambda row:tuple(row['CmpBcd'+name+'Match'] for name in ('Decode','RoundTrip','Pattern','Mask','Gate','Indexed'))
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(matches(row),(False,)*6);self.assertIsNone(row['CmpBcdRows[1]'])
+        write('CmpBcdEnabled',True);fault('qualified');write('CmpBcdDecimal',42);fault('outside bounds');write('CmpBcdIndex',1);fault('Unknown');write('CmpBcdRows[1]',33)
+        row=values(step());self.assertEqual(matches(row),(True,)*6);self.assertEqual((row['CmpBcdRows[0]'],row['CmpBcdRows[2]']),(101,999))
+        for tag,bad,restore,text in [('CmpBcdDecimal',100000000,42,'qualified'),('CmpBcdIndex',99,1,'outside bounds'),('CmpBcdDivisor',0,1,'zero'),('CmpBcdLateDivisor',0,1,'zero')]:
+            write(tag,bad);fault(text);write(tag,restore)
+        write('CmpBcdGate',False);write('CmpBcdDivisor',0);fault('zero');write('CmpBcdDivisor',1);self.assertFalse(values(step())['CmpBcdGateMatch'])
+        write('CmpBcdGate',True);write('CmpBcdPacked',34);write('CmpBcdDecimal',21);write('CmpBcdRows[1]',34);row=values(step());self.assertEqual(matches(row),(False,True,True,False,True,False))
+        write('CmpBcdEnabled',False);write('CmpBcdDecimal',-1);write('CmpBcdIndex',99);self.assertEqual(matches(values(step())),(False,)*6)
+        report=self.post('report',{})['integer_expression_execution']['bcd_cmp'];self.assertEqual(report['functions'],['FRD','TOD']);self.assertTrue(report['boolean_composition']);self.assertFalse(report['native_runtime_parity'])

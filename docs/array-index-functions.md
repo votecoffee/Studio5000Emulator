@@ -48,7 +48,8 @@ checked BCD patterns and root rounding. It adds no PLC reads, writes or polling.
 Invalid, unknown or excluded forms remain unavailable; no arbitrary code is
 evaluated.
 
-FRD/TOD in CMP/ST remain excluded; [integer CPT now has its own profile](cpt-bcd.md). Other functions
+Standalone FRD/TOD in ST remain excluded; [integer CPT](cpt-bcd.md) and
+[integer CMP](cmp-bcd.md) now have separate profiles. Other functions
 such as ABS, TRN and SQRT, MOD/power, floating/BOOL operands, wide arithmetic
 arguments and broader controller profiles remain separate. A single wide integer
 tag still works as an index through the existing simple-tag profile. This adds

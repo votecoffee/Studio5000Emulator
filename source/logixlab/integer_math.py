@@ -60,6 +60,13 @@ def expression_description():
                     selection='Structural preflight; false/prescan skip live operands; reached arguments are required before full destination writes',
                     excluded='REAL/LREAL/wide/BOOL expressions, other consumers, larger/typed literals and native numerical/status/fault/lifecycle parity',
                     native_runtime_parity=False),
+                bcd_cmp=dict(firmware='35',controllers=sorted(CONTROLLERS),functions=['FRD','TOD'],
+                    types=['SINT','INT','DINT'],intermediate_type='DINT',boolean_composition=True,
+                    conversion='Existing CPT eight-nibble FRD and bounded signed-DINT TOD patterns',
+                    composition='Integer arithmetic/bitwise, six relations, Boolean tags and eager logical operands',
+                    selection='Structural preflight; false/prescan skip live numeric operands; true calls consume required arguments and write downstream coils',
+                    excluded='REAL/LREAL/wide/string arithmetic, BOOL numeric arguments, other consumers and native numerical/status/fault/lifecycle parity',
+                    native_runtime_parity=False),
                 native_status_parity=False,
                 remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
                            'Remaining array subscript operand/controller and native status qualification','Native intermediate/status/fault/partial-effect parity'])

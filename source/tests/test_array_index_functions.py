@@ -99,7 +99,7 @@ class ArrayIndexFunctionTests(unittest.TestCase):
                 self.assertTrue(self.engine([f'AFI()MOV(Source,Results[{function}(Index)]);'],index_type=dtype).blockers,(dtype,function))
         for expr in ('SQRT(Index)','ABS(Index)','TRN(Index)','FRD(1.0)','TOD(Index MOD 2)','SQR(Index**2)'):
             self.assertTrue(self.engine([f'AFI()MOV(Source,Results[{expr}]);']).blockers,expr)
-        for call in ('CMP(FRD(Index)>0);','CMP(TOD(Index)>0);'):
+        for call in ('CMP(FRD(Index)>0.0);','CMP(TOD(Index)>0.0);'):
             self.assertTrue(self.engine([call]).blockers,call)
         e=self.checked(['NOP();'])
         with self.assertRaisesRegex(ModelError,'subscript'):Expression('FRD(Index)',subscript=True).validate(e.memory)

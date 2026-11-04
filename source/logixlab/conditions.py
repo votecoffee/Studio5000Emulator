@@ -1,8 +1,8 @@
 """Typed CMP expressions using the same bounded parser as CPT."""
 import math
-from .integer_math import quotient
+from .integer_math import CONTROLLERS, quotient
 import operator
-from .expressions import Expression, FUNCTIONS
+from .expressions import Expression, FUNCTIONS, BCD_FUNCTIONS, index_function
 from .model import ModelError, coerce
 
 RELATIONS={'=':operator.eq,'<>':operator.ne,'<':operator.lt,'<=':operator.le,'>':operator.gt,'>=':operator.ge}
@@ -10,8 +10,8 @@ LOGICAL={'&&','^^','||'}
 
 
 class Condition(Expression):
-    def __init__(self,text,*,allow_wide=False):
-        super().__init__(text,condition=True)
+    def __init__(self,text,*,allow_wide=False,bcd=False):
+        super().__init__(text,condition=True,bcd=bcd)
         self.allow_wide=allow_wide
 
     def wide_profile(self,memory,scope):
@@ -45,7 +45,7 @@ class Condition(Expression):
             if kind=='ref':return types[value]
             if kind=='call':
                 if infer(node[2])!='number':raise ModelError('CMP math functions require numeric operands')
-                real|=value not in ('ABS','TRN','TRUNC');return 'number'
+                real|=value not in {'ABS','TRN','TRUNC',*BCD_FUNCTIONS};return 'number'
             if kind=='unary':
                 operand=infer(node[2])
                 if value=='!':
@@ -66,6 +66,11 @@ class Condition(Expression):
             if left!='number' or right!='number':raise ModelError('CMP arithmetic requires numeric operands')
             return 'number'
         if infer(self.tree)!='bool':raise ModelError('CMP requires a BOOL result or comparison')
+        if self.functions & BCD_FUNCTIONS:
+            if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
+                raise ModelError('BCD CMP expressions require the v35 ControlLogix 5580 profile')
+            if real or 'string' in types.values():
+                raise ModelError('BCD CMP expressions require narrow integer arithmetic and Boolean composition')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
             raise ModelError('Mixed REAL and bitwise CMP expressions are unsupported')
         if not real and '**' in self.operators:
@@ -85,7 +90,8 @@ class Condition(Expression):
             if kind=='ref':
                 if types[value]=='string':return memory.string(value,scope)
                 x=memory.read(value,scope);return number(x) if types[value]=='number' else bool(x)
-            if kind=='call':return number(FUNCTIONS[value](visit(node[2])))
+            if kind=='call':
+                x=visit(node[2]);return number(index_function(value,x) if value in BCD_FUNCTIONS else FUNCTIONS[value](x))
             if kind=='unary':
                 if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2])

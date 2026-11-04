@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.120940`: [BCD CMP expressions](cmp-bcd.md).
+FRD/TOD compose with integer arithmetic, six relations and Boolean conditions.
+Scoped parsing/caches keep file/ST consumers separate. Lazy operands, required
+arguments and warm AOI conditional writes retain atomic recovery. Bit lab adds
+match-coil and fault-recovery examples. Wider/REAL/string mixtures and native
+conversion/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.114926`: [BCD CPT expressions](cpt-bcd.md).
 FRD/TOD use narrow signed inputs and checked DINT intermediates, complete
 eight-nibble decoding and bounded packed results. Nesting, arithmetic/bitwise

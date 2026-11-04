@@ -440,6 +440,22 @@
       <Tag Name="CptBcdTruncated" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="CptBcdLateResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="CptBcdResults" TagType="Base" DataType="DINT" Dimensions="3" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="CmpBcdEnabled" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdPacked" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="33" /></Data></Tag>
+      <Tag Name="CmpBcdDecimal" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="CmpBcdNarrow" TagType="Base" DataType="SINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="CmpBcdIndex" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="CmpBcdDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CmpBcdLateDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CmpBcdLateResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdGate" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="1" /></Data></Tag>
+      <Tag Name="CmpBcdDecodeMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdRoundTripMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdPatternMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdMaskMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdGateMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdIndexedMatch" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CmpBcdRows" TagType="Base" DataType="DINT" Dimensions="3" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -559,6 +575,7 @@
               <Rung Number="45" Type="N"><Text>XIC(IndexFuncEnabled)EQU(IndexFuncResults[1],221)EQU(IndexFuncResults[2],223)EQU(IndexFuncResults[3],202)EQU(IndexFuncResults[4],217)EQU(IndexFuncResults[5],207)EQU(IndexFuncResults[6],223)OTE(IndexFuncCheck);</Text></Rung>
               <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)DIV(1,IndexFuncLateDivisor,IndexFuncLateResult);</Text></Rung>
               <Rung Number="47" Type="N"><Text>JSR(CptConversions,0);</Text></Rung>
+              <Rung Number="48" Type="N"><Text>JSR(BcdComparisons,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CptConversions" Type="RLL"><RLLContent>
@@ -570,6 +587,15 @@
             <Rung Number="5" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdResults[CptBcdIndex],FRD(TOD(CptBcdDecimal))+1);</Text></Rung>
             <Rung Number="6" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdTruncated,TRN(ABS(FRD(CptBcdPacked)-12345670)));</Text></Rung>
             <Rung Number="7" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdLateResult,1/CptBcdLateDivisor);</Text></Rung>
+          </RLLContent></Routine>
+          <Routine Name="BcdComparisons" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N"><Text>XIC(CmpBcdEnabled)CMP(FRD(CmpBcdPacked)=21)OTE(CmpBcdDecodeMatch);</Text></Rung>
+            <Rung Number="1" Type="N"><Text>XIC(CmpBcdEnabled)CMP(FRD(TOD(CmpBcdDecimal))=CmpBcdDecimal)OTE(CmpBcdRoundTripMatch);</Text></Rung>
+            <Rung Number="2" Type="N"><Text>XIC(CmpBcdEnabled)CMP((TOD(99999999)&lt;0)&amp;&amp;(FRD(TOD(99999999))=99999999))OTE(CmpBcdPatternMatch);</Text></Rung>
+            <Rung Number="3" Type="N"><Text>XIC(CmpBcdEnabled)CMP(((FRD(CmpBcdNarrow) AND 255)=169)&amp;&amp;((TOD(CmpBcdDecimal) AND 255)=66))OTE(CmpBcdMaskMatch);</Text></Rung>
+            <Rung Number="4" Type="N"><Text>XIC(CmpBcdEnabled)CMP(CmpBcdGate&amp;&amp;!(TOD(CmpBcdDecimal)/CmpBcdDivisor=0))OTE(CmpBcdGateMatch);</Text></Rung>
+            <Rung Number="5" Type="N"><Text>XIC(CmpBcdEnabled)CMP(FRD(CmpBcdRows[CmpBcdIndex])=21)OTE(CmpBcdIndexedMatch);</Text></Rung>
+            <Rung Number="6" Type="N"><Text>XIC(CmpBcdEnabled)DIV(1,CmpBcdLateDivisor,CmpBcdLateResult);</Text></Rung>
           </RLLContent></Routine>
         </Routines>
       </Program>

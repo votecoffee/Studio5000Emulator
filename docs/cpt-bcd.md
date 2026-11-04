@@ -33,8 +33,9 @@ while TOD(79) stores 121. REAL-producing functions, floating operands or
 literals and REAL/LREAL/wide destinations remain excluded from BCD CPT calls.
 Existing expressions without FRD/TOD retain their previous profiles.
 
-The parser enables these operators only for CPT. Generic expressions, CMP,
-FAL/FSC and ST expressions retain their existing function sets. Array-index
+CPT enables these operators through a scoped parser option.
+[BCD CMP expressions](cmp-bcd.md) now have a separate comparison profile.
+Generic expressions, FAL/FSC and ST retain their existing function sets. Array-index
 FRD/TOD/SQR remain a separate profile. No new instruction mnemonic, FBD/SFC form,
 native expression spelling, math-status bit or controller fault class is added.
 
