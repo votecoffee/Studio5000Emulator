@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.114926`: [BCD CPT expressions](cpt-bcd.md).
+FRD/TOD use narrow signed inputs and checked DINT intermediates, complete
+eight-nibble decoding and bounded packed results. Nesting, arithmetic/bitwise
+composition, aliases/UDTs/indirect destinations, lazy operands and copied AOI
+inputs/InOut/local state retain rollback. Bit lab adds a gated conversion routine.
+Other consumers/types, math flags and native parity remain separate.
+
 Available in `26.1104.112443`: [sequencer source types](sequencer-sources.md).
 SQL/SQI use dedicated SINT/INT/DINT scalar validation and complete 32-bit source
 patterns. SQL preserves signed narrow values; SQI retains the existing signed

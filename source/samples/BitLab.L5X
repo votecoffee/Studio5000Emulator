@@ -425,6 +425,21 @@
           <DataValue DataType="USINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="CptBcdEnabled" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdIndex" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="CptBcdDecimal" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="CptBcdPacked" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="305419896" /></Data></Tag>
+      <Tag Name="CptBcdNarrow" TagType="Base" DataType="SINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="CptBcdDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CptBcdLateDivisor" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CptBcdExact" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdRoundTrip" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdNarrowResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdPattern" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdMix" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdTruncated" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdLateResult" TagType="Base" DataType="DINT" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CptBcdResults" TagType="Base" DataType="DINT" Dimensions="3" Constant="false" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -543,8 +558,19 @@
               <Rung Number="44" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(IndexFuncPacked)+SQR(IndexFuncRoot)],IndexFuncResults[6]);</Text></Rung>
               <Rung Number="45" Type="N"><Text>XIC(IndexFuncEnabled)EQU(IndexFuncResults[1],221)EQU(IndexFuncResults[2],223)EQU(IndexFuncResults[3],202)EQU(IndexFuncResults[4],217)EQU(IndexFuncResults[5],207)EQU(IndexFuncResults[6],223)OTE(IndexFuncCheck);</Text></Rung>
               <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)DIV(1,IndexFuncLateDivisor,IndexFuncLateResult);</Text></Rung>
+              <Rung Number="47" Type="N"><Text>JSR(CptConversions,0);</Text></Rung>
             </RLLContent>
           </Routine>
+          <Routine Name="CptConversions" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdExact,FRD(CptBcdPacked));</Text></Rung>
+            <Rung Number="1" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdRoundTrip,FRD(TOD(CptBcdDecimal)));</Text></Rung>
+            <Rung Number="2" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdNarrowResult,FRD(CptBcdNarrow));</Text></Rung>
+            <Rung Number="3" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdPattern,TOD(99999999));</Text></Rung>
+            <Rung Number="4" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdMix,(FRD(CptBcdPacked)/CptBcdDivisor MOD 100) OR (TOD(CptBcdDecimal) AND 255));</Text></Rung>
+            <Rung Number="5" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdResults[CptBcdIndex],FRD(TOD(CptBcdDecimal))+1);</Text></Rung>
+            <Rung Number="6" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdTruncated,TRN(ABS(FRD(CptBcdPacked)-12345670)));</Text></Rung>
+            <Rung Number="7" Type="N"><Text>XIC(CptBcdEnabled)CPT(CptBcdLateResult,1/CptBcdLateDivisor);</Text></Rung>
+          </RLLContent></Routine>
         </Routines>
       </Program>
     </Programs>

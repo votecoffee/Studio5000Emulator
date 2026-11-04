@@ -3365,3 +3365,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((row['NarrowByteTable[0]'],row['NarrowWordTable[0]'],row['NarrowByteTable[3]'],row['NarrowWordTable[3]'],row['NarrowPatterns[2]']),(101,102,999,998,997))
         write('NarrowEnabled',False);write('NarrowIndex',99);row=values(step());self.assertEqual(row['NarrowByteOutput'],0x123400fe);self.assertFalse(row['NarrowByteMatch'])
         report=self.post('report',{})['sequencer_operations'];self.assertEqual(report['source_types'],['SINT','INT','DINT']);self.assertFalse(report['native_scan_parity'])
+
+    def test_bit_lab_bcd_cpt_conversions_selected_results_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['CptBcdDecimal'],-1);self.assertIsNone(row['CptBcdResults[1]'])
+        write('CptBcdEnabled',True);fault('qualified');write('CptBcdDecimal',42);fault('outside bounds');write('CptBcdIndex',1);row=values(step())
+        self.assertEqual(tuple(row['CptBcd'+name] for name in ('Exact','RoundTrip','NarrowResult','Pattern','Mix','Truncated','LateResult')),(12345678,42,166666665,-1717986919,78,8,1));self.assertEqual(row['CptBcdResults[1]'],43)
+        for tag,bad,restore,text in [('CptBcdDecimal',100000000,42,'qualified'),('CptBcdIndex',99,1,'outside bounds'),('CptBcdDivisor',0,1,'zero'),('CptBcdLateDivisor',0,1,'zero')]:
+            write(tag,bad);fault(text);write(tag,restore)
+        write('CptBcdPacked',34);write('CptBcdDecimal',21);row=values(step())
+        self.assertEqual(tuple(row['CptBcd'+name] for name in ('Exact','RoundTrip','Mix')),(22,21,55));self.assertEqual(row['CptBcdResults[1]'],22)
+        self.assertEqual((row['CptBcdResults[0]'],row['CptBcdResults[2]']),(101,999))
+        write('CptBcdEnabled',False);write('CptBcdDecimal',-1);write('CptBcdIndex',99);self.assertEqual(values(step())['CptBcdResults[1]'],22)
+        report=self.post('report',{})['integer_expression_execution']['bcd_cpt'];self.assertEqual(report['functions'],['FRD','TOD']);self.assertFalse(report['native_runtime_parity'])

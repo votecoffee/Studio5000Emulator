@@ -53,6 +53,13 @@ def expression_description():
                     selection='Structural preflight skips saved indices; reached indices consume all required values; bounds and faults roll back the advance',
                     excluded='Wide arithmetic subexpressions, MOD, other functions, REAL/LREAL/BOOL, typed/larger literals and native parity',
                     native_runtime_parity=False),
+                bcd_cpt=dict(firmware='35',controllers=sorted(CONTROLLERS),functions=['FRD','TOD'],
+                    types=['SINT','INT','DINT'],intermediate_type='DINT',
+                    conversion='Promote signed narrow values before eight-nibble FRD; TOD packs 0..99999999 into a signed DINT pattern',
+                    composition='Existing integer arithmetic, bitwise operations, ABS/TRN/TRUNC, nesting and supported references',
+                    selection='Structural preflight; false/prescan skip live operands; reached arguments are required before full destination writes',
+                    excluded='REAL/LREAL/wide/BOOL expressions, other consumers, larger/typed literals and native numerical/status/fault/lifecycle parity',
+                    native_runtime_parity=False),
                 native_status_parity=False,
                 remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
                            'Remaining array subscript operand/controller and native status qualification','Native intermediate/status/fault/partial-effect parity'])

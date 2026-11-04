@@ -112,7 +112,7 @@ class NumericConversionTests(unittest.TestCase):
     def test_bcd_calls_and_expressions_remain_unavailable_in_st(self):
         for text in ('FRD(Source,Dest);','TOD(Source,Dest);','Dest:=FRD(Source);','Dest:=TOD(Source);'):
             self.assertTrue(self.st(text).blockers)
-        self.assertTrue(self.engine(['CPT(Dest,FRD(Source));']).blockers)
+        e=self.checked(['CPT(Dest,FRD(Source));'],values=(0x1234,0,0));e.step();self.assertEqual(e.memory.read('Dest'),1234)
 
     def test_unqualified_types_immediates_modes_and_arities_block(self):
         for dtype in ('REAL','BOOL'):

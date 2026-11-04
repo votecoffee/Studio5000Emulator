@@ -82,13 +82,14 @@ class Extensions:
         except ModelError:return False
         finally:self.memory.structural=previous
 
-    def expression(self,text):
-        if text not in self.expressions:self.expressions[text]=Expression(text)
-        return self.expressions[text]
+    def expression(self,text,*,bcd=False):
+        key=(text,bcd)
+        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd)
+        return self.expressions[key]
 
     def compute(self,args,scope,execute=False):
         dtype=self.numeric_destination(args[0],scope,wide=True)
-        expression=self.expression(args[1])
+        expression=self.expression(args[1],bcd=True)
         profile=wide_st.analyze(expression,self.memory,scope,dtype,consumer='CPT')
         if profile is not None:
             if profile[1]!='number':raise ModelError('CPT requires a numeric expression result')
@@ -148,7 +149,7 @@ class Extensions:
         previous=self.memory.structural
         self.memory.structural=True
         try:
-            expression=self.expression(op.args[1]) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True)
+            expression=self.expression(op.args[1],bcd=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True)
             for ref in expression.refs:
                 dtype=self.memory.resolve(ref,scope)[2]
                 if dtype not in {*INT_BITS,'REAL','BOOL'}:return False

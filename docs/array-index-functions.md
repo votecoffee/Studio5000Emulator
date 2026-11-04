@@ -48,7 +48,7 @@ checked BCD patterns and root rounding. It adds no PLC reads, writes or polling.
 Invalid, unknown or excluded forms remain unavailable; no arbitrary code is
 evaluated.
 
-Standalone FRD/TOD expressions in CPT/CMP/ST remain excluded. Other functions
+FRD/TOD in CMP/ST remain excluded; [integer CPT now has its own profile](cpt-bcd.md). Other functions
 such as ABS, TRN and SQRT, MOD/power, floating/BOOL operands, wide arithmetic
 arguments and broader controller profiles remain separate. A single wide integer
 tag still works as an index through the existing simple-tag profile. This adds
@@ -76,3 +76,7 @@ See [implementation](../source/logixlab/expressions.py),
 [snapshot resolution](../source/web/logic-values.js),
 [focused cases](../source/tests/test_array_index_functions.py) and
 [BitLab.L5X](../source/samples/BitLab.L5X).
+
+[BCD CPT expressions](cpt-bcd.md) now have a separate v35 5580 narrow-integer
+profile. CPT parser opt-in keeps other expression consumers and wider/REAL forms
+separate; array-index functions retain their existing conversion rules.

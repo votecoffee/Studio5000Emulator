@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; Sequencer source types added for app `26.1104.112443`. **Full Logix emulation is not
+Audited 2026-11-04; BCD CPT expressions added for app `26.1104.114926`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -46,7 +46,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | File sorting | [SRT in ladder/ST](array-sort.md), exact numeric ordering in one selected dimension, ST call transitions and [alias/indirect/AOI references](sort-references.md) | Native internal POS cursor, partial states/faults, wider types, broader lifecycle and conservative FOR effects |
 | Array statistics | [AVE and sample STD](array-statistics.md), one selected dimension in 1D/2D/3D numeric arrays, REAL sample deviation and narrow numeric averages, CONTROL transitions and [alias/indirect/AOI references](statistics-references.md) | Partial POS/resume, broader types/lifecycle and native precision/fault/status behavior |
 | Common ladder math | [Twelve math forms](math-operations.md), structural dynamic-index preflight, false/prescan operand skips, full unknown-result writes, SINT/INT/DINT/REAL results, nearest-even conversion, range rollback and absolute-value square roots in ladder/CPT/ST | Other wide/unsigned results and operand forms, native precision/math-status/nonfinite/overflow behavior; matching LREAL forms have a separate profile below, and FBD uses REAL records |
-| BCD/byte-order conversions | [8/16/32/64-bit signed/unsigned packed BCD, all-eight-integer FRD/TOD pairs and INT/DINT SWPB](numeric-conversions.md), structural dynamic-index preflight, false/prescan skips, full unknown-result writes and existing ST SWPB calls | BCD expressions, broader FBD forms and native saturation/math/fault status |
+| BCD/byte-order conversions | [8/16/32/64-bit signed/unsigned packed BCD, all-eight-integer FRD/TOD pairs and INT/DINT SWPB](numeric-conversions.md), structural dynamic-index preflight, false/prescan skips, full unknown-result writes and existing ST SWPB calls | Other BCD expression consumers/types, broader FBD forms and native saturation/math/fault status |
 | Bit diagnostics | [DINT RLL FBC/DDT](file-bit-compare.md), all/one-mismatch modes, bit-offset results, wrapped result lists, selective reference updates and [alias/indirect/AOI references](bit-diagnostic-references.md) | Broader AOI shapes/profiles and native sampling/cursor/status/fault parity |
 | Data transition | [DINT RLL DTR](data-transition.md), masked comparison, true/false reference updates, lexical prescan and existing AOI bindings | Other controller profiles and native operand/status/fault parity |
 | Scalar arithmetic/bitwise selection | [Eleven common operations](scalar-math.md), structural preflight, false/prescan skips, full unknown destination writes, all-eight-integer bitwise tag combinations with zero extension/result widths, widening integer-tag/constant arithmetic, finite REAL MOD with narrow results and existing AOI/wide rules | Complete arithmetic promotion, mixed-wide/typed bitwise immediates, floating-point bitwise, wide/unsigned/LREAL remainder mixtures, native precision/status/fault/lifecycle/layout and broader profiles |
@@ -362,3 +362,7 @@ snapshots share the forms; generic BCD expressions and native parity remain sepa
 
 [Sequencer source types](sequencer-sources.md) qualify narrow SQL/SQI payloads,
 complete source patterns and dedicated guards; SQO output remains DINT.
+
+[BCD CPT expressions](cpt-bcd.md) qualify FRD/TOD with narrow integer
+arguments/results, composition, lazy selection and AOI rollback. Other consumers,
+REAL/wide mixtures and native numerical/status/fault/lifecycle parity remain separate.

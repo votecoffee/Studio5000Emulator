@@ -188,3 +188,7 @@ and 14686 (SWPB). The published Rockwell
 [SWPB reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/move-logical-instructions/swap-byte--swpb-.html)
 provides context for later releases. Software checks do not establish native
 controller or Studio acceptance.
+
+[BCD CPT expressions](cpt-bcd.md) now have a separate v35 5580 narrow-integer
+profile. CPT parser opt-in keeps other expression consumers and wider/REAL forms
+separate; array-index functions retain their existing conversion rules.

@@ -122,3 +122,7 @@ Rockwell's [CPT reference](https://www.rockwellautomation.com/en-us/docs/studio-
 and [Structured Text manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm007_-en-p.pdf)
 provide language and promotion context. Their complete type/conversion matrix
 is broader than this bounded implementation.
+
+[BCD CPT expressions](cpt-bcd.md) now have a separate v35 5580 narrow-integer
+profile. CPT parser opt-in keeps other expression consumers and wider/REAL forms
+separate; array-index functions retain their existing conversion rules.
