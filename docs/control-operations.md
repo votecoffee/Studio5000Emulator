@@ -44,8 +44,10 @@ DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
 status bits without data movement. POS beyond LEN remains outside the qualified
 profile and stops execution. Exact native invalid-state/edge parity remains open.
 
-Matching scalar SINT/INT/DINT/REAL sources, destinations and arrays retain
-representable numeric source immediates. [Matching strings and explicit UDT
+Scalar SINT/INT/DINT/REAL sources, destinations and arrays support
+[mixed numeric conversions](queue-conversions.md) in the v35 5580 profile.
+Other profiles retain matching-type numeric rules. Bounded DINT/finite REAL
+load immediates convert when a reached edge needs them. [Matching strings and explicit UDT
 records](record-queues.md) add whole logical copies and typed zero clearing for
 the v35 5580 profile. The array region stays within its selected member. Mixed
 conversions and broader predefined/AOI records remain unfinished.

@@ -1,7 +1,8 @@
-"""Exact declared STRING/UDT FIFO payloads, separate from numeric conversions."""
+"""Logical STRING/UDT queue copies and qualified narrow numeric conversions."""
 import copy
 from .integer_math import CONTROLLERS
 from .model import ModelError,coerce,INT_BITS
+from . import numeric_storage
 
 NUMERIC=frozenset(('SINT','INT','DINT','REAL'))
 
@@ -27,7 +28,18 @@ def record_type(project,dtype,seen=()):
 def aggregate(dtype):return dtype not in NUMERIC
 
 
+def numeric_type(memory,ref,scope,*,destination=False):
+    """Qualified narrow queue payload, independently of the array element type."""
+    dtype=(numeric_storage.destination(memory,ref,scope)[2] if destination
+           else numeric_storage.source_type(memory,ref,scope))
+    if dtype not in NUMERIC:raise ModelError('Numeric FIFO payload requires SINT, INT, DINT or REAL')
+    return dtype
+
+
 def read(memory,ref,scope,dtype):
+    if not aggregate(dtype) and numeric_storage.available(memory.project):
+        source=numeric_type(memory,ref,scope)
+        return numeric_storage.convert(memory.read(ref,scope),source,dtype)
     value=memory.read(ref,scope)
     if not aggregate(dtype):return coerce(value,dtype)
     if not isinstance(value,dict):raise ModelError('FIFO requires one represented string or UDT record')
@@ -40,6 +52,11 @@ def zero(memory,dtype):return memory.project.default(dtype) if aggregate(dtype) 
 
 
 def write(memory,ref,scope,dtype,value):
+    if not aggregate(dtype) and numeric_storage.available(memory.project):
+        target=numeric_type(memory,ref,scope,destination=True)
+        key,parts,_=memory.check_writable(ref,scope)
+        memory.store(key,parts,numeric_storage.convert(value,dtype,target))
+        return
     if not aggregate(dtype):memory.write(ref,value,scope);return
     key,parts,kind=memory.check_writable(ref,scope)
     if kind!=dtype:raise ModelError('FIFO destination type changed during execution')

@@ -2701,3 +2701,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row=values(step());self.assertEqual(row['ClipValues[3]'],44);write('ClipNumeric',True);fault('outside bounds');write('ClipIndex',3);row=values(step());self.assertEqual([row[f'ClipValues[{i}]'] for i in range(5)],[11,22,33,120,120]);self.assertEqual(row['ClipScalar'],22136)
         write('ClipLength',100001);fault('0..100000');write('ClipLength',100000);write('ClipSource',-1);write('ClipIndex',1);row=values(step());self.assertEqual([row[f'ClipValues[{i}]'] for i in range(5)],[11,-1,-1,-1,-1]);self.assertEqual(row['ClipScalar'],-1)
         write('ClipNumeric',False);write('ClipIndex',99);row=values(step());self.assertEqual(row['ClipValues[4]'],-1);report=self.post('report',{})['numeric_fill'];self.assertTrue(report['clipping']);self.assertIn('logical',report['clipping_boundary']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_control_lab_mixed_numeric_queues_preserve_edges_conversion_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'ControlLab'})['blockers'],[])
+        values=lambda s:{r['name']:r['value'] for r in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        step();write('MixedLoad',True);write('MixedPush',True);row=values(step())
+        self.assertEqual((row['MixedQueue[0]'],row['MixedStack[0]']),(4,52));self.assertEqual((row['MixedQueueControl.POS'],row['MixedStackControl.POS']),(1,1))
+        row=values(step());self.assertEqual((row['MixedQueueControl.POS'],row['MixedStackControl.POS']),(1,1))
+        write('MixedLoad',False);write('MixedPush',False);write('MixedUnload',True);write('MixedPop',True);row=values(step())
+        self.assertEqual((row['MixedResult'],row['MixedStackResult']),(4,52.0));self.assertEqual((row['MixedQueue[0]'],row['MixedStack[0]']),(0,0))
+        self.assertEqual((row['MixedQueue[3]'],row['MixedStack[3]']),(999,99))
+        write('MixedUnload',False);write('MixedPop',False);write('MixedSource',40000.0);step();write('MixedLoad',True)
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);self.assertIn('overflow',error.exception.read().decode());error.exception.close()
+        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
+        write('MixedSource',-3.5);row=values(step());self.assertEqual(row['MixedQueue[0]'],-4)
+        report=self.post('report',{})['control_operations'];self.assertIn('FFL/FFU/LFL/LFU',report['numeric_conversions']);self.assertFalse(report['native_fault_classification'])

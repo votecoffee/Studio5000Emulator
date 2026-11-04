@@ -145,6 +145,9 @@ def array_region(memory, ref, count, scope, *, writable=True, references=False):
 
 
 def scalar(memory, ref, scope, dtype, *, destination=False):
+    if dtype in NUMERIC and memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS:
+        fifo_values.numeric_type(memory,ref,scope,destination=destination)
+        return
     if not destination:
         try:
             value = literal(ref)
@@ -319,7 +322,9 @@ def execute(memory, op, power, scope):
 def description():
     return dict(instructions=sorted(INSTRUCTIONS), language='RLL', control_fields=['LEN', 'POS', *FLAGS],
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
-                fifo='Matching SINT/INT/DINT/REAL plus qualified v35 5580 strings/explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
+                fifo='SINT/INT/DINT/REAL plus qualified v35 5580 mixed numeric payloads and matching strings/explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
+                numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
+                numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
                 aggregate_values='Whole logical records including backing bytes; unknown represented fields remain unknown; no native byte-layout claim',
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
@@ -329,5 +334,5 @@ def description():
                 lifecycle='Shift/queue prescan still requires actual CONTROL addresses and queue LEN/POS; algorithms and runtime state selection unchanged',
                 aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',
                 max_elements=MAX_ELEMENTS, native_control_layout=False, native_fault_classification=False,
-                remaining=['FIFO scalar wide/unsigned types, mixed conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
+                remaining=['FIFO scalar wide/unsigned types, native overflow conversions and broader predefined/AOI records', 'Remaining FIFO/LIFO/sequencer forms and file consumers',
                            'Broader AOI array shapes/lifecycle and indirect/alias starts for separate file/sequencer consumers', 'Native invalid-state and scan parity'])

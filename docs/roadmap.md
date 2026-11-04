@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.203024`: [numeric FIFO/LIFO conversions](queue-conversions.md).
+FFL/LFL convert payloads to the selected queue element type; FFU/LFU convert
+unloaded values to their destination type. Narrow integer sign extension,
+low-bit narrowing and representable float32/nearest-even results share the
+existing numeric storage model. Control lab adds a called example. Structural
+selection, edges, logical boundaries, independent AOI types and transactional
+rollback remain; wide types and native overflow/status/lifecycle parity remain
+separate.
+
 Available in `26.1103.201221`: [clipped numeric FLL](clipped-fills.md).
 Oversized numeric requests stop at the selected logical array/member or scalar.
 Source/length capture, conversions, lazy operands and rollback remain. Data lab

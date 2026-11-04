@@ -200,6 +200,18 @@
       <Tag Name="IndexedQueue" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="IndexedShiftControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="1" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
       <Tag Name="IndexedQueueControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="2" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="MixedLoad" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedUnload" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedPush" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedPop" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedSource" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="3.5" /></Data></Tag>
+      <Tag Name="MixedResult" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="99" /></Data></Tag>
+      <Tag Name="MixedStackSource" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="4660" /></Data></Tag>
+      <Tag Name="MixedStackResult" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="99" /></Data></Tag>
+      <Tag Name="MixedQueue" DataType="INT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="INT" Dimensions="4"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="MixedStack" DataType="SINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="SINT" Dimensions="4"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="99" /></Array></Data></Tag>
+      <Tag Name="MixedQueueControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="MixedStackControl" DataType="CONTROL" TagType="Base"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -250,6 +262,7 @@
                 <Text>ADD(AfterZone,1,AfterZone);</Text>
               </Rung>
               <Rung Number="14" Type="N"><Text>JSR(IndirectOperands,0);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>JSR(NumericQueues,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IndirectOperands" Type="RLL">
@@ -258,6 +271,14 @@
               <Rung Number="1" Type="N"><Text>XIC(IndexedLoad)FFL(PayloadValues[PayloadIndex],IndexedQueue[0],IndexedQueueControl,?,?);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(IndexedUnload)FFU(IndexedQueue[0],UnloadedValues[OutputIndex],IndexedQueueControl,?,?);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(IndexedReset)RES(ResetControls[ResetControlIndex]);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="NumericQueues" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(MixedLoad)FFL(MixedSource,MixedQueue[0],MixedQueueControl,?,?);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(MixedUnload)FFU(MixedQueue[0],MixedResult,MixedQueueControl,?,?);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(MixedPush)LFL(MixedStackSource,MixedStack[0],MixedStackControl,?,?);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(MixedPop)LFU(MixedStack[0],MixedStackResult,MixedStackControl,?,?);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
