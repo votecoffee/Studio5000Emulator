@@ -2,8 +2,10 @@
 
 App `26.1030.001741` adds `SSV(Task,TaskName,InhibitTask,Source)` in ladder and
 Structured Text for the explicit v35 ControlLogix 5580 software profile.
-The target must be a configured Standard Continuous or Periodic task, and
-Source must be an exact scalar DINT tag. Zero enables the task; any nonzero
+The target must be a configured Standard Continuous, Periodic or qualified
+[instruction-only Event task](event-task-inhibition.md), and
+Source must be an exact scalar DINT tag. THIS selects the current ordinary
+scheduled Task; named target reads and existing profile limits remain. Zero enables the task; any nonzero
 signed DINT inhibits it. Names and attributes are case insensitive.
 
 ```text
@@ -24,6 +26,9 @@ Each potential task release checks the current runtime flag. A higher-priority
 task can therefore inhibit a lower-priority task before a coincident release,
 and changes can affect later releases within the same simulation advance.
 The currently executing body completes, including code after self-inhibition.
+Event requests and pending dispatch check live inhibition; enabling does not
+replay ignored/discarded requests. Accepted Event status remains latched. See
+[Event controls and pending work](event-task-inhibition.md).
 The emulator does not interrupt or abort an in-progress body.
 
 Periodic phase continues while inhibited. Missed releases are discarded, and
@@ -70,7 +75,7 @@ work. Restore it before retrying. See [SystemLab.L5X](../source/samples/SystemLa
 
 ## Remaining scope
 
-Other SSV classes/attributes, Event and Safety targets, AOI/routine-harness
+Other SSV classes/attributes, other Event sources and Safety targets, AOI/routine-harness
 calls remain unqualified. Bounded ST FOR bodies can execute this SSV profile. Dynamic rate/priority,
 watchdogs, native abort/resume/phase details and native status/fault parity
 remain unfinished. The deterministic boundary and phase rules above are

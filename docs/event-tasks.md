@@ -86,6 +86,10 @@ It does not expand native Task Status/OverlapCount protocol attributes.
 Native interrupt latency, CPU preemption/time slicing, deadlines, watchdogs,
 external I/O/motion/consumed triggers and timeout queues remain unfinished.
 
+[Runtime Event inhibition](event-task-inhibition.md) now checks live flags for
+new requests and queued dispatch. Current bodies complete, enabling does not
+replay discarded work, and accepted status remains latched.
+
 ## Event Lab
 
 Choose Event lab. A 10 ms Periodic RLL producer and a Continuous ST producer can

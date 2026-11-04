@@ -112,9 +112,11 @@ class TaskScheduler:
     def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
+        # Event eligibility is checked at dispatch. A completed body may now be
+        # self-inhibited, or may have been enabled after loading inhibited source.
         if (len(batch.releases)+len(events)>MAX_RELEASES or
                 any(type(i) is not int or not 0<=i<len(self.tasks) or self.tasks[i].kind!='Event'
-                    or self.tasks[i].inhibited or not batch.start<due<=batch.end for due,i in events)
+                    or not batch.start<due<=batch.end for due,i in events)
                 or any(i not in self.overlaps or type(n) is not int or n<0
                        for counts in (overlaps,coalesced) for i,n in (counts or {}).items())):
             raise ModelError('Invalid Event task completion batch')

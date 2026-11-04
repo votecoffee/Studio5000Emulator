@@ -150,7 +150,7 @@ class TaskInhibitTests(unittest.TestCase):
 
     def test_wrong_classes_attributes_names_and_source_types_block(self):
         for text in ('SSV(Controller,,InhibitTask,Control);','SSV(Task,Task1,Rate,Control);','SSV(Task,,InhibitTask,Control);',
-                     'SSV(Task,Missing,InhibitTask,Control);','SSV(Task,THIS,InhibitTask,Control);','SSV(Task,Task1,InhibitTask,1);',
+                     'SSV(Task,Missing,InhibitTask,Control);','SSV(Task,0,InhibitTask,Control);','SSV(Task,Task1,InhibitTask,1);',
                      'SSV(Task,Task1,InhibitTask,Gate);','SSV(Task,Task1,InhibitTask,Control.0);'):
             self.assertTrue(self.engine(text).blockers,text)
 
@@ -216,11 +216,11 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertFalse(candidate.scheduler_description()['tasks'][1]['inhibited'])
         self.assertTrue(e.scheduler_description()['tasks'][1]['inhibited'])
 
-    def test_event_target_remains_blocked(self):
+    def test_event_target_can_be_inhibited_without_running_it(self):
         def event(root):
             task=root.find('./Controller/Tasks/Task[2]');task.set('Type','EVENT')
             E.SubElement(task,'EventInfo',EventTrigger='EVENT Instruction Only',EnableTimeout='false')
-        self.assertTrue(self.engine(mutate=event).blockers)
+        e=self.checked(mutate=event);e.memory.write('Control',1);e.step();self.assertTrue(e.scheduler_description()['tasks'][1]['inhibited']);self.assertEqual(e.memory.read('Count1'),0)
 
     def test_all_inhibited_slots_still_obey_bounded_release_budget(self):
         e=self.checked(specs=[dict(Type='CONTINUOUS'),dict(Rate='1',InhibitTask='true')])

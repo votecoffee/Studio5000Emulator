@@ -143,6 +143,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_event_lab_live_inhibition_pending_requests_this_and_rollback(self):
+        self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        write('TriggerRLL',True);write('ControlEventInhibit',True);write('EventInhibitCommand',1);v=values(step())
+        self.assertEqual((v['EventCount'],v['LiveEventInhibit']),(0,1));write('EventInhibitCommand',0);write('ReadEventConfig',True);v=values(step())
+        self.assertEqual((v['EventCount'],v['LiveEventInhibit'],v['ThisEventPriority'],v['ThisEventWatchdog']),(1,0,1,500000));self.assertEqual(v['ThisEventTaskName'],'WorkEvent')
+        write('ControlEventInhibit',False);write('SelfInhibitEvent',True);v=values(step());self.assertEqual(v['ThisEventInhibit'],1);count=v['EventCount'];v=values(step());self.assertEqual(v['EventCount'],count);self.assertEqual(v['LiveEventInhibit'],1)
+        write('SelfInhibitEvent',False);write('ControlEventInhibit',True);write('EventInhibitCommand',0);write('TriggerDeferred',True);write('ControlDeferredInhibit',True);write('DeferredInhibitCommand',1);v=values(step())
+        self.assertEqual((v['DeferredCount'],v['LiveDeferredInhibit']),(0,1));write('DeferredInhibitCommand',0);v=values(step());self.assertEqual(v['DeferredCount'],0);v=values(step());self.assertEqual(v['DeferredCount'],1)
+        write('EventInhibitCommand',1);write('InhibitDivisor',0);before=now();report=self.post('report',{})['event_task_status']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        self.assertEqual(self.post('report',{})['event_task_status'],report);write('InhibitDivisor',1);v=values(step());self.assertEqual(v['LiveEventInhibit'],1)
+
     def test_event_lab_status_read_clear_this_st_guards_and_rollback(self):
         self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
         values=lambda s:{row['name']:row['value'] for row in s['tags']}

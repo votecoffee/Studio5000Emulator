@@ -5,6 +5,21 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ControlEventInhibit" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="EventInhibitCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="LiveEventInhibit" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SelfInhibitEvent" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SelfInhibitCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ThisEventInhibit" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ControlDeferredInhibit" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DeferredInhibitCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="LiveDeferredInhibit" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ReadEventConfig" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ThisEventPriority" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisEventWatchdog" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="InhibitDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="InhibitResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ThisEventTaskName" DataType="STRING" TagType="Base"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="0" /><Element Index="[9]" Value="0" /><Element Index="[10]" Value="0" /><Element Index="[11]" Value="0" /><Element Index="[12]" Value="0" /><Element Index="[13]" Value="0" /><Element Index="[14]" Value="0" /><Element Index="[15]" Value="0" /><Element Index="[16]" Value="0" /><Element Index="[17]" Value="0" /><Element Index="[18]" Value="0" /><Element Index="[19]" Value="0" /><Element Index="[20]" Value="0" /><Element Index="[21]" Value="0" /><Element Index="[22]" Value="0" /><Element Index="[23]" Value="0" /><Element Index="[24]" Value="0" /><Element Index="[25]" Value="0" /><Element Index="[26]" Value="0" /><Element Index="[27]" Value="0" /><Element Index="[28]" Value="0" /><Element Index="[29]" Value="0" /><Element Index="[30]" Value="0" /><Element Index="[31]" Value="0" /><Element Index="[32]" Value="0" /><Element Index="[33]" Value="0" /><Element Index="[34]" Value="0" /><Element Index="[35]" Value="0" /><Element Index="[36]" Value="0" /><Element Index="[37]" Value="0" /><Element Index="[38]" Value="0" /><Element Index="[39]" Value="0" /><Element Index="[40]" Value="0" /><Element Index="[41]" Value="0" /><Element Index="[42]" Value="0" /><Element Index="[43]" Value="0" /><Element Index="[44]" Value="0" /><Element Index="[45]" Value="0" /><Element Index="[46]" Value="0" /><Element Index="[47]" Value="0" /><Element Index="[48]" Value="0" /><Element Index="[49]" Value="0" /><Element Index="[50]" Value="0" /><Element Index="[51]" Value="0" /><Element Index="[52]" Value="0" /><Element Index="[53]" Value="0" /><Element Index="[54]" Value="0" /><Element Index="[55]" Value="0" /><Element Index="[56]" Value="0" /><Element Index="[57]" Value="0" /><Element Index="[58]" Value="0" /><Element Index="[59]" Value="0" /><Element Index="[60]" Value="0" /><Element Index="[61]" Value="0" /><Element Index="[62]" Value="0" /><Element Index="[63]" Value="0" /><Element Index="[64]" Value="0" /><Element Index="[65]" Value="0" /><Element Index="[66]" Value="0" /><Element Index="[67]" Value="0" /><Element Index="[68]" Value="0" /><Element Index="[69]" Value="0" /><Element Index="[70]" Value="0" /><Element Index="[71]" Value="0" /><Element Index="[72]" Value="0" /><Element Index="[73]" Value="0" /><Element Index="[74]" Value="0" /><Element Index="[75]" Value="0" /><Element Index="[76]" Value="0" /><Element Index="[77]" Value="0" /><Element Index="[78]" Value="0" /><Element Index="[79]" Value="0" /><Element Index="[80]" Value="0" /><Element Index="[81]" Value="0" /></ArrayMember></Structure></Data></Tag>
       <Tag Name="ReadEventStatus" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ClearEventStatus" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="EventStatusCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
@@ -136,23 +151,27 @@
               <Rung Number="1" Type="N">
                 <Text>XIC(S:FS)ADD(ProducerFirst,1,ProducerFirst);</Text>
               </Rung>
-              <Rung Number="2" Type="N">
+              <Rung Number="2" Type="N"><Text>XIC(ControlEventInhibit)SSV(Task,WorkEvent,InhibitTask,EventInhibitCommand);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>[XIC(ControlEventInhibit),XIC(ReadEventConfig)]GSV(Task,WorkEvent,InhibitTask,LiveEventInhibit);</Text></Rung>
+              <Rung Number="4" Type="N">
                 <Text>XIC(TriggerRLL)EVENT(WorkEvent);</Text>
               </Rung>
-              <Rung Number="3" Type="N">
+              <Rung Number="5" Type="N">
                 <Text>MOV(EventCount,RllSeen);</Text>
               </Rung>
-              <Rung Number="4" Type="N">
-                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
-              </Rung>
-              <Rung Number="5" Type="N">
-                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
-              </Rung>
               <Rung Number="6" Type="N">
+                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
+              </Rung>
+              <Rung Number="7" Type="N">
+                <Text>XIC(TriggerDeferred)EVENT(DeferredEvent);</Text>
+              </Rung>
+              <Rung Number="8" Type="N"><Text>XIC(ControlDeferredInhibit)SSV(Task,DeferredEvent,InhibitTask,DeferredInhibitCommand);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>[XIC(ControlDeferredInhibit),XIC(ReadEventConfig)]GSV(Task,DeferredEvent,InhibitTask,LiveDeferredInhibit);</Text></Rung>
+              <Rung Number="10" Type="N">
                 <Text>MOV(DeferredCount,RllDeferredSeen);</Text>
               </Rung>
-              <Rung Number="7" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="GuardedEvent" Type="RLL">
@@ -182,6 +201,7 @@
               <Line Number="4">StDeferredSeen:=DeferredCount;</Line>
               <Line Number="5">IF ReadEventStatus THEN GSV(Task,WorkEvent,Status,StWorkStatus); GSV(Task,DeferredEvent,Status,DeferredStatus); IF ClearEventStatus THEN SSV(Task,WorkEvent,Status,EventStatusCommand); END_IF; END_IF;</Line>
               <Line Number="6">IF ReadEventStatus THEN StatusResult:=1/StatusDivisor; END_IF;</Line>
+              <Line Number="7">IF ControlEventInhibit OR ControlDeferredInhibit OR SelfInhibitEvent THEN InhibitResult:=1/InhibitDivisor; END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>
@@ -201,12 +221,17 @@
                 <Text>TON(EventTimer,?,?);</Text>
               </Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkEntryStatus);</Text></Rung>
-              <Rung Number="4" Type="N">
+              <Rung Number="4" Type="N"><Text>XIC(SelfInhibitEvent)SSV(Task,THIS,InhibitTask,SelfInhibitCommand);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,InhibitTask,ThisEventInhibit);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Priority,ThisEventPriority);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Watchdog,ThisEventWatchdog);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(ReadEventConfig)GSV(Task,THIS,Name,ThisEventTaskName);</Text></Rung>
+              <Rung Number="9" Type="N">
                 <Text>XIC(SelfTrigger)EVENT(WorkEvent);</Text>
               </Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

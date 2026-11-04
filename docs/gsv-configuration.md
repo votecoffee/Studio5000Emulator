@@ -19,10 +19,10 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 
 | Class | Attribute | Destination type | Scope |
 | --- | --- | --- | --- |
-| Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic task |
+| Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
 | Task | Rate | DINT | Explicit Periodic rate, in microseconds |
 | Task | Watchdog | DINT | Explicit positive time, in microseconds |
-| Task | Priority | INT | Explicit Periodic priority |
+| Task | Priority | INT | Explicit Periodic/Event priority |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
 | Task | DisableUpdateOutputs | DINT | Explicit source flag, 0/1 |
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
@@ -32,7 +32,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 Class, attribute and task lookup are case insensitive. Returned names retain
 source spelling. Task instances are literal configured names or
 [THIS in ordinary scheduled Program routines](current-instance-gsv.md). Empty
-instances, native instance numbers and AOI/harness/Event THIS contexts remain
+instances, native instance numbers and AOI/harness THIS contexts remain
 unqualified.
 Controller uses an empty instance operand.
 
@@ -44,7 +44,8 @@ Metadata must come from a complete loaded source snapshot. Task times use the
 existing exact source milliseconds-to-microseconds conversion. For example,
 10 ms reads as 10000 and 500 ms as 500000. Missing, malformed, zero-watchdog or
 unqualified settings fail explicitly; compatibility defaults do not become GSV
-source values. Continuous rate/priority remain unqualified.
+source values. Continuous rate/priority remain unqualified. Event settings require the qualified project context described in
+[Event task inhibition](event-task-inhibition.md); Event Rate is not inferred.
 
 ## Destinations and execution
 

@@ -31,7 +31,7 @@ def current_instance(engine, cls, instance, scope='', *, executing=False, allow_
     kinds=('Continuous','Periodic','Event') if allow_event else ('Continuous','Periodic')
     if (len(owners)!=1 or owners[0]['class']!='Standard' or owners[0]['type'] not in kinds
             or scheduler is None or scheduler.source!=scheduler.configuration):
-        raise ModelError('GSV THIS requires one unchanged Standard Continuous/Periodic owner Task')
+        raise ModelError('GSV THIS requires one unchanged eligible Standard owner Task')
     owner=owners[0]['name']
     if executing and (not isinstance(engine._executing_task,str) or engine._executing_task.casefold()!=owner.casefold()):
         raise ModelError('GSV THIS has no matching active Task execution context')
@@ -61,15 +61,19 @@ def source(engine, op, scope='', *, executing=False):
             return 'INT',coerce(value,'INT')
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls!='task':raise ModelError('GSV configuration supports Task and Controller only')
-    instance=current_instance(engine,cls,instance,scope,executing=executing)
+    instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     name=next((n for n in configuration.names if n.casefold()==instance.casefold()),None)
     task=next((t for t in project.tasks if name is not None and t['name']==name),None)
-    if not task or task['class']!='Standard' or task['type'] not in ('Continuous','Periodic'):
-        raise ModelError('GSV Task requires an explicit existing Standard Continuous/Periodic task name')
+    if not task or task['class']!='Standard' or task['type'] not in ('Continuous','Periodic','Event'):
+        raise ModelError('GSV Task requires an explicit existing Standard task name')
+    if task['type']=='Event':
+        from .event_tasks import profile
+        profile(project)
+        current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     if attribute=='name':return 'STRING',name
     if attribute not in TASK:raise ModelError('Unsupported GSV Task configuration attribute '+op.args[2])
     number,dtype=TASK[attribute]
-    if attribute=='priority' and task['type']!='Periodic':
+    if attribute=='priority' and task['type'] not in ('Periodic','Event'):
         raise ModelError('GSV Continuous Task Priority remains unqualified')
     values=project.task_timing.attributes(name,source_sha256=project.sha256)
     values.update(configuration.attributes(name,source_sha256=project.sha256))
@@ -123,7 +127,7 @@ def write_effects(engine,op,scope):
 
 def description():
     return dict(profile='v35-5580-explicit-GSV-configuration', languages=['RLL','ST'],
-                task=['Name','Rate (Periodic)','Watchdog','Priority (Periodic)','InhibitTask','DisableUpdateOutputs'],
+                task=['Name','Rate (Periodic)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact source milliseconds; no inferred defaults',
@@ -131,6 +135,6 @@ def description():
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                current_instance='Task THIS in ordinary scheduled Continuous/Periodic Program routines; named reads unchanged; AOI/harness THIS unqualified',
-                remaining=['Empty instance, native instance IDs and AOI/harness/Event THIS contexts','Continuous priority/rate and zero-watchdog defaults',
+                current_instance='Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; named reads unchanged; AOI/harness THIS unqualified',
+                remaining=['Empty instance, native instance IDs and AOI/harness THIS contexts','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

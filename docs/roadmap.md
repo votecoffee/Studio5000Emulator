@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.231834`: [runtime Event inhibition](event-task-inhibition.md).
+Named and THIS SSV InhibitTask control qualified Event requests and pending
+dispatch; the active body completes. Ignored work is not replayed, accepted
+status stays latched, and an initially inhibited Event can be enabled then
+self-inhibit. Live GSV flags and explicit Event settings support ordinary
+contexts. Event lab demonstrates named controls, THIS settings and late rollback.
+Other Event sources/Safety/AOI/harness and native cancellation/lifecycle parity
+remain separate.
+
 Available in `26.1103.230102`: [logical Event task Status](event-task-status.md).
 GSV/SSV read and replace accepted-request/active-overlap bits in ladder/ST,
 including THIS inside qualified Event tasks. Live words are latched until

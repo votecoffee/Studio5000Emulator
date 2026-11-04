@@ -99,7 +99,7 @@ class Dispatch:
 
     def trigger(self,index):
         scheduler=self.engine._task_scheduler;task=scheduler.tasks[index]
-        if task.kind!='Event' or task.inhibited:return
+        if task.kind!='Event' or scheduler.inhibitions[index]:return
         if index in self.active:
             self.overlaps[index]=self.overlaps.get(index,0)+1
             if task.name.casefold() in self.status:self.status[task.name.casefold()]|=4
@@ -121,6 +121,7 @@ class Dispatch:
 
     def _execute(self,index,due):
         task=self.engine._task_scheduler.tasks[index]
+        if self.engine._task_scheduler.inhibitions[index]:return
         self.active.add(index)
         try:self.run(due,task.name,task.entries)
         finally:self.active.remove(index)
@@ -141,7 +142,7 @@ def description():
                 ordering='Ready Event priority then request order; coincident base releases precede queued Events at equal priority',
                 retrigger='Active requests are discarded as modeled overlaps; pending duplicates coalesce and have a separate diagnostic',
                 pending_policy='At most one pending execution per task; software policy, native pending-duplicate parity unverified',
-                non_event='Existing Continuous/Periodic target or inhibited Event target does not execute',
+                non_event='Existing Continuous/Periodic target or live-inhibited Event target does not execute; queued targets recheck before dispatch',
                 rollback='Event writes, first scans, release counts and overlap diagnostics commit only with the complete advance',
                 native_cpu_timing=False, native_status_parity=False,
                 remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed/timeout event sources',

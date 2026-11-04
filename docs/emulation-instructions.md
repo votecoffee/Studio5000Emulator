@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-03; Event task status added for app `26.1103.230102`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-03; Event task inhibition added for app `26.1103.231834`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -170,7 +170,7 @@ Program/Task contexts without expanding the existing timing/attribute profile.
 | UID/UIE | [Balanced task-local interrupt control](interrupt-control.md) defers higher-priority EVENT requests until the outermost UIE in RLL/ST, across routine calls and with advance rollback. Unmatched-pair/persistent-state behavior, CPU/Periodic preemption, native latency/watchdog/fault/Safety, AOI/harness/ST FOR and other profiles remain separate. |
 | EVENT | [Qualified instruction-only Event tasks](event-tasks.md) in RLL/ST: immediate higher priorities, deferred lower/equal priorities, pending-request coalescing, active-overlap suppression and shared limits/rollback. Native time slicing/pending-duplicate semantics, external triggers/timeouts, AOIs/harness/ST FOR forms and CPU/status parity remain unfinished. |
 | GSV | Controller AuditValue/ChangesToDetect retain LINT/two-DINT reads. [Explicit Task/Controller settings](gsv-configuration.md) add exact INT/DINT/string destinations. [Program/Task timing](scan-time-gsv.md) and [logical Event Status](event-task-status.md) add bounded runtime reads. Other objects/attributes, native status, cross-type byte-copy forms and broader SSV remain unfinished. |
-| SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic releases with an exact DINT source, live GSV/read-attribute feedback and rollback. [Event Task Status](event-task-status.md) additionally supports named/THIS logical bit replacement. Other classes/attributes, Event inhibition, Safety, AOIs and harness calls remain unfinished. |
+| SSV | [Task InhibitTask](task-inhibition.md) controls Standard Continuous/Periodic and qualified Event releases with an exact DINT source, live GSV/read-attribute feedback and rollback. [Event Task Status](event-task-status.md) additionally supports named/THIS logical bit replacement. [Runtime Event inhibition](event-task-inhibition.md) adds named/THIS control and live pending-request checks. Other classes/attributes, Safety, AOIs and harness calls remain unfinished. |
 | AOI calls | Parameter variants, lifecycle, Postscan, FBD/SFC integration, protected definitions and complete native semantics. See [AOI checklist](emulation-coverage.md#languages-calls-and-aois). |
 
 The exact current dispatch table is `ARITIES` in

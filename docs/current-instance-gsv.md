@@ -15,15 +15,17 @@ THIS is case insensitive and resolves from source-bound scheduling metadata,
 without reading a tag or interpreting a native instance number. Task THIS selects
 the current Program's unique owner Task. Program THIS selects that Program.
 The source must identify an enabled ordinary Standard Program with a scheduled
-entry under one Standard Continuous/Periodic Task. Reached calls also verify the
+entry under one Standard Continuous/Periodic or qualified Event Task.
+Event configuration and inhibition contexts are described in
+[Event task controls](event-task-inhibition.md); Event timing remains unqualified. Reached calls also verify that the
 active execution Task matches that owner. Missing, ambiguous or changed context
 fails instead of guessing a task from a saved value or the first configured row.
 
 ## Attribute and execution limits
 
 Existing [configuration](gsv-configuration.md) and [timing](scan-time-gsv.md)
-contracts still apply. Rate/Priority require a Periodic Task; configuration times
-use microseconds and exact destination types. Program LastScanTime/MaxScanTime
+contracts still apply. Rate requires a Periodic Task and Priority permits Periodic/Event Tasks.
+Configuration times use microseconds and exact destination types. Program LastScanTime/MaxScanTime
 read the preceding committed interpreter snapshot. [Task timing](scan-time-gsv.md)
 also supports independent last/maximum durations in eligible multi-task projects,
 including THIS reads in the executing Program. No new attribute is added.
@@ -38,10 +40,11 @@ hide a write to loop bounds or step. Invalid addresses, unavailable metadata or
 a later fault roll back data, bindings, scheduling and uncommitted measurements.
 
 [Event Task Status](event-task-status.md) separately supports Task THIS inside
-qualified instruction-only Event tasks for Status GSV/SSV. Other THIS reads
-inside Event tasks, AOIs and isolated routine harnesses remain unqualified.
-Empty/numeric instance aliases, broader SSV forms and current-instance setters
-are unchanged. Existing named AOI reads retain their prior software profile.
+qualified instruction-only Event tasks for Status GSV/SSV. Configuration reads
+and SSV InhibitTask now also support Event THIS. Event timing, AOIs and isolated
+routine harnesses remain unqualified.
+Empty/numeric instance aliases and broader SSV forms remain unchanged.
+[SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
 
 ## System lab
