@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.014542`: [LREAL numeric byte copies](lreal-copy.md).
+COP/CPS add finite eight-byte little-endian images, mixed numeric regions and
+partial-byte preservation to the existing logical clipping/budget/rollback rules.
+Byte copy lab adds selected outputs, precision round trips and invalid-image/
+late-fault controls. Aggregate ABI, base-tag traversal, nonfinite payloads and
+native synchronization/fault/lifecycle parity remain separate.
+
 Available in `26.1104.013306`: [LREAL ladder truncation](lreal-truncate.md).
 TRN consumes REAL or LREAL tags and writes representable signed/unsigned integer
 or REAL/LREAL results. Binary64 sources retain their precision before truncation;

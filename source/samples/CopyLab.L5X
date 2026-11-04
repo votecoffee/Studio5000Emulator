@@ -5,6 +5,20 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="DoubleCopy" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleCopyIndex" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DoubleCopyLength" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleInput" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="DoubleImage" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleRoundtrip" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="DoublePartial" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
+      <Tag Name="DoubleLowWord" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleInject" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DoubleInjectedImage" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="9218868437227405312" /></Data></Tag>
+      <Tag Name="DoubleDivisor" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DoubleLateResult" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DoubleWords" TagType="Base" DataType="DINT" Dimensions="2"><Data Format="Decorated"><Array DataType="DINT" Dimensions="2" /></Data></Tag>
+      <Tag Name="DoubleResults" TagType="Base" DataType="LREAL" Dimensions="3"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="FloatInput" TagType="Base" DataType="REAL">
         <Data Format="Decorated">
           <DataValue DataType="REAL" Value="1" />
@@ -179,6 +193,7 @@
               <Line Number="6">END_IF;</Line>
               <Line Number="7">GuardResult:=1/FaultDivisor;</Line>
               <Line Number="8">JSR(CopyIndexed,0);</Line>
+              <Line Number="9">JSR(CopyDouble,0);</Line>
             </STContent>
           </Routine>
           <Routine Name="CopyIndexed" Type="RLL">
@@ -192,6 +207,17 @@
               <Rung Number="2" Type="N">
                 <Text>XIC(IndexedCopy)EQU(SelectedSource[CopyIndex],SelectedRoundtrip[CopyIndex])OTE(CopyMatches);</Text>
               </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="CopyDouble" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(DoubleCopy)COP(DoubleInput,DoubleImage,1);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(DoubleCopy)CPS(DoubleImage,DoubleRoundtrip,1);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(DoubleCopy)COP(DoubleInput,DoubleWords[0],2);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(DoubleCopy)CPS(DoubleWords[0],DoubleResults[DoubleCopyIndex],DoubleCopyLength);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(DoubleCopy)COP(DoubleLowWord,DoublePartial,1);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(DoubleCopy)XIC(DoubleInject)CPS(DoubleInjectedImage,DoubleRoundtrip,1);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(DoubleCopy)DIV(1,DoubleDivisor,DoubleLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

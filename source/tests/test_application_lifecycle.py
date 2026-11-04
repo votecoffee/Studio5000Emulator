@@ -379,6 +379,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('TrnInput',-3.9999999999999996);v=values(step());self.assertEqual(v['TrnDint'],-3)
         write('TrnEnabled',False);write('TrnIndex',99);step()
 
+    def test_copy_lab_lreal_images_partial_bytes_and_atomic_recovery(self):
+        self.post('demo',{'sample':'CopyLab'})
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':10})
+        values=lambda t:{row['name']:row['value'] for row in t['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        v=values(step());self.assertEqual(v['DoubleCopyIndex'],99);self.assertIsNone(v['DoubleResults[1]'])
+        write('DoubleCopyIndex',1);write('DoubleCopy',True);v=values(step())
+        self.assertEqual(v['DoubleImage'],'4607182418800017409');self.assertEqual((v['DoubleWords[0]'],v['DoubleWords[1]']),(1,1072693248))
+        for name in ('DoubleRoundtrip','DoubleResults[1]','DoublePartial'):self.assertEqual(v[name],1.0000000000000002)
+        self.assertEqual((v['DoubleResults[0]'],v['DoubleResults[2]']),(101.125,999.5))
+        for tag,bad,good in [('DoubleCopyIndex',99,1),('DoubleInject',True,False),('DoubleDivisor',0,1)]:
+            write(tag,bad);before=state_now()
+            with self.assertRaises(HTTPError) as caught:step()
+            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+            write(tag,good);step()
+        write('DoubleInput',5e-324);v=values(step());self.assertEqual(v['DoubleImage'],'1');self.assertEqual(v['DoubleRoundtrip'],5e-324)
+        write('DoubleCopy',False);write('DoubleCopyIndex',99);step()
+
     def test_running_version_matches_html_api_and_session_before_and_after_import(self):
         self.assertEqual(self.session['app_version'], __version__)
         html = self.get('/').decode()

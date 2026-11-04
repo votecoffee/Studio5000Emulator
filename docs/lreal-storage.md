@@ -74,7 +74,8 @@ and [CLR](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-design
 references provide related instruction context. [Matching-tag ladder arithmetic
 and comparisons](lreal-math.md), plus [matching-tag advanced math](lreal-advanced.md),
 additionally execute. [TRN](lreal-truncate.md) additionally handles REAL/LREAL sources and integer/REAL/LREAL
-results. Mixed arithmetic/immediates, ST expressions/assignments, general AOI parameter forms, COP/CPS and FLL,
+results. [Numeric COP/CPS](lreal-copy.md) additionally handles finite binary64 byte
+images and partial writes. Mixed arithmetic/immediates, ST expressions/assignments, general AOI parameter forms and FLL,
 new literal syntax, aggregate wire layouts and native rounding/status/fault/
 lifecycle equivalence remain unfinished. These unsupported instruction forms
 stay guarded rather than falling through to the REAL implementation.

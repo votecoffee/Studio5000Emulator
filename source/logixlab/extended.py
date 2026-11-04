@@ -105,7 +105,8 @@ class Extensions:
         if n in ('COP','CPS'):
             previous=self.memory.structural;self.memory.structural=True
             try:
-                if any(self.memory.resolve(ref,scope)[2]=='LREAL' for ref in a[:2]):
+                if (any(self.memory.resolve(ref,scope)[2]=='LREAL' for ref in a[:2]) and
+                    (self.engine.project.version!='35' or self.engine.project.processor.upper() not in CONTROLLERS)):
                     raise ModelError('LREAL COP/CPS byte-copy forms remain unqualified')
             finally:self.memory.structural=previous
         count=self.integer(a[2],scope)

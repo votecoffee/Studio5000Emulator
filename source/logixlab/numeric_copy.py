@@ -5,7 +5,7 @@ from .integer_math import CONTROLLERS
 from .model import ModelError,coerce,literal
 from .real_math import real
 
-FORMATS={'SINT':'b','INT':'h','DINT':'i','LINT':'q','USINT':'B','UINT':'H','UDINT':'I','ULINT':'Q','REAL':'f'}
+FORMATS={'SINT':'b','INT':'h','DINT':'i','LINT':'q','USINT':'B','UINT':'H','UDINT':'I','ULINT':'Q','REAL':'f','LREAL':'d'}
 SIZES={name:struct.calcsize('<'+fmt) for name,fmt in FORMATS.items()}
 MAX_BYTES=32768
 MAX_VISITS=100000
@@ -92,6 +92,9 @@ def plan(engine,op,scope,count):
 
 def encode(value,dtype):
     if dtype=='REAL':value=real(value)
+    elif dtype=='LREAL':
+        if type(value) not in (int,float):raise ModelError('Numeric-copy source must be a known numeric scalar')
+        value=coerce(value,dtype)
     elif type(value) is not int:raise ModelError('Numeric-copy source must be a known integer')
     else:value=coerce(value,dtype)
     try:return struct.pack('<'+FORMATS[dtype],value)
@@ -100,7 +103,7 @@ def encode(value,dtype):
 
 def decode(raw,dtype):
     value=struct.unpack('<'+FORMATS[dtype],raw)[0]
-    return real(value) if dtype=='REAL' else value
+    return real(value) if dtype=='REAL' else coerce(value,'LREAL') if dtype=='LREAL' else value
 
 
 def execute(engine,specification):
@@ -149,11 +152,12 @@ def description(project):
                 partial='Preserve uncopied bytes in final destination element; its prior value must be known',
                 boundaries='Scalar, member or array region; row-major multidimensional arrays and resolved member arrays; no crossing structure members',
                 overlap='Same-type copies propagate forward sequentially for COP and CPS, preserving established model behavior',
-                unknowns='Same-type copies retain logical unknowns; mixed-type reads require known finite source values and representable finite REAL results',
+                unknowns='Same-type copies retain logical unknowns; mixed-type reads require known finite source values and finite REAL/LREAL results',
+                lreal='Eight-byte little-endian finite binary64 images; mixed numeric regions, partial bytes and logical same-type copies; no aggregate ABI or native synchronization claim',
                 selection='Structural numeric preflight; false/prescan skip live lengths, indices and values; true retains actual region and byte checks',
                 zero_length='Resolve live source/destination addresses without reading their numeric values',
                 atomicity='Both execute inside one model instruction; no native task/I/O/remote-client synchronization claim',
                 budget='One budget unit per actual transferred byte; whole-advance rollback on failure',
                 native_runtime_parity=False,
-                remaining=['Native aggregate/BOOL/string/LREAL layouts and cross-member/base-tag copying',
-                           'Nonfinite REAL payloads, native faults/partial effects, scheduling/interruption and other controller profiles'])
+                remaining=['Native aggregate/BOOL/string layouts and cross-member/base-tag copying',
+                           'Nonfinite REAL/LREAL payloads, native faults/partial effects, scheduling/interruption and other controller profiles'])

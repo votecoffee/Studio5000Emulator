@@ -13,7 +13,7 @@ copying, interruption behavior and fault/partial-effect parity remain unfinished
 ## Types and transfer length
 
 Supported numeric elements are SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT
-and finite REAL. The copy moves byte images, not converted numeric values:
+and finite REAL/[LREAL](lreal-copy.md). The copy moves byte images, not converted numeric values:
 
 | Copy | Result |
 | --- | --- |
@@ -46,7 +46,8 @@ needed to find a starting element.
 Regions stop at the selected scalar/member/array boundary. Native Logix can
 continue across member boundaries up to a base tag's end; this model does not
 infer that aggregate ABI. BOOL bits/packed arrays, full strings, aggregate
-reinterpretation and LREAL byte images remain unsupported. Existing matching
+reinterpretation remain unsupported. Finite LREAL scalar/array byte images have
+a [separate set of focused cases](lreal-copy.md). Existing matching
 aggregate copies retain their logical-copy behavior and strict region bounds.
 [Basic record/string/UDT copies](aggregate-copies.md) now have separate structural
 preflight, lazy operands and bounded scalar-member work, while numeric copies
@@ -94,9 +95,9 @@ aggregate layouts, synchronization or native fault/status/lifecycle claims.
 ## Unknowns, finite values and rollback
 
 Same-type copies retain logical unknown values as before. Mixed-type reads
-require known numeric source values. REAL sources and reinterpreted REAL
+require known numeric source values. REAL/LREAL sources and reinterpreted REAL/LREAL
 results must be finite; NaN/Infinity payloads stop and roll back the advance.
-Signed-zero images are preserved for known finite REAL values.
+Signed-zero images are preserved for known finite REAL/LREAL values.
 
 Each actual transferred byte consumes one advance-budget unit. Negative or
 invalid lengths, unsupported references, unknown required bytes, unrepresentable
