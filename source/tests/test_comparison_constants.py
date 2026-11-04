@@ -107,7 +107,8 @@ class ComparisonConstantTests(unittest.TestCase):
             for args in (f'{constant},Source,Mask',f'Source,{constant},Mask',f'Source,Mask,{constant}'):
                 self.assertTrue(self.engine(['AFI()LIM('+args+')OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)
         self.assertTrue(self.engine(['AFI()LIM(-1,Source,Mask)OTE(RunLatch);'],types=('ULINT','UDINT','DINT')).blockers)
-        self.assertTrue(self.engine(['AFI()LIM(0,Source,Mask)OTE(RunLatch);'],types=('LINT','REAL','DINT')).blockers)
+        self.assertEqual(self.engine(['AFI()LIM(0,Source,Mask)OTE(RunLatch);'],types=('LINT','REAL','DINT')).blockers,[])
+        self.assertTrue(self.engine(['AFI()LIM(1e39,Source,Mask)OTE(RunLatch);'],types=('LINT','REAL','DINT')).blockers)
         self.assertTrue(self.engine(['AFI()LIM(0,Values,Mask)OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)
 
     def test_homogeneous_binary_narrow_meq_and_controller_profiles_remain_separate(self):

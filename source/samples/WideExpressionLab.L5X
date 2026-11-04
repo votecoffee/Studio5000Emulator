@@ -828,6 +828,24 @@
       <Tag Name="MathLitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="MathLitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="MathLitSelected" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
+      <Tag Name="CompareLitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CompareLitValue" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.1" /></Data></Tag>
+      <Tag Name="CompareLitReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.1" /></Data></Tag>
+      <Tag Name="CompareLitWide" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="CompareLitLow" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.25" /></Data></Tag>
+      <Tag Name="CompareLitHigh" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.75" /></Data></Tag>
+      <Tag Name="CompareLitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CompareLitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CompareLitEqual" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitDefault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitPromotedReal" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitRoundedWide" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitNormal" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitReversed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitConstantOnly" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitSelected" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CompareLitInputs" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="0.1" /><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -909,7 +927,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1053,6 +1071,19 @@
               <Rung Number="10" Type="N"><Text>XIC(MathLitEnabled)XIC(MathLitDomainFault)LN(-1.0L,MathLitFaultResult);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(MathLitEnabled)XIC(MathLitRangeFault)MUL(1e308L,2L,MathLitFaultResult);</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(MathLitEnabled)DIV(1,MathLitLateDivisor,MathLitLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ComparisonConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(CompareLitEnabled)EQU(CompareLitValue,0.1L)OTE(CompareLitEqual);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(CompareLitEnabled)EQU(CompareLitValue,0.1)OTE(CompareLitDefault);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(CompareLitEnabled)GRT(CompareLitReal,0.1L)OTE(CompareLitPromotedReal);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(CompareLitEnabled)EQU(CompareLitWide,9007199254740992.0L)OTE(CompareLitRoundedWide);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(CompareLitEnabled)LIM(CompareLitLow,0.5L,CompareLitHigh)OTE(CompareLitNormal);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(CompareLitEnabled)LIM(CompareLitHigh,0.5L,CompareLitLow)OTE(CompareLitReversed);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(CompareLitEnabled)LIM(0.0L,0.5L,1.0L)OTE(CompareLitConstantOnly);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(CompareLitEnabled)EQU(CompareLitInputs[CompareLitIndex],0.1L)OTE(CompareLitSelected);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(CompareLitEnabled)DIV(1,CompareLitLateDivisor,CompareLitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

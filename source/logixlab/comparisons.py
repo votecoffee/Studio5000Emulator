@@ -1,10 +1,11 @@
 """Lazy numeric ladder comparisons for the bounded v35 5580 profile."""
 import operator
 
-from . import integer_math, scalar_math
+from . import integer_math
 from .bit_transfer import unsigned
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
+from .numeric_storage import lreal_math_source, typed_literal
 
 RELATIONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
              'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
@@ -26,6 +27,7 @@ def validate(engine, op, scope):
         if op.name == 'MEQ':
             masked_values(engine, op.args, scope)
         else:
+            if lreal_specification(memory,op.args,scope):return True
             for arg in op.args:
                 value = memory.read(arg, scope)
                 if isinstance(value, (list, dict, bool)):
@@ -36,6 +38,21 @@ def validate(engine, op, scope):
     return True
 
 
+def lreal_specification(memory, args, scope):
+    """Select by a declared LREAL tag or floating L/l literal, never saved values."""
+    selected=False
+    for ref in args:
+        typed=typed_literal(ref) if '#' not in ref else None
+        if typed is not None:
+            selected=selected or typed[0]=='LREAL'
+            continue
+        try:literal(ref)
+        except ValueError:selected=selected or memory.resolve(ref,scope)[2]=='LREAL'
+    if not selected:return None
+    for ref in args:lreal_math_source(memory,ref,scope)
+    return 'LREAL'
+
+
 def ordering_profile(engine, op, scope):
     """Preserve integer ranges, or promote a tagged LREAL comparison to binary64.
 
@@ -44,13 +61,12 @@ def ordering_profile(engine, op, scope):
     their existing profiles.
     """
     if not available(engine.project):return integer_math.profile(engine, op, scope)
+    if lreal_specification(engine.memory,op.args,scope):return 'LREAL'
     types, constants = [], []
     for ref in op.args:
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:constants.append(value)
-    lreal=scalar_math.lreal_profile(types,constants,ordering=True)
-    if lreal:return lreal
     if 'REAL' in types:
         if any(dtype not in {*INT_BITS,'REAL'} for dtype in types):
             raise ModelError('REAL comparisons require scalar numeric tags')
@@ -116,10 +132,11 @@ def execute(engine, op, power, scope):
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
-    values = [memory.read(arg, scope) for arg in op.args]
     profile=ordering_profile(engine,op,scope)
-    if profile=='LREAL':values=[coerce(value,'LREAL') for value in values]
-    elif profile=='REAL':values=[real(value) for value in values]
+    if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
+    else:
+        values = [memory.read(arg, scope) for arg in op.args]
+        if profile=='REAL':values=[real(value) for value in values]
     if op.name == 'LIM':
         low, value, high = values
         return low <= value <= high if low <= high else value >= low or value <= high
@@ -138,10 +155,13 @@ def description(project):
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
                     native_runtime_parity=False),
                 lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
-                    operands='Scalar numeric tags and bounded integer constants with at least one LREAL input',
-                    constants='Signed DINT integer literals in either relation position or any LIM position, promoted exactly to binary64',
+                    operands='Scalar numeric tags and constants; at least one LREAL tag or floating L/l literal selects binary64, including constant-only calls',
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
-                    calculation='Compare promoted finite binary64 values; signed/unsigned numeric conversion, stored REAL precision, inclusive/reversed limits; no tolerance; large integers may round',
+                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants; declared range/precision before binary64 promotion',
+                    selection_by_literal='A floating L/l constant can select LREAL without an LREAL tag; typed integer-only forms retain their existing profile',
+                    calculation='Finite host binary64, exact comparisons without tolerance; stored REAL precision retained and large integers may round',
+                    limits='Inclusive normal limits; reversed limits accept values at or outside their endpoints after promotion',
+                    excluded='Typed radix and radix patterns above signed DINT, unsuffixed integers outside DINT, other consumer/controller profiles and native parity',
                     native_runtime_parity=False),
                 real_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),source_types=sorted({*INT_BITS,'REAL'}),
                     operands='Scalar numeric tags with at least one REAL input and no LREAL input',

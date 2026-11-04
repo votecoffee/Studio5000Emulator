@@ -138,7 +138,7 @@ class LrealMathLiteralTests(unittest.TestCase):
                 self.assertTrue(self.engine([call],dest=dest).blockers,(call,dest))
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()ADD(1L,1L,Results[1]);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)
-        self.assertTrue(self.engine(['EQU(Source,1.0L)OTE(RunLatch);'],source='LREAL').blockers)
+        self.assertTrue(self.engine(['EQU(Source,1e309L)OTE(RunLatch);'],source='LREAL').blockers)
         self.assertEqual(literal('16#FFFFFFFF'),4294967295)
 
     def test_permissions_shapes_and_reporting_remain_explicit(self):

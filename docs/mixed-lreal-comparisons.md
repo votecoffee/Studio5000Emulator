@@ -1,5 +1,11 @@
 # Mixed numeric comparisons with LREAL
 
+[LREAL comparison constants](lreal-comparison-literals.md) extend this profile
+in app `26.1104.172031`: floating L/l literals can select binary64 without an
+LREAL tag, and selected comparisons accept finite REAL and decimal typed
+integer/LREAL constants. Historical tag-only and signed-DINT-only restrictions
+below no longer apply to this selected profile.
+
 App `26.1104.021141` extends the v35 ControlLogix 5580 ladder software profile
 for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. The original form uses scalar numeric
 tags, with at least one LREAL operand. The other operands can be SINT,

@@ -4,6 +4,13 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.172031`: [LREAL comparison constants](lreal-comparison-literals.md).
+Six relations and LIM accept bounded DINT/finite REAL and decimal typed integer
+or floating L/l constants when a declared LREAL tag or floating L/l literal
+selects binary64. Constant-only calls, both/all operand positions, source precision,
+inclusive/reversed limits, lazy selection and AOI rollback are covered. Wide
+expression lab adds ComparisonConstants. Other profiles and native parity remain open.
+
 Available in `26.1104.165922`: [LREAL standalone math constants](lreal-math-literals.md).
 Nineteen arithmetic, power and unary forms accept bounded DINT/finite REAL and
 decimal L/U/UL integer or floating L/l constants with a scalar LREAL result.
