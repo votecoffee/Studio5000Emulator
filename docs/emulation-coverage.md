@@ -405,3 +405,9 @@ decimal L/U/UL forms, checking declared integer range before conversion to
 binary64. An LREAL tag/literal or destination must select this profile; integer
 constants alone retain exact integer rules. Other consumers, typed radix forms
 and native numerical/status/fault/lifecycle parity remain separate.
+
+[Decimal L/U/UL constants in FAL/FSC](file-integer-literals.md) now cover
+matching LINT/UDINT/ULINT expressions, with exact arithmetic/comparisons and
+existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
+Mixed typed forms, floating/radix/file-argument expansion and native parity
+remain separate.

@@ -687,6 +687,60 @@
       <Tag Name="FIntInputs" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[0]" Value="2" /><Element Index="[1]" Value="6" /><Element Index="[2]" Value="10" /></Array></Data>
       </Tag>
+      <Tag Name="FILitEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FILitNumericStart" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FILitIncrement" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FILitLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="1" /></Data>
+      </Tag>
+      <Tag Name="FILitLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FILitOffset" DataType="LINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FILitValues" DataType="LINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="4" Radix="Decimal"><Element Index="[3]" Value="903" /></Array></Data>
+      </Tag>
+      <Tag Name="FILitDwords" DataType="UDINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="UDINT" Dimensions="4" Radix="Decimal"><Element Index="[3]" Value="904" /></Array></Data>
+      </Tag>
+      <Tag Name="FILitUnsigned" DataType="ULINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="ULINT" Dimensions="4" Radix="Decimal"><Element Index="[3]" Value="905" /></Array></Data>
+      </Tag>
+      <Tag Name="FILitNumeric" DataType="LINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="4" Radix="Decimal"><Element Index="[3]" Value="906" /></Array></Data>
+      </Tag>
+      <Tag Name="FILitIncrements" DataType="ULINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="ULINT" Dimensions="4" Radix="Decimal"><Element Index="[3]" Value="907" /></Array></Data>
+      </Tag>
+      <Tag Name="FILitCalc" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitWordCalc" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitUnsignedCalc" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitFind" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitNumericCalc" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitIncrementCalc" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
+      <Tag Name="FILitIncrementFind" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="3" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /></Structure></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -767,6 +821,7 @@
               <Rung Number="24" Type="N"><Text>JSR(FloatingConstants,0);</Text></Rung>
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
+              <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -851,6 +906,18 @@
               <Rung Number="8" Type="N"><Text>XIC(FIntEnabled)XIC(FIntRangeFault)CPT(FIntByteResult,128U+0.0L);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(FIntEnabled)XIC(FIntDomainFault)CPT(FIntDomainResult,LN(-1L+0.0L));</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(FIntEnabled)DIV(1,FIntLateDivisor,FIntLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="IntegerFileConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(FILitEnabled)FAL(FILitCalc,?,?,ALL,FILitValues[FILitCalc.POS],9007199254740993L+FILitOffset);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(FILitEnabled)FAL(FILitWordCalc,?,?,ALL,FILitDwords[FILitWordCalc.POS],4294967295u);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(FILitEnabled)FAL(FILitUnsignedCalc,?,?,ALL,FILitUnsigned[FILitUnsignedCalc.POS],18446744073709551615uL);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(FILitEnabled)FSC(FILitFind,?,?,ALL,FILitValues[FILitFind.POS]=9007199254740993L);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(FILitNumericStart)FAL(FILitNumericCalc,?,?,1,FILitNumeric[FILitNumericCalc.POS],9007199254740993L+FILitOffset);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(FILitIncrement)FAL(FILitIncrementCalc,?,?,INC,FILitIncrements[FILitIncrementCalc.POS],18446744073709551615UL);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(FILitIncrement)FSC(FILitIncrementFind,?,?,INC,FILitIncrements[FILitIncrementFind.POS]=18446744073709551615UL);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(FILitEnabled)DIV(1,FILitLateDivisor,FILitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

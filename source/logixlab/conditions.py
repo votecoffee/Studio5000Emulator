@@ -10,8 +10,8 @@ LOGICAL={'&&','^^','||'}
 
 
 class Condition(Expression):
-    def __init__(self,text,*,allow_wide=False,bcd=False,lreal=False):
-        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal,integer_literals=lreal)
+    def __init__(self,text,*,allow_wide=False,bcd=False,lreal=False,integer_literals=False):
+        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal,integer_literals=lreal or integer_literals)
         self.allow_wide=allow_wide
         self.allow_lreal=lreal
 

@@ -19,9 +19,9 @@ class Extensions:
         self.expressions={}
         self.conditions={}
 
-    def condition(self,text,*,allow_wide=False,bcd=False,lreal=False):
-        key=(text,allow_wide,bcd,lreal)
-        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd,lreal=lreal)
+    def condition(self,text,*,allow_wide=False,bcd=False,lreal=False,integer_literals=False):
+        key=(text,allow_wide,bcd,lreal,integer_literals)
+        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd,lreal=lreal,integer_literals=integer_literals)
         return self.conditions[key]
 
     def wide_mask_profile(self,args,scope):

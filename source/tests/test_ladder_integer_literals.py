@@ -173,7 +173,7 @@ class LadderIntegerLiteralTests(unittest.TestCase):
             Expression('1L', integer_literals=True).evaluate(e.memory)
         import test_file_bcd as files
         f = files.FileBcdTests(); f.setUp(); self.addCleanup(f.doCleanups)
-        for rung in ['FAL(Ctl,?,?,ALL,Results[Ctl.POS],1L);', 'FSC(Ctl,?,?,ALL,1L=1L);']:
+        for rung in ['FAL(Ctl,?,?,ALL,Results[Ctl.POS],1L);', 'FSC(Ctl,?,?,ALL,1L=1UL);']:
             self.assertTrue(f.engine([rung]).blockers)
 
     @staticmethod

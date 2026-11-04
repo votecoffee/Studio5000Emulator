@@ -20,7 +20,7 @@ FSC shares the existing wide/mixed CMP profile, including eager BOOL composition
 and range-preserving integer comparisons. Mixed arithmetic must contain the
 common source type in every arithmetic subtree. See the separate
 [ladder expression profile](ladder-wide-expressions.md). FAL mixed numeric
-promotion, REAL/wide mixtures, LREAL, wider or typed literals, power and
+promotion, REAL/wide mixtures, LREAL, typed radix/mixed literals, power and
 additional functions remain unqualified.
 
 ## Iteration and state
@@ -65,3 +65,9 @@ which list wide/unsigned types for ControlLogix 5580. Rockwell's published
 and [FSC reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
 provide context. Operand availability does not establish complete native
 arithmetic, scan, fault or Studio compatibility.
+
+[Decimal L/U/UL constants in FAL/FSC](file-integer-literals.md) now cover
+matching LINT/UDINT/ULINT expressions, with exact arithmetic/comparisons and
+existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
+Mixed typed forms, floating/radix/file-argument expansion and native parity
+remain separate.

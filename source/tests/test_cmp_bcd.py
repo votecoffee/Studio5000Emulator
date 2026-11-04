@@ -78,7 +78,7 @@ class CmpBcdTests(unittest.TestCase):
             e.memory.write('ValueA',0);e.memory.write('FaultDivisor',0);self.fault(e,'zero');e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('BufferA[1]'),0);self.assertEqual(e.memory.read('DriverA.Stack[1]'),21)
 
     def test_scoped_parser_cache_keeps_st_and_direct_conditions_separate(self):
-        expression='FRD(Source)>0';e=self.checked([f'CMP({expression})OTE(RunLatch);']);e.step();self.assertIn((expression,True,True,True),e.extensions.conditions)
+        expression='FRD(Source)>0';e=self.checked([f'CMP({expression})OTE(RunLatch);']);e.step();self.assertIn((expression,True,True,True,False),e.extensions.conditions)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):e.extensions.condition(expression,allow_wide=True)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):Condition(expression)
         for code in ('IF FRD(Source)>0 THEN Dest:=1; END_IF;','IF TOD(Source)>0 THEN Dest:=1; END_IF;'):

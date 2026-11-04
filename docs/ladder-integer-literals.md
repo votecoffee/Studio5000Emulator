@@ -36,8 +36,9 @@ Prior successful advances and prescan remain separate committed events.
 
 ## Scope and limits
 
-The parser/cache explicitly opt in for direct ladder CPT/CMP. Generic, FAL/FSC
-and array-index consumers retain their existing restrictions. ST retains its
+The parser/cache explicitly opt in for qualified consumers.
+[FAL/FSC file expressions](file-integer-literals.md) now have matching integer
+literal support. Generic and array-index consumers retain their restrictions. ST retains its
 separate [integer constant profile](st-integer-literals.md). Other instruction
 arguments do not acquire suffix support through this change.
 
