@@ -267,3 +267,9 @@ Direct ladder CPT/CMP now accept matching decimal L/U/UL constants through the
 full LINT/UDINT/ULINT ranges, including exact arithmetic, comparisons and bitwise
 forms. See [integer constants](ladder-integer-literals.md). Mixed typed forms,
 other consumers and native precision/status/fault/lifecycle parity remain open.
+
+[Typed integer constants in LREAL CPT/CMP](lreal-integer-literals.md) now accept
+decimal L/U/UL forms, checking declared integer range before conversion to
+binary64. An LREAL tag/literal or destination must select this profile; integer
+constants alone retain exact integer rules. Other consumers, typed radix forms
+and native numerical/status/fault/lifecycle parity remain separate.

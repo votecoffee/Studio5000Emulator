@@ -42,10 +42,12 @@ separate [integer constant profile](st-integer-literals.md). Other instruction
 arguments do not acquire suffix support through this change.
 
 Typed radix forms, separators, alternate typed spellings, mixed typed/tag
-integers, REAL/LREAL combinations and nonmatching destinations remain blocked.
+integers and nonmatching destinations remain blocked in the exact integer profile.
+An LREAL selector uses the separate [binary64 constant profile](lreal-integer-literals.md);
+it can mix numeric types and convert final results under its existing rules.
 For example, 1L is LINT, while 1.0L is a distinct
 [LREAL floating constant](lreal-literals.md). Their numeric types cannot be
-combined in this bounded integer profile. The previously qualified mixed-tag
+combined in this exact integer profile; an LREAL selector chooses binary64 instead. The previously qualified mixed-tag
 integer arithmetic profile remains separate.
 
 ## Wide expression lab

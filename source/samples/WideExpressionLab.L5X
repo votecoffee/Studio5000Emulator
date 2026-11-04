@@ -636,6 +636,57 @@
       <Tag Name="ILitInputs" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[0]" Value="2" /><Element Index="[1]" Value="6" /><Element Index="[2]" Value="10" /></Array></Data>
       </Tag>
+      <Tag Name="FIntEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntRounded" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntDword" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntUnsigned" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntMinimum" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntFraction" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntCompare" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntConverted" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="1" /></Data>
+      </Tag>
+      <Tag Name="FIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntRangeFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntByteResult" DataType="SINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="SINT" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntDomainFault" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntDomainResult" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="LREAL" Radix="Decimal" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FIntSelected" DataType="LREAL" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LREAL" Dimensions="3" Radix="Decimal"><Element Index="[2]" Value="903" /></Array></Data>
+      </Tag>
+      <Tag Name="FIntInputs" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[0]" Value="2" /><Element Index="[1]" Value="6" /><Element Index="[2]" Value="10" /></Array></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -715,6 +766,7 @@
               <Rung Number="23" Type="N"><Text>JSR(Binary64Results,0);</Text></Rung>
               <Rung Number="24" Type="N"><Text>JSR(FloatingConstants,0);</Text></Rung>
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
+              <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -784,6 +836,21 @@
               <Rung Number="6" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSelected[ILitIndex],ILitInputs[ILitIndex]+9007199254740993L);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ILitEnabled)XIC(ILitOverflow)CPT(ILitSigned,9223372036854775807L+1L);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(ILitEnabled)DIV(1,ILitLateDivisor,ILitLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DoubleIntegerConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(FIntEnabled)CPT(FIntRounded,9007199254740993L);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(FIntEnabled)CPT(FIntDword,4294967295U);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(FIntEnabled)CPT(FIntUnsigned,18446744073709551615UL);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(FIntEnabled)CPT(FIntMinimum,-9223372036854775808L);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(FIntEnabled)CPT(FIntFraction,3L/2U);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(FIntEnabled)CMP(9007199254740992L=9007199254740993L+0.0L)OTE(FIntCompare);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(FIntEnabled)CPT(FIntConverted,3L/2L+0.0L);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(FIntEnabled)CPT(FIntSelected[FIntIndex],FIntInputs[FIntIndex]+9007199254740993L+0.0L);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(FIntEnabled)XIC(FIntRangeFault)CPT(FIntByteResult,128U+0.0L);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(FIntEnabled)XIC(FIntDomainFault)CPT(FIntDomainResult,LN(-1L+0.0L));</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(FIntEnabled)DIV(1,FIntLateDivisor,FIntLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

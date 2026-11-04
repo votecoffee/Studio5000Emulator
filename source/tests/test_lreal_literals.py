@@ -77,7 +77,7 @@ class LrealLiteralTests(unittest.TestCase):
             self.assertEqual(e.memory.read('Results[1]'), expected)
 
     def test_invalid_literal_ranges_and_suffixes_block_even_false_calls(self):
-        for expr in ('1e39', '1e999', '1e309L', '1.0LL', '1.0L2', '1.0UL', '1L', '1UL',
+        for expr in ('1e39', '1e999', '1e309L', '1.0LL', '1.0L2', '1.0UL', '9223372036854775808L', '18446744073709551616UL',
                      '2147483648', '1.0D', 'LREAL#1.0', '1.0Lfoo'):
             self.assertTrue(self.engine(['AFI()CPT(Results[1],' + expr + ');']).blockers, expr)
 

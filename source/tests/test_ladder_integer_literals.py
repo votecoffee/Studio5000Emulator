@@ -120,8 +120,8 @@ class LadderIntegerLiteralTests(unittest.TestCase):
 
     def test_matching_type_boundary_rejects_narrow_mixed_and_floating_combinations(self):
         for dtype, text in [('LINT', '1U'), ('ULINT', '1L'), ('UINT', '1U'),
-                            ('DINT', '1L'), ('REAL', '1L'), ('LREAL', '1L'),
-                            ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1L+0.5L')]:
+                            ('DINT', '1L'), ('REAL', '1L'), ('LREAL', '1LU'),
+                            ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1L+1e999L')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,' + text + ');'], dtype=dtype).blockers, (dtype, text))
         self.assertTrue(self.engine(['CPT(Dest,Source+1L);'], types=('DINT', 'LINT', 'LINT')).blockers)
 

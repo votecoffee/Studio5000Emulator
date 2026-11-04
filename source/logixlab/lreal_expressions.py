@@ -36,8 +36,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
     if consumer == 'CPT' and destination_type not in NUMERIC:
         raise ModelError('LREAL CPT requires a numeric scalar destination')
-    if expression.functions - MATH or expression.typed_types:
-        raise ModelError('Unsupported LREAL expression function or typed literal')
+    if expression.functions - MATH:
+        raise ModelError('Unsupported LREAL expression function')
     types = {}
     for ref, dtype in declared.items():
         if dtype not in NUMERIC and not (consumer == 'CMP' and dtype == 'BOOL'):
@@ -52,6 +52,9 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         if kind == 'literal':
             immediate(value)
             return 'number'
+        if kind == 'typed_literal':
+            coerce(value,node[2])
+            return 'number'
         if kind == 'lreal_literal':
             coerce(value,'LREAL')
             return 'number'
@@ -62,8 +65,10 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
                 raise ModelError('LREAL math functions require numeric operands')
             return 'number'
         if kind == 'unary':
-            if value in ('+', '-') and node[2][0] == 'literal':
-                immediate(node[2][1] if value == '+' else -node[2][1])
+            if value in ('+', '-') and node[2][0] in ('literal','typed_literal'):
+                signed=node[2][1] if value == '+' else -node[2][1]
+                if node[2][0]=='typed_literal':coerce(signed,node[2][2])
+                else:immediate(signed)
                 return 'number'
             operand = infer(node[2])
             if consumer == 'CMP' and value in ('!', 'NOT') and operand == 'bool':
@@ -98,6 +103,8 @@ def evaluate(expression, memory, scope, profile):
         kind, value = node[:2]
         if kind == 'literal':
             return number(immediate(value))
+        if kind == 'typed_literal':
+            return number(coerce(value,node[2]))
         if kind == 'lreal_literal':
             return number(value)
         if kind == 'ref':
@@ -105,8 +112,9 @@ def evaluate(expression, memory, scope, profile):
             dtype = profile['declared'][value]
             return coerce(result, 'BOOL') if dtype == 'BOOL' else number(coerce(result, dtype))
         if kind == 'unary':
-            if value in ('+', '-') and node[2][0] == 'literal':
-                return number(immediate(node[2][1] if value == '+' else -node[2][1]))
+            if value in ('+', '-') and node[2][0] in ('literal','typed_literal'):
+                signed=node[2][1] if value == '+' else -node[2][1]
+                return number(coerce(signed,node[2][2]) if node[2][0]=='typed_literal' else immediate(signed))
             x = visit(node[2])
             if value in ('!', 'NOT'):
                 return not x
@@ -150,13 +158,18 @@ def description(project):
                 consumers=['CPT', 'CMP'], types=sorted(NUMERIC), destination='CPT numeric scalar', destination_types=sorted(NUMERIC),
                 destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
                 selection='Any LREAL tag/literal or CPT LREAL destination selects binary64 for every numeric node',
-                constants='Bounded DINT integers; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
+                constants='Bounded DINT integers; decimal L/U/UL constants checked at declared width then converted to binary64; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
+                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
+                    range='Check declared integer range with its immediate unary sign before binary64 conversion',
+                    selection='Requires an LREAL tag/literal or CPT LREAL destination; suffix alone retains the integer profile',
+                    precision='Same binary64 conversion as integer tags; integers beyond 53 significant bits may round',
+                    native_runtime_parity=False),
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
                 comparisons='Six numeric relations, BOOL tags and eager Boolean composition',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Wide/unsigned integer literals and other typed literal forms; FRD/TOD and numeric bitwise forms',
+                remaining=['Typed radix/separators and other typed forms; FRD/TOD and numeric bitwise forms',
                            'ST/FAL/FSC/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])

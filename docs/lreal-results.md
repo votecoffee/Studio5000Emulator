@@ -43,8 +43,9 @@ The original [LREAL expression](lreal-expressions.md) rules still govern math,
 source precision, DINT immediates, functions and operators. A nonfinite
 intermediate fails before a later operation could reduce the final magnitude.
 [REAL/LREAL floating constants](lreal-literals.md) now have their own scoped
-profile. Other typed/larger literals, BCD, numeric bitwise and language forms
-remain separate. BOOL and aggregate destinations remain excluded.
+profile. [Decimal L/U/UL constants](lreal-integer-literals.md) now check their
+declared integer range before binary64 calculation and final conversion. Typed
+radix forms, separators, BCD, numeric bitwise and other language forms remain separate. BOOL and aggregate destinations remain excluded.
 
 ## Selection, AOIs and faults
 

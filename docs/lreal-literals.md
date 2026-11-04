@@ -87,3 +87,9 @@ v35 Immediate values (14454), CPT (14597) and CMP (14592). Rockwell's published
 provides context; installed v35 spellings govern this profile. Native numerical,
 status, fault, partial-write, packed-layout and controller/Studio lifecycle
 equivalence remain unverified.
+
+[Typed integer constants in LREAL CPT/CMP](lreal-integer-literals.md) now accept
+decimal L/U/UL forms, checking declared integer range before conversion to
+binary64. An LREAL tag/literal or destination must select this profile; integer
+constants alone retain exact integer rules. Other consumers, typed radix forms
+and native numerical/status/fault/lifecycle parity remain separate.

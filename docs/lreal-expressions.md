@@ -27,8 +27,9 @@ Signed DINT-range integer constants convert directly to binary64. The full
 negative DINT literal is supported. [Floating constants](lreal-literals.md)
 without a suffix use finite REAL precision before promotion; a floating L/l
 suffix retains binary64. Explicit LREAL literals can select this profile.
-Other typed and larger integer literals remain excluded, including false rungs. Numeric bitwise operators, FRD/TOD and newer
-mnemonic aliases remain separate forms.
+Decimal [L/U/UL integer constants](lreal-integer-literals.md) check their declared
+range before binary64 conversion. Typed radix forms, separators, numeric bitwise
+operators, FRD/TOD and newer mnemonic aliases remain separate forms.
 
 Stored REAL tags retain their float32 precision before conversion to binary64.
 Integer tags convert directly to binary64, so values beyond its exact integer
@@ -97,3 +98,9 @@ and CMP (14592) help provides the operator/promotion baseline. Rockwell's
 [published CPT reference](https://www.rockwellautomation.com/en-hu/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/compute-math-instructions/compute--cpt-.html)
 provides additional context; installed v35 spellings and the explicit limits
 above govern this software profile.
+
+[Typed integer constants in LREAL CPT/CMP](lreal-integer-literals.md) now accept
+decimal L/U/UL forms, checking declared integer range before conversion to
+binary64. An LREAL tag/literal or destination must select this profile; integer
+constants alone retain exact integer rules. Other consumers, typed radix forms
+and native numerical/status/fault/lifecycle parity remain separate.

@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1104.150559`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1104.151833`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -27,6 +27,11 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 [native compatibility checkpoints](docs/native-compatibility-checkpoints.md)
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
+
+**Typed integer constants in LREAL expressions** now use checked L/U/UL values
+with binary64 calculation and final numeric conversion. Wide expression lab
+contrasts rounded floating results with exact integer results; see
+[typed constants and LREAL](docs/lreal-integer-literals.md).
 
 **Wide integer constants** now work in matching-type ladder CPT/CMP: decimal
 L/U/UL suffixes retain full integer precision and checked ranges. Wide expression
