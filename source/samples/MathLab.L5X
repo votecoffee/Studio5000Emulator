@@ -5,6 +5,35 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="MixedPowerEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedPowerDomainFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedPowerOverflowFault" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MixedPowerIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="MixedPowerExponent" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="3" /></Data></Tag>
+      <Tag Name="MixedPowerDoubleExponent" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="2.0" /></Data></Tag>
+      <Tag Name="MixedPowerOne" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
+      <Tag Name="MixedPowerPrecise" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="MixedPowerDint" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="MixedPowerReal" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777217.0" /></Data></Tag>
+      <Tag Name="MixedPowerLint" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="MixedPowerWideExponent" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="MixedPowerNegativeOne" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1.0" /></Data></Tag>
+      <Tag Name="MixedPowerNegativeBase" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-2.0" /></Data></Tag>
+      <Tag Name="MixedPowerFraction" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.5" /></Data></Tag>
+      <Tag Name="MixedPowerLarge" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1e308" /></Data></Tag>
+      <Tag Name="MixedPowerLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="MixedPowerLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MixedPowerPrecision" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerConstantBase" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerDintResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerRealResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerWideBaseResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerWideExponentResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerNegativeResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerDomainResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerOverflowResult" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="MixedPowerValues" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[1]" Value="2.0" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
+      <Tag Name="MixedPowerResults" TagType="Base" DataType="LREAL" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101.125" /><Element Index="[2]" Value="999.5" /></Array></Data></Tag>
       <Tag Name="TrnEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="TrnIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="TrnInput" TagType="Base" DataType="LREAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="16777217.875" /></Data></Tag>
@@ -479,6 +508,22 @@
               </Rung>
               <Rung Number="29" Type="N"><Text>JSR(LrealAdvanced,0);</Text></Rung>
               <Rung Number="30" Type="N"><Text>JSR(LrealTruncate,0);</Text></Rung>
+              <Rung Number="31" Type="N"><Text>JSR(MixedPower,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MixedPower" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerValues[MixedPowerIndex],MixedPowerExponent,MixedPowerResults[MixedPowerIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerPrecise,2,MixedPowerPrecision);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(MixedPowerEnabled)XPY(2,MixedPowerDoubleExponent,MixedPowerConstantBase);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerDint,MixedPowerDoubleExponent,MixedPowerDintResult);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerReal,MixedPowerDoubleExponent,MixedPowerRealResult);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerLint,MixedPowerOne,MixedPowerWideBaseResult);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerNegativeOne,MixedPowerWideExponent,MixedPowerWideExponentResult);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerNegativeBase,MixedPowerExponent,MixedPowerNegativeResult);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(MixedPowerEnabled)XIC(MixedPowerDomainFault)XPY(MixedPowerNegativeBase,MixedPowerFraction,MixedPowerDomainResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(MixedPowerEnabled)XIC(MixedPowerOverflowFault)XPY(MixedPowerLarge,2,MixedPowerOverflowResult);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(MixedPowerEnabled)DIV(1,MixedPowerLateDivisor,MixedPowerLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="LrealAdvanced" Type="RLL">

@@ -103,3 +103,7 @@ precision/status/fault/lifecycle equivalence remain separate work.
 [Integer constants with LREAL](lreal-constants.md) additionally qualify signed
 DINT-range literals for binary arithmetic, direct relations and LIM. Floating,
 typed and larger literals remain excluded; an actual LREAL source is required.
+
+[Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
+tag sources or signed DINT-range integer constants, one actual LREAL input and
+a LREAL result. Other advanced math and expression profiles remain separate.

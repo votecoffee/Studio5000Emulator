@@ -2,7 +2,7 @@
 import math
 
 from .integer_math import CONTROLLERS
-from .model import ModelError, coerce, literal
+from .model import INT_BITS, ModelError, coerce, literal
 
 
 def square_root(value):
@@ -35,6 +35,19 @@ def validate(memory, op, scope):
     if dtype=='LREAL':
         if isinstance(memory.at(key,parts),(list,dict)):
             raise ModelError('LREAL math requires a scalar LREAL destination')
+        if op.name=='XPY':
+            # scalar_math imports real(); defer its shared profile selector.
+            from .scalar_math import lreal_profile
+            types,constants=[],[]
+            for ref in op.args[:-1]:
+                try:value=literal(ref)
+                except ValueError:
+                    key,parts,source_type=memory.resolve(ref,scope)
+                    if isinstance(memory.at(key,parts),(list,dict)):
+                        raise ModelError('LREAL power requires scalar numeric sources')
+                    types.append(source_type)
+                else:types.append(None);constants.append(value)
+            return lreal_profile([*types,'LREAL'],constants,arithmetic=True)
         for ref in op.args[:-1]:
             try:literal(ref)
             except ValueError:
@@ -91,9 +104,14 @@ def description():
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Matching scalar LREAL tags',destination='Scalar LREAL tag',
+                    power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
+                        operands='Scalar numeric sources with at least one LREAL input and a LREAL result',
+                        constants='Signed DINT integer literals in either source position, promoted exactly to binary64',
+                        promotion='Convert all required numeric tag sources to finite binary64; stored REAL precision and wide integer rounding are retained',
+                        native_runtime_parity=False),
                     arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
                     selection='Structural/lazy operands, complete unknown writes and existing aliases/member/AOI references',
-                    excluded='Mixed types, immediates, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
+                    excluded='Other mixed types/immediates, floating/typed/larger power constants, ST/CPT/CMP expressions, native precision/status/fault/lifecycle parity',
                     native_runtime_parity=False),
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',

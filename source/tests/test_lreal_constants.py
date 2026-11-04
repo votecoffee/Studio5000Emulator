@@ -125,7 +125,7 @@ class LrealConstantTests(unittest.TestCase):
             for call in (f'ADD(Source,{token},Dest)',f'EQU(Source,{token})',f'LIM(0,Source,{token})'):
                 self.assertTrue(self.engine(['XIC(StartPB)'+call+';']).blockers,(token,call))
         for call in ('ADD(Source,1,SpeedCommand);','ADD(1,2,Dest);','NEG(1,Dest);',
-                     'AND(Source,1,Dest);','MEQ(Source,1,Mask);','CPT(Dest,Source+1);','XPY(Source,2,Dest);'):
+                     'AND(Source,1,Dest);','MEQ(Source,1,Mask);','CPT(Dest,Source+1);','XPY(Source,2.0,Dest);'):
             self.assertTrue(self.engine([call]).blockers,call)
         def readonly(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['ADD(Source,1,Results[1]);'],mutate=readonly).blockers)

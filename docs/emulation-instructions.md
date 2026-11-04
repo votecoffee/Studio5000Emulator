@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; LREAL integer constants added for app `26.1104.081351`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; mixed LREAL powers added for app `26.1104.083644`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -126,7 +126,8 @@ with all ten numeric source tag types, at least one LREAL input and a LREAL resu
 [Mixed-tag comparisons/LIM](mixed-lreal-comparisons.md) additionally promote
 numeric tag inputs when at least one is LREAL. [Signed DINT-range constants](lreal-constants.md)
 add binary arithmetic, direct relations and limits; floating/typed/larger literals
-and advanced math remain separate.
+and other advanced math remain separate. [Mixed XPY powers](mixed-lreal-power.md)
+qualify numeric tag pairs and signed DINT constants with a LREAL input/result.
 
 ## Remaining forms of existing instructions
 

@@ -134,3 +134,7 @@ and [REAL-to-integer conversion](https://www.rockwellautomation.com/en-id/docs/s
 provide additional context for rounding. Their native overflow behavior does
 not replace this model's range rollback policy. Software tests do not establish
 native controller or Studio acceptance.
+
+[Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
+tag sources or signed DINT-range integer constants, one actual LREAL input and
+a LREAL result. Other advanced math and expression profiles remain separate.

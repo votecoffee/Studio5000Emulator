@@ -69,3 +69,7 @@ See [focused cases](../source/tests/test_lreal_constants.py),
 [arithmetic implementation](../source/logixlab/scalar_math.py),
 [comparison implementation](../source/logixlab/comparisons.py) and
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
+
+[Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
+tag sources or signed DINT-range integer constants, one actual LREAL input and
+a LREAL result. Other advanced math and expression profiles remain separate.

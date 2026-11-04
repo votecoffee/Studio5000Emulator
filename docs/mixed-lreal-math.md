@@ -87,3 +87,7 @@ to unqualified integer/REAL intermediate and destination-conversion rules.
 See [implementation](../source/logixlab/scalar_math.py),
 [focused cases](../source/tests/test_mixed_lreal_math.py) and
 [IntegerLab.L5X](../source/samples/IntegerLab.L5X).
+
+[Mixed LREAL powers](mixed-lreal-power.md) additionally qualify XPY with numeric
+tag sources or signed DINT-range integer constants, one actual LREAL input and
+a LREAL result. Other advanced math and expression profiles remain separate.

@@ -3169,3 +3169,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('EnableDoubleConstants',False);write('DoubleConstantsIndex',99);row=values(step())
         for name in expected:self.assertFalse(row['DoubleConstants'+name])
         for item in (self.post('report',{})['scalar_math']['lreal_arithmetic'],self.post('report',{})['numeric_comparisons']['lreal_ordering']):self.assertIn('Signed DINT',item['constants'])
+
+    def test_math_lab_mixed_lreal_powers_precision_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace','aoi_bindings'):self.assertEqual(before[key],after[key])
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['MixedPowerIndex'],99);self.assertIsNone(row['MixedPowerResults[1]'])
+        write('MixedPowerEnabled',True);fault('outside bounds');write('MixedPowerIndex',1);row=values(step())
+        self.assertEqual(tuple(row['MixedPower'+n] for n in ('Precision','ConstantBase','DintResult','RealResult','WideBaseResult','WideExponentResult','NegativeResult')),(1.0000000000000004,4.0,281475010265089.0,281474976710656.0,9007199254740992.0,1.0,-8.0))
+        self.assertEqual(tuple(row['MixedPowerResults['+str(i)+']'] for i in range(3)),(101.125,8.0,999.5))
+        write('MixedPowerDomainFault',True);fault('finite LREAL');write('MixedPowerDomainFault',False)
+        write('MixedPowerOverflowFault',True);fault('finite LREAL');write('MixedPowerOverflowFault',False)
+        write('MixedPowerLateDivisor',0);fault('zero');write('MixedPowerLateDivisor',1)
+        write('MixedPowerValues[1]',3);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
+        write('MixedPowerEnabled',False);write('MixedPowerIndex',99);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
+        power=self.post('report',{})['real_math']['lreal']['power'];self.assertEqual(len(power['source_types']),10);self.assertIn('Signed DINT',power['constants']);self.assertFalse(power['native_runtime_parity'])
