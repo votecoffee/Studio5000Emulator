@@ -32,7 +32,9 @@ Lowercase/mixed-case suffixes, leading decimal zeroes and a directly attached
 unary sign are accepted. Integer and floating L are distinct: 1L is LINT;
 1.0L, .5l and 1e3L are LREAL. Finite large/subnormal floating values and signed
 zero are retained within binary64 representation. A negative unsigned zero is
-integer zero. Unsuffixed inputs retain their existing DINT/finite REAL rules.
+integer zero. Unsuffixed decimal inputs retain their existing DINT/finite REAL
+rules. [Unsuffixed radix MOV constants](radix-mov-literals.md) use a separate
+32-bit DINT pattern rule, including zero-fill and a signed top bit.
 
 ## Selection and failure behavior
 

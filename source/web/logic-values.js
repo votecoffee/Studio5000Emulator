@@ -139,9 +139,18 @@
       } catch (_) {return null;}
       return address(name);
     }
-    function read(ref) {
+    function read(ref, options = {}) {
       const name = String(ref).trim(), row = at(resolve(name));
       if (row) return row;
+      const word = options.dintRadix && name.match(/^(2|8|16)#([\da-fA-F_ ]+)$/);
+      if (word) {
+        try {
+          let value = BigInt(({'2': '0b', '8': '0o', '16': '0x'})[word[1]] + word[2].replaceAll('_', '').replaceAll(' ', ''));
+          if (value >= 0x100000000n) return null;
+          if (value >= 0x80000000n) value -= 0x100000000n;
+          return {name, type: 'DINT radix literal', value: value.toString()};
+        } catch (_) {return null;}
+      }
       const integer = name.match(/^([+-]?\d+)(UL|U|L)$/i);
       if (integer) {
         try {

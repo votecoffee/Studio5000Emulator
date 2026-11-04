@@ -801,6 +801,16 @@
       <Tag Name="MovLitSelected" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[2]" Value="903" /></Array></Data>
       </Tag>
+      <Tag Name="RadixEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixSigned" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixZeroFilled" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixSignExtended" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixUnsigned" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RadixLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -882,7 +892,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -998,6 +1008,17 @@
               <Rung Number="12" Type="N"><Text>XIC(MovLitEnabled)XIC(MovLitRangeFault)MOV(128.0L,MovLitRangeResult);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(MovLitEnabled)XIC(MovLitFloatRangeFault)MOV(1e308L,MovLitFloatResult);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(MovLitEnabled)DIV(1,MovLitLateDivisor,MovLitLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RadixMoves" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF_FFFF,RadixSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF,RadixZeroFilled);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RadixEnabled)MOV(2#10000000000000000000000000000000,RadixSignExtended);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RadixEnabled)MOV(8#37777777777,RadixUnsigned);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RadixEnabled)MOV(16#7FFF_FFFF,RadixReal);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF FFFF,RadixSelected[RadixIndex]);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RadixEnabled)DIV(1,RadixLateDivisor,RadixLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

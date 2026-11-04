@@ -116,7 +116,7 @@ class NumericStorageTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Packet1.Value'), e.memory.read('Packet1.Guard')), (255, 777))
 
     def test_immediate_limits_and_declared_source_dest_shapes_stay_explicit(self):
-        for text in ('MOV(TRUE,Results[0]);', 'MOV(2147483648,Results[0]);', 'MOV(16#FFFFFFFF,Results[0]);',
+        for text in ('MOV(TRUE,Results[0]);', 'MOV(2147483648,Results[0]);', 'MOV(16#1_0000_0000,Results[0]);',
                      'MOV(Source,Results);', 'MOV(Inputs,Results[0]);', 'MOV(Source,StartPB);', 'CLR(StartPB);', 'CLR(Source.0);'):
             self.assertTrue(self.engine([text]).blockers, text)
         for text in ('MOV(-2147483648,Results[0]);', 'MOV(2147483647,Results[0]);', 'MOV(3.5,Results[0]);'):

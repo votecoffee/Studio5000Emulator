@@ -21,8 +21,15 @@ def destination(memory, ref, scope):
 
 
 def typed_literal(ref):
-    """One typed MOV immediate; never widen general memory/expression parsing."""
-    text=ref.strip();offset=int(text[:1] in ('+','-'))
+    """One MOV immediate; never widen general memory/expression parsing."""
+    text=ref.strip()
+    radix=re.fullmatch(r'(2|8|16)#([0-9A-Fa-f_ ]+)',text)
+    if radix:
+        try:value=int(radix[2].replace('_','').replace(' ',''),int(radix[1]))
+        except ValueError as error:raise ModelError('MOV radix immediate has invalid digits') from error
+        if value>=1<<32:raise ModelError('MOV radix immediate exceeds its 32-bit DINT pattern')
+        return 'DINT',bit_value(value,'DINT')
+    offset=int(text[:1] in ('+','-'))
     token=typed_integer(text,offset)
     if token is not None and token[0]==len(text):
         value,dtype=token[1]
@@ -92,7 +99,12 @@ def description(project):
                 typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',
                     range='Declared source range and precision checked structurally, before existing destination conversion',
                     conversion='Same integer pattern, floating precision and checked nearest-even conversion as a source tag',
-                    scope='MOV source only; no expressions, typed radix/separators, other arguments/consumers or native parity',
+                    scope='MOV source only; decimal typed forms and separate unsuffixed DINT radix patterns; no typed radix, expressions, other arguments/consumers or native parity',
+                    native_runtime_parity=False),
+                radix_mov_literals=dict(bases=[2,8,16],source_type='DINT',bits=32,
+                    interpretation='Zero-fill unspecified bits; reinterpret bit 31 as the signed DINT top bit before existing MOV conversion',
+                    grouping='Interior spaces or underscores; case-insensitive hexadecimal digits',
+                    scope='Unsuffixed nonnegative radix MOV source only; other consumers retain their contracts',
                     native_runtime_parity=False),
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
                 real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',

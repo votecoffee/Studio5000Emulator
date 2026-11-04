@@ -2,6 +2,24 @@ const {test} = require('node:test'), assert = require('node:assert/strict');
 const {create} = require('../../web/logic-values.js');
 const row = (name, value, type = 'DINT') => ({name, value, type});
 
+test('MOV DINT radix monitoring is scoped and retains entered references', () => {
+  const tags=[row('Value',7)], before=structuredClone(tags), view=create(tags);
+  for(const [ref,value] of [['16#FFFF','65535'],['16#ffff ffff','-1'],['16#8000_0000','-2147483648'],['8#37777777777','-1'],['2#1010','10']]) {
+    assert.deepEqual(view.read(ref,{dintRadix:true}),{name:ref,type:'DINT radix literal',value});
+  }
+  assert.equal(view.read('16#FFFFFFFF').value,'4294967295');
+  assert.equal(view.read('Value',{dintRadix:true}).value,7);
+  assert.deepEqual(tags,before);
+});
+
+test('MOV radix snapshots reject invalid digits overwide words and excluded forms', () => {
+  const view=create([]);
+  for(const ref of ['2#2','8#8','16#G','16#100000000','8#40000000000','2#1'+'0'.repeat(32),'16#FFU','16#___']) {
+    assert.equal(view.read(ref,{dintRadix:true}),null,ref);
+  }
+  assert.equal(view.read('4294967295U',{dintRadix:true}).type,'UDINT literal');
+});
+
 test('a program aggregate shadows a same-named controller scalar', () => {
   const view = create([row('State', 99), row('Program:Main.State.ACC', 7)], {routine: 'Main/Logic'});
   assert.equal(view.read('State').aggregate, true);assert.equal(view.read('State.ACC').value, 7);

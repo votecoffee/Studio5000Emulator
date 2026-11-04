@@ -59,7 +59,7 @@
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
     let inspection = '';
-    function read(ref) {return snapshot?.read(ref) || null;}
+    function read(ref, node) {return snapshot?.read(ref, {dintRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;}
     function trace(rung) {return lastTraces.get(rung);}
     function presentation(node) {return faceplates.describe(node, current.state.aoi_definitions);}
     function parameters(node) {return presentation(node).fields;}
@@ -98,7 +98,7 @@
       const doc = documents.find(doc => doc.instructions.has(selected)), item = doc?.instructions.get(selected);
       inspector.hidden = !item;if (!item) {inspection = '';return;}
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
-      const rows = fields.map(field => ({...field, row: read(field.ref)}));
+      const rows = fields.map(field => ({...field, row: read(field.ref, item.node)}));
       const face = item.graph ? presentation(item.node) : null;
       const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, face?.description]);if (fingerprint === inspection) return;
       inspection = fingerprint;inspector.replaceChildren();
@@ -280,7 +280,7 @@
             const power = doc.power.nodes[id];item.group.classList.toggle('live', power?.out === true);
             item.group.classList.toggle('power-in', power?.in === true);item.group.classList.toggle('untraced', !power?.event);
             item.group.classList.toggle('unsupported', !current.recognized(item.node.opcode));
-            for (const field of item.monitors) {const row = read(field.ref);field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));field.el.classList.toggle('unknown', !row || row.value == null);field.el.classList.toggle('on', !!field.flag && row?.value === true);}
+            for (const field of item.monitors) {const row = read(field.ref, item.node);field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));field.el.classList.toggle('unknown', !row || row.value == null);field.el.classList.toggle('on', !!field.flag && row?.value === true);}
           }
         } else if (doc.rows) {
           for (const [number, row] of doc.rows) {
@@ -290,7 +290,7 @@
         } else {
           for (const item of doc.instructions.values()) {
             const last = trace(String(item.node.id));item.group.classList.toggle('live', last?.power === true);
-            for (const field of item.monitors) {const row = read(field.ref);field.el.textContent = row && !row.aggregate ? valueText(row) : '';}
+            for (const field of item.monitors) {const row = read(field.ref, item.node);field.el.textContent = row && !row.aggregate ? valueText(row) : '';}
           }
           for (const [path, source] of doc.paths) path.classList.toggle('live', trace(String(source))?.power === true);
         }

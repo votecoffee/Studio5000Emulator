@@ -85,7 +85,7 @@ class MovLiteralTests(unittest.TestCase):
     def test_malformed_expression_radix_and_other_typed_forms_remain_blocked(self):
         for text in ['1LU', '1ULL', '1ULgarbage', '1L2', '1 UL', '- 1L', '1_000L',
                      '16#FFU', 'LINT#1', '1.0UL', '1e3U', '(1L)', '1L+1L', 'ABS(1L)',
-                     'TRUE', '2147483648', '16#FFFFFFFF']:
+                     'TRUE', '2147483648', '16#1_0000_0000']:
             self.assertTrue(self.engine(['AFI()MOV(' + text + ',Results[1]);']).blockers, text)
 
     def test_false_and_prescan_skip_live_destination_index_and_required_values(self):

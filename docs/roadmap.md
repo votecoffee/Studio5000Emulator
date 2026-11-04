@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.164359`: [DINT radix MOV constants](radix-mov-literals.md).
+Binary, octal and hexadecimal unsuffixed sources zero-fill to 32 bits and
+interpret bit 31 as the signed DINT top bit before numeric conversion. The
+ladder face and inspector show that source value; Wide expression lab adds
+RadixMoves. Typed radix, other consumers and native parity remain separate.
+
 Available in `26.1104.143546`: [floating constants in LREAL expressions](lreal-literals.md).
 Unsuffixed decimals/scientific constants use finite REAL precision before
 promotion; L/l-suffixed floating constants retain binary64 and can select the
