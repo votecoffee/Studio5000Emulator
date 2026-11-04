@@ -45,10 +45,12 @@ def _validate(memory, op, scope):
     if ck == key and (parts[:len(cp)] == cp or cp[:len(parts)] == parts):
         raise ModelError('Sequencer table and CONTROL cannot overlap')
     if op.name == 'SQL':
-        controls.scalar(memory, a[1], scope, 'DINT')
+        bit_transfer.operand(memory, a[1], scope)
     else:
         bit_transfer.operand(memory, a[1], scope)
-        controls.scalar(memory, a[2], scope, 'DINT', destination=op.name == 'SQO')
+        width=bit_transfer.operand(memory,a[2],scope,destination=op.name=='SQO')
+        if op.name=='SQO' and width!=32:
+            raise ModelError('SQO requires a scalar writable DINT destination')
         if op.name == 'SQO':
             dk, dp, _ = memory.resolve(a[2], scope)
             if dk == key:
@@ -60,6 +62,13 @@ def _validate(memory, op, scope):
 def prescan(memory, op, scope):
     if op.name != 'SQI':
         controls.control(memory, op.args[2 if op.name == 'SQL' else 3], scope)['EN'] = True
+
+
+def source_value(memory,ref,scope):
+    """Keep signed narrow values and complete DINT immediate patterns."""
+    value=memory.read(ref,scope)
+    if type(value) is not int:raise ModelError('Sequencer source must be a known integer')
+    return bit_value(value,'DINT')
 
 
 def execute(memory, op, power, scope):
@@ -103,8 +112,7 @@ def execute(memory, op, power, scope):
         obj['ER'] = True
         return False if n == 'SQI' else True
     if n == 'SQL':
-        value = memory.read(a[1], scope)
-        memory.store(key, paths[position], bit_value(value, 'DINT'))
+        memory.store(key, paths[position], source_value(memory,a[1],scope))
         return True
     width = bit_transfer.operand(memory, a[1], scope)
     mask = bit_transfer.unsigned(memory, a[1], scope, width)
@@ -112,7 +120,7 @@ def execute(memory, op, power, scope):
     source = memory.read(memory.address(key, paths[position]))
     if type(source) is not int:raise ModelError('Sequencer table row is unknown or not DINT')
     if n == 'SQI':
-        value = memory.read(a[2], scope)
+        value = source_value(memory,a[2],scope)
         return (source & mask) == (value & mask)
     old = 0 if mask == 0xffffffff else memory.read(a[2], scope)
     memory.write(a[2], bit_value((old & ~mask) | (source & mask), 'DINT'), scope)
@@ -124,6 +132,10 @@ def description():
                 rows='Startup row zero; edge advances through 1..LEN then wraps to one',
                 held_true='SQO rewrites masked output; SQL reloads current row; SQI compares without advancing',
                 masks='SINT/INT/DINT zero-filled patterns and 32-bit radix immediates',
+                source_types=['SINT','INT','DINT'],destination_type='SQO requires DINT',
+                sources='SQL/SQI scalar narrow integer tags, signed DINT literals or full 32-bit radix patterns; no FIFO REAL conversions',
+                source_conversion='Preserve signed narrow numeric values in DINT; full radix patterns retain all bits; SQI retains signed-source masked comparison and masks retain declared zero-fill widths',
+                source_selection='Structural types/shapes and immediate bounds; false/invalid-state paths skip live sources; SQI zero mask skips compared-source references',
                 bounds='Selected array/member region including LEN+1 rows, maximum 4096 elements; live starts consumed on reached data operations, including held calls',
                 starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live table indices',
                 selection='Structural preflight for table, mask and payload references; false/invalid-state paths skip live mask/source/destination indices',
@@ -132,5 +144,5 @@ def description():
                 aoi='RLL bodies with exact one-dimensional InOut/local DINT arrays and selected element starts; disjoint instance members allowed; existing Prescan/EnableInFalse/binding rollback rules',
                 invalid_state='ER with data retained for modeled SQI/SQO cases; SQL bounds stop and roll back',
                 native_scan_parity=False, native_control_layout=False,
-                remaining=['Mixed SQL/SQI source types', 'Broader AOI shapes/lifecycle and additional languages',
+                remaining=['Wide/unsigned/floating payloads and broader table/result types', 'Broader AOI shapes/lifecycle and additional languages',
                            'Native faults/invalid-state parity and broader controller profiles'])

@@ -85,3 +85,7 @@ Rockwell's [SQO reference](https://www.rockwellautomation.com/en-ua/docs/studio-
 describes enable-edge positioning and enabled masked output updates. Structural
 unknown handling, zero-mask address selection and transactional boundaries here
 are explicit software policies, not native Studio/controller acceptance.
+
+[Sequencer source types](sequencer-sources.md) add explicit narrow payload and
+full-pattern rules; no FIFO REAL conversion or non-DINT SQO result is admitted.
+Structural/lazy selection and rollback above remain unchanged.

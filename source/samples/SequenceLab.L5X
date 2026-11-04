@@ -5,6 +5,25 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="NarrowEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="NarrowIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="NarrowByteMask" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="NarrowWordMask" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="NarrowByteOutput" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="305397760" /></Data></Tag>
+      <Tag Name="NarrowWordOutput" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1450704896" /></Data></Tag>
+      <Tag Name="NarrowByteMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="NarrowWordMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="NarrowPatternMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="NarrowLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="NarrowLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowByteSources" DataType="SINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="SINT" Dimensions="3"><Element Index="[0]" Value="17" /><Element Index="[1]" Value="-1" /><Element Index="[2]" Value="85" /></Array></Data></Tag>
+      <Tag Name="NarrowWordSources" DataType="INT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="INT" Dimensions="3"><Element Index="[0]" Value="222" /><Element Index="[1]" Value="-32768" /><Element Index="[2]" Value="777" /></Array></Data></Tag>
+      <Tag Name="NarrowByteTable" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="NarrowWordTable" DataType="DINT" TagType="Base" Dimensions="4" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="102" /><Element Index="[3]" Value="998" /></Array></Data></Tag>
+      <Tag Name="NarrowPatterns" DataType="DINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="103" /><Element Index="[2]" Value="997" /></Array></Data></Tag>
+      <Tag Name="NarrowByteControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="2" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="NarrowWordControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="2" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
+      <Tag Name="NarrowPatternControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="1" /><DataValueMember Name="POS" DataType="DINT" Value="0" /><DataValueMember Name="EN" DataType="BOOL" Value="0" /><DataValueMember Name="EU" DataType="BOOL" Value="0" /><DataValueMember Name="DN" DataType="BOOL" Value="0" /><DataValueMember Name="EM" DataType="BOOL" Value="0" /><DataValueMember Name="ER" DataType="BOOL" Value="0" /><DataValueMember Name="UL" DataType="BOOL" Value="0" /><DataValueMember Name="IN" DataType="BOOL" Value="0" /><DataValueMember Name="FD" DataType="BOOL" Value="0" /></Structure></Data></Tag>
       <Tag Name="StackControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="CONTROL">
@@ -186,6 +205,7 @@
                 <Text>XIC(Teach)SQL(Learned[0],TeachValue,TeachControl,?,?);</Text>
               </Rung>
               <Rung Number="6" Type="N"><Text>JSR(IndirectOperands,0);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>JSR(NarrowSources,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IndirectOperands" Type="RLL">
@@ -193,6 +213,19 @@
               <Rung Number="0" Type="N"><Text>XIC(IndexedAdvance)SQO(IndexedPatterns[0],Masks[MaskIndex],IndexedOutputs[OutputIndex],IndexedSequenceControl,?,?);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(IndexedCompare)SQI(IndexedPatterns[0],Masks[MaskIndex],FeedbackInputs[SourceIndex],IndexedSequenceControl,?,?)OTE(IndexedMatches);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(IndexedTeach)SQL(IndexedLearned[0],TeachInputs[SourceIndex],IndexedTeachControl,?,?);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="NarrowSources" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(NarrowEnabled)SQL(NarrowByteTable[0],NarrowByteSources[NarrowIndex],NarrowByteControl,?,?);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(NarrowEnabled)SQL(NarrowWordTable[0],NarrowWordSources[NarrowIndex],NarrowWordControl,?,?);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(NarrowEnabled)SQL(NarrowPatterns[0],16#FFFF_FFFF,NarrowPatternControl,?,?);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowByteTable[0],NarrowByteMask,NarrowByteSources[NarrowIndex],NarrowByteControl,?,?)OTE(NarrowByteMatch);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowWordTable[0],NarrowWordMask,NarrowWordSources[NarrowIndex],NarrowWordControl,?,?)OTE(NarrowWordMatch);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowPatterns[0],16#FFFF_FFFF,16#FFFF_FFFF,NarrowPatternControl,?,?)OTE(NarrowPatternMatch);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowByteTable[0],NarrowByteMask,NarrowByteOutput,NarrowByteControl,?,?);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowWordTable[0],NarrowWordMask,NarrowWordOutput,NarrowWordControl,?,?);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(NarrowEnabled)DIV(1,NarrowLateDivisor,NarrowLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

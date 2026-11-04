@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; Array-index functions added for app `26.1104.105855`. **Full Logix emulation is not
+Audited 2026-11-04; Sequencer source types added for app `26.1104.112443`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -359,3 +359,6 @@ all eight integer types. Existing consumer-specific reference rules remain.
 [Array-index functions](array-index-functions.md) additionally qualify FRD, TOD
 and SQR within existing references using checked DINT arguments/results. Viewer
 snapshots share the forms; generic BCD expressions and native parity remain separate.
+
+[Sequencer source types](sequencer-sources.md) qualify narrow SQL/SQI payloads,
+complete source patterns and dedicated guards; SQO output remains DINT.

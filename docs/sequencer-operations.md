@@ -8,8 +8,9 @@ SQI(Array,Mask,Source,Control,?,?);
 SQL(Array,Source,Control,?,?);
 ```
 
-Tables and SQO destinations use DINT. SQI/SQL sources use DINT tags or bounded
-integer immediates. Masks accept SINT/INT/DINT bit patterns or 32-bit radix
+Tables and SQO destinations use DINT. [SQI/SQL sources](sequencer-sources.md)
+accept SINT/INT/DINT scalar tags, signed DINT integer literals and complete
+32-bit radix patterns. Masks accept SINT/INT/DINT bit patterns or 32-bit radix
 immediates; shorter masks are zero-filled. Other source types remain unsupported.
 LEN/POS come from saved CONTROL members; pseudo-operands do not initialize them.
 See [implementation](../source/logixlab/sequencer_operations.py) and
@@ -56,7 +57,7 @@ Input tables may be constant. SQL tables and CONTROL records must be writable.
 [Aliases, indirect starts and ladder AOI tables](sequencer-references.md) now
 execute with explicit index-consumption and boundary rules. SQO destinations
 outside AOIs cannot share the table base tag; disjoint AOI instance members
-are supported. Mixed source types, ST/FBD forms, other controller profiles and native
+are supported. Wider source types, ST/FBD forms, other controller profiles and native
 CONTROL layout/scan/status parity remain unfinished.
 
 ## Sequence Lab

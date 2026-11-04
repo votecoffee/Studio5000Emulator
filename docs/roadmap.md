@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.112443`: [sequencer source types](sequencer-sources.md).
+SQL/SQI use dedicated SINT/INT/DINT scalar validation and complete 32-bit source
+patterns. SQL preserves signed narrow values; SQI retains the existing signed
+source comparison and declared-width masks. SQO requires DINT output, and REAL/
+other excluded payloads are blocked before execution. Sequence lab adds narrow
+teaching/comparison and held output examples. State/lazy/AOI rollback contracts
+remain; native conversion/status/fault/lifecycle parity remains separate.
+
 Available in `26.1104.105855`: [array-index functions](array-index-functions.md).
 FRD/TOD/SQR extend existing v35 5580 references with checked DINT arguments and
 results, eight-nibble BCD, bounded signed packing and float32/nearest-even roots.

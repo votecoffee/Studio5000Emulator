@@ -3338,3 +3338,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tuple(row['IndexFuncResults['+str(i)+']'] for i in range(1,7)),(222,224,203,218,200,225));self.assertFalse(row['IndexFuncCheck'])
         write('IndexFuncEnabled',False);write('IndexFuncDecimal',-1);self.assertEqual(values(step())['IndexFuncResults[1]'],222)
         report=self.post('report',{})['integer_expression_execution']['array_indices'];self.assertEqual(report['functions'],['FRD','TOD','SQR']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_sequence_lab_narrow_sources_patterns_held_rows_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'SequenceLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['NarrowIndex'],99);self.assertIsNone(row['NarrowByteTable[1]'])
+        write('NarrowEnabled',True);fault('outside bounds');write('NarrowIndex',1);row=values(step())
+        self.assertEqual((row['NarrowByteControl.POS'],row['NarrowWordControl.POS']),(1,1))
+        self.assertEqual((row['NarrowByteTable[1]'],row['NarrowWordTable[1]'],row['NarrowPatterns[1]']),(-1,-32768,-1))
+        self.assertTrue(row['NarrowByteMatch']);self.assertTrue(row['NarrowWordMatch']);self.assertTrue(row['NarrowPatternMatch'])
+        self.assertEqual((row['NarrowByteOutput'],row['NarrowWordOutput']),(0x123400ff,0x56788000))
+        write('NarrowLateDivisor',0);fault('zero');write('NarrowLateDivisor',1)
+        write('NarrowByteSources[1]',-2);write('NarrowWordSources[1]',-1);row=values(step())
+        self.assertEqual((row['NarrowByteTable[1]'],row['NarrowWordTable[1]'],row['NarrowByteControl.POS']),(-2,-1,1));self.assertEqual((row['NarrowByteOutput'],row['NarrowWordOutput']),(0x123400fe,0x5678ffff))
+        write('NarrowEnabled',False);step();write('NarrowEnabled',True);row=values(step());self.assertEqual(row['NarrowByteControl.POS'],2);self.assertTrue(row['NarrowByteControl.DN'])
+        self.assertEqual((row['NarrowByteTable[0]'],row['NarrowWordTable[0]'],row['NarrowByteTable[3]'],row['NarrowWordTable[3]'],row['NarrowPatterns[2]']),(101,102,999,998,997))
+        write('NarrowEnabled',False);write('NarrowIndex',99);row=values(step());self.assertEqual(row['NarrowByteOutput'],0x123400fe);self.assertFalse(row['NarrowByteMatch'])
+        report=self.post('report',{})['sequencer_operations'];self.assertEqual(report['source_types'],['SINT','INT','DINT']);self.assertFalse(report['native_scan_parity'])

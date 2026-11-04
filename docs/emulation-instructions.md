@@ -1,6 +1,6 @@
 # Instruction execution inventory
 
-Audited 2026-11-04; Array-index functions added for app `26.1104.105855`. Language priority is ladder, then ST, then FBD, then SFC;
+Audited 2026-11-04; Sequencer source types added for app `26.1104.112443`. Language priority is ladder, then ST, then FBD, then SFC;
 new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **104 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
@@ -144,7 +144,7 @@ all nine numeric source types, constants and converted-limit behavior.
 | FRD/TOD/SWPB | [8/16/32/64-bit signed/unsigned BCD with all-eight-integer FRD/TOD pairs](numeric-conversions.md), plus INT/DINT byte-order forms, for v35 5580. SWPB also supports ST calls and INT-to-DINT sign extension. Structural preflight skips saved dynamic indices; false/prescan skip live operands, true calls check actual indices/values, and full writes establish unknown results. TOD uses 2/4/8/16 decimal digits by destination width; FRD weights the declared nibbles including A-F. Standalone BCD expressions, broader FBD forms and native saturation/overflow/status behavior remain unfinished. |
 | MVM/BTD | [SINT/INT/DINT ladder bit transfers](bit-transfer.md) support zero-fill, masks, overlap and bounded fields. v35 5580 structural preflight skips saved dynamic indices while false/prescan; enabled calls retain address, mask and preserved-bit requirements. Full writes establish unknown results. Wide/unsigned operands and native math/fault status remain unfinished; ST/FBD target moves have separate support above. |
 | BSL/BSR/FFL/FFU/LFL/LFU and CONTROL RES | [Bounded ladder shifts and FIFO/LIFO](control-operations.md), logical CONTROL state and [matching strings/explicit UDTs](record-queues.md) and [TIMER/COUNTER/CONTROL payloads](basic-record-queues.md). [Aliases and bounded indirect starts](queue-references.md) are supported for these shift/queue forms. [One-dimensional AOI InOut/local arrays](aoi-queues.md) now work in RLL. [Numeric FIFO/LIFO conversions](queue-conversions.md) support narrow numeric payloads of different types in the v35 5580 profile, including independently typed AOI operands. Native layout/status/overflow parity, wide types, operational/AOI records and broader AOI shapes/lifecycle remain unfinished. |
-| SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. [Alias/indirect starts and RLL AOI tables](sequencer-references.md) now execute. Mixed source types, broader AOI shapes and native scan/fault parity remain unfinished. |
+| SQO/SQI/SQL | [DINT ladder sequencers](sequencer-operations.md) for v35 5580, with startup row zero and cyclic rows 1..LEN. [Alias/indirect starts and RLL AOI tables](sequencer-references.md) now execute. [Narrow source types and complete source patterns](sequencer-sources.md) now execute. Wider types, broader AOI shapes and native scan/fault parity remain unfinished. |
 | Wide FAL/FSC | [Integer file operations](integer-files.md) add exact matching LINT/unsigned FAL transforms and shared wide/mixed CMP searches, preserving ALL/numeric/idle-source INC and existing AOI bindings. Full FAL promotion, LREAL/wider literals/functions and native status/cursor/fault/lifecycle/layout parity remain separate. |
 | FAL | [Bounded ALL/numeric ladder iteration](file-arithmetic.md) and [idle-source INC](file-incremental.md), indexed destinations, sequential writes and the CPT grammar. [RLL AOI forms](aoi-file-operations.md) now use exact InOut/local operands and canonical progress. Saved active INC state, additional types/functions, broader AOI lifecycle/schema and native cursor/overflow/status/partial-fault behavior remain unfinished. |
 | FSC | [Bounded ALL/numeric ladder search](file-search.md) and [idle-source INC](file-incremental.md), comparison expressions and FD/IN. [RLL AOI forms](aoi-file-operations.md) now support frame-scoped searches and per-CONTROL progress. Saved active INC state, broader AOI lifecycle/schema, additional expressions and native cursor/status/fault parity remain unfinished. |
@@ -235,3 +235,6 @@ all eight integer types. Existing consumer-specific reference rules remain.
 [Array-index functions](array-index-functions.md) additionally qualify FRD, TOD
 and SQR within existing references using checked DINT arguments/results. Viewer
 snapshots share the forms; generic BCD expressions and native parity remain separate.
+
+[Sequencer source types](sequencer-sources.md) qualify narrow SQL/SQI payloads,
+complete source patterns and dedicated guards; SQO output remains DINT.
