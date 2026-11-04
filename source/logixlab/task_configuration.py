@@ -201,6 +201,13 @@ class TaskConfiguration:
                 task.casefold() not in self._standard_memory_tasks):return {}
         return {20:bytes(2)}
 
+    def scheduled_settings_available(self,task,*,source_sha256):
+        """Complete explicit schedule/flags, without choosing an execution profile."""
+        if source_sha256!=self.source_sha256 or not self.source_complete or not isinstance(task,str):return False
+        row=self._tasks.get(task.casefold())
+        return bool(row is not None and row.scheduled_programs is not None and row.priority is not None
+                    and row.disable_output_update is not None and row.inhibited is not None)
+
     def measurement_supported(self,task,*,source_sha256):
         if not self.memory_attributes(task,source_sha256=source_sha256):return False
         row=self._tasks.get(task.casefold())

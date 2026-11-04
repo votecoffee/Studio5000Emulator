@@ -5,6 +5,21 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadEventTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="EventTimingIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="TimingDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TimingResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="WorkTaskMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="DeferredTaskLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="DeferredTaskMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisWorkTaskLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisWorkTaskMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisWorkProgramLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="NamedWorkProgramLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StWorkTaskLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StDeferredTaskLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ThisDeferredTaskLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="EventTimingWords" DataType="DINT" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="ControlEventInhibit" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="EventInhibitCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="LiveEventInhibit" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -172,6 +187,7 @@
               </Rung>
               <Rung Number="11" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
               <Rung Number="12" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>JSR(ReadEventTimings,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="GuardedEvent" Type="RLL">
@@ -185,6 +201,15 @@
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,EventStatusWords[EventStatusIndex]);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,WorkEvent,Status,NamedWorkStatus);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadEventTimings" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,WorkEvent,LastScanTime,EventTimingWords[EventTimingIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,WorkEvent,MaxScanTime,WorkTaskMax);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,DeferredEvent,LastScanTime,DeferredTaskLast);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,DeferredEvent,MaxScanTime,DeferredTaskMax);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadEventTiming)GSV(Program,EventProgram,LastScanTime,NamedWorkProgramLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -202,6 +227,8 @@
               <Line Number="5">IF ReadEventStatus THEN GSV(Task,WorkEvent,Status,StWorkStatus); GSV(Task,DeferredEvent,Status,DeferredStatus); IF ClearEventStatus THEN SSV(Task,WorkEvent,Status,EventStatusCommand); END_IF; END_IF;</Line>
               <Line Number="6">IF ReadEventStatus THEN StatusResult:=1/StatusDivisor; END_IF;</Line>
               <Line Number="7">IF ControlEventInhibit OR ControlDeferredInhibit OR SelfInhibitEvent THEN InhibitResult:=1/InhibitDivisor; END_IF;</Line>
+              <Line Number="8">IF ReadEventTiming THEN GSV(Task,WorkEvent,LastScanTime,StWorkTaskLast); GSV(Task,DeferredEvent,LastScanTime,StDeferredTaskLast); END_IF;</Line>
+              <Line Number="9">IF ReadEventTiming THEN TimingResult:=1/TimingDivisor; END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>
@@ -232,6 +259,9 @@
               <Rung Number="10" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkActiveStatus);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(ReadEventStatus)XIC(ClearEventStatus)SSV(Task,THIS,Status,EventStatusCommand);</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(ReadEventStatus)GSV(Task,THIS,Status,WorkExitStatus);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,LastScanTime,ThisWorkTaskLast);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,MaxScanTime,ThisWorkTaskMax);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(ReadEventTiming)GSV(Program,THIS,LastScanTime,ThisWorkProgramLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -250,6 +280,7 @@
               <Rung Number="2" Type="N">
                 <Text>TON(DeferredTimer,?,?);</Text>
               </Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadEventTiming)GSV(Task,THIS,LastScanTime,ThisDeferredTaskLast);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

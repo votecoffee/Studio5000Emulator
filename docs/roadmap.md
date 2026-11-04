@@ -4,6 +4,15 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1103.233755`: [Event task scan-time GSV](event-task-timing.md).
+Qualified instruction-only Events retain independent successful last/maximum
+invocation durations, with prior-advance named/THIS/ST visibility. Program THIS
+also selects ordinary Event contexts. Ignored, overlapping, coalesced and
+canceled requests add no timing records; initially inhibited Events can be
+enabled and measured. Whole-advance rollback and detached lifecycle are retained.
+Event lab adds comparison/guard/inhibition/fault examples. Native timing/status
+protocols, precision, scheduling and controller equivalence remain separate.
+
 Available in `26.1103.231834`: [runtime Event inhibition](event-task-inhibition.md).
 Named and THIS SSV InhibitTask control qualified Event requests and pending
 dispatch; the active body completes. Ignored work is not replayed, accepted

@@ -17,7 +17,8 @@ the current Program's unique owner Task. Program THIS selects that Program.
 The source must identify an enabled ordinary Standard Program with a scheduled
 entry under one Standard Continuous/Periodic or qualified Event Task.
 Event configuration and inhibition contexts are described in
-[Event task controls](event-task-inhibition.md); Event timing remains unqualified. Reached calls also verify that the
+[Event task controls](event-task-inhibition.md) and
+[Event timing](event-task-timing.md). Reached calls also verify that the
 active execution Task matches that owner. Missing, ambiguous or changed context
 fails instead of guessing a task from a saved value or the first configured row.
 
@@ -41,8 +42,9 @@ a later fault roll back data, bindings, scheduling and uncommitted measurements.
 
 [Event Task Status](event-task-status.md) separately supports Task THIS inside
 qualified instruction-only Event tasks for Status GSV/SSV. Configuration reads
-and SSV InhibitTask now also support Event THIS. Event timing, AOIs and isolated
-routine harnesses remain unqualified.
+and SSV InhibitTask also support Event THIS. Task and Program timing now
+support qualified ordinary Event contexts. AOIs and isolated routine harnesses
+remain unqualified.
 Empty/numeric instance aliases and broader SSV forms remain unchanged.
 [SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.

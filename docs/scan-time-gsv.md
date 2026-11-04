@@ -53,14 +53,18 @@ Programs remain unavailable. The existing explicitly qualified no-main Program
 profile retains its initialized zero values. Program reads work with supported
 multiple-task scheduling.
 
-Task reads require complete current source, Standard Continuous/Periodic Tasks,
+Task reads require complete current source, Standard Continuous/Periodic or
+[qualified instruction-only Event Tasks](event-task-timing.md),
 explicit priority/output-update/inhibit settings and a known ordered Program
-schedule. Initially inhibited Tasks remain outside this measurement profile;
-a runtime-inhibited eligible Task retains readable committed values. The existing
-single-Task registry identity requirement is retained. Event/Safety Tasks and
-routine harnesses remain unqualified. No source defaults fabricate availability.
+schedule. Initially inhibited Continuous/Periodic Tasks remain outside their
+existing measurement profile; initially inhibited qualified Events have zero
+measurements until enabled and executed. A runtime-inhibited eligible Task
+retains readable committed values. The existing single-Task native registry
+requirement is retained for Continuous/Periodic measurement. Safety, other
+Event sources/timeouts and routine harnesses remain unqualified. No source
+defaults fabricate availability.
 
-Multi-task measurements are logical GSV data. They add no native Task identity,
+Multi-task and Event measurements are logical GSV data. They add no native Task identity,
 protocol timing/status attribute, watchdog enforcement or controller CPU model.
 The coverage report exposes per-task microseconds and successful invocation
 counts under task_scan_timing; native_protocol_expanded remains false.

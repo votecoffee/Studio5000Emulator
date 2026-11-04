@@ -90,6 +90,10 @@ external I/O/motion/consumed triggers and timeout queues remain unfinished.
 new requests and queued dispatch. Current bodies complete, enabling does not
 replay discarded work, and accepted status remains latched.
 
+[Event Task/Program timing](event-task-timing.md) now exposes prior committed
+interpreter last/maximum durations in ordinary named/THIS RLL/ST contexts.
+Ignored, overlapping, coalesced and canceled requests do not add timing records.
+
 ## Event Lab
 
 Choose Event lab. A 10 ms Periodic RLL producer and a Continuous ST producer can

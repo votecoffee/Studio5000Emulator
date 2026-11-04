@@ -96,7 +96,7 @@ class TaskScanTimingTests(unittest.TestCase):
         self.assertTrue(self.engine(['GSV(Task,FastTask,LastScanTime,Out);'],mutate=inhibited).blockers)
         self.assertTrue(self.engine(['GSV(Task,FastTask,LastScanTime,Out);'],harness=True).blockers)
         import test_event_tasks as events
-        e=events.EventTaskTests.engine(self,[['EVENT(Task1);'],['GSV(Task,Task1,LastScanTime,SpeedCommand);']]);self.assertTrue(e.blockers)
+        e=events.EventTaskTests.engine(self,[['EVENT(Task1);'],['GSV(Task,Task1,LastScanTime,SpeedCommand);']]);self.assertEqual(e.blockers,[]);e.step();self.assertEqual(e.memory.read('SpeedCommand'),0)
 
     def test_loop_effects_keep_exact_outputs_and_guard_dynamic_aliases(self):
         e=self.checked(['FOR Index:=0 TO Values[0] DO GSV(Task,FastTask,LastScanTime,Values[1]); END_FOR;'],st=True,mutate=self.outputs);e.step(25)

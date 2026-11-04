@@ -143,6 +143,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         v=values(step());self.assertEqual(v['SnapshotTimers[1].ACC'],999)
         report=self.post('report',{})['control_operations'];self.assertEqual(report['basic_record_payloads'],['TIMER','COUNTER','CONTROL']);self.assertFalse(report['native_control_layout'])
 
+    def test_event_lab_timing_named_this_st_inhibition_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
+        values=lambda s:{row['name']:row['value'] for row in s['tags']}
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step():return self.post('step',{'dt':10})
+        def now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertIsNone(values(step())['EventTimingWords[1]']);write('ReadEventTiming',True);before=now();timings=self.post('report',{})['task_scan_timing']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        self.assertEqual(self.post('report',{})['task_scan_timing'],timings)
+        for tag,value in [('EventTimingIndex',1),('TriggerRLL',True),('TriggerDeferred',True)]:write(tag,value)
+        step();v=values(step())
+        self.assertEqual(v['EventTimingWords[1]'],v['ThisWorkTaskLast']);self.assertEqual(v['ThisWorkTaskLast'],v['StWorkTaskLast']);self.assertEqual(v['ThisWorkTaskMax'],v['WorkTaskMax']);self.assertGreaterEqual(v['WorkTaskMax'],v['ThisWorkTaskLast'])
+        self.assertEqual(v['DeferredTaskLast'],v['ThisDeferredTaskLast']);self.assertEqual(v['DeferredTaskLast'],v['StDeferredTaskLast']);self.assertEqual(v['ThisWorkProgramLast'],v['NamedWorkProgramLast'])
+        write('ControlEventInhibit',True);write('EventInhibitCommand',1);step();first=self.post('report',{})['task_scan_timing']['tasks']['workevent'];step();self.assertEqual(self.post('report',{})['task_scan_timing']['tasks']['workevent'],first)
+        write('EventInhibitCommand',0);write('TimingDivisor',0);before=now();timings=self.post('report',{})['task_scan_timing']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close();after=now()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(before[key],after[key])
+        self.assertEqual(self.post('report',{})['task_scan_timing'],timings);write('TimingDivisor',1);v=values(step());self.assertEqual([v[f'EventTimingWords[{i}]'] for i in (0,2)],[101,999])
+        self.assertFalse(self.post('report',{})['task_scan_timing']['native_protocol_expanded'])
+
     def test_event_lab_live_inhibition_pending_requests_this_and_rollback(self):
         self.assertEqual(self.post('demo',{'sample':'EventLab'})['blockers'],[])
         values=lambda s:{row['name']:row['value'] for row in s['tags']}

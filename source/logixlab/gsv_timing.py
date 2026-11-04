@@ -23,15 +23,16 @@ def specification(engine,op,scope='',*,executing=False):
         raise ModelError('Timing GSV requires the v35 ControlLogix 5580 project execution profile')
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls not in ATTRIBUTES or attribute not in ATTRIBUTES[cls]:raise ModelError('Unsupported timing GSV class/attribute')
-    instance=current_instance(engine,cls,instance,scope,executing=executing)
+    instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     if cls=='task':
         name=next((t['name'] for t in project.tasks if t['name'].casefold()==instance.casefold()),None)
-        if len(project.tasks)==1:
-            if (not name or not engine.task_scan_timing_eligible(name)
-                    or engine.runtime_references.task_slot(project,name) is None):
-                raise ModelError('Task timing GSV requires an explicit eligible Standard Task name and complete measurement settings')
-        elif not name or not engine.task_scan_timing_eligible(name):
-            raise ModelError('Multi-Task timing GSV requires a complete eligible Standard Continuous/Periodic Task')
+        if not name or not engine.task_scan_timing_eligible(name):
+            raise ModelError('Task timing GSV requires a complete eligible Standard Task and explicit measurement settings')
+        task=next(t for t in project.tasks if t['name']==name)
+        if task['type']=='Event':
+            current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
+        elif len(project.tasks)==1 and engine.runtime_references.task_slot(project,name) is None:
+            raise ModelError('Single-Task timing GSV requires the existing Task registry identity')
     else:
         name=next((n for n in project.programs if n.casefold()==instance.casefold()),None)
         program=project.programs.get(name)
@@ -85,13 +86,13 @@ def description():
                 destination='One exact writable DINT scalar element; same 32-bit word as existing timing protocol attributes',
                 source='Existing committed host perf_counter_ns interpreter measurements, in whole microseconds',
                 visibility='Zero until a successful advance; reads during an advance see the preceding committed timing snapshot',
-                task_scope='Complete-source Standard Continuous/Periodic tasks; multi-Task last/max measured independently per successful invocation; single-Task contract retained',
+                task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',
                 selection='Structural preflight without live destination indices or timing reads; false/prescan skip outputs; full writes establish unknown cells',
                 failures='Unavailable measurements, invalid indices and later faults roll back tags, bindings, scheduling and uncommitted measurements',
                 st_for_effects='Exact static cells; aliases/AOI/indirect destinations conservatively cover their enclosing array',
                 native_runtime_parity=False,controller_performance_prediction=False,
-                current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic Program routines; independent multi-Task last/max; single-Task contract retained',
-                remaining=['Empty/numeric instances, AOI/harness/Event THIS contexts, additional attributes and timing setters',
-                           'Multi-Task native protocol timing, Event/Safety tasks, routine harnesses and other profiles',
+                current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
+                remaining=['Empty/numeric instances, AOI/harness THIS contexts, additional attributes and timing setters',
+                           'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

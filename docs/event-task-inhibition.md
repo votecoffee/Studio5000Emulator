@@ -17,7 +17,9 @@ itself completes; subsequent requests see the new flag. This is the existing
 software completion policy extended to Events, not native abort/resume
 qualification. Event GSV configuration reads additionally support Name,
 explicit Priority, Watchdog, DisableUpdateOutputs and InhibitTask. Event Rate
-does not become a period or timeout. Event whole-Task timing is still unavailable.
+does not become a period or timeout. [Event scan timing](event-task-timing.md)
+now records qualified completed Event bodies without expanding native timing
+protocol attributes.
 
 ## Requests and pending work
 
