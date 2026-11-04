@@ -5,6 +5,15 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="IndexFuncEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexFuncPacked" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="33" /></Data></Tag>
+      <Tag Name="IndexFuncDecimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="IndexFuncRoot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="3" /></Data></Tag>
+      <Tag Name="IndexFuncLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="IndexFuncLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="IndexFuncCheck" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IndexFuncValues" DataType="DINT" TagType="Base" Dimensions="32" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="32"><Element Index="[0]" Value="200" /><Element Index="[1]" Value="201" /><Element Index="[2]" Value="202" /><Element Index="[3]" Value="203" /><Element Index="[4]" Value="204" /><Element Index="[5]" Value="205" /><Element Index="[6]" Value="206" /><Element Index="[7]" Value="207" /><Element Index="[8]" Value="208" /><Element Index="[9]" Value="209" /><Element Index="[10]" Value="210" /><Element Index="[11]" Value="211" /><Element Index="[12]" Value="212" /><Element Index="[13]" Value="213" /><Element Index="[14]" Value="214" /><Element Index="[15]" Value="215" /><Element Index="[16]" Value="216" /><Element Index="[17]" Value="217" /><Element Index="[18]" Value="218" /><Element Index="[19]" Value="219" /><Element Index="[20]" Value="220" /><Element Index="[21]" Value="221" /><Element Index="[22]" Value="222" /><Element Index="[23]" Value="223" /><Element Index="[24]" Value="224" /><Element Index="[25]" Value="225" /><Element Index="[26]" Value="226" /><Element Index="[27]" Value="227" /><Element Index="[28]" Value="228" /><Element Index="[29]" Value="229" /><Element Index="[30]" Value="230" /><Element Index="[31]" Value="231" /></Array></Data></Tag>
+      <Tag Name="IndexFuncResults" DataType="DINT" TagType="Base" Dimensions="8" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="8"><Element Index="[0]" Value="101" /><Element Index="[7]" Value="999" /></Array></Data></Tag>
       <Tag Name="IndexMathEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IndexMathBase" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="7" /></Data></Tag>
       <Tag Name="IndexMathDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
@@ -526,6 +535,14 @@
               <Rung Number="36" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[IndexMathWide],IndexMathResults[5]);</Text></Rung>
               <Rung Number="37" Type="N"><Text>XIC(IndexMathEnabled)EQU(IndexMathResults[1],33)EQU(IndexMathResults[2],33)EQU(IndexMathResults[3],55)EQU(IndexMathResults[4],10)EQU(IndexMathResults[5],33)OTE(IndexMathCheck);</Text></Rung>
               <Rung Number="38" Type="N"><Text>XIC(IndexMathEnabled)DIV(1,IndexMathLateDivisor,IndexMathLateResult);</Text></Rung>
+              <Rung Number="39" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(IndexFuncPacked)],IndexFuncResults[1]);</Text></Rung>
+              <Rung Number="40" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[TOD(IndexFuncDecimal)],IndexFuncResults[2]);</Text></Rung>
+              <Rung Number="41" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[SQR(IndexFuncRoot)],IndexFuncResults[3]);</Text></Rung>
+              <Rung Number="42" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(TOD(IndexFuncDecimal))],IndexFuncResults[4]);</Text></Rung>
+              <Rung Number="43" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[TOD(IndexFuncDecimal) AND 7],IndexFuncResults[5]);</Text></Rung>
+              <Rung Number="44" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(IndexFuncPacked)+SQR(IndexFuncRoot)],IndexFuncResults[6]);</Text></Rung>
+              <Rung Number="45" Type="N"><Text>XIC(IndexFuncEnabled)EQU(IndexFuncResults[1],221)EQU(IndexFuncResults[2],223)EQU(IndexFuncResults[3],202)EQU(IndexFuncResults[4],217)EQU(IndexFuncResults[5],207)EQU(IndexFuncResults[6],223)OTE(IndexFuncCheck);</Text></Rung>
+              <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)DIV(1,IndexFuncLateDivisor,IndexFuncLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

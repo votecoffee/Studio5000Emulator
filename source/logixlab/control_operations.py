@@ -58,7 +58,7 @@ def check_start_indices(memory, ref, scope, seen=()):
             end+=1
         if depth:raise ModelError('Unclosed array start subscript')
         for expr in split_indices(ref[start+1:end-1]):
-            for name in Expression(expr).refs:
+            for name in Expression(expr,subscript=True).refs:
                 key,parts,_=memory.resolve(name,scope)
                 if parts and parts[-1]=='POS' and memory.resolve(memory.address(key,parts[:-1]))[2]=='CONTROL':
                     raise ModelError('Array start must not use CONTROL.POS in a subscript')

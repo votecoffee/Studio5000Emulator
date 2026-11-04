@@ -67,7 +67,7 @@ test('simple wide indices remain exact and are excluded from arithmetic', () => 
 });
 test('unknowns zero divisors overflow and excluded syntax remain unavailable without effects', () => {
   const tags = [row('Index',2147483647),row('Zero',0),row('Unknown',null),row('Data[0]',44)], before = structuredClone(tags), view = create(tags);
-  for (const expr of ['Index/Zero','(Index/Zero) AND 0','(Index+1)/2','-2147483648/-1','Unknown AND 0','Index MOD 2','SQR(Index)','Index/2.0','Index**2','globalThis.value()']) {
+  for (const expr of ['Index/Zero','(Index/Zero) AND 0','(Index+1)/2','-2147483648/-1','Unknown AND 0','Index MOD 2','SQRT(Index)','Index/2.0','Index**2','globalThis.value()']) {
     assert.equal(view.read('Data['+expr+']'),null,expr);
   }
   assert.deepEqual(tags,before);
@@ -79,4 +79,23 @@ test('nested and multidimensional references resolve each selected index', () =>
 test('AOI index expressions use selected-instance locals and InOut bindings', () => {
   const view = create([row('Driver.Index',7),row('Driver.Divisor',2),row('Index',0),row('BufferB[3]',55)], {routine:'AOI:Queue/Logic',context:'Driver',bindings:{Buffer:'BufferB'}});
   assert.equal(view.read('Buffer[Index/Divisor]').value,55);assert.equal(view.resolve('Buffer[Index/Divisor]'),'BufferB[3]');
+});
+test('BCD and root index functions compose over checked DINT snapshots', () => {
+  const view=create([row('Index',21),row('Data[21]',221),row('Data[33]',233),row('Data[4]',44),row('Data[1]',11)]);
+  assert.equal(view.read('Data[TOD(Index)]').value,233);assert.equal(view.read('Data[FRD(TOD(Index))]').value,221);
+  assert.equal(view.read('Data[SQR(15)]').value,44);assert.equal(view.read('Data[SQR(-16)]').value,44);
+  assert.equal(view.read('Data[TOD(99999999) AND 7]').value,11);assert.equal(view.resolve('Data[FRD(-1)]'),'Data[166666665]');
+});
+test('root index rounding retains float32 inputs and modern-controller integer results', () => {
+  const view=create([row('Data[1]',1),row('Data[2]',2),row('Data[3]',3),row('Data[4096]',4096),row('Data[46341]',46341)]);
+  for(const [input,want] of [[2,1],[3,2],[8,3],[16777217,4096],[2147483647,46341],[-2147483648,46341]])assert.equal(view.read('Data[SQR('+input+')]').value,want);
+});
+test('function ranges unknowns wide operands and unsupported functions remain unavailable', () => {
+  const tags=[row('Unknown',null),row('Wide','1','ULINT'),row('Real',1,'REAL'),row('Data[0]',10)],before=structuredClone(tags),view=create(tags);
+  for(const expr of ['TOD(-1)','TOD(100000000)','TOD(2147483647+1)','FRD(Unknown) AND 0','SQR(Wide)','TOD(Real)','FRD(1.0)','SQRT(1)','ABS(1)','FRD(1,2)','FRD()'])assert.equal(view.read('Data['+expr+']'),null,expr);
+  assert.equal(view.read('FRD(1)'),null);assert.deepEqual(tags,before);
+});
+test('function indices retain nested references scoped locals and AOI bindings', () => {
+  const view=create([row('Driver.Index',1),row('Driver.Codes[1]',2),row('BufferB[2]',55)],{routine:'AOI:Queue/Logic',context:'Driver',bindings:{Buffer:'BufferB'}});
+  assert.equal(view.read('Buffer[FRD(Codes[SQR(Index)])]').value,55);assert.equal(view.resolve('Buffer[FRD(TOD(2))]'),'BufferB[2]');
 });

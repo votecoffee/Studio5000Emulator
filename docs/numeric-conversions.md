@@ -40,7 +40,8 @@ retained for 32-bit sources, including signed DINT sources and A-F digits.
 
 TOD consumes the integer decimal value directly, without a float32 conversion:
 SINT 99 packs to DINT 16#99, INT 32767 packs to DINT 16#32767, and either
-round-trips through FRD into its original signed type. BCD expression functions
+round-trips through FRD into its original signed type. [Array-index FRD/TOD](array-index-functions.md)
+add a separate checked DINT expression profile; standalone BCD expressions
 remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
 v35 language list. Existing [FBD conversion records](fbd-conversions.md) retain
 their separate DINT-only BCD contract; no new FBD forms are added here.

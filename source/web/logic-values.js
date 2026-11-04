@@ -64,7 +64,10 @@
       function parse(minimum = 0) {
         if (++nesting > 32) throw Error('Index nesting');
         const token = tokens[pos++];if (!token) throw Error('Index operand');let node;
-        if (token[0] === 'number' || token[0] === 'ref') node = token;
+        if (token[0] === 'ref' && tokens[pos]?.[0] === '(') {
+          const name = token[1].toUpperCase();if (!['FRD', 'TOD', 'SQR'].includes(name)) throw Error('Unsupported index function');
+          pos++;node = ['call', name, parse()];if (tokens[pos++]?.[0] !== ')') throw Error('Index function parentheses');
+        } else if (token[0] === 'number' || token[0] === 'ref') node = token;
         else if (['+', '-', 'NOT'].includes(token[0])) node = ['unary', token[0], parse(6)];
         else if (token[0] === '(') {node = parse();if (tokens[pos++]?.[0] !== ')') throw Error('Index parentheses');}
         else throw Error('Index operand');
@@ -86,6 +89,22 @@
           if (node === tree) return value;
           if (!['SINT', 'INT', 'DINT'].includes(row.type)) throw Error('Wide index expression');
           return checked(value);
+        }
+        if (node[0] === 'call') {
+          const x = visit(node[2]);
+          if (node[1] === 'SQR') {
+            const value = Math.fround(Math.sqrt(Math.abs(Math.fround(Number(x))))), low = Math.floor(value), fraction = value - low;
+            return checked(BigInt(fraction < .5 ? low : fraction > .5 ? low + 1 : low % 2 ? low + 1 : low));
+          }
+          if (node[1] === 'FRD') {
+            let bits = BigInt.asUintN(32, x), value = 0n, place = 1n;
+            for (let i = 0; i < 8; i++) {value += (bits & 15n) * place;bits >>= 4n;place *= 10n;}
+            return checked(value);
+          }
+          if (x < 0n || x > 99999999n) throw Error('Index BCD range');
+          let remaining = x, value = 0n;
+          for (let i = 0n; i < 8n; i++) {value |= (remaining % 10n) << (4n * i);remaining /= 10n;}
+          return checked(BigInt.asIntN(32, value));
         }
         if (node[0] === 'unary') {
           if (node[1] === '-' && node[2][0] === 'number') return checked(-node[2][1]);

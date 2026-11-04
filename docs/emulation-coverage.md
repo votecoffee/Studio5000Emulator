@@ -1,6 +1,6 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-04; Array-index expressions added for app `26.1104.102844`. **Full Logix emulation is not
+Audited 2026-11-04; Array-index functions added for app `26.1104.105855`. **Full Logix emulation is not
 implemented.** The current engine executes bounded RLL/Structured Text and a
 limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
@@ -355,3 +355,7 @@ LREAL result rules and other destination/consumer profiles remain separate.
 [Array-index expressions](array-index-expressions.md) add division and integer
 bitwise operators with DINT intermediates, plus exact single-tag indices for
 all eight integer types. Existing consumer-specific reference rules remain.
+
+[Array-index functions](array-index-functions.md) additionally qualify FRD, TOD
+and SQR within existing references using checked DINT arguments/results. Viewer
+snapshots share the forms; generic BCD expressions and native parity remain separate.

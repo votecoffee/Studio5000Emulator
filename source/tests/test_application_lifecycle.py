@@ -3315,3 +3315,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexMathValues[3]',123);row=values(step());self.assertEqual(row['IndexMathResults[1]'],123);self.assertEqual(row['IndexMathResults[2]'],123);self.assertEqual(row['IndexMathResults[5]'],123);self.assertFalse(row['IndexMathCheck'])
         write('IndexMathEnabled',False);write('IndexMathDivisor',0);row=values(step());self.assertEqual(row['IndexMathResults[1]'],123);self.assertFalse(row['IndexMathCheck'])
         report=self.post('report',{})['integer_expression_execution']['array_indices'];self.assertEqual(len(report['simple_tag_types']),8);self.assertFalse(report['native_runtime_parity'])
+
+    def test_bit_lab_index_functions_bcd_roots_and_atomic_recovery(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        values=lambda state:{row['name']:row['value'] for row in state['tags']}
+        step=lambda:self.post('step',{'dt':10})
+        write=lambda name,value:self.post('write',{'tag':name,'value':value})
+        def fault(text):
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
+            timing=self.post('report',{})['task_scan_timing']
+            with self.assertRaises(HTTPError) as error:step()
+            self.assertEqual(error.exception.code,400);self.assertIn(text,error.exception.read().decode());error.exception.close()
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
+            for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):self.assertEqual(after[key],before[key],key)
+            self.assertEqual(self.post('report',{})['task_scan_timing'],timing)
+        row=values(step());self.assertEqual(row['IndexFuncDecimal'],-1);self.assertIsNone(row['IndexFuncResults[1]'])
+        write('IndexFuncEnabled',True);fault('qualified');write('IndexFuncDecimal',17);row=values(step())
+        self.assertEqual(tuple(row['IndexFuncResults['+str(i)+']'] for i in range(8)),(101,221,223,202,217,207,223,999));self.assertTrue(row['IndexFuncCheck'])
+        for tag,bad,restore,text in [('IndexFuncDecimal',100000000,17,'qualified'),('IndexFuncRoot',2147483647,3,'outside bounds'),('IndexFuncPacked',-1,33,'outside bounds'),('IndexFuncLateDivisor',0,1,'zero')]:
+            write(tag,bad);fault(text);write(tag,restore)
+        write('IndexFuncPacked',34);write('IndexFuncDecimal',18);write('IndexFuncRoot',8);row=values(step())
+        self.assertEqual(tuple(row['IndexFuncResults['+str(i)+']'] for i in range(1,7)),(222,224,203,218,200,225));self.assertFalse(row['IndexFuncCheck'])
+        write('IndexFuncEnabled',False);write('IndexFuncDecimal',-1);self.assertEqual(values(step())['IndexFuncResults[1]'],222)
+        report=self.post('report',{})['integer_expression_execution']['array_indices'];self.assertEqual(report['functions'],['FRD','TOD','SQR']);self.assertFalse(report['native_runtime_parity'])

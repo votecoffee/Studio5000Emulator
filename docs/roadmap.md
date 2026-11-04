@@ -4,6 +4,14 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1104.105855`: [array-index functions](array-index-functions.md).
+FRD/TOD/SQR extend existing v35 5580 references with checked DINT arguments and
+results, eight-nibble BCD, bounded signed packing and float32/nearest-even roots.
+Nesting, arithmetic, source/destination refs, existing ST/AOI bindings, lazy
+selection and rollback are covered. Viewer snapshots resolve the same forms;
+Bit lab adds a gated example. Generic BCD expressions, other functions/types/
+profiles and native precision/status/fault/lifecycle parity remain separate.
+
 Available in `26.1104.102844`: [array-index expressions](array-index-expressions.md).
 The v35 5580 model adds integer division and AND/OR/XOR/NOT in subscripts,
 checked DINT intermediates and exact single-tag indices for all eight integer

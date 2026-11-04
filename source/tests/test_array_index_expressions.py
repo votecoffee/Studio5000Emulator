@@ -122,7 +122,7 @@ class ArrayIndexExpressionTests(unittest.TestCase):
     def test_other_index_types_functions_literals_and_wide_expressions_stay_blocked(self):
         for dtype in ('BOOL','REAL','LREAL'):
             self.assertTrue(self.engine(['AFI()MOV(Source,Results[Index]);'],index=1,index_type=dtype).blockers,dtype)
-        for expr in ('Index MOD 2','SQR(Index)','ABS(Index)','Index**2','Index/2.0','2147483648','Index<2'):
+        for expr in ('Index MOD 2','SQRT(Index)','ABS(Index)','Index**2','Index/2.0','2147483648','Index<2'):
             self.assertTrue(self.engine([f'AFI()MOV(Source,Results[{expr}]);']).blockers,expr)
         for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(['AFI()MOV(Source,Results[Index+0]);'],index=1,index_type=dtype).blockers,dtype)

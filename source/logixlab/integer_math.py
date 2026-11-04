@@ -46,15 +46,16 @@ def expression_description():
                     native_runtime_parity=False),
                 array_indices=dict(firmware='35',controllers=sorted(CONTROLLERS),
                     expression_types=['SINT','INT','DINT'],simple_tag_types=list(INT_BITS),
-                    operators=['+','-','*','/','AND','OR','XOR','NOT'],
+                    operators=['+','-','*','/','AND','OR','XOR','NOT'],functions=['FRD','TOD','SQR'],
+                    function_profile='Checked DINT arguments/results; FRD uses eight weighted nibbles, TOD packs 0..99999999, SQR uses float32 input/result and nearest-even DINT conversion after absolute-value root',
                     arithmetic='Checked DINT intermediates; exact division toward zero; bitwise integer operations',
                     simple_tags='A single integer tag retains its full declared range without DINT or floating conversion',
                     selection='Structural preflight skips saved indices; reached indices consume all required values; bounds and faults roll back the advance',
-                    excluded='Wide arithmetic subexpressions, MOD, functions, REAL/LREAL/BOOL, typed/larger literals and native parity',
+                    excluded='Wide arithmetic subexpressions, MOD, other functions, REAL/LREAL/BOOL, typed/larger literals and native parity',
                     native_runtime_parity=False),
                 native_status_parity=False,
                 remaining=['Complete numeric promotion/conversion matrix','Integer CPT/CMP power',
-                           'Remaining array subscript functions and controller profiles','Native intermediate/status/fault/partial-effect parity'])
+                           'Remaining array subscript operand/controller and native status qualification','Native intermediate/status/fault/partial-effect parity'])
 
 
 def quotient(a, b):

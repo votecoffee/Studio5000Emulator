@@ -47,7 +47,8 @@ Division of DINT minimum by -1 overflows before selection. These are modeled
 transactional faults; native major/minor fault classification, partial effects,
 operand sampling, performance and lifecycle parity remain unqualified.
 
-Subscript MOD, functions such as SQR/FRD/TOD, power, comparisons, floating/BOOL
+[Subscript FRD/TOD/SQR](array-index-functions.md) additionally execute using
+checked DINT arguments/results. MOD, other functions, power, comparisons, floating/BOOL
 operands, wide arithmetic subexpressions and larger/typed literals remain
 excluded. Other controller profiles retain their existing restrictions. This
 extension adds no new FBD or SFC forms or native Studio/controller acceptance.
@@ -64,7 +65,7 @@ remain, and the section's check coil clears.
 
 Source basis: installed v35 help 14431, **Index Through Arrays**, which lists
 the supported native index operators and distinguishes extended tag indices
-from expressions. SQR/FRD/TOD from that list remain future model work. Software
+from expressions. SQR/FRD/TOD from that list now use the separate bounded function profile. Software
 checks and this sample do not prove native numerical or lifecycle equivalence.
 
 See [resolver](../source/logixlab/model.py),

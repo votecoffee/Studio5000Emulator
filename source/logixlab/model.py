@@ -675,7 +675,7 @@ class Memory:
 
     def index(self,expr,scope):
         from .expressions import Expression
-        parsed=Expression(expr)
+        parsed=Expression(expr,subscript=True)
         if parsed.tree[0]=='ref':
             from .integer_math import CONTROLLERS
             key,parts,dtype=self.resolve(parsed.tree[1],scope)

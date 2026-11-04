@@ -11,17 +11,31 @@ FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.tr
              'SIN': math.sin, 'COS': math.cos, 'TAN': math.tan,
              'ASN': math.asin, 'ACS': math.acos, 'ATN': math.atan,
              'DEG': math.degrees, 'RAD': math.radians}
+INDEX_FUNCTIONS = frozenset(('FRD','TOD','SQR'))
+
+
+def index_function(name,value):
+    value=coerce(value,'DINT')
+    if name=='SQR':
+        return coerce(coerce(square_root(coerce(value,'REAL')),'REAL'),'DINT')
+    from .numeric_conversions import from_bcd,to_bcd
+    if name=='FRD':return from_bcd(value,32)
+    if name=='TOD':return to_bcd(value,'DINT')
+    raise ModelError('Unsupported array index function')
+
+
 PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
               '*': 5, '/': 5, 'MOD': 5, '**': 7}
 
 
 class Expression:
-    def __init__(self, text, condition=False, structured=False):
+    def __init__(self, text, condition=False, structured=False, subscript=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
         self.structured=structured
         self.function_map=dict(FUNCTIONS)
+        if subscript:self.function_map.update(FRD=None,TOD=None)
         if condition:self.precedence.update({'<':0,'<=':0,'>':0,'>=':0,'=':0,'<>':0,'&&':-1,'^^':-2,'||':-3})
         if structured:
             self.minimum=0
@@ -132,14 +146,16 @@ class Expression:
         def has_float(node):
             return node[0] == 'literal' and isinstance(node[1],float) or any(has_float(x) for x in node[1:] if isinstance(x,tuple))
         real |= has_float(self.tree)
-        real |= bool(self.functions - {'ABS','TRN','TRUNC'})
+        real |= bool(self.functions - {'ABS','TRN','TRUNC'} - (INDEX_FUNCTIONS if index else set()))
         if index:
-            if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions:
+            if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions-INDEX_FUNCTIONS:
                 raise ModelError('Array index expressions require narrow integers and supported arithmetic/bitwise operators')
-            if self.operators & {'/','AND','OR','XOR','NOT'}:
+            if self.operators & {'/','AND','OR','XOR','NOT'} or self.functions:
                 from .integer_math import CONTROLLERS
                 if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
                     raise ModelError('Extended array index expressions require the v35 ControlLogix 5580 profile')
+        elif self.functions & {'FRD','TOD'}:
+            raise ModelError('BCD expression functions require an array subscript')
         if not real and '**' in self.operators:
             raise ModelError('Integer CPT power is not modeled; use a REAL operand or destination')
         if real and self.operators & {'AND','OR','XOR','NOT'}:
@@ -156,7 +172,9 @@ class Expression:
             if kind == 'unary':
                 if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2]);return number(x if value=='+' else -x if value=='-' else ~x)
-            if kind == 'call': return number(FUNCTIONS[value](visit(node[2])))
+            if kind == 'call':
+                x=visit(node[2])
+                return number(index_function(value,x) if index else FUNCTIONS[value](x))
             x,y=visit(node[2]),visit(node[3])
             if value in ('/','MOD') and not y: raise ModelError('Expression divide by zero')
             if value=='**' and abs(y)>1024: raise ModelError('Expression exponent outside modeled range')
