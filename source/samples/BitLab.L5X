@@ -5,6 +5,12 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="RealBitwise" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealBitInput" TagType="Base" DataType="REAL"><Data Format="Decorated"><DataValue DataType="REAL" Value="3.5" /></Data></Tag>
+      <Tag Name="RealBitAnd" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-99" /></Data></Tag>
+      <Tag Name="RealBitOr" TagType="Base" DataType="REAL"><Data Format="Decorated"><DataValue DataType="REAL" Value="-99" /></Data></Tag>
+      <Tag Name="RealBitXor" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-99" /></Data></Tag>
+      <Tag Name="RealBitNot" TagType="Base" DataType="REAL"><Data Format="Decorated"><DataValue DataType="REAL" Value="-99" /></Data></Tag>
       <Tag Name="IndexFuncEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IndexFuncPacked" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="33" /></Data></Tag>
       <Tag Name="IndexFuncDecimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -576,6 +582,10 @@
               <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)DIV(1,IndexFuncLateDivisor,IndexFuncLateResult);</Text></Rung>
               <Rung Number="47" Type="N"><Text>JSR(CptConversions,0);</Text></Rung>
               <Rung Number="48" Type="N"><Text>JSR(BcdComparisons,0);</Text></Rung>
+              <Rung Number="49" Type="N"><Text>XIC(RealBitwise)AND(RealBitInput,7,RealBitAnd);</Text></Rung>
+              <Rung Number="50" Type="N"><Text>XIC(RealBitwise)OR(RealBitInput,1,RealBitOr);</Text></Rung>
+              <Rung Number="51" Type="N"><Text>XIC(RealBitwise)XOR(RealBitInput,6.5,RealBitXor);</Text></Rung>
+              <Rung Number="52" Type="N"><Text>XIC(RealBitwise)NOT(RealBitInput,RealBitNot);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CptConversions" Type="RLL"><RLLContent>

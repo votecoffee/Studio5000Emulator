@@ -2498,6 +2498,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(-1.5,None,None))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
 
+    def test_bit_lab_real_bitwise_converts_rounds_and_rolls_back_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        names=('RealBitAnd','RealBitOr','RealBitXor','RealBitNot')
+
+        def step_values():
+            state=self.post('step',{'dt':10})
+            tags={row['name']:row['value'] for row in state['tags']}
+            return tuple(tags[name] for name in names)
+
+        self.assertEqual(step_values(),(-99,-99,-99,-99))
+        self.post('write',{'tag':'RealBitwise','value':True})
+        self.assertEqual(step_values(),(4,5.0,2,-5.0))
+        self.post('write',{'tag':'RealBitInput','value':2147483648.0})
+        with self.assertRaises(HTTPError) as caught:
+            step_values()
+        self.assertEqual(caught.exception.code,400)
+        self.assertIn(b'DINT overflow',caught.exception.read())
+        caught.exception.close()
+        self.post('write',{'tag':'RealBitwise','value':False})
+        self.assertEqual(step_values(),(4,5.0,2,-5.0))
+        self.post('write',{'tag':'RealBitInput','value':-1.5})
+        self.post('write',{'tag':'RealBitwise','value':True})
+        self.assertEqual(step_values(),(6,-1.0,-8,1.0))
+
     def test_bit_lab_declared_width_bitwise_results_and_false_retention_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
         def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}

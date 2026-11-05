@@ -68,12 +68,51 @@ class ScalarBitwiseTests(unittest.TestCase):
 
     def test_invalid_immediates_types_shapes_and_constants_are_blocked_even_false(self):
         for text in ('OR(Source,2147483648,Results[0]);','AND(Source,-2147483649,Results[0]);',
-                     'NOT(16#1FFFFFFFF,Results[0]);','NOT(1.0,Results[0]);','OR(StartPB,1,Results[0]);',
+                     'NOT(16#1FFFFFFFF,Results[0]);','NOT(1e40,Results[0]);','OR(StartPB,1,Results[0]);',
                      'NOT(Source,Results);','OR(Inputs,Mask,Results[0]);','NOT(Missing,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
-        self.assertTrue(self.engine(dest='REAL').blockers)
+        self.assertTrue(self.engine(dest='LREAL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()NOT(Source,Results[0]);'],mutate=constant).blockers)
+
+    def test_real_bitwise_rounds_before_combining_and_converts_real_results(self):
+        cases=(
+            ('AND','REAL','DINT','DINT',-1.5,3,2),
+            ('OR','SINT','REAL','DINT',-1,-0.5,255),
+            ('XOR','REAL','REAL','INT',3.5,-1.5,-6),
+            ('NOT','REAL','DINT','SINT',-1.5,0,1),
+            ('NOT','REAL','DINT','REAL',3.5,0,-5.0),
+            ('OR','DINT','DINT','REAL',16777217,0,16777216.0),
+            ('OR','REAL','DINT','DINT',-2147483648.0,1,-2147483647),
+        )
+        for name,source,other,dest,value,mask,expected in cases:
+            with self.subTest(name=name,source=source,other=other,dest=dest,value=value):
+                e=self.checked([instruction(name)+';'],source=source,other=other,dest=dest,value=value,mask=mask)
+                e.step()
+                actual=e.memory.read('Results[1]')
+                self.assertEqual(actual,expected)
+                self.assertIs(type(actual),type(expected))
+        e=self.checked(['AND(3.5,7,Results[0]);','XOR(2.5,1.5,Results[1]);','NOT(-2.5,Results[2]);'])
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[4,0,1])
+
+    def test_real_bitwise_invalid_values_are_lazy_and_roll_back_prior_writes(self):
+        e=self.checked(['NOT(-1.0,Results[0]);','XIC(StartPB)AND(Inputs[Index],7,Results[Index]);'],source='REAL')
+        e.memory.write('Index',99)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[0,None,None])
+        e.memory.write('Results[0]',99)
+        e.memory.write('StartPB',True)
+        for index,value,reason in ((99,None,'outside bounds'),(1,None,'Unknown'),(1,2147483647.0,'DINT overflow')):
+            e.memory.write('Index',index)
+            if value is not None:e.memory.write('Inputs[1]',value)
+            before=self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,reason):
+                e.step()
+            self.assertEqual(self.snapshot(e),before)
+        e.memory.write('Inputs[1]',7.5)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[0,0,None])
 
     def test_false_and_prescan_skip_unknown_sources_results_and_dynamic_indices(self):
         for name in OPS:

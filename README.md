@@ -384,6 +384,10 @@ standalone ladder math instructions validate dynamic indices structurally and
 skip their values while false or in prescan. Set `MathIndex` to 1 and enable
 `IndexedMath` to try selected root/power writes into unknown result arrays.
 
+[REAL ladder bitwise operands](docs/scalar-math.md#real-operands-in-ladder-bitwise-instructions)
+round to DINT before AND, OR, XOR and NOT, with optional REAL results.
+Enable RealBitwise in **Bit lab** to see the conversions.
+
 [Basic scalar arithmetic and bitwise operations](docs/scalar-math.md) validate
 unknown values structurally, skip false-rung operands and establish full numeric
 destinations. Integer-tag `AND`/`OR`/`XOR`/`NOT` mix all eight signed/unsigned

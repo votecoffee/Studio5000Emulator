@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.162705` [REAL ladder bitwise operands](scalar-math.md#real-operands-in-ladder-bitwise-instructions)
+round REAL to DINT before AND, OR, XOR and NOT, with optional REAL results.
+Bit Lab shows rounding and scan rollback when the conversion overflows.
+
 Available in `26.1105.161302` [controller-only Module status](gsv-configuration.md#controller-only-module-status)
 adds LEDStatus and ForceStatus to ladder and ST. Both support an INT or
 the low word of a known DINT.

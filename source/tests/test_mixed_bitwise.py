@@ -184,6 +184,8 @@ class MixedBitwiseTests(unittest.TestCase):
         for text in ('OR(Inputs,Mask,Results[0]);','NOT(Source,Results);','AND(StartPB,Mask,Results[0]);','OR(Missing,Mask,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
         self.assertTrue(self.engine(source='REAL',value=1).blockers)
+        self.assertTrue(self.engine(dest='REAL').blockers)
+        self.assertTrue(self.engine(source='LREAL',other='DINT',dest='DINT',value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
         self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);'],source='LINT').blockers)

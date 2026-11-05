@@ -246,3 +246,24 @@ integer/REAL source types and bounded integer/finite floating constants.
 A REAL tag or floating immediate also selects float32 for [LINT and unsigned results](real-destination-math.md#wide-and-unsigned-integer-results).
 An LREAL input takes priority and selects [binary64 calculation](lreal-math-literals.md#real-and-integer-results)
 before conversion to the declared REAL or integer result.
+
+## REAL operands in ladder bitwise instructions
+
+Standalone AND, OR, XOR and NOT accept scalar REAL tags and ordinary REAL
+immediates in the v35 5580 software profile. Mix them with SINT, INT or DINT
+tags and the existing bounded DINT immediates. Each REAL source is sampled at
+binary32 precision and rounded to a signed DINT, with ties to even. The
+operation uses the rounded integer's bits. Narrow integer sources retain
+their declared-width zero extension.
+
+An integer destination retains its usual low bits. A REAL destination gets
+the signed DINT result converted to binary32. An out-of-range conversion
+faults and rolls back the advance. False rungs and prescan skip live sources
+and indices. LREAL, mixes of REAL with wide or unsigned integers, typed
+integer immediates mixed with REAL, expressions and native status/fault
+behavior are outside this profile.
+
+In **Bit lab**, enable RealBitwise and step. RealBitInput starts at 3.5 and
+rounds to 4. AND, OR, XOR and NOT produce 4, 5.0, 2 and -5.0. Set RealBitInput
+to -1.5 to see negative conversion, or enter 2147483648 to exercise rollback.
+[Rockwell AND operand reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/move-logical-instructions/bitwise-and--and-.html)
