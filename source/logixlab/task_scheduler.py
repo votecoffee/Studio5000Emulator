@@ -76,6 +76,7 @@ class TaskScheduler:
         self.priorities = [t.priority for t in self.tasks]
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
         self.periods={i:t.period for i,t in enumerate(self.tasks) if t.period is not None}
+        self.watchdog_overrides: dict[int, int] = {}
         self.reset(0)
 
     def reset(self, now):
@@ -114,7 +115,7 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
     def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None):
@@ -166,6 +167,7 @@ class TaskScheduler:
                     rate_change='Changed periods start at the next advance boundary; prepared releases keep their original phase',
                     tasks=[dict(name=t.name, kind=t.kind, priority=self.priorities[i] if t.kind!='Continuous' else None,
                                 source_priority=t.priority if t.kind!='Continuous' else None, rate_ms=self.periods.get(i), source_rate_ms=t.period,
+                                watchdog_override_us=self.watchdog_overrides.get(i),
                                 inhibited=self.inhibitions[i], source_inhibited=t.inhibited, executions=self.counts[i],
                                 last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i),
                                 **({'event_instruction_overlaps':self.overlaps[i],

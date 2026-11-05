@@ -356,6 +356,70 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(e.scheduler_description()['tasks'][0]['priority'],1)
         self.assertEqual(Engine(e.project).scheduler_description()['tasks'][0]['priority'],5)
 
+    @staticmethod
+    def explicit_watchdogs(root):
+        for task in root.findall('./Controller/Tasks/Task'):task.set('Watchdog','125.001')
+        for program in root.findall('./Controller/Programs/Program'):
+            program.attrib.update(UseAsFolder='false',Disabled='false')
+
+    def test_watchdog_writes_keep_exact_microseconds_and_use_task_specific_zero_defaults(self):
+        for name,default in (('Task0',5000000),('Task1',500000)):
+            e=self.checked(f'SSV(Task,{name},Watchdog,Control);\nGSV(Task,{name},Watchdog,Readout);',
+                           mutate=self.explicit_watchdogs)
+            for source,expected in ((1000,1000),(1001,1001),(2000000000,2000000000),(0,default)):
+                e.memory.write('Control',source);e.step()
+                self.assertEqual(e.memory.read('Readout'),expected)
+                self.assertEqual(e.memory.read('Control'),source)
+            row=next(row for row in e.scheduler_description()['tasks'] if row['name']==name)
+            self.assertEqual(row['watchdog_override_us'],default)
+            self.assertEqual(e.project.task_timing.attributes(name,source_sha256=e.project.sha256)[12],struct.pack('<I',125001))
+            self.assertFalse(e.scheduler_description()['watchdog_enforced'])
+
+    def test_watchdog_range_and_late_failure_roll_back_override_and_progress(self):
+        logic='XIC(Gate)SSV(Task,Task1,Watchdog,Control);\nGSV(Task,Task1,Watchdog,Readout);\nDIV(1,Divisor,Count0);'
+        e=self.checked(logic,mutate=self.explicit_watchdogs,defer=True)
+        e.enter_run();e.memory.write('Gate',False);e.memory.values['control']=None;e.step()
+        self.assertEqual(e.memory.read('Readout'),125001)
+        self.assertEqual(e._task_scheduler.watchdog_overrides,{})
+        e.memory.write('Gate',True);e.memory.write('Control',1001);e.step()
+        schedule=e.scheduler_description()
+        for value,divisor,pattern in ((-1,1,'DINT microseconds'),(999,1,'DINT microseconds'),
+                                      (2000000001,1,'DINT microseconds'),(150001,0,'zero')):
+            e.memory.write('Control',value);e.memory.write('Divisor',divisor)
+            before=copy.deepcopy(e.memory.values)
+            with self.assertRaisesRegex(ModelError,pattern):e.step()
+            self.assertEqual(e.memory.values,before)
+            self.assertEqual(e.scheduler_description(),schedule)
+        e.memory.write('Divisor',1);e.step()
+        self.assertEqual(e.memory.read('Readout'),150001)
+
+    def test_st_this_watchdog_survives_run_and_detached_replacement_and_fresh_load_restores_source(self):
+        logic='SSV(Task,THIS,Watchdog,Control); GSV(Task,THIS,Watchdog,Readout);'
+        e=self.checked(logic,st=True,mutate=self.explicit_watchdogs)
+        e.memory.write('Control',12345);e.step();e.enter_run()
+        self.assertEqual(e._task_scheduler.watchdog_overrides,{0:12345})
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        source=decode(container(E.tostring(xml_source(name='Main',text='NOP();'),encoding='utf-8')))
+        candidate,_=prepare(e,source,('NOP();',),'Program1',0)
+        candidate.memory.write('Control',2001);candidate.step()
+        self.assertEqual((e.memory.read('Readout'),candidate.memory.read('Readout')),(12345,2001))
+        self.assertEqual(e._task_scheduler.watchdog_overrides,{0:12345})
+        self.assertEqual(Engine(e.project)._task_scheduler.watchdog_overrides,{})
+
+    def test_watchdog_requires_explicit_eligible_source_and_exact_dint(self):
+        for operand in ('Gate','PrioIn','Control.0','1000'):
+            self.assertTrue(self.engine(f'AFI()SSV(Task,Task1,Watchdog,{operand});',
+                                        mutate=self.explicit_watchdogs).blockers)
+        for raw in (None,'0','bad'):
+            def invalid(root):
+                self.explicit_watchdogs(root)
+                task=root.find('./Controller/Tasks/Task[2]')
+                if raw is None:task.attrib.pop('Watchdog')
+                else:task.set('Watchdog',raw)
+            self.assertTrue(self.engine('AFI()SSV(Task,Task1,Watchdog,Control);',mutate=invalid).blockers)
+
     def test_system_lab_independent_controls_and_late_fault_recovery(self):
         e=Engine(Project(Path(__file__).resolve().parents[1]/'samples/SystemLab.L5X'));self.assertEqual(e.blockers,[]);e.step(25)
         self.assertEqual((e.memory.read('FastCount'),e.memory.read('SlowCount')),(2,1))

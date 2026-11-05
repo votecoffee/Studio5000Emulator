@@ -613,6 +613,7 @@ class Engine:
         timings=dict(self._program_timings)
         task_timings=dict(self._task_scan_timings)
         inhibitions=dict(self._task_scheduler.inhibitions) if batch else None
+        watchdog_overrides=dict(self._task_scheduler.watchdog_overrides) if batch else None
         completed=[]
         try:
             task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
@@ -671,6 +672,7 @@ class Engine:
                 self._task_scheduler.inhibitions=inhibitions
                 self._task_scheduler.periods=batch.periods
                 self._task_scheduler.priorities=list(batch.priorities)
+                self._task_scheduler.watchdog_overrides=watchdog_overrides
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
@@ -1026,7 +1028,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Periodic Rate, Periodic/Event Priority and Event Status/OverlapCount; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic Rate, Periodic/Event Priority and Event Status/OverlapCount; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

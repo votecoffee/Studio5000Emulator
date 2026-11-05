@@ -21,7 +21,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | --- | --- | --- | --- |
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
 | Task | Rate | DINT | Effective Periodic rate in project execution, explicit source rate in a harness, in microseconds |
-| Task | Watchdog | DINT | Explicit positive time, in microseconds |
+| Task | Watchdog | DINT | Effective setting in project execution, explicit positive source setting in a harness, in microseconds |
 | Task | Priority | INT | Effective Periodic/Event priority in project execution, explicit source priority in a harness |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
 | Task | DisableUpdateOutputs | DINT | Explicit source flag, 0/1 |
@@ -113,6 +113,36 @@ of 1..15. CIP Task Priority reads retain source metadata. Continuous, Safety,
 other Event profiles, AOI and routine-harness setters, and native arbitration
 remain outside this profile.
 
+## Changing a task watchdog
+
+`SSV(Task,THIS,Watchdog,WatchdogCommandUs)` changes the effective watchdog
+setting of a Standard Continuous, Periodic or qualified instruction-only
+Event task with an explicit positive source setting. The source operand is
+an exact scalar DINT tag in microseconds. Positive values from 1000 through
+2000000000 retain microsecond precision. A zero write selects 500000
+microseconds for a Periodic task or 5000000 for a Continuous task. Event
+watchdog writes require a positive value.
+
+Named tasks and `THIS` use the existing scheduled Program context. GSV
+Watchdog immediately reads the latest write. A later fault restores the
+previous setting, tag values and task progress together. False rungs, skipped
+ST calls and prescan skip the source value. Run entry and routine replacement
+retain the setting. Reset or reload restores the explicit source setting.
+
+In **System lab**, enable ApplyWatchdog and step. LiveWatchdogUs reads
+125001 microseconds. The earlier BackgroundWatchdog read sees it on the
+following step. Set WatchdogCommandUs to zero and step to see the 5-second
+Continuous default in LiveWatchdogUs. Disable the gate to retain it.
+Task schedule reports `watchdog_override_us` after a runtime write.
+
+Installed v35 help 14646 defines the DINT operand and zero-write defaults.
+Topic 18424 describes the configured range. See Rockwell's
+[Task object](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
+and [task configuration](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/tasks--programs--and-routines/tasks.html)
+references. The emulator models the setting and keeps CIP reads bound to
+source metadata. Expiration, fault handlers, CPU timing and Safety watchdogs
+remain separate. Missing or zero values in the source remain unavailable.
+
 ## Destinations and execution
 
 Numeric destinations must be exact scalar INT or DINT tags as listed above;
@@ -124,8 +154,8 @@ be established; strings preserve unused destination bytes.
 
 Prescan, false ladder rungs and skipped ST branches retain outputs. Each reached
 call reads the loaded configuration or the current project-mode
-[InhibitTask flag](task-inhibition.md), Periodic Rate or Periodic/Event Priority.
-A disk edit takes effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
+[InhibitTask flag](task-inhibition.md), Periodic Rate, Periodic/Event Priority
+or Watchdog. A disk edit takes effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
 track every destination, including a string's LEN/DATA region. Capacity/bounds
 errors and later failures retain whole-advance rollback of data and scheduling.
 

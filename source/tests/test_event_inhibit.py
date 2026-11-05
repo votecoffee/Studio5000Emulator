@@ -146,6 +146,20 @@ class EventInhibitTests(unittest.TestCase):
         e.step();self.assertEqual(e.memory.read('Observed'),1)
         e.step();self.assertEqual(e.memory.read('Observed'),2)
 
+    def test_event_this_watchdog_sees_named_write_and_rejects_undefined_zero_default(self):
+        e=self.checked([['SSV(Task,Task1,Watchdog,Command);','EVENT(Task1);',
+                         'GSV(Task,Task1,Watchdog,CallerStatus);'],
+                        ['GSV(Task,THIS,Watchdog,EntryStatus);','SSV(Task,THIS,Watchdog,SelfCommand);',
+                         'GSV(Task,THIS,Watchdog,ExitStatus);']])
+        e.memory.write('Command',125001);e.memory.write('SelfCommand',250001);e.step()
+        self.assertEqual((e.memory.read('EntryStatus'),e.memory.read('ExitStatus'),e.memory.read('CallerStatus')),
+                         (125001,250001,250001))
+        for source in ('Command','SelfCommand'):
+            original=e.memory.read(source);e.memory.write(source,0)
+            self.fault(e,'zero is qualified')
+            e.memory.write(source,original)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['watchdog_override_us'],250001)
+
     def test_wrong_types_aoi_harness_event_rate_and_missing_flags_remain_guarded(self):
         for text in ('SSV(Task,Task1,InhibitTask,StartPB);','SSV(Task,Task1,InhibitTask,1);','GSV(Task,Task1,Rate,CallerStatus);'):
             self.assertTrue(self.engine([[text],['NOP();']]).blockers,text)

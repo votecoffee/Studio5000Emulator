@@ -500,6 +500,9 @@
       <Tag Name="ApplySlowPriority" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SlowPriorityCommand" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="1" /></Data></Tag>
       <Tag Name="LiveSlowPriority" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="5" /></Data></Tag>
+      <Tag Name="ApplyWatchdog" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="WatchdogCommandUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="125001" /></Data></Tag>
+      <Tag Name="LiveWatchdogUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="500000" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -561,6 +564,8 @@
               <Rung Number="21" Type="N"><Text>GSV(Task,FastTask,Rate,LiveFastRateUs);</Text></Rung>
               <Rung Number="22" Type="N"><Text>XIC(ApplySlowPriority)SSV(Task,SlowTask,Priority,SlowPriorityCommand);</Text></Rung>
               <Rung Number="23" Type="N"><Text>GSV(Task,SlowTask,Priority,LiveSlowPriority);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>XIC(ApplyWatchdog)SSV(Task,THIS,Watchdog,WatchdogCommandUs);</Text></Rung>
+              <Rung Number="25" Type="N"><Text>GSV(Task,THIS,Watchdog,LiveWatchdogUs);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTypedClock" Type="RLL">

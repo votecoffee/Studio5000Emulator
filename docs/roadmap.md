@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.104728` [Task Watchdog settings](gsv-configuration.md#changing-a-task-watchdog)
+support exact DINT microseconds, Continuous/Periodic zero-write defaults and
+live GSV readback. Task watchdog expiration and fault handlers remain open.
+
 Available in `26.1105.103707` [Periodic and Event Task Priority](gsv-configuration.md#changing-a-task-priority)
 accepts SSV INT writes with immediate GSV readback. Committed priorities govern
 the next advance's release and Event order. System Lab shows SlowTask promotion.
@@ -881,7 +885,7 @@ pending-duplicate semantics, external triggers/timeouts and CPU/status remain op
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and
-controller settings. [InhibitTask](task-inhibition.md), [Periodic Rate](gsv-configuration.md#changing-a-periodic-task-rate) and [Task Priority](gsv-configuration.md#changing-a-task-priority) provide bounded Standard task control. Broader SSV and native status/fault/timing parity remain open.
+controller settings. [InhibitTask](task-inhibition.md), [Periodic Rate](gsv-configuration.md#changing-a-periodic-task-rate) [Task Priority](gsv-configuration.md#changing-a-task-priority) and [Task Watchdog](gsv-configuration.md#changing-a-task-watchdog) provide bounded Standard task settings. Broader SSV and native status/fault/timing parity remain open.
 
 Available conversion increment: [LOWER/UPPER and STOR/RTOS](string-conversions.md)
 in ladder/ST with custom strings and AOI bindings. Native RTOS formatting, STOR

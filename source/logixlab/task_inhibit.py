@@ -5,12 +5,16 @@ from . import gsv_configuration
 from .task_configuration import NAME
 from .task_scheduler import MIN_PERIOD_MS, MAX_PERIOD_MS, MIN_PRIORITY, MAX_PRIORITY
 
+MIN_WATCHDOG_US = 1000
+MAX_WATCHDOG_US = 2_000_000_000
+DEFAULT_WATCHDOG_US = {'Continuous': 5_000_000, 'Periodic': 500_000}
+
 
 def validate(engine,op,scope,*,executing=False):
     if (len(op.args)!=4 or any(not isinstance(a,str) for a in op.args)
-            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority')
+            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority','watchdog')
             or not NAME.fullmatch(op.args[1])):
-        raise ModelError('SSV supports Task InhibitTask, Rate or Priority and a task name or THIS')
+        raise ModelError('SSV supports Task InhibitTask, Rate, Priority or Watchdog and a task name or THIS')
     if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
         raise ModelError('SSV Task requires project task context; AOI/routine harness calls remain unqualified')
     attribute=op.args[2].casefold()
@@ -47,6 +51,14 @@ def execute(engine,op,power,scope):
             if not MIN_PRIORITY<=value<=MAX_PRIORITY:
                 raise ModelError(f'SSV Priority requires an INT in {MIN_PRIORITY}..{MAX_PRIORITY}')
             engine._task_scheduler.priorities[index]=value
+        elif attribute=='watchdog':
+            scheduler=engine._task_scheduler
+            if value==0:
+                value=DEFAULT_WATCHDOG_US.get(scheduler.tasks[index].kind)
+                if value is None:raise ModelError('SSV Watchdog zero is qualified only for Continuous and Periodic tasks')
+            if not MIN_WATCHDOG_US<=value<=MAX_WATCHDOG_US:
+                raise ModelError(f'SSV Watchdog requires DINT microseconds in {MIN_WATCHDOG_US}..{MAX_WATCHDOG_US}')
+            scheduler.watchdog_overrides[index]=value
         else:engine._task_scheduler.inhibitions[index]=value!=0
     return power
 
@@ -82,6 +94,17 @@ def priority_description():
                 lifecycle='Run entry and routine replacement retain effective priorities; reset/reload restores source priorities',
                 rollback='Priority and release ordering commit with task progress and tag values',
                 native_protocol_expanded=False,native_runtime_parity=False)
+
+
+def watchdog_description():
+    return dict(profile='v35-5580-SSV-Task-Watchdog',languages=['RLL','ST'],
+                targets=['Standard Continuous','Standard Periodic','Instruction-only Standard Event'],
+                source='Exact scalar DINT microseconds and explicit source Watchdog setting',
+                range_us=[MIN_WATCHDOG_US,MAX_WATCHDOG_US],zero_defaults_us=dict(DEFAULT_WATCHDOG_US),
+                visibility='GSV Watchdog immediately reads the staged setting',
+                lifecycle='Run entry and routine replacement retain overrides; reset/reload restores source settings',
+                rollback='Overrides commit with tag values and task progress',
+                watchdog_enforced=False,native_protocol_expanded=False,native_runtime_parity=False)
 
 
 def attributes(engine,name,*,source_sha256):
