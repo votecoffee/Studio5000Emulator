@@ -11,11 +11,13 @@ GSV(Task,THIS,StartTime,LastStart);
 GSV(Task,FastTask,StartTime,StartWords[1]);
 GSV(Task,FastTask,MinimumInterval,MinimumWords[1]);
 GSV(Task,FastTask,MaximumInterval,MaximumWords[1]);
+GSV(Task,FastTask,MinimumInterval,TaskMinTimeWords[1]);
 ```
 
 StartTime accepts a scalar LINT or DT. MinimumInterval and MaximumInterval
 accept a scalar TIME. Each attribute also accepts two contiguous DINT elements
-within one logical array or member boundary, lower word first.
+within one logical array or member boundary, lower word first. Interval reads
+also accept two contiguous TIME32 elements as signed words, lower first.
 Complete writes establish unknown destination cells and retain neighboring
 elements. The full window and permissions are checked before its first write.
 
@@ -39,8 +41,10 @@ in its parent's duration; each Event also has its own independent start history.
 An unavailable host UTC sample withholds only that invocation's StartTime.
 Durations and intervals remain independently available. Unrepresentable 64-bit
 intervals are withheld without wrapping or saturation. DINT pairs preserve all
-64 bits, including a set sign bit in either word. DT and TIME writes check the
-[supported type ranges](time-date-storage.md) and fault on overflow.
+64 bits, including a set sign bit in either word. Each TIME32 word must fit the
+[supported type range](time-date-storage.md). If either word is outside that
+range, the pair is rejected before either cell changes. Scalar DT and TIME
+writes also check their supported type ranges.
 
 ## Selection, faults and lifecycle
 
@@ -69,7 +73,9 @@ preceding FastTask UTC start. Ladder `TaskMinWords`/`TaskMaxWords` match ST
 Set `TaskStartDivisor=0` to demonstrate a late fault and rollback. Restore 1
 before continuing. Disable `ReadTaskStarts` before returning the index to 99.
 Enable ReadTypedTimes to read the prior Background Task start into TaskStartDate
-and the prior FastTask intervals into TaskMinTime and TaskMaxTime.
+and the prior FastTask intervals into TaskMinTime and TaskMaxTime. The same
+ladder routine writes the minimum interval to TaskMinTimeWords[1..2]. The ST
+routine gated by ReadTaskStarts writes the maximum to TaskMaxTimeWords[1..2].
 
 See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 [timing reads](../source/logixlab/gsv_timing.py) and
@@ -78,6 +84,6 @@ See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
-SSV timing changes, Safety/other Event profiles, broader AOI/harness contexts,
-TIME32[2] interval destinations and native sampling/precision/status/fault/lifecycle
+SSV timing changes, Safety/other Event profiles, broader AOI/harness contexts
+and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

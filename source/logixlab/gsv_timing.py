@@ -50,7 +50,7 @@ def destination(memory,ref,scope,number):
     if number==13:
         return gsv_wall_clock.destination(memory,ref,scope,2)
     if number in (14,15):
-        return gsv_wall_clock.destination(memory,ref,scope,2,scalar_types=('TIME',))
+        return gsv_wall_clock.destination(memory,ref,scope,2,scalar_types=('TIME',),word_types=('DINT','TIME32'))
 
     key,parts,dtype=memory.check_writable(ref,scope)
     if dtype not in ('DINT','TIME32') or isinstance(memory.at(key,parts),(dict,list)):
@@ -72,11 +72,14 @@ def execute(engine,op,scope):
     raw=reader(name,source_sha256=engine.project.sha256).get(number)
     count=2 if number in (13,14,15) else 1
     if raw is None or len(raw)!=count*4:raise ModelError('Timing GSV measurement is unavailable')
-    if dtype in TIME_FORMATS:
-        memory.store(key,paths[0],coerce(struct.unpack(TIME_FORMATS[dtype],raw)[0],dtype))
-        return
-    # Keep the same DWORD bits as the existing protocol counters in signed DINT storage.
-    values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
+    if dtype in TIME_FORMATS and len(paths)==1:
+        values=(coerce(struct.unpack(TIME_FORMATS[dtype],raw)[0],dtype),)
+    else:
+        # Keep both DWORD bit patterns. TIME32 pairs also obey each cell's
+        # duration range, so validate both words before the first store.
+        values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
+        if dtype=='TIME32':
+            values=tuple(coerce(value,dtype) for value in values)
     for path,value in zip(paths,values,strict=True):memory.store(key,path,value)
 
 
@@ -95,7 +98,7 @@ def description():
     return dict(profile='v35-5580-committed-GSV-timing',languages=['RLL','ST'],
                 classes=['Program','Task'],attributes=['LastScanTime','MaxScanTime'],
                 task_attributes=['StartTime','MinimumInterval','MaximumInterval'],
-                destination='Scan durations: scalar DINT or TIME32; Task intervals: scalar TIME or two contiguous DINTs; Task StartTime: scalar DT, scalar LINT or two contiguous DINTs',
+                destination='Scan durations: scalar DINT or TIME32; Task intervals: scalar TIME or two contiguous DINT or TIME32 elements; Task StartTime: scalar DT, scalar LINT or two contiguous DINTs',
                 source='Committed host perf_counter_ns interpreter durations/start intervals, in whole microseconds; StartTime samples existing host UTC WallClockTime',
                 intervals='Independent successive actual host invocation starts; zero until two executions; include host idle time, not simulated rate',
                 start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
@@ -108,6 +111,6 @@ def description():
                 native_runtime_parity=False,controller_performance_prediction=False,
                 current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
                 remaining=['Empty/numeric instances, AOI/harness THIS contexts, additional attributes and timing setters',
-                           'TIME32[2] interval destinations, simulated-time intervals and newer shortened interval names',
+                           'Simulated-time intervals and newer shortened interval names',
                            'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

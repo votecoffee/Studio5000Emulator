@@ -28,6 +28,11 @@ class TaskStartGsvTests(unittest.TestCase):
         tag=E.SubElement(tags,'Tag',Name='TimeWords',DataType='TIME32',TagType='Base',Dimensions='2')
         array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TIME32',Dimensions='2')
         for i in range(2):E.SubElement(array,'Element',Index=f'[{i}]',Value='0')
+        for name in ('SplitMinimum','SplitMaximum'):
+            tag=E.SubElement(tags,'Tag',Name=name,DataType='TIME32',TagType='Base',Dimensions='4')
+            array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TIME32',Dimensions='4')
+            for i,value in ((0,101),(3,999)):
+                E.SubElement(array,'Element',Index=f'[{i}]',Value=str(value))
         for name in ('StartWords','MinWords','MaxWords','NamedWords'):
             tag=E.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base',Dimensions='4')
             array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='DINT',Dimensions='4')
@@ -83,6 +88,42 @@ class TaskStartGsvTests(unittest.TestCase):
                 e.step(25)
                 self.assertEqual((e.memory.read('Stamp'),self.word(e,'MinWords'),self.word(e,'MaxWords')),expected)
                 self.assertEqual(tuple(e.memory.read(tag,allow_time=True) for _,tag in typed),expected)
+
+    def test_time32_pairs_preserve_words_and_neighbors_in_ladder_and_st(self):
+        minimum=(1<<32)+23
+        maximum=(3<<32)+0xFFFFFFFF
+        for st in (False,True):
+            e=self.checked(self.reads()+[
+                'GSV(Task,FastTask,MinimumInterval,SplitMinimum[1]);',
+                'GSV(Task,FastTask,MaximumInterval,SplitMaximum[1]);',
+            ],st=st)
+            self.assertEqual(e.memory.read('SplitMinimum',allow_time=True),[101,None,None,999])
+            e._task_scan_timings['fasttask']=TaskMeasurements(
+                minimum_interval_ns=minimum*1000,maximum_interval_ns=maximum*1000,
+                executions=2,last_start_ns=0,start_time_us=0)
+            e.step(25)
+            self.assertEqual(e.memory.read('SplitMinimum',allow_time=True),[101,23,1,999])
+            self.assertEqual(e.memory.read('SplitMaximum',allow_time=True),[101,-1,3,999])
+            self.assertEqual((self.word(e,'MinWords'),self.word(e,'MaxWords')),(minimum,maximum))
+
+    def test_time32_pair_checks_live_window_and_both_words_atomically(self):
+        def alias(root):
+            E.SubElement(root.find('./Controller/Tags'),'Tag',Name='Selected',TagType='Alias',
+                         DataType='TIME32',AliasFor='SplitMaximum[Index]')
+        e=self.checked(['XIC(Flag)GSV(Task,FastTask,MaximumInterval,Selected);'],mutate=alias)
+        e.memory.write('Index',99);e.enter_run();e.step(25)
+        self.assertEqual(e.memory.read('SplitMaximum',allow_time=True),[101,None,None,999])
+        e.memory.write('Flag',True);e.memory.write('Index',3)
+        self.fault(e,'array/member boundary')
+        e.memory.write('Index',1)
+        for value in ((1<<32)+(1<<31),(1<<63)+5):
+            e._task_scan_timings['fasttask']=TaskMeasurements(
+                maximum_interval_ns=value*1000,executions=2,last_start_ns=0)
+            self.fault(e,'TIME32 requires exact ticks')
+        e._task_scan_timings['fasttask']=TaskMeasurements(
+            maximum_interval_ns=((1<<32)+5)*1000,executions=2,last_start_ns=0)
+        e.step(25)
+        self.assertEqual(e.memory.read('SplitMaximum',allow_time=True),[101,5,1,999])
 
     def test_start_and_interval_overflow_roll_back_typed_and_legacy_outputs(self):
         stamp=BOUNDS['DT'][1]+1;duration=(BOUNDS['TIME'][1]+1)*1000
@@ -171,7 +212,8 @@ class TaskStartGsvTests(unittest.TestCase):
     def test_invalid_types_small_windows_constants_other_classes_and_setters_are_guarded(self):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Stamp"]').set('Constant','true')
         for logic in ('GSV(Task,FastTask,MinimumInterval,Stamp);','GSV(Task,FastTask,StartTime,Out);',
-                      'GSV(Task,FastTask,MinimumInterval,TimeWords[0]);','GSV(Task,FastTask,MinimumInterval,StartDate);',
+                      'GSV(Task,FastTask,MinimumInterval,TimeWords[1]);','GSV(Task,FastTask,MinimumInterval,StartDate);',
+                      'GSV(Task,FastTask,StartTime,TimeWords[0]);',
                       'GSV(Task,FastTask,StartTime,MinWords[3]);','GSV(Program,BackgroundProgram,StartTime,Stamp);',
                       'SSV(Task,FastTask,StartTime,Stamp);','GSV(Task,FastTask,MaxInterval,MinWords[1]);'):
             self.assertTrue(self.engine([logic]).blockers,logic)

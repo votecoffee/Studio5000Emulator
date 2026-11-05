@@ -494,6 +494,8 @@
       <Tag Name="TaskTime32" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data></Tag>
       <Tag Name="TaskMinTime" DataType="TIME" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
       <Tag Name="TaskMaxTime" DataType="TIME" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
+      <Tag Name="TaskMinTimeWords" DataType="TIME32" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="TIME32" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="TaskMaxTimeWords" DataType="TIME32" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="TIME32" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ApplyFastRate" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="FastRateCommandUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="20000" /></Data></Tag>
       <Tag Name="LiveFastRateUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="10000" /></Data></Tag>
@@ -577,6 +579,7 @@
               <Rung Number="4" Type="N"><Text>GSV(Task,THIS,MaxScanTime,TaskTime32);</Text></Rung>
               <Rung Number="5" Type="N"><Text>GSV(Task,FastTask,MinimumInterval,TaskMinTime);</Text></Rung>
               <Rung Number="6" Type="N"><Text>GSV(Task,FastTask,MaximumInterval,TaskMaxTime);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>GSV(Task,FastTask,MinimumInterval,TaskMinTimeWords[1]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTaskStarts" Type="RLL">
@@ -594,6 +597,7 @@
               <Line Number="0">GSV(Task,THIS,StartTime,StTaskStart);</Line>
               <Line Number="1">GSV(Task,FastTask,MinimumInterval,StTaskMin[1]);</Line>
               <Line Number="2">GSV(Task,FastTask,MaximumInterval,StTaskMax[1]);</Line>
+              <Line Number="3">GSV(Task,FastTask,MaximumInterval,TaskMaxTimeWords[1]);</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">

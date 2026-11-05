@@ -291,6 +291,12 @@ lab adds a gated precision/conversion example. LREAL arithmetic, ST expressions,
 aggregate wire/copy forms and native precision/status/lifecycle parity remain
 separate.
 
+Available in `26.1105.140355`: [TIME32 Task interval word pairs](task-start-gsv.md).
+Ladder and ST can read the committed minimum or maximum interval into two
+contiguous TIME32 elements. Both words are checked before writing. System lab
+includes ladder minimum and ST maximum examples alongside existing TIME and
+DINT forms.
+
 Available in `26.1104.001622`: [Task start/interval GSV](task-start-gsv.md).
 Named/THIS ladder and ST read committed StartTime and minimum/maximum intervals
 for eligible Continuous/Periodic/instruction-only Event tasks. Independent

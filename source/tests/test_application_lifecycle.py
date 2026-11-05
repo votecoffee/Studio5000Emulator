@@ -280,14 +280,18 @@ class ApplicationLifecycleTests(unittest.TestCase):
         step=lambda:self.post('step',{'dt':25})
         values=lambda t:{row['name']:row['value'] for row in t['tags']}
         t=step();v=values(t);self.assertEqual(v['TaskStartIndex'],99);self.assertIsNone(v['TaskStartWords[1]'])
-        write('TaskStartIndex',1);write('ReadTaskStarts',True);prior=self.post('report',{})['task_scan_timing']['tasks'];v=values(step())
+        self.assertIsNone(v['TaskMinTimeWords[1]']);self.assertIsNone(v['TaskMaxTimeWords[1]'])
+        write('ReadTypedTimes',True);write('TaskStartIndex',1);write('ReadTaskStarts',True)
+        prior=self.post('report',{})['task_scan_timing']['tasks'];v=values(step())
         self.assertEqual(int(v['ThisTaskStart']),prior['backgroundtask']['start_time_us']);self.assertEqual(v['StTaskStart'],v['ThisTaskStart'])
         import struct
-        word=lambda prefix:struct.unpack('<Q',struct.pack('<ii',v[prefix+'[1]'],v[prefix+'[2]']))[0]
+        word=lambda prefix:struct.unpack('<Q',struct.pack('<ii',int(v[prefix+'[1]']),int(v[prefix+'[2]'])))[0]
         self.assertEqual(word('TaskStartWords'),prior['fasttask']['start_time_us'])
         self.assertEqual(word('TaskMinWords'),word('StTaskMin'));self.assertEqual(word('TaskMaxWords'),word('StTaskMax'))
-        for prefix in ('TaskStartWords','TaskMinWords','TaskMaxWords','StTaskMin','StTaskMax'):
-            self.assertEqual((v[prefix+'[0]'],v[prefix+'[3]']),(101,999))
+        self.assertEqual(word('TaskMinTimeWords'),word('TaskMinWords'))
+        self.assertEqual(word('TaskMaxTimeWords'),word('TaskMaxWords'))
+        for prefix in ('TaskStartWords','TaskMinWords','TaskMaxWords','StTaskMin','StTaskMax','TaskMinTimeWords','TaskMaxTimeWords'):
+            self.assertEqual((int(v[prefix+'[0]']),int(v[prefix+'[3]'])),(101,999))
         def state_now():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
         timings=self.post('report',{})['task_scan_timing'];write('TaskStartDivisor',0);before=state_now()

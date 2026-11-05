@@ -26,16 +26,17 @@ def specification(engine,op):
     return ATTRIBUTES[attribute]
 
 
-def destination(memory,ref,scope,count,scalar_types=('LINT','DT')):
+def destination(memory,ref,scope,count,scalar_types=('LINT','DT'),*,word_types=('DINT',)):
     key,parts,dtype=memory.check_writable(ref,scope)
     value=memory.at(key,parts)
     if count==2 and dtype in scalar_types and not isinstance(value,(dict,list)):
         return key,[parts],dtype
-    if dtype=='DINT':
+    if dtype in word_types:
         key,paths,dtype=memory.region(ref,count,scope)
         return key,paths,dtype
     choices=' or '.join(('a scalar '+dtype for dtype in scalar_types))+' or ' if count==2 else ''
-    raise ModelError('GSV destination requires '+choices+str(count)+' contiguous DINT elements')
+    words=' or '.join(word_types)
+    raise ModelError('GSV destination requires '+choices+str(count)+' contiguous '+words+' elements')
 
 
 def validate(engine,op,scope):
