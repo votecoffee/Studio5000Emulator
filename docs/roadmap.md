@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.144033` [LastScanTime](scan-time-gsv.md#resetting-lastscantime) and
+[Task StartTime](task-start-gsv.md#resetting-task-starttime) accept known-zero
+SSV sources. The resets preserve the scan maxima and interval baseline.
+
 Available in `26.1105.142703` [Task interval resets](task-start-gsv.md#resetting-task-intervals)
 clear either interval independently with a known-zero TIME or word pair.
 System Lab demonstrates ladder and ST readback and transactional rollback.

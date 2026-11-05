@@ -1035,7 +1035,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task MaxScanTime and Task interval resets; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

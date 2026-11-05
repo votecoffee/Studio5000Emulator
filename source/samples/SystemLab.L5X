@@ -483,6 +483,12 @@
       <Tag Name="StClockUtc" DataType="DINT" TagType="Base" Dimensions="7"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /></Array></Data></Tag>
       <Tag Name="ReadTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetScanMax" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ResetLastAndStart" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ScanTimeResetZero" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StartTimeResetZero" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
+      <Tag Name="ProgramLastAfterReset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastTaskLastAfterReset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="FastTaskStartAfterReset" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="1" /></Data></Tag>
       <Tag Name="ResetProgramMaxValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ResetTaskMaxValue" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data></Tag>
       <Tag Name="ProgramMaxAfterReset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -624,6 +630,7 @@
               <Line Number="7">IF ReadThis THEN GSV(Task,THIS,Name,StThisTaskName); GSV(Task,THIS,Watchdog,StThisWatchdog); GSV(Program,THIS,LastScanTime,StThisProgramLast); END_IF;</Line>
               <Line Number="8">IF ReadTaskTiming THEN GSV(Task,BackgroundTask,LastScanTime,StBackgroundTaskLast); GSV(Task,FastTask,LastScanTime,StFastTaskLast); GSV(Task,SlowTask,LastScanTime,StSlowTaskLast); END_IF;</Line>
               <Line Number="9">IF ResetScanMax THEN SSV(Task,FastTask,MaxScanTime,ResetTaskMaxValue); GSV(Task,FastTask,MaxScanTime,FastTaskMaxAfterReset); END_IF;</Line>
+              <Line Number="10">IF ResetLastAndStart THEN SSV(Task,FastTask,LastScanTime,ScanTimeResetZero); SSV(Task,FastTask,StartTime,StartTimeResetZero); GSV(Task,FastTask,LastScanTime,FastTaskLastAfterReset); GSV(Task,FastTask,StartTime,FastTaskStartAfterReset); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -662,6 +669,7 @@
               <Rung Number="5" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,SlowTask,MaxScanTime,SlowTaskMax);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,THIS,LastScanTime,ThisBackgroundTaskLast);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ResetScanMax)SSV(Program,THIS,MaxScanTime,ResetProgramMaxValue)GSV(Program,THIS,MaxScanTime,ProgramMaxAfterReset);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(ResetLastAndStart)SSV(Program,THIS,LastScanTime,ScanTimeResetZero)GSV(Program,THIS,LastScanTime,ProgramLastAfterReset);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

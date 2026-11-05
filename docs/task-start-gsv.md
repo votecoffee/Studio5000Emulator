@@ -66,6 +66,20 @@ A genuinely measured zero remains a valid minimum. Resetting either field keeps
 the other interval, scan durations, invocation counts, and previous start sample.
 The full advance must succeed to commit the reset.
 
+## Resetting Task StartTime
+
+Use ladder or ST to clear the reported UTC StartTime of a named eligible Task or
+THIS. The source is a known-zero scalar DT or LINT, or a pair of contiguous
+zero DINT elements. Subsequent GSV reads of StartTime see zero until a successful
+invocation completes with its start sample. The reset preserves the monotonic
+interval baseline, interval extrema, durations and count. It changes the Task
+diagnostic only. WallClockTime continues to sample the host clock. A failed
+advance discards the reset.
+
+```text
+SSV(Task,FastTask,StartTime,StartTimeResetZero);
+```
+
 ## Selection, faults and lifecycle
 
 Structural preflight checks types, shapes, reference grammar, fixed bounds and
@@ -102,6 +116,10 @@ and Step. FastMinAfterReset shows the ladder minimum reset and FastMaxAfterReset
 shows the ST maximum reset. Both read zero immediately. Clear ResetTaskIntervals
 to resume accumulating extrema.
 
+Enable ReadConfig and ResetLastAndStart, then step. FastTaskStartAfterReset
+shows the immediate ST timestamp reset. Clear ResetLastAndStart to retain the
+next invocation start timestamp.
+
 See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 [timing reads](../source/logixlab/gsv_timing.py) and
 [invocation measurements](../source/logixlab/task_runtime.py).
@@ -109,7 +127,7 @@ See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
-StartTime writes, nonzero interval writes, Safety/other Event profiles,
+Nonzero StartTime and interval writes, Safety/other Event profiles,
 broader AOI/harness contexts
 and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

@@ -188,6 +188,53 @@ class TaskStartGsvTests(unittest.TestCase):
         self.assertTrue(self.engine(['SSV(Task,FastTask,MinimumInterval,Stamp);']).blockers)
         self.assertTrue(self.engine(['SSV(Task,FastTask,MaximumInterval,TimeWords[1]);']).blockers)
 
+    def test_start_time_reset_sources_clear_utc_without_moving_interval_baseline(self):
+        for st,source in ((False,'StartDate'),(True,'NamedStamp'),(True,'NamedWords[1]')):
+            with self.subTest(source=source):
+                e=self.checked([
+                    f'SSV(Task,FastTask,StartTime,{source});',
+                    *self.reads(),
+                ],st=st)
+                for name in ('NamedStamp','NamedWords[1]','NamedWords[2]'):
+                    e.memory.write(name,0)
+                e.step(1)
+                self.assertEqual(e.memory.read('Stamp'),0)
+                self.assertEqual(e._task_scan_timings['fasttask'],TaskMeasurements())
+                for utc in (456,None):
+                    e._task_scan_timings['fasttask']=TaskMeasurements(
+                        5000,9000,10000,17000,2,last_start_ns=8000,start_time_us=utc)
+                    e.step(1)
+                    t=e._task_scan_timings['fasttask']
+                    self.assertEqual((e.memory.read('Stamp'),self.word(e,'MinWords'),self.word(e,'MaxWords')),(0,10,17))
+                    self.assertEqual((t.start_time_us,t.last_start_ns,t.last_ns,t.executions),(0,8000,5000,2))
+
+    def test_start_time_reset_skips_dormant_pair_checks_both_words_and_rolls_back(self):
+        e=self.checked([
+            'XIC(Flag)SSV(Task,FastTask,StartTime,NamedWords[Index]);',
+            'DIV(1,Index,Out);',
+        ])
+        e.memory.write('Index',99);e.enter_run();e.step(25)
+        e.memory.write('Flag',True);self.fault(e,'outside bounds')
+        e.memory.write('Index',1);e.memory.write('NamedWords[1]',0)
+        self.fault(e,'known zero')
+        e.memory.write('NamedWords[2]',1);self.fault(e,'known zero')
+        e.memory.write('NamedWords[2]',0);e.step(1)
+        self.assertEqual(e._task_scan_timings['fasttask'].start_time_us,0)
+
+    def test_start_time_reset_gets_fresh_utc_at_the_next_successful_completion(self):
+        e=self.event([[
+            'EVENT(Task1);','SSV(Task,Task1,StartTime,StartDate);',
+            'GSV(Task,Task1,StartTime,Stamp);','EVENT(Task1);',
+            'GSV(Task,Task1,StartTime,NamedStamp);',
+        ],['NOP();']])
+        with patch('logixlab.runtime.current_value_microseconds',side_effect=(111,222)),patch(
+                'logixlab.task_runtime.perf_counter_ns',side_effect=(0,1000,12000,13000)):
+            e.step()
+        self.assertEqual((e.memory.read('Stamp'),e.memory.read('NamedStamp')),(0,222))
+        t=e._task_scan_timings['task1']
+        self.assertEqual((t.start_time_us,t.minimum_interval_ns,t.maximum_interval_ns,t.executions),
+                         (222,12000,12000,2))
+
     def test_start_and_interval_overflow_roll_back_typed_and_legacy_outputs(self):
         stamp=BOUNDS['DT'][1]+1;duration=(BOUNDS['TIME'][1]+1)*1000
         for attr,tag,dtype in (('StartTime','StartDate','DT'),('MinimumInterval','MinimumTime','TIME'),
@@ -292,7 +339,7 @@ class TaskStartGsvTests(unittest.TestCase):
                       'GSV(Task,FastTask,MinimumInterval,TimeWords[1]);','GSV(Task,FastTask,MinimumInterval,StartDate);',
                       'GSV(Task,FastTask,StartTime,TimeWords[0]);',
                       'GSV(Task,FastTask,StartTime,MinWords[3]);','GSV(Program,BackgroundProgram,StartTime,Stamp);',
-                      'SSV(Task,FastTask,StartTime,Stamp);','GSV(Task,FastTask,MaxInterval,MinWords[1]);'):
+                      'SSV(Task,FastTask,StartTime,MinimumTime);','GSV(Task,FastTask,MaxInterval,MinWords[1]);'):
             self.assertTrue(self.engine([logic]).blockers,logic)
         self.assertTrue(self.engine(['GSV(Task,FastTask,StartTime,Stamp);'],mutate=constant).blockers)
 

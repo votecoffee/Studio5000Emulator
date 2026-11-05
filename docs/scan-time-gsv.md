@@ -47,7 +47,8 @@ elapsed duration. TIME32 writes check the signed duration range using the
 unsigned elapsed microseconds. An out-of-range TIME32 value faults. Existing
 unrepresentable protocol counters remain unavailable. Task fields retain independent availability;
 the existing Program timing record withholds both fields if its maximum cannot
-fit the protocol word.
+fit the protocol word. An explicit LastScanTime reset exposes its zero even
+when the previous maximum is unavailable.
 
 ## Eligibility and operands
 
@@ -109,6 +110,19 @@ source index or value. A reached unknown or nonzero source, or a later fault,
 rolls back the whole advance. Native protocol reads continue to use committed
 measurements. This profile adds no protocol write service.
 
+## Resetting LastScanTime
+
+The same known-zero scalar DINT or TIME32 source clears LastScanTime for an
+eligible Program or Task. A later GSV reads zero until an invocation completes
+successfully and supplies its measured duration. MaxScanTime, the invocation
+count and other timing attributes keep their own history. The reset is rolled
+back if the advance fails.
+
+```text
+SSV(Program,THIS,LastScanTime,ScanTimeResetZero);
+SSV(Task,FastTask,LastScanTime,ScanTimeResetZero);
+```
+
 ## System Lab
 
 Choose **System lab** and step once to generate measurements. Enable `ReadTiming`
@@ -140,9 +154,13 @@ Enable ReadConfig and ResetScanMax, then step. ProgramMaxAfterReset shows the
 ladder THIS reset. FastTaskMaxAfterReset shows the named ST reset. Both read
 zero immediately. Clear ResetScanMax to let the maxima accumulate.
 
+Enable ReadConfig and ResetLastAndStart, then step to see the ladder
+ProgramLastAfterReset and ST FastTaskLastAfterReset both read zero. The same ST
+branch demonstrates the [Task start timestamp reset](task-start-gsv.md#resetting-task-starttime).
+
 The type/unit baseline follows installed v35 help 14638/14646 and Rockwell's
 [Program object](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
 and [Task object](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
-references. The installed version determines this profile. Other timing setters,
+references. The installed version determines this profile. Nonzero timing writes,
 other runtime attributes, broader source/language profiles and native precision,
 status/fault, packed layout, scheduling and lifecycle parity remain separate work.

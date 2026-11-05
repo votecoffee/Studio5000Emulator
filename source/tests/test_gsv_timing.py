@@ -85,6 +85,40 @@ class GsvTimingTests(unittest.TestCase):
                 self.assertEqual((t.last_ns,t.maximum_ns,t.minimum_interval_ns,t.maximum_interval_ns,t.executions),
                                  (6000,6000,10000,14000,3))
 
+    def test_last_scan_time_resets_leave_maxima_and_restore_measured_durations(self):
+        for st in (False,True):
+            with self.subTest(st=st):
+                e=self.checked([
+                    'SSV(Program,THIS,LastScanTime,ProgramTicks);',
+                    'SSV(Task,MainTask,LastScanTime,Divisor);',
+                    *self.reads(),
+                ],st=st)
+                e.memory.write('ProgramTicks',0);e.memory.write('Divisor',0)
+                e._program_timings['mainprogram']=ProgramTiming(5000,100000,2)
+                e._task_measurements=TaskMeasurements(8000,200000,10000,14000,2,last_start_ns=1000,start_time_us=25)
+                with patch('logixlab.runtime.perf_counter_ns',side_effect=(100000,104000)),patch(
+                        'logixlab.task_runtime.perf_counter_ns',side_effect=(13000,19000)):
+                    e.step()
+                self.assertEqual([e.memory.read(n) for n in ('ProgramLast','ProgramMax','TaskLast','TaskMax')],[0,100,0,200])
+                self.assertEqual(e._program_timings['mainprogram'],ProgramTiming(4000,100000,3))
+                t=e._task_measurements
+                self.assertEqual((t.last_ns,t.maximum_ns,t.minimum_interval_ns,t.maximum_interval_ns,t.executions),
+                                 (6000,200000,10000,14000,3))
+
+    def test_last_scan_clear_remains_readable_with_unrepresentable_program_maximum(self):
+        e=self.checked([
+            'SSV(Program,THIS,LastScanTime,ProgramTicks);',
+            'GSV(Program,THIS,LastScanTime,ProgramLast);',
+        ])
+        e.memory.write('ProgramTicks',0)
+        huge=0x100000000*1000
+        e._program_timings['mainprogram']=ProgramTiming(5000,huge,1)
+        with patch('logixlab.runtime.perf_counter_ns',side_effect=(0,6000)):
+            e.step()
+        self.assertEqual(e.memory.read('ProgramLast'),0)
+        self.assertEqual(e._program_timings['mainprogram'],ProgramTiming(6000,huge,2))
+        self.assertEqual(e._program_timings['mainprogram'].attributes(),{})
+
     def test_maximum_reset_source_is_lazy_and_failures_restore_both_timings(self):
         e=self.checked([
             'XIC(ReadTiming)SSV(Program,MainProgram,MaxScanTime,UnknownWords[Index]);',
@@ -106,7 +140,7 @@ class GsvTimingTests(unittest.TestCase):
             'SSV(Task,MainTask,MaxScanTime,0);',
             'SSV(Task,MainTask,MaxScanTime,Words);',
             'SSV(Task,Missing,MaxScanTime,Divisor);',
-            'SSV(Program,MainProgram,LastScanTime,Divisor);',
+            'SSV(Program,MainProgram,LastScanTime,ReadTiming);',
         ):
             self.assertTrue(self.engine([code]).blockers,code)
         self.assertTrue(self.engine(['SSV(Task,MainTask,MaxScanTime,Divisor);'],mode='routine').blockers)
@@ -203,7 +237,7 @@ class GsvTimingTests(unittest.TestCase):
         for processor,major in [('1756-L75','35'),('1756-L85E','34')]:
             def target(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',major)
             self.assertTrue(self.engine(self.reads(),mutate=target).blockers)
-        self.assertTrue(self.engine(['SSV(Task,MainTask,LastScanTime,TaskLast);']).blockers)
+        self.fault(self.checked(['SSV(Task,MainTask,LastScanTime,TaskLast);']),'known zero')
 
     def test_disabled_unscheduled_and_folder_program_sources_are_not_fabricated(self):
         for mode in ('disabled','unscheduled','folder'):

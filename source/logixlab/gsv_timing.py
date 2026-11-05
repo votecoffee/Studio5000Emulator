@@ -11,11 +11,18 @@ from .gsv_configuration import current_instance
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
             'task':{'lastscantime':8,'maxscantime':7,'starttime':13,'minimuminterval':14,'maximuminterval':15}}
 TIME_FORMATS={'DT':'<q','TIME':'<Q','TIME32':'<I'}
+START_TIME = 13
 INTERVAL_ATTRIBUTES = (14, 15)
+WORD_ATTRIBUTES = (START_TIME, *INTERVAL_ATTRIBUTES)
 RESET_VALUES = {
-    'program': {3: {'maximum_ns': 0}},
+    'program': {
+        2: {'last_ns': 0, 'last_reset': True},
+        3: {'maximum_ns': 0},
+    },
     'task': {
         7: {'maximum_ns': 0},
+        8: {'last_ns': 0},
+        START_TIME: {'start_time_us': 0},
         14: {'minimum_interval_ns': 0, 'minimum_interval_pending': True},
         15: {'maximum_interval_ns': 0},
     },
@@ -34,7 +41,10 @@ class TimingAdvance:
         table = self.tables[cls]
         if name not in table:
             raise ModelError('Timing SSV measurement is unavailable')
-        table[name] = replace(table[name], **RESET_VALUES[cls][number])
+        timing = table[name]
+        # Before the first execution the start word already reads zero.
+        if number != START_TIME or timing.executions:
+            table[name] = replace(timing, **RESET_VALUES[cls][number])
         self.cleared.add((cls, name, number))
 
     def read_reset(self, cls, name, number):
@@ -60,7 +70,7 @@ def specification(engine,op,scope='',*,executing=False):
     number=ATTRIBUTES[cls][attribute]
     if op.name=='SSV':
         if number not in RESET_VALUES[cls]:
-            raise ModelError('Timing SSV supports MaxScanTime and Task interval resets only')
+            raise ModelError('Unsupported timing SSV attribute')
         current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     if cls=='task':
@@ -84,7 +94,7 @@ def specification(engine,op,scope='',*,executing=False):
 
 
 def destination(memory,ref,scope,number):
-    if number==13:
+    if number==START_TIME:
         return gsv_wall_clock.destination(memory,ref,scope,2)
     if number in INTERVAL_ATTRIBUTES:
         return gsv_wall_clock.destination(memory,ref,scope,2,scalar_types=('TIME',),word_types=('DINT','TIME32'))
@@ -104,6 +114,13 @@ def validate(engine,op,scope):
 
 def reset_source(memory, ref, scope, number):
     key, parts, dtype = memory.resolve(ref, scope)
+    if number == START_TIME:
+        if dtype == 'DINT':
+            key, paths, _ = memory.region(ref, 2, scope)
+            return key, paths
+        if dtype in ('DT', 'LINT') and not isinstance(memory.at(key, parts), (dict, list)):
+            return key, [parts]
+        raise ModelError('Task StartTime SSV requires scalar DT or LINT or two contiguous DINT source elements')
     if number in INTERVAL_ATTRIBUTES:
         if dtype in ('DINT', 'TIME32'):
             key, paths, _ = memory.region(ref, 2, scope)
@@ -112,7 +129,7 @@ def reset_source(memory, ref, scope, number):
             return key, [parts]
         raise ModelError('Task interval SSV requires scalar TIME or two contiguous DINT or TIME32 source elements')
     if dtype not in ('DINT', 'TIME32') or isinstance(memory.at(key, parts), (dict, list)):
-        raise ModelError('SSV MaxScanTime requires one scalar DINT or TIME32 source tag')
+        raise ModelError('Scan time SSV requires one scalar DINT or TIME32 source tag')
     return key, [parts]
 
 
@@ -149,7 +166,7 @@ def execute(engine,op,scope):
     raw=advance.read_reset(cls,name,number) if advance is not None else None
     if raw is None:
         raw=reader(name,source_sha256=engine.project.sha256).get(number)
-    count=2 if number in (13,14,15) else 1
+    count=2 if number in WORD_ATTRIBUTES else 1
     if raw is None or len(raw)!=count*4:raise ModelError('Timing GSV measurement is unavailable')
     if dtype in TIME_FORMATS and len(paths)==1:
         values=(coerce(struct.unpack(TIME_FORMATS[dtype],raw)[0],dtype),)
@@ -183,6 +200,8 @@ def description():
                 start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
                 visibility='Reads see the preceding committed timing snapshot, except a field explicitly reset in the advance',
                 max_scan_reset='Named or THIS Program/Task SSV from a known zero DINT or TIME32 in ordinary scheduled code. Reset applies immediately and includes only samples completed afterward. Last, intervals, and execution counts are independent.',
+                last_scan_reset='Named or THIS Program/Task SSV from a known zero DINT or TIME32. A later completion replaces the cleared last duration and measures the maximum independently.',
+                start_time_reset='Named or THIS Task SSV from a known zero DT, LINT or DINT pair. Clears the reported UTC value without changing the monotonic interval baseline.',
                 interval_reset='Named or THIS Task SSV from known zero scalar TIME or two contiguous DINT or TIME32 elements. Extrema reset independently and resume sampling on later completions.',
                 task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',

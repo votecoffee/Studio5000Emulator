@@ -3139,7 +3139,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
 
-    def test_system_lab_scan_max_resets_ladder_and_st_with_late_rollback(self):
+    def test_system_lab_timing_resets_ladder_and_st_with_late_rollback(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
         step=lambda:self.post('step',{'dt':25})
@@ -3149,7 +3149,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
                 return json.load(response)
         v=values(step())
         self.assertEqual((v['ProgramMaxAfterReset'],v['FastTaskMaxAfterReset']),(-1,-1))
-        write('ReadConfig',True);write('ResetScanMax',True)
+        self.assertEqual((v['ProgramLastAfterReset'],v['FastTaskLastAfterReset'],int(v['FastTaskStartAfterReset'])),(-1,-1,1))
+        write('ReadConfig',True);write('ResetScanMax',True);write('ResetLastAndStart',True)
         write('TaskStartIndex',1);write('ReadTaskStarts',True);write('TaskStartDivisor',0)
         before=state_now();timings=self.post('report',{})['task_scan_timing']
         with self.assertRaises(HTTPError) as error:step()
@@ -3160,7 +3161,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('TaskStartDivisor',1)
         v=values(step())
         self.assertEqual((v['ProgramMaxAfterReset'],v['FastTaskMaxAfterReset']),(0,0))
-        self.assertIn('known zero',self.post('report',{})['system_values']['timing']['max_scan_reset'])
+        self.assertEqual((v['ProgramLastAfterReset'],v['FastTaskLastAfterReset'],int(v['FastTaskStartAfterReset'])),(0,0,0))
+        timing=self.post('report',{})['system_values']['timing']
+        for field in ('max_scan_reset','last_scan_reset','start_time_reset'):
+            self.assertIn('known zero',timing[field])
 
     def test_system_lab_scan_time_gsv_keeps_committed_values_and_rollback_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])

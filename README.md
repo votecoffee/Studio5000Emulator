@@ -131,8 +131,8 @@ instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
 
 [Scan-time GSV reads](docs/scan-time-gsv.md) expose Program and Task
-LastScanTime/MaxScanTime in DINT and TIME32. A zero-source SSV clears the
-selected maximum. **System lab** demonstrates reads and resets in ladder and ST.
+LastScanTime/MaxScanTime in DINT and TIME32. A zero-source SSV clears either
+measurement. **System lab** demonstrates reads and resets in ladder and ST.
 
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
@@ -214,8 +214,8 @@ precision retention, REAL narrowing and guarded selected outputs.
 [Task start and interval GSV](docs/task-start-gsv.md) adds named/THIS ladder and
 ST reads of StartTime, MinimumInterval and MaximumInterval, including DT
 starts, TIME intervals and paired TIME32 interval destinations. Ladder and ST
-can also reset either interval from a known-zero source. **System lab** includes
-word windows, resets and a rollback example.
+can also reset either interval or the reported Task start timestamp from a
+known-zero source. **System lab** includes word windows, resets and rollback.
 
 [Event overlap counts](docs/event-overlap-count.md) adds live ladder/ST reads
 and zero resets, including THIS and separate status/counter behavior. **Event
