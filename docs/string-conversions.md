@@ -62,6 +62,17 @@ Errors roll back the whole modeled advance, including earlier text/numeric/AOI
 writes, time and scheduler state. Native fault records, continuation, partial
 writes and math/status flags remain separate work.
 
+## STOD decimal input
+
+Ladder and ST `STOD(Text,IntegerTag)` write the whole-number part of the
+first signed decimal run to a SINT, INT or DINT tag. A leading decimal point
+starts a number with a zero whole-number part. For example, `W=-.75/99` gives
+`0`, and `W=-12.75/99` gives `-12`. This follows the non-fractional-part
+rule in installed v35 help 14549 and the published [STOD reference](https://www.rockwellautomation.com/en-cz/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/ascii-conversion-instructions/string-to-dint-stod.html).
+The software writes zero when the input has no numeric run and rolls back the
+advance when the result exceeds the destination's range. Native status and
+fault behavior remain unverified.
+
 ## DTOS with REAL input
 
 In the v35 ControlLogix 5580 software profile, `DTOS(RealTag,Text)` uses the
@@ -87,7 +98,7 @@ conversion block; set it false to retain the previous results.
 | --- | --- |
 | CaseText = aBc 09 | Lowered / StLowered = abc 09 |
 | CaseText = aBc 09 | Uppered / StUppered = ABC 09 |
-| NumericText = W=-12.5 kg | ParsedReal / StParsedReal = -12.5 |
+| NumericText = W=-12.5 kg | ParsedReal / StParsedReal = -12.5, ParsedInteger / StParsedInteger = -12 |
 | RealSource = 15.3001 | FormattedReal / StFormattedReal = 15.3001003 |
 | RealSource = 15.3001 | RoundedText / StRoundedText = 15 |
 

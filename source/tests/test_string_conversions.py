@@ -82,6 +82,36 @@ class StringConversionTests(unittest.TestCase):
         e=self.checked(['STOR(SourceA,RealDest);']);e.memory.write('SourceA','0.'+'0'*60+'1');e.step()
         self.assertEqual(e.memory.read('RealDest'),0.0)
 
+    def test_stod_keeps_only_the_integer_part_of_the_first_decimal_in_ladder_and_st(self):
+        cases = (('W=-.75/99', 0), ('+.125 234', 0), ('-0.99', 0),
+                 ('W=0000012.75 kg / 99', 12), ('W=-12.75 kg', -12),
+                 ('-2147483648.99', -2147483648), ('2147483647.99', 2147483647),
+                 ('N/A', 0))
+        for st in (False, True):
+            e = self.checked(['STOD(SourceA,Result);'], st=st)
+            for source, expected in cases:
+                with self.subTest(st=st, source=source):
+                    e.memory.write('SourceA', source)
+                    e.memory.write('Result', 99)
+                    e.step()
+                    self.assertEqual(e.memory.read('Result'), expected)
+
+    def test_stod_retains_destination_and_prior_writes_on_range_failure(self):
+        def narrow(root):
+            tag = root.find('./Controller/Tags/Tag[@Name="Result"]')
+            tag.set('DataType', 'SINT')
+            tag.find('Data/DataValue').set('DataType', 'SINT')
+
+        for value in ('128.1', '-129.1', '9' * 82):
+            with self.subTest(value=value):
+                e = self.checked(['MOV(77,SpeedCommand);', 'STOD(SourceA,Result);'], mutate=narrow)
+                e.memory.write('SourceA', value)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, 'SINT overflow|signed DINT range'):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+                self.assertEqual((e.scan_count, e.time_ms), (0, 0))
+
     def test_dtos_real_rounds_binary32_to_signed_dint_in_ladder_and_st(self):
         for st in (False, True):
             e = self.checked(['DTOS(RealSource,Dest);'], st=st)

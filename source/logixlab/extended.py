@@ -311,6 +311,6 @@ class Extensions:
                 text=str(self.integer(a[0],scope))
             self.memory.write_string(a[1],text,scope)
         elif n=='STOD':
-            match=re.search(r'-?[0-9]+',self.memory.string(a[0],scope))
-            self.memory.write(a[1],int(match[0]) if match else 0,scope)
+            text=self.memory.string(a[0],scope)
+            self.memory.write(a[1],string_conversions.parse_integer(text),scope)
         return power

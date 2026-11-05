@@ -48,6 +48,18 @@ def validate(memory, op, scope):
     else:string_operand(memory, dest, scope, destination=True)
 
 
+def parse_integer(text):
+    match = DECIMAL.search(text)
+    if match is None:
+        return 0
+    integral = match[0].partition('.')[0]
+    digits = integral.removeprefix('-').lstrip('0')
+    if len(digits) > 10:
+        raise ModelError('STOD result exceeds the signed DINT range')
+    value = int(digits or '0')
+    return -value if integral.startswith('-') else value
+
+
 def parse_real(text):
     match = DECIMAL.search(text)
     if match is None:raise ModelError('STOR requires a decimal number in the source string')
@@ -79,6 +91,7 @@ def description():
     return dict(profile='v35-5580-string-conversions', instructions=sorted(INSTRUCTIONS), languages=['RLL','ST'],
                 strings='STRING and explicit DINT LEN / SINT DATA user strings; unused destination bytes preserved',
                 case='ASCII A-Z/a-z only; other single-byte characters and embedded NUL preserved',
+                stod='Whole-number part of the first signed decimal run; a leading decimal point gives zero',
                 stor='First signed decimal run; prefix/delimiters skipped, float32 result; no-digit/malformed/exponent input blocked',
                 rtos='Software fixed notation, nine significant digits, finite binary32 round-trip including signed zero',
                 dtos_real='Scalar REAL tag rounds to signed DINT (ties to even) before decimal text formatting',
