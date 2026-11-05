@@ -1,7 +1,7 @@
 """Bounded GSV audit values and explicit source-configuration reads."""
 import struct
 from .model import ModelError
-from . import event_status, gsv_configuration, gsv_timing, gsv_wall_clock, task_inhibit
+from . import event_status, gsv_configuration, gsv_timing, gsv_wall_clock, program_control, task_inhibit
 
 
 def source(engine,op):
@@ -36,6 +36,7 @@ def legacy(op):
 
 
 def validate(engine,op,scope):
+    if program_control.matches(op):return program_control.validate(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate(engine,op,scope)
     if gsv_wall_clock.matches(op):return gsv_wall_clock.validate(engine,op,scope)
@@ -45,6 +46,7 @@ def validate(engine,op,scope):
 
 
 def execute(engine,op,scope):
+    if program_control.matches(op):return program_control.execute(engine,op,scope)
     if event_status.matches(op):
         event_status.execute(engine,op,True,scope);return
     # Resolve and validate the complete destination before the first write.
@@ -66,6 +68,7 @@ def execute(engine,op,scope):
 
 
 def write_effects(engine,op,scope):
+    if program_control.matches(op):return program_control.write_effects(engine,op,scope)
     if event_status.matches(op):return event_status.write_effects(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.write_effects(engine,op,scope)
     if gsv_wall_clock.matches(op):return gsv_wall_clock.write_effects(engine,op,scope)
@@ -75,6 +78,7 @@ def write_effects(engine,op,scope):
 
 
 def validate_set(engine, op, scope):
+    if program_control.matches(op):return program_control.validate(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate_reset(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
     return task_inhibit.validate(engine,op,scope)
@@ -82,6 +86,9 @@ def validate_set(engine, op, scope):
 
 def execute_set(engine, op, power, scope):
     if not power:return power
+    if program_control.matches(op):
+        program_control.execute(engine,op,scope)
+        return power
     if gsv_timing.matches(op):
         gsv_timing.execute_reset(engine,op,scope)
         return power

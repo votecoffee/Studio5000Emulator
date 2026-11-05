@@ -24,6 +24,26 @@ class ProgramMetadataWireTests(unittest.TestCase):
     bind=leases.SemaphoreSignedTests.bind
     prepare=leases.SemaphoreSignedTests.prepare
 
+    def test_disable_attribute_tracks_committed_instruction_and_stays_read_only(self):
+        root=E.parse(self.app.engine.project.path).getroot()
+        program=root.find('./Controller/Programs/Program');program.set('Disabled','false')
+        tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='DisableCommand',DataType='SINT',TagType='Base')
+        E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='SINT',Value='-1')
+        routine=program.find(f"./Routines/Routine[@Name='{program.get('MainRoutineName')}']/RLLContent")
+        routine.clear()
+        E.SubElement(E.SubElement(routine,'Rung',Number='0',Type='N'),'Text').text='SSV(Program,THIS,DisableFlag,DisableCommand);'
+        self.app.command('load',{'name':'program-disable.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        engine=self.app.engine;digest=engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        get=bytes.fromhex('0e0420682500b6653013')
+        self.assertEqual(self.signed(4,get),bytes.fromhex('8e00000000'))
+        engine.step()
+        self.assertEqual(self.signed(5,get),bytes.fromhex('8e00000001'))
+        self.assertEqual(self.signed(6,bytes.fromhex('100420682500b665301300'))[2],15)
+        self.assertEqual(self.signed(7,get),bytes.fromhex('8e00000001'))
+        self.assertEqual(engine.project.program_configuration.attributes('MainProgram',source_sha256=digest),{19:b'\0'})
+
     def test_nonredundant_sync_model_default_single_and_list_are_read_only_and_identified(self):
         root=E.parse(self.app.engine.project.path).getroot();program=root.find('./Controller/Programs/Program')
         program.set('UseAsFolder','false');E.SubElement(root.find('Controller'),'RedundancyInfo',Enabled='false')

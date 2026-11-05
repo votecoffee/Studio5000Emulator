@@ -1316,7 +1316,7 @@ class Router:
         attributes={22:struct.pack('<I',program['id'])}
         if len(name)<=40:attributes[28]=struct.pack('<I',len(name))+name
         attributes.update(self.app.engine.project.program_forces.attributes(program['name']))
-        attributes.update(self.app.engine.project.program_configuration.attributes(
+        attributes.update(self.app.engine.program_disable_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))
         attributes.update(self.app.engine.project.program_configuration.type_attributes(
             program['name'],source_sha256=self.app.engine.project.sha256))

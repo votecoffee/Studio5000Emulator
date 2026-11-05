@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.145204` [Program DisableFlag](program-disable.md)
+controls eligible scheduled Programs in ladder and ST. Live readback, first
+scan after re-enable and rollback are covered independently of Task releases.
+
 Available in `26.1105.144033` [LastScanTime](scan-time-gsv.md#resetting-lastscantime) and
 [Task StartTime](task-start-gsv.md#resetting-task-starttime) accept known-zero
 SSV sources. The resets preserve the scan maxima and interval baseline.

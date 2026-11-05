@@ -507,6 +507,10 @@ A command of zero selects the Continuous default of 5 seconds.
 ladder and ST, live GSV readback, and rollback with task progress. **System lab**
 provides independent controls for its Fast and Slow tasks.
 
+[Program DisableFlag](docs/program-disable.md) pauses individual scheduled
+Programs in ladder and ST while their Tasks continue releasing. **System lab**
+demonstrates both controls and the first scan after re-enable.
+
 [String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
 matching records, including custom strings, arrays and exact 64-bit fields.
 Choose **Record lab** to try part tracking, a stack and a text FIFO.

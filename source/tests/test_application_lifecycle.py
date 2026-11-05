@@ -3139,6 +3139,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
 
+    def test_system_lab_program_disable_keeps_task_phase_and_rolls_back(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step(dt=25):return self.post('step',{'dt':dt})
+        def values(state):return {row['name']:row['value'] for row in state['tags']}
+        initial=values(step())
+        self.assertEqual((initial['FastCount'],initial['SlowCount'],initial['FastFirst'],initial['SlowFirst']),(2,1,1,1))
+        write('ControlFastProgram',True);write('ControlSlowProgram',True)
+        write('TaskStartIndex',1);write('ReadTaskStarts',True);write('TaskStartDivisor',0)
+        before=self.post('report',{})
+        with self.assertRaises(HTTPError) as error:step(1)
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        after=self.post('report',{})
+        for key in ('program_control','task_schedule','task_scan_timing'):self.assertEqual(after[key],before[key])
+        write('TaskStartDivisor',1);v=values(step(1))
+        self.assertEqual((v['LiveFastProgramDisabled'],v['LiveSlowProgramDisabled']),(1,1))
+        t=step();v=values(t)
+        self.assertEqual((v['FastCount'],v['SlowCount']),(2,1))
+        self.assertTrue(all(not task['inhibited'] for task in t['task_schedule']['tasks']))
+        write('FastProgramDisable',0);write('SlowProgramDisable',0);step(1)
+        v=values(step())
+        self.assertEqual((v['LiveFastProgramDisabled'],v['LiveSlowProgramDisabled']),(0,0))
+        self.assertEqual((v['FastFirst'],v['SlowFirst']),(2,2))
+
     def test_system_lab_timing_resets_ladder_and_st_with_late_rollback(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         write=lambda tag,value:self.post('write',{'tag':tag,'value':value})

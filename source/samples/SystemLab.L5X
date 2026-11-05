@@ -484,6 +484,12 @@
       <Tag Name="ReadTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetScanMax" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetLastAndStart" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ControlFastProgram" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="FastProgramDisable" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="1" /></Data></Tag>
+      <Tag Name="LiveFastProgramDisabled" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ControlSlowProgram" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SlowProgramDisable" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="1" /></Data></Tag>
+      <Tag Name="LiveSlowProgramDisabled" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
       <Tag Name="ScanTimeResetZero" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StartTimeResetZero" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
       <Tag Name="ProgramLastAfterReset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -631,6 +637,8 @@
               <Line Number="8">IF ReadTaskTiming THEN GSV(Task,BackgroundTask,LastScanTime,StBackgroundTaskLast); GSV(Task,FastTask,LastScanTime,StFastTaskLast); GSV(Task,SlowTask,LastScanTime,StSlowTaskLast); END_IF;</Line>
               <Line Number="9">IF ResetScanMax THEN SSV(Task,FastTask,MaxScanTime,ResetTaskMaxValue); GSV(Task,FastTask,MaxScanTime,FastTaskMaxAfterReset); END_IF;</Line>
               <Line Number="10">IF ResetLastAndStart THEN SSV(Task,FastTask,LastScanTime,ScanTimeResetZero); SSV(Task,FastTask,StartTime,StartTimeResetZero); GSV(Task,FastTask,LastScanTime,FastTaskLastAfterReset); GSV(Task,FastTask,StartTime,FastTaskStartAfterReset); END_IF;</Line>
+              <Line Number="11">IF ControlSlowProgram THEN SSV(Program,SlowProgram,DisableFlag,SlowProgramDisable); END_IF;</Line>
+              <Line Number="12">GSV(Program,SlowProgram,DisableFlag,LiveSlowProgramDisabled);</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -670,11 +678,13 @@
               <Rung Number="6" Type="N"><Text>XIC(ReadTaskTiming)GSV(Task,THIS,LastScanTime,ThisBackgroundTaskLast);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ResetScanMax)SSV(Program,THIS,MaxScanTime,ResetProgramMaxValue)GSV(Program,THIS,MaxScanTime,ProgramMaxAfterReset);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(ResetLastAndStart)SSV(Program,THIS,LastScanTime,ScanTimeResetZero)GSV(Program,THIS,LastScanTime,ProgramLastAfterReset);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(ControlFastProgram)SSV(Program,FastProgram,DisableFlag,FastProgramDisable);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>GSV(Program,FastProgram,DisableFlag,LiveFastProgramDisabled);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
       </Program>
-      <Program Name="FastProgram" MainRoutineName="Main" Class="Standard">
+      <Program Name="FastProgram" MainRoutineName="Main" Class="Standard" Disabled="false">
         <Tags />
         <Routines>
           <Routine Name="Main" Type="RLL">
@@ -708,7 +718,7 @@
           </Routine>
         </Routines>
       </Program>
-      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard">
+      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard" Disabled="false">
         <Tags />
         <Routines>
           <Routine Name="Main" Type="RLL">

@@ -5,6 +5,7 @@ import operator
 from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
+from . import program_control
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
@@ -72,6 +73,8 @@ class Engine:
         self._measured_task = None
         self._task_scheduler = None
         self._program_scanned = set()
+        self._disabled_programs = set()
+        self._program_advance = None
         self._executing_task = None
         self._event_dispatch = None
         self._plan()
@@ -617,10 +620,11 @@ class Engine:
         single_timing = self._task_measurements is not None
         if single_timing:task_timings[self._measured_task]=self._task_measurements
         self._timing_advance=TimingAdvance(timings,task_timings)
+        self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned))
         try:
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
-            scanned=set(self._program_scanned)
+            programs=self._program_advance
             def run_task(due,task,entries):
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
                 self.time_ms=due;self._executing_task=task
@@ -632,13 +636,15 @@ class Engine:
                 try:
                     for entry in entries:
                         name=self.project.routines[entry].program.casefold()
-                        if self.mode=='project':self.memory.first_scan=name not in scanned
+                        if name in programs.disabled:
+                            continue
+                        if self.mode=='project':self.memory.first_scan=name not in programs.scanned
+                        programs.scanned.add(name)
                         if name in timings:
                             start=perf_counter_ns()
                             self._routine(entry, 0)
                             timings[name]=timings[name].record(perf_counter_ns()-start)
                         else:self._routine(entry, 0)
-                        scanned.add(name)
                     if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
                     if task_scan_start is not None:
                         task_timings[measured_task]=task_timings[measured_task].record(task_scan_start,task_runtime.perf_counter_ns(),start_time_us=task_scan_wall)
@@ -663,7 +669,8 @@ class Engine:
             measured=(task_timings.pop(self._measured_task).record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if single_timing else None)
             if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due,event_timeouts=self._event_dispatch.event_timeouts)
-            self._program_scanned=scanned
+            self._program_scanned=programs.scanned
+            self._disabled_programs=programs.disabled
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
@@ -686,6 +693,7 @@ class Engine:
         finally:
             self._event_dispatch=None
             self._timing_advance=None
+            self._program_advance=None
         changes = []
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)
@@ -920,6 +928,9 @@ class Engine:
         if self.mode=='routine':return self.memory.first_scan
         return any(self.project.routines[key].program.casefold() not in self._program_scanned for key in self.entries)
 
+    def program_disable_attributes(self,name,*,source_sha256):
+        return program_control.attributes(self,name,source_sha256=source_sha256)
+
     def task_inhibition_attributes(self,name,*,source_sha256):
         return task_inhibit.attributes(self,name,source_sha256=source_sha256)
 
@@ -935,6 +946,7 @@ class Engine:
                 "active_routines": sorted(self.active),
                 'entry_routines':self.entries,
                 'task_schedule':self.scheduler_description(),
+                'program_control':program_control.description(self),
                 'ladder_loops':self.calls.loop_description(),
                 "instructions": dict(sorted(self.project.instruction_counts.items())),
                 'structured_text':{'case':st_cases.description(),'constructs':dict(self.project.st_counts),'supported':['assign', '[:=]', 'IF/ELSIF/ELSE','CASE (integer/REAL)','FOR','WHILE','REPEAT','EXIT','supported calls'],
@@ -1035,7 +1047,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}
