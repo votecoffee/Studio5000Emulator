@@ -497,6 +497,9 @@
       <Tag Name="ApplyFastRate" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="FastRateCommandUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="20000" /></Data></Tag>
       <Tag Name="LiveFastRateUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="10000" /></Data></Tag>
+      <Tag Name="ApplySlowPriority" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SlowPriorityCommand" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="1" /></Data></Tag>
+      <Tag Name="LiveSlowPriority" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="5" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -556,6 +559,8 @@
               <Rung Number="19" Type="N"><Text>XIC(ReadTypedTimes)JSR(ReadTypedClock,0);</Text></Rung>
               <Rung Number="20" Type="N"><Text>XIC(ApplyFastRate)SSV(Task,FastTask,Rate,FastRateCommandUs);</Text></Rung>
               <Rung Number="21" Type="N"><Text>GSV(Task,FastTask,Rate,LiveFastRateUs);</Text></Rung>
+              <Rung Number="22" Type="N"><Text>XIC(ApplySlowPriority)SSV(Task,SlowTask,Priority,SlowPriorityCommand);</Text></Rung>
+              <Rung Number="23" Type="N"><Text>GSV(Task,SlowTask,Priority,LiveSlowPriority);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTypedClock" Type="RLL">

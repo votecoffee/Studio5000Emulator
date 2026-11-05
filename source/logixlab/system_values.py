@@ -78,4 +78,5 @@ def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
                 timing=gsv_timing.description(), event_status=event_status.description(),
-                ssv=True, task_inhibition=task_inhibit.description(), task_rate=task_inhibit.rate_description())
+                ssv=True, task_inhibition=task_inhibit.description(), task_rate=task_inhibit.rate_description(),
+                task_priority=task_inhibit.priority_description())

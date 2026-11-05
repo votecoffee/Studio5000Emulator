@@ -1,20 +1,20 @@
-"""Bounded SSV Task inhibition and period changes over deterministic releases."""
+"""Bounded SSV Task settings over deterministic releases."""
 import struct
 from .model import ModelError
 from . import gsv_configuration
 from .task_configuration import NAME
-from .task_scheduler import MIN_PERIOD_MS, MAX_PERIOD_MS
+from .task_scheduler import MIN_PERIOD_MS, MAX_PERIOD_MS, MIN_PRIORITY, MAX_PRIORITY
 
 
 def validate(engine,op,scope,*,executing=False):
     if (len(op.args)!=4 or any(not isinstance(a,str) for a in op.args)
-            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate')
+            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority')
             or not NAME.fullmatch(op.args[1])):
-        raise ModelError('SSV supports Task InhibitTask or Rate, a task name or THIS, and a DINT source tag')
+        raise ModelError('SSV supports Task InhibitTask, Rate or Priority and a task name or THIS')
     if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
         raise ModelError('SSV Task requires project task context; AOI/routine harness calls remain unqualified')
     attribute=op.args[2].casefold()
-    gsv_configuration.source(engine,op,scope,executing=executing)
+    source_type,_=gsv_configuration.source(engine,op,scope,executing=executing)
     name=gsv_configuration.current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
     if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
@@ -26,8 +26,8 @@ def validate(engine,op,scope,*,executing=False):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         key,parts,dtype=memory.resolve(op.args[3],scope)
-        if dtype!='DINT' or isinstance(memory.at(key,parts),(list,dict,bool)):
-            raise ModelError(f'SSV {op.args[2]} source requires an exact scalar DINT tag')
+        if dtype!=source_type or isinstance(memory.at(key,parts),(list,dict,bool)):
+            raise ModelError(f'SSV {op.args[2]} source requires an exact scalar {source_type} tag')
     finally:memory.structural=previous
     return index
 
@@ -36,12 +36,17 @@ def execute(engine,op,power,scope):
     index=validate(engine,op,scope,executing=bool(power))
     if power:
         value=engine.memory.read(op.args[3],scope)
-        if type(value) is not int:raise ModelError(f'SSV {op.args[2]} source must contain a known DINT')
-        if op.args[2].casefold()=='rate':
+        attribute=op.args[2].casefold()
+        if type(value) is not int:raise ModelError(f'SSV {op.args[2]} source must contain a known integer')
+        if attribute=='rate':
             period,remainder=divmod(value,1000)
             if remainder or not MIN_PERIOD_MS<=period<=MAX_PERIOD_MS:
                 raise ModelError(f'SSV Rate requires {MIN_PERIOD_MS}..{MAX_PERIOD_MS} whole milliseconds in DINT microseconds')
             engine._task_scheduler.periods[index]=period
+        elif attribute=='priority':
+            if not MIN_PRIORITY<=value<=MAX_PRIORITY:
+                raise ModelError(f'SSV Priority requires an INT in {MIN_PRIORITY}..{MAX_PRIORITY}')
+            engine._task_scheduler.priorities[index]=value
         else:engine._task_scheduler.inhibitions[index]=value!=0
     return power
 
@@ -67,6 +72,16 @@ def rate_description():
                 lifecycle='Run entry and routine replacement retain the effective period; reset/reload restores the source period',
                 rollback='Rate and phase commit with task progress and tag values',
                 event_timeouts=False,native_protocol_expanded=False,native_runtime_parity=False)
+
+
+def priority_description():
+    return dict(profile='v35-5580-SSV-Task-Priority',languages=['RLL','ST'],
+                targets=['Standard Periodic','Instruction-only Standard Event'],source='Exact scalar INT tag',
+                range=[MIN_PRIORITY,MAX_PRIORITY],visibility='GSV Priority immediately reads the staged value',
+                effect='Periodic release order and Event dispatch use the advance-start priorities until the next advance',
+                lifecycle='Run entry and routine replacement retain effective priorities; reset/reload restores source priorities',
+                rollback='Priority and release ordering commit with task progress and tag values',
+                native_protocol_expanded=False,native_runtime_parity=False)
 
 
 def attributes(engine,name,*,source_sha256):

@@ -25,6 +25,9 @@ priority targets wait for a task return. Ready Event tasks drain by priority,
 then FIFO request order. Coincident Periodic releases precede queued Events at
 equal priority; higher-priority queued Events run before lower-priority base work.
 All pending work drains before moving to the next timestamp.
+[Task Priority writes](gsv-configuration.md#changing-a-task-priority) take effect
+for arbitration on the next advance. Current requests, UIE drains and
+coincident releases all use the priorities captured at advance start.
 
 After a nested higher-priority task returns, newly eligible queued work runs
 before the restored caller resumes. Task and first-scan context are preserved.

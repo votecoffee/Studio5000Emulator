@@ -649,7 +649,7 @@ class Engine:
                     if batch:completed.append((due,index))
                 if batch:
                     following=batch.releases[position+1] if position+1<len(batch.releases) else None
-                    ceiling=(self._task_scheduler.tasks[following[1]].priority
+                    ceiling=(batch.priorities[following[1]]
                              if following and following[0]==due else 17)
                     self._event_dispatch.drain(ceiling)
             self.time_ms=end_ms;self._executing_task=None
@@ -670,6 +670,7 @@ class Engine:
             if batch:
                 self._task_scheduler.inhibitions=inhibitions
                 self._task_scheduler.periods=batch.periods
+                self._task_scheduler.priorities=list(batch.priorities)
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
@@ -1025,7 +1026,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Periodic Rate and Event Status/OverlapCount; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Periodic Rate, Periodic/Event Priority and Event Status/OverlapCount; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

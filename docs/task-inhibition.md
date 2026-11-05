@@ -78,8 +78,9 @@ work. Restore it before retrying. See [SystemLab.L5X](../source/samples/SystemLa
 Other SSV classes/attributes, other Event sources and Safety targets, AOI/routine-harness
 calls remain unqualified. Bounded ST FOR bodies can execute this SSV profile.
 [Periodic Rate changes](gsv-configuration.md#changing-a-periodic-task-rate) have a
-separate release-boundary policy. Dynamic priority, watchdog enforcement,
-native abort/resume/phase details and native status/fault parity
+separate release-boundary policy. [Task Priority](gsv-configuration.md#changing-a-task-priority)
+updates dispatch order at the next advance. Watchdog enforcement, native
+abort/resume/phase details and native status/fault parity
 remain unfinished. The deterministic boundary and phase rules above are
 explicit software policies, not a claim of complete controller equivalence.
 

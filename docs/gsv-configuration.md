@@ -22,7 +22,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
 | Task | Rate | DINT | Effective Periodic rate in project execution, explicit source rate in a harness, in microseconds |
 | Task | Watchdog | DINT | Explicit positive time, in microseconds |
-| Task | Priority | INT | Explicit Periodic/Event priority |
+| Task | Priority | INT | Effective Periodic/Event priority in project execution, explicit source priority in a harness |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
 | Task | DisableUpdateOutputs | DINT | Explicit source flag, 0/1 |
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
@@ -83,6 +83,36 @@ are software scheduler policies. CIP Task rate reads retain the source value.
 Native phase and fault behavior, sub-millisecond periods, Event timeouts,
 Safety, AOI SSV and routine-harness SSV remain outside this profile.
 
+## Changing a task priority
+
+`SSV(Task,SlowTask,Priority,SlowPriorityCommand)` accepts an exact scalar
+INT from 1 through 15 for a Standard Periodic or qualified instruction-only
+Event task. A lower number means higher priority. The target is a configured
+task name or `THIS` in an eligible scheduled Program. False rungs, skipped
+ST calls and prescan skip source values.
+
+GSV Priority reads the latest write during the advance. Periodic release
+order, immediate EVENT dispatch and pending Event arbitration all use the
+priorities captured at the start of that advance. A successful commit
+changes the order for subsequent advances and keeps the existing periodic
+phase. Coincident Periodic releases with equal priority use source order,
+and pending Events with equal priority use request order. A fault restores
+the prior priorities, task progress and values.
+
+Run entry and routine replacement retain effective priorities. Reset or
+reload restores the source priorities. The Coverage panel shows effective
+and source priorities when they differ. In **System lab**, set the advance
+to 25 ms, enable ApplySlowPriority, and step. SlowTask now reads 1 with
+source priority 5. On the next step, SlowTask runs before FastTask at their
+coincident 50 ms release.
+
+The installed v35 Task object help 14646 lists the INT operand and a wider
+0..15 attribute range. This software profile follows the
+[ControlLogix 5580 task configuration range](https://www.rockwellautomation.com/en-mde/docs/technical/logix5000/_online/1756-um543/controllogix-5580-and-guardlogix-5580-controllers-/develop-standard-applications/tasks.html)
+of 1..15. CIP Task Priority reads retain source metadata. Continuous, Safety,
+other Event profiles, AOI and routine-harness setters, and native arbitration
+remain outside this profile.
+
 ## Destinations and execution
 
 Numeric destinations must be exact scalar INT or DINT tags as listed above;
@@ -94,16 +124,14 @@ be established; strings preserve unused destination bytes.
 
 Prescan, false ladder rungs and skipped ST branches retain outputs. Each reached
 call reads the loaded configuration or the current project-mode
-[InhibitTask flag](task-inhibition.md) and Periodic Rate. A disk edit takes
-effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
+[InhibitTask flag](task-inhibition.md), Periodic Rate or Periodic/Event Priority.
+A disk edit takes effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
 track every destination, including a string's LEN/DATA region. Capacity/bounds
 errors and later failures retain whole-advance rollback of data and scheduling.
 
-These instructions read configuration. They do not change task rate/inhibition,
-drive output I/O, enforce watchdogs, allocate CPU timeslices or measure execution
-time. Native scan times, intervals, status/fault attributes, other system objects
-and broader SSV remain unfinished. Bounded [Task InhibitTask SSV](task-inhibition.md) is available separately. Existing protocol metadata and software task counters
-do not establish native controller execution parity.
+GSV reads the effective settings without changing them. Output I/O, watchdog
+enforcement, CPU time slicing and native arbitration are separate profiles.
+See [Task InhibitTask SSV](task-inhibition.md) for live inhibition.
 
 ## System Lab
 

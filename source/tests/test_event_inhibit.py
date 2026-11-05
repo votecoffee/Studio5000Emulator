@@ -112,6 +112,40 @@ class EventInhibitTests(unittest.TestCase):
         self.assertTrue(candidate._task_scheduler.inhibitions[1]);candidate._task_scheduler.inhibitions[1]=False;self.assertTrue(e._task_scheduler.inhibitions[1])
         self.assertFalse(Engine(e.project)._task_scheduler.inhibitions[1])
 
+    def test_queued_and_immediate_event_priority_uses_one_advance_snapshot(self):
+        def tags(root):
+            root.find('./Controller/Tasks/Task').attrib.update(Type='PERIODIC',Priority='5',Rate='10')
+            for name,value in (('PriorityIn',1),('PriorityOut',-1),('EventPriority',-1)):
+                status.scalar(root.find('./Controller/Tags'),name,'INT',value)
+        for masked in (False,True):
+            logic=['SSV(Task,Task1,Priority,PriorityIn);','GSV(Task,Task1,Priority,PriorityOut);','EVENT(Task1);']
+            if masked:logic=['UID();',*logic,'UIE();']
+            e=self.checked([logic+['MOV(Count1,CallerStatus);'],
+                            ['GSV(Task,THIS,Priority,EventPriority);','ADD(Count1,1,Count1);']],
+                           priority='14',mutate=tags)
+            e.step()
+            self.assertEqual((e.memory.read('PriorityOut'),e.memory.read('EventPriority')),(1,1))
+            self.assertEqual((e.memory.read('CallerStatus'),e.memory.read('Count1')),(0,1))
+            e.step()
+            self.assertEqual((e.memory.read('CallerStatus'),e.memory.read('Count1')),(2,2))
+
+    def test_event_priority_write_does_not_reorder_pending_queue_mid_advance(self):
+        def tags(root):
+            c=root.find('Controller');tags=c.find('Tags')
+            status.scalar(tags,'Promote','INT',1)
+            status.scalar(tags,'Observed','DINT',0)
+            program=copy.deepcopy(c.find('./Programs/Program[@Name="Program1"]'))
+            program.set('Name','Program2')
+            program.find('.//Rung/Text').text='MOV(2,Observed);'
+            c.find('Programs').append(program)
+            task=copy.deepcopy(c.find('Tasks')[1]);task.attrib.update(Name='Task2',Priority='8')
+            task.find('./ScheduledPrograms/ScheduledProgram').set('Name','Program2')
+            c.find('Tasks').append(task)
+        e=self.checked([['UID();','EVENT(Task1);','EVENT(Task2);','SSV(Task,Task1,Priority,Promote);','UIE();'],
+                        ['MOV(1,Observed);']],priority='12',mutate=tags)
+        e.step();self.assertEqual(e.memory.read('Observed'),1)
+        e.step();self.assertEqual(e.memory.read('Observed'),2)
+
     def test_wrong_types_aoi_harness_event_rate_and_missing_flags_remain_guarded(self):
         for text in ('SSV(Task,Task1,InhibitTask,StartPB);','SSV(Task,Task1,InhibitTask,1);','GSV(Task,Task1,Rate,CallerStatus);'):
             self.assertTrue(self.engine([[text],['NOP();']]).blockers,text)

@@ -17,7 +17,7 @@ class TaskInhibitTests(unittest.TestCase):
     def engine(self,logic='SSV(Task,Task1,InhibitTask,Control);',*,st=False,specs=None,target=None,mutate=None,defer=False):
         def change(root):
             tags=root.find('./Controller/Tags')
-            for name,dtype,value in (('Control','DINT',0),('Readout','DINT',-1),('Gate','BOOL',1),('Divisor','DINT',1),('Index','DINT',0)):
+            for name,dtype,value in (('Control','DINT',0),('Readout','DINT',-1),('Gate','BOOL',1),('Divisor','DINT',1),('Index','DINT',0),('PrioIn','INT',1),('PrioOut','INT',-1)):
                 tag=E.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base')
                 E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value=str(value))
             if st:
@@ -299,6 +299,62 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(state['ms'],70+(state['scan']-4)*15)
         state=app.command('reset',{})
         self.assertEqual(state['controller']['scan_interval_ms'],10)
+
+    def test_priority_updates_coincident_releases_on_next_advance_without_rephase(self):
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Priority,PrioIn);\nGSV(Task,Task1,Priority,PrioOut);',
+                       specs=[dict(Priority='5'),dict(Priority='8')],target=['NOP();'])
+        e.step(20)
+        trace=lambda:[row['task'] for row in e.trace if row['number']=='0']
+        self.assertEqual(trace(),['Task0','Task1']*2)
+        self.assertEqual(e.memory.read('PrioOut'),1)
+        task=e.scheduler_description()['tasks'][1]
+        self.assertEqual((task['priority'],task['source_priority'],task['next_release_ms']),(1,8,30))
+        e.memory.write('PrioIn',5);e.step(10)
+        self.assertEqual(trace(),['Task1','Task0'])
+        e.memory.write('Gate',False);e.step(10)
+        self.assertEqual(trace(),['Task0','Task1'])
+
+    def test_priority_fault_restores_staged_priority_rate_and_values(self):
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Priority,PrioIn);\nXIC(Gate)SSV(Task,Task1,Rate,Control);\n'
+                       'GSV(Task,Task1,Priority,PrioOut);\nDIV(1,Divisor,Count0);')
+        e.memory.write('Gate',False);e.step()
+        schedule=e.scheduler_description()
+        e.memory.write('Gate',True);e.memory.write('Control',20000)
+        for priority,divisor,pattern in ((0,1,r'INT in 1\.\.15'),(16,1,r'INT in 1\.\.15'),(15,0,'zero')):
+            e.memory.write('PrioIn',priority);e.memory.write('Divisor',divisor)
+            before=copy.deepcopy(e.memory.values)
+            with self.assertRaisesRegex(ModelError,pattern):e.step()
+            self.assertEqual(e.scheduler_description(),schedule)
+            self.assertEqual(e.memory.values,before)
+        e.memory.write('Divisor',1);e.step()
+        self.assertEqual(e.memory.read('PrioOut'),15)
+        task=e.scheduler_description()['tasks'][1]
+        self.assertEqual((task['priority'],task['rate_ms'],task['next_release_ms']),(15,20,40))
+
+    def test_priority_requires_exact_int_tag_and_explicit_eligible_target(self):
+        for text in ('AFI()SSV(Task,Task1,Priority,Control);','AFI()SSV(Task,Task1,Priority,1);',
+                     'AFI()SSV(Task,Task1,Priority,PrioIn.0);','AFI()SSV(Task,Task0,Priority,PrioIn);'):
+            self.assertTrue(self.engine(text).blockers,text)
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Priority,PrioIn);',defer=True)
+        e.enter_run();e.memory.write('Gate',False);e.memory.values['prioin']=None
+        e.step();self.assertEqual(e.scheduler_description()['tasks'][1]['priority'],5)
+
+    def test_st_this_priority_persists_on_run_and_detached_replacement(self):
+        def explicit(root):
+            root.find('./Controller/Programs/Program').attrib.update(UseAsFolder='false',Disabled='false')
+        e=self.checked('SSV(Task,THIS,Priority,PrioIn); GSV(Task,THIS,Priority,PrioOut);',
+                       st=True,specs=[dict(Priority='5'),dict(Priority='8')],target=['NOP();'],mutate=explicit)
+        e.step();e.enter_run()
+        self.assertEqual((e.memory.read('PrioOut'),e.scheduler_description()['tasks'][0]['priority']),(1,1))
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        source=decode(container(E.tostring(xml_source(name='Main',text='NOP();'),encoding='utf-8')))
+        candidate,_=prepare(e,source,('NOP();',),'Program1',0)
+        candidate.memory.write('PrioIn',4);candidate.step()
+        self.assertEqual(candidate.scheduler_description()['tasks'][0]['priority'],4)
+        self.assertEqual(e.scheduler_description()['tasks'][0]['priority'],1)
+        self.assertEqual(Engine(e.project).scheduler_description()['tasks'][0]['priority'],5)
 
     def test_system_lab_independent_controls_and_late_fault_recovery(self):
         e=Engine(Project(Path(__file__).resolve().parents[1]/'samples/SystemLab.L5X'));self.assertEqual(e.blockers,[]);e.step(25)

@@ -82,6 +82,11 @@ class Dispatch:
     def masked(self):
         return self.interrupt_depth.get(self.engine._executing_task,0)>0
 
+    def caller_priority(self):
+        tasks=self.engine._task_scheduler.tasks
+        caller=next(i for i,t in enumerate(tasks) if t.name==self.engine._executing_task)
+        return self.batch.priorities[caller]
+
     def interrupt(self,name):
         task=self.engine._executing_task
         if task is None:raise ModelError('UID/UIE has no executing task')
@@ -91,8 +96,7 @@ class Dispatch:
         elif depth>1:self.interrupt_depth[task]=depth-1
         else:
             del self.interrupt_depth[task]
-            priority=next(t.priority for t in self.engine._task_scheduler.tasks if t.name==task)
-            self.drain(priority)
+            self.drain(self.caller_priority())
 
     def complete_task(self,task):
         if self.interrupt_depth.get(task,0):
@@ -109,17 +113,18 @@ class Dispatch:
         if index in self.pending:
             self.coalesced[index]=self.coalesced.get(index,0)+1
             return
-        caller=next(t for t in scheduler.tasks if t.name==self.engine._executing_task)
+        priority=self.batch.priorities[index]
+        caller_priority=self.caller_priority()
         self.accepted+=1
         if len(self.batch.releases)+self.accepted>MAX_RELEASES:raise ModelError('Event task release budget exceeded')
         if task.name.casefold() in self.status:self.status[task.name.casefold()]|=1
-        if task.priority<caller.priority and not self.masked():
+        if priority<caller_priority and not self.masked():
             self._execute(index,self.engine.time_ms)
             # Newly queued work may outrank the restored caller, but not the child.
-            self.drain(caller.priority)
+            self.drain(caller_priority)
         else:
             self.pending.add(index)
-            heapq.heappush(self.queue,(task.priority,self.accepted,index,self.engine.time_ms))
+            heapq.heappush(self.queue,(priority,self.accepted,index,self.engine.time_ms))
 
     def _execute(self,index,due):
         task=self.engine._task_scheduler.tasks[index]
@@ -141,7 +146,7 @@ def description():
     return dict(profile='v35-5580-instruction-EVENT', languages=['RLL','ST'],
                 source='Standard EventInfo EVENT Instruction Only; explicit EnableTimeout false',
                 dispatch='Unmasked higher-priority target runs immediately; UID queues requests until outer UIE; lower/equal targets wait for task return at the same simulated time',
-                ordering='Ready Event priority then request order; coincident base releases precede queued Events at equal priority',
+                ordering='Advance-start priorities, then Event request order; coincident base releases precede queued Events at equal priority',
                 retrigger='Active requests are discarded as modeled overlaps; pending duplicates coalesce and have a separate diagnostic',
                 pending_policy='At most one pending execution per task; software policy, native pending-duplicate parity unverified',
                 non_event='Existing Continuous/Periodic target or live-inhibited Event target does not execute; queued targets recheck before dispatch',

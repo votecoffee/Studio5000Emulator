@@ -79,12 +79,13 @@ def source(engine, op, scope='', *, executing=False):
     values.update(configuration.attributes(name,source_sha256=project.sha256))
     raw=values.get(number)
     if raw is None:raise ModelError('GSV Task attribute is unavailable from explicit source settings')
-    if attribute in ('inhibittask','rate') and engine._task_scheduler is not None:
+    if attribute in ('inhibittask','rate','priority') and engine._task_scheduler is not None:
         scheduler=engine._task_scheduler
         if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
         index=next(i for i,t in enumerate(scheduler.tasks) if t.name==name)
         if attribute=='inhibittask':return dtype,int(scheduler.inhibitions[index])
-        return dtype,scheduler.periods[index]*1000
+        if attribute=='rate':return dtype,scheduler.periods[index]*1000
+        return dtype,scheduler.priorities[index]
     return dtype,struct.unpack('<h' if dtype=='INT' else '<i',raw)[0]
 
 
@@ -132,7 +133,7 @@ def description():
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact milliseconds; no inferred defaults',
-                state='Source configuration with live Task InhibitTask and Periodic Rate in project mode',
+                state='Source configuration with live Task InhibitTask, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
