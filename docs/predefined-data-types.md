@@ -19,6 +19,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Numeric model, bounded | 5 | BOOL, SINT, INT, DINT, REAL storage and supported operations; incomplete conversions/status/native parity |
 | Wide integer profile, bounded | 5 | LINT, USINT, UINT, UDINT, ULINT storage and supported homogeneous [ladder](integer-execution.md) and [ST](wide-st.md) operations; profile restrictions apply |
 | LREAL model, bounded | 1 | [Finite storage/MOV/CLR](lreal-storage.md), [matching-tag ladder arithmetic/comparisons](lreal-math.md), [advanced math](lreal-advanced.md), [TRN](lreal-truncate.md), [numeric COP/CPS](lreal-copy.md), [mixed-tag arithmetic](mixed-lreal-math.md), [mixed comparisons/LIM](mixed-lreal-comparisons.md), [integer constants](lreal-constants.md), [mixed XPY powers](mixed-lreal-power.md), [numeric unary sources](lreal-unary-sources.md), [result-selected arithmetic](lreal-destination-math.md) and atomic tag access; mixed types, ST expressions and aggregate layouts remain unfinished |
+| Time/date model, bounded | 5 | [DT, LDT, TIME32, TIME and LTIME storage, same-type moves and relations](time-date-storage.md); conversions, arithmetic and native layouts remain open |
 | Timer/counter model, partial | 2 | TIMER and COUNTER fields plus the implemented instruction subset |
 | STRING model, partial | 1 | Explicit LEN/DATA behavior and selected string instructions; complete built-in wire behavior remains unfinished |
 | CONTROL model, partial | 1 | Logical members plus [Shifts, numeric FIFO/LIFO and RES](control-operations.md), plus [DINT sequencers](sequencer-operations.md); native layout and remaining forms unfinished |
@@ -47,10 +48,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
 | Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
-| No dedicated model | 166 | No dedicated bounded named runtime model |
+| No dedicated model | 161 | No dedicated bounded named runtime model |
 
-Thus **56 entries have dedicated bounded models**; this is not 56 fully
-emulated types and not a percentage-complete claim. UDTs, custom string types,
+Thus **61 entries have dedicated bounded models**. Each entry retains its
+specific scope and remaining work. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
 
@@ -147,7 +148,7 @@ Every dedicated model status still requires the qualifications above.
 | 44 | `DIVERSE_INPUT` | Safety | No dedicated model | Listed |
 | 45 | `DOMINANT_RESET` | FBD state/logic | Boolean memory model (partial) | Listed |
 | 46 | `DOMINANT_SET` | FBD state/logic | Boolean memory model (partial) | Listed |
-| 47 | `DT` | Time/date | No dedicated model | Listed |
+| 47 | `DT` | Time/date | Time/date model (bounded) | Listed |
 | 48 | `DYNAMICS_DATA` | Motion/axis/reference | No dedicated model | Listed |
 | 49 | `EIGHT_POS_MODE_SELECTOR` | Safety | No dedicated model | Listed |
 | 50 | `EMERGENCY_STOP` | Safety | No dedicated model | Listed |
@@ -185,13 +186,13 @@ Every dedicated model status still requires the qualifications above.
 | 82 | `IMC` | Process/filter/drive | No dedicated model | Listed |
 | 83 | `INT` | Atomic numeric/BOOL | Numeric model (bounded) | Listed |
 | 84 | `INTEGRATOR` | Process/filter/drive | Accumulation model (partial) | Listed |
-| 85 | `LDT` | Time/date | No dedicated model | Listed |
+| 85 | `LDT` | Time/date | Time/date model (bounded) | Listed |
 | 86 | `LEAD_LAG` | Process/filter/drive | No dedicated model | Listed |
 | 87 | `LEAD_LAG_SEC_ORDER` | Process/filter/drive | No dedicated model | Listed |
 | 88 | `LIGHT_CURTAIN` | Safety | No dedicated model | Listed |
 | 89 | `LINT` | Atomic numeric/BOOL | Wide integer profile (bounded) | Listed |
 | 90 | `LREAL` | Atomic numeric/BOOL | LREAL model (bounded) | Listed |
-| 91 | `LTIME` | Time/date | No dedicated model | Listed |
+| 91 | `LTIME` | Time/date | Time/date model (bounded) | Listed |
 | 92 | `MAIN_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
 | 93 | `MANUAL_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
 | 94 | `MAXIMUM_CAPTURE` | Process/filter/drive | Capture model (partial) | Listed |
@@ -313,8 +314,8 @@ Every dedicated model status still requires the qualifications above.
 | 210 | `STRING_32` | Strings | No dedicated model | Listed |
 | 211 | `S_CURVE` | Process/filter/drive | No dedicated model | Spelling variant |
 | 212 | `THRS_ENHANCED` | Safety | No dedicated model | Listed |
-| 213 | `TIME` | Time/date | No dedicated model | Listed |
-| 214 | `TIME32` | Time/date | No dedicated model | Listed |
+| 213 | `TIME` | Time/date | Time/date model (bounded) | Listed |
+| 214 | `TIME32` | Time/date | Time/date model (bounded) | Listed |
 | 215 | `TIMER` | Timers/counters | Timer/counter model (partial) | Listed |
 | 216 | `TOTALIZER` | Process/filter/drive | No dedicated model | Listed |
 | 217 | `TWO_HAND_RUN_STATION` | Safety | No dedicated model | Listed |

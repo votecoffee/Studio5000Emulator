@@ -458,6 +458,33 @@
       <Tag Name="ClipSource" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="305419896" /></Data></Tag>
       <Tag Name="ClipScalar" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="7" /></Data></Tag>
       <Tag Name="ClipValues" DataType="SINT" TagType="Base" Dimensions="5"><Data Format="Decorated"><Array DataType="SINT" Dimensions="5"><Element Index="[0]" Value="11" /><Element Index="[1]" Value="22" /><Element Index="[2]" Value="33" /><Element Index="[3]" Value="44" /><Element Index="[4]" Value="55" /></Array></Data></Tag>
+      <Tag Name="TimeDateDemo" DataType="BOOL" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ShortDelay" DataType="TIME32" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data>
+      </Tag>
+      <Tag Name="CycleDuration" DataType="TIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME" Value="T#1s_250ms_7us" /></Data>
+      </Tag>
+      <Tag Name="CopiedDuration" DataType="TIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="HighResolutionDelay" DataType="LTIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LTIME" Value="LT#1s_42ns" /></Data>
+      </Tag>
+      <Tag Name="WallStamp" DataType="DT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LongStamp" DataType="LDT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="TimeToClear" DataType="LTIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LTIME" Value="LT#33ns" /></Data>
+      </Tag>
+      <Tag Name="EarlierNano" DataType="BOOL" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -600,6 +627,7 @@
                 <Comment>Temporary end exits only this routine.</Comment>
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>
+              <Rung Number="40" Type="N"><Text>XIC(TimeDateDemo)JSR(TimeAndDate,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ClippedFill" Type="RLL">
@@ -613,6 +641,16 @@
               <Rung Number="0" Type="N"><Text>XIC(ClipRecordFill)FLL(0,ClipRecordSources[ClipRecordIndex],ClipRecordLength);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ClipRecordCopy)COP(ClipRecordSources[ClipRecordIndex],ClipRecordCopies[1],ClipRecordLength);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ClipRecordCopy)CPS(ClipRecordSources[ClipRecordIndex],ClipRecordSync[1],ClipRecordLength);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TimeAndDate" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>MOV(T32#-1ms_501us,ShortDelay);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>MOV(CycleDuration,CopiedDuration);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>MOV(DT#2026-01-01-00:00:00.000_001,WallStamp);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>MOV(LDT#2026-01-01-00:00:00.000_000_001,LongStamp);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>LES(LongStamp,LDT#2026-01-01-00:00:00.000_000_002)OTE(EarlierNano);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>CLR(TimeToClear);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

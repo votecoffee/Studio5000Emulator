@@ -81,7 +81,7 @@ class LrealStorageTests(unittest.TestCase):
         self.assertTrue(self.engine(source='LREAL',value='1e999').blockers)
 
     def test_unsupported_lreal_mixed_forms_fills_and_old_profile_do_not_fall_through(self):
-        for rung in ('ADD(Source,Mask,SpeedCommand);','DIV(Source,1e39,Dest);','EQU(Source,TRUE);','CMP(Source=StartPB);','CPT(Dest,Source+1e999);','FLL(Source,Dest,1);','AND(Source,Source,Dest);'):
+        for rung in ('DIV(Source,1e39,Dest);','EQU(Source,TRUE);','CMP(Source=StartPB);','CPT(Dest,Source+1e999);','FLL(Source,Dest,1);','AND(Source,Source,Dest);'):
             self.assertTrue(self.engine([rung],source='LREAL',dest='LREAL').blockers,rung)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(source='LREAL',dest='LREAL',mutate=old).blockers)

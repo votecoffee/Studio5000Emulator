@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1105.085827`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1105.091610`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -32,6 +32,11 @@ Development is maintained on `main`.
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
+
+**Ladder time and date tags** support exact DT, LDT, TIME32, TIME and LTIME
+storage, same-type moves and comparisons, and CLR. In **Data Lab**, enable
+`TimeDateDemo` and step to see timestamps compared one nanosecond apart.
+[Time and date storage](docs/time-date-storage.md)
 
 **Literal ladder CONTROL settings** initialize LEN/POS when importing supported
 shifts, queues, sequencers, statistics and file operations. **Control lab**

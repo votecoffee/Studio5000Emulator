@@ -1,5 +1,6 @@
 """Scalar MOV/CLR and explicit numeric conversions for the v35 5580 model."""
 import re
+from . import time_values
 from .st_literals import scan as typed_integer
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
@@ -13,10 +14,11 @@ def available(project):
     return project.version == '35' and project.processor.upper() in CONTROLLERS
 
 
-def destination(memory, ref, scope):
+def destination(memory, ref, scope, *, allow_time=False):
     key, parts, dtype = memory.check_writable(ref, scope)
-    if dtype not in TYPES or isinstance(memory.at(key, parts), (list, dict)):
-        raise ModelError('MOV/CLR destination requires one numeric scalar element')
+    if (dtype not in TYPES and not (allow_time and dtype in time_values.TYPES)
+            or isinstance(memory.at(key, parts), (list, dict))):
+        raise ModelError('MOV/CLR destination requires one supported scalar element')
     return key, parts, dtype
 
 
@@ -131,8 +133,14 @@ def specification(memory, op, scope):
     previous = memory.structural
     memory.structural = True
     try:
-        destination(memory, op.args[-1], scope)
-        return source_type(memory, op.args[0], scope) if op.name == 'MOV' else None
+        _, _, dtype = destination(memory, op.args[-1], scope, allow_time=True)
+        if op.name == 'CLR':
+            return None
+        if dtype in time_values.TYPES:
+            if time_values.operand_type(memory, op.args[0], scope) != dtype:
+                raise ModelError('Time/date MOV requires matching source and destination types')
+            return dtype
+        return source_type(memory, op.args[0], scope)
     finally:
         memory.structural = previous
 
@@ -156,7 +164,11 @@ def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
     source = specification(memory, op, scope)
-    key, parts, dtype = destination(memory, op.args[-1], scope)
+    key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True)
+    if dtype in time_values.TYPES:
+        value = 0 if op.name == 'CLR' else time_values.read_operand(memory, op.args[0], scope)
+        memory.store(key, parts, coerce(value, dtype))
+        return True
     typed=typed_literal(op.args[0]) if op.name=='MOV' else None
     value = convert(typed[1] if typed is not None else memory.read(op.args[0], scope), source, dtype) if op.name == 'MOV' else coerce(0, dtype)
     memory.store(key, parts, value)
@@ -167,6 +179,10 @@ def description(project):
     return dict(available=available(project), profile='v35-5580-numeric-storage', language='RLL',
                 instructions=sorted(INSTRUCTIONS), types=sorted(TYPES),
                 operands='One numeric scalar element; bounded DINT/finite REAL or typed L/U/UL integer and floating L/l MOV immediates; aliases and existing AOI bindings',
+                time_date=dict(types=sorted(time_values.TYPES), instructions=['MOV', 'CLR'],
+                    operands='Matching scalar tags or matching typed MOV literals; CLR writes zero ticks',
+                    representation='Exact decimal ticks in the declared microsecond or nanosecond unit',
+                    native_runtime_parity=False),
                 typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',
                     range='Declared source range and precision checked structurally, before existing destination conversion',
                     conversion='Same integer pattern, floating precision and checked nearest-even conversion as a source tag',
@@ -184,5 +200,5 @@ def description(project):
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['Time/date, string and aggregate MOV/CLR forms; typed radix/other consumers/controllers',
+                remaining=['Time/date conversion, string and aggregate MOV/CLR; typed radix/other consumers/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

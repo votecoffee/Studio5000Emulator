@@ -34,6 +34,7 @@ from .native_metadata_definitions import NativeMetadataDefinitions
 from .native_metadata_values import NativeMetadataValues
 from .device_io import DeviceIO
 from .wall_clock import CoordinatedClock
+from . import time_values
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -236,7 +237,7 @@ class Application:
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
                 'entry_routines':e.entries,
                 "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
-                "changes": e.changes, "provenance": self.provenance,
+                "changes": time_values.display_changes(e.changes, tags), "provenance": self.provenance,
                 "tasks": e.project.tasks, "task_schedule":e.scheduler_description(), "converter": self.converter,
                 'aoi_definitions':{name:{'name':aoi.name,'description':aoi.description,
                     'parameters':[{'name':p.get('Name',''),'type':p.get('DataType',''),
@@ -581,8 +582,10 @@ class Application:
                 report["import_provenance"] = self.provenance
                 return report
             elif action == "snapshot":
+                tags = e.memory.leaves()
                 return {"report": e.report(), "import_provenance": self.provenance,
-                        "scan": e.scan_count, "ms": e.time_ms, "tags": e.memory.leaves(), "changes": e.changes,
+                        "scan": e.scan_count, "ms": e.time_ms, "tags": tags,
+                        "changes": time_values.display_changes(e.changes, tags),
                         'controller':self.controller_state()}
             elif action=='export-edited-l5x':
                 if self.running:raise ModelError('Switch to Program before saving edited logic')

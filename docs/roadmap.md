@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.091610` [time and date storage](time-date-storage.md)
+adds DT, LDT, TIME32, TIME and LTIME for matching ladder MOV and relations,
+plus CLR. Data Lab shows nanosecond timestamp ordering.
+
 Available in `26.1105.085827` [literal CONTROL initialization](control-operations.md#literal-len-and-pos-on-import)
 seeds LEN/POS for sixteen ladder forms, including both FBC/DDT backing records.
 Control lab demonstrates BSL and a shared FFL/FFU record.

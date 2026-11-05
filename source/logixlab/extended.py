@@ -6,6 +6,7 @@ from .conditions import Condition
 from . import string_operations, string_conversions, numeric_copy, numeric_fill, aggregate_copy, size_truncate, comparisons, wide_st, lreal_expressions
 from .integer_math import WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
+from . import time_values
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
@@ -110,7 +111,10 @@ class Extensions:
         if n in ('COP','CPS'):
             previous=self.memory.structural;self.memory.structural=True
             try:
-                if (any(self.memory.resolve(ref,scope)[2]=='LREAL' for ref in a[:2]) and
+                types = {self.memory.resolve(ref, scope)[2] for ref in a[:2]}
+                if types & time_values.TYPES:
+                    raise ModelError('Time/date COP/CPS require a qualified byte-copy profile')
+                if ('LREAL' in types and
                     (self.engine.project.version!='35' or self.engine.project.processor.upper() not in CONTROLLERS)):
                     raise ModelError('LREAL COP/CPS byte-copy forms remain unqualified')
             finally:self.memory.structural=previous

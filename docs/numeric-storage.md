@@ -37,8 +37,10 @@ Choose **Data lab** and enable `MoveNumeric`. Inspect `MoveByte`, `MoveWord`,
 `ByteFill[FillIndex]`. This scalar model is separate from byte-copy instructions
 and the homogeneous wide arithmetic profile. The report exposes `numeric_storage`.
 
-Other controllers retain their previous behavior. Mixed LREAL arithmetic and LREAL expressions, time/date, string and
-aggregate MOV/CLR forms, broader literal support and native status/fault/lifecycle
+[Same-type time and date operands](time-date-storage.md) use their own exact
+storage rules. Other controllers retain their previous behavior. Mixed LREAL
+arithmetic and expressions, time/date conversions, string and aggregate MOV/CLR
+forms, broader literal support and native status/fault/lifecycle
 parity remain unfinished. ST assignments and FBD are unchanged.
 
 Reference basis: installed Studio 5000 v35 **Data Conversions** (14451),

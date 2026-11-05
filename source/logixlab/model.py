@@ -27,6 +27,7 @@ from .task_configuration import TaskConfiguration
 from .task_timing import TaskTiming
 from .executable_configuration import ExecutableConfiguration
 from .io_map import IOMap
+from . import time_values
 
 
 class ModelError(Exception):
@@ -224,6 +225,11 @@ def ascii_bytes(text):
 
 def coerce(value, dtype):
     dtype = dtype.upper()
+    if dtype in time_values.TYPES:
+        try:
+            return time_values.coerce(value, dtype)
+        except ValueError as error:
+            raise ModelError(str(error)) from error
     if dtype == "BOOL":
         if value not in (0, 1, False, True): raise ModelError("BOOL must be 0 or 1")
         return bool(value)
@@ -395,7 +401,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,'REAL','LREAL','PID','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
+        builtin={'BOOL',*INT_BITS,*time_values.TYPES,'REAL','LREAL','PID','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -489,6 +495,10 @@ class Project:
 
     def default(self, dtype, stack=()):
         upper = dtype.upper()
+        if upper in time_values.TYPES:
+            if not time_values.available(self):
+                raise ModelError(f'{upper} storage requires the v35 ControlLogix 5580 profile')
+            return 0
         if upper in INT_BITS or upper in ("REAL","LREAL"): return 0.0 if upper in ("REAL","LREAL") else 0
         if upper == "BOOL": return False
         if upper=='FBD_BIT_FIELD_DISTRIBUTE':
@@ -600,6 +610,12 @@ class Project:
             if len(dims)==1:return dims[0]
         return None
 
+    def _decorated_scalar(self, raw, dtype):
+        if dtype.upper() in time_values.TYPES:
+            self.default(dtype)
+            return coerce(raw, dtype)
+        return coerce(literal(raw if raw is not None else '0'), dtype)
+
     def decorated(self, element, default):
         if element.tag in ("DataValue", "DataValueMember"):
             if isinstance(default,list) and element.get('Radix')=='ASCII':
@@ -610,7 +626,7 @@ class Project:
                 values=ascii_bytes(raw)
                 if len(values)>len(default):raise ModelError('ASCII data exceeds the backing array')
                 return values+[None]*(len(default)-len(values))
-            return coerce(literal(element.get("Value", "0")), element.get("DataType"))
+            return self._decorated_scalar(element.get("Value"), element.get("DataType"))
         if element.tag in ("Structure", "StructureMember"):
             result = unknown_shape(default)
             if not isinstance(result, dict): raise ModelError("Structure data mismatch")
@@ -632,7 +648,7 @@ class Project:
                 i=parts[-1]
                 if not isinstance(parent,list) or i>=len(parent):raise ModelError('Decorated array index out of range')
                 if child.get("Value") is not None:
-                    parent[i] = coerce(literal(child.get("Value")), element.get("DataType"))
+                    parent[i] = self._decorated_scalar(child.get("Value"), element.get("DataType"))
                 elif len(child): parent[i] = self.decorated(child[0], parent[i])
                 else: raise ModelError("Missing array element data")
             return result
@@ -649,7 +665,11 @@ class Project:
                 tag.value = self.default(tag.dtype)
                 tag.value = array_default(tag.value,dimensions(e.get('Dimensions','')))
                 d = e.find("./Data[@Format='Decorated']")
-                if d is not None and len(d): tag.value = self.decorated(d[0], tag.value)
+                if d is not None and len(d):
+                    data_type = d[0].get('DataType', '').upper()
+                    if (tag.dtype.upper() in time_values.TYPES or data_type in time_values.TYPES) and data_type != tag.dtype.upper():
+                        raise ModelError('Time/date tag and decorated data type must match')
+                    tag.value = self.decorated(d[0], tag.value)
                 elif self.string_capacity(tag.dtype) is not None and not isinstance(tag.value,list):
                     raw=e.findtext("./Data[@Format='L5K']",'')
                     match=re.fullmatch(r"\s*\[\s*(-?\d+)\s*,\s*('.*')\s*\]\s*",raw,re.S)
@@ -912,11 +932,13 @@ class Memory:
             self._resolved[cache_key]=result
         return result
 
-    def read(self, ref, scope=""):
+    def read(self, ref, scope="", *, allow_time=False):
         try: return literal(ref)
         except ValueError: pass
         key, parts, dtype = self.resolve(ref, scope)
         if key is None: return self.first_scan
+        if dtype in time_values.TYPES and not allow_time:
+            raise ModelError('Time/date operand requires a qualified same-type ladder instruction')
         if self.structural:
             value=self.values[key]
             for p in parts:
@@ -1052,8 +1074,9 @@ class Memory:
                 array([],value)
             else:
                 dtype=self.resolve(name)[2]
-                result.append({"name": name, "type": dtype, "value": str(value) if value is not None and dtype in ('LINT','ULINT') else value,
-                               'kind':'integer_text' if dtype in ('LINT','ULINT') else 'scalar',
+                exact_text = dtype in ('LINT', 'ULINT') or dtype in time_values.TYPES
+                result.append({"name": name, "type": dtype, "value": str(value) if value is not None and exact_text else value,
+                               'kind':'integer_text' if exact_text else 'scalar',
                                'aoi_local':local,'unknown':value is None,
                                "constant": tag.constant or value is None, "alias": tag.alias,
                                "problem": 'Unknown backing byte omitted by export' if value is None else tag.problem})
@@ -1061,6 +1084,6 @@ class Memory:
             if tag.problem:
                 result.append({"name": tag.key, "type": tag.dtype, "value": None, "problem": tag.problem, "constant": True})
             else:
-                try: walk(tag.key, self.read(tag.key), tag)
+                try: walk(tag.key, self.read(tag.key, allow_time=True), tag)
                 except ModelError as e: result.append({"name": tag.key, "type": tag.dtype, "value": None, "problem": str(e), "constant": True})
         return result

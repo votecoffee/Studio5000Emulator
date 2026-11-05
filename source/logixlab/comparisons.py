@@ -1,7 +1,7 @@
 """Lazy numeric ladder comparisons for the bounded v35 5580 profile."""
 import operator
 
-from . import integer_math
+from . import integer_math, time_values
 from .bit_transfer import unsigned
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
@@ -27,7 +27,8 @@ def validate(engine, op, scope):
         if op.name == 'MEQ':
             masked_values(engine, op.args, scope)
         else:
-            if lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope):return True
+            if (time_specification(memory, op, scope) or lreal_specification(memory,op.args,scope)
+                    or real_specification(memory,op.args,scope)):return True
             if integer_math.typed_profile(engine,op,scope):return True
             for arg in op.args:
                 value = memory.read(arg, scope)
@@ -37,6 +38,17 @@ def validate(engine, op, scope):
     finally:
         memory.structural = previous
     return True
+
+
+def time_specification(memory, op, scope):
+    if op.name not in RELATIONS:
+        return None
+    left, right = (time_values.operand_type(memory, ref, scope) for ref in op.args)
+    if left is not None or right is not None:
+        if left != right:
+            raise ModelError('Time/date comparisons require matching operand types')
+        return left
+    return None
 
 
 def lreal_specification(memory, args, scope):
@@ -143,6 +155,8 @@ def execute(engine, op, power, scope):
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
+    if time_specification(memory, op, scope):
+        return RELATIONS[op.name](*(time_values.read_operand(memory, ref, scope) for ref in op.args))
     profile=ordering_profile(engine,op,scope)
     if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
     elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
@@ -157,6 +171,9 @@ def description(project):
     return dict(available=available(project), profile='v35-5580-lazy-numeric-comparisons',
                 language='RLL', instructions=sorted(INSTRUCTIONS),
                 selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls consume every operand',
+                time_date=dict(types=sorted(time_values.TYPES), instructions=sorted(RELATIONS),
+                    operands='Matching scalar tags or matching typed literals; exact tick ordering',
+                    native_runtime_parity=False),
                 mixed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')), types=list(INTEGER_RANK),
                     operands='Tags with optional bounded constants; highest-ranked tag type must cover every complete declared tag range',
                     promotion='Preserve numeric values and signs; no floating-point conversion and no invented wider common type',
