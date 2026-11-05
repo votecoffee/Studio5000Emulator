@@ -10,7 +10,7 @@ from . import time_values
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
-COMPARE = {'EQU','NEQ','LES','LEQ','GRT','GEQ'}
+COMPARE = frozenset(comparisons.RELATIONS)
 
 
 class Extensions:
@@ -78,7 +78,9 @@ class Extensions:
 
     def is_string(self,ref,scope):
         previous=self.memory.structural
-        if comparisons.available(self.engine.project):self.memory.structural=True
+        if comparisons.available(self.engine.project):
+            if ref.startswith("'"):return True
+            self.memory.structural=True
         try:return self.memory.project.string_capacity(self.memory.resolve(ref,scope)[2]) is not None
         except ModelError:return False
         finally:self.memory.structural=previous
@@ -181,7 +183,8 @@ class Extensions:
             def integer(ref,write=False):string_operations.integer_operand(self.memory,ref,scope,destination=write)
             if n in COMPARE:
                 if not any(self.is_string(ref,scope) for ref in a):return False
-                for ref in a:text(ref)
+                for ref in a:
+                    if string_operations.string_literal(ref) is None:text(ref)
             elif n=='CMP':
                 condition=self.condition(a[0],allow_wide=True,bcd=True,lreal=True)
                 strings=[ref for ref in condition.refs if self.is_string(ref,scope)]
@@ -259,8 +262,11 @@ class Extensions:
         n,a=op.name,op.args
         if n in COMPARE and any(self.is_string(x,scope) for x in a):
             if not power:return False
-            x,y=(self.memory.string(arg,scope) for arg in a)
-            return {'EQU':x==y,'NEQ':x!=y,'LES':x<y,'LEQ':x<=y,'GRT':x>y,'GEQ':x>=y}[n]
+            values = []
+            for ref in a:
+                text = string_operations.string_literal(ref)
+                values.append(self.memory.string(ref, scope) if text is None else text)
+            return comparisons.RELATIONS[n](*values)
         if n in string_conversions.INSTRUCTIONS:
             if power:string_conversions.execute(self.memory,op,scope)
             return power

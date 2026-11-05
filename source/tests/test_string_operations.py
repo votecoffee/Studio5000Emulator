@@ -52,6 +52,72 @@ class StringOperationTests(unittest.TestCase):
     def checked(self,*args,**kwargs):
         e=self.engine(*args,**kwargs);self.assertEqual(e.blockers,[]);return e
 
+    def test_all_six_ladder_string_relations_accept_literals_in_either_position(self):
+        for name, left, right, equal in (
+            ('EQU', False, False, True), ('NEQ', True, True, False),
+            ('LES', True, False, False), ('LEQ', True, False, True),
+            ('GRT', False, True, False), ('GEQ', False, True, True),
+        ):
+            for operands, result in (("'ABC',SourceA", left), ("SourceA,'ABC'", right),
+                                     ("SourceA,'ABC123ABC'", equal), ("'ABC123ABC','ABC123ABC'", equal)):
+                with self.subTest(instruction=name, operands=operands):
+                    engine = self.checked([f'{name}({operands})OTE(RunLatch);'])
+                    engine.step()
+                    self.assertIs(engine.memory.read('RunLatch'), result)
+
+    def test_ladder_string_literals_compare_case_length_and_unsigned_active_bytes(self):
+        for condition in ("NEQ('A','a')", "LES('','A')", "LES('ABC','ABCD')",
+                          "GRT('$FF','$7F')", "GRT('A$00B','A$00A')",
+                          "EQU('Line [1], (ready); $'OK$' $$','Line [1], (ready); $'OK$' $$')"):
+            with self.subTest(condition=condition):
+                engine = self.checked([condition+'OTE(RunLatch);'])
+                engine.step()
+                self.assertTrue(engine.memory.read('RunLatch'))
+        engine = self.checked(["EQU(SourceB,'XY')OTE(RunLatch);"])
+        engine.memory.values['sourceb']['DATA'][3] = None
+        engine.step()
+        self.assertTrue(engine.memory.read('RunLatch'))
+
+    def test_indexed_string_literal_relation_skips_false_reads_and_rolls_back_on_unknown(self):
+        def array(root):
+            tags = root.find('./Controller/Tags')
+            tag = E.SubElement(tags, 'Tag', Name='Cells', DataType='STRING', TagType='Base', Dimensions='2')
+            E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='STRING', Dimensions='2')
+            E.SubElement(tags, 'Tag', Name='Alias', DataType='STRING', TagType='Alias', AliasFor='Cells[Index]')
+        engine = self.checked(["MOV(7,Result);","XIC(StartPB)EQU('READY',Alias)OTE(RunLatch);"], mutate=array)
+        engine.memory.write('Index', 99)
+        engine.step()
+        self.assertFalse(engine.memory.read('RunLatch'))
+        engine.memory.write('StartPB', True)
+        engine.memory.write('Result', 99)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        engine.memory.write('Index', 1)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'String LEN/DATA unknown'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        engine.memory.write('Cells[1]', 'READY')
+        engine.step()
+        self.assertTrue(engine.memory.read('RunLatch'))
+
+    def test_ladder_string_literals_keep_type_grammar_and_consumer_guards(self):
+        for condition in ("EQU('A',1)","GRT('A',StartPB)","EQU('$Q',SourceA)",
+                          "EQU('A' 'B',SourceA)","CMP(SourceA='ABC')","LIM('A',SourceA,'Z')"):
+            with self.subTest(condition=condition):
+                self.assertTrue(self.engine(['AFI()'+condition+'OTE(RunLatch);']).blockers)
+        def old(root):
+            root.find('Controller').set('MajorRev', '34')
+        self.assertTrue(self.engine(["AFI()EQU(SourceA,'ABC123ABC')OTE(RunLatch);"], mutate=old).blockers)
+        from test_control_operations import control_data
+        def control(root):
+            tag = E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Ctl', TagType='Base', DataType='CONTROL')
+            control_data(E.SubElement(tag, 'Data', Format='Decorated'), 1)
+        blocked = self.engine("FSC(Ctl,?,?,ALL,SourceA='ABC123ABC');", mutate=control)
+        self.assertTrue(any('Unsupported expression syntax' in item for item in blocked.blockers), blocked.blockers)
+
     def test_find_first_next_absent_and_case_sensitive(self):
         e=self.checked(['FIND(SourceA,Search,Start,Result);'])
         for start,result in ((1,1),(2,7),(7,7),(8,0),(82,0)):

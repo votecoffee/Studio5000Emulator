@@ -21,6 +21,10 @@ consume every comparison operand; reached unknowns or invalid indices fail the
 advance. A zero MEQ mask does not infer a result from unknown operands. Earlier
 writes, coils, task/time state and existing AOI bindings roll back on failure.
 
+The six standalone relations also have a
+[string tag and literal profile](string-operations.md#ladder-string-comparison-literals).
+String ordering uses active bytes.
+
 ## Mixed integer ordering and limits
 
 Standalone EQU, NEQ, LES, LEQ, GRT, GEQ and LIM accept mixed integer tags in the

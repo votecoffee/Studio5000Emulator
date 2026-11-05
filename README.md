@@ -343,7 +343,8 @@ in ladder and Structured Text, including user strings and existing AOI bindings.
 [lazy indexed string operands](docs/string-operations.md#operand-selection).
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or
 single-quoted literals and clips the result to the destination capacity.
-Enabled instructions can populate unknown string destinations while retaining
+The [six ladder string relations](docs/string-operations.md#ladder-string-comparison-literals)
+also accept literals on either side. Enabled instructions can populate unknown string destinations while retaining
 unused bytes; false rungs skip dynamic indices and saved operand values.
 
 [File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for

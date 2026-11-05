@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.181607` [ladder string comparison literals](string-operations.md#ladder-string-comparison-literals)
+add quoted operands to the six standalone relations. String Lab demonstrates
+case, prefix ordering, and coil rollback after an invalid index.
+
 Available in `26.1105.175855` [ladder string MOV](string-operations.md#ladder-string-mov)
 adds STRING and user-string copies from tags or quoted literals. String Lab
 demonstrates capacity clipping, literal punctuation and rollback.

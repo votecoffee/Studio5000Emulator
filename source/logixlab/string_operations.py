@@ -19,11 +19,11 @@ def string_operand(memory, ref, scope, *, destination=False):
     return capacity
 
 
-def move_literal(ref):
+def string_literal(ref):
     if not ref.startswith("'"):
         return None
     if ascii_literal_end(ref, 0) != len(ref):
-        raise ModelError('String MOV requires a single literal or string tag')
+        raise ModelError('Expected one single-quoted string literal')
     return bytes(value & 255 for value in ascii_bytes(ref)).decode('latin-1')
 
 
@@ -106,6 +106,12 @@ def description():
                     selection='Validate shape and literal syntax structurally; false/prescan skip live indices, LEN and DATA',
                     result='Copy the active prefix up to destination capacity, update LEN, retain unused DATA',
                     native_math_status=False, native_runtime_parity=False),
+                comparison_literals=dict(language='RLL', firmware='35', controllers=sorted(CONTROLLERS),
+                    instructions=['EQU','NEQ','LES','LEQ','GRT','GEQ'],
+                    operands='Either side may be a scalar STRING/user-string tag or single-quoted byte literal',
+                    comparison='Case-sensitive unsigned byte ordering; shorter equal prefixes sort first',
+                    selection='Validate literal syntax and string tag shape structurally; read active bytes only on a true rung',
+                    native_runtime_parity=False),
                 operand_selection=dict(language='RLL',firmware='35',controllers=sorted(CONTROLLERS),
                     instructions=['CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EQU','NEQ','LES','LEQ','GRT','GEQ','CMP'],
                     preflight='Declared string/scalar shapes, index grammar, permissions and existing literal bounds without saved values or dynamic indices',

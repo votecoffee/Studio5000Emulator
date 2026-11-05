@@ -141,7 +141,7 @@ def specification(memory, op, scope):
             return None
         ref = op.args[0]
         if memory.project.string_capacity(dtype) is not None:
-            if string_operations.move_literal(ref) is None:
+            if string_operations.string_literal(ref) is None:
                 string_operations.string_operand(memory, ref, scope)
             return None
         if dtype == 'LINT':
@@ -182,7 +182,7 @@ def execute(engine, op, power, scope):
     capacity = memory.project.string_capacity(dtype)
     if capacity is not None:
         ref = op.args[0]
-        text = string_operations.move_literal(ref)
+        text = string_operations.string_literal(ref)
         value = memory.string(ref, scope, limit=capacity) if text is None else text[:capacity]
         memory.write_string(op.args[-1], value, scope)
         return True

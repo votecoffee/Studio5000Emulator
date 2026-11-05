@@ -859,6 +859,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['AllOK'])
         self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
 
+    def test_string_lab_ladder_relations_compare_literals_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'StringLab'})['blockers'], [])
+        def write(tag, value):
+            return self.post('write', {'tag':tag, 'value':value})
+        def step():
+            return self.post('step', {'dt':10})
+        def results(state):
+            row = {tag['name']:tag['value'] for tag in state['tags']}
+            return tuple(row[name] for name in ('CompareLabel','ComparePrefix','CompareCase'))
+        self.assertEqual(results(step()), (False, False, False))
+        before = write('CompareStrings', True)
+        with self.assertRaises(HTTPError) as error:
+            step()
+        with error.exception as failure:
+            self.assertEqual(failure.code, 400)
+            self.assertIn('outside bounds', failure.read().decode())
+        request = Request(self.url+'/api/state', headers={'X-Logix-Token':self.token})
+        with urlopen(request, timeout=3) as response:
+            after = json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','trace'):
+            self.assertEqual(after[key], before[key], key)
+        write('CompareStringIndex', 0)
+        write('IndexedSource[0]', 'ABC')
+        state = step()
+        self.assertEqual(results(state), (True, True, True))
+        relation = next(op for routine in state['routines'] for rung in routine.get('rungs', [])
+                        for op in rung['nodes'] if op.get('name') == 'NEQ' and op['args'] == ["'A'","'a'"])
+        self.assertEqual({ref:info['value'] for ref,info in relation['literal_values'].items()}, {"'A'":'A', "'a'":'a'})
+        write('SourceText', 'PART=ABC;STATE=RUN')
+        write('IndexedSource[0]', 'AB')
+        self.assertEqual(results(step()), (False, False, True))
+        profile = self.post('report', {})['string_operations']['comparison_literals']
+        self.assertEqual(len(profile['instructions']), 6)
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_string_lab_ladder_mov_clips_and_preserves_literal_punctuation_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'StringLab'})['blockers'], [])
         def write(tag, value):

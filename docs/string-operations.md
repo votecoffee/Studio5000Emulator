@@ -102,6 +102,35 @@ In **String lab**, set `MoveStringIndex` to 0 and write a value to
 and `MoveSelected` holds the indexed source. Set `MoveStringIndex` to 99
 while enabled to see the later bounds fault roll back the earlier two moves.
 
+## Ladder string comparison literals
+
+App `26.1105.181607` adds single-quoted literals to either operand of ladder
+`EQU`, `NEQ`, `LES`, `LEQ`, `GRT` and `GEQ` in the v35 ControlLogix
+5580 profile. Either operand can also be a scalar STRING or user-defined
+string tag. For example, `EQU(Status,'RUN')` tests a status tag,
+`LES('AB',Recipe)` checks that a recipe sorts after the prefix, and
+`NEQ('A','a')` checks case. Quoting and supported byte escapes match
+[ladder string MOV](#ladder-string-mov).
+
+Ordering compares active bytes as unsigned values. Equal prefixes sort by
+length, with the shorter string first. An embedded `$00` is a byte within
+the string. A true rung requires valid tag LEN and all active bytes. False
+rungs and prescan skip live values and indirect indices. Malformed literals
+and mixed string/numeric types block preflight. A reached fault restores
+earlier coils and other writes from the advance.
+
+In **String lab**, set `CompareStringIndex` to 0, write `ABC` to
+`IndexedSource[0]`, and enable `CompareStrings`. All three comparison coils
+turn on. Change the indexed value to `AB` and step to clear `ComparePrefix`.
+The ladder inspector shows decoded literal values. An enabled index of 99
+faults and rolls back the earlier equality coil.
+
+The installed v35 standalone comparison topics list immediate string operands.
+`CMP` and `FSC` use string tags in their expression grammar. Native Studio
+acceptance remains unverified. [Rockwell equality reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/equal-to--eq-.html)
+[Rockwell CMP reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/compare--cmp-.html)
+[Rockwell FSC reference](https://www.rockwellautomation.com/en-no/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
+
 ## String Lab
 
 Choose **String lab** in the webpage and **Step scan**. The authored
