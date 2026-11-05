@@ -2522,6 +2522,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'RealBitwise','value':True})
         self.assertEqual(step_values(),(6,-1.0,-8,1.0))
 
+    def test_bit_lab_plain_wide_masks_and_late_fault_recovery_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'BitLab'})['blockers'], [])
+        def write(tag, value):
+            return self.post('write', {'tag':tag, 'value':value})
+        def step():
+            return self.post('step', {'dt':10})
+        def results(state):
+            values = {row['name']:row['value'] for row in state['tags']}
+            return tuple(values['WideMask'+name] for name in ('And','Or','Xor','Not','Matches'))
+        def state():
+            request = Request(self.url+'/api/state', headers={'X-Logix-Token':self.token})
+            with urlopen(request, timeout=3) as response:
+                return json.load(response)
+        self.assertEqual(results(step()), ('0','0','0','0',False))
+        write('WideMaskEnabled', True)
+        self.assertEqual(results(step()), ('1','9223372043297226753','9223372045444710398','18446744069414584320',True))
+        write('WideMaskInput', '9223372041149743106')
+        write('WideMaskDivisor', 0)
+        before = state()
+        with self.assertRaises(HTTPError) as error:
+            step()
+        with error.exception as failure:
+            self.assertEqual(failure.code, 400)
+            self.assertIn('zero', failure.read().decode().lower())
+        after = state()
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','routine_edits','trace'):
+            self.assertEqual(after[key], before[key], key)
+        write('WideMaskDivisor', 1)
+        self.assertEqual(results(step()), ('2','9223372043297226754','9223372045444710397','18446744069414584320',False))
+        report = self.post('report', {})['scalar_math']['mixed_integer_immediates']
+        self.assertEqual(report['width'], 32)
+        self.assertFalse(report['native_runtime_parity'])
+
     def test_bit_lab_mixed_floating_bitwise_preserves_unsigned_results_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
         names=('MixedFloatOr','MixedFloatXor','MixedFloatAnd','MixedFloatNot')

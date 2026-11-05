@@ -13,6 +13,15 @@
       <Tag Name="MixedFloatXor" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
       <Tag Name="MixedFloatAnd" TagType="Base" DataType="UDINT"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
       <Tag Name="MixedFloatNot" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskEnabled" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskInput" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="9223372041149743105" /></Data></Tag>
+      <Tag Name="WideMaskAnd" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskOr" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskXor" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskNot" TagType="Base" DataType="ULINT"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskMatches" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="WideMaskDivisor" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="WideMaskGuard" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="LrealBitwise" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="LrealBitInput" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9007199254740992" /></Data></Tag>
       <Tag Name="LrealBitAnd" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-99" /></Data></Tag>
@@ -608,6 +617,12 @@
               <Rung Number="58" Type="N"><Text>XIC(MixedFloatBitwise)XOR(MixedFloatInput,18446744073709551615UL,MixedFloatXor);</Text></Rung>
               <Rung Number="59" Type="N"><Text>XIC(MixedFloatBitwise)AND(MixedFloatInput,4294967295U,MixedFloatAnd);</Text></Rung>
               <Rung Number="60" Type="N"><Text>XIC(MixedFloatBitwise)NOT(MixedFloatLrealInput,MixedFloatNot);</Text></Rung>
+              <Rung Number="61" Type="N"><Text>XIC(WideMaskEnabled)AND(WideMaskInput,16#FFFF_FFFF,WideMaskAnd);</Text></Rung>
+              <Rung Number="62" Type="N"><Text>XIC(WideMaskEnabled)OR(WideMaskInput,16#8000_0000,WideMaskOr);</Text></Rung>
+              <Rung Number="63" Type="N"><Text>XIC(WideMaskEnabled)XOR(-1,WideMaskInput,WideMaskXor);</Text></Rung>
+              <Rung Number="64" Type="N"><Text>XIC(WideMaskEnabled)NOT(16#FFFF_FFFF,WideMaskNot);</Text></Rung>
+              <Rung Number="65" Type="N"><Text>XIC(WideMaskEnabled)MEQ(WideMaskInput,16#FFFF_FFFF,1)OTE(WideMaskMatches);</Text></Rung>
+              <Rung Number="66" Type="N"><Text>XIC(WideMaskEnabled)DIV(1,WideMaskDivisor,WideMaskGuard);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CptConversions" Type="RLL"><RLLContent>

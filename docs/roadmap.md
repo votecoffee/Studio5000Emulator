@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.170122` [plain immediates with wide tags](typed-bitwise-operands.md#plain-immediates-with-wide-tags)
+add 32-bit radix masks and signed DINT constants to mixed ladder AND, OR, XOR,
+NOT and MEQ. Bit Lab demonstrates low-bit selection and exact ULINT results.
+
 Available in `26.1105.165147` [mixed floating and integer bitwise forms](scalar-math.md#mixed-floating-and-integer-bitwise-operands)
 add wide/unsigned integer tags and typed integer constants alongside REAL
 and LREAL. Bit Lab demonstrates exact unsigned results and scan rollback.

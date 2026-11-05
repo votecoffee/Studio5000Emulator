@@ -23,7 +23,7 @@ def description(project):
                 arithmetic_tags='Standalone v35 ADD/SUB/MUL/DIV/MOD/NEG/ABS also use the separate scalar_math widening tag profile',
                 ordering_tags='Standalone v35 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM use the separate numeric_comparisons range-preserving mixed tag/constant profile',
                 storage_moves='Standalone v35 MOV/CLR use the separate numeric_storage type/conversion profile',
-                bitwise_tags='Standalone v35 AND/OR/XOR/NOT tags use the scalar_math mixed-integer profile; wide immediate forms retain these homogeneous rules',
+                bitwise_tags='Standalone v35 AND/OR/XOR/NOT tags use the scalar_math mixed-integer profile; wide immediate bitwise forms also use that profile',
                 immediate_type='signed DINT, representable in operand type',
                 division='Exact integer quotient truncated toward zero',
                 overflow='Stop and roll back modeled scan; native status/fault flags not emulated')
@@ -210,6 +210,13 @@ def pattern_width(memory, ref, scope):
         return INT_BITS[dtype]
     from .bit_transfer import operand
     return operand(memory,ref,scope)
+
+
+def bitwise_immediate_widths(widths, types, immediates):
+    """Preserve previously accepted homogeneous LINT immediate promotion."""
+    if set(types) == {'LINT', None} and all(-(1 << 31) <= value < 1 << 31 for value in immediates):
+        return [INT_BITS['LINT'] if dtype is None else width for dtype, width in zip(types, widths, strict=True)]
+    return widths
 
 
 def pattern(memory, ref, scope, width):

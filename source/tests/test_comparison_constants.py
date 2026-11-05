@@ -117,7 +117,9 @@ class ComparisonConstantTests(unittest.TestCase):
                 e=self.checked([f'{op}(Source,5)OTE(RunLatch);'],types=(dtype,)*3,values=(5,5,0));e.step()
                 self.assertEqual(e.memory.read('RunLatch'),op in ('EQU','LEQ','GEQ'))
         self.assertTrue(self.engine(['EQU(Source,2147483648)OTE(RunLatch);'],types=('LINT',)*3).blockers)
-        self.assertTrue(self.engine(['MEQ(Source,Mask,0)OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)
+        meq = self.checked(['MEQ(Source,Mask,0)OTE(RunLatch);'],types=('LINT','DINT','DINT'),values=(1 << 32,-1,0))
+        meq.step()
+        self.assertTrue(meq.memory.read('RunLatch'))
         self.assertTrue(self.engine(['LIM(0,Source,2147483647)OTE(RunLatch);'],types=('USINT',)*3).blockers)
         # Homogeneous USINT keeps its old representability restriction.
         for processor,revision in [('1756-L75','35'),('1756-L85E','34')]:

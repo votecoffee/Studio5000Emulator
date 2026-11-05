@@ -72,8 +72,8 @@ and scheduling, so correcting the index permits retry of the same edge.
 [Ladder wide CPT/CMP/MEQ](ladder-wide-expressions.md) share exact integer
 expression evaluation with ST. Each wide numeric intermediate must fit the
 matching declared type for CPT/CMP. CMP eagerly evaluates both logical sides;
-tag-only MEQ accepts all eight mixed integer types, zero-extends each declared
-pattern and reads all operands even with a zero mask. False rungs skip computation, CPT retains
+MEQ accepts all eight mixed integer types and bounded immediates. It reads all
+operands even with a zero mask. False rungs skip computation, CPT retains
 its destination through prescan, and failures roll back the whole advance.
 These software policies do not establish native intermediate/fault parity.
 

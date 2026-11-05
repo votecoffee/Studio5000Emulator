@@ -2,7 +2,7 @@
 import operator
 
 from . import integer_math, time_values
-from .bit_transfer import unsigned
+from .bit_transfer import operand
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 from .numeric_storage import lreal_math_source, real_math_source, typed_literal
@@ -124,29 +124,28 @@ def ordering_type(types):
 
 
 def masked_values(engine, args, scope):
-    """Read-only tag patterns; keep the legacy immediate qualification separate."""
+    """Read-only integer patterns, including bounded immediates in any position."""
     memory = engine.memory
     if any(integer_math.typed_integer(ref) is not None for ref in args):
         widths=[integer_math.pattern_width(memory,ref,scope) for ref in args]
         return [integer_math.pattern(memory,ref,scope,width) for ref,width in zip(args,widths)]
-    widths = []
-    immediate = False
+    widths, types, immediates = [], [], []
     for ref in args:
         try:
-            literal(ref)
+            value = literal(ref)
         except ValueError:
             key, parts, dtype = memory.resolve(ref, scope)
             if dtype not in INT_BITS or isinstance(memory.at(key, parts), (list, dict)):
                 raise ModelError('MEQ tag operands require scalar signed/unsigned integers')
             widths.append(INT_BITS[dtype])
+            types.append(dtype)
         else:
-            immediate = True
-    if immediate:
-        dtype = engine.extensions.wide_mask_profile(args, scope)
-        return [engine.extensions.masked(ref, scope, dtype) for ref in args]
-    # Mask each declared pattern before combining: promotion is zero fill,
-    # including a negative DINT alongside LINT/ULINT. No operand is written.
-    return [unsigned(memory, ref, scope, width) for ref, width in zip(args, widths)]
+            widths.append(operand(memory, ref, scope))
+            types.append(None)
+            immediates.append(value)
+    if immediates:
+        widths = integer_math.bitwise_immediate_widths(widths, types, immediates)
+    return [integer_math.pattern(memory, ref, scope, width) for ref, width in zip(args, widths, strict=True)]
 
 
 def execute(engine, op, power, scope):
@@ -213,10 +212,10 @@ def description(project):
                     native_runtime_parity=False),
                 masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,
-                meq_immediates='Existing narrow signed DINT/32-bit radix patterns; any wide/unsigned tag retains homogeneous representable signed-DINT rules',
+                meq_immediates='Signed DINT and 32-bit radix patterns in any position with all eight integer types; previously accepted homogeneous LINT calls keep signed DINT promotion',
                 limits='Inclusive; low > high accepts values at or outside the endpoints',
                 operands='Existing numeric types, immediate rules and conversion boundaries; string comparisons use their separate path',
                 failures='Reached unknowns, bad indices and later faults roll back the advance and existing AOI state',
                 native_runtime_parity=False,
-                remaining=['Complete arithmetic promotion and mixed-wide/typed immediate qualification',
+                remaining=['Complete arithmetic promotion and typed radix immediate qualification',
                            'Native status/fault/lifecycle parity and broader controller profiles'])

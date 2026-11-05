@@ -396,9 +396,10 @@ include unsigned results and typed integer immediates.
 unknown values structurally, skip false-rung operands and establish full numeric
 destinations. Integer-tag `AND`/`OR`/`XOR`/`NOT` mix all eight signed/unsigned
 integer types using declared widths, zero extension and destination low bits.
-Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned examples;
-`BitwiseWidths` retains the narrow-width examples. Wide immediate literals keep
-their separate homogeneous restrictions. Enable
+Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned examples.
+`BitwiseWidths` shows narrow cases. `WideMaskEnabled` demonstrates
+[plain 32-bit masks with wide tags](docs/typed-bitwise-operands.md#plain-immediates-with-wide-tags),
+including MEQ. Enable
 `BasicMath` in **Math lab** for eleven common operations.
 [Widening integer arithmetic](docs/scalar-math.md#widening-integer-tag-arithmetic)
 allows mixed integer tags when the destination covers every source type range.

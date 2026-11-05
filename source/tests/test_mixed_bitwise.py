@@ -131,13 +131,25 @@ class MixedBitwiseTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('Results[1]'),-float(1<<40))
 
-    def test_legacy_wide_immediate_forms_and_restrictions_are_preserved(self):
-        e=self.checked(['AND(Source,1,Results[0]);','NOT(7,Results[1]);'],source='ULINT',other='ULINT',value=9007199254740993,mask=1)
-        e.step();self.assertEqual(e.memory.read('Results')[:2],[1,18446744073709551608])
-        for text in ('AND(Source,-1,Results[0]);','OR(Source,16#FFFF_FFFF,Results[0]);','NOT(2147483648,Results[0]);'):
-            self.assertTrue(self.engine([text],source='ULINT',other='ULINT',mask=1).blockers,text)
-        self.assertTrue(self.engine(['OR(Source,1,Results[0]);'],source='LINT',value=7).blockers)
-        self.assertTrue(self.engine(['OR(Source,1e40,Results[0]);']).blockers)
+    def test_wide_operands_use_untyped_decimal_and_radix_patterns_at_32_bits(self):
+        value = 0x8000000100000001
+        for mask in ('16#FFFF_FFFF', '8#37777777777', '2#' + '1'*32, '-1'):
+            with self.subTest(mask=mask):
+                e = self.checked([f'AND(Source,{mask},Results[0]);', f'XOR({mask},Source,Results[1]);',
+                                  f'NOT({mask},Results[2]);'], source='ULINT', value=value)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [1, 0x80000001FFFFFFFE, 0xFFFFFFFF00000000])
+        e = self.checked(['OR(Source,16#80000000,Results[0]);'], source='LINT', value=1 << 32)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0x180000000, None, None])
+
+    def test_previously_accepted_lint_decimal_promotion_and_invalid_literals(self):
+        e = self.checked(['OR(Source,-1,Results[0]);', 'NOT(-1,Results[1]);', 'XOR(Mask,-1,Results[2]);'],
+                         source='LINT', other='SINT', dest='LINT', value=1 << 32, mask=1)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-1, 0, 0xFFFFFFFE])
+        for operand in ('2147483648', '-2147483649', '16#1_0000_0000', '8#8', '1e40', 'TRUE'):
+            self.assertTrue(self.engine([f'AFI()OR(Source,{operand},Results[0]);'], source='ULINT').blockers, operand)
 
     def test_false_prescan_unknown_sources_and_actual_indices_for_all_four(self):
         for name,result in (('AND',1),('OR',2147483903),('XOR',2147483902),('NOT',18446744071562067966)):

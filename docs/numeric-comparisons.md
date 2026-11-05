@@ -74,8 +74,8 @@ Constants do not select a larger common type or relax complete tag-range checks.
 Thus a zero constant cannot authorize a DINT/UDINT or LINT/ULINT mixture, and a
 negative constant cannot be used with a highest-ranked unsigned tag type. Larger,
 typed and REAL/LREAL constants remain outside this mixed profile. Homogeneous
-LIM, binary comparison immediates, narrow/REAL rules and MEQ keep their existing
-profiles, including homogeneous unsigned representability restrictions.
+LIM, binary comparison immediates and narrow/REAL rules keep their respective
+profiles. MEQ uses the bit-pattern rules below.
 
 A known Test or limit does not skip another required unknown operand. False
 rungs and ordinary prescan skip values and live indices; true LIM consumes every
@@ -106,12 +106,12 @@ For example, SINT -1 under a ULINT mask of 65536 matches LINT 0, because the
 byte pattern contains only eight set bits. DINT -1 under LINT -1 matches ULINT
 4294967295, rather than the full 64-bit all-ones pattern.
 
-Immediate rules remain separate. Narrow forms retain signed DINT decimal and
-32-bit radix patterns. If any LINT/unsigned tag and an immediate are present,
-all tag operands must retain one matching type, and every immediate must be a
-signed DINT integer representable in that type. Mixed wide/immediate forms,
-negative unsigned immediates, typed/wider immediates and REAL/LREAL operands
-remain unsupported. Store large constants in typed tags.
+[Plain and typed immediates](typed-bitwise-operands.md#plain-immediates-with-wide-tags)
+also mix with all eight types. The mask, source and compare operands each
+accept signed DINT and 32-bit radix constants. For example,
+`MEQ(Source,16#FFFF_FFFF,1)` tests the low 32 bits of a ULINT or LINT source.
+Previously accepted homogeneous LINT calls preserve their existing signed
+immediate promotion. REAL/LREAL operands remain outside MEQ's integer profile.
 
 LIM includes both endpoints; reversed low/high limits select the outside ranges.
 Equal limits select the single matching value.

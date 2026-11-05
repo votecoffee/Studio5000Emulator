@@ -7,16 +7,17 @@ math-status/fault parity are not established.
 
 Standalone v35 MOV/CLR now use the separate [numeric storage profile](numeric-storage.md),
 including mixed numeric moves and full writes to unknown scalar destinations.
-The homogeneous and wide-immediate profile below remains available. Standalone
+The homogeneous arithmetic profile below remains available. Standalone
 [widening arithmetic](scalar-math.md#widening-integer-tag-arithmetic) additionally
 accepts mixed integer tags when the destination covers every source type range.
 [Bounded constants](scalar-math.md#bounded-arithmetic-constants) may be included
 when each signed-DINT literal is representable in that destination.
 Standalone v35 [integer-tag bitwise operations](scalar-math.md#mixed-integer-tag-widths)
-now mix all eight integer types with zero extension and signed/unsigned result
-bits. [Mixed ordering and limits](numeric-comparisons.md#mixed-integer-ordering-and-limits)
+mix all eight integer types with zero extension and signed/unsigned result
+bits. [Plain and typed bitwise immediates](typed-bitwise-operands.md) follow the
+same bounded pattern rules. [Mixed ordering and limits](numeric-comparisons.md#mixed-integer-ordering-and-limits)
 use the highest-ranked actual source tag type only when it covers all input
-ranges. Wide operands with immediates retain the homogeneous rules below.
+ranges.
 
 ## Try the bundled demo
 
@@ -44,7 +45,7 @@ See the [ST profile and independent demo inputs](wide-st.md), including
 | LINT, USINT, UINT, UDINT, ULINT | ADD, SUB, MUL, DIV, MOD, NEG, ABS, AND, OR, XOR, NOT, MOV, CLR |
 | The same types | EQU, NEQ, LES, LEQ, GRT, GEQ and LIM |
 
-In this homogeneous arithmetic and wide-immediate profile, all tag operands of
+In the homogeneous numeric arithmetic and ordering profile, all tag operands of
 one operation must have exactly the same declared type,
 including the numeric destination. Scalar array elements, members and aliases
 use their resolved type. Mixed signed/unsigned widths and REAL conversions
@@ -56,8 +57,9 @@ chosen operand type. For example, `ADD(Ticks,1,NextTicks)` accepts two LINT tags
 `ADD(Ticks,OtherDint,NextTicks)` uses the separate widening-tag profile when
 Ticks/NextTicks are LINT and OtherDint is DINT. Store larger constants in a
 properly declared LINT/ULINT tag instead of assuming a wide immediate literal.
-Unsigned operations reject negative immediates. Typed literals and broader
-promotion/conversion rules remain future work.
+Homogeneous unsigned arithmetic rejects negative immediates. See the separate
+[typed arithmetic and ordering profile](typed-integer-operands.md) for L/U/UL
+constants.
 
 Addition, subtraction, multiplication, division, remainder and comparisons use
 integer calculations throughout. A value such as `9007199254740993` therefore
@@ -104,8 +106,8 @@ rejections and the processor/firmware gate. These are model-level checks.
 
 [Homogeneous wide ST](wide-st.md) now supports bounded assignments, arithmetic,
 comparisons and bitwise expressions. [Ladder CPT/CMP/MEQ](ladder-wide-expressions.md)
-accept homogeneous wide CPT/CMP operands and mixed integer tag-only MEQ under
-separate bounded rules. Wide MEQ immediates retain matching tag types. Remaining
+accept homogeneous wide CPT/CMP operands and mixed integer MEQ under
+separate bounded rules. Remaining
 ST/expression forms, mixed-type promotions, conversions, flags, LREAL and time
 types remain unfinished.
 Other controller families need explicit qualification. See the

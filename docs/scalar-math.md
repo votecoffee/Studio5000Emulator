@@ -163,19 +163,16 @@ NOT of that SINT into ULINT produces 18446744073709551360. XOR of LINT -1 and
 UDINT 65536 into LINT produces -65537. Narrowing an all-one LINT into USINT
 produces 255. These logical bit conversions do not use arithmetic sign extension.
 
-Literal handling remains deliberately bounded. If any operand is LINT or unsigned
-and an immediate is present, the existing homogeneous rules still apply: all tag
-operands and destination must match, and the signed-DINT immediate must fit that
-type. Negative unsigned immediates, full 32-bit radix patterns above signed DINT
-in these wide forms, mixed-wide/immediate combinations and typed/wider immediates
-remain unqualified. The existing narrow forms retain their signed decimal DINT/
-32-bit radix-pattern rules. Arithmetic, CPT/CMP/MEQ, ST and FBD keep separate rules.
+[Plain integer immediates](typed-bitwise-operands.md#plain-immediates-with-wide-tags)
+also mix with all eight integer types. The same section covers MEQ's read-only
+mask and comparison operands. Arithmetic and expression rules remain separate.
 
 Structural validation, false/prescan skipping, required true-source reads, full
 unknown writes and whole-advance/AOI rollback remain. Invalid indices, unknown
 sources and later faults restore exact values and bindings. Integer bitwise
-sources are required even if another source is zero. REAL/LREAL, native status/
-fault/lifecycle/packed layouts and broader controller profiles remain unqualified.
+sources are required even if another source is zero. REAL/LREAL use the separate
+conversion rules below. Native status, fault, lifecycle and packed-layout
+behavior and broader controller profiles remain unqualified.
 
 Choose **Bit lab** and enable `MixedBitwise`. Defaults produce `MixedAnd` 0,
 `MixedOr` 9007199254741247, `MixedXor` -65537, `MixedNot` 18446744073709551360
@@ -206,7 +203,7 @@ intermediate rounding and bit-for-bit results remain unqualified.
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations
 retain their separate profiles. Mixed wide/unsigned and REAL operands, mixed LREAL forms,
-arithmetic narrowing/larger or typed constants/signed-to-unsigned promotion, mixed-wide/typed bitwise immediates and floating-point bitwise forms,
+arithmetic narrowing, additional signed-to-unsigned conversions, typed radix bitwise immediates,
 native overflow/status/fault/lifecycle and packed layout parity remain unfinished.
 Other controller profiles retain their separate validation paths.
 

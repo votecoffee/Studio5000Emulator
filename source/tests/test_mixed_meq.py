@@ -74,6 +74,22 @@ class MixedMeqTests(unittest.TestCase):
             self.assertEqual(e.memory.read('RunLatch'),result,(types,values))
             self.assertEqual(tuple(e.memory.read(t) for t in ('Source','Mask','Dest')),before)
 
+    def test_untyped_immediates_in_all_three_positions_preserve_their_patterns(self):
+        types = ('ULINT', 'ULINT', 'UDINT')
+        for operands, result in (('-1,Mask,Dest', True), ('Source,16#FFFF_FFFF,1', True),
+                                 ('Source,Mask,-2147483648', False), ('Source,Mask,16#00000001', False)):
+            with self.subTest(operands=operands):
+                e = self.checked([f'MEQ({operands})OTE(RunLatch);'], types=types,
+                                 values=(0x8000000100000001, (1 << 64) - 1, (1 << 32) - 1))
+                e.step()
+                self.assertIs(e.memory.read('RunLatch'), result)
+
+    def test_previously_accepted_homogeneous_lint_decimal_mask_keeps_high_bits(self):
+        for types, result in ((('LINT',)*3, False), (('LINT', 'LINT', 'UDINT'), True)):
+            e = self.checked(['MEQ(Source,-1,Dest)OTE(RunLatch);'], types=types, values=(1 << 40, 0, 0))
+            e.step()
+            self.assertIs(e.memory.read('RunLatch'), result)
+
     def test_each_unknown_mixed_operand_is_required_even_with_zero_mask(self):
         for position in (0,1,2):
             args=['Source','Mask','Dest'];args[position]='Values[0]'
@@ -151,14 +167,13 @@ class MixedMeqTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
         e.memory.write('IndexB',2);e.step()
 
-    def test_immediate_rules_remain_homogeneous_and_representable(self):
-        e=self.checked(['MEQ(Source,15,7)OTE(RunLatch);'],types=('ULINT',)*3,values=(7,0,0));e.step();self.assertTrue(e.memory.read('RunLatch'))
-        for types,text in ((('ULINT','USINT','DINT'),'MEQ(Source,1,Dest)'),
-                           (('ULINT',)*3,'MEQ(Source,-1,Dest)'),
-                           (('LINT',)*3,'MEQ(Source,16#FFFF_FFFF,Dest)'),
-                           (('ULINT',)*3,'MEQ(Source,2147483648,Dest)'),
-                           (('ULINT',)*3,'MEQ(Source,ULINT#7,Dest)')):
-            self.assertTrue(self.engine(['AFI()'+text+'OTE(RunLatch);'],types=types,values=(7,0,7)).blockers,text)
+    def test_untyped_immediate_bounds_are_checked_even_on_false_rungs(self):
+        e = self.checked(['MEQ(Source,15,7)OTE(RunLatch);'], types=('ULINT',)*3, values=(7,0,0))
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        for operand in ('2147483648', '16#1_0000_0000', 'ULINT#7'):
+            self.assertTrue(self.engine([f'AFI()MEQ(Source,{operand},Dest)OTE(RunLatch);'],
+                                        types=('ULINT',)*3, values=(7,0,7)).blockers, operand)
 
     def test_noninteger_shape_profile_and_arithmetic_guards_remain(self):
         for types in (('ULINT','REAL','DINT'),('ULINT','BOOL','DINT')):

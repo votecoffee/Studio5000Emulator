@@ -143,7 +143,7 @@ def ladder_description(project):
                     arithmetic='Exact integers; quotient toward zero; remainder has dividend sign; all required sources consumed',
                     excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions/power, REAL/LREAL, typed/larger constants, ST and native parity',
                     native_runtime_parity=False),
-                meq='All eight integer tag types may mix; zero-extend each read-only declared pattern; legacy immediates remain homogeneous',
+                meq='All eight integer tag types may mix with bounded plain and typed immediates; homogeneous LINT immediate compatibility is retained',
                 meq_mixed_integer_tags=True,
                 literals='Signed DINT integers or matching decimal L/U/UL literals within declared range in direct CPT/CMP',
                 typed_integer_literals=dict(instructions=['CPT','CMP'],types=['LINT','UDINT','ULINT'],

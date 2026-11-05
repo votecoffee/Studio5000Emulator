@@ -126,14 +126,11 @@ class LadderWideExpressionTests(unittest.TestCase):
         for expression in ('Source','Source&&StartPB','!(Source)','Source=1.0','Source**2=1','Source>Mask>Dest'):
             self.assertTrue(self.engine(['AFI()CMP('+expression+')OTE(RunLatch);']).blockers,expression)
 
-    def test_meq_mixed_wide_immediates_bad_literals_and_nonintegers_remain_blocked(self):
+    def test_meq_bad_literals_and_nonintegers_remain_blocked(self):
         for types in (('LINT','REAL','LINT'),('USINT','BOOL','USINT')):
             self.assertTrue(self.engine(['AFI()MEQ(Source,Mask,Dest)OTE(RunLatch);'],types=types).blockers)
-        for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('USINT','UINT','USINT')):
-            self.assertTrue(self.engine(['AFI()MEQ(Source,Mask,1)OTE(RunLatch);'],types=types).blockers)
-        for operand in ('2147483648','16#FFFFFFFF','1.0','RunLatch'):
+        for operand in ('2147483648','-2147483649','16#100000000','1.0','RunLatch'):
             self.assertTrue(self.engine([f'AFI()MEQ(Source,{operand},Dest)OTE(RunLatch);']).blockers)
-        self.assertTrue(self.engine(['MEQ(Source,-1,0)OTE(RunLatch);'],dtype='ULINT').blockers)
         self.assertTrue(self.engine(['CPT(Dest,-1);'],dtype='UINT').blockers)
 
     def test_controller_firmware_and_constant_destination_gates(self):

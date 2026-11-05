@@ -38,12 +38,11 @@ CMP adds exact relations `=`, `<>`, `<`, `<=`, `>` and `>=`, BOOL tags and
 expression precedence applies. Both logical operands are evaluated: a true
 left side does not conceal unknown data or division by zero on the right.
 
-[Tag-only MEQ](numeric-comparisons.md#mixed-integer-tag-widths) permits mixed
-signed/unsigned integer types. Each read-only operand uses its declared pattern
-with zero extension before masked equality, including bit 63 and negative LINT
-patterns. All three operands must be known even when the mask is zero. Any wide
-operand with an immediate retains matching tag types and the bounded immediate
-rule above. CPT/CMP expression promotion remains separate.
+[MEQ](numeric-comparisons.md#mixed-integer-tag-widths) permits mixed
+signed/unsigned integer types and bounded plain or typed immediates. Each
+read-only operand uses its declared pattern, including bit 63 and negative
+LINT patterns. All three operands must be known even when the mask is zero.
+CPT/CMP expression promotion follows its own rules.
 
 Aliases, program-local tags, selected array/UDT members, typed JSR parameters
 and supported RLL AOI bindings use the same memory resolver. Standard periodic,
