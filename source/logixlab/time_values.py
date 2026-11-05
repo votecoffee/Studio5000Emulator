@@ -1,9 +1,11 @@
 """Exact scalar storage and typed literals for v35 time and date operands."""
 import re
 from datetime import datetime
+from functools import lru_cache
 
 PREFIXES = {'T32': 'TIME32', 'T': 'TIME', 'LT': 'LTIME', 'DT': 'DT', 'LDT': 'LDT'}
 TYPES = frozenset(PREFIXES.values())
+DATE_TYPES = frozenset(('DT', 'LDT'))
 EPOCH = datetime(1970, 1, 1)
 UNITS_NS = dict(d=86_400_000_000_000, h=3_600_000_000_000, m=60_000_000_000,
                 s=1_000_000_000, ms=1_000_000, us=1_000, ns=1)
@@ -77,7 +79,7 @@ def literal(ref):
     dtype = PREFIXES.get(prefix.upper()) if sep else None
     if dtype is None:
         return None
-    ticks = timestamp(value, dtype) if dtype in ('DT', 'LDT') else duration(value, dtype)
+    ticks = timestamp(value, dtype) if dtype in DATE_TYPES else duration(value, dtype)
     return dtype, checked(ticks, dtype)
 
 
@@ -93,7 +95,7 @@ def coerce(value, dtype):
     return checked(value, dtype)
 
 
-def operand_type(memory, ref, scope):
+def operand_type(memory, ref, scope, *, include_lint=False):
     """Get a time/date operand's declared type without reading its saved value."""
     from .model import ModelError, literal as numeric_literal
     from .numeric_storage import typed_literal
@@ -106,11 +108,39 @@ def operand_type(memory, ref, scope):
         numeric_literal(ref)
     except ValueError:
         key, parts, dtype = memory.resolve(ref, scope)
-        if dtype in TYPES:
+        if dtype in TYPES or (include_lint and dtype == 'LINT'):
             if isinstance(memory.at(key, parts), (list, dict)):
                 raise ModelError('Time/date operand requires one scalar element')
             return dtype
     return None
+
+
+def same_family(source, dest):
+    return source in TYPES and dest in TYPES and (source in DATE_TYPES) == (dest in DATE_TYPES)
+
+
+def move_allowed(source, dest):
+    return same_family(source, dest) or (source, dest) in (('LINT', 'LDT'), ('LDT', 'LINT'))
+
+
+def ns_per_tick(dtype):
+    return 1 if dtype in ('LTIME', 'LDT', 'LINT') else 1000
+
+
+def convert_move(value, source, dest):
+    ticks, remainder = divmod(value * ns_per_tick(source), ns_per_tick(dest))
+    if remainder:
+        raise ValueError(f'{source} to {dest} MOV would discard fractional ticks')
+    return ticks
+
+
+@lru_cache(maxsize=512)
+def display_literal(ref):
+    """Parse a bounded authored operand for monitoring, including blocked rungs."""
+    try:
+        return literal(ref)
+    except ValueError:
+        return None
 
 
 def read_operand(memory, ref, scope):

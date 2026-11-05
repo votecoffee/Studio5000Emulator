@@ -1,8 +1,9 @@
 # Ladder time and date storage
 
 LogixLab models scalar time and date tags in Standard v35 ControlLogix 5580
-projects (L81E through L85E). MOV copies a matching tag or typed literal, CLR
-writes zero ticks, and EQU, NEQ, LES, LEQ, GRT and GEQ compare matching types.
+projects (L81E through L85E). MOV accepts temporal tags and typed literals, CLR
+writes zero ticks, and EQU, NEQ, LES, LEQ, GRT and GEQ compare time operands
+within one family.
 The operations also work on selected array elements, explicit UDT members and
 aliases. A zero date represents the UTC epoch.
 
@@ -25,9 +26,28 @@ Logix Designer v35 help 414477 and 14452 and
 [Rockwell's time and date type reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/time-and-date-data-types.html).
 
 Decorated L5X scalar and array values accept matching typed literals or
-decimal tick counts. The tag watch, change history and HTTP state/snapshot use decimal text
-to preserve all digits. Enter a decimal tick count when editing from the
+decimal tick counts. The tag watch, change history, inspector and HTTP
+state/snapshot use decimal text to preserve all digits. The ladder inspector
+shows the exact parsed ticks and declared type for each valid time literal. Enter a decimal tick count when editing from the
 browser. A matching typed literal is also accepted by the local write API.
+
+## Exact mixed operands
+
+MOV scales ticks within the duration family (TIME32, TIME, LTIME) or the
+timestamp family (DT, LDT). A nanosecond-to-microsecond move requires an exact
+multiple of 1000. Out-of-range or fractional results fault on a reached rung
+and preserve the modeled advance. The exact-only rule is the emulator's
+conversion policy.
+
+A LINT tag can supply raw nanosecond ticks to LDT. An LDT tag or literal can
+copy its ticks to LINT. No unit change occurs on this bridge, and LDT range
+checks still apply. Installed v35 help 414477 documents LINT/LDT interoperability.
+See [Rockwell's LINT and time guidance](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
+
+Comparisons within one family use exact nanoseconds, so a one-nanosecond
+difference is visible even when the other operand is in microseconds.
+Mixed timestamp/duration operands and LINT comparisons with time tags remain
+outside this profile.
 
 Preflight checks types, scalar shape, permissions, literal bounds and index
 grammar. False rungs and prescan skip live values and indices. A complete MOV
@@ -37,8 +57,10 @@ bad indices and later faults roll back the advance.
 In **Data Lab**, enable TimeDateDemo and step. The TimeAndDate routine copies
 a duration, writes date literals and compares timestamps one nanosecond apart.
 LongStamp reads 1767225600000000001, EarlierNano is true, ShortDelay reads
--1501 and TimeToClear reads zero.
+-1501 and TimeToClear reads zero. ConvertedDuration reads 1250007000 and
+DurationMatches is true. TimestampTicks and BridgedStamp retain the exact
+LongStamp ticks. PromotedWallStamp reads 1767225600000001000.
 
-Mixed-type conversion, time arithmetic, clock attributes, ST, native packed
+Lossy conversion, time arithmetic, clock attributes, ST, native packed
 layouts and CIP time/date access remain separate. Native Studio/controller
 acceptance is unverified.

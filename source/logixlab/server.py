@@ -44,8 +44,23 @@ SAMPLES = ('ConveyorDemo', 'DataLab', 'AOILab', 'CallLab', 'TextLab', 'NetworkLa
 
 
 def serialize_nodes(nodes):
-    return [{"branch": [serialize_nodes(p) for p in n.paths]} if isinstance(n, Branch)
-            else {"name": n.name, "args": n.args} for n in nodes]
+    rows = []
+    for node in nodes:
+        if isinstance(node, Branch):
+            rows.append({"branch": [serialize_nodes(path) for path in node.paths]})
+            continue
+        row = {"name": node.name, "args": node.args}
+        literals = {}
+        for ref in node.args:
+            if '#' in ref and len(ref) <= 512:
+                value = time_values.display_literal(ref)
+                if value is not None:
+                    dtype, ticks = value
+                    literals[ref] = {"type": dtype + " literal", "value": str(ticks)}
+        if literals:
+            row["literal_values"] = literals
+        rows.append(row)
+    return rows
 
 
 class Application:

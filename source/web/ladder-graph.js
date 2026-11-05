@@ -38,7 +38,8 @@
           previous = port(join.id, 'out');
         } else {
           const node = add(key, 'instruction', ['in'], ['out'], {opcode: String(op.name),
-            operands: op.args.map(String), sourcePath: key.slice(id.length + 1), ordinal: order.length});
+            operands: op.args.map(String), sourcePath: key.slice(id.length + 1), ordinal: order.length,
+            ...(op.literal_values ? {literalValues: structuredClone(op.literal_values)} : {})});
           wire(previous, port(node.id, 'in'));order.push(node.id);
           items.push({kind: 'instruction', node: node.id});previous = port(node.id, 'out');
         }

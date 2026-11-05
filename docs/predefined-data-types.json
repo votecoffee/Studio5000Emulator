@@ -35,7 +35,7 @@
     },
     "time_date_model": {
       "label": "Time/date model (bounded)",
-      "remaining": "Same-type ladder MOV/CLR and relations, exact typed storage and literals; mixed conversions, arithmetic, clock attributes, ST, wire layouts and native qualification remain open.",
+      "remaining": "Exact temporal storage and literals, same-family ladder MOV and relations, CLR, and LINT/LDT bridge. Lossy conversions, arithmetic, clock attributes, ST, wire layouts and native qualification remain open.",
       "source": "source/logixlab/time_values.py"
     },
     "timer_counter_model": {

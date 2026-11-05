@@ -44,6 +44,17 @@ test('source conversion never mutates source arrays or instruction arguments', (
   const g = graph.compile(source);g.nodes.find(n => n.kind === 'instruction').operands[0] = 'Changed';
   assert.deepEqual(source, original);
 });
+test('exact time literal metadata follows the node without changing source operands', () => {
+  const literal = 'LDT#2026-01-01-00:00:00.000_000_001';
+  const move = {...op('MOV', literal, 'Stamp'),
+    literal_values: {[literal]: {type: 'LDT literal', value: '1767225600000000001'}}};
+  const g = graph.compile(rung([{branch: [[move], [op('NOP')]]}]));
+  const node = g.nodes.find(n => n.opcode === 'MOV');
+  assert.equal(node.operands[0], literal);
+  assert.deepEqual(node.literalValues, move.literal_values);
+  node.literalValues[literal].value = '0';
+  assert.equal(move.literal_values[literal].value, '1767225600000000001');
+});
 test('node identities stay stable across scans and operand-value changes', () => {
   const a = seal(), b = seal();assert.deepEqual(a, b);
   graph.power(a, {power: true, events: []});graph.layout(a, 1400);assert.deepEqual(a, b);

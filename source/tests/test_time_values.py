@@ -74,8 +74,8 @@ class TimeValueTests(unittest.TestCase):
                 time_values.coerce(value, 'TIME32')
 
     def test_scope_and_invalid_operands_are_structural_blockers_even_while_false(self):
-        for text in ('MOV(T#1s,Dest);', 'MOV(1,Dest);', 'MOV(Source,SpeedCommand);',
-                     'MOV(Source.0,Dest);', 'EQU(Source,T#1s)OTE(RunLatch);',
+        for text in ('MOV(DT#1970-01-01-00:00:00,Dest);', 'MOV(1,Dest);', 'MOV(Source,SpeedCommand);',
+                     'MOV(Source.0,Dest);', 'EQU(Source,DT#1970-01-01-00:00:00)OTE(RunLatch);',
                      'LIM(Source,Source,Source)OTE(RunLatch);', 'ADD(Source,Source,Dest);',
                      'CPT(Dest,Source+Source);', 'EQU(Source,LT#32d)OTE(RunLatch);',
                      'COP(Source,Dest,1);', 'CPS(Source,Dest,1);'):
@@ -131,6 +131,75 @@ class TimeValueTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Packet')['Ticks'], [1000000001, 0, 9])
         self.assertTrue(e.memory.read('RunLatch'))
 
+    def test_lossless_moves_scale_each_family_and_bridge_raw_lint_ticks(self):
+        for source, dest, literal, expected in (
+            ('TIME32', 'TIME', 'T32#-1ms_2us', -1002),
+            ('TIME', 'LTIME', 'T#-1ms_2us', -1002000),
+            ('LTIME', 'TIME32', 'LT#-1ms_2us_0ns', -1002),
+            ('DT', 'LDT', 'DT#2026-01-01-00:00:00.000_001', 1767225600000001000),
+            ('LDT', 'DT', 'LDT#2026-01-01-00:00:00.000_001_000', 1767225600000001),
+            ('LDT', 'LINT', 'LDT#2026-01-01-00:00:00.000_000_001', 1767225600000000001),
+            ('LINT', 'LDT', '1767225600000000001', 1767225600000000001),
+        ):
+            with self.subTest(source=source, dest=dest):
+                e = fixtures.BitTransferTests.engine(
+                    self, ['MOV(Source,Dest);'], types=(source, 'DINT', dest), values=(literal, 0, 0))
+                self.assertEqual(e.blockers, [])
+                e.step()
+                self.assertEqual(e.memory.read('Dest', allow_time=True), expected)
+        e = self.checked(['MOV(T#1ms_2us,Dest);'])
+        e.step()
+        self.assertEqual(e.memory.read('Dest', allow_time=True), 1002000)
+
+    def test_mixed_temporal_comparisons_preserve_submicrosecond_order(self):
+        for dtype, raw, op, other in (
+            ('LTIME', 'LT#-1us_1ns', 'LES', 'T#-1us'),
+            ('TIME32', 'T32#1ms_2us', 'EQU', 'T#1ms_2us'),
+            ('DT', 'DT#2026-01-01-00:00:00.000_001', 'GRT', 'LDT#2026-01-01-00:00:00.000_000_999'),
+            ('LDT', 'LDT#1970-01-01-05:30:00(UTC+05:30)', 'EQU', 'DT#1970-01-01-00:00:00'),
+        ):
+            with self.subTest(dtype=dtype, op=op, other=other):
+                e = self.checked([f'{op}(Source,{other})OTE(RunLatch);'], dtype=dtype, values=(raw, 0, 0))
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_lossy_moves_and_out_of_range_bridges_roll_back_only_when_reached(self):
+        for source, dest, raw, reason in (
+            ('LTIME', 'TIME', 'LT#-1ns', 'fractional ticks'),
+            ('LDT', 'DT', 'LDT#1970-01-01-00:00:00.000_000_001', 'fractional ticks'),
+            ('TIME', 'TIME32', 'T#1h', 'exact ticks in range'),
+            ('LINT', 'LDT', '-1', 'exact ticks in range'),
+        ):
+            with self.subTest(source=source, dest=dest):
+                e = fixtures.BitTransferTests.engine(
+                    self, ['MOV(55,SpeedCommand);', 'XIC(StartPB)MOV(Source,Dest);'],
+                    types=(source, 'DINT', dest), values=(raw, 0, 0))
+                self.assertEqual(e.blockers, [])
+                e.step()
+                e.memory.write('StartPB', True)
+                e.memory.write('SpeedCommand', 7)
+                before = copy.deepcopy((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()))
+                with self.assertRaisesRegex(ModelError, reason):
+                    e.step()
+                self.assertEqual((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()), before)
+                e.memory.write('Source', 1000)
+                e.step()
+                self.assertEqual(e.memory.read('Dest', allow_time=True), 1 if source in ('LTIME', 'LDT') else 1000)
+
+    def test_ladder_serialization_supplies_only_valid_exact_temporal_literals(self):
+        from logixlab.model import parse_rung
+        from logixlab.server import serialize_nodes
+
+        timestamp = 'LDT#2026-01-01-00:00:00.000_000_001'
+        rung = f'[MOV({timestamp},A),MOV(T#1ns,B),MOV(T#-1ms_1us,C),MOV(16#FF,D)];'
+        branch = serialize_nodes(parse_rung(rung))[0]['branch']
+        self.assertEqual(branch[0][0]['literal_values'],
+                         {timestamp: {'type': 'LDT literal', 'value': '1767225600000000001'}})
+        self.assertNotIn('literal_values', branch[1][0])
+        self.assertEqual(branch[2][0]['literal_values'],
+                         {'T#-1ms_1us': {'type': 'TIME literal', 'value': '-1001'}})
+        self.assertNotIn('literal_values', branch[3][0])
+
     def test_bundled_data_lab_moves_time_types_and_compares_nanoseconds(self):
         p = Path(__file__).resolve().parents[1] / 'samples/DataLab.L5X'
         e = Engine(Project(p))
@@ -143,6 +212,11 @@ class TimeValueTests(unittest.TestCase):
         self.assertTrue(e.memory.read('EarlierNano'))
         self.assertEqual(e.memory.read('ShortDelay', allow_time=True), -1501)
         self.assertEqual(e.memory.read('TimeToClear', allow_time=True), 0)
+        self.assertEqual(e.memory.read('ConvertedDuration', allow_time=True), 1250007000)
+        self.assertTrue(e.memory.read('DurationMatches'))
+        self.assertEqual(e.memory.read('TimestampTicks'), 1767225600000000001)
+        self.assertEqual(e.memory.read('BridgedStamp', allow_time=True), 1767225600000000001)
+        self.assertEqual(e.memory.read('PromotedWallStamp', allow_time=True), 1767225600000001000)
 
 
 if __name__ == '__main__':

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.093801` [exact temporal operands](time-date-storage.md#exact-mixed-operands)
+add same-family moves and comparisons and a raw LINT/LDT bridge. The ladder
+inspector shows exact parsed time literal ticks.
+
 Available in `26.1105.091610` [time and date storage](time-date-storage.md)
 adds DT, LDT, TIME32, TIME and LTIME for matching ladder MOV and relations,
 plus CLR. Data Lab shows nanosecond timestamp ordering.

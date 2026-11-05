@@ -59,7 +59,10 @@
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
     let inspection = '';
-    function read(ref, node) {return snapshot?.read(ref, {dintRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;}
+    function read(ref, node) {
+      if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
+      return snapshot?.read(ref, {dintRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;
+    }
     function trace(rung) {return lastTraces.get(rung);}
     function presentation(node) {return faceplates.describe(node, current.state.aoi_definitions);}
     function parameters(node) {return presentation(node).fields;}

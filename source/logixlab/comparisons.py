@@ -45,9 +45,9 @@ def time_specification(memory, op, scope):
         return None
     left, right = (time_values.operand_type(memory, ref, scope) for ref in op.args)
     if left is not None or right is not None:
-        if left != right:
-            raise ModelError('Time/date comparisons require matching operand types')
-        return left
+        if not time_values.same_family(left, right):
+            raise ModelError('Time/date comparisons require operands from one time family')
+        return left, right
     return None
 
 
@@ -155,8 +155,11 @@ def execute(engine, op, power, scope):
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
-    if time_specification(memory, op, scope):
-        return RELATIONS[op.name](*(time_values.read_operand(memory, ref, scope) for ref in op.args))
+    temporal = time_specification(memory, op, scope)
+    if temporal:
+        ticks = [time_values.read_operand(memory, ref, scope) * time_values.ns_per_tick(dtype)
+                 for ref, dtype in zip(op.args, temporal)]
+        return RELATIONS[op.name](*ticks)
     profile=ordering_profile(engine,op,scope)
     if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
     elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
@@ -172,7 +175,7 @@ def description(project):
                 language='RLL', instructions=sorted(INSTRUCTIONS),
                 selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls consume every operand',
                 time_date=dict(types=sorted(time_values.TYPES), instructions=sorted(RELATIONS),
-                    operands='Matching scalar tags or matching typed literals; exact tick ordering',
+                    operands='Same-family scalar tags or typed literals; exact ordering at nanosecond precision',
                     native_runtime_parity=False),
                 mixed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')), types=list(INTEGER_RANK),
                     operands='Tags with optional bounded constants; highest-ranked tag type must cover every complete declared tag range',

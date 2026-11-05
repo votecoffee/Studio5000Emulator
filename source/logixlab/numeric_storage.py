@@ -136,10 +136,17 @@ def specification(memory, op, scope):
         _, _, dtype = destination(memory, op.args[-1], scope, allow_time=True)
         if op.name == 'CLR':
             return None
-        if dtype in time_values.TYPES:
-            if time_values.operand_type(memory, op.args[0], scope) != dtype:
-                raise ModelError('Time/date MOV requires matching source and destination types')
-            return dtype
+        ref = op.args[0]
+        if dtype == 'LINT':
+            immediate = typed_literal(ref)
+            if immediate is not None:
+                return immediate[0]
+        if dtype in time_values.TYPES or dtype == 'LINT':
+            source = time_values.operand_type(memory, ref, scope, include_lint=dtype in time_values.TYPES)
+            if dtype in time_values.TYPES or source in time_values.TYPES:
+                if not time_values.move_allowed(source, dtype):
+                    raise ModelError('Time/date MOV requires one time family or the LINT/LDT bridge')
+                return source
         return source_type(memory, op.args[0], scope)
     finally:
         memory.structural = previous
@@ -165,8 +172,11 @@ def execute(engine, op, power, scope):
     memory = engine.memory
     source = specification(memory, op, scope)
     key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True)
-    if dtype in time_values.TYPES:
-        value = 0 if op.name == 'CLR' else time_values.read_operand(memory, op.args[0], scope)
+    if dtype in time_values.TYPES or source in time_values.TYPES:
+        value = 0
+        if source is not None:
+            ticks = time_values.read_operand(memory, op.args[0], scope)
+            value = time_values.convert_move(ticks, source, dtype)
         memory.store(key, parts, coerce(value, dtype))
         return True
     typed=typed_literal(op.args[0]) if op.name=='MOV' else None
@@ -180,7 +190,8 @@ def description(project):
                 instructions=sorted(INSTRUCTIONS), types=sorted(TYPES),
                 operands='One numeric scalar element; bounded DINT/finite REAL or typed L/U/UL integer and floating L/l MOV immediates; aliases and existing AOI bindings',
                 time_date=dict(types=sorted(time_values.TYPES), instructions=['MOV', 'CLR'],
-                    operands='Matching scalar tags or matching typed MOV literals; CLR writes zero ticks',
+                    operands='Same-family scalar tags or typed literals, plus LINT/LDT tag bridge; CLR writes zero ticks',
+                    conversion='Exact tick scaling; reject fractional destination ticks or out-of-range results; LINT/LDT copies nanosecond ticks',
                     representation='Exact decimal ticks in the declared microsecond or nanosecond unit',
                     native_runtime_parity=False),
                 typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',
@@ -200,5 +211,5 @@ def description(project):
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['Time/date conversion, string and aggregate MOV/CLR; typed radix/other consumers/controllers',
+                remaining=['Lossy or cross-family time/date conversion, string and aggregate MOV/CLR; typed radix/other consumers/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

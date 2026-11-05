@@ -485,6 +485,21 @@
       <Tag Name="EarlierNano" DataType="BOOL" TagType="Base">
         <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
       </Tag>
+      <Tag Name="ConvertedDuration" DataType="LTIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LTIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="DurationMatches" DataType="BOOL" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="TimestampTicks" DataType="LINT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="BridgedStamp" DataType="LDT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="PromotedWallStamp" DataType="LDT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -651,6 +666,9 @@
               <Rung Number="3" Type="N"><Text>MOV(LDT#2026-01-01-00:00:00.000_000_001,LongStamp);</Text></Rung>
               <Rung Number="4" Type="N"><Text>LES(LongStamp,LDT#2026-01-01-00:00:00.000_000_002)OTE(EarlierNano);</Text></Rung>
               <Rung Number="5" Type="N"><Text>CLR(TimeToClear);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>MOV(CycleDuration,ConvertedDuration)EQU(CycleDuration,ConvertedDuration)OTE(DurationMatches);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>MOV(LongStamp,TimestampTicks)MOV(TimestampTicks,BridgedStamp);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>MOV(WallStamp,PromotedWallStamp);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
