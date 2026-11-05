@@ -16,6 +16,15 @@ def scalar(tags,name,dtype,value=-7):
     E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value=str(value))
 
 
+def device_buffer(root, *, dtype='SINT', count=36, constant=False):
+    dims=str(count)
+    tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='DeviceBytes',DataType=dtype,
+                     TagType='Base',Dimensions=dims,Constant=str(constant).lower())
+    array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType=dtype,Dimensions=dims)
+    for i in (0,count-1):
+        E.SubElement(array,'Element',Index=f'[{i}]',Value='-1')
+
+
 class GsvConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
@@ -115,6 +124,77 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertTrue(self.engine(['GSV(Program,THIS,Name,NameOut);'],harness=True).blockers)
         e=self.engine(['FOR Index := 0 TO NameOut.LEN DO GSV(Routine,THIS,Name,NameOut); END_FOR;'],st=True)
         self.assertTrue(any('bounds/step' in error for error in e.blockers),e.blockers)
+
+    def test_controller_device_scalars_read_project_fields_in_both_languages(self):
+        for st in (False,True):
+            for model,code in zip(('L81E','L82E','L83E','L84E','L85E'),range(164,169),strict=True):
+                with self.subTest(st=st,model=model):
+                    fields=('ProductCode','Vendor','Type','ProductRev')
+                    def source(root):
+                        controller=root.find('Controller')
+                        controller.attrib.update(ProcessorType='1756-'+model, MinorRev='201')
+                        for field in fields:scalar(controller.find('Tags'),field,'INT')
+                    calls=[f'GSV(cOnTrOlLeRdEvIcE,,{field},{field});' for field in fields]
+                    e=self.checked(calls,st=st,mutate=source)
+                    e.step()
+                    self.assertEqual(tuple(e.memory.read(field) for field in fields),(code,1,14,-14045))
+
+    def test_controller_device_requires_canonical_source_types_and_blank_instance(self):
+        for attr,field,value in (('ProductRev','MinorRev',None),('ProductRev','MinorRev','256'),
+                                 ('ProductRev','MinorRev','+11'),('ProductRev','minorrev','11'),
+                                 ('Vendor','processortype','1756-L85E'),('Vendor','{shadow}MajorRev','35')):
+            def malformed(root):
+                settings=root.find('Controller').attrib
+                if value is None:settings.pop(field)
+                else:settings[field]=value
+            e=self.engine([f'GSV(ControllerDevice,,{attr},PriorityOut);'],mutate=malformed)
+            self.assertTrue(e.blockers,(attr,field,value))
+        for text in ('GSV(ControllerDevice,THIS,ProductCode,PriorityOut);',
+                     'GSV(ControllerDevice,,ProductCode,Out);',
+                     'GSV(ControllerDevice,,ProductCode,PriorityOut.0);',
+                     'GSV(ControllerDevice,,SerialNumber,Out);',
+                     'GSV(ControllerDevice,,Status,PriorityOut);',
+                     'SSV(ControllerDevice,,ProductRev,PriorityOut);'):
+            self.assertTrue(self.engine([text]).blockers,text)
+
+    def test_device_name_writes_a_counted_sint_window_and_preserves_neighbors(self):
+        expected=list(bytes((9,))+b'1756-L85E')+[0]*23
+        for st in (False,True):
+            for ref,offset in (('DeviceBytes',0),('DeviceBytes[Index]',1)):
+                with self.subTest(st=st,ref=ref):
+                    call=f'GSV(ControllerDevice,,DeviceName,{ref});'
+                    e=self.checked([call],st=st,mutate=device_buffer)
+                    before=list(e.memory.read('DeviceBytes'))
+                    e.memory.write('Index',offset);e.step()
+                    self.assertEqual(e.memory.read('DeviceBytes'),before[:offset]+expected+before[offset+33:])
+                    skip=f'IF FALSE THEN {call} END_IF;' if st else 'AFI()'+call
+                    e=self.checked([skip],st=st,mutate=device_buffer)
+                    e.step()
+                    self.assertEqual(e.memory.read('DeviceBytes'),before)
+
+    def test_device_name_rejects_short_readonly_and_wrong_type_windows(self):
+        for options in ({'count':32},{'dtype':'USINT'},{'constant':True}):
+            e=self.engine(['GSV(ControllerDevice,,DeviceName,DeviceBytes);'],
+                          mutate=lambda root:device_buffer(root,**options))
+            self.assertTrue(e.blockers,options)
+        e=self.engine(['GSV(ControllerDevice,,DeviceName,DeviceBytes[4]);'],mutate=device_buffer)
+        self.assertTrue(e.blockers)
+
+    def test_device_name_bounds_fail_atomically_and_guard_st_for_effects(self):
+        e=self.checked(['GSV(ControllerDevice,,ProductCode,PriorityOut);',
+                        'GSV(ControllerDevice,,DeviceName,DeviceBytes[Index]);'],mutate=device_buffer)
+        e.memory.write('Index',4)
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'33 writable contiguous SINT'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual((e.time_ms,e.scan_count),(0,0))
+        e.memory.write('Index',3);e.step()
+        self.assertEqual(e.memory.read('DeviceBytes[35]'),0)
+        for dest in ('DeviceBytes','DeviceBytes[Limit]'):
+            e=self.engine([f'FOR Index:=0 TO DeviceBytes[32] DO GSV(ControllerDevice,,DeviceName,{dest}); END_FOR;'],
+                          st=True,mutate=device_buffer)
+            self.assertTrue(any('bounds/step' in error for error in e.blockers),e.blockers)
 
     def test_named_configuration_is_readable_in_an_isolated_routine_harness(self):
         e=self.checked(['GSV(Task,FastTask,Rate,Out);'],harness=True);e.step()

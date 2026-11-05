@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.154033` [ControllerDevice GSV](gsv-configuration.md#controller-device-identity)
+reads the v35 5580 catalog name, product and firmware codes, device type and
+vendor in ladder and ST. System Lab demonstrates the counted SINT name.
+
 Available in `26.1105.152847` [object identity GSV](gsv-configuration.md#object-identity-reads)
 reads Program and Routine names and emulator Task slots in ladder and ST.
 Routine THIS follows nested calls. System Lab demonstrates both languages.

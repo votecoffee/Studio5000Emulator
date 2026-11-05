@@ -4,6 +4,11 @@ import struct
 from .model import ModelError
 
 PROFILES=('research','logix-v35-l85e')
+# ControlLogix 5580 product codes in the v35 ControllerDevice help.
+CONTROLLOGIX_5580_PRODUCT_CODES = {
+    '1756-L81E': 164, '1756-L82E': 165, '1756-L83E': 166,
+    '1756-L84E': 167, '1756-L85E': 168,
+}
 
 
 @dataclass(frozen=True)
@@ -28,9 +33,7 @@ class Identity:
         try:minor=int(project.minor_version)
         except (ValueError,TypeError):raise ModelError('Controller minor revision is unknown')
         if not 1<=minor<=255:raise ModelError('Controller minor revision must be 1..255 for the identity profile')
-        # 1756-L85E product code 168 is published in Rockwell 1756-UM543.
-        # Firmware revision comes from the loaded source, not from that manual.
-        return cls(profile,1,0x0E,168,35,minor,'1756-L85E/B')
+        return cls(profile,1,0x0E,CONTROLLOGIX_5580_PRODUCT_CODES[project.processor],35,minor,'1756-L85E/B')
 
     def attributes(self):
         name=self.product_name.encode('ascii')

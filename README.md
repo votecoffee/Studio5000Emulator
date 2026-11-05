@@ -138,6 +138,10 @@ measurement. **System lab** demonstrates reads and resets in ladder and ST.
 Program and Routine names plus Task registry slots in ladder and ST.
 **System lab** shows how Routine THIS follows a called routine.
 
+[Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
+reads the loaded 5580 model's catalog name, product code, packed firmware
+revision, device type and vendor. **System lab** demonstrates ladder and ST.
+
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. In **System lab**, enable ReadTypedTimes to see a DT

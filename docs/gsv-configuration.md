@@ -30,13 +30,15 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
 | Task | DisableUpdateOutputs | DINT | Explicit source flag, 0/1 |
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
+| ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
+| ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 
 Class, attribute and object lookup are case insensitive. Returned names retain
 source spelling. Task references use literal configured names or
 [THIS in ordinary scheduled Program routines](current-instance-gsv.md).
-Controller uses an empty instance operand. Numeric object references and
+Controller and ControllerDevice use an empty instance operand. Numeric object references and
 AOI/harness THIS contexts remain outside the profile.
 
 Structural preflight validates destinations without reading saved dynamic
@@ -79,6 +81,28 @@ and SlowTask slot 2. ST also uses the existing ReadConfig gate.
 The operand types follow the installed v35 Program, Task and Routine help
 topics 14638, 14646 and 14651. Native instance identity and execution parity
 remain separate.
+
+## Controller device identity
+
+ControllerDevice reads the loaded v35 ControlLogix 5580 model's catalog name,
+product code, firmware revision, device type (14), and vendor (1). The complete
+source must declare the processor and major revision explicitly. ProductRev
+also requires an explicit byte-sized MinorRev. Its low byte is the major
+revision and its high byte is the minor revision. The destination is a signed
+INT, so show it in hexadecimal to see the packed word.
+
+DeviceName writes the ASCII character count, the catalog name, and zero
+padding into 33 writable SINT elements. A larger array or an indexed start
+works when the complete window fits in the selected array. Bytes outside
+the window retain their values. The catalog name comes from the project
+processor, independent of the endpoint's advertised identity profile.
+
+In **System lab**, enable ReadControllerDevice and step 25 ms. Ladder writes
+DeviceNameBytes, product code 168, and revision 16#0B23. ST writes device type
+14 and vendor 1. ST also uses the existing ReadConfig gate. These reads are
+based on the installed v35 topic 14635. Device status, physical serial numbers,
+and native ControllerDevice execution remain unqualified.
+[Rockwell ControllerDevice reference](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-controllerdevice-object.html)
 
 ## Changing a periodic task rate
 
