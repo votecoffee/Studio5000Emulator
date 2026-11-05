@@ -120,7 +120,7 @@ class FileIntegerLiteralTests(unittest.TestCase):
 
     def test_narrow_mixed_floating_radix_and_other_arguments_remain_guarded(self):
         for dtype, text in [('LINT', '1U'), ('ULINT', '1L'), ('DINT', '1L'), ('REAL', '1L'),
-                            ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1.0L'),
+                            ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1e999L'),
                             ('LINT', '16#FFL'), ('LINT', '1_000L'), ('LINT', 'SQR(1L)')]:
             self.assertTrue(self.engine(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],' + text + ');'], dtype=dtype).blockers)
         for mode in ['1L', '1U', '1UL']:
@@ -149,7 +149,7 @@ class FileIntegerLiteralTests(unittest.TestCase):
         from logixlab.expressions import Expression
         from logixlab.conditions import Condition
         e = self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],1L);', 'FSC(Ctl,?,?,ALL,1L=1L);'])
-        self.assertIn(('1L', True, False, True), e.extensions.expressions)
+        self.assertIn(('1L', True, True, True), e.extensions.expressions)
         self.assertIn(('1L=1L', True, True, False, True), e.extensions.conditions)
         with self.assertRaises(ModelError): e.extensions.condition('1L=1L', allow_wide=True, bcd=True)
         for create in [Expression, Condition, lambda text: Expression(text, subscript=True)]:

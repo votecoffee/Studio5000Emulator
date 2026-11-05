@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.172023` [binary64 ladder FAL](file-arithmetic.md#binary64-expressions)
+adds LREAL and mixed numeric expressions in ALL, numeric and INC modes.
+Stats Lab demonstrates partial-file rollback, REAL results and integer rounding.
+
 Available in `26.1105.170122` [plain immediates with wide tags](typed-bitwise-operands.md#plain-immediates-with-wide-tags)
 add 32-bit radix masks and signed DINT constants to mixed ladder AND, OR, XOR,
 NOT and MEQ. Bit Lab demonstrates low-bit selection and exact ULINT results.

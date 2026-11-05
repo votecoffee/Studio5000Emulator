@@ -2,11 +2,10 @@
 from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS, WIDE_TYPES
-from . import wide_st
+from . import lreal_expressions, wide_st
 from .model import ModelError, coerce, literal
 
 INSTRUCTIONS = frozenset(('FAL',))
-NUMERIC = controls.NUMERIC | WIDE_TYPES
 
 
 def mode(text):
@@ -21,8 +20,8 @@ def mode(text):
 
 def destination(memory, op, scope):
     key, parts, dtype = memory.check_writable(op.args[4], scope)
-    if dtype not in NUMERIC or isinstance(memory.at(key, parts), (list, dict, bool)):
-        raise ModelError('FAL requires a writable supported integer or REAL scalar destination')
+    if dtype not in lreal_expressions.NUMERIC or isinstance(memory.at(key, parts), (list, dict, bool)):
+        raise ModelError('FAL requires a writable numeric scalar destination')
     ck, cp, _ = memory.resolve(op.args[0], scope)
     if key == ck and parts[:len(cp)] == cp:
         raise ModelError('FAL destination must not overlap its CONTROL record')
@@ -30,12 +29,20 @@ def destination(memory, op, scope):
 
 
 def calculate(engine,expression,scope,dtype,*,execute=False):
-    profile=wide_st.analyze(expression,engine.memory,scope,dtype,consumer='FAL')
+    memory = engine.memory
+    floating = lreal_expressions.analyze(expression, memory, scope, dtype, consumer='FAL')
+    if floating is not None:
+        return lreal_expressions.evaluate(expression, memory, scope, floating) if execute else None
+    profile = wide_st.analyze(expression, memory, scope, dtype, consumer='FAL')
     if profile is not None:
-        if profile[1]!='number':raise ModelError('FAL requires a numeric expression result')
-        if execute:return wide_st.evaluate(expression,engine.memory,scope,profile)
-    elif execute:return expression.evaluate(engine.memory,scope,dtype)
-    else:expression.validate(engine.memory,scope,dtype)
+        if profile[1] != 'number':
+            raise ModelError('FAL requires a numeric expression result')
+        if execute:
+            return wide_st.evaluate(expression, memory, scope, profile)
+    elif execute:
+        return expression.evaluate(memory, scope, dtype)
+    else:
+        expression.validate(memory, scope, dtype)
 
 
 def validate(engine, op, scope):
@@ -45,7 +52,8 @@ def validate(engine, op, scope):
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FAL LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
-    count = mode(op.args[3]);expression = engine.extensions.expression(op.args[5],bcd=True,integer_literals=True)
+    count = mode(op.args[3])
+    expression = engine.extensions.expression(op.args[5], bcd=True, floating_literals=True, integer_literals=True)
     if count=='INC':incremental.validate(engine,op,scope)
     previous = memory.structural
     try:
@@ -95,7 +103,12 @@ def execute(engine, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-FAL-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                types=sorted(NUMERIC), exact_integer_types=sorted(WIDE_TYPES),
+                types=sorted(lreal_expressions.NUMERIC), exact_integer_types=sorted(WIDE_TYPES),
+                binary64=dict(selection='LREAL source, destination or floating L/l literal',
+                    destination_types=sorted(lreal_expressions.NUMERIC),
+                    modes=['ALL','positive DINT immediate','INC'],
+                    calculation='Use the bounded binary64 ladder evaluator per reached iteration; convert only the completed result to the destination type',
+                    native_runtime_parity=False),
                 wide_expressions='Matching declared numeric tag/result type; exact intermediates, ABS/basic arithmetic/bitwise, representable signed-DINT or matching decimal L/U/UL literals', expressions='Existing bounded CPT grammar including qualified narrow FRD/TOD, destination-indexed per iteration',
                 typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
                     range='Matching numeric tag/literal/result type; check declared literal range with its unary sign before execution',
@@ -110,5 +123,5 @@ def description():
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False, native_math_status=False,
                 incremental=incremental.description(),
-                remaining=['Saved active INC controls and native internal edge state', 'Mixed FAL numeric promotion, LREAL and additional expression functions',
+                remaining=['Saved active INC controls and native internal edge state', 'Other mixed FAL numeric promotion, numeric LREAL bitwise/BCD and additional functions',
                            'Broader AOI lifecycle/schema and native overflow/fault/status/partial-write parity'])

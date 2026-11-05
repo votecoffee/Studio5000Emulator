@@ -19,9 +19,10 @@ FSC(Find,?,?,ALL,Input[Find.POS]>=Threshold);
 FSC shares the existing wide/mixed CMP profile, including eager BOOL composition
 and range-preserving integer comparisons. Mixed arithmetic must contain the
 common source type in every arithmetic subtree. See the separate
-[ladder expression profile](ladder-wide-expressions.md). FAL mixed numeric
-promotion, REAL/wide mixtures, LREAL, typed radix/mixed literals, power and
-additional functions remain unqualified.
+[ladder expression profile](ladder-wide-expressions.md).
+[Binary64 FAL](file-arithmetic.md#binary64-expressions) provides a separate
+LREAL-selected profile. Other mixed promotions, typed radix, wider integer
+power and additional functions remain unqualified.
 
 ## Iteration and state
 

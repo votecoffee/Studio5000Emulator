@@ -181,8 +181,6 @@ class FileArithmeticTests(unittest.TestCase):
                      'FAL(Ctl,?,?,ALL,Outgoing,FRD(Incoming)+0.0);','FAL(Ctl,?,?,ALL,Outgoing,EXP(Incoming));',
                      'FAL(Ctl,?,?,ALL,Outgoing,Incoming>1);','FAL(Ctl,?,?,ALL,Outgoing);'):
             self.assertTrue(self.engine([text]).blockers,text)
-        for dtype in ('LREAL',):
-            self.assertTrue(self.engine(['FAL(Ctl,?,?,ALL,Outgoing,Incoming);'],dtype=dtype).blockers,dtype)
         for name in ('Ctl','Queue'):
             def constant(root):root.find(f'./Controller/Tags/Tag[@Name="{name}"]').set('Constant','true')
             self.assertTrue(self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],1);'],mutate=constant).blockers)

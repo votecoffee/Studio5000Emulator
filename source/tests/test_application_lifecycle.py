@@ -1183,6 +1183,55 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['BatchControl.FD'])
         self.assertFalse(self.post('report', {})['file_search']['native_cursor_parity'])
 
+    def test_stats_lab_binary64_fal_modes_and_mid_file_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'StatsLab'})['blockers'], [])
+        def write(tag, value):
+            self.post('write', {'tag':tag, 'value':value})
+        def step():
+            return self.post('step', {'dt':10})
+        def state():
+            request = Request(self.url+'/api/state', headers={'X-Logix-Token':self.token})
+            with urlopen(request, timeout=3) as response:
+                return json.load(response)
+        def tags(state):
+            return {row['name']:row['value'] for row in state['tags']}
+        def values(row, name):
+            return tuple(row[f'{name}[{index}]'] for index in range(4))
+        self.assertEqual(values(tags(step()), 'Binary64Mapped'), (None, None, None, 901.0))
+        write('Binary64Transform', True)
+        write('Binary64Divisors[1]', 0)
+        before = state()
+        with self.assertRaises(HTTPError) as error:
+            step()
+        with error.exception as failure:
+            self.assertEqual(failure.code, 400)
+            self.assertIn('divide by zero', failure.read().decode().lower())
+        after = state()
+        for field in ('tags','routines','scan','ms','task_schedule','aoi_bindings','trace'):
+            self.assertEqual(after[field], before[field], field)
+        write('Binary64Divisors[1]', 1)
+        write('Binary64Batch', True)
+        write('Binary64Step', True)
+        row = tags(step())
+        self.assertEqual(values(row, 'Binary64Mapped'), (2**-52, 1.5, 2.5, 901.0))
+        self.assertEqual(values(row, 'Binary64Batched'), (1.5, None, None, 902.0))
+        self.assertEqual(values(row, 'Binary64Rounded'), (1, None, None, 903))
+        write('Binary64Batch', False)
+        write('Binary64Step', False)
+        row = tags(step())
+        self.assertEqual(values(row, 'Binary64Batched'), (1.5, 3.0, None, 902.0))
+        write('Binary64Step', True)
+        row = tags(step())
+        self.assertEqual(values(row, 'Binary64Batched'), (1.5, 3.0, 4.0, 902.0))
+        self.assertEqual(values(row, 'Binary64Rounded'), (1, 2, None, 903))
+        write('Binary64Step', False)
+        step()
+        write('Binary64Step', True)
+        self.assertEqual(values(tags(step()), 'Binary64Rounded'), (1, 2, 4, 903))
+        profile = self.post('report', {})['file_arithmetic']['binary64']
+        self.assertEqual(profile['modes'], ['ALL','positive DINT immediate','INC'])
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_stats_lab_file_arithmetic_all_and_numeric_false_scan(self):
         state = self.post('demo', {'sample': 'StatsLab'})
         self.assertEqual(state['blockers'], [])

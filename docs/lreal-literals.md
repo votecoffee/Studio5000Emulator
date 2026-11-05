@@ -48,9 +48,9 @@ range checks still occur only when their calls execute.
 
 ## Scope and recovery
 
-Only direct ladder CPT/CMP opt into LREAL literal parsing. The parser and
-expression cache distinguish that mode from generic, FAL/FSC, array-subscript
-and ST consumers. [Integer U/L/UL suffixes](ladder-integer-literals.md) have a
+Direct ladder CPT/CMP and [FAL](file-arithmetic.md#binary64-expressions) opt
+into LREAL literal parsing. The parser and expression cache distinguish that
+mode from generic, FSC, array-subscript and ST consumers. [Integer U/L/UL suffixes](ladder-integer-literals.md) have a
 separate matching-type CPT/CMP profile. Other typed spellings, separators,
 BCD/numeric bitwise mixtures and additional language/controller profiles
 remain separate work. Existing REAL expressions without an LREAL selector

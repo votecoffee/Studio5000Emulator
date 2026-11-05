@@ -149,7 +149,7 @@ class LrealLiteralTests(unittest.TestCase):
         e.memory.write('IndexA', 999)
         e.step()
 
-    def test_generic_file_st_and_array_index_parsers_do_not_gain_lreal_literals(self):
+    def test_fal_opt_in_preserves_other_literal_parsers(self):
         from logixlab.st_expression import STExpression
         for create in (Expression, Condition, lambda text: Expression(text, subscript=True)):
             with self.assertRaises(ModelError):
@@ -166,7 +166,9 @@ class LrealLiteralTests(unittest.TestCase):
         f = files.FileBcdTests()
         f.setUp()
         self.addCleanup(f.doCleanups)
-        self.assertTrue(f.engine(['FAL(Ctl,?,?,ALL,Results[Ctl.POS],0.1L);']).blockers)
+        fal = f.checked(['FAL(Ctl,?,?,ALL,Results[Ctl.POS],0.1L);'], dest_type='LREAL')
+        fal.step()
+        self.assertEqual(fal.memory.read('Results')[:4], [0.1]*4)
         self.assertTrue(f.engine(['FSC(Ctl,?,?,ALL,0.1L>0);']).blockers)
 
     def test_old_profiles_and_existing_numeric_bitwise_bcd_guards_remain(self):

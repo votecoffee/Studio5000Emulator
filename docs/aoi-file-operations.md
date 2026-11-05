@@ -14,9 +14,10 @@ XIC(Search)FSC(Find,?,?,INC,Input[Find.POS]>=Threshold);
 
 Use separate writable CONTROL records for each operation. Saved LEN/POS fields
 drive execution; neutral-text `?,?` operands do not initialize them per scan.
-FAL retains the SINT/INT/DINT/REAL destination and bounded CPT expression
-profile. FSC retains the bounded CMP profile, including eager operand checks.
-Wide file expressions and new conversion/function forms are not added.
+FAL supports narrow numeric, [matching wide integer](integer-files.md) and
+[binary64](file-arithmetic.md#binary64-expressions) expressions, with the same
+destination rules as an ordinary FAL call. FSC uses the bounded CMP profiles
+with eager operand checks.
 
 AOI operands can be exact-type/dimension InOut bindings or represented saved
 locals. Array expressions resolve indices in the AOI frame, including

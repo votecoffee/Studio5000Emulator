@@ -42,9 +42,9 @@ FAL reuses the bounded CPT grammar and SINT/INT/DINT/REAL scalar types. Integer
 arithmetic uses DINT intermediate values; REAL expressions use float32 rounding.
 Integer division now follows the [narrow expression profile](integer-expressions.md).
 [Matching LINT/unsigned expressions](integer-files.md) now use a separate exact
-integer profile. Integer-only power, BCD expression functions, LREAL and
-the full native conversion/status matrix remain unfinished. The existing
-arithmetic, bitwise operators and supported math functions are available.
+integer profile. Narrow [power and BCD expression forms](integer-expressions.md)
+have separate bounds. [Binary64 expressions](#binary64-expressions) extend the
+numeric profile below. Native conversion and status behavior remain open.
 
 Destination references resolve for each current POS, including numeric UDT
 members and multidimensional arrays. Scalar destinations can accumulate or be
@@ -65,6 +65,40 @@ Saved active INC controls and ST/FBD FAL calls remain blocked.
 [RLL AOI execution](aoi-file-operations.md) now supports exact InOut and
 represented local operands with the same bounded expressions and modes.
 No private native edge state or target-specific fault behavior is fabricated.
+
+## Binary64 expressions
+
+App `26.1105.172023` adds LREAL to ladder FAL in ALL, positive numeric
+and idle-source INC modes. An LREAL destination, LREAL source tag or floating
+L/l literal selects the [binary64 evaluator](lreal-expressions.md) for every
+numeric node. REAL tags and unsuffixed floating literals keep their float32
+precision before promotion. Typed L/U/UL integer constants are range-checked
+before conversion, and large integers can round during binary64 conversion.
+
+Each completed iteration converts its result once to the destination type.
+All eight integer types, REAL and LREAL are supported. Integer results round
+to nearest with ties to even and must fit the destination. Finite binary64
+arithmetic, mixed numeric operands and the existing functions use the same
+limits as CPT. Numeric bitwise operators and FRD/TOD remain outside the LREAL
+profile. Existing integer-only and REAL FAL calculations retain their rules.
+
+Each iteration resolves its live operands at CONTROL.POS. Later iterations
+can see earlier writes to overlapping arrays. False or held calls that do no
+work skip the expression, while an active numeric call still continues on a
+false rung. Required unknowns, invalid references, range errors and later
+faults roll back that advance, including written cells, CONTROL progress and
+existing AOI bindings. Prior successful scans stay committed.
+
+In **Stats lab**, enable `Binary64Transform` to write the first three
+`Binary64Mapped` cells to 2^-52, 1.5 and 2.5. Set `Binary64Divisors[1]` to 0
+before enabling to fault on the second element and restore the first write.
+Restore the divisor to 1 and retry. Enable `Binary64Batch` for one REAL result
+per scan (1.5, 3.0, 4.0), including continuation after a false rung. Pulse
+`Binary64Step` three times with false scans between edges for DINT results
+1, 2 and 4. The three guard cells stay at 901, 902 and 903.
+
+FSC, native fault/cursor behavior and Studio import acceptance remain
+unqualified for these binary64 file expressions.
 
 ## Stats Lab
 

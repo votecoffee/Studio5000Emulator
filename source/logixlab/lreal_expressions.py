@@ -1,4 +1,4 @@
-"""Scoped finite binary64 CPT/CMP expressions for the v35 5580 model."""
+"""Scoped finite binary64 ladder expressions for the v35 5580 model."""
 import math
 import operator
 
@@ -34,8 +34,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         return None
     if not available(memory.project):
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
-    if consumer == 'CPT' and destination_type not in NUMERIC:
-        raise ModelError('LREAL CPT requires a numeric scalar destination')
+    if consumer != 'CMP' and destination_type not in NUMERIC:
+        raise ModelError(f'LREAL {consumer} requires a numeric scalar destination')
     if expression.functions - MATH:
         raise ModelError('Unsupported LREAL expression function')
     types = {}
@@ -90,7 +90,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         return 'number'
 
     result = infer(expression.tree)
-    if result != ('number' if consumer == 'CPT' else 'bool'):
+    if result != ('bool' if consumer == 'CMP' else 'number'):
         raise ModelError(consumer + ' has an invalid LREAL expression result type')
     return dict(consumer=consumer, declared=declared, types=types)
 
@@ -155,13 +155,13 @@ def evaluate(expression, memory, scope, profile):
 
 def description(project):
     return dict(available=available(project), profile='v35-5580-lreal-expressions',
-                consumers=['CPT', 'CMP'], types=sorted(NUMERIC), destination='CPT numeric scalar', destination_types=sorted(NUMERIC),
+                consumers=['CPT', 'CMP', 'FAL'], types=sorted(NUMERIC), destination='CPT/FAL numeric scalar', destination_types=sorted(NUMERIC),
                 destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
-                selection='Any LREAL tag/literal or CPT LREAL destination selects binary64 for every numeric node',
+                selection='Any LREAL tag/literal or CPT/FAL LREAL destination selects binary64 for every numeric node',
                 constants='Bounded DINT integers; decimal L/U/UL constants checked at declared width then converted to binary64; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
                 typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
                     range='Check declared integer range with its immediate unary sign before binary64 conversion',
-                    selection='Requires an LREAL tag/literal or CPT LREAL destination; suffix alone retains the integer profile',
+                    selection='Requires an LREAL tag/literal or CPT/FAL LREAL destination; suffix alone retains the integer profile',
                     precision='Same binary64 conversion as integer tags; integers beyond 53 significant bits may round',
                     native_runtime_parity=False),
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
@@ -171,5 +171,5 @@ def description(project):
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Typed radix/separators and other typed forms; FRD/TOD and numeric bitwise forms',
-                           'ST/FAL/FSC/FBD/SFC consumers and other controller profiles',
+                           'ST/FSC/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])

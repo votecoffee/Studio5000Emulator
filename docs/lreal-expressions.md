@@ -1,9 +1,10 @@
 # LREAL ladder expressions
 
 The bounded v35 ControlLogix 5580 model supports finite binary64 calculations
-in CPT and comparisons in CMP. An LREAL source or an LREAL CPT destination
-selects binary64 for every numeric node, including constant-only subexpressions.
-CPT can store representable results in all ten numeric destination types;
+in CPT, [ladder FAL](file-arithmetic.md#binary64-expressions) and CMP comparisons.
+An LREAL source, floating L/l literal or LREAL CPT/FAL destination selects
+binary64 for every numeric node, including constant-only subexpressions.
+CPT and FAL can store representable results in all ten numeric destination types;
 [final result conversion](lreal-results.md) follows binary64 evaluation. Numeric sources may use
 any of the eight signed/unsigned integer types, REAL or LREAL.
 
@@ -71,8 +72,9 @@ storage use the same evaluator. Required unknowns, invalid indices, arithmetic
 and later instruction faults restore the complete modeled advance, including
 earlier writes, warm bindings, trace and scheduler/timing state.
 
-Only direct ladder CPT/CMP opt into this evaluator. Generic condition caches,
-ST, FAL/FSC, FBD/SFC and other controller profiles retain their existing limits.
+Direct ladder CPT/CMP and FAL opt into this evaluator. FAL retains its
+iteration, false-continuation and INC edge rules. Generic condition caches,
+ST, FSC, FBD/SFC and other controller profiles retain their existing limits.
 Other typed literal forms and complete native math flags,
 fault records, partial effects, packed layouts and lifecycle equivalence remain
 unfinished. Host binary64 calculations are software behavior; these checks do

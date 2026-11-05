@@ -270,7 +270,7 @@ class LrealExpressionTests(unittest.TestCase):
 
     def test_report_describes_lreal_selection_and_native_boundaries(self):
         report = self.checked().report()['lreal_expression_execution']
-        self.assertEqual(report['consumers'], ['CPT', 'CMP'])
+        self.assertEqual(report['consumers'], ['CPT', 'CMP', 'FAL'])
         self.assertEqual(set(report['types']), set(TYPES))
         self.assertFalse(report['native_runtime_parity'])
 
