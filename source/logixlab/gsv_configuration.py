@@ -12,6 +12,7 @@ from .task_configuration import NAME
 TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
+MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
@@ -123,6 +124,14 @@ def source(engine, op, scope='', *, executing=False):
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
+    if cls == 'module':
+        if instance or attribute not in MODULE_STATUS:
+            raise ModelError('GSV Module requires an empty instance and ForceStatus or LEDStatus')
+        io_map = project.io_map
+        raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
+        if raw is None:
+            raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
+        return 'INT', struct.unpack('<h', raw)[0]
     if cls=='controller':
         if instance:raise ModelError('GSV Controller requires an empty instance operand')
         if attribute=='name':
@@ -146,7 +155,7 @@ def source(engine, op, scope='', *, executing=False):
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls in ('program','routine') and attribute=='name':
         return 'STRING',component_name(engine,cls,instance,scope,executing=executing)
-    if cls!='task':raise ModelError('GSV configuration supports Task/Controller settings, ControllerDevice identity and Program/Routine Name')
+    if cls!='task':raise ModelError('GSV configuration supports Task/Controller settings, ControllerDevice identity, Module status and Program/Routine Name')
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     name=next((n for n in configuration.names if n.casefold()==instance.casefold()),None)
     task=next((t for t in project.tasks if name is not None and t['name']==name),None)
@@ -189,7 +198,7 @@ def source(engine, op, scope='', *, executing=False):
     return dtype,struct.unpack('<h' if dtype=='INT' else '<i',raw)[0]
 
 
-def destination(memory, ref, scope, dtype):
+def destination(memory, ref, scope, dtype, *, allow_dint=False):
     if dtype == 'SINT[33]':
         key, parts, kind = prefix(memory, ref, scope, DEVICE_NAME_SIZE, writable=True)
         if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
@@ -200,8 +209,10 @@ def destination(memory, ref, scope, dtype):
         key,parts,kind=memory.resolve(ref,scope)
     else:
         key,parts,kind=memory.check_writable(ref,scope)
-        error = 'GSV configuration destination must be an exact scalar '+dtype+' tag'
-        if kind != dtype or (parts and isinstance(parts[-1], tuple)):
+        target_types = ('INT', 'DINT') if allow_dint else (dtype,)
+        error = ('GSV Module status requires a scalar INT or DINT tag' if allow_dint else
+                 'GSV configuration destination must be an exact scalar '+dtype+' tag')
+        if kind not in target_types or (parts and isinstance(parts[-1], tuple)):
             raise ModelError(error)
         value = memory.at(key,parts)
         if isinstance(value, (dict,list)) or (dtype != 'BOOL' and isinstance(value, bool)):
@@ -213,17 +224,22 @@ def validate(engine, op, scope):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         dtype,_=source(engine,op,scope)
-        return destination(memory,op.args[3],scope,dtype)
+        return destination(memory,op.args[3],scope,dtype,allow_dint=op.args[0].casefold()=='module')
     finally:memory.structural=previous
 
 
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
-    key,paths,_=destination(memory,op.args[3],scope,dtype)
+    key,paths,kind=destination(memory,op.args[3],scope,dtype,allow_dint=op.args[0].casefold()=='module')
     if dtype == 'SINT[33]':
         for path, byte in zip(paths, value, strict=True):
             memory.store(key, path, byte)
     elif dtype=='STRING':memory.write_string(op.args[3],value,scope)
+    elif kind != dtype:
+        old = memory.at(key, paths[0])
+        if type(old) is not int:
+            raise ModelError('GSV Module status requires a known DINT to preserve its upper word')
+        memory.store(key, paths[0], (old & ~0xFFFF) | (value & 0xFFFF))
     else:memory.write(op.args[3],value,scope)
 
 
@@ -245,12 +261,14 @@ def description():
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
+                module=['ForceStatus','LEDStatus'],
+                module_status='Controller-only I/O map. INT or DINT low word; preserve a known DINT upper word.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
-                destinations='Exact BOOL/SINT/INT/DINT scalars, represented LEN/DATA strings, or a 33-cell SINT window for DeviceName; no cross-type byte copies',
+                destinations='Exact BOOL/SINT/INT/DINT scalars, LEN/DATA strings, or a 33-cell SINT window for DeviceName; Module status also accepts the low word of a DINT',
                 times='Microseconds from exact milliseconds; no inferred defaults',
                 state='Source configuration with live Task InhibitTask, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',

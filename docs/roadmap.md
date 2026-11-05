@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.161302` [controller-only Module status](gsv-configuration.md#controller-only-module-status)
+adds LEDStatus and ForceStatus to ladder and ST. Both support an INT or
+the low word of a known DINT.
+
 Available in `26.1105.160158` [Controller source flags](gsv-configuration.md#controller-source-flags)
 read producer RPI, redundancy enablement, test-edit retention and
 firmware-update inhibition from explicit project settings in ladder and ST.

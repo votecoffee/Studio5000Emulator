@@ -33,6 +33,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
+| Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -43,7 +44,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 Class, attribute and object lookup are case insensitive. Returned names retain
 source spelling. Task references use literal configured names or
 [THIS in ordinary scheduled Program routines](current-instance-gsv.md).
-Controller and ControllerDevice use an empty instance operand. Numeric object references and
+Controller, ControllerDevice and the supported Module status reads use an empty instance operand. Numeric object references and
 AOI/harness THIS contexts remain outside the profile.
 
 Structural preflight validates destinations without reading saved dynamic
@@ -147,6 +148,27 @@ Enable ReadControllerDevice in **System lab**. Compare DeviceStatus in ladder
 and StDeviceStatus in ST after Step, Run, and another Step in Program.
 The software model covers these modes and the existing emulator fault word.
 Native fault classifications, debug, and transition flags remain unqualified.
+
+## Controller-only Module status
+
+Ladder and ST can read LEDStatus and ForceStatus with an empty Module instance
+operand. A complete v35 5580 project with a visible controller-only I/O map
+returns zero for both. LEDStatus reports no I/O modules. ForceStatus reports
+that I/O forces are neither installed nor enabled.
+
+An INT destination gets the complete value. A DINT destination gets the low
+16 bits and retains its upper word. That DINT must have a known value when
+the instruction executes. A skipped call retains its destination.
+
+Enable ReadModuleStatus in **System lab** and step 25 ms. Ladder sets
+IoLedStatus to zero. ST clears the low word of IoForceStatus, changing
+16#1234FFFF to 16#12340000, with ReadConfig enabled.
+
+Projects with configured external modules, produced or consumed tags, force
+declarations or opaque I/O source are outside this profile. Named module
+diagnostics, hardware LED behavior and force control remain unqualified.
+[Rockwell I/O status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
+[Rockwell force status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm004_-en-p.pdf)
 
 ## Changing a periodic task rate
 

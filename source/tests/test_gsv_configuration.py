@@ -144,6 +144,54 @@ class GsvConfigurationTests(unittest.TestCase):
                      'GSV(Controller,THIS,CanUseRPIFromProducer,Out);'):
             self.assertTrue(self.engine([call],mutate=controller_flags).blockers,call)
 
+    def test_module_status_reads_int_and_preserves_dint_upper_word_in_both_languages(self):
+        for st in (False,True):
+            for attr in ('LEDStatus','ForceStatus'):
+                with self.subTest(st=st,attribute=attr):
+                    calls=[f'GSV(mOdUlE,,{attr},PriorityOut);',f'GSV(Module,,{attr},Out);']
+                    e=self.checked(calls,st=st)
+                    e.memory.values['priorityout']=None
+                    e.step()
+                    self.assertEqual(e.memory.read('PriorityOut'),0)
+                    self.assertEqual(e.memory.read('Out'),-65536)
+                    skip='IF FALSE THEN '+calls[-1]+' END_IF;' if st else 'AFI()'+calls[-1]
+                    e=self.checked([skip],st=st)
+                    e.memory.values['out']=None
+                    e.step()
+                    self.assertIsNone(e.memory.values['out'])
+
+    def test_module_status_requires_proven_source_and_a_blank_instance(self):
+        for case in ('missing','external','forced','produced','consumed','encoded'):
+            with self.subTest(case=case):
+                def source(root):
+                    controller=root.find('Controller')
+                    if case=='missing':controller.remove(controller.find('Modules'))
+                    elif case=='external':E.SubElement(controller.find('Modules'),'Module',Name='Remote')
+                    elif case=='forced':E.SubElement(controller,'ForceData')
+                    elif case=='encoded':E.SubElement(controller,'EncodedData')
+                    else:controller.find('./Tags/Tag').set('TagType',case.title())
+                e=self.engine(['GSV(Module,,ForceStatus,Out);'],mutate=source)
+                self.assertTrue(any('complete controller-only I/O map' in error for error in e.blockers),e.blockers)
+        for call in ('GSV(Module,Local,ForceStatus,Out);','GSV(Module,,EntryStatus,Out);',
+                     'GSV(Module,,LEDStatus,Flag);','GSV(Module,,ForceStatus,Out.0);',
+                     'SSV(Module,,LEDStatus,Out);'):
+            self.assertTrue(self.engine([call]).blockers,call)
+
+    def test_module_status_validates_indirect_dint_on_execution_and_rolls_back(self):
+        def buffer(root):device_buffer(root,dtype='DINT',count=3)
+        e=self.checked(['GSV(Module,,LEDStatus,PriorityOut);',
+                        'GSV(Module,,ForceStatus,DeviceBytes[Index]);'],mutate=buffer)
+        e.memory.write('Index',1)
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'preserve its upper word'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual((e.time_ms,e.scan_count),(0,0))
+        e.memory.write('DeviceBytes[1]',0x1234FFFF);e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'),[-1,0x12340000,-1])
+        e=self.engine('FOR Index:=0 TO Out DO GSV(Module,,ForceStatus,Out); END_FOR;',st=True)
+        self.assertTrue(any('bounds/step' in error for error in e.blockers),e.blockers)
+
     def test_program_and_routine_names_match_source_case_in_ladder_and_st(self):
         for st in (False,True):
             for cls,instance,expected in (('Program','fAsTpRoGrAm','FastProgram'),

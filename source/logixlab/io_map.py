@@ -9,6 +9,7 @@ class IOMap:
     root_link_address: int|None = None
     root_link_port: int|None = None
     local_identity: tuple[int,int,int,int,int]|None = None
+    module_status_qualified: bool = False
 
     @classmethod
     def from_source(cls, root, controller):
@@ -20,6 +21,7 @@ class IOMap:
         modules = list(sections[0])
         if any(module.tag != 'Module' for module in modules):
             return cls()
+        module_status_qualified = True
         for node in controller.iter():
             local = node.tag.rsplit('}', 1)[-1].lower()
             if local in ('module', 'modules') and (node.tag not in ('Module', 'Modules')
@@ -27,6 +29,11 @@ class IOMap:
                     or node.tag == 'Modules' and node is not sections[0]
                     or node.tag == 'Module' and node not in modules):
                 return cls()
+            if (local in ('produceinfo', 'consumeinfo')
+                    or local in ('tag', 'localtag') and node.get('TagType', '').casefold() in ('produced', 'consumed')
+                    or any(word in local or word in node.get('Format', '').casefold()
+                           for word in ('encoded', 'encrypted', 'protected'))):
+                module_status_qualified = False
             if 'force' in local or node.tag in ('Tag', 'LocalTag') and (
                     ':' in node.get('Name', '') or node.get('DataType', '').upper() == 'MODULE'):
                 return cls()
@@ -67,7 +74,7 @@ class IOMap:
                     key=tuple(map(int,raw))
                     if (all(0<=value<=0xFFFF for value in key[:3]) and all(0<=value<=255 for value in key[3:])
                             and key[3:]==tuple(map(int,revision))):local_identity=key
-        return cls(True,root_link_address,root_link_port,local_identity)
+        return cls(True,root_link_address,root_link_port,local_identity,module_status_qualified)
 
     def attributes(self):
         # No installed/enabled I/O forces; LED 0 means no Module objects.

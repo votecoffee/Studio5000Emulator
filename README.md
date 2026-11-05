@@ -142,6 +142,10 @@ Program and Routine names plus Task registry slots in ladder and ST.
 read the project settings for producer RPI, redundancy, test-edit retention,
 and firmware-update inhibition in ladder and ST.
 
+[Controller-only Module status](docs/gsv-configuration.md#controller-only-module-status)
+adds LEDStatus and ForceStatus reads in ladder and ST. DINT destinations keep
+their upper word.
+
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware
 revision, device type and vendor. [Controller device status](docs/gsv-configuration.md#controller-device-status)

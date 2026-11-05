@@ -764,6 +764,21 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tuple(after[name] for name in fields),(168,0x0B23,14,1))
         self.assertEqual(bytes(after[f'DeviceNameBytes[{i}]'] for i in range(33)),b'\x09' + b'1756-L85E' + bytes(23))
 
+    def test_system_lab_module_status_preserves_dint_high_word(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+
+        def step_values():
+            state=self.post('step',{'dt':25})
+            tags={row['name']:row['value'] for row in state['tags']}
+            return tags['IoLedStatus'],tags['IoForceStatus']
+
+        self.assertEqual(step_values(),(-1,0x1234FFFF))
+        self.post('write',{'tag':'ReadModuleStatus','value':True})
+        self.assertEqual(step_values(),(0,0x12340000))
+        self.post('write',{'tag':'IoForceStatus','value':-1})
+        self.post('write',{'tag':'ReadConfig','value':False})
+        self.assertEqual(step_values(),(0,-1))
+
     def test_system_lab_controller_source_flags_in_ladder_and_st(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         names=('UseProducerRpi','RedundancyFlag','RetainTestEdits','FirmwareUpdateInhibit')
