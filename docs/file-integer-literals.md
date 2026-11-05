@@ -25,7 +25,8 @@ active work on false rungs, consuming current inputs for each later iteration.
 INC processes one element per observed enable edge; a held call skips new data.
 FSC retains its first-match FD/IN behavior and resumes after IN is cleared.
 Completion, error inhibition, source CONTROL qualification and cursor rules are
-unchanged. LEN/POS retain saved CONTROL values and neutral-text ?,? operands.
+unchanged. LEN/POS use live CONTROL members. See
+[literal initialization on import](control-operations.md#literal-len-and-pos-on-import).
 
 Declared literal ranges are checked during preflight, including false calls.
 False or data-free completed/inhibited calls skip required values and live

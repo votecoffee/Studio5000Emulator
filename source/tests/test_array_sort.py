@@ -159,7 +159,7 @@ class ArraySortTests(unittest.TestCase):
             self.assertTrue(self.engine(['SRT(Queue[0],0,Ctl,?,?);'],dtype=dtype).blockers)
         for text in ('SRT(Queue,0,Ctl,?,?);','SRT(Queue[Ctl.POS],0,Ctl,?,?);',
                      'SRT(Queue[0],Incoming,Ctl,?,?);','SRT(Queue[0],1,Ctl,?,?);',
-                     'SRT(Queue[0],0,Ctl);','SRT(Queue[0],0,Ctl,4,0);'):
+                     'SRT(Queue[0],0,Ctl);','SRT(Queue[0],0,Ctl,4,16#0);'):
             self.assertTrue(self.engine([text]).blockers,text)
         for text in ('SRT(Queue[0],0);','SRT(Queue[0],0,Ctl,4);','SRT(Queue[0],0,Ctl,4,0);'):
             self.assertTrue(self.st(text).blockers,text)

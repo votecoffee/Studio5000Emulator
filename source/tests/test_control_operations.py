@@ -194,7 +194,7 @@ class ControlOperationTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
 
     def test_neutral_operands_types_and_source_control_overlap_stay_explicit(self):
-        for text in ('BSL(Words[0],Ctl,BitIn,33);','FFL(Incoming,Queue[0],Ctl,3,0);',
+        for text in ('BSL(Words[0],Ctl,BitIn,Incoming);','FFL(Incoming,Queue[0],Ctl,3,2147483648);',
                      'BSR(Words[0],Ctl,1,?);','BSL(Words[0],Ctl,Ctl.UL,?);','BSL(Incoming,Ctl,BitIn,?);',
                      'FFU(Queue[0],Queue[1],Ctl,?,?);',
                      'BSL(Words[0],SourceA,BitIn,?);','FFL(BitIn,Queue[0],Ctl,?,?);',
@@ -205,6 +205,85 @@ class ControlOperationTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Ctl"]').set('Constant','true')
         self.assertTrue(self.engine(['BSL(Words[0],Ctl,BitIn,?);'],mutate=constant).blockers)
+
+    def test_literal_control_operands_bind_only_the_documented_fields(self):
+        def add_diagnostic_tags(root):
+            tags = root.find('./Controller/Tags')
+            tag = E.SubElement(tags, 'Tag', Name='OtherCtl', DataType='CONTROL', TagType='Base')
+            control_data(E.SubElement(tag, 'Data', Format='Decorated'), 17, 2)
+            results = E.SubElement(tags, 'Tag', Name='DiagResults', DataType='DINT', TagType='Base', Dimensions='4')
+            array = E.SubElement(E.SubElement(results, 'Data', Format='Decorated'), 'Array',
+                                 DataType='DINT', Dimensions='4')
+            for i in range(4):
+                E.SubElement(array, 'Element', Index=f'[{i}]', Value='0')
+            deviation = E.SubElement(tags, 'Tag', Name='Deviation', DataType='REAL', TagType='Base')
+            E.SubElement(E.SubElement(deviation, 'Data', Format='Decorated'), 'DataValue',
+                         DataType='REAL', Value='0')
+
+        calls = (
+            ('BSL(Words[0],Ctl,BitIn,3);', 1, (3, 2)),
+            ('BSR(Words[0],Ctl,BitIn,3);', 1, (3, 2)),
+            ('FFL(Incoming,Queue[0],Ctl,3,0);', 2, (3, 0)),
+            ('FFU(Queue[0],Outgoing,Ctl,3,0);', 2, (3, 0)),
+            ('LFL(Incoming,Queue[0],Ctl,3,0);', 2, (3, 0)),
+            ('LFU(Queue[0],Outgoing,Ctl,3,0);', 2, (3, 0)),
+            ('SQO(Queue[0],-1,Outgoing,Ctl,3,0);', 2, (3, 0)),
+            ('SQI(Queue[0],-1,Incoming,Ctl,3,0);', 2, (3, 0)),
+            ('SQL(Queue[0],Incoming,Ctl,3,0);', 2, (3, 0)),
+            ('AVE(Queue[0],0,Outgoing,Ctl,3,0);', 2, (3, 0)),
+            ('STD(Queue[0],0,Deviation,Ctl,3,0);', 2, (3, 0)),
+            ('SRT(Queue[0],0,Ctl,3,0);', 2, (3, 0)),
+            ('FAL(Ctl,3,0,ALL,Queue[Ctl.POS],Incoming);', 2, (3, 0)),
+            ('FSC(Ctl,3,0,ALL,Queue[Ctl.POS]>Incoming);', 2, (3, 0)),
+            ('FBC(Words[0],Queue[0],DiagResults[0],Ctl,40,0,OtherCtl,3,0);', 4, (40, 0)),
+            ('DDT(Words[0],Queue[0],DiagResults[0],Ctl,40,0,OtherCtl,3,0);', 4, (40, 0)),
+        )
+        for text, replacements, expected in calls:
+            with self.subTest(text=text):
+                e = self.checked([text], length=19, position=2, mutate=add_diagnostic_tags)
+                ctl = e.project.initial['ctl']
+                self.assertEqual((ctl['LEN'], ctl['POS']), expected)
+                other = e.project.initial['otherctl']
+                self.assertEqual((other['LEN'], other['POS']), (3, 0) if replacements == 4 else (17, 2))
+                rung = e.project.routines['mainprogram/mainroutine'].rungs[0]
+                self.assertEqual(rung['text'], text)
+                self.assertEqual(rung['nodes'][0].args.count('?'), replacements)
+
+    def test_literal_queue_state_initializes_once_and_resets_with_a_fresh_image(self):
+        e = self.checked([
+            'XIC(StartPB)FFL(Incoming,Queue[0],Ctl,+3,1);',
+            'XIC(PartSensor)FFU(Queue[0],Outgoing,CTL,3,?);',
+        ], length=19, queue=(7, 0, 0, 999))
+        self.assertEqual((e.memory.read('Ctl.LEN'), e.memory.read('Ctl.POS')), (3, 1))
+        e.memory.write('Ctl.LEN', 2)
+        e.enter_run()
+        e.step()
+        e.memory.write('StartPB', True)
+        e.step()
+        e.step()
+        self.assertEqual(e.memory.read('Queue'), [7, 11, 0, 999])
+        self.assertEqual((e.memory.read('Ctl.LEN'), e.memory.read('Ctl.POS')), (2, 2))
+        reset = Engine(e.project)
+        self.assertEqual((reset.memory.read('Ctl.LEN'), reset.memory.read('Ctl.POS')), (3, 1))
+
+    def test_conflict_or_invalid_second_control_preserves_all_saved_members(self):
+        for rungs, error in (
+            (['FFL(Incoming,Queue[0],Ctl,3,1);', 'FFU(Queue[0],Outgoing,CTL,?,2);'], 'Conflicting POS'),
+            (['FBC(Words[0],Queue[0],DiagResults[0],Ctl,40,0,Missing,3,0);'], 'direct static backing tag'),
+        ):
+            with self.subTest(rungs=rungs):
+                e = self.engine(rungs, length=19, position=2)
+                self.assertTrue(any(error.casefold() in problem.casefold() for problem in e.blockers), e.blockers)
+                ctl = e.project.initial['ctl']
+                self.assertEqual((ctl['LEN'], ctl['POS']), (19, 2))
+
+    def test_pending_literal_rung_leaves_the_saved_image_intact(self):
+        def pending(root):
+            root.find('.//RLLContent/Rung').set('Type', 'I')
+
+        e = self.engine(['BSL(Words[0],Ctl,BitIn,3);'], length=19, mutate=pending)
+        self.assertTrue(any('pending/test edit rung type' in problem for problem in e.blockers))
+        self.assertEqual(e.project.initial['ctl']['LEN'], 19)
 
     def test_control_arrays_udt_members_alias_and_member_boundary(self):
         def record(root):

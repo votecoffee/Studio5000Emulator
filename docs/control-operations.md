@@ -12,11 +12,30 @@ LFU(LIFO,Dest,Control,?,?);
 RES(Control);
 ```
 
-Length and position are pseudo-operands. Initialize CONTROL.LEN/POS in saved
-data or logic; `?` placeholders do not rewrite them each scan. The logical record
+Length and position are pseudo-operands. A `?` preserves the corresponding
+saved member at import. Scans use live CONTROL.LEN/POS. The logical record
 contains DINT LEN/POS and BOOL EN/EU/DN/EM/ER/UL/IN/FD. Unrepresented saved members
 remain unknown until a supported operation establishes them.
 See [implementation](../source/logixlab/control_operations.py).
+
+## Literal LEN and POS on import
+
+In v35 L81E–L85E Standard ladder routines, decimal DINT literals can initialize
+CONTROL.LEN/POS in the imported image. BSL and BSR initialize LEN only. FFL,
+FFU, LFL, LFU, SQI, SQO, SQL, AVE, STD, SRT, FAL and FSC can initialize both
+members. FBC and DDT have separate compare and result pairs.
+
+Each literal needs a directly addressed writable CONTROL record. Keep `?`
+for fields that should retain their saved values. Identical repeated literals
+are accepted. Conflicting literals block execution and leave the saved image
+intact because routine order does not identify the last native edit. AOI
+bodies, aliases, computed backing indices and live routine edits still use
+the existing neutral-text profile.
+
+The regular prescan and execution paths may write POS after import. Reset
+recreates the imported image. Resource, data and state checks still apply
+when the instruction consumes the members. See the installed v35 help 454960
+and [Rockwell pseudo-operand reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/pseudo-operand-initialization.html).
 
 ## Bit shifts
 
@@ -110,7 +129,8 @@ blocked and Safety execution is unsupported.
 
 ## Control Lab
 
-Choose **Control lab**, then **Step scan** once to rearm the FIFO. Toggle
+Choose **Control lab**, then **Step scan** once to rearm the FIFO. The left
+shift supplies LEN=33 and FIFO Load supplies LEN=3/POS=0 at import. Toggle
 ShiftLeft or ShiftRight on and step: the 33-bit examples cross word boundaries
 while preserving the final word's upper bits and a guard value of 999. Holding
 an input on and stepping again retains the result; toggle off and step to rearm.

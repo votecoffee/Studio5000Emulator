@@ -8,7 +8,6 @@
       <Tag Name="LeftControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="CONTROL">
-            <DataValueMember Name="LEN" DataType="DINT" Value="33" />
             <DataValueMember Name="POS" DataType="DINT" Value="0" />
             <DataValueMember Name="EN" DataType="BOOL" Value="0" />
             <DataValueMember Name="EU" DataType="BOOL" Value="0" />
@@ -40,8 +39,6 @@
       <Tag Name="QueueControl" DataType="CONTROL" TagType="Base" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="CONTROL">
-            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
-            <DataValueMember Name="POS" DataType="DINT" Value="0" />
             <DataValueMember Name="EN" DataType="BOOL" Value="0" />
             <DataValueMember Name="EU" DataType="BOOL" Value="0" />
             <DataValueMember Name="DN" DataType="BOOL" Value="0" />
@@ -451,13 +448,13 @@
                 <Text>XIC(Reset)RES(LeftControl)RES(RightControl)RES(QueueControl);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>XIC(ShiftLeft)BSL(LeftBits[0],LeftControl,BitIn,?);</Text>
+                <Text>XIC(ShiftLeft)BSL(LeftBits[0],LeftControl,BitIn,33);</Text>
               </Rung>
               <Rung Number="2" Type="N">
                 <Text>XIC(ShiftRight)BSR(RightBits[0],RightControl,BitIn,?);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>XIC(Load)FFL(Incoming,Queue[0],QueueControl,?,?);</Text>
+                <Text>XIC(Load)FFL(Incoming,Queue[0],QueueControl,3,0);</Text>
               </Rung>
               <Rung Number="4" Type="N">
                 <Text>XIC(Unload)FFU(Queue[0],Outgoing,QueueControl,?,?);</Text>

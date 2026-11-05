@@ -38,7 +38,7 @@ The existing file algorithms and CONTROL contracts are retained:
   edge so corrected input can retry the same element. Search inhibit must be
   cleared and a false enable observed before the next edge can advance.
 
-LEN/POS use saved CONTROL members; neutral-text operands remain `?,?`. The
+Scans use live CONTROL.LEN/POS. See [import initialization](control-operations.md#literal-len-and-pos-on-import). The
 existing 4096-element work bound, last-processed cursor policy and idle-source
 INC restriction remain. Hidden progress uses canonical CONTROL identities and
 participates in rollback. RES clears that progress; Run entry retains it.

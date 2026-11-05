@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.085827` [literal CONTROL initialization](control-operations.md#literal-len-and-pos-on-import)
+seeds LEN/POS for sixteen ladder forms, including both FBC/DDT backing records.
+Control lab demonstrates BSL and a shared FFL/FFU record.
+
 Available in `26.1105.084258` [literal timer and counter initialization](ladder-timers.md#literal-presets-on-import)
 seeds PRE/ACC for directly addressed records on Standard ladder import. Timer
 lab demonstrates a retained timer seed and a signed counter seed.

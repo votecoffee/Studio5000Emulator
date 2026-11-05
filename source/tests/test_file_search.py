@@ -168,7 +168,7 @@ class FileSearchTests(unittest.TestCase):
     def test_unsupported_modes_types_expressions_and_operands_block(self):
         for mode in ('BAD','0','-1','1.5','Incoming','2147483648','TRUE'):
             self.assertTrue(self.engine([f'FSC(Ctl,?,?,{mode},Queue[Ctl.POS]>Incoming);']).blockers,mode)
-        for text in ('FSC(Ctl,4,0,ALL,Queue[Ctl.POS]>Incoming);','FSC(Ctl,?,?,ALL);',
+        for text in ('FSC(Ctl,4,2147483648,ALL,Queue[Ctl.POS]>Incoming);','FSC(Ctl,?,?,ALL);',
                      'FSC(Ctl,?,?,ALL,Queue[Ctl.POS]+Incoming);','FSC(Ctl,?,?,ALL,FRD(Incoming)>0.0);'):
             self.assertTrue(self.engine([text]).blockers,text)
         self.assertTrue(self.engine(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>Incoming);'],dtype='LREAL').blockers)

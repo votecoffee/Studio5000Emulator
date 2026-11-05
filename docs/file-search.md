@@ -7,8 +7,9 @@ FSC(Control,?,?,ALL,Array[Control.POS]>=Limit);
 FSC(Control,?,?,2,Array[Control.POS]>=Limit);
 ```
 
-LEN/POS use saved CONTROL members; pseudo-operands do not initialize them on
-each scan. ALL searches the remaining region in one execution. A positive DINT
+Scans use live CONTROL.LEN/POS, which can receive
+[literal initializers](control-operations.md#literal-len-and-pos-on-import).
+ALL searches the remaining region in one execution. A positive DINT
 immediate selects comparisons per scan for numeric mode. Each comparison also
 consumes the global instruction budget. LEN is bounded to 4096.
 See [implementation](../source/logixlab/file_search.py).

@@ -10,8 +10,9 @@ their existing values, including the rest of a partial final word.
 XIC(CompareEnable)FBC(Source[0],Reference[0],Results[0],CompareControl,?,?,ResultControl,?,?);
 ```
 
-The two Length/Position pairs are neutral-text pseudo-operands. Configure
-CompareControl.LEN/POS and ResultControl.LEN/POS in the tag values. Compare
+The two Length/Position pairs read live CONTROL members. Each pair can use
+[literal initializers](control-operations.md#literal-len-and-pos-on-import)
+or preserve saved values with `?`. Compare
 length and position count **bits**; result length and position count **DINT
 entries**. Bit zero is the least-significant bit of the selected starting word.
 

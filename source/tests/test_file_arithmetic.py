@@ -176,7 +176,7 @@ class FileArithmeticTests(unittest.TestCase):
     def test_unqualified_modes_types_destinations_and_expressions_block(self):
         for mode in ('BAD','0','-1','1.5','Incoming','2147483648','TRUE'):
             self.assertTrue(self.engine([f'FAL(Ctl,?,?,{mode},Outgoing,Incoming);']).blockers,mode)
-        for text in ('FAL(Ctl,4,0,ALL,Outgoing,Incoming);','FAL(Ctl,?,?,ALL,Queue,Incoming);',
+        for text in ('FAL(Ctl,Incoming,0,ALL,Outgoing,Incoming);','FAL(Ctl,?,?,ALL,Queue,Incoming);',
                      'FAL(Ctl,?,?,ALL,Ctl.POS,1);','FAL(Ctl,?,?,ALL,RunLatch,Incoming);',
                      'FAL(Ctl,?,?,ALL,Outgoing,FRD(Incoming)+0.0);','FAL(Ctl,?,?,ALL,Outgoing,EXP(Incoming));',
                      'FAL(Ctl,?,?,ALL,Outgoing,Incoming>1);','FAL(Ctl,?,?,ALL,Outgoing);'):

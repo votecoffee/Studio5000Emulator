@@ -9,8 +9,7 @@ STD(Array,Dimension,Dest,Control,?,?);
 
 Sources use SINT/INT/DINT/REAL arrays. AVE accepts writable scalar
 SINT/INT/DINT/REAL results; STD requires a writable REAL result.
-CONTROL.LEN/POS hold saved values; pseudo-operands do not initialize them on
-each scan. See [logical CONTROL](control-operations.md) and
+Scans use live CONTROL.LEN/POS. See [CONTROL import initialization](control-operations.md#literal-len-and-pos-on-import) and
 [implementation](../source/logixlab/array_statistics.py).
 
 ## Dimension and calculation

@@ -8,8 +8,9 @@ FAL(Control,?,?,2,Dest[Control.POS],Source[Control.POS]);
 FAL(Control,?,?,ALL,Sum,Sum+Source[Control.POS]);
 ```
 
-LEN/POS use saved CONTROL members. Neutral-text pseudo-operands do not replace
-them on each scan. ALL processes the remaining positions in one call. A positive
+Scans use live CONTROL.LEN/POS, which can receive
+[literal initializers](control-operations.md#literal-len-and-pos-on-import).
+ALL processes the remaining positions in one call. A positive
 DINT immediate selects the number of iterations per scan in numeric mode. LEN
 is bounded to 4096 and each iteration also consumes the global instruction budget.
 See [implementation](../source/logixlab/file_arithmetic.py).

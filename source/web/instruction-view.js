@@ -84,13 +84,13 @@
     if (Object.hasOwn(control, op)) {
       const at = control[op], length = op === 'BSL' || op === 'BSR' ? 3 : at + 1;
       for (const [index, member] of [[length, 'LEN'], [length + 1, 'POS']]) {
-        if (index < fields.length && args[index] === '?') {fields[index].ref = args[at] + '.' + member;fields[index].member = true;}
+        if (index < fields.length) {fields[index].ref = args[at] + '.' + member;fields[index].member = true;}
       }
       flags = ['EN', 'DN', 'ER'].map(label => ({label, ref: args[at] + '.' + label}));
     }
     if (op === 'FBC' || op === 'DDT') {
       for (const at of [3, 6]) for (const [offset, member] of [[1, 'LEN'], [2, 'POS']]) {
-        if (args[at + offset] === '?') {fields[at + offset].ref = args[at] + '.' + member;fields[at + offset].member = true;}
+        if (fields[at + offset]) {fields[at + offset].ref = args[at] + '.' + member;fields[at + offset].member = true;}
       }
     }
     // Routine names, class names and expressions are source, not missing tag values.

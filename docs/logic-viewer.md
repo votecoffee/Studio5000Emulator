@@ -33,9 +33,9 @@ as visible ones. **Open AOI logic** opens an instantiated call's Logic routine
 with the matching instance context.
 
 Built-in ladder instructions use descriptive headers, opcode captions and named
-operands. Timers/counters show saved PRE/ACC values and status indicators;
-CONTROL instructions show saved LEN/POS values in place of neutral-text `?`
-pseudo-operands. Routine calls distinguish input and return arguments. Routine
+operands. Timers/counters show live PRE/ACC values and status indicators.
+CONTROL faceplates show live LEN/POS whether the rung supplied literals or
+`?` placeholders. Routine calls distinguish input and return arguments. Routine
 names, system attribute names and expressions are source references, not tag
 values to evaluate in the browser. Unknown instructions retain all source
 operands and remain marked unsupported.

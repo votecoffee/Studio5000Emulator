@@ -261,7 +261,7 @@ class FileBitCompareTests(unittest.TestCase):
         e=self.checked([self.instruction(reference='Source[0]')+';']);e.step();self.assertFalse(e.memory.read('Compare.FD'))
 
     def test_bad_arities_pseudooperands_other_profiles_and_st_are_blocked(self):
-        for logic in ('FBC(Source[0],Reference[0],Result[0],Compare,40,0,ResultControl,3,0);','DDT(Source[0],Reference[0],Result[0],Compare,?,?);'):
+        for logic in ('FBC(Source[0],Reference[0],Result[0],Compare,40,0,ResultControl,3,1.0);','DDT(Source[0],Reference[0],Result[0],Compare,?,?);'):
             self.assertTrue(self.engine([logic]).blockers)
         for processor,version in (('1756-L75','35'),('1756-L85E','34')):
             def profile(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',version)

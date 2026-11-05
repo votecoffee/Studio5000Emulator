@@ -12,7 +12,8 @@ Tables and SQO destinations use DINT. [SQI/SQL sources](sequencer-sources.md)
 accept SINT/INT/DINT scalar tags, signed DINT integer literals and complete
 32-bit radix patterns. Masks accept SINT/INT/DINT bit patterns or 32-bit radix
 immediates; shorter masks are zero-filled. Other source types remain unsupported.
-LEN/POS come from saved CONTROL members; pseudo-operands do not initialize them.
+Scans use live CONTROL.LEN/POS. Imported routines can supply
+[literal initializers](control-operations.md#literal-len-and-pos-on-import).
 See [implementation](../source/logixlab/sequencer_operations.py) and
 [logical CONTROL](control-operations.md).
 
