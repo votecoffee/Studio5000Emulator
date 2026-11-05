@@ -490,6 +490,11 @@
       <Tag Name="ControlSlowProgram" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SlowProgramDisable" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="1" /></Data></Tag>
       <Tag Name="LiveSlowProgramDisabled" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="ActivateStandbyProgram" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StandbyProgramDisable" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="StandbyProgramDisabled" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StandbyCount" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StandbyFirst" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ScanTimeResetZero" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StartTimeResetZero" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
       <Tag Name="ProgramLastAfterReset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -680,6 +685,8 @@
               <Rung Number="8" Type="N"><Text>XIC(ResetLastAndStart)SSV(Program,THIS,LastScanTime,ScanTimeResetZero)GSV(Program,THIS,LastScanTime,ProgramLastAfterReset);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(ControlFastProgram)SSV(Program,FastProgram,DisableFlag,FastProgramDisable);</Text></Rung>
               <Rung Number="10" Type="N"><Text>GSV(Program,FastProgram,DisableFlag,LiveFastProgramDisabled);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(ActivateStandbyProgram)SSV(Program,StandbyProgram,DisableFlag,StandbyProgramDisable);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>GSV(Program,StandbyProgram,DisableFlag,StandbyProgramDisabled);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -735,6 +742,17 @@
           </Routine>
         </Routines>
       </Program>
+      <Program Name="StandbyProgram" MainRoutineName="Main" Class="Standard" Disabled="true">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>ADD(StandbyCount,1,StandbyCount);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(S:FS)ADD(StandbyFirst,1,StandbyFirst);</Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
     </Programs>
     <Tasks>
       <Task Name="BackgroundTask" Type="CONTINUOUS" Class="Standard" Priority="10" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false">
@@ -750,6 +768,7 @@
       <Task Name="SlowTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="25">
         <ScheduledPrograms>
           <ScheduledProgram Name="SlowProgram" />
+          <ScheduledProgram Name="StandbyProgram" />
         </ScheduledPrograms>
       </Task>
     </Tasks>

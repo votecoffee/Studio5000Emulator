@@ -44,6 +44,33 @@ class ProgramMetadataWireTests(unittest.TestCase):
         self.assertEqual(self.signed(7,get),bytes.fromhex('8e00000001'))
         self.assertEqual(engine.project.program_configuration.attributes('MainProgram',source_sha256=digest),{19:b'\0'})
 
+    def test_imported_disabled_attribute_reads_zero_after_ladder_enables_it(self):
+        root=E.parse(self.app.engine.project.path).getroot()
+        programs=root.find('./Controller/Programs');caller=programs[0]
+        tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='EnableCommand',DataType='SINT',TagType='Base')
+        E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='SINT',Value='0')
+        program=E.SubElement(programs,'Program',Name='Standby',MainRoutineName='Main',Class='Standard',Disabled='true')
+        E.SubElement(program,'Tags')
+        routines=E.SubElement(program,'Routines')
+        routine=E.SubElement(routines,'Routine',Name='Main',Type='RLL')
+        content=E.SubElement(routine,'RLLContent')
+        E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='NOP();'
+        schedule=root.find('./Controller/Tasks/Task/ScheduledPrograms')
+        E.SubElement(schedule,'ScheduledProgram',Name='Standby')
+        main=caller.find(f"./Routines/Routine[@Name='{caller.get('MainRoutineName')}']/RLLContent")
+        main.clear()
+        E.SubElement(E.SubElement(main,'Rung',Number='0',Type='N'),'Text').text='SSV(Program,Standby,DisableFlag,EnableCommand);'
+        self.app.command('load',{'name':'standby.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        engine=self.app.engine;digest=engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'Standby','instance':26038},{'name':'MainProgram','instance':26039}])
+        get=bytes.fromhex('0e0420682500b6653013')
+        self.assertEqual(self.signed(4,get),bytes.fromhex('8e00000001'))
+        engine.step()
+        self.assertEqual(self.signed(5,get),bytes.fromhex('8e00000000'))
+        self.assertEqual(self.signed(6,bytes.fromhex('100420682500b665301301'))[2],15)
+        self.assertEqual(engine.project.program_configuration.attributes('Standby',source_sha256=digest),{19:b'\1'})
+
     def test_nonredundant_sync_model_default_single_and_list_are_read_only_and_identified(self):
         root=E.parse(self.app.engine.project.path).getroot();program=root.find('./Controller/Programs/Program')
         program.set('UseAsFolder','false');E.SubElement(root.find('Controller'),'RedundancyInfo',Enabled='false')

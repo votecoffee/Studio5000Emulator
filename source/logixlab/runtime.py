@@ -74,6 +74,8 @@ class Engine:
         self._task_scheduler = None
         self._program_scanned = set()
         self._disabled_programs = set()
+        self._program_activation = {}
+        self._activation_prescan_pending = set()
         self._program_advance = None
         self._executing_task = None
         self._event_dispatch = None
@@ -262,6 +264,7 @@ class Engine:
             self.prescan_count+=1
             self._initial_prescan_pending=False
             self._program_scanned=set()
+            self._activation_prescan_pending=self._program_activation.keys() & self._disabled_programs
             if self._task_scheduler is not None:self._task_scheduler.reset(self.time_ms)
             self.trace=[]
 
@@ -281,6 +284,9 @@ class Engine:
         elif self.mode == "project":
             self.blockers.extend(self.project.issues)
             task_entries={}
+            self._program_activation=program_control.activation_routines(self.project)
+            self._disabled_programs.update(self._program_activation)
+            self._activation_prescan_pending.update(self._program_activation)
             if any(t["type"]=="Event" for t in self.project.tasks):
                 try:event_tasks.profile(self.project)
                 except ModelError as error:self.blockers.append(str(error))
@@ -294,7 +300,7 @@ class Engine:
                         self.blockers.append(f"Scheduled program {name} is missing")
                     elif program['use_as_folder']:
                         self.blockers.append(f"Program {name} is a folder and cannot be scheduled")
-                    elif not program["disabled"]:
+                    elif not program["disabled"] or name.casefold() in self._program_activation:
                         if (not program['main'] and self.project.program_diagnostics.has_no_main(
                                 name,source_sha256=self.project.sha256)):
                             self._no_main_programs.add(name.casefold())
@@ -552,10 +558,14 @@ class Engine:
         return power
 
     def _prescan(self):
-        for key in sorted(self.active):
-            r = self.project.routines.get(key)
-            if not r: continue
-            self._prescan_routine(r,r.program,0)
+        dormant = self._program_activation.keys() & self._disabled_programs
+        self._prescan_routines(key for key in sorted(self.active)
+                              if self.project.routines[key].program.casefold() not in dormant)
+
+    def _prescan_routines(self, keys):
+        for key in keys:
+            routine = self.project.routines[key]
+            self._prescan_routine(routine,routine.program,0)
 
     def _prescan_routine(self,routine,scope,depth):
         if routine.kind=='FBD':self.function_blocks.prescan(routine,scope);return
@@ -620,7 +630,8 @@ class Engine:
         single_timing = self._task_measurements is not None
         if single_timing:task_timings[self._measured_task]=self._task_measurements
         self._timing_advance=TimingAdvance(timings,task_timings)
-        self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned))
+        self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
+                                                       set(self._activation_prescan_pending))
         try:
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
@@ -639,6 +650,9 @@ class Engine:
                         if name in programs.disabled:
                             continue
                         if self.mode=='project':self.memory.first_scan=name not in programs.scanned
+                        if name in programs.pending_prescan:
+                            self._prescan_routines(self._program_activation[name])
+                            programs.pending_prescan.remove(name)
                         programs.scanned.add(name)
                         if name in timings:
                             start=perf_counter_ns()
@@ -671,6 +685,7 @@ class Engine:
             if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due,event_timeouts=self._event_dispatch.event_timeouts)
             self._program_scanned=programs.scanned
             self._disabled_programs=programs.disabled
+            self._activation_prescan_pending=programs.pending_prescan
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
@@ -926,7 +941,8 @@ class Engine:
         if self._initial_prescan_pending:return True
         if self.blockers:return self.memory.first_scan
         if self.mode=='routine':return self.memory.first_scan
-        return any(self.project.routines[key].program.casefold() not in self._program_scanned for key in self.entries)
+        accounted_for = self._program_scanned | (self._program_activation.keys() & self._disabled_programs)
+        return any(self.project.routines[key].program.casefold() not in accounted_for for key in self.entries)
 
     def program_disable_attributes(self,name,*,source_sha256):
         return program_control.attributes(self,name,source_sha256=source_sha256)

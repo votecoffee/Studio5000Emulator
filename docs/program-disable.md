@@ -19,22 +19,37 @@ multiple releases share an advance or an Event is dispatched synchronously.
 The Task still releases and runs any other scheduled Programs. Skipped Programs
 retain their values and last measurements. Their missed invocations are
 discarded. The first execution after an enable transition asserts S:FS once.
-This transition uses the existing Program state and does not run a new prescan.
+For a Program already prescanned in the current Run cycle, re-enable uses its
+existing state.
 
 Skipped instructions avoid live operand reads. A reached invalid index or
 unknown source faults. A later fault rolls back changes to flags, first-scan
 history, values, measurements and scheduling for the entire advance.
-Run entry retains the flag and applies normal Run-entry prescan. Detached
-routine replacement carries the committed flag into its new runtime.
-Reset and project reload restore the imported enabled state.
+Run entry retains the flag. Detached routine replacement carries the committed
+flag and pending prescan if the task entry plan stays the same. An edit that
+adds or removes an activation target requires a project reload. Reset and
+project reload restore the imported flag.
 
 ## Scope and readback
 
 This v35 5580 profile requires an ordinary scheduled Standard caller and
-target. A target must have a main routine and explicit `Disabled="false"` in
-the imported L5X. THIS selects the calling Program. Imported disabled Programs,
-folders, unscheduled Programs, Safety, AOIs and isolated routine harnesses
-remain outside this control profile.
+target. The imported L5X must contain an explicit canonical Disabled boolean
+and a main routine. THIS selects the calling Program. Folders, unscheduled
+Programs, Safety, AOIs and isolated routine harnesses remain outside this
+control profile.
+
+## Enabling an imported disabled Program
+
+A named SSV to a scheduled Program imported with Disabled=true includes that
+Program in execution planning. Its routines must pass the normal checks,
+including when the SSV is guarded by a condition. Planning follows named SSV
+references from those Programs as well. A GSV-only reference can report the
+imported flag without planning or prescanning the dormant logic.
+
+The Program starts disabled. The emulator defers its prescan until its first
+permitted invocation in the current Run cycle. If activation or a later part
+of the advance faults, the prescan and activation roll back together. The
+original schedule determines when the Program can run.
 
 The existing source-bound, read-only Program protocol byte 19 reflects a
 committed runtime flag. The L5X declaration stays the same. Native write
@@ -53,6 +68,12 @@ Set both commands to zero, step to apply the change, then step again.
 `FastFirst` and `SlowFirst` each increment once when their Programs resume.
 Use `TaskStartIndex=1`, `ReadTaskStarts=true` and `TaskStartDivisor=0` to
 force a later fault and observe rollback. Restore the divisor to 1 to retry.
+
+StandbyProgram is imported disabled and shares SlowTask with SlowProgram.
+Step 25 ms to see StandbyProgramDisabled=1 while SlowCount increments.
+Enable ActivateStandbyProgram with StandbyProgramDisable=0, then step. At the
+next SlowTask release, StandbyCount begins increasing and StandbyFirst
+increments once. Reset to return StandbyProgram to its imported state.
 
 The operand types follow the installed v35 Program object help (14638).
 See Rockwell's [program enable/disable example](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/gsv-ssv-programming-example.html)

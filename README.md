@@ -509,7 +509,8 @@ provides independent controls for its Fast and Slow tasks.
 
 [Program DisableFlag](docs/program-disable.md) pauses individual scheduled
 Programs in ladder and ST while their Tasks continue releasing. **System lab**
-demonstrates both controls and the first scan after re-enable.
+demonstrates both controls, activation of a Program imported disabled, and
+first-scan behavior.
 
 [String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
 matching records, including custom strings, arrays and exact 64-bit fields.

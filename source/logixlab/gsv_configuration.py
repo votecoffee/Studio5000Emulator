@@ -21,7 +21,8 @@ def current_instance(engine, cls, instance, scope='', *, executing=False, allow_
         raise ModelError('GSV THIS requires an ordinary v35 5580 project Program context; AOI/harness contexts remain unqualified')
     name=next((n for n in project.programs if n.casefold()==scope.casefold()),None)
     program=project.programs.get(name)
-    if (not program or program['class']!='Standard' or program['disabled'] or program['use_as_folder']
+    if (not program or program['class']!='Standard' or program['use_as_folder']
+            or (program['disabled'] and name.casefold() not in engine._program_activation)
             or not configuration.source_complete or configuration.source_sha256!=project.sha256
             or not project.program_configuration.type_attributes(name,source_sha256=project.sha256)
             or not any(project.routines[entry].program==name for entry in engine.entries if entry in project.routines)):

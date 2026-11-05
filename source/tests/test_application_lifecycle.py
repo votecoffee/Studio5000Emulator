@@ -3139,6 +3139,31 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
 
+    def test_system_lab_activates_imported_standby_on_next_scheduled_invocation(self):
+        state=self.post('demo',{'sample':'SystemLab'})
+        self.assertEqual(state['blockers'],[])
+        def write(tag,value):return self.post('write',{'tag':tag,'value':value})
+        def step(dt):return self.post('step',{'dt':dt})
+        def values(state):return {row['name']:row['value'] for row in state['tags']}
+        v=values(step(25))
+        self.assertEqual((v['StandbyProgramDisabled'],v['StandbyCount'],v['StandbyFirst'],v['SlowCount']),(1,0,0,1))
+        write('ActivateStandbyProgram',True)
+        write('TaskStartIndex',1);write('ReadTaskStarts',True);write('TaskStartDivisor',0)
+        before=self.post('report',{})
+        with self.assertRaises(HTTPError) as error:step(1)
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        self.assertEqual(self.post('report',{})['program_control'],before['program_control'])
+        write('TaskStartDivisor',1)
+        v=values(step(1))
+        self.assertEqual((v['StandbyProgramDisabled'],v['StandbyCount'],v['StandbyFirst']),(0,0,0))
+        v=values(step(24))
+        self.assertEqual((v['StandbyCount'],v['StandbyFirst'],v['SlowCount']),(1,1,2))
+        v=values(step(25))
+        self.assertEqual((v['StandbyCount'],v['StandbyFirst'],v['SlowCount']),(2,1,3))
+        self.post('reset',{})
+        v=values(step(25))
+        self.assertEqual((v['StandbyProgramDisabled'],v['StandbyCount'],v['StandbyFirst']),(1,0,0))
+
     def test_system_lab_program_disable_keeps_task_phase_and_rolls_back(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         def write(tag,value):return self.post('write',{'tag':tag,'value':value})

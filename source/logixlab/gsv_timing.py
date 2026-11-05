@@ -87,7 +87,8 @@ def specification(engine,op,scope='',*,executing=False):
         program=project.programs.get(name)
         scheduled=(name is not None and (name.casefold() in engine._no_main_programs or
                    any(project.routines[entry].program==name for entry in engine.entries if entry in project.routines)))
-        if (not program or program['class']!='Standard' or program['disabled'] or program['use_as_folder']
+        if (not program or program['class']!='Standard' or program['use_as_folder']
+                or (program['disabled'] and name.casefold() not in engine._program_activation)
                 or not scheduled or not project.program_configuration.type_attributes(name,source_sha256=project.sha256)):
             raise ModelError('Program timing GSV requires an explicit eligible scheduled Standard Program name')
     return cls,name,number
