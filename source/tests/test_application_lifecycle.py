@@ -736,6 +736,22 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(state['controller']['first_scan_pending'])
         self.assertFalse(self.post('report', {})['event_execution']['native_cpu_timing'])
 
+    def test_system_lab_gsv_program_routine_names_and_task_slots(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        def values(state):return {row['name']:row['value'] for row in state['tags']}
+        before=values(self.post('step',{'dt':25}))
+        self.assertEqual((before['ObjectRoutineName'],before['StObjectRoutineName'],
+                          before['ObjectTaskSlot'],before['StObjectTaskSlot']),('','',-1,-1))
+        self.post('write',{'tag':'ReadObjectIdentity','value':True})
+        v=values(self.post('step',{'dt':25}))
+        self.assertEqual((v['ObjectProgramName'],v['ObjectRoutineName'],v['ObjectTaskSlot']),
+                         ('BackgroundProgram','ReadCurrentInstances',0))
+        self.assertEqual((v['StObjectProgramName'],v['StObjectRoutineName'],v['StObjectTaskSlot']),
+                         ('FastProgram','ReadSettings',2))
+        report=self.post('report',{})['system_values']['configuration']
+        self.assertIn('Zero-based slot',report['task_instance'])
+        self.assertFalse(report['native_runtime_equivalence'])
+
     def test_system_lab_reads_typed_gsv_settings_without_changing_task_schedule(self):
         self.assertIn('id="system-demo"', self.get('/').decode())
         state = self.post('demo', {'sample': 'SystemLab'})

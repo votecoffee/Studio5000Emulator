@@ -39,6 +39,37 @@ def current_instance(engine, cls, instance, scope='', *, executing=False, allow_
     return name if cls.casefold()=='program' else owner
 
 
+def component_name(engine, cls, instance, scope, *, executing):
+    owner = current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
+    project = engine.project
+    catalog = project.executable_configuration
+    if cls == 'program':
+        if instance.casefold() == 'this':
+            instance = owner
+        name = next((name for name in catalog.program_names if name.casefold() == instance.casefold()), None)
+        program = project.programs.get(name)
+        if (catalog.source_sha256 != project.sha256 or not program or program['use_as_folder']
+                or not project.program_configuration.type_attributes(name, source_sha256=project.sha256)):
+            raise ModelError('GSV Program Name requires an ordinary Program in the current source')
+        return name
+
+    names = catalog.routine_names(owner, source_sha256=project.sha256)
+    if not names:
+        raise ModelError('GSV Routine Name requires the current Program routine inventory')
+    if instance.casefold() == 'this':
+        if not executing:
+            return None  # Destination preflight needs the type, not an active call.
+        routine = engine._executing_routine
+        if routine is None or routine.program != owner:
+            raise ModelError('GSV Routine THIS requires the current Program routine')
+        instance = routine.name
+    name = next((name for name in names if name.casefold() == instance.casefold()), None)
+    bound = project.routines.get(f'{owner}/{name}'.lower()) if name is not None else None
+    if bound is None or bound.program != owner or bound.name != name:
+        raise ModelError('GSV Routine Name requires a Routine in the current Program')
+    return name
+
+
 def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
@@ -61,7 +92,9 @@ def source(engine, op, scope='', *, executing=False):
                 raise ModelError('GSV Controller setting is unavailable without an explicit source value')
             return 'INT',coerce(value,'INT')
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
-    if cls!='task':raise ModelError('GSV configuration supports Task and Controller only')
+    if cls in ('program','routine') and attribute=='name':
+        return 'STRING',component_name(engine,cls,instance,scope,executing=executing)
+    if cls!='task':raise ModelError('GSV configuration supports Task/Controller settings and Program/Routine Name')
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     name=next((n for n in configuration.names if n.casefold()==instance.casefold()),None)
     task=next((t for t in project.tasks if name is not None and t['name']==name),None)
@@ -79,6 +112,12 @@ def source(engine, op, scope='', *, executing=False):
             if executing and op.name=='GSV':raise ModelError('GSV Event Rate requires a defined timeout period')
             return 'DINT',None
     if attribute=='name':return 'STRING',name
+    if attribute=='instance':
+        scheduler=engine._task_scheduler
+        slot=engine.runtime_references.task_slot(project,name)
+        if scheduler is None or scheduler.source!=scheduler.configuration or slot is None:
+            raise ModelError('GSV Task Instance requires an unchanged project Task registry')
+        return 'DINT',slot
     if attribute not in TASK:raise ModelError('Unsupported GSV Task configuration attribute '+op.args[2])
     number,dtype=TASK[attribute]
     if attribute=='priority' and task['type'] not in ('Periodic','Event'):
@@ -138,14 +177,17 @@ def write_effects(engine,op,scope):
 
 def description():
     return dict(profile='v35-5580-explicit-GSV-configuration', languages=['RLL','ST'],
-                task=['Name','Rate (Periodic or Event timeout)','EnableTimeOut (Event)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
+                task=['Name','Instance','Rate (Periodic or Event timeout)','EnableTimeOut (Event)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
+                program=['Name'],routine=['Name'],
+                task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
+                component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact milliseconds; no inferred defaults',
                 state='Source configuration with live Task InhibitTask, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                current_instance='Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; named reads unchanged; AOI/harness THIS unqualified',
+                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. AOI/harness THIS unqualified.',
                 remaining=['Empty instance, native instance IDs and AOI/harness THIS contexts','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

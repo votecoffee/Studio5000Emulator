@@ -80,6 +80,42 @@ class GsvConfigurationTests(unittest.TestCase):
         e=self.checked(['GSV(tAsK,fAsTtAsK,rAtE,Out);','GSV(TASK,fasttask,NAME,NameOut);']);e.step()
         self.assertEqual(e.memory.read('Out'),10000);self.assertEqual(e.memory.string('NameOut'),'FastTask')
 
+    def test_program_and_routine_names_match_source_case_in_ladder_and_st(self):
+        for st in (False,True):
+            for cls,instance,expected in (('Program','fAsTpRoGrAm','FastProgram'),
+                                          ('Program','THIS','BackgroundProgram'),
+                                          ('Routine','mAiN','Main'),
+                                          ('Routine','THIS','Main')):
+                with self.subTest(st=st,cls=cls,instance=instance):
+                    e=self.checked([f'GSV({cls},{instance},Name,NameOut);'],st=st)
+                    e.memory.write('NameOut','abcdefghijklmnopqrstuvwxyz')
+                    e.step()
+                    self.assertEqual(e.memory.string('NameOut'),expected)
+                    self.assertEqual(e.memory.read(f'NameOut.DATA[{len(expected)}]'),ord('a')+len(expected))
+
+    def test_task_instance_reads_exact_dint_and_uses_registry_order(self):
+        for st in (False,True):
+            for instance,slot in (('THIS',0),('FastTask',1),('sLoWtAsK',2)):
+                with self.subTest(st=st,instance=instance):
+                    e=self.checked([f'GSV(Task,{instance},Instance,Out);'],st=st)
+                    e.step(25)
+                    self.assertEqual(e.memory.read('Out'),slot)
+        self.assertTrue(self.engine(['GSV(Task,FastTask,Instance,PriorityOut);']).blockers)
+        self.assertTrue(self.engine(['GSV(Task,FastTask,Instance,Out);'],harness=True).blockers)
+
+    def test_component_names_require_known_scope_and_protect_st_for_bounds(self):
+        def other_routine(root):
+            routines=root.find('./Controller/Programs/Program[@Name="FastProgram"]/Routines')
+            extra=E.SubElement(routines,'Routine',Name='OtherOnly',Type='RLL')
+            content=E.SubElement(extra,'RLLContent')
+            E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='NOP();'
+        for line in ('GSV(Routine,OtherOnly,Name,NameOut);','GSV(Program,,Name,NameOut);',
+                     'GSV(Program,Missing,Name,NameOut);','GSV(Routine,THIS,Name,Out);'):
+            self.assertTrue(self.engine([line],mutate=other_routine).blockers,line)
+        self.assertTrue(self.engine(['GSV(Program,THIS,Name,NameOut);'],harness=True).blockers)
+        e=self.engine(['FOR Index := 0 TO NameOut.LEN DO GSV(Routine,THIS,Name,NameOut); END_FOR;'],st=True)
+        self.assertTrue(any('bounds/step' in error for error in e.blockers),e.blockers)
+
     def test_named_configuration_is_readable_in_an_isolated_routine_harness(self):
         e=self.checked(['GSV(Task,FastTask,Rate,Out);'],harness=True);e.step()
         self.assertEqual(e.memory.read('Out'),10000);self.assertEqual(e.memory.read('FastCount'),0)
@@ -103,7 +139,7 @@ class GsvConfigurationTests(unittest.TestCase):
         e=self.checked(['GSV(Task,FastTask,Watchdog,Out);'],mutate=value);e.step();self.assertEqual(e.memory.read('Out'),12345)
 
     def test_current_task_aliases_unknown_tasks_and_runtime_attributes_stay_blocked(self):
-        for instance,attribute in (('','Rate'),('THIS','Rate'),('Missing','Name'),('FastTask','Instance'),
+        for instance,attribute in (('','Rate'),('THIS','Rate'),('Missing','Name'),('Missing','Instance'),
                                   ('FastTask','Status'),('FastTask','OverlapCount')):
             self.assertTrue(self.engine([f'GSV(Task,{instance},{attribute},Out);']).blockers)
         for text in ('GSV(Controller,This,TimeSlice,PriorityOut);','GSV(Module,,EntryStatus,Out);',

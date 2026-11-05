@@ -5,6 +5,7 @@ from xml.etree import ElementTree as E
 
 import test_gsv_configuration as config
 import test_gsv_timing as timing
+import test_event_tasks as events
 import test_aoi_queues as aoi
 from logixlab.model import ModelError,Op
 from logixlab import gsv_configuration
@@ -125,6 +126,51 @@ class GsvThisTests(unittest.TestCase):
         for dest in ('Values[0]','Values[Index]'):
             e=self.engine([f'FOR Out:=0 TO Values[0] DO GSV(Program,THIS,LastScanTime,{dest}); END_FOR;'],st=True,mutate=self.outputs);self.assertTrue(any('bounds/step' in b for b in e.blockers),e.blockers)
         e=self.checked(['FOR Index:=0 TO Values[0] DO GSV(Program,THIS,LastScanTime,Values[1]); END_FOR;'],st=True,mutate=self.outputs);e.step(25);self.assertEqual(e.memory.read('Values'),[2,0,None,999])
+
+    @staticmethod
+    def routine_names(root):
+        tags=root.find('./Controller/Tags')
+        for name in ('InnerName','OuterName'):
+            tag=E.SubElement(tags,'Tag',Name=name,DataType='STRING',TagType='Base')
+            config.strings.string_data(E.SubElement(tag,'Data',Format='Decorated'),'SAVED')
+
+    def test_routine_this_follows_nested_jsr_and_restores_caller(self):
+        def subroutine(root):
+            self.routine_names(root)
+            routines=root.find('./Controller/Programs/Program[@Name="BackgroundProgram"]/Routines')
+            probe=E.SubElement(routines,'Routine',Name='IdentityProbe',Type='ST')
+            content=E.SubElement(probe,'STContent')
+            E.SubElement(content,'Line',Number='0').text='GSV(Routine,THIS,Name,InnerName);'
+        e=self.checked(['JSR(IdentityProbe,0);','GSV(Routine,THIS,Name,OuterName);'],mutate=subroutine)
+        e.step(25)
+        self.assertEqual((e.memory.string('InnerName'),e.memory.string('OuterName')),('IdentityProbe','Main'))
+        self.assertIsNone(e._executing_routine)
+
+    def test_event_routine_identity_and_task_slot_restore_on_success_and_fault(self):
+        def worker(root):
+            self.routine_names(root)
+            program=root.find('./Controller/Programs/Program[@Name="Program1"]')
+            program.set('MainRoutineName','EventBody')
+            program.find('./Routines/Routine').set('Name','EventBody')
+            tags=root.find('./Controller/Tags')
+            config.scalar(tags,'EventDivisor','DINT',0)
+            config.scalar(tags,'EventSlot','DINT',-1)
+
+        e=events.EventTaskTests.engine(self, [
+            ['EVENT(Task1);','GSV(Routine,THIS,Name,OuterName);'],
+            ['GSV(Routine,THIS,Name,InnerName);','GSV(Task,THIS,Instance,EventSlot);',
+             'DIV(1,EventDivisor,Count1);'],
+        ],mutate=worker)
+        self.assertEqual(e.blockers,[])
+        with self.assertRaisesRegex(ModelError,'zero'):
+            e.step()
+        self.assertEqual((e.memory.string('InnerName'),e.memory.string('OuterName'),e.memory.read('EventSlot')),
+                         ('SAVED','SAVED',-1))
+        self.assertIsNone(e._executing_routine)
+        e.memory.write('EventDivisor',1);e.step()
+        self.assertEqual((e.memory.string('InnerName'),e.memory.string('OuterName'),e.memory.read('EventSlot')),
+                         ('EventBody','Main',1))
+        self.assertIsNone(e._executing_routine)
 
     def test_reports_keep_qualified_current_instance_and_native_boundaries_explicit(self):
         e=self.checked(['GSV(Task,THIS,Watchdog,Out);']);report=e.report()['system_values']

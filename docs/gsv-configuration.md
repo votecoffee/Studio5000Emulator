@@ -1,4 +1,4 @@
-# Task and Controller configuration GSV
+# Configuration and identity GSV
 
 The explicit v35 ControlLogix 5580 profile supports source-configuration reads
 in ladder and Structured Text. Existing [audit-value GSV](controller-gsv.md)
@@ -19,7 +19,10 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 
 | Class | Attribute | Destination type | Scope |
 | --- | --- | --- | --- |
+| Program | Name | STRING or explicit user string | Named ordinary nonfolder Program or current Program |
+| Routine | Name | STRING or explicit user string | Named Routine in the current Program or current executing Routine |
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
+| Task | Instance | DINT | Current emulator registry slot from 0 through 31 |
 | Task | Rate | DINT | Effective Periodic rate, or [defined Event timeout](event-tasks.md#runtime-timeout-settings), in microseconds |
 | Task | EnableTimeOut | DINT | Current Event timeout enable, 0 or 1 |
 | Task | Watchdog | DINT | Effective setting in project execution, explicit positive source setting in a harness, in microseconds |
@@ -30,12 +33,11 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 
-Class, attribute and task lookup are case insensitive. Returned names retain
-source spelling. Task instances are literal configured names or
-[THIS in ordinary scheduled Program routines](current-instance-gsv.md). Empty
-instances, native instance numbers and AOI/harness THIS contexts remain
-unqualified.
-Controller uses an empty instance operand.
+Class, attribute and object lookup are case insensitive. Returned names retain
+source spelling. Task references use literal configured names or
+[THIS in ordinary scheduled Program routines](current-instance-gsv.md).
+Controller uses an empty instance operand. Numeric object references and
+AOI/harness THIS contexts remain outside the profile.
 
 Structural preflight validates destinations without reading saved dynamic
 indices. ST FOR effects cover complete static cells/strings and conservatively
@@ -49,6 +51,34 @@ source values. Continuous rate/priority remain unqualified. Event settings
 require the [qualified Event project context](event-tasks.md). Event Rate is
 available when source enables the timeout with an explicit rate or when SSV
 defines one. A defined period remains readable while the timeout is disabled.
+
+## Object identity reads
+
+Program Name and Routine Name use the current loaded source catalogs. Both
+require an ordinary scheduled caller. Program THIS selects its owning Program.
+Routine THIS follows the executing routine through JSR and nested Event calls.
+A named Routine resolves within the caller's Program. String writes update LEN
+and the active DATA bytes and retain the unused backing bytes.
+
+Task Instance reads the zero-based Task slot in the current emulator registry.
+Slots follow the loaded Task inventory. A changed registry makes the attribute
+unavailable until reload. These values are separate from native CIP instance
+IDs. Task Instance requires project execution.
+
+```text
+GSV(Program,FastProgram,Name,StObjectProgramName);
+GSV(Routine,THIS,Name,ObjectRoutineName);
+GSV(Task,THIS,Instance,ObjectTaskSlot);
+```
+
+Open **System lab**, enable ReadObjectIdentity and step. The ladder routine
+ReadCurrentInstances reads BackgroundProgram, ReadCurrentInstances and slot
+0. The ST routine ReadSettings reads FastProgram by name, ReadSettings via THIS
+and SlowTask slot 2. ST also uses the existing ReadConfig gate.
+
+The operand types follow the installed v35 Program, Task and Routine help
+topics 14638, 14646 and 14651. Native instance identity and execution parity
+remain separate.
 
 ## Changing a periodic task rate
 

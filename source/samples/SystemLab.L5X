@@ -37,6 +37,13 @@
       <Tag Name="ThisBackgroundTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="TaskWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadThis" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ReadObjectIdentity" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ObjectTaskSlot" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StObjectTaskSlot" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ObjectProgramName" TagType="Base" DataType="STRING"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82" /></Structure></Data></Tag>
+      <Tag Name="ObjectRoutineName" TagType="Base" DataType="STRING"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82" /></Structure></Data></Tag>
+      <Tag Name="StObjectProgramName" TagType="Base" DataType="STRING"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82" /></Structure></Data></Tag>
+      <Tag Name="StObjectRoutineName" TagType="Base" DataType="STRING"><Data Format="Decorated"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="0" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82" /></Structure></Data></Tag>
       <Tag Name="ThisIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="ThisWatchdog" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="ThisFastRate" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
@@ -644,6 +651,7 @@
               <Line Number="10">IF ResetLastAndStart THEN SSV(Task,FastTask,LastScanTime,ScanTimeResetZero); SSV(Task,FastTask,StartTime,StartTimeResetZero); GSV(Task,FastTask,LastScanTime,FastTaskLastAfterReset); GSV(Task,FastTask,StartTime,FastTaskStartAfterReset); END_IF;</Line>
               <Line Number="11">IF ControlSlowProgram THEN SSV(Program,SlowProgram,DisableFlag,SlowProgramDisable); END_IF;</Line>
               <Line Number="12">GSV(Program,SlowProgram,DisableFlag,LiveSlowProgramDisabled);</Line>
+              <Line Number="13">IF ReadObjectIdentity THEN GSV(Program,FastProgram,Name,StObjectProgramName); GSV(Routine,THIS,Name,StObjectRoutineName); GSV(Task,SlowTask,Instance,StObjectTaskSlot); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -660,6 +668,7 @@
               <Rung Number="1" Type="N"><Text>XIC(ReadThis)GSV(Task,THIS,Watchdog,ThisWatchdog);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,LastScanTime,ThisWords[ThisIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,MaxScanTime,ThisProgramMax);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadObjectIdentity)GSV(Program,THIS,Name,ObjectProgramName)GSV(Routine,THIS,Name,ObjectRoutineName)GSV(Task,THIS,Instance,ObjectTaskSlot);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadProgramTimes" Type="RLL">

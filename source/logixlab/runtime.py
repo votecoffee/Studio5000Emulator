@@ -78,6 +78,7 @@ class Engine:
         self._activation_prescan_pending = set()
         self._program_advance = None
         self._executing_task = None
+        self._executing_routine = None
         self._event_dispatch = None
         self._plan()
         if not self.blockers:
@@ -727,7 +728,12 @@ class Engine:
     def _routine(self, key, depth):
         if depth > 32: raise ModelError("JSR nesting limit exceeded")
         routine = self.project.routines[key]
-        self._execute_routine(routine,routine.program,depth)
+        previous = self._executing_routine
+        self._executing_routine = routine
+        try:
+            self._execute_routine(routine,routine.program,depth)
+        finally:
+            self._executing_routine = previous
 
     def _execute_routine(self,routine,scope,depth,context=''):
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')

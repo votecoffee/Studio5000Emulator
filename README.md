@@ -134,6 +134,10 @@ editor. The current monitor remains read-only.
 LastScanTime/MaxScanTime in DINT and TIME32. A zero-source SSV clears either
 measurement. **System lab** demonstrates reads and resets in ladder and ST.
 
+[Object identity GSV](docs/gsv-configuration.md#object-identity-reads) reads
+Program and Routine names plus Task registry slots in ladder and ST.
+**System lab** shows how Routine THIS follows a called routine.
+
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. In **System lab**, enable ReadTypedTimes to see a DT
