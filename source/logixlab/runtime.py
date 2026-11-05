@@ -659,7 +659,7 @@ class Engine:
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due)
+            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due,event_timeouts=self._event_dispatch.event_timeouts)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -1014,7 +1014,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "Standard task releases are deterministic; unmasked qualified EVENT calls dispatch at higher priority, outer UIE releases masked higher-priority work, and deferred work waits for task returns, with source-configured Event timeouts and without general CPU timing, external event sources, Safety or watchdog enforcement",
+                           "Standard task releases are deterministic; unmasked qualified EVENT calls dispatch at higher priority, outer UIE releases masked higher-priority work, and deferred work waits for task returns, with configurable Event timeouts and without general CPU timing, external event sources, Safety or watchdog enforcement",
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP retain homogeneous wide operands; tag-only MEQ and standalone bitwise operations use separate mixed-integer profiles; arithmetic promotion and native math status remain incomplete",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",
@@ -1031,7 +1031,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic Rate, Periodic/Event Priority and Event Status/OverlapCount; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, and Event EnableTimeOut/Status/OverlapCount; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

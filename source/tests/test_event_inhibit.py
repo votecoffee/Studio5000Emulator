@@ -160,8 +160,49 @@ class EventInhibitTests(unittest.TestCase):
             e.memory.write(source,original)
         self.assertEqual(e.scheduler_description()['tasks'][1]['watchdog_override_us'],250001)
 
-    def test_wrong_types_aoi_harness_event_rate_and_missing_flags_remain_guarded(self):
-        for text in ('SSV(Task,Task1,InhibitTask,StartPB);','SSV(Task,Task1,InhibitTask,1);','GSV(Task,Task1,Rate,CallerStatus);'):
+    def test_undefined_timeout_reads_and_enabling_fail_only_when_reached(self):
+        e=self.checked([['XIC(ReadStatus)GSV(Task,Task1,Rate,CallerStatus);',
+                         'XIC(ClearStatus)SSV(Task,Task1,EnableTimeOut,SelfCommand);'],
+                        ['NOP();']])
+        e.step()
+        e.memory.write('ReadStatus',True);self.fault(e,'defined timeout period')
+        e.memory.write('ReadStatus',False);e.memory.write('ClearStatus',True)
+        self.fault(e,'defined Event Rate')
+        e.memory.write('SelfCommand',0);e.step()
+
+    def test_timeout_settings_and_deadline_roll_back_together(self):
+        def configured(root):
+            from test_event_tasks import EventTaskTests
+            EventTaskTests.timeout(root,'5')
+        e=self.checked([['SSV(Task,Task1,Rate,Command);','SSV(Task,Task1,EnableTimeOut,SelfCommand);',
+                         'GSV(Task,Task1,Rate,CallerStatus);','DIV(1,Divisor,SpeedCommand);'],
+                        ['ADD(Count1,1,Count1);']],mutate=configured)
+        e.memory.write('Command',15001);self.fault(e,'whole milliseconds')
+        e.memory.write('Command',15000);e.memory.write('SelfCommand',0);e.memory.write('Divisor',0)
+        self.fault(e,'zero')
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],5)
+        e.memory.write('Divisor',1);e.step()
+        self.assertEqual((e.memory.read('CallerStatus'),e.memory.read('Count1')),(15000,2))
+        self.assertEqual(e._task_event_status['task1'],2)
+        self.assertIsNone(e.scheduler_description()['tasks'][1]['next_release_ms'])
+
+    def test_runtime_timeout_settings_and_deadline_survive_detached_replacement(self):
+        from test_event_tasks import EventTaskTests
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        e=self.checked([['SSV(Task,Task1,Rate,Command);'],['ADD(Count1,1,Count1);']],
+                       mutate=EventTaskTests.timeout)
+        e.memory.write('Command',25000);e.step()
+        source=decode(container(E.tostring(xml_source(name='Main',text='NOP();'),encoding='utf-8')))
+        candidate,_=prepare(e,source,('NOP();',),'Program0',0)
+        self.assertEqual(candidate.scheduler_description()['tasks'][1]['next_release_ms'],35)
+        candidate.step(25)
+        self.assertEqual(candidate.scheduler_description()['tasks'][1]['next_release_ms'],60)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],35)
+
+    def test_wrong_types_aoi_harness_event_sources_and_missing_flags_remain_guarded(self):
+        for text in ('SSV(Task,Task1,InhibitTask,StartPB);','SSV(Task,Task1,InhibitTask,1);','GSV(Task,Task1,Rate,StartPB);'):
             self.assertTrue(self.engine([[text],['NOP();']]).blockers,text)
         from logixlab.runtime import Engine
         e=self.checked();self.assertTrue(Engine(e.project,mode='routine',routine='Program0/Main').blockers)

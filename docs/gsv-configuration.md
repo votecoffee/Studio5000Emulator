@@ -20,8 +20,8 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Class | Attribute | Destination type | Scope |
 | --- | --- | --- | --- |
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
-| Task | Rate | DINT | Effective Periodic rate, or [configured Event timeout](event-tasks.md#configured-timeouts), in microseconds |
-| Task | EnableTimeOut | DINT | Explicit Event timeout enable, 0 or 1 |
+| Task | Rate | DINT | Effective Periodic rate, or [defined Event timeout](event-tasks.md#runtime-timeout-settings), in microseconds |
+| Task | EnableTimeOut | DINT | Current Event timeout enable, 0 or 1 |
 | Task | Watchdog | DINT | Effective setting in project execution, explicit positive source setting in a harness, in microseconds |
 | Task | Priority | INT | Effective Periodic/Event priority in project execution, explicit source priority in a harness |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
@@ -47,7 +47,8 @@ existing exact source milliseconds-to-microseconds conversion. For example,
 unqualified settings fail explicitly; compatibility defaults do not become GSV
 source values. Continuous rate/priority remain unqualified. Event settings
 require the [qualified Event project context](event-tasks.md). Event Rate is
-available when source enables the timeout and supplies an explicit Rate.
+available when source enables the timeout with an explicit rate or when SSV
+defines one. A defined period remains readable while the timeout is disabled.
 
 ## Changing a periodic task rate
 
@@ -82,7 +83,7 @@ The installed v35 Task object help 14646 and Rockwell's
 [Task object reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 specify DINT microseconds. The whole-millisecond range and commit boundary
 are software scheduler policies. CIP Task rate reads retain the source value.
-Native phase and fault behavior, sub-millisecond periods, Event timeout setters,
+Native phase and fault behavior, sub-millisecond periods,
 Safety, AOI SSV and routine-harness SSV remain outside this profile.
 
 ## Changing a task priority
@@ -157,7 +158,8 @@ be established; strings preserve unused destination bytes.
 Prescan, false ladder rungs and skipped ST branches retain outputs. Each reached
 call reads the loaded configuration or the current project-mode
 [InhibitTask flag](task-inhibition.md), Periodic Rate, Periodic/Event Priority
-or Watchdog. A disk edit takes effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
+or Watchdog. Event Rate and EnableTimeOut use the [runtime timeout
+settings](event-tasks.md#runtime-timeout-settings). A disk edit takes effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
 track every destination, including a string's LEN/DATA region. Capacity/bounds
 errors and later failures retain whole-advance rollback of data and scheduling.
 

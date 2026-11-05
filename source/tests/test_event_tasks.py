@@ -335,8 +335,63 @@ class EventTaskTests(unittest.TestCase):
             self.assertTrue(any('Event timeout requires' in b for b in e.blockers),rate)
         e=self.checked([['GSV(Task,Task1,EnableTimeOut,SpeedCommand);'],['NOP();']]);e.step()
         self.assertEqual(e.memory.read('SpeedCommand'),0)
-        for text in ('SSV(Task,Task1,EnableTimeOut,SpeedCommand);','SSV(Task,Task1,Rate,SpeedCommand);'):
-            self.assertTrue(self.engine([[text],['NOP();']],mutate=self.timeout).blockers)
+        for text in ('SSV(Task,Task0,EnableTimeOut,SpeedCommand);','SSV(Task,Task1,Rate,1);',
+                     'SSV(Task,Task1,EnableTimeOut,StartPB);','GSV(Task,Task0,EnableTimeOut,SpeedCommand);'):
+            self.assertTrue(self.engine([[text],['NOP();']],mutate=self.timeout).blockers,text)
+
+    def test_runtime_rate_and_enable_arm_previously_unconfigured_event_on_commit(self):
+        e=self.checked([['XIC(StartPB)SSV(Task,Task1,Rate,SpeedCommand);',
+                         'XIC(StartPB)SSV(Task,Task1,EnableTimeOut,SpeedSetpoint);',
+                         'XIC(StartPB)GSV(Task,Task1,Rate,Count0);','GSV(Task,Task1,EnableTimeOut,First0);'],
+                        ['ADD(Count1,1,Count1);']])
+        e.step(10)
+        self.assertIsNone(e.scheduler_description()['tasks'][1]['next_release_ms'])
+        e.memory.write('SpeedCommand',25000);e.memory.write('SpeedSetpoint',-1);e.memory.write('StartPB',True)
+        e.step(10)
+        self.assertEqual((e.memory.read('Count0'),e.memory.read('First0'),e.memory.read('Count1')),(25000,1,0))
+        row=e.scheduler_description()['tasks'][1]
+        self.assertEqual((row['next_release_ms'],row['event_timeout_ms'],row['source_event_timeout_ms']),(45,25,None))
+        e.memory.write('StartPB',False);e.step(24);self.assertEqual(e.memory.read('Count1'),0)
+        e.step(1);self.assertEqual(e.memory.read('Count1'),1)
+
+    def test_changed_rate_keeps_current_advance_then_disable_keeps_rate_and_status(self):
+        e=self.checked([['SSV(Task,Task1,Rate,SpeedCommand);','SSV(Task,Task1,EnableTimeOut,SpeedSetpoint);',
+                         'GSV(Task,Task1,Rate,Count0);','GSV(Task,Task1,EnableTimeOut,First0);'],
+                        ['ADD(Count1,1,Count1);']],mutate=lambda root:self.timeout(root,'10'))
+        e.memory.write('SpeedCommand',20000);e.memory.write('SpeedSetpoint',1)
+        e.step(25);self.assertEqual(e.memory.read('Count1'),2)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],45)
+        e.step(10);self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],45)
+        e.memory.write('SpeedSetpoint',0);e.step(25)
+        self.assertEqual((e.memory.read('Count0'),e.memory.read('First0'),e.memory.read('Count1')),(20000,0,3))
+        self.assertEqual(e._task_event_status['task1'],2)
+        self.assertIsNone(e.scheduler_description()['tasks'][1]['next_release_ms'])
+        e.step(30);self.assertEqual(e.memory.read('Count1'),3)
+        e.memory.write('SpeedSetpoint',1);e.step(10)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],120)
+
+    def test_reverted_timeout_writes_keep_existing_deadline(self):
+        e=self.checked([['SSV(Task,Task1,EnableTimeOut,First0);','SSV(Task,Task1,Rate,SpeedCommand);',
+                         'SSV(Task,Task1,EnableTimeOut,SpeedSetpoint);',
+                         'MOV(15000,Count0)SSV(Task,Task1,Rate,Count0);'],['ADD(Count1,1,Count1);']],
+                       mutate=self.timeout)
+        e.memory.write('SpeedCommand',20000);e.memory.write('SpeedSetpoint',1)
+        e.step(7)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],15)
+        e.step(8);self.assertEqual(e.memory.read('Count1'),1)
+
+    def test_st_event_this_timeout_uses_staged_values_and_retains_settings_on_run(self):
+        e=self.checked([['NOP();'],
+                        ['SSV(Task,THIS,Rate,SpeedCommand); SSV(Task,THIS,EnableTimeOut,SpeedSetpoint);',
+                         'GSV(Task,THIS,Rate,Count0); GSV(Task,THIS,EnableTimeOut,First0); Count1:=Count1+1;']],
+                       event_st=True,mutate=lambda root:self.timeout(root,'10'))
+        e.memory.write('SpeedCommand',15000);e.memory.write('SpeedSetpoint',1);e.step(25)
+        self.assertEqual((e.memory.read('Count0'),e.memory.read('First0'),e.memory.read('Count1')),(15000,1,2))
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],40)
+        e.step(3);e.enter_run()
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],43)
+        fresh=Engine(e.project)
+        self.assertEqual(fresh.scheduler_description()['tasks'][1]['next_release_ms'],10)
 
     def test_safety_incomplete_and_other_controller_profiles_remain_blocked(self):
         def safety(root):root.find('./Controller/Tasks/Task[2]').set('Class','Safety')

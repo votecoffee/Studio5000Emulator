@@ -75,7 +75,7 @@ restore it to1 before retrying. See [EventLab.L5X](../source/samples/EventLab.L5
 
 ## Remaining scope
 
-Safety, external Event sources, runtime timeout setters, AOI/routine-harness setters, native task
+Safety, external Event sources, AOI/routine-harness setters, native task
 abort/resume, pending cancellation, status/fault and scheduling lifecycle parity
 remain unqualified. No controller mode, native transfer service or physical PLC
 operation is added. Existing source-bound inhibition metadata follows live flags;

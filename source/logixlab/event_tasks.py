@@ -79,6 +79,11 @@ def execute_interrupt(engine,op,power,scope):
     return power
 
 
+def timeout_settings(engine):
+    dispatch=engine._event_dispatch
+    return dispatch.event_timeouts if dispatch is not None else engine._task_scheduler.event_timeouts
+
+
 class Dispatch:
     def __init__(self,engine,batch,run):
         self.engine=engine;self.batch=batch;self.run=run;self.active=set()
@@ -87,6 +92,7 @@ class Dispatch:
         self.status=dict(engine._task_event_status)
         self.overlap_counts=dict(engine._task_scheduler.overlaps)
         self.timeout_due=dict(engine._task_scheduler.timeout_due)
+        self.event_timeouts=dict(engine._task_scheduler.event_timeouts)
 
     def masked(self):
         return self.interrupt_depth.get(self.engine._executing_task,0)>0
@@ -143,7 +149,7 @@ class Dispatch:
         self.claim_release()
         task=self.engine._task_scheduler.tasks[index]
         if self.engine._task_scheduler.inhibitions[index]:
-            self.timeout_due[index]=due+task.timeout_ms
+            self.rearm_timeout(index,due)
             return
         self.status[task.name.casefold()]|=2
         self._execute(index,due)
@@ -155,7 +161,11 @@ class Dispatch:
         try:self.run(due,task.name,task.entries)
         finally:self.active.remove(index)
         self.releases.append((due,index))
-        if task.timeout_ms is not None:self.timeout_due[index]=due+task.timeout_ms
+        if index in self.timeout_due:self.rearm_timeout(index,due)
+
+    def rearm_timeout(self,index,due):
+        # Settings staged by SSV affect only the next advance.
+        self.timeout_due[index]=due+self.engine._task_scheduler.event_timeouts[index].period_ms
 
     def drain_timeouts_through(self,end):
         while self.timeout_due:
@@ -181,6 +191,7 @@ def description():
     return dict(profile='v35-5580-instruction-EVENT', languages=['RLL','ST'],
                 source='Standard EventInfo EVENT Instruction Only; optional source-enabled whole-millisecond timeout',
                 timeout='Simulated deadline starts at Run entry and rearms after each completed invocation; latched Status bit 1',
+                runtime_timeout='GSV reads staged settings; committed Rate and EnableTimeOut changes affect the next advance',
                 dispatch='Unmasked higher-priority target runs immediately; UID queues requests until outer UIE; lower/equal targets wait for task return at the same simulated time',
                 ordering='Advance-start priorities, then Event request order; coincident base releases precede queued Events at equal priority',
                 retrigger='Active requests are discarded as modeled overlaps; pending duplicates coalesce and have a separate diagnostic',
@@ -188,7 +199,7 @@ def description():
                 non_event='Existing Continuous/Periodic target or live-inhibited Event target does not execute; queued targets recheck before dispatch',
                 rollback='Event writes, first scans, release counts and overlap diagnostics commit only with the complete advance',
                 native_cpu_timing=False, native_status_parity=False,
-                remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed triggers, runtime timeout configuration and sub-millisecond intervals',
+                remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed triggers and sub-millisecond intervals',
                            'AOI/routine harness and ST FOR-loop EVENT calls','Native interrupt latency, watchdog/status/fault parity'])
 
 

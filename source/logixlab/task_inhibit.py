@@ -3,7 +3,7 @@ import struct
 from .model import ModelError
 from . import gsv_configuration
 from .task_configuration import NAME
-from .task_scheduler import MIN_PERIOD_MS, MAX_PERIOD_MS, MIN_PRIORITY, MAX_PRIORITY
+from .task_scheduler import EventTimeout, MIN_PERIOD_MS, MAX_PERIOD_MS, MIN_PRIORITY, MAX_PRIORITY
 
 MIN_WATCHDOG_US = 1000
 MAX_WATCHDOG_US = 2_000_000_000
@@ -12,19 +12,16 @@ DEFAULT_WATCHDOG_US = {'Continuous': 5_000_000, 'Periodic': 500_000}
 
 def validate(engine,op,scope,*,executing=False):
     if (len(op.args)!=4 or any(not isinstance(a,str) for a in op.args)
-            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority','watchdog')
+            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority','watchdog','enabletimeout')
             or not NAME.fullmatch(op.args[1])):
-        raise ModelError('SSV supports Task InhibitTask, Rate, Priority or Watchdog and a task name or THIS')
+        raise ModelError('SSV supports Task InhibitTask, Rate, Priority, Watchdog or EnableTimeOut and a task name or THIS')
     if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
         raise ModelError('SSV Task requires project task context; AOI/routine harness calls remain unqualified')
-    attribute=op.args[2].casefold()
     source_type,_=gsv_configuration.source(engine,op,scope,executing=executing)
     name=gsv_configuration.current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
     if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
     index=next(i for i,t in enumerate(scheduler.tasks) if t.name.casefold()==name.casefold())
-    if attribute=='rate' and index not in scheduler.periods:
-        raise ModelError('SSV Rate requires an explicit Standard Periodic Task')
     if scheduler.tasks[index].kind not in ('Continuous','Periodic','Event'):
         raise ModelError('SSV InhibitTask supports Standard Continuous/Periodic/qualified Event targets only')
     memory=engine.memory;previous=memory.structural;memory.structural=True
@@ -46,7 +43,16 @@ def execute(engine,op,power,scope):
             period,remainder=divmod(value,1000)
             if remainder or not MIN_PERIOD_MS<=period<=MAX_PERIOD_MS:
                 raise ModelError(f'SSV Rate requires {MIN_PERIOD_MS}..{MAX_PERIOD_MS} whole milliseconds in DINT microseconds')
-            engine._task_scheduler.periods[index]=period
+            if index in engine._task_scheduler.event_timeouts:
+                settings=engine._event_dispatch.event_timeouts
+                settings[index]=EventTimeout(period,settings[index].enabled)
+            else:engine._task_scheduler.periods[index]=period
+        elif attribute=='enabletimeout':
+            settings=engine._event_dispatch.event_timeouts
+            period=settings[index].period_ms
+            if value and period is None:
+                raise ModelError('SSV EnableTimeOut requires a defined Event Rate')
+            settings[index]=EventTimeout(period,value!=0)
         elif attribute=='priority':
             if not MIN_PRIORITY<=value<=MAX_PRIORITY:
                 raise ModelError(f'SSV Priority requires an INT in {MIN_PRIORITY}..{MAX_PRIORITY}')
@@ -77,13 +83,15 @@ def description():
 
 def rate_description():
     return dict(profile='v35-5580-SSV-Task-Rate',languages=['RLL','ST'],
-                targets=['Standard Periodic'],source='Exact scalar DINT tag in microseconds',
+                targets=['Standard Periodic','Instruction-only Standard Event'],source='Exact scalar DINT tag in microseconds',
                 period_ms=[MIN_PERIOD_MS,MAX_PERIOD_MS],whole_milliseconds=True,
                 visibility='GSV Rate immediately reads the staged value during the advance',
                 effect='Prepared releases keep their original timing; a changed period starts a new phase at successful advance end',
                 lifecycle='Run entry and routine replacement retain the effective period; reset/reload restores the source period',
                 rollback='Rate and phase commit with task progress and tag values',
-                event_timeouts=False,native_protocol_expanded=False,native_runtime_parity=False)
+                event_timeouts=True,event_enable='EnableTimeOut uses exact DINT; zero disables and nonzero requires a defined rate',
+                event_deadline='New or changed enabled timeout starts at commit; disabling cancels future deadlines',
+                native_protocol_expanded=False,native_runtime_parity=False)
 
 
 def priority_description():

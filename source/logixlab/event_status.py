@@ -27,9 +27,9 @@ def target(engine,op,scope,*,executing=False):
     current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     name=current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
-    task=next((t for t in scheduler.tasks if t.name.casefold()==name.casefold()),None)
-    if task is None or task.kind!='Event':raise ModelError('Task Status requires a qualified instruction-only Event target')
-    return task
+    index=next((i for i,t in enumerate(scheduler.tasks) if t.name.casefold()==name.casefold()),None)
+    if index not in scheduler.event_timeouts:raise ModelError('Task Status requires a qualified instruction-only Event target')
+    return index,scheduler.tasks[index].name.casefold()
 
 
 def operand(engine,op,scope):
@@ -61,7 +61,7 @@ def overlap_counts(engine):
 
 def execute(engine,op,power,scope):
     if not power:return power
-    task=target(engine,op,scope,executing=True);name=task.name.casefold();key,parts=operand(engine,op,scope)
+    index,name=target(engine,op,scope,executing=True);key,parts=operand(engine,op,scope)
     if op.args[2].casefold()=='overlapcount':
         if op.name=='GSV':
             count=overlap_counts(engine)[name]
@@ -73,7 +73,6 @@ def execute(engine,op,power,scope):
             value=engine.memory.read(op.args[3],scope)
             if type(value) is not int:raise ModelError('SSV Event Task OverlapCount requires a known DINT')
             if value!=0:raise ModelError('SSV Event Task OverlapCount supports reset zero only')
-            index=next(i for i,t in enumerate(engine._task_scheduler.tasks) if t.name.casefold()==name)
             dispatch.overlap_counts[index]=0
         return power
     state=values(engine)
@@ -83,7 +82,7 @@ def execute(engine,op,power,scope):
         if engine._event_dispatch is None:raise ModelError('SSV Event Task Status requires an active advance')
         value=engine.memory.read(op.args[3],scope)
         if type(value) is not int:raise ModelError('SSV Event Task Status requires a known DINT')
-        mask=MASK if task.timeout_ms is None else MASK|2
+        mask=MASK if event_tasks.timeout_settings(engine)[index].period_ms is None else MASK|2
         if value & ~mask:
             raise ModelError('SSV Event Task Status supports only EVENT, qualified timeout and active-overlap bits')
         state[name]=value
@@ -105,9 +104,9 @@ def description():
                 attributes=['Status','OverlapCount'],
                 overlap_count='Live active-request counter; exact DINT zero reset; independent of Status bits; DWORD availability without wrapping',
                 overlap_lifecycle='Existing scheduler diagnostic: zero at Run entry/reset/load; detached replacement preserves committed counters',
-                bits={'0':'Accepted EVENT instruction request','1':'Source-configured timeout dispatch','2':'Discarded request while target is active'},
+                bits={'0':'Accepted EVENT instruction request','1':'Event timeout dispatch','2':'Discarded request while target is active'},
                 visibility='Live within an advance; latched until supported SSV replacement; reset/reload initializes zero',
-                setters='Exact DINT replacement of modeled bits; bit 1 requires a source-enabled timeout; source retained',
+                setters='Exact DINT replacement of modeled bits; bit 1 requires a defined timeout period; source retained',
                 contexts='Ordinary scheduled Programs, named Event target or THIS inside its Event task; no AOI/harness',
                 duplicates='Pending requests still coalesce; they do not set the active-overlap bit',
                 rollback='Status and task/data progress commit only with a successful complete advance',

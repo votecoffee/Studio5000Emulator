@@ -171,6 +171,9 @@
       <Tag Name="TimeoutDemoStatus" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="TimeoutDemoRateUs" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="TimeoutDemoEnabled" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ApplyTimeoutDemoSettings" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoRateCommandUs" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="20000" /></Data></Tag>
+      <Tag Name="TimeoutDemoEnableCommand" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="ProducerProgram" MainRoutineName="Main" Class="Standard">
@@ -207,6 +210,10 @@
               <Rung Number="12" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
               <Rung Number="13" Type="N"><Text>JSR(ReadEventTimings,0);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(TriggerTimeoutDemo)EVENT(TimeoutDemoEvent);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(ApplyTimeoutDemoSettings)SSV(Task,TimeoutDemoEvent,Rate,TimeoutDemoRateCommandUs);</Text></Rung>
+              <Rung Number="16" Type="N"><Text>XIC(ApplyTimeoutDemoSettings)SSV(Task,TimeoutDemoEvent,EnableTimeOut,TimeoutDemoEnableCommand);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(ApplyTimeoutDemoSettings)GSV(Task,TimeoutDemoEvent,Rate,TimeoutDemoRateUs);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>XIC(ApplyTimeoutDemoSettings)GSV(Task,TimeoutDemoEvent,EnableTimeOut,TimeoutDemoEnabled);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="GuardedEvent" Type="RLL">

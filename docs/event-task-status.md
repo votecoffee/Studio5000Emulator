@@ -34,8 +34,9 @@ the current status, including changes made by a nested Event or SSV before the
 next caller instruction. Pending duplicates retain the existing coalescing
 policy; they do not set the active-overlap bit. An inhibited Event does not
 execute or set status through EVENT. SSV replaces the complete modeled word
-without modifying its source. A timeout-enabled Event supports values 0
-through 7. With timeout disabled, values 0, 1, 4 and 5 remain supported.
+without modifying its source. An Event with a defined timeout period
+supports values 0 through 7, including while disabled. With no defined
+period, values 0, 1, 4 and 5 remain supported.
 A reached setter faults if it includes a bit outside the modeled mask.
 
 The state starts at zero when a model is loaded or reset. Run entry retains it;

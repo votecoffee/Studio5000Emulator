@@ -26,6 +26,12 @@ class Task:
 
 
 @dataclass(frozen=True)
+class EventTimeout:
+    period_ms: int | None
+    enabled: bool
+
+
+@dataclass(frozen=True)
 class Batch:
     start: int
     end: int
@@ -82,13 +88,15 @@ class TaskScheduler:
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
         self.periods={i:t.period for i,t in enumerate(self.tasks) if t.period is not None}
         self.watchdog_overrides: dict[int, int] = {}
+        self.event_timeouts = {i: EventTimeout(t.timeout_ms, t.timeout_ms is not None)
+                               for i, t in enumerate(self.tasks) if t.kind=='Event'}
         self.reset(0)
 
     def reset(self, now):
         self.origin = now
         self.clock = now
         self.next_due = {i: now + period for i, period in self.periods.items()}
-        self.timeout_due = {i: now + task.timeout_ms for i, task in enumerate(self.tasks) if task.timeout_ms is not None}
+        self.timeout_due = {i: now + setting.period_ms for i, setting in self.event_timeouts.items() if setting.enabled}
         self.counts = {i: 0 for i in range(len(self.tasks))}
         self.last = {i: None for i in range(len(self.tasks))}
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
@@ -121,10 +129,10 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides', 'timeout_due'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides', 'event_timeouts', 'timeout_due'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
-    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None, timeout_due=None):
+    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None, timeout_due=None, event_timeouts=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
         # Event eligibility is checked at dispatch. A completed body may now be
@@ -147,11 +155,23 @@ class TaskScheduler:
         if any(i<0 for i in order) or order!=sorted(set(order)):raise ModelError('Invalid completed base-task releases')
         if timeout_due is None:timeout_due={}
         if not isinstance(timeout_due,dict) or timeout_due.keys()!=self.timeout_due.keys() or any(
-                type(due) is not int or not batch.end<due<=batch.end+self.tasks[i].timeout_ms
+                type(due) is not int or not batch.end<due<=batch.end+self.event_timeouts[i].period_ms
                 for i,due in timeout_due.items()):
             raise ModelError('Invalid Event timeout deadlines')
+        if event_timeouts is None:event_timeouts=self.event_timeouts
+        if not isinstance(event_timeouts,dict) or event_timeouts.keys()!=self.event_timeouts.keys() or any(
+                not isinstance(setting,EventTimeout) or type(setting.enabled) is not bool
+                or (setting.period_ms is None and setting.enabled)
+                or (setting.period_ms is not None and (type(setting.period_ms) is not int
+                    or not MIN_PERIOD_MS<=setting.period_ms<=MAX_PERIOD_MS))
+                for setting in event_timeouts.values()):
+            raise ModelError('Invalid Event timeout settings')
+        # Dispatch used the old settings throughout this advance. Commit a new
+        # deadline only for a net change that leaves the timeout enabled.
+        self.timeout_due = {i: timeout_due[i] if setting==self.event_timeouts[i] else batch.end+setting.period_ms
+                            for i,setting in event_timeouts.items() if setting.enabled}
+        self.event_timeouts = dict(event_timeouts)
         self.clock = batch.end
-        self.timeout_due = dict(timeout_due)
         # Rate writes leave the prepared releases intact and start a new phase
         # at the commit boundary only when the effective period changed.
         self.next_due = dict(batch.next_due)
@@ -184,5 +204,7 @@ class TaskScheduler:
                                 last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i,self.timeout_due.get(i)),
                                 **({'event_instruction_overlaps':self.overlaps[i],
                                     'event_pending_requests_coalesced':self.coalesced[i],
-                                    'event_timeout_ms':t.timeout_ms} if t.kind=='Event' else {}))
+                                    'event_timeout_ms':self.event_timeouts[i].period_ms,
+                                    'event_timeout_enabled':self.event_timeouts[i].enabled,
+                                    'source_event_timeout_ms':t.timeout_ms} if t.kind=='Event' else {}))
                            for i, t in enumerate(self.tasks)])

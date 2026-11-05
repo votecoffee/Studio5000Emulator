@@ -89,15 +89,41 @@ work. A fault rolls back deadlines, status, data and execution progress.
 Routine replacement retains committed deadlines. Run entry restarts the
 deadline and reset or reload restores the initial state.
 
-GSV reads `EnableTimeOut` as a DINT flag and the configured timeout
-`Rate` as DINT microseconds. Timeout execution latches
-[Status bit 1](event-task-status.md) independently of explicit EVENT and
-active overlap. SSV Rate and EnableTimeOut for Event tasks, external
-triggers, fractional-millisecond intervals and native timing remain open.
+Timeout execution latches [Status bit 1](event-task-status.md) independently
+of explicit EVENT and active overlap. External triggers, fractional-millisecond
+intervals and native timing remain open.
 
 See the installed v35 Task object help 14646 and Rockwell's
 [Event task configuration](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/tasks--programs--and-routines/tasks/edit-task-properties/create-an-event-task.html)
 and [Task import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
+
+## Runtime timeout settings
+
+Ladder and Structured Text can write `Task.Rate` and `Task.EnableTimeOut`
+for a qualified instruction-only Event task. The target can be a named task
+or `THIS` inside the Event task. Both source tags must be DINT. Rate uses
+microseconds and must represent a whole period from 1 through 60000 ms.
+EnableTimeOut uses zero to disable and any nonzero value to enable.
+
+Source-disabled timeouts start without a modeled period. Write Rate before
+enabling one. A reached GSV Rate also requires a defined period. GSV returns
+the latest staged rate and enable flag within the same advance. Disabling
+preserves the defined rate and any latched Status bits.
+
+Dispatch uses the advance-start settings for the current advance, including
+timeouts that become due after a write. A successful commit cancels future
+deadlines when disabled. A newly enabled or changed active period starts its
+first deadline one effective period after commit. Repeated or reverted writes
+preserve the existing phase. A failed advance discards both staged settings
+and deadline changes. Run entry and routine replacement retain the settings.
+Reset or reload restores the source configuration.
+
+In **Event Lab**, set ApplyTimeoutDemoSettings and step 10 ms. The producer
+writes 20000 microseconds and reads it back immediately. Coverage shows the
+next deadline at 30 ms. Set TimeoutDemoEnableCommand to 0 and step to cancel
+future deadlines. Re-enable using 1. See Rockwell's
+[Tasks, Programs, and Routines manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm005_-en-p.pdf)
+for the SSV attributes and an example that defines the rate before enabling.
 
 ## State, limits and timing
 

@@ -227,6 +227,8 @@ compares named ladder, ST and THIS snapshots with inhibition and rollback.
 [Configured Event timeouts](docs/event-tasks.md#configured-timeouts) let an
 instruction-triggered Event task run when no trigger arrives. **Event lab**
 shows a 35 ms timeout, its latched Status bit and deadline changes after EVENT.
+Use [runtime timeout settings](docs/event-tasks.md#runtime-timeout-settings)
+to change the period or disable the fallback from ladder or Structured Text.
 
 [Event task inhibition](docs/event-task-inhibition.md) adds live named/THIS
 controls, queued-request checks and Event configuration reads. **Event lab**

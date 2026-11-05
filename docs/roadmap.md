@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.134905` [runtime Event timeout settings](event-tasks.md#runtime-timeout-settings)
+add Rate and EnableTimeOut SSV, immediate GSV readback and transactional
+deadline changes. Event Lab includes runtime controls for its fallback task.
+
 Available in `26.1105.110205` [configured Event timeouts](event-tasks.md#configured-timeouts)
 schedule instruction-only fallback releases on the simulated clock, rearm after
 completion and latch Status bit 1. Event lab includes a 35 ms example.
@@ -885,7 +889,7 @@ Remaining string edge cases, conversions and native status behavior stay open.
 Available event increment: [instruction-only EVENT execution](event-tasks.md)
 with immediate higher priorities, deferred lower/equal priorities, RLL/ST context,
 separate active/pending diagnostics and rollback. Native time slicing and
-pending-duplicate semantics, external triggers, runtime timeout setters and CPU/status parity remain open.
+pending-duplicate semantics, external triggers and CPU/status parity remain open.
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and
