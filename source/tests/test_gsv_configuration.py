@@ -107,7 +107,7 @@ class GsvConfigurationTests(unittest.TestCase):
                                   ('FastTask','Status'),('FastTask','OverlapCount')):
             self.assertTrue(self.engine([f'GSV(Task,{instance},{attribute},Out);']).blockers)
         for text in ('GSV(Controller,This,TimeSlice,PriorityOut);','GSV(Module,,EntryStatus,Out);',
-                     'SSV(Task,FastTask,Rate,Out);','GSV(Task,FastTask,Rate);'):
+                     'SSV(Task,BackgroundTask,Rate,Out);','GSV(Task,FastTask,Rate);'):
             self.assertTrue(self.engine([text]).blockers,text)
 
     def test_false_rung_skipped_st_and_prescan_retain_outputs(self):

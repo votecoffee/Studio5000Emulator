@@ -1,29 +1,33 @@
-"""Bounded SSV Task InhibitTask control over deterministic release boundaries."""
+"""Bounded SSV Task inhibition and period changes over deterministic releases."""
 import struct
 from .model import ModelError
 from . import gsv_configuration
 from .task_configuration import NAME
+from .task_scheduler import MIN_PERIOD_MS, MAX_PERIOD_MS
 
 
 def validate(engine,op,scope,*,executing=False):
     if (len(op.args)!=4 or any(not isinstance(a,str) for a in op.args)
-            or op.args[0].casefold()!='task' or op.args[2].casefold()!='inhibittask'
+            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate')
             or not NAME.fullmatch(op.args[1])):
-        raise ModelError('SSV supports Task, literal task name, InhibitTask and a DINT source tag')
+        raise ModelError('SSV supports Task InhibitTask or Rate, a task name or THIS, and a DINT source tag')
     if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
         raise ModelError('SSV Task requires project task context; AOI/routine harness calls remain unqualified')
+    attribute=op.args[2].casefold()
     gsv_configuration.source(engine,op,scope,executing=executing)
     name=gsv_configuration.current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
     if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
     index=next(i for i,t in enumerate(scheduler.tasks) if t.name.casefold()==name.casefold())
+    if attribute=='rate' and index not in scheduler.periods:
+        raise ModelError('SSV Rate requires an explicit Standard Periodic Task')
     if scheduler.tasks[index].kind not in ('Continuous','Periodic','Event'):
         raise ModelError('SSV InhibitTask supports Standard Continuous/Periodic/qualified Event targets only')
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         key,parts,dtype=memory.resolve(op.args[3],scope)
         if dtype!='DINT' or isinstance(memory.at(key,parts),(list,dict,bool)):
-            raise ModelError('SSV InhibitTask source requires an exact scalar DINT tag')
+            raise ModelError(f'SSV {op.args[2]} source requires an exact scalar DINT tag')
     finally:memory.structural=previous
     return index
 
@@ -32,8 +36,13 @@ def execute(engine,op,power,scope):
     index=validate(engine,op,scope,executing=bool(power))
     if power:
         value=engine.memory.read(op.args[3],scope)
-        if type(value) is not int:raise ModelError('SSV InhibitTask source must contain a known DINT')
-        engine._task_scheduler.inhibitions[index]=value!=0
+        if type(value) is not int:raise ModelError(f'SSV {op.args[2]} source must contain a known DINT')
+        if op.args[2].casefold()=='rate':
+            period,remainder=divmod(value,1000)
+            if remainder or not MIN_PERIOD_MS<=period<=MAX_PERIOD_MS:
+                raise ModelError(f'SSV Rate requires {MIN_PERIOD_MS}..{MAX_PERIOD_MS} whole milliseconds in DINT microseconds')
+            engine._task_scheduler.periods[index]=period
+        else:engine._task_scheduler.inhibitions[index]=value!=0
     return power
 
 
@@ -45,8 +54,19 @@ def description():
                 instances='Literal configured task name or THIS in ordinary scheduled Program context',
                 lifecycle='Run entry retains inhibition and restarts phase; project reset/reload restores source settings',
                 rollback='Flags, values, release counts, first scans and phase commit with the complete advance',
-                native_runtime_parity=False,remaining=['Other SSV attributes/classes','Safety and other Event profiles','AOI/routine harness calls',
+                native_runtime_parity=False,remaining=['Other inhibition contexts and profiles','Safety and other Event profiles','AOI/routine harness calls',
                                                     'Native abort/resume/phase/status/fault semantics'])
+
+
+def rate_description():
+    return dict(profile='v35-5580-SSV-Task-Rate',languages=['RLL','ST'],
+                targets=['Standard Periodic'],source='Exact scalar DINT tag in microseconds',
+                period_ms=[MIN_PERIOD_MS,MAX_PERIOD_MS],whole_milliseconds=True,
+                visibility='GSV Rate immediately reads the staged value during the advance',
+                effect='Prepared releases keep their original timing; a changed period starts a new phase at successful advance end',
+                lifecycle='Run entry and routine replacement retain the effective period; reset/reload restores the source period',
+                rollback='Rate and phase commit with task progress and tag values',
+                event_timeouts=False,native_protocol_expanded=False,native_runtime_parity=False)
 
 
 def attributes(engine,name,*,source_sha256):

@@ -580,13 +580,19 @@ class Engine:
                     if n!='RTO':w('.DN',False);w('.ACC',0)
                 elif n in ('CTU','CTD'):w('.CU' if n=='CTU' else '.CD',True)
 
+    def fixed_scan_interval(self):
+        scheduler=self._task_scheduler
+        if scheduler is not None and len(scheduler.tasks)==1 and not scheduler.tasks[0].inhibited:
+            return scheduler.periods.get(0)
+        return None
+
     def validate_interval(self, dt):
         if self.blockers: raise ModelError("Execution blocked; inspect the coverage report")
         if not isinstance(dt, int) or not 1 <= dt <= 60000: raise ModelError("Scan interval must be 1..60000 ms")
         if self.mode == "project":
-            if len(self.project.tasks)==1 and not self.project.tasks[0]['inhibited'] and self.project.tasks[0]["type"] == "Periodic":
-                rate = float(self.project.tasks[0]["rate"])
-                if dt != rate: raise ModelError(f"Periodic task requires a {rate:g} ms scan interval")
+            rate = self.fixed_scan_interval()
+            if rate is not None and dt != rate:
+                raise ModelError(f"Periodic task requires a {rate} ms scan interval")
             if self._task_scheduler.clock!=self.time_ms:raise ModelError('Task scheduler clock changed; reload the project')
             self._task_scheduler.prepare(self.time_ms+dt)
 
@@ -661,7 +667,9 @@ class Engine:
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
-            if batch:self._task_scheduler.inhibitions=inhibitions
+            if batch:
+                self._task_scheduler.inhibitions=inhibitions
+                self._task_scheduler.periods=batch.periods
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
@@ -1017,7 +1025,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports Standard Continuous/Periodic Task InhibitTask only; runtime timing/status and broader system attributes remain unsupported",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Periodic Rate and Event Status/OverlapCount; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

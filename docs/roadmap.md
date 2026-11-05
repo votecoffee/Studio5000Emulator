@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.102326` [Periodic Task Rate](gsv-configuration.md#changing-a-periodic-task-rate)
+supports whole-millisecond runtime changes through SSV and live GSV readback.
+Changed periods start a new phase at the successful advance boundary.
+
 Available in `26.1105.100847` [typed clock and timing GSV](time-date-storage.md#reading-timestamps-and-durations-with-gsv)
 writes DT clock and Task start timestamps, TIME intervals and TIME32 scan
 durations. System Lab shows the live UTC clock alongside committed measurements.
@@ -873,7 +877,7 @@ pending-duplicate semantics, external triggers/timeouts and CPU/status remain op
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and
-controller settings. Runtime status/fault/timing and broader SSV remain open; [InhibitTask control](task-inhibition.md) is available for bounded Standard tasks.
+controller settings. [InhibitTask](task-inhibition.md) and [Periodic Rate](gsv-configuration.md#changing-a-periodic-task-rate) provide bounded Standard task control. Broader SSV and native status/fault/timing parity remain open.
 
 Available conversion increment: [LOWER/UPPER and STOR/RTOS](string-conversions.md)
 in ladder/ST with custom strings and AOI bindings. Native RTOS formatting, STOR

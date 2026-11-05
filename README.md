@@ -481,6 +481,11 @@ additional expression forms and native math flags remain unfinished.
 expressions with immediate lists/ranges and first-match execution. **Text lab**
 demonstrates float32 comparisons, overlapping ranges and late-fault rollback.
 
+[Periodic task rate changes](docs/gsv-configuration.md#changing-a-periodic-task-rate)
+use SSV with immediate GSV readback and a new release phase after the advance
+commits. In **System lab**, enable ApplyFastRate to change FastTask from
+10 ms to 20 ms.
+
 [Runtime task inhibition](docs/task-inhibition.md) adds SSV Task InhibitTask in
 ladder and ST, live GSV readback, and rollback with task progress. **System lab**
 provides independent controls for its Fast and Slow tasks.
@@ -809,7 +814,7 @@ Source-authored L5X demos are bundled; generated ACD files are kept local.
 | Identity revisions | Read-only virtual hardware revision and profile firmware build, alongside source-based major/minor revision |
 | Controller configuration | Source-backed legacy SecurityCode, name/description and read-only pass-through configuration; limited Metadata Definition discovery; security enforcement and pass-through routing remain unsupported |
 | Change detection | Explicit source mask plus a simulator-owned Audit Value; SDK mode/import updates and upload field reads verified on `.144`; State Detection signatures remain unsupported |
-| Get System Value | Ladder/ST audit values plus [explicit Task/Controller configuration](docs/gsv-configuration.md) with typed destinations. Prior `.145` native fixture acceptance applies to audit reads; configuration reads have separate software checks. [SSV Task InhibitTask](docs/task-inhibition.md) controls bounded Standard tasks; broader attributes/classes remain unfinished |
+| Get System Value | Ladder/ST audit values and [Task/Controller settings](docs/gsv-configuration.md). Prior `.145` native acceptance applies to audit reads. Qualified Standard tasks support [runtime inhibition](docs/task-inhibition.md) and [Periodic rate changes](docs/gsv-configuration.md#changing-a-periodic-task-rate). |
 | Software device metadata | Read-only location/locale and empty trusted-slot/operator state, explicitly identified as emulator defaults |
 | File Manager | Read-only class discovery; reports zero emulated storage devices |
 | Network metadata | Read-only CIP port/node addresses, IPv4 status/configuration, verified Linux DHCP/DNS flags and actual adapter MAC |

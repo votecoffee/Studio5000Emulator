@@ -149,7 +149,7 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
 
     def test_wrong_classes_attributes_names_and_source_types_block(self):
-        for text in ('SSV(Controller,,InhibitTask,Control);','SSV(Task,Task1,Rate,Control);','SSV(Task,,InhibitTask,Control);',
+        for text in ('SSV(Controller,,InhibitTask,Control);','SSV(Task,Task0,Rate,Control);','SSV(Task,,InhibitTask,Control);',
                      'SSV(Task,Missing,InhibitTask,Control);','SSV(Task,0,InhibitTask,Control);','SSV(Task,Task1,InhibitTask,1);',
                      'SSV(Task,Task1,InhibitTask,Gate);','SSV(Task,Task1,InhibitTask,Control.0);'):
             self.assertTrue(self.engine(text).blockers,text)
@@ -227,6 +227,78 @@ class TaskInhibitTests(unittest.TestCase):
         before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'release budget'):e.step(60000)
         self.assertEqual(e.memory.values,before)
+
+    def test_rate_write_rephases_only_after_batch_and_keeps_unchanged_phase(self):
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Rate,Control);\nGSV(Task,Task1,Rate,Readout);',
+                       specs=[dict(Priority='1'),dict(Priority='5')])
+        e.memory.write('Control',20000);e.step(35)
+        task=e.scheduler_description()['tasks'][1]
+        self.assertEqual((task['rate_ms'],task['source_rate_ms'],task['next_release_ms']),(20,10,55))
+        self.assertEqual((e.memory.read('Readout'),e.memory.read('Count1')),(20000,3))
+        e.step(20);e.step(20)
+        self.assertEqual(e.memory.read('Count1'),5)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],95)
+
+    def test_staged_rate_is_visible_to_ladder_and_st_and_net_no_change_keeps_phase(self):
+        logic=('SSV(Task,Task1,Rate,Control);\nGSV(Task,Task1,Rate,Readout);\n'
+               'Control := 10000;\nSSV(Task,Task1,Rate,Control);')
+        e=self.checked(logic,st=True,target=['GSV(Task,Task1,Rate,Count1);'])
+        e.memory.write('Control',17000);e.step(15)
+        self.assertEqual((e.memory.read('Readout'),e.memory.read('Count1')),(17000,10000))
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],20)
+        self.assertEqual(e.project.task_timing.attributes('Task1',source_sha256=e.project.sha256)[2],struct.pack('<I',10000))
+
+    def test_bad_rate_and_later_fault_roll_back_rates_phase_and_progress(self):
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Rate,Control);\nGSV(Task,Task1,Rate,Readout);\nDIV(1,Divisor,Count0);')
+        e.memory.write('Gate',False);e.step(17)
+        e.memory.write('Gate',True)
+        before=copy.deepcopy(e.scheduler_description())
+        for rate,divisor,expected in ((999,1,'whole milliseconds'),(-1000,1,'whole milliseconds'),
+                                      (60001000,1,'whole milliseconds'),(0,1,'whole milliseconds'),(25000,0,'zero')):
+            e.memory.write('Control',rate);e.memory.write('Divisor',divisor);values=copy.deepcopy(e.memory.values)
+            with self.assertRaisesRegex(ModelError,expected):e.step(10)
+            self.assertEqual(e.scheduler_description(),before)
+            self.assertEqual(e.memory.values,values)
+        e.memory.write('Divisor',1);e.step(10)
+        self.assertEqual((e.memory.read('Count1'),e.memory.read('Readout')),(2,25000))
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],52)
+
+    def test_periodic_this_retains_rate_on_run_entry_and_detached_replacement(self):
+        def explicit(root):
+            root.find('./Controller/Programs/Program').attrib.update(UseAsFolder='false',Disabled='false')
+        logic='SSV(Task,THIS,Rate,Control);'
+        e=self.checked(logic,specs=[dict(Rate='10')],mutate=explicit)
+        e.memory.write('Control',15000);e.step(10);e.enter_run()
+        self.assertEqual(e.fixed_scan_interval(),15)
+        self.assertEqual(e.scheduler_description()['tasks'][0]['next_release_ms'],25)
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        source=decode(container(E.tostring(xml_source(name='Main',text=logic),encoding='utf-8')))
+        candidate,_=prepare(e,source,(logic,),'Program0',0)
+        candidate.memory.write('Control',30000);candidate.step(15)
+        self.assertEqual((candidate.fixed_scan_interval(),e.fixed_scan_interval(),Engine(e.project).fixed_scan_interval()),(30,15,10))
+
+    def test_single_periodic_app_steps_runs_and_resets_at_effective_rate(self):
+        import base64
+        from logixlab.server import Application
+        from test_controller_mode import wait_for
+        e=self.checked('SSV(Task,Task0,Rate,Control);\nADD(Count0,1,Count0);',specs=[dict(Rate='10')])
+        app=Application(self.tmp.name);self.addCleanup(app.close)
+        app.command('load',{'name':'Rate.L5X','content':base64.b64encode(e.project.path.read_bytes()).decode()})
+        app.command('write',{'tag':'Control','value':20000})
+        state=app.command('step',{'count':3})
+        self.assertEqual((state['scan'],state['ms'],state['controller']['scan_interval_ms']),(3,50,20))
+        with self.assertRaisesRegex(ModelError,'20 ms'):app.command('step',{'dt':10})
+        app.command('write',{'tag':'Control','value':15000})
+        app.command('controller-mode',{'mode':'Run'})
+        wait_for(lambda:app.engine.scan_count>=6)
+        state=app.command('controller-mode',{'mode':'Program'})
+        self.assertFalse(state['fault'])
+        self.assertEqual(state['controller']['scan_interval_ms'],15)
+        self.assertEqual(state['ms'],70+(state['scan']-4)*15)
+        state=app.command('reset',{})
+        self.assertEqual(state['controller']['scan_interval_ms'],10)
 
     def test_system_lab_independent_controls_and_late_fault_recovery(self):
         e=Engine(Project(Path(__file__).resolve().parents[1]/'samples/SystemLab.L5X'));self.assertEqual(e.blockers,[]);e.step(25)

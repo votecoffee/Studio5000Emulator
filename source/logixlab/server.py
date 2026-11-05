@@ -147,13 +147,7 @@ class Application:
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
 
     def default_scan_interval(self):
-        tasks=self.engine.project.tasks
-        if self.engine.mode=='project' and len(tasks)==1 and not tasks[0]['inhibited'] and tasks[0]['type']=='Periodic':
-            try:
-                rate=float(tasks[0]['rate'])
-                if rate.is_integer() and 1<=rate<=60000:return int(rate)
-            except (ValueError,TypeError,KeyError):pass
-        return 10
+        return self.engine.fixed_scan_interval() or 10
 
     def set_controller_mode(self, mode, dt=None, *, remote_request=False):
         # Shared by HTTP controls and verified native requests. Caller owns app.lock.
@@ -207,6 +201,7 @@ class Application:
                     self.device_io.apply(self)
                     self._io_dirty = True
                     self.engine.step(self.scan_interval_ms)
+                    self.scan_interval_ms = self.engine.fixed_scan_interval() or self.scan_interval_ms
                     if self.device_io.sample_due():self.publish_device_io()
                 except Exception as error:
                     if not self.engine.fault:self.engine.fault = str(error) or type(error).__name__
@@ -572,7 +567,8 @@ class Application:
                     with self.endpoint.lock:
                         if self.endpoint.programming_lease.inhibit(self.generation,e.project.sha256):
                             raise ModelError('Native programming preparation inhibits scans; release or disconnect the owning client')
-                count, dt = int(data.get("count", 1)), int(data.get("dt", 10))
+                count = int(data.get("count", 1))
+                dt = int(data.get("dt", e.fixed_scan_interval() or 10))
                 if not 1 <= count <= 1000: raise ModelError("Scan count must be 1..1000")
                 self.engine.prepare_step(dt)
                 for _ in range(count):
@@ -581,6 +577,8 @@ class Application:
                     try: self.engine.step(dt)
                     except Exception:
                         self.publish_device_io(); raise
+                    fixed = self.engine.fixed_scan_interval()
+                    if fixed is not None:dt = self.scan_interval_ms = fixed
                     if count > 1 and self.device_io.sample_due(): self.publish_device_io()
             elif action == "write":
                 e.memory.write(data["tag"], data["value"])
@@ -588,6 +586,7 @@ class Application:
             elif action == "reset":
                 self.set_controller_mode('Program')
                 self.engine = Engine(e.project, e.mode, e.selected,defer_prescan=True)
+                self.scan_interval_ms = self.engine.fixed_scan_interval() or self.scan_interval_ms
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True
                 if self.endpoint:self.endpoint.close_native_sessions()

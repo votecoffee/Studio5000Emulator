@@ -20,7 +20,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Class | Attribute | Destination type | Scope |
 | --- | --- | --- | --- |
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
-| Task | Rate | DINT | Explicit Periodic rate, in microseconds |
+| Task | Rate | DINT | Effective Periodic rate in project execution, explicit source rate in a harness, in microseconds |
 | Task | Watchdog | DINT | Explicit positive time, in microseconds |
 | Task | Priority | INT | Explicit Periodic/Event priority |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
@@ -47,6 +47,42 @@ unqualified settings fail explicitly; compatibility defaults do not become GSV
 source values. Continuous rate/priority remain unqualified. Event settings require the qualified project context described in
 [Event task inhibition](event-task-inhibition.md); Event Rate is not inferred.
 
+## Changing a periodic task rate
+
+`SSV(Task,FastTask,Rate,FastRateCommandUs)` changes the effective period of a
+Standard Periodic task with an explicit source rate. The source is a scalar
+DINT in microseconds, from 1000 through 60000000 in multiples of 1000. Ladder
+and ST calls in project execution accept a literal task name or `THIS` in an
+eligible scheduled Program. False ladder rungs, skipped ST calls and prescan
+skip source values. A reached invalid value faults and rolls back the advance.
+
+GSV Rate sees the latest successful write in the current advance. Releases
+already scheduled for that advance run at their original times. When the
+advance commits a changed period, the next release is one new period after
+the end of the advance. Writing the same rate keeps the phase, including
+when multiple writes leave the original period in effect. Inhibited tasks
+use the same phase rule and discard missed releases. A later fault restores
+the previous rate, release schedule and values together.
+
+Program-to-Run restarts phase using the effective period. Routine replacement
+retains the rate and phase. Reset and reload restore the source rate. The
+scheduler reports both `rate_ms` and `source_rate_ms`. A project with one
+initially enabled Periodic task uses its effective rate for automatic Run and
+updates the Step interval after a committed change. A multi-task project's
+Step or Run advance interval is independent of each task's period.
+
+In **System lab**, leave FastRateCommandUs at 20000, enable ApplyFastRate,
+and step 25 ms. LiveFastRateUs reads 20000. Task schedule shows FastTask at
+20 ms with its 10 ms source rate. Set FastRateCommandUs to 10000 and step
+to restore the original rate before disabling the gate.
+
+The installed v35 Task object help 14646 and Rockwell's
+[Task object reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
+specify DINT microseconds. The whole-millisecond range and commit boundary
+are software scheduler policies. CIP Task rate reads retain the source value.
+Native phase and fault behavior, sub-millisecond periods, Event timeouts,
+Safety, AOI SSV and routine-harness SSV remain outside this profile.
+
 ## Destinations and execution
 
 Numeric destinations must be exact scalar INT or DINT tags as listed above;
@@ -57,9 +93,9 @@ AOI output/InOut bindings retain normal memory rules. Unknown destinations can
 be established; strings preserve unused destination bytes.
 
 Prescan, false ladder rungs and skipped ST branches retain outputs. Each reached
-call reads the loaded configuration, with project-mode InhibitTask following the
-[live runtime flag](task-inhibition.md); changing a disk file is not a project
-reload. Bound metadata with a different source hash is rejected. ST FOR checks
+call reads the loaded configuration or the current project-mode
+[InhibitTask flag](task-inhibition.md) and Periodic Rate. A disk edit takes
+effect on project reload. Bound metadata with a different source hash is rejected. ST FOR checks
 track every destination, including a string's LEN/DATA region. Capacity/bounds
 errors and later failures retain whole-advance rollback of data and scheduling.
 

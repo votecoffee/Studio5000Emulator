@@ -8,6 +8,8 @@ from .model import ModelError
 
 MAX_TASKS = 32
 MAX_RELEASES = 4096
+MIN_PERIOD_MS = 1
+MAX_PERIOD_MS = 60000
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ class Batch:
     end: int
     releases: tuple
     next_due: dict
+    periods: dict
 
 
 class TaskScheduler:
@@ -53,7 +56,7 @@ class TaskScheduler:
             elif row['type']=='Periodic':
                 try:
                     rate = Decimal(row['rate'])
-                    if not rate.is_finite() or not 1 <= rate <= 60000 or rate != rate.to_integral_value():
+                    if not rate.is_finite() or not MIN_PERIOD_MS <= rate <= MAX_PERIOD_MS or rate != rate.to_integral_value():
                         raise ValueError()
                     period = int(rate)
                 except (InvalidOperation, ValueError, TypeError):
@@ -68,13 +71,13 @@ class TaskScheduler:
             tasks.append(Task(name, row['type'], priority, period, row['inhibited'], tuple(entries.get(name.casefold(), ()))))
         self.tasks = tuple(tasks)
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
+        self.periods={i:t.period for i,t in enumerate(self.tasks) if t.period is not None}
         self.reset(0)
 
     def reset(self, now):
         self.origin = now
         self.clock = now
-        self.next_due = {i: now + task.period for i, task in enumerate(self.tasks)
-                         if task.period is not None}
+        self.next_due = {i: now + period for i, period in self.periods.items()}
         self.counts = {i: 0 for i in range(len(self.tasks))}
         self.last = {i: None for i in range(len(self.tasks))}
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
@@ -93,20 +96,20 @@ class TaskScheduler:
                 raise ModelError('Task release budget exceeded; use a smaller simulation step')
             due, _, i = heapq.heappop(heap)
             releases.append((due, i))
-            next_due[i] = due + self.tasks[i].period
+            next_due[i] = due + self.periods[i]
             heapq.heappush(heap, (next_due[i], self.tasks[i].priority, i))
         for i, task in enumerate(self.tasks):
             if task.kind == 'Continuous':
                 if len(releases) >= MAX_RELEASES:
                     raise ModelError('Task release budget exceeded; use a smaller simulation step')
                 releases.append((end, i))
-        return Batch(self.clock, end, tuple(releases), next_due)
+        return Batch(self.clock, end, tuple(releases), next_due, dict(self.periods))
 
     def continue_from(self, previous):
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
     def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None):
@@ -131,7 +134,12 @@ class TaskScheduler:
         order=[positions.get(release,-1) for release in executed]
         if any(i<0 for i in order) or order!=sorted(set(order)):raise ModelError('Invalid completed base-task releases')
         self.clock = batch.end
+        # Rate writes leave the prepared releases intact and start a new phase
+        # at the commit boundary only when the effective period changed.
         self.next_due = dict(batch.next_due)
+        for i, period in self.periods.items():
+            if period != batch.periods[i]:
+                self.next_due[i] = batch.end + period
         for due, i in (*executed,*events):
             self.counts[i] += 1
             self.last[i] = due
@@ -148,8 +156,9 @@ class TaskScheduler:
                     inhibition='Live at each release; current body completes; periodic phase continues without catch-up',
                     release_budget='Counts potential release slots, including inhibited tasks',
                     equal_priority='Base releases use source order and precede queued Events; Event ties use request order',
-                    first_periodic_release='One configured period after Run entry',
-                    tasks=[dict(name=t.name, kind=t.kind, priority=t.priority if t.kind!='Continuous' else None, rate_ms=t.period,
+                    first_periodic_release='One effective period after Run entry',
+                    rate_change='Changed periods start at the next advance boundary; prepared releases keep their original phase',
+                    tasks=[dict(name=t.name, kind=t.kind, priority=t.priority if t.kind!='Continuous' else None, rate_ms=self.periods.get(i), source_rate_ms=t.period,
                                 inhibited=self.inhibitions[i], source_inhibited=t.inhibited, executions=self.counts[i],
                                 last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i),
                                 **({'event_instruction_overlaps':self.overlaps[i],
