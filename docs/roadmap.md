@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.073842`: [typed FRD/TOD sources](numeric-conversions.md#typed-source-immediates)
+and [LREAL TRN constants](lreal-truncate.md). FRD decodes the declared pattern,
+TOD packs the exact integer value and TRN truncates at the selected source
+precision. Conversion lab includes the gated TypedImmediateConversions routine.
+
 Available in `26.1104.182610`: [typed bitwise operands](typed-bitwise-operands.md).
 AND/OR/XOR/NOT/MEQ accept decimal L/U/UL sources under declared-width pattern
 rules, mixing integer tags and legacy 32-bit immediates. Zero extension, integer

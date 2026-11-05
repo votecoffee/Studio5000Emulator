@@ -1,7 +1,7 @@
 """Bounded 8/16/32/64-bit BCD conversions and INT/DINT byte order for v35 5580."""
-from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, bit_value
-from .model import INT_BITS, ModelError, literal
+from .bit_transfer import unsigned
+from .integer_math import CONTROLLERS, bit_value, pattern, pattern_width, read_source
+from .model import INT_BITS, ModelError
 
 INSTRUCTIONS = frozenset(('FRD', 'TOD', 'SWPB'))
 ORDERS = frozenset(('REVERSE', 'WORD', 'HIGHLOW'))
@@ -27,15 +27,7 @@ def validate(memory, op, scope):
         if op.args[1].upper() not in ORDERS:
             raise ModelError('SWPB order must be REVERSE, WORD or HIGHLOW')
         return 16 if stype == 'INT' else 32
-    try:
-        literal(source)
-    except ValueError:
-        stype = scalar(memory, source, scope)
-        if stype not in INT_BITS:
-            raise ModelError('BCD source requires a scalar signed/unsigned integer')
-        width = INT_BITS[stype]
-    else:
-        width = operand(memory, source, scope)
+    width = pattern_width(memory, source, scope)
     if op.name == 'FRD':
         if dtype not in INT_BITS:
             raise ModelError('FRD requires an integer packed source and integer destination')
@@ -76,13 +68,17 @@ def execute(memory, op, power, scope):
     if not power:
         return False
     width = validate(memory, op, scope)
-    value = unsigned(memory, op.args[0], scope, width)
+    source = op.args[0]
     if op.name == 'FRD':
         # v35 explicitly defines weighted hex nibbles, including A..F.
-        result = from_bcd(value, width)
+        result = from_bcd(pattern(memory, source, scope, width), width)
     elif op.name == 'TOD':
-        result = to_bcd(memory.read(op.args[0], scope), scalar(memory, op.args[-1], scope))
+        value = read_source(memory, source, scope)
+        if type(value) is not int:
+            raise ModelError('TOD source requires an integer value')
+        result = to_bcd(value, scalar(memory, op.args[-1], scope))
     else:
+        value = unsigned(memory, source, scope, width)
         order = op.args[1].upper()
         if width == 16:
             # Every order swaps a two-byte source. INT->DINT sign-extends.
@@ -106,7 +102,8 @@ def description():
                 selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
                 frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
                 tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
-                immediates='Existing signed DINT decimal or 32-bit radix sources; store larger values in typed tags',
+                immediates='FRD/TOD accept decimal L/U/UL integer sources alongside bounded DINT and 32-bit radix sources',
+                typed_immediates='FRD decodes the declared 32/64-bit pattern; TOD packs the exact numeric value within destination capacity',
                 native_runtime_parity=False,
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,

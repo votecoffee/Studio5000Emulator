@@ -37,6 +37,37 @@ class LrealTruncateTests(unittest.TestCase):
             e=self.checked(logic,source=source);e.step();self.assertEqual(e.memory.read('Dest'),16777218.0)
         e=self.checked(['TRN(-3.9,Dest);']);e.step();self.assertEqual(e.memory.read('Dest'),-3.0)
 
+    def test_lreal_literal_precision_is_used_before_destination_conversion(self):
+        for dtype in ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL', 'LREAL'):
+            with self.subTest(dtype=dtype):
+                engine = self.checked(['TRN(+3.9999999999999996l,Results[1]);'], dest=dtype)
+                engine.step()
+                result = engine.memory.read('Results[1]')
+                self.assertEqual(result, 3)
+                self.assertIs(type(result), float if dtype in ('REAL', 'LREAL') else int)
+        engine = self.checked(['TRN(-1.6777217875e7L,Dest);'], dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Dest'), -16777217)
+
+    def test_lreal_literal_obeys_lazy_indices_and_atomic_range_faults(self):
+        engine = self.checked(['XIC(StartPB)TRN(16777217.875L,Results[Index]);'], dest='LINT')
+        engine.memory.write('Index', 99)
+        engine.enter_run()
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None] * 3)
+        engine.memory.write('StartPB', True)
+        self.fault(engine, 'outside bounds')
+        engine.memory.write('Index', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, 16777217, None])
+        engine = self.checked(['MOV(99,SpeedCommand);', 'TRN(9223372036854775808.0L,Dest);'], dest='LINT')
+        self.fault(engine, 'overflow')
+
+    def test_trn_rejects_typed_integers_and_nonfinite_lreal_literals(self):
+        for operand in ('1L', '1U', '1UL', '1.0UL', '16#1L', '1e309L'):
+            with self.subTest(operand=operand):
+                self.assertTrue(self.engine([f'AFI()TRN({operand},Dest);']).blockers)
+
     def test_signed_unsigned_boundaries_use_stored_binary64_value(self):
         for dtype,value in [('LINT',math.nextafter(float(2**63),0)),('LINT',float(-2**63)),('ULINT',math.nextafter(float(2**64),0)),('UDINT',4294967295.875)]:
             e=self.checked(dest=dtype,value=value);e.step();self.assertEqual(e.memory.read('Dest'),math.trunc(value))

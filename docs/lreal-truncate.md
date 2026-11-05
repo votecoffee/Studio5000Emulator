@@ -21,7 +21,12 @@ destination retains that value; a REAL destination rounds it to 16777216.
 LREAL 3.9999999999999996 truncates to 3, while narrowing the source to REAL first
 would have produced 4. Existing untyped immediates retain the separate float32
 source policy: TRN(16777217.875,DoubleResult) produces LREAL 16777218.
-No new typed LREAL literal syntax is introduced.
+App `26.1105.073842` also accepts floating L/l constants as ladder TRN sources.
+`TRN(16777217.875L,Whole)` produces 16777217 in a LINT destination, while
+`TRN(16777217.875,Whole)` produces 16777218. Include a decimal point or exponent
+before the suffix to select LREAL. The source must be finite, and the truncated
+result must fit the destination. **Conversion lab** demonstrates both inputs
+when `ImmediateConversions` is enabled.
 
 Signed and unsigned boundaries use the actual stored binary64 value. LINT's
 minimum is representable; its positive maximum is not exactly representable as

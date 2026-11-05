@@ -3,6 +3,7 @@ import math
 
 from .integer_math import CONTROLLERS
 from .model import INT_BITS, ModelError, coerce, literal
+from .numeric_storage import typed_literal
 from .real_math import real
 
 NARROW = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
@@ -44,6 +45,7 @@ def handle(engine, op, scope, *, execute=False):
         return False
     memory = engine.memory
     source_type = 'REAL'  # Untyped immediates retain the existing REAL policy.
+    typed_source = None
     previous = memory.structural
     memory.structural = True
     try:
@@ -59,13 +61,23 @@ def handle(engine, op, scope, *, execute=False):
                 if dimension >= len(dimensions):raise ModelError('SIZE dimension exceeds array rank')
         else:
             scalar(memory, op.args[1], scope, TRN_DESTINATIONS, destination=True)
-            try:value = literal(op.args[0])
-            except ValueError:
-                source_type = scalar(memory, op.args[0], scope, {'REAL', 'LREAL'})[2]
+            source = op.args[0]
+            typed_source = typed_literal(source) if '#' not in source else None
+            if typed_source is not None:
+                source_type, _ = typed_source
+                if source_type != 'LREAL':
+                    raise ModelError('TRN typed immediate requires a finite LREAL literal')
             else:
-                if type(value) not in (int, float):raise ModelError('Numeric TRN source required')
-                if type(value) is int:coerce(value, 'DINT')
-                real(value)
+                try:
+                    value = literal(source)
+                except ValueError:
+                    source_type = scalar(memory, source, scope, {'REAL', 'LREAL'})[2]
+                else:
+                    if type(value) not in (int, float):
+                        raise ModelError('Numeric TRN source required')
+                    if type(value) is int:
+                        coerce(value, 'DINT')
+                    real(value)
     finally:
         memory.structural = previous
     if not execute:return True
@@ -79,7 +91,7 @@ def handle(engine, op, scope, *, execute=False):
         key, parts, dtype = scalar(memory, op.args[2], scope, NARROW, destination=True)
         result = coerce(dimensions[dimension], dtype)
     else:
-        value = memory.read(op.args[0], scope)
+        value = typed_source[1] if typed_source is not None else memory.read(op.args[0], scope)
         result = math.trunc(coerce(value, 'LREAL') if source_type == 'LREAL' else real(value))
         key, parts, dtype = scalar(memory, op.args[1], scope, TRN_DESTINATIONS, destination=True)
         result = coerce(result, dtype)
@@ -91,9 +103,9 @@ def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 profile='v35-5580-SIZE-TRN', size_languages=['RLL', 'ST'], trn_languages=['RLL'],
                 size='Whole arrays or selected elements; closest logical member array; rank 1..3; no leaf-value reads',
-                size_destinations=sorted(NARROW), trn_source='Finite REAL/LREAL tag or bounded DINT/finite REAL immediate',
+                size_destinations=sorted(NARROW), trn_source='Finite REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
                 trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero, then representable destination conversion',
-                lreal='Tagged LREAL sources and results, including existing integer/REAL destinations and REAL-to-LREAL; no new literal syntax or ST/FBD forms',
+                lreal='Tagged and floating L/l LREAL sources with integer/REAL/LREAL destinations; v35 ladder TRN',
                 selection='Structural preflight; false/prescan skip live values and dynamic indices',
                 dynamic_dimension='Existing SINT/INT/DINT tag extension; native SIZE documents an immediate 0..2',
                 native_runtime_parity=False, native_math_status=False,

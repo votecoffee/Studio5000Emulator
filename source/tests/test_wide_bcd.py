@@ -84,6 +84,53 @@ class WideBCDTests(unittest.TestCase):
         with patch('logixlab.scalar_math.real',side_effect=AssertionError('BCD used REAL')):e.step()
         self.assertEqual(e.memory.read('Decoded[1]'),9007199254740993)
 
+    def test_typed_frd_reads_the_declared_pattern_width(self):
+        cases = (
+            ('-1', 166666665),
+            ('4294967295u', 166666665),
+            ('-1L', 16666666666666665),
+            ('18446744073709551615uL', 16666666666666665),
+        )
+        for operand, expected in cases:
+            with self.subTest(operand=operand):
+                engine = self.checked([f'FRD({operand},Results[1]);'])
+                engine.step()
+                self.assertEqual(engine.memory.read('Results'), [None, expected, None])
+
+    def test_typed_tod_packs_exact_numeric_values(self):
+        cases = (
+            ('4294967295U', 4294967295, 'ULINT'),
+            ('9007199254740993l', 9007199254740993, 'LINT'),
+            ('9999999999999999Ul', 9999999999999999, 'ULINT'),
+            ('99U', 99, 'SINT'),
+        )
+        for operand, value, dtype in cases:
+            with self.subTest(operand=operand, dtype=dtype):
+                engine = self.checked([f'TOD({operand},Results[1]);'], dest=dtype)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results[1]'), encoded(value, dtype))
+
+    def test_typed_bcd_range_faults_and_literal_guards(self):
+        for instruction, error in (
+            ('TOD(-1L,Results[1]);', 'qualified'),
+            ('TOD(10000000000000000UL,Results[1]);', 'qualified'),
+            ('FRD(-1L,Results[1]);', 'overflow'),
+        ):
+            with self.subTest(instruction=instruction):
+                dest = 'DINT' if instruction.startswith('FRD') else 'ULINT'
+                engine = self.checked(['MOV(99,SpeedCommand);', 'XIC(StartPB)' + instruction], dest=dest)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results'), [None, None, None])
+                engine.memory.write('StartPB', True)
+                before = self.snapshot(engine)
+                with self.assertRaisesRegex(ModelError, error):
+                    engine.step()
+                self.assertEqual(self.snapshot(engine), before)
+        for operand in ('4294967296U', '-1UL', '9223372036854775808L', '18446744073709551616UL', '1.0L', '16#99UL'):
+            for instruction in ('FRD', 'TOD'):
+                with self.subTest(operand=operand, instruction=instruction):
+                    self.assertTrue(self.engine([f'AFI(){instruction}({operand},Results[1]);']).blockers)
+
     def test_false_prescan_unknown_indices_sources_and_full_results(self):
         e=self.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Decoded[Index]);'])
         e.memory.write('Index',999);e.enter_run();e.step();self.assertEqual(e.memory.read('Results'),[None]*3)

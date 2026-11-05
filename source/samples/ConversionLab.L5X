@@ -5,6 +5,13 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ImmediateConversions" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ImmediatePacked" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="ImmediateDecoded" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateWeighted" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateTruncated" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateRealTruncated" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
       <Tag Name="SmallBCD" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SmallBCDIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="SmallDecimal" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
@@ -257,7 +264,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>JSR(SmallPacked,0)XIC(Enable)TOD(Decimal,Packed);</Text>
+                <Text>JSR(SmallPacked,0)JSR(TypedImmediateConversions,0)XIC(Enable)TOD(Decimal,Packed);</Text>
               </Rung>
               <Rung Number="1" Type="N">
                 <Text>XIC(Enable)FRD(Packed,Decoded);</Text>
@@ -329,6 +336,14 @@
               <Rung Number="1" Type="N"><Text>XIC(SmallBCD)TOD(SmallDecimal,SmallByteUnsigned)FRD(SmallByteUnsigned,SmallDecoded[1]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(SmallBCD)TOD(SmallWordDecimal,SmallWordSigned)FRD(SmallWordSigned,SmallDecoded[2]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(SmallBCD)TOD(SmallWordDecimal,SmallWordUnsigned)FRD(SmallWordUnsigned,SmallDecoded[3]);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TypedImmediateConversions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ImmediateConversions)TOD(9007199254740993UL,ImmediatePacked[ImmediateIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ImmediateConversions)FRD(ImmediatePacked[ImmediateIndex],ImmediateDecoded);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ImmediateConversions)FRD(-1L,ImmediateWeighted);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ImmediateConversions)TRN(16777217.875L,ImmediateTruncated)TRN(16777217.875,ImmediateRealTruncated);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -30,8 +30,8 @@ The qualified ladder combinations are:
 
 | Instruction | Source | Destination |
 | --- | --- | --- |
-| FRD | Any of the eight signed/unsigned integer tags or bounded signed DINT/32-bit radix immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
-| TOD | Any of the eight signed/unsigned integer tags or bounded DINT immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| FRD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| TOD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
 
 FRD checks the decoded integer against the destination's signed/unsigned range. Thus
 16#127 decodes to SINT 127; 16#128 decodes to 128 and faults on a SINT result.
@@ -67,9 +67,8 @@ FRD rejects decoded results that do not fit the destination. It does not clip
 or wrap decoded overflows. Native saturation/overflow flags remain separate
 work. No REAL/LREAL conversion is introduced.
 
-Source immediates retain signed-DINT decimal or 32-bit radix bounds. Larger
-values must be held in typed tags; wider/typed literal syntax is not added.
-A source literal is still a 32-bit pattern for FRD, even with a 64-bit result.
+Unsuffixed source immediates retain signed-DINT decimal or 32-bit radix bounds.
+An unsuffixed literal is still a 32-bit pattern for FRD, even with a 64-bit result.
 Aliases, selected array/UDT members, constant sources and supported AOI local/
 InOut bindings retain structural preflight, lazy false/prescan reads, complete
 unknown-result writes and whole-advance rollback. In-place conversions capture
@@ -118,6 +117,27 @@ guards 11 and 77 remain. Set SmallDecimal=100 or SmallWordDecimal=10000 to obser
 whole-advance rollback; correct the value and retry. Disable SmallBCD before
 selecting an invalid index to retain the values. See
 [byte/word tests](../source/tests/test_small_bcd.py).
+
+## Typed source immediates
+
+App `26.1105.073842` accepts decimal L/l (LINT), U/u (UDINT) and UL (ULINT,
+case insensitive) constants in the ladder FRD and TOD source operands. FRD
+uses the declared width. `FRD(-1L,Weighted)` produces 16666666666666665,
+while `FRD(4294967295U,Weighted)` produces 166666665. TOD uses the numeric
+value. `TOD(9007199254740993UL,Packed)` writes the exact pattern
+`16#9007199254740993` to a ULINT destination.
+
+Preflight checks the declared literal range. Reached instructions check TOD's
+destination capacity and FRD's decoded result range. False rungs skip live
+indices, and full writes establish unknown elements. The literal profile is
+limited to decimal integers in these ladder instructions.
+
+Enable `ImmediateConversions` in **Conversion lab** and step. The
+**TypedImmediateConversions** routine writes the packed pattern to
+`ImmediatePacked[1]` and decodes it to `ImmediateDecoded`. Element 0 stays
+unknown and element 2 retains 903. The same routine contrasts floating L/l
+and unsuffixed inputs in [TRN](lreal-truncate.md). The operand references are
+installed v35 help 14454, 14674 and 14675. Native acceptance remains open.
 
 ## Byte orders
 
