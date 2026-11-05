@@ -1079,6 +1079,18 @@
       <Tag Name="CompareLabel" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ComparePrefix" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="CompareCase" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RoundedText" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="StRoundedText" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1140,6 +1152,7 @@
               <Rung Number="19" Type="N"><Text>XIC(CompareStrings)EQU(SourceText,'PART=ABC;STATE=IDLE')OTE(CompareLabel);</Text></Rung>
               <Rung Number="20" Type="N"><Text>XIC(CompareStrings)LES('AB',IndexedSource[CompareStringIndex])OTE(ComparePrefix);</Text></Rung>
               <Rung Number="21" Type="N"><Text>XIC(CompareStrings)NEQ('A','a')OTE(CompareCase);</Text></Rung>
+              <Rung Number="22" Type="N"><Text>XIC(Convert)DTOS(RealSource,RoundedText);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">
@@ -1152,7 +1165,8 @@
               <Line Number="5">UPPER(CaseText,StUppered);</Line>
               <Line Number="6">STOR(NumericText,StParsedReal);</Line>
               <Line Number="7">RTOS(RealSource,StFormattedReal);</Line>
-              <Line Number="8">END_IF;</Line>
+              <Line Number="8">DTOS(RealSource,StRoundedText);</Line>
+              <Line Number="9">END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>

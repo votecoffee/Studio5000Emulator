@@ -339,7 +339,8 @@ watchdogs in microseconds, typed priorities, names and controller settings.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.
-**String lab** demonstrates case conversion, decimal/REAL exchange and
+**String lab** demonstrates case conversion, decimal/REAL exchange,
+[DTOS with REAL tags](docs/string-conversions.md#dtos-with-real-input) and
 [lazy indexed string operands](docs/string-operations.md#operand-selection).
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or
 single-quoted literals and clips the result to the destination capacity.

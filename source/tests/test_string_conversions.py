@@ -82,6 +82,41 @@ class StringConversionTests(unittest.TestCase):
         e=self.checked(['STOR(SourceA,RealDest);']);e.memory.write('SourceA','0.'+'0'*60+'1');e.step()
         self.assertEqual(e.memory.read('RealDest'),0.0)
 
+    def test_dtos_real_rounds_binary32_to_signed_dint_in_ladder_and_st(self):
+        for st in (False, True):
+            e = self.checked(['DTOS(RealSource,Dest);'], st=st)
+            for value, text in ((0.5, '0'), (-0.5, '0'), (2.5, '2'), (3.5, '4'),
+                                (-2.5, '-2'), (-3.5, '-4'), (2.50000001, '2'),
+                                (2.5000003, '3'), (2147483520, '2147483520'),
+                                (-2147483648, '-2147483648')):
+                with self.subTest(st=st, value=value):
+                    e.memory.write('RealSource', value)
+                    e.step()
+                    self.assertEqual(e.memory.string('Dest'), text)
+                    self.assertEqual(e.memory.read('Dest.LEN'), len(text))
+
+    def test_dtos_real_overflow_or_nonfinite_rolls_back(self):
+        for value, pattern in ((2147483648.0, 'DINT overflow'), (-2147483904.0, 'DINT overflow'),
+                               (math.inf, 'finite'), (math.nan, 'finite')):
+            with self.subTest(value=value):
+                e = self.checked(['MOV(77,SpeedCommand);', 'DTOS(RealSource,Dest);'])
+                e.memory.values['realsource'] = value
+                original_speed = e.memory.read('SpeedCommand')
+                with self.assertRaisesRegex(ModelError, pattern):
+                    e.step()
+                self.assertEqual(e.memory.string('Dest'), 'TAIL')
+                self.assertEqual(e.memory.read('SpeedCommand'), original_speed)
+                self.assertEqual((e.scan_count, e.time_ms), (0, 0))
+
+    def test_dtos_real_legacy_profile_remains_blocked_and_integer_input_still_works(self):
+        def older(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+        self.assertTrue(self.engine(['DTOS(RealSource,Dest);'], mutate=older).blockers)
+        for mutate in (None, older):
+            e = self.checked(['DTOS(-123,Dest);'], mutate=mutate)
+            e.step()
+            self.assertEqual(e.memory.string('Dest'), '-123')
+
     def test_rtos_fixed_nine_digit_profile_matches_reference_example(self):
         e=self.checked(['RTOS(RealSource,Dest);']);e.step();self.assertEqual(e.memory.string('Dest'),'15.3001003')
         for value,text in ((2.75,'2.75'),(-2.75,'-2.75'),(0.0,'0'),(-0.0,'-0'),(100.0,'100')):

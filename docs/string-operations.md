@@ -40,7 +40,8 @@ For v35 ControlLogix 5580 (1756-L81E through L85E), ladder CONCAT, MID, DTOS,
 STOD, FIND, INSERT, DELETE, LOWER, UPPER, STOR and RTOS validate declared
 operand shapes, index grammar and destination permissions without consuming
 saved values or dynamic indices. The same preflight covers six direct string
-relations and string-bearing CMP. Existing literal/type restrictions remain.
+relations and string-bearing CMP. See [DTOS with REAL input](string-conversions.md#dtos-with-real-input)
+for its source types.
 Shared call validation is also used by existing ST calls; this adds no ST syntax.
 
 Unknown LEN, active DATA, numeric inputs and dynamic index values can remain
@@ -56,7 +57,7 @@ scalars. Destination permissions, runtime ranges and result capacity still apply
 Aliases, explicit user strings/UDT members and existing AOI InOut/local bindings
 use this selection. Fault rollback restores earlier writes, AOI bindings and
 the modeled advance. AOI call-argument binding retains its separate contract.
-No string algorithms, encoding or native fault/status/lifecycle claims change.
+The software profile uses single-byte strings. Native fault and status handling remains separate.
 
 ## Remaining cases and faults
 

@@ -203,7 +203,7 @@ class Extensions:
                     try:value=literal(ref)
                     except ValueError:continue
                     if value<minimum:raise ModelError('MID requires nonnegative length and a one-based start')
-            elif n=='DTOS':integer(a[0]);text(a[1],True)
+            elif n=='DTOS':string_conversions.dtos_operand(self.memory,a[0],scope);text(a[1],True)
             else:text(a[0]);integer(a[1],True)
         finally:self.memory.structural=previous
         return True
@@ -304,7 +304,12 @@ class Extensions:
             if length<0 or start<1 or start>len(source)+1 or start-1+length>len(source):
                 raise ModelError('MID range exceeds modeled source bounds')
             self.memory.write_string(a[3],source[start-1:start-1+length],scope)
-        elif n=='DTOS':self.memory.write_string(a[1],str(self.integer(a[0],scope)),scope)
+        elif n=='DTOS':
+            if comparisons.available(self.engine.project):
+                text=string_conversions.format_dint(self.memory.read(a[0],scope))
+            else:
+                text=str(self.integer(a[0],scope))
+            self.memory.write_string(a[1],text,scope)
         elif n=='STOD':
             match=re.search(r'-?[0-9]+',self.memory.string(a[0],scope))
             self.memory.write(a[1],int(match[0]) if match else 0,scope)

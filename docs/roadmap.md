@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.182758` [DTOS accepts REAL tags](string-conversions.md#dtos-with-real-input)
+in ladder and ST. String Lab shows how the same input produces rounded integer
+text with DTOS and fractional text with RTOS.
+
 Available in `26.1105.181607` [ladder string comparison literals](string-operations.md#ladder-string-comparison-literals)
 add quoted operands to the six standalone relations. String Lab demonstrates
 case, prefix ordering, and coil rollback after an invalid index.

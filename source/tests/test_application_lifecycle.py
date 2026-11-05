@@ -942,15 +942,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.assertEqual(values[prefix + 'Uppered'], 'ABC 09')
             self.assertEqual(values[prefix + 'ParsedReal'], -12.5)
             self.assertEqual(values[prefix + 'FormattedReal'], '15.3001003')
+            self.assertEqual(values[prefix + 'RoundedText'], '15')
+        self.post('write', {'tag': 'RealSource', 'value': -3.5})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        for prefix in ('', 'St'):
+            self.assertEqual(values[prefix + 'RoundedText'], '-4')
+            self.assertEqual(values[prefix + 'FormattedReal'], '-3.5')
         self.post('write', {'tag': 'Convert', 'value': False})
         self.post('write', {'tag': 'CaseText', 'value': 'new'})
         self.post('write', {'tag': 'NumericText', 'value': 'invalid'})
+        self.post('write', {'tag': 'RealSource', 'value': 2147483648})
         state = self.post('step', {'dt': 10})
         held = {row['name']: row['value'] for row in state['tags']}
-        for name in ('Lowered', 'Uppered', 'ParsedReal', 'FormattedReal', 'StLowered', 'StUppered', 'StParsedReal', 'StFormattedReal'):
-            self.assertEqual(held[name], values[name])
+        for prefix in ('', 'St'):
+            for name in ('Lowered', 'Uppered', 'ParsedReal', 'FormattedReal', 'RoundedText'):
+                self.assertEqual(held[prefix + name], values[prefix + name])
         report = self.post('report', {})['string_conversions']
         self.assertEqual(report['instructions'], ['LOWER', 'RTOS', 'STOR', 'UPPER'])
+        self.assertIn('ties to even', report['dtos_real'])
         self.assertFalse(report['native_formatting_parity'])
 
     def test_control_lab_shifts_and_fifo_edges_through_http(self):

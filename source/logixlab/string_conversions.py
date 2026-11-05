@@ -1,10 +1,11 @@
 """Bounded ASCII case conversion and decimal/REAL conversion in RLL/ST."""
 from decimal import Decimal
+import math
 import re
 
 from .integer_math import CONTROLLERS
-from .model import ModelError, coerce
-from .string_operations import string_operand
+from .model import ModelError, coerce, literal
+from .string_operations import INTEGERS, string_operand
 
 INSTRUCTIONS = frozenset(('LOWER', 'UPPER', 'STOR', 'RTOS'))
 DECIMAL = re.compile(r'-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)')
@@ -16,6 +17,25 @@ def real_operand(memory, ref, scope, *, destination=False):
     key, parts, dtype = (memory.check_writable if destination else memory.resolve)(ref, scope)
     if dtype != 'REAL' or isinstance(memory.at(key, parts), (dict, list, bool)):
         raise ModelError('String/REAL conversion requires a scalar REAL tag')
+
+
+def dtos_operand(memory, ref, scope):
+    try:
+        value = literal(ref)
+    except ValueError:
+        key, parts, dtype = memory.resolve(ref, scope)
+        if dtype not in INTEGERS | {'REAL'} or isinstance(memory.at(key, parts), (dict, list)):
+            raise ModelError('DTOS requires a scalar SINT, INT, DINT or REAL source tag')
+    else:
+        if type(value) is not int:
+            raise ModelError('DTOS immediates require a DINT integer')
+        coerce(value, 'DINT')
+
+
+def format_dint(value):
+    if type(value) is not int and (type(value) is not float or not math.isfinite(value)):
+        raise ModelError('DTOS requires a known finite numeric value')
+    return str(coerce(value, 'DINT'))
 
 
 def validate(memory, op, scope):
@@ -61,6 +81,7 @@ def description():
                 case='ASCII A-Z/a-z only; other single-byte characters and embedded NUL preserved',
                 stor='First signed decimal run; prefix/delimiters skipped, float32 result; no-digit/malformed/exponent input blocked',
                 rtos='Software fixed notation, nine significant digits, finite binary32 round-trip including signed zero',
+                dtos_real='Scalar REAL tag rounds to signed DINT (ties to even) before decimal text formatting',
                 operands='Scalar tags, including aliases, array elements and UDT members; no immediate/expression operands',
                 prescan='No initialization; false rung/skipped ST branch retains destinations',
                 native_formatting_parity=False, native_math_status=False, native_fault_classification=False,

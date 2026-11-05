@@ -10,6 +10,7 @@ from logixlab.model import ModelError
 CALLS=[('CONCAT','CONCAT(TextCells[Index],SourceB,TextResults[Index]);','ABC123ABCXY'),
        ('MID','MID(TextCells[Index],3,1,TextResults[Index]);','ABC'),
        ('DTOS','DTOS(Numbers[Index],TextResults[Index]);','123'),
+       ('DTOS_REAL','DTOS(RealCells[Index],TextResults[Index]);','2'),
        ('STOD','STOD(TextCells[Index],Numbers[Index]);',123),
        ('FIND','FIND(TextCells[Index],Search,1,Numbers[Index]);',1),
        ('INSERT','INSERT(TextCells[Index],SourceB,1,TextResults[Index]);','XYABC123ABC'),
@@ -50,7 +51,7 @@ class StringSelectionTests(unittest.TestCase):
     def snapshot(e):
         return copy.deepcopy((e.memory.values,e.memory.frames,e.memory._resolved,e.addons.instances,e.scan_count,e.time_ms,e.scheduler_description(),e.trace))
 
-    def test_all_eleven_calls_skip_false_indices_require_sources_and_write_unknowns(self):
+    def test_calls_skip_false_indices_require_sources_and_write_unknowns(self):
         for name,text,expected in CALLS:
             with self.subTest(name=name):
                 e=self.checked(['XIC(StartPB)'+text]);e.step();self.assertIsNone(e.memory.read('TextResults')[0]['LEN']);e.memory.write('StartPB',True);before=self.snapshot(e)
@@ -59,7 +60,7 @@ class StringSelectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ModelError,'(?i)unknown'):e.step()
                 self.assertEqual(self.snapshot(e),before)
                 if name=='DTOS':e.memory.write('Numbers[0]',123)
-                elif name=='RTOS':e.memory.write('RealCells[0]',2.5)
+                elif name in ('DTOS_REAL','RTOS'):e.memory.write('RealCells[0]',2.5)
                 else:e.memory.write('TextCells[0]','ABC123ABC')
                 e.step()
                 if isinstance(expected,str):
@@ -155,7 +156,7 @@ class StringSelectionTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.memory.write('Qty',1);e.step();self.assertIsNone(e.memory.read('Second.Work')[2]['LEN'])
 
     def test_static_types_permissions_shapes_literals_and_controller_scope_remain_strict(self):
-        for text in ('CONCAT(TextCells,SourceB,Dest);','MID(SourceA,Qty/2,1,Dest);','DTOS(RealSource,Dest);','STOD(SourceA,RealDest);',
+        for text in ('CONCAT(TextCells,SourceB,Dest);','MID(SourceA,Qty/2,1,Dest);','DTOS(2.5,Dest);','DTOS(RealCells,Dest);','STOD(SourceA,RealDest);',
                      'FIND(SourceA,Search,1,Flags[0]);','LOWER(TextCells[99],Dest);','EQU(SourceA,Result)OTE(RunLatch);','CMP(SourceA=1)OTE(RunLatch);'):
             e=self.engine(['AFI()'+text]);self.assertTrue(e.blockers,text);self.assertFalse(e.memory.structural)
         for text in ('CONCAT(SourceA,SourceB,Dest);','LOWER(SourceA,Dest);','MID(SourceA,3,1,Dest);'):

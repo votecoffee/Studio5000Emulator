@@ -62,6 +62,22 @@ Errors roll back the whole modeled advance, including earlier text/numeric/AOI
 writes, time and scheduler state. Native fault records, continuation, partial
 writes and math/status flags remain separate work.
 
+## DTOS with REAL input
+
+In the v35 ControlLogix 5580 software profile, `DTOS(RealTag,Text)` uses the
+stored binary32 value and rounds to a signed DINT before formatting decimal
+text. Halfway values round to the nearest even integer. For example, 2.5 gives
+`2`, 3.5 gives `4`, and -3.5 gives `-4`. Ladder and ST share the conversion.
+REAL immediates and wider types are outside the supported form. The existing
+SINT/INT/DINT sources and bounded DINT immediates continue to work.
+
+A reached call with an unknown or nonfinite input, DINT overflow, or insufficient
+output capacity rolls back the modeled advance. False ladder rungs and skipped
+ST branches retain the last output. The model uses the documented [DTOS
+conversion](https://www.rockwellautomation.com/en-se/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/ascii-conversion-instructions/dint-to-string-dtos.html)
+and [REAL-to-integer rounding rule](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/elementary-data-types.html).
+Native overflow and math-status behavior remain unverified.
+
 ## String Lab
 
 Select String lab and step once. Convert gates the new ladder calls and the ST
@@ -73,6 +89,7 @@ conversion block; set it false to retain the previous results.
 | CaseText = aBc 09 | Uppered / StUppered = ABC 09 |
 | NumericText = W=-12.5 kg | ParsedReal / StParsedReal = -12.5 |
 | RealSource = 15.3001 | FormattedReal / StFormattedReal = 15.3001003 |
+| RealSource = 15.3001 | RoundedText / StRoundedText = 15 |
 
 Existing FIND/INSERT/DELETE examples remain. See [StringLab.L5X](../source/samples/StringLab.L5X)
 and [string editing](string-operations.md).
