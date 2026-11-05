@@ -33,10 +33,12 @@ project reload restore the imported flag.
 ## Scope and readback
 
 This v35 5580 profile requires an ordinary scheduled Standard caller and
-target. The imported L5X must contain an explicit canonical Disabled boolean
-and a main routine. THIS selects the calling Program. Folders, unscheduled
-Programs, Safety, AOIs and isolated routine harnesses remain outside this
-control profile.
+target. The target needs a main routine and a complete controller export.
+An explicit Disabled value must be the canonical true or false. When the
+attribute is omitted on an ordinary Program, the emulator starts that Program
+enabled, matching its existing scheduler default. THIS selects the calling
+Program. Folders, unscheduled Programs, Safety, AOIs and isolated routine
+harnesses remain outside this control profile.
 
 ## Enabling an imported disabled Program
 
@@ -51,15 +53,18 @@ permitted invocation in the current Run cycle. If activation or a later part
 of the advance faults, the prescan and activation roll back together. The
 original schedule determines when the Program can run.
 
-The existing source-bound, read-only Program protocol byte 19 reflects a
-committed runtime flag. The L5X declaration stays the same. Native write
-services and Studio 5000 acceptance remain separate.
+For Programs with an explicit Disabled value, the existing read-only Program
+protocol byte 19 reflects the committed runtime flag. When the source omits
+Disabled, GSV reports the effective emulator state and byte 19 stays
+unavailable. The L5X declaration stays the same. Native write services and
+Studio 5000 acceptance remain separate.
 
 ## System Lab
 
 Open **System lab** and step 25 ms. Set `ControlFastProgram` for the ladder
 control and `ControlSlowProgram` for the ST control. ST also needs `ReadConfig`,
-which starts enabled. The commands `FastProgramDisable` and
+which starts enabled. SlowProgram omits Disabled and starts enabled in the
+emulator. The commands `FastProgramDisable` and
 `SlowProgramDisable` start at 1. After the controls run, their GSV readbacks
 `LiveFastProgramDisabled` and `LiveSlowProgramDisabled` show 1. On later steps,
 `FastCount` and `SlowCount` stay put while their Tasks keep releasing.

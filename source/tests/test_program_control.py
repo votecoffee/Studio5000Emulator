@@ -243,15 +243,31 @@ class ProgramControlTests(unittest.TestCase):
         self.assertEqual(engine._disabled_programs,{'program1'})
         self.assertEqual(Engine(candidate.project)._disabled_programs,{'program1'})
 
-    def test_missing_noncanonical_unbound_and_wrong_operand_types_are_guarded(self):
+    def test_omitted_flag_starts_enabled_and_supports_ladder_and_st_control(self):
+        def source(root):
+            root.find('./Controller/Programs/Program[2]').attrib.pop('Disabled')
+
+        for st, setter in ((False, 'XIC(Gate)SSV(Program,Program1,DisableFlag,Command);'),
+                           (True, 'IF Gate THEN SSV(Program,Program1,DisableFlag,Command); END_IF;')):
+            with self.subTest(st=st):
+                engine=self.checked([setter,'GSV(Program,Program1,DisableFlag,Readback);'],st=st,mutate=source)
+                engine.step(10)
+                self.assertEqual((engine.memory.read('Readback'),engine.memory.read('Count1')),(0,1))
+                engine.memory.write('Gate',True);engine.memory.write('Command',-1)
+                engine.step(10)
+                self.assertEqual((engine.memory.read('Readback'),engine.memory.read('Count1')),(1,1))
+                self.assertEqual(engine.program_disable_attributes('Program1',source_sha256=engine.project.sha256),{})
+                fresh=Engine(engine.project);fresh.step(10)
+                self.assertEqual((fresh.memory.read('Readback'),fresh.memory.read('Count1')),(0,1))
+                engine.memory.write('Command',0);engine.step(10)
+                self.assertEqual((engine.memory.read('Readback'),engine.memory.read('Count1'),
+                                  engine.memory.read('First1')),(0,2,2))
+
+    def test_noncanonical_unbound_and_wrong_operand_types_are_guarded(self):
         setter = ['SSV(Program,Program1,DisableFlag,Command);']
-        for value in ('False', 'True', None):
+        for value in ('False', 'True', '', '0'):
             def source(root):
-                program = root.find('./Controller/Programs/Program[2]')
-                if value is None:
-                    program.attrib.pop('Disabled')
-                else:
-                    program.set('Disabled', value)
+                root.find('./Controller/Programs/Program[2]').set('Disabled',value)
             self.assertTrue(self.engine(setter,mutate=source).blockers, value)
         for line in ('SSV(Program,Program1,DisableFlag,WideReadback);',
                      'SSV(Program,Program1,DisableFlag,1);',

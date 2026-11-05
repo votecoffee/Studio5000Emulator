@@ -167,13 +167,15 @@ class ProgramConfigurationTests(unittest.TestCase):
         self.assertTrue(config.source_complete)
         self.assertEqual(config.attributes('MainProgram',source_sha256=SOURCE_HASH),{19:b'\0'})
         self.assertEqual(config.attributes('DISABLEDPROGRAM',source_sha256=SOURCE_HASH),{19:b'\1'})
+        self.assertIs(config.execution_disabled('MainProgram',source_sha256=SOURCE_HASH),False)
+        self.assertIs(config.execution_disabled('DISABLEDPROGRAM',source_sha256=SOURCE_HASH),True)
         self.assertEqual(config.attributes('MissingProgram',source_sha256=SOURCE_HASH),{})
         self.assertEqual(config.attributes(None,source_sha256=SOURCE_HASH),{})
         self.assertEqual(config.description()['programs_available'],2)
         self.assertEqual(config.description()['programs_unavailable'],0)
         self.assertFalse(config.description()['native_writes'])
 
-    def test_missing_malformed_noncanonical_or_unsupported_disabled_values_are_unavailable(self):
+    def test_omission_defaults_for_execution_but_other_invalid_values_remain_unavailable(self):
         for value in (None,'','0','1','TRUE','FALSE','True','false ',' true','enabled','0x00'):
             root,controller = source();program = controller.find('./Programs/Program')
             if value is None:program.attrib.pop('Disabled')
@@ -183,6 +185,9 @@ class ProgramConfigurationTests(unittest.TestCase):
                 self.assertTrue(config.source_complete)
                 self.assertEqual(config.attributes('MainProgram',source_sha256=SOURCE_HASH),{})
                 self.assertEqual(config.description()['programs_unavailable'],1)
+                self.assertIs(config.execution_disabled('MainProgram',source_sha256=SOURCE_HASH),
+                              False if value is None else None)
+                self.assertIsNone(config.execution_disabled('MainProgram',source_sha256='0'*64))
 
     def test_incomplete_context_nested_duplicate_and_noncanonical_scope_never_supply_a_value(self):
         for kind in ('context','partial','use','namespace','duplicate','duplicate-case','nested','missing-name','wrong-name','alias','class-alias'):
@@ -203,6 +208,7 @@ class ProgramConfigurationTests(unittest.TestCase):
                 config=ProgramConfiguration.from_source(root,controller,SOURCE_HASH)
                 self.assertFalse(config.source_complete)
                 self.assertEqual(config.attributes('MainProgram',source_sha256=SOURCE_HASH),{})
+                self.assertIsNone(config.execution_disabled('MainProgram',source_sha256=SOURCE_HASH))
 
     def test_safety_unknown_class_and_wrong_major_revision_do_not_expose_standard_fields(self):
         for value in ('Safety','Unknown'):

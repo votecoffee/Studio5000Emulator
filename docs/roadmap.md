@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.151815` [Program DisableFlag](program-disable.md#scope-and-readback)
+uses the existing enabled runtime default when an ordinary Program omits
+Disabled. Protocol byte 19 still requires explicit source data.
+
 Available in `26.1105.150822` [activation of imported disabled Programs](program-disable.md#enabling-an-imported-disabled-program)
 supports explicitly referenced scheduled targets. Prescan waits for the first
 enabled invocation and rolls back with it. System Lab includes StandbyProgram.

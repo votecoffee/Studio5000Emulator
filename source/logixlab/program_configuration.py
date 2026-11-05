@@ -1,9 +1,9 @@
 """Source-backed Program settings for complete v35 controller exports.
 
 The installed plain v35 Program ADF defines attribute 19 as one BITS8 value.
-Only an explicit canonical Program@Disabled boolean supplies that byte. This
-reader does not infer an enabled program from a missing or malformed field,
-change execution state, or provide native online-edit write authority.
+Only an explicit canonical Program@Disabled boolean supplies that byte.
+The emulator's separate execution lookup treats an ordinary omission as
+enabled. A malformed field remains unavailable.
 Attribute 30 is the separate one-byte Program Type; ordinary user Programs
 are 1, without inferring phase/sequence kinds or making Disable available.
 """
@@ -48,6 +48,7 @@ class ProgramConfiguration:
     _synchronize: Mapping[str, bool] = field(default_factory=dict, repr=False)
     _can_schedule: Mapping[str, bool] = field(default_factory=dict, repr=False)
     _synchronize_defaulted: frozenset[str] = field(default_factory=frozenset, repr=False)
+    _disable_omitted: frozenset[str] = field(default_factory=frozenset, repr=False)
 
     def __post_init__(self):
         if not isinstance(self.source_sha256, str) or not SHA256.fullmatch(self.source_sha256):
@@ -78,6 +79,11 @@ class ProgramConfiguration:
                 any(name not in self._synchronize or self._synchronize[name] is not True for name in defaults)):
             raise ValueError('Invalid defaulted Program synchronization inventory')
         object.__setattr__(self,'_synchronize_defaulted',frozenset(defaults))
+        omitted = self._disable_omitted
+        if (not isinstance(omitted, (set, frozenset))
+                or any(name not in ordinary or name in rows for name in omitted)):
+            raise ValueError('Invalid omitted Program Disabled inventory')
+        object.__setattr__(self, '_disable_omitted', frozenset(omitted))
 
     @classmethod
     def from_source(cls, root, controller, source_sha256):
@@ -92,7 +98,7 @@ class ProgramConfiguration:
         if (any(not isinstance(name, str) or not NAME.fullmatch(name) for name in names)
                 or len({name.casefold() for name in names}) != len(names)):
             return unavailable
-        values = {};ordinary = set();synchronize={};can_schedule={};defaulted=set()
+        values = {};ordinary = set();synchronize={};can_schedule={};defaulted=set();omitted=set()
         model_default=_nonredundant_l85e(controller)
         for name, program in zip(names, programs):
             fields = ('Name', 'Class', 'Disabled')
@@ -111,6 +117,7 @@ class ProgramConfiguration:
             if (not program.attrib.keys()-ORDINARY_ATTRIBUTES and program.get('Type') in (None,'Normal')
                     and all(child.tag in ('Description','Tags','Routines','ChildPrograms') for child in program)):
                 ordinary.add(name.casefold())
+                if 'Disabled' not in program.attrib:omitted.add(name.casefold())
                 value=program.get('SynchronizeRedundancyDataAfterExecution')
                 if value in ('true','false'):synchronize[name.casefold()]=value=='true'
                 elif value is None and model_default and program.get('UseAsFolder')=='false':
@@ -124,7 +131,8 @@ class ProgramConfiguration:
             if value not in ('true', 'false'):
                 continue
             values[name.casefold()] = value == 'true'
-        return cls(source_sha256, True, values, len(programs) - len(values), frozenset(ordinary),synchronize,can_schedule,frozenset(defaulted))
+        return cls(source_sha256, True, values, len(programs) - len(values), frozenset(ordinary),
+                   synchronize,can_schedule,frozenset(defaulted),_disable_omitted=frozenset(omitted))
 
     def attributes(self, program, *, source_sha256):
         if source_sha256 != self.source_sha256 or not isinstance(program, str):
@@ -133,6 +141,15 @@ class ProgramConfiguration:
         if not self.source_complete or name not in self._disabled:
             return {}
         return {ATTRIBUTE: bytes((int(self._disabled[name]),))}
+
+    def execution_disabled(self, program, *, source_sha256):
+        """Source flag or enabled model default for an ordinary Program."""
+        if not self.type_attributes(program, source_sha256=source_sha256):
+            return None
+        name = program.casefold()
+        if name in self._disable_omitted:
+            return False
+        return self._disabled.get(name)
 
     def description(self):
         return {'source_complete': self.source_complete, 'attributes': [ATTRIBUTE,26,29,30,31],

@@ -44,6 +44,28 @@ class ProgramMetadataWireTests(unittest.TestCase):
         self.assertEqual(self.signed(7,get),bytes.fromhex('8e00000001'))
         self.assertEqual(engine.project.program_configuration.attributes('MainProgram',source_sha256=digest),{19:b'\0'})
 
+    def test_omitted_disable_is_runtime_only_before_and_after_an_ssv(self):
+        root=E.parse(self.app.engine.project.path).getroot()
+        program=root.find('./Controller/Programs/Program');program.attrib.pop('Disabled')
+        tags=root.find('./Controller/Tags')
+        for name,value in (('DisableCommand','1'),('DisableReadback','-1')):
+            tag=E.SubElement(tags,'Tag',Name=name,DataType='SINT',TagType='Base')
+            E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='SINT',Value=value)
+        content=program.find(f"./Routines/Routine[@Name='{program.get('MainRoutineName')}']/RLLContent")
+        content.clear()
+        for index,text in enumerate(('SSV(Program,THIS,DisableFlag,DisableCommand);',
+                                     'GSV(Program,THIS,DisableFlag,DisableReadback);')):
+            E.SubElement(E.SubElement(content,'Rung',Number=str(index),Type='N'),'Text').text=text
+        self.app.command('load',{'name':'omitted-disable.L5X','content':base64.b64encode(E.tostring(root)).decode()})
+        self.client.close();self.client=Client(self.endpoint.port);self.client.register();self.prepare()
+        engine=self.app.engine;digest=engine.project.sha256
+        self.app.native_symbols=NativeSymbols('a'*64,digest,[],[{'name':'MainProgram','instance':26038}])
+        get=bytes.fromhex('0e0420682500b6653013')
+        self.assertEqual(self.signed(4,get)[2],20)
+        engine.step()
+        self.assertEqual(engine.memory.read('DisableReadback'),1)
+        self.assertEqual(self.signed(5,get)[2],20)
+
     def test_imported_disabled_attribute_reads_zero_after_ladder_enables_it(self):
         root=E.parse(self.app.engine.project.path).getroot()
         programs=root.find('./Controller/Programs');caller=programs[0]

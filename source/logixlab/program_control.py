@@ -33,15 +33,11 @@ def matches(op):
 
 def source_flag(project, name):
     program = project.programs.get(name)
-    config = project.program_configuration
     if (not program or program['class'] != 'Standard' or program['use_as_folder']
-            or not program['main'] or f"{name}/{program['main']}".lower() not in project.routines
-            or not config.type_attributes(name, source_sha256=project.sha256)):
+            or not program['main'] or f"{name}/{program['main']}".lower() not in project.routines):
         return None
-    raw = config.attributes(name, source_sha256=project.sha256).get(ATTRIBUTE)
-    if raw == bytes((int(program['disabled']),)):
-        return program['disabled']
-    return None
+    disabled = project.program_configuration.execution_disabled(name, source_sha256=project.sha256)
+    return disabled if disabled is program['disabled'] else None
 
 
 def activation_routines(project):
@@ -88,7 +84,7 @@ def target(engine, op, scope, *, executing=False):
             return key, disabled
         if op.name == 'GSV' and disabled and any(name in task['programs'] for task in project.tasks):
             return key, True
-    raise ModelError('Program DisableFlag requires a scheduled ordinary Standard Program with a main routine and explicit Disabled')
+    raise ModelError('Program DisableFlag requires a scheduled ordinary Standard Program with a main routine and a canonical or omitted Disabled flag')
 
 
 def operand(memory, op, scope):
@@ -153,10 +149,11 @@ def description(engine):
         disabled_programs=[name for name in engine.project.programs if name.casefold() in engine._disabled_programs],
         activatable_imported_programs=[name for name in engine.project.programs if name.casefold() in engine._program_activation],
         languages=['RLL', 'ST'],
-        source='Scheduled ordinary Standard Program with a main and explicit Disabled. Named SSV plans imported-disabled targets.',
+        source='Scheduled ordinary Standard Program with a main. An omitted Disabled flag starts enabled in the emulator. Named SSV plans imported-disabled targets.',
         activation='Imported-disabled Programs remain dormant until enabled. Prescan precedes their first permitted execution in the Run cycle.',
         operand='SSV SINT: zero enables, nonzero disables. GSV SINT/DINT returns 0 or 1.',
         effect='Active invocation completes. Later entries check the live flag. Re-enable marks the next invocation first-scan.',
         lifecycle='Run entry and detached routine replacement retain the flag. Reset and reload restore source.',
-        native_attribute=ATTRIBUTE, native_writes=False, native_runtime_parity=False,
+        native_attribute=ATTRIBUTE, native_attribute_requires_explicit_source=True,
+        native_writes=False, native_runtime_parity=False,
     )

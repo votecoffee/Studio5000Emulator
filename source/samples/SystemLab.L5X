@@ -725,7 +725,7 @@
           </Routine>
         </Routines>
       </Program>
-      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard" Disabled="false">
+      <Program Name="SlowProgram" MainRoutineName="Main" Class="Standard">
         <Tags />
         <Routines>
           <Routine Name="Main" Type="RLL">
