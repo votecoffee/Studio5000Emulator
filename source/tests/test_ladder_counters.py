@@ -124,12 +124,51 @@ class LadderCounterTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('CounterCells[0].ACC'),1);self.assertFalse(e.memory.read('CounterCells[0].OV'))
 
     def test_static_type_shape_operands_and_counter_prescan_indices_stay_strict(self):
-        for text in ('CTU(TimerCells[0],?,?);','CTD(CounterCells,?,?);','RES(CounterCells[99]);','RES(StartPB);','CTU(CounterCells[0],1,2);'):
+        for text in ('CTU(TimerCells[0],?,?);','CTD(CounterCells,?,?);','RES(CounterCells[99]);','RES(StartPB);','CTU(CounterCells[Index],1,2);'):
             e=self.engine(['AFI()'+text]);self.assertTrue(e.blockers,text);self.assertFalse(e.memory.structural)
         e=self.engine(['AFI()CTU(CounterCells[ResetIndex],?,?);']);self.assertTrue(any('Prescan' in b and 'outside bounds' in b for b in e.blockers))
         def older(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(['AFI()RES(CounterCells[ResetIndex]);'],older).blockers)
         report=self.checked(['AFI()RES(CounterCells[ResetIndex]);']).report()['ladder_counters'];self.assertEqual(report['instructions'],['CTU','CTD','RES']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_signed_counter_initializers_feed_normal_edges_without_reapplication(self):
+        for op, delta in (('CTU', 1), ('CTD', -1)):
+            with self.subTest(op=op):
+                engine = self.checked([f'XIC(StartPB){op}(CounterCells[0],-2,-4);'])
+                self.assertEqual((engine.memory.read('CounterCells[0].PRE'), engine.memory.read('CounterCells[0].ACC')), (-2, -4))
+                engine.step()
+                engine.memory.write('CounterCells[0].PRE', -3)
+                engine.memory.write('StartPB', True)
+                engine.step()
+                engine.step()
+                self.assertEqual((engine.memory.read('CounterCells[0].PRE'), engine.memory.read('CounterCells[0].ACC')), (-3, -4 + delta))
+
+    def test_counter_placeholder_preserves_saved_preset_and_can_establish_unknown_acc(self):
+        engine = self.checked(['AFI()CTU(CounterCells[0],?,-2147483648);'])
+        engine.step()
+        self.assertEqual(engine.memory.read('CounterCells[0].PRE'), 3)
+        self.assertEqual(engine.memory.read('CounterCells[0].ACC'), -2147483648)
+        self.assertFalse(engine.memory.read('CounterCells[0].DN'))
+
+    def test_counter_literal_target_requires_a_direct_writable_record(self):
+        def alias(root):
+            E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Selected', TagType='Alias',
+                         AliasFor='CounterCells[0]', DataType='COUNTER')
+        def constant(root):
+            root.find('./Controller/Tags/Tag[@Name="CounterCells"]').set('Constant', 'true')
+        def older(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+        for text, change in (
+            ('AFI()CTU(Selected,1,0);', alias),
+            ('AFI()CTU(CounterCells[0],1,0);', constant),
+            ('AFI()CTU(CounterCells[0],1,0);', older),
+            ('AFI()CTD(CounterCells[99],1,0);', None),
+            ('AFI()CTU(CounterCells[0],1,-2147483649);', None),
+        ):
+            with self.subTest(text=text, change=change):
+                engine = self.engine([text], change)
+                self.assertTrue(engine.blockers)
+                self.assertEqual(engine.project.initial['countercells'][0]['PRE'], 3)
 
 
 if __name__=='__main__':unittest.main()

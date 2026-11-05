@@ -136,6 +136,27 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="LiteralPresets" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LiteralInput" TagType="Base" DataType="BOOL">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="LiteralRetained" TagType="Base" DataType="TIMER">
+        <Data Format="Decorated">
+          <Structure DataType="TIMER">
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="LiteralCount" TagType="Base" DataType="COUNTER">
+        <Data Format="Decorated">
+          <Structure DataType="COUNTER">
+            <DataValueMember Name="PRE" DataType="DINT" Value="99" />
+            <DataValueMember Name="ACC" DataType="DINT" Value="99" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -166,6 +187,9 @@
               <Line Number="20">IF LadderTimers THEN</Line>
               <Line Number="21">    JSR(LadderTiming,0);</Line>
               <Line Number="22">END_IF;</Line>
+              <Line Number="23">IF LiteralPresets THEN</Line>
+              <Line Number="24">    JSR(LiteralPresetDemo,0);</Line>
+              <Line Number="25">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="LadderTiming" Type="RLL">
@@ -187,6 +211,16 @@
               </Rung>
               <Rung Number="5" Type="N">
                 <Text>XIC(TimerEnable)RTO(LadderRetained,?,?);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="LiteralPresetDemo" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(LiteralInput)RTO(LiteralRetained,50,10);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
+                <Text>XIC(LiteralInput)CTU(LiteralCount,4,-1);</Text>
               </Rung>
             </RLLContent>
           </Routine>

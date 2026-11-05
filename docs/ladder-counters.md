@@ -15,6 +15,10 @@ InOut bindings. COUNTER and TIMER retain their logical member schemas; this
 does not qualify native packed layouts. See [runtime.py](../source/logixlab/runtime.py)
 and [checks](../source/tests/test_ladder_counters.py).
 
+Imported Standard ladder CTU/CTD can use signed decimal DINT
+[PRE/ACC initializers](ladder-timers.md#literal-presets-on-import).
+Counting uses the live members after initialization.
+
 ## Counting and unknown values
 
 Each reached CTU/CTD requires known signed DINT PRE and ACC, including a false

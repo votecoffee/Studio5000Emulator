@@ -5,6 +5,7 @@ from xml.etree import ElementTree as E
 
 import test_runtime as fixtures
 from logixlab.model import ModelError
+from logixlab.runtime import Engine
 
 
 class LadderTimerTests(unittest.TestCase):
@@ -129,7 +130,7 @@ class LadderTimerTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',False);e.step();self.assertEqual(e.memory.read('First.LocalTimer.ACC'),20);self.assertEqual(e.memory.read('TimerCells[1].ACC'),0)
 
     def test_static_types_permissions_operands_prescan_indices_and_profile_stay_bounded(self):
-        for text in ('TON(Parts,?,?);','RTO(TimerCells,?,?);','TOF(TimerCells[99],?,?);','TON(TimerCells[0],1,2);'):
+        for text in ('TON(Parts,?,?);','RTO(TimerCells,?,?);','TOF(TimerCells[99],?,?);','TON(TimerCells[Index],1,2);'):
             e=self.engine(['AFI()'+text]);self.assertTrue(e.blockers,text);self.assertFalse(e.memory.structural)
         for op in ('TON','TOF','RTO'):
             def constant(root):root.find('./Controller/Tags/Tag[@Name="TimerCells"]').set('Constant','true')
@@ -138,6 +139,61 @@ class LadderTimerTests(unittest.TestCase):
         def older(root):root.find('Controller').set('ProcessorType','1756-L75')
         e=self.engine(['AFI()TON(TimerCells[1],?,?);'],older);self.assertEqual(e.blockers,[]);self.assertFalse(e.report()['ladder_timers']['available'])
         report=self.checked(['AFI()RTO(TimerCells[0],?,?);']).report()['ladder_timers'];self.assertEqual(report['instructions'],['TON','TOF','RTO']);self.assertFalse(report['native_runtime_parity'])
+
+    def test_literal_timer_values_seed_a_fresh_image_and_live_members_keep_changing(self):
+        text = 'XIC(StartPB)RTO(TimerCells[1],60,7);'
+        engine = self.checked([text])
+        self.assertEqual(engine.project.routines['mainprogram/mainroutine'].rungs[0]['text'], text)
+        self.assertEqual(engine.memory.read('TimerCells[1].PRE'), 60)
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 7)
+        engine.memory.write('TimerCells[1].PRE', 80)
+        engine.memory.write('TimerCells[1].ACC', 11)
+        engine.enter_run()
+        engine.step()
+        engine.memory.write('StartPB', True)
+        engine.step()
+        engine.step()
+        self.assertEqual((engine.memory.read('TimerCells[1].PRE'), engine.memory.read('TimerCells[1].ACC')), (80, 21))
+        reset = Engine(engine.project)
+        self.assertEqual((reset.memory.read('TimerCells[1].PRE'), reset.memory.read('TimerCells[1].ACC')), (60, 7))
+
+    def test_timer_initializers_combine_with_saved_fields_and_prescan(self):
+        engine = self.checked([
+            'AFI()RTO(TimerCells[0],?,11);',
+            'AFI()RTO(TimerCells[0],+45,?);',
+            'AFI()RTO(TimerCells[0],45,?);',
+            'AFI()TON(TimerCells[1],?,12);',
+        ])
+        self.assertEqual((engine.memory.read('TimerCells[0].PRE'), engine.memory.read('TimerCells[0].ACC')), (45, 11))
+        self.assertEqual(engine.project.initial['timercells'][1]['ACC'], 12)
+        self.assertEqual((engine.memory.read('TimerCells[1].PRE'), engine.memory.read('TimerCells[1].ACC')), (20, 0))
+
+    def test_conflicting_initializers_leave_all_saved_values_intact(self):
+        engine = self.engine([
+            'AFI()RTO(TimerCells[0],35,11);',
+            'AFI()RTO(TimerCells[1],40,12);',
+            'AFI()RTO(timercells[1],41,?);',
+        ])
+        self.assertTrue(any('Conflicting PRE initializers' in item for item in engine.blockers))
+        self.assertEqual([row['PRE'] for row in engine.project.initial['timercells'][:2]], [20, 20])
+        self.assertEqual([row['ACC'] for row in engine.project.initial['timercells'][:2]], [7, 0])
+
+    def test_invalid_literal_initializers_and_runtime_edit_candidates_are_rejected(self):
+        from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
+
+        for token in ('-1', '2147483648', '2.0', '16#FF', 'Index'):
+            with self.subTest(token=token):
+                engine = self.engine([f'AFI()TOF(TimerCells[1],{token},0);'])
+                self.assertTrue(engine.blockers)
+                self.assertEqual(engine.project.initial['timercells'][1]['PRE'], 20)
+        engine = self.checked(['AFI()RTO(TimerCells[1],30,4);'])
+        before = self.snapshot(engine)
+        text = 'AFI()RTO(TimerCells[1],45,9);'
+        source = RoutineSource('MainRoutine', (SourceRung(0, text),), 0, '', 0, '')
+        with self.assertRaisesRegex(SourceError, 'execution_plan_unsupported'):
+            validate_plan(source, (text,), engine.project, 'MainProgram')
+        self.assertEqual(self.snapshot(engine), before)
+        self.assertEqual(engine.project.initial['timercells'][1]['PRE'], 30)
 
 
 if __name__=='__main__':unittest.main()

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.084258` [literal timer and counter initialization](ladder-timers.md#literal-presets-on-import)
+seeds PRE/ACC for directly addressed records on Standard ladder import. Timer
+lab demonstrates a retained timer seed and a signed counter seed.
+
 Available in `26.1105.082615`: [wide integer SQR and XPY](math-operations.md#wide-integer-roots-and-powers).
 Integer-only calls with a LINT or unsigned operand preserve exact input
 values, check the result range and reject oversized powers before evaluation.

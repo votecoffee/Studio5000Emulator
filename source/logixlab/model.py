@@ -433,6 +433,8 @@ class Project:
                                "programs": [p.get("Name") for p in t.findall("./ScheduledPrograms/ScheduledProgram")]})
             if self.tasks[-1]["type"]=="Event":self.tasks[-1]["event"]=event_specification(t)
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
+        from .pseudo_operands import initialize_timer_counter_operands
+        initialize_timer_counter_operands(self)
 
     def _routine(self,r,scope,count=True):
         routine=Routine(scope,r.get('Name',''),r.get('Type','unknown'))

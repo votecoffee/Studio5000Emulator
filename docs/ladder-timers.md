@@ -14,6 +14,26 @@ RTO(Timer,?,?);
 See [runtime.py](../source/logixlab/runtime.py) and
 [checks](../source/tests/test_ladder_timers.py).
 
+## Literal presets on import
+
+The v35 5580 profile accepts decimal DINT PRE and ACC initializers on TON, TOF,
+RTO, CTU and CTD in imported Standard ladder routines. Each `?` keeps its
+corresponding saved member. TIMER initializers must be nonnegative and COUNTER
+initializers can be signed. The target must resolve to one directly addressed
+writable record, such as a base tag, a statically selected array element or a
+UDT member. AOI bodies, aliases, computed indices and live routine edits still
+use the existing neutral-text profile.
+
+A fresh emulator image applies the literals once. Scans and Run transitions use
+the live members. Ordinary prescan still clears TON/TOF ACC and preserves RTO
+ACC. Recreating the initial image reapplies the initializers. Identical values
+for the same member can share a backing record. Conflicting values block the
+project and preserve the saved image, since L5X routine order does not establish
+which value was last edited in Studio.
+
+Rockwell documents download-time initialization in installed v35 help 454960
+and its [pseudo-operand initialization reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/pseudo-operand-initialization.html).
+
 ## Consumed values
 
 Every reached call requires known nonnegative DINT PRE and ACC. This retains
@@ -79,6 +99,11 @@ To try pause/resume, raise LadderRetained.PRE, clear its DN to resume, then set
 DN true to pause. Disabling LadderTimers skips its routine and retains fields.
 Enabling the initially retained timer without establishing DN reports an
 explicit unknown-history fault and rolls back the scan; initialize it and retry.
+For explicit initializers, enable LiteralPresets and step with LiteralInput
+false. Set LiteralInput true and step twice at 10 ms. LiteralRetained starts
+at PRE=50 and ACC=10, then reaches ACC=20. LiteralCount starts at PRE=4 and
+ACC=-1, increments to zero on the rising edge and holds. Changing either live
+PRE persists across steps. Reset restores the imported values.
 See [TimerLab.L5X](../source/samples/TimerLab.L5X).
 
 The reference basis is installed Logix Designer v35 help 14742 (TON), 14744
