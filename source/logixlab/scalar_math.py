@@ -5,6 +5,7 @@ import operator
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile, typed_integer, pattern_width, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
+from .numeric_storage import floating_math_profile, lreal_math_source, write_lreal_math_result
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
@@ -22,10 +23,9 @@ def validate(engine, op, scope):
     previous = memory.structural
     memory.structural = True
     try:
-        if op.name in ARITHMETIC and memory.check_writable(op.args[-1],scope)[2] in ('REAL','LREAL'):
-            arithmetic_profile(engine,op,scope)
-            return True
-        if op.name in ARITHMETIC and typed_profile(engine,op,scope,arithmetic=True):return True
+        if op.name in ARITHMETIC:
+            if floating_math_profile(memory, op, scope) or typed_profile(engine, op, scope, arithmetic=True):
+                return True
         if op.name in BITWISE and any(typed_integer(ref) is not None for ref in op.args[:-1]):
             bitwise_specification(engine,op,scope)
             return True
@@ -45,25 +45,8 @@ def validate(engine, op, scope):
     return True
 
 
-def lreal_profile(types, constants, *, arithmetic=False, ordering=False):
-    """Select binary64 for LREAL results or actual LREAL comparison inputs."""
-    if 'LREAL' not in types:return None
-    for value in constants:
-        if type(value) is not int or not -(1 << 31) <= value < 1 << 31:
-            raise ModelError('LREAL ladder constants require signed DINT integer literals')
-    numeric=all(dtype in {None,*INT_BITS,'REAL','LREAL'} for dtype in types)
-    if ordering and numeric:
-        return 'LREAL'
-    if arithmetic and types[-1]=='LREAL' and numeric:
-        return 'LREAL'
-    if constants or set(types)!={'LREAL'}:
-        raise ModelError('LREAL operations require qualified scalar numeric operands; arithmetic requires a LREAL destination')
-    return 'LREAL'
-
-
 def execute_lreal(engine,op,scope):
     memory=engine.memory
-    from .numeric_storage import lreal_math_source
     values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
     a=values[0]
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
@@ -71,20 +54,8 @@ def execute_lreal(engine,op,scope):
         b=values[1]
         if op.name in ('DIV','MOD') and b==0:raise ModelError(op.name+' LREAL divide by zero')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
-    memory.write(op.args[-1],coerce(result,'LREAL'),scope)
+    write_lreal_math_result(memory, op.args[-1], result, scope)
     return True
-
-
-def real_profile(types, constants):
-    """A REAL result selects finite float32 inputs without LREAL narrowing."""
-    if types[-1]!='REAL':return None
-    if any(dtype not in {None,*INT_BITS,'REAL'} for dtype in types):
-        raise ModelError('REAL result math requires scalar integer/REAL sources')
-    for value in constants:
-        if type(value) is int:coerce(value,'DINT')
-        elif type(value) is not float:raise ModelError('REAL math constants require numeric literals')
-        real(value)
-    return 'REAL'
 
 
 def execute_real(engine,op,scope):
@@ -110,12 +81,9 @@ def arithmetic_profile(engine, op, scope):
     """
     if op.name not in ARITHMETIC or not available(engine.project):
         return profile(engine, op, scope)
-    if engine.memory.check_writable(op.args[-1],scope)[2]=='LREAL':
-        from .numeric_storage import lreal_math_sources
-        return lreal_math_sources(engine.memory,op,scope)
-    if engine.memory.check_writable(op.args[-1],scope)[2]=='REAL':
-        from .numeric_storage import real_math_sources
-        return real_math_sources(engine.memory,op,scope)
+    floating = floating_math_profile(engine.memory, op, scope)
+    if floating:
+        return floating
     typed=typed_profile(engine,op,scope,arithmetic=True)
     if typed:return typed
     types, constants = [], []
@@ -123,10 +91,6 @@ def arithmetic_profile(engine, op, scope):
         try:value = literal(ref)
         except ValueError:types.append(engine.memory.resolve(ref, scope)[2])
         else:types.append(None);constants.append(value)
-    lreal=lreal_profile(types,constants,arithmetic=True)
-    if lreal:return lreal
-    single=real_profile(types,constants)
-    if single:return single
     declared = set(types) - {None}
     if not declared & WIDE_TYPES or len(declared) == 1:
         return profile(engine, op, scope)
@@ -224,8 +188,11 @@ def description(project):
                     scope='RLL v35 5580 only; bitwise/MEQ, floating sources, other results/consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
-                    operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants with a LREAL destination; no LREAL source is required',
+                    operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants; no LREAL source is required when the destination is LREAL',
                     selection_by_destination='The scalar LREAL result selects binary64 inputs and calculation, including constant-only calls and NEG/ABS',
+                    selection_by_source='An LREAL tag or floating L/l constant also selects binary64, including with REAL or integer results',
+                    destination_types=sorted({*INT_BITS, 'REAL', 'LREAL'}),
+                    result_conversion='Convert the finite binary64 result to the declared destination once; integer destinations round ties to even and require range',
                     constants='Bounded DINT, finite REAL, decimal L/U/UL integers and finite floating L/l LREAL; declared precision checked before binary64 promotion; existing radix must fit signed DINT',
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
@@ -234,9 +201,9 @@ def description(project):
                     native_runtime_parity=False),
                 real_arithmetic=dict(instructions=sorted(ARITHMETIC),source_types=sorted({*INT_BITS,'REAL'}),
                     destination='Scalar REAL tag; no REAL source is required; constant-only calls execute',
-                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared integer range checked before float32 conversion; LREAL source narrowing remains excluded',
+                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared integer range checked before float32 conversion',
                     calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
-                    boundaries='LREAL sources, integer-result conversions and other consumer profiles remain separate',
+                    boundaries='LREAL inputs select binary64 before final REAL conversion',
                     native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',

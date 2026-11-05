@@ -119,7 +119,7 @@ class LrealDestinationMathTests(unittest.TestCase):
         for name in EXPECTED:
             for token in ('TRUE','1e309L','1e39','2147483648','1LU','Inputs','RunLatch'):
                 self.assertTrue(self.engine([f'AFI(){name}(Source,{token},Dest);']).blockers,(name,token))
-        for call in ('ADD(Source,1,SpeedCommand);','XPY(Source,2,SpeedCommand);'):
+        for call in ('ADD(Source,1,RunLatch);','XPY(Source,2,RunLatch);'):
             self.assertTrue(self.engine([call],source='LREAL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['ADD(1,2,Results[1]);'],mutate=constant).blockers)

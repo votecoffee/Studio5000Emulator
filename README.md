@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1105.073842`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1105.075557`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -32,6 +32,10 @@ Development is maintained on `main`.
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
+
+**LREAL inputs** select binary64 calculation in nineteen ladder math forms
+with REAL or integer results. In **Wide expression lab**, enable
+`Binary64ResultEnabled` and step. See [REAL and integer results](docs/lreal-math-literals.md#real-and-integer-results).
 
 **Typed conversion constants** work in FRD, TOD and TRN. In **Conversion lab**,
 enable `ImmediateConversions` and step to see a 16-digit BCD round trip and

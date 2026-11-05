@@ -17,14 +17,14 @@ ACS(Source,Dest);
 ATN(Source,Dest);
 ```
 
-With a [REAL destination](real-destination-math.md), sources may be any of the
-eight integer tag types or REAL. Integer destinations retain scalar
-SINT/INT/DINT/REAL source rules. Integer immediates must fit signed DINT; floating
-immediates must convert to finite REAL. Existing array elements,
-indirect indices, UDT members, aliases and supported AOI local/Output/InOut
-bindings are available. Whole aggregates, BOOL/bit targets, constants,
-wide/unsigned integer results and LREAL source narrowing remain unqualified. [Matching-tag LREAL forms](lreal-advanced.md)
-use a separate finite binary64 profile without changing the narrow conversions.
+With a [REAL destination](real-destination-math.md), integer and REAL sources
+use float32 calculation. An LREAL input or result selects the
+[binary64 profile](lreal-math-literals.md#real-and-integer-results), which
+converts the finite result to the declared REAL, LREAL or integer destination.
+Integer destinations with only narrow inputs retain scalar SINT/INT/DINT/REAL
+source rules. Untyped immediates keep bounded DINT and finite REAL precision.
+Array elements, indirect indices, UDT members, aliases and supported AOI
+local/Output/InOut bindings use the same scalar destination rules.
 
 ## Operand selection
 

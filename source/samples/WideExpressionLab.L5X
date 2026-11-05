@@ -886,6 +886,16 @@
       <Tag Name="TypedBitsLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="TypedBitsLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="TypedBitsSelected" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="Binary64ResultEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="Binary64ResultIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="Binary64ResultInput" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="16777217" /></Data></Tag>
+      <Tag Name="Binary64ResultResidual" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="Binary64ResultQuotient" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="Binary64ResultRounded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="Binary64ResultRoot" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="Binary64ResultSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="Binary64ResultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="Binary64ResultLate" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -967,7 +977,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1163,6 +1173,16 @@
               <Rung Number="4" Type="N"><Text>XIC(TypedBitsEnabled)MEQ(TypedBitsSigned,4294967295U,18446744073709551615UL)OTE(TypedBitsMatch);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(TypedBitsEnabled)XOR(18446744073709551615UL,0UL,TypedBitsSelected[TypedBitsIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(TypedBitsEnabled)DIV(1,TypedBitsLateDivisor,TypedBitsLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="Binary64SourceResults" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(Binary64ResultEnabled)SUB(Binary64ResultInput,16777216,Binary64ResultResidual);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(Binary64ResultEnabled)DIV(1e39L,1e39L,Binary64ResultQuotient);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(Binary64ResultEnabled)ADD(2.5L,0,Binary64ResultRounded);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(Binary64ResultEnabled)SQR(-9.0L,Binary64ResultRoot);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(Binary64ResultEnabled)XPY(4.0L,0.5L,Binary64ResultSelected[Binary64ResultIndex]);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(Binary64ResultEnabled)DIV(1,Binary64ResultDivisor,Binary64ResultLate);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.075557`: [LREAL inputs with REAL and integer results](lreal-math-literals.md#real-and-integer-results)
+for nineteen standalone ladder math forms. Binary64 calculation precedes the
+final destination conversion. Wide expression lab includes Binary64SourceResults.
+
 Available in `26.1105.073842`: [typed FRD/TOD sources](numeric-conversions.md#typed-source-immediates)
 and [LREAL TRN constants](lreal-truncate.md). FRD decodes the declared pattern,
 TOD packs the exact integer value and TRN truncates at the selected source
@@ -26,8 +30,8 @@ types, bitwise/MEQ/other consumers and native parity remain separate.
 Available in `26.1104.174245`: [typed integers in REAL operations](real-integer-literals.md).
 Decimal L/U/UL constants now work across nineteen REAL-result ladder math forms
 and seven actual-REAL-tag comparisons. Declared integer ranges precede float32
-conversion; LREAL comparison selection retains priority, and REAL math narrowing
-from LREAL stays excluded. Wide expression lab adds RealIntegerConstants.
+conversion. LREAL inputs select [binary64](lreal-math-literals.md#real-and-integer-results).
+Wide expression lab adds RealIntegerConstants.
 Other result/consumer profiles, typed radix and native parity remain separate.
 
 Available in `26.1104.172031`: [LREAL comparison constants](lreal-comparison-literals.md).

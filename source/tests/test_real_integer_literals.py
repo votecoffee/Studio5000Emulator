@@ -133,7 +133,7 @@ class RealIntegerLiteralTests(unittest.TestCase):
         for token in BAD:
             self.assertTrue(self.engine(['AFI()ADD(Source,'+token+',Results[1]);']).blockers,token)
             self.assertTrue(self.comparison(['AFI()EQU(Source,'+token+')OTE(RunLatch);'],checked=False).blockers,token)
-        for token in ('1.0L','1e308L','Inputs','TRUE'):
+        for token in ('1.0UL','1e309L','Inputs','TRUE'):
             self.assertTrue(self.engine(['AFI()SQR('+token+',Results[1]);']).blockers,token)
 
     def test_other_results_integer_only_comparisons_and_profiles_do_not_widen(self):

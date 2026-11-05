@@ -48,10 +48,9 @@ unknown results; neighboring unknowns and guards remain unchanged. Aliases,
 selected array elements, UDT members, overlapping results and existing AOI
 local/Output/InOut references retain their behavior.
 
-LREAL sources into REAL destinations remain excluded. LREAL destinations keep
-their separate binary64 profile and constant restrictions. Existing narrow
-integer-result conversions remain available; this extension does not add other
-integer destinations, bitwise operations, CMP/CPT/ST expressions, FBD or SFC.
+An LREAL tag or floating L/l input selects [binary64 calculation](lreal-math-literals.md#real-and-integer-results)
+before conversion to REAL. The float32 rules above apply to calls whose inputs
+are integer or REAL.
 NaN/infinity, native math flags, minor faults, lifecycle semantics and numerical
 bit-for-bit equivalence remain unqualified. The solvers use host arithmetic;
 float32 inputs and results alone do not establish native numerical equivalence.

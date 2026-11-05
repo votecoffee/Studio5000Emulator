@@ -115,7 +115,7 @@ class LrealUnarySourceTests(unittest.TestCase):
         for name in CASES:
             for token in ('TRUE','1e309L','1e39','2147483648','-2147483649','1LU','Inputs','RunLatch'):
                 self.assertTrue(self.engine([f'AFI(){name}({token},Dest);']).blockers,(name,token))
-        self.assertTrue(self.engine(['SQR(Source,Dest);'],source='LREAL',dest='REAL').blockers)
+        self.assertTrue(self.engine(['SQR(Source,RunLatch);'],source='LREAL').blockers)
         self.assertEqual(self.checked(['XPY(Source,Mask,Dest);'],source='DINT',other='REAL').blockers,[])
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['SQR(9,Results[1]);'],mutate=constant).blockers)

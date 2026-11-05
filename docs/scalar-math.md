@@ -243,4 +243,5 @@ constant-only calls. Direct ordering still requires a LREAL input for binary64.
 [REAL-result math](real-destination-math.md) additionally selects float32
 inputs and result for arithmetic, XPY and eleven unary forms, across all nine
 integer/REAL source types and bounded integer/finite floating constants.
-LREAL result rules and other destination/consumer profiles remain separate.
+An LREAL input takes priority and selects [binary64 calculation](lreal-math-literals.md#real-and-integer-results)
+before conversion to the declared REAL or integer result.

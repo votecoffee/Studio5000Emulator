@@ -121,10 +121,7 @@ class RealDestinationMathTests(unittest.TestCase):
         e.memory.write('FaultDivisor',0);self.fault(e,'zero');e.memory.write('FaultDivisor',1);e.step()
         self.assertEqual((e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[1]')),(2.0,3.0))
 
-    def test_lreal_source_narrowing_and_other_guards_remain_structural(self):
-        for name in (*EXPECTED,'NEG','ABS',*CASES):
-            args='Source,2' if name in EXPECTED else 'Source'
-            self.assertTrue(self.engine([f'AFI(){name}({args},Results[1]);'],source='LREAL').blockers,name)
+    def test_non_numeric_and_unqualified_operands_remain_structural(self):
         for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Inputs','RunLatch'):
             for call in (f'ADD(Source,{token},Results[1]);',f'SQR({token},Results[1]);'):
                 self.assertTrue(self.engine(['AFI()'+call]).blockers,call)

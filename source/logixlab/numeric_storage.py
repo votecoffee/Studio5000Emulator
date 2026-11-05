@@ -76,12 +76,15 @@ def lreal_math_source(memory, ref, scope, *, execute=False):
     return coerce(value,'LREAL') if execute else dtype
 
 
-def lreal_math_sources(memory, op, scope):
-    """Preflight scalar LREAL-result math without consuming saved source values."""
-    if destination(memory,op.args[-1],scope)[2]!='LREAL':
-        raise ModelError('LREAL math requires a scalar LREAL destination')
-    for ref in op.args[:-1]:lreal_math_source(memory,ref,scope)
-    return 'LREAL'
+def is_lreal_source(memory, ref, scope):
+    typed = typed_literal(ref) if '#' not in ref else None
+    if typed is not None:
+        return typed[0] == 'LREAL'
+    try:
+        literal(ref)
+    except ValueError:
+        return memory.resolve(ref, scope)[2] == 'LREAL'
+    return False
 
 
 def real_math_source(memory, ref, scope, *, execute=False):
@@ -93,12 +96,30 @@ def real_math_source(memory, ref, scope, *, execute=False):
     return real(typed[1] if typed is not None else memory.read(ref,scope))
 
 
-def real_math_sources(memory, op, scope):
-    """Preflight REAL-result math without saved values or live indirect indices."""
-    if destination(memory,op.args[-1],scope)[2]!='REAL':
-        raise ModelError('REAL math requires a scalar REAL destination')
-    for ref in op.args[:-1]:real_math_source(memory,ref,scope)
-    return 'REAL'
+def floating_math_profile(memory, op, scope):
+    """Select a ladder math calculation type from declared operands."""
+    key, parts, dtype = memory.check_writable(op.args[-1], scope)
+    if dtype not in TYPES:
+        return None
+    sources = op.args[:-1]
+    binary64 = dtype == 'LREAL' or any(is_lreal_source(memory, ref, scope) for ref in sources)
+    if not binary64 and dtype != 'REAL':
+        return None
+    if isinstance(memory.at(key, parts), (list, dict)):
+        raise ModelError('Floating math requires one scalar numeric destination')
+    validate_source = lreal_math_source if binary64 else real_math_source
+    for ref in sources:
+        validate_source(memory, ref, scope)
+    return 'LREAL' if binary64 else 'REAL'
+
+
+def write_lreal_math_result(memory, ref, value, scope):
+    """Validate the binary64 result before the one destination conversion."""
+    value = coerce(value, 'LREAL')
+    try:
+        memory.write(ref, value, scope)
+    except OverflowError as error:
+        raise ModelError('LREAL math result exceeds finite REAL range') from error
 
 
 def specification(memory, op, scope):

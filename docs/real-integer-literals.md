@@ -35,9 +35,8 @@ native numerical bit-parity guarantee.
 
 [LREAL comparison selection](lreal-comparison-literals.md) retains priority:
 an actual LREAL tag or floating L/l constant selects binary64. A REAL tag holding
-16777216 compares less than 16777217.0L. REAL-result math still excludes LREAL
-source tags and floating L/l constants; [LREAL-result math](lreal-math-literals.md)
-has its separate profile. Existing exact integer-only comparison rules remain.
+16777216 compares less than 16777217.0L. The [LREAL input profile](lreal-math-literals.md#real-and-integer-results)
+also takes priority in REAL-result math. Existing exact integer-only comparison rules remain.
 
 Structural preflight checks types, scalar shapes, permissions and immediate
 ranges without saved values or live indices. False/prescan paths skip those

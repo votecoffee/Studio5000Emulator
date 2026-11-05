@@ -16,6 +16,16 @@ UNARY={'NEG':-1.0,'ABS':1.0,'SQR':1.0,'LN':0.0,'LOG':0.0,
        'DEG':math.degrees(1),'RAD':math.radians(1),'SIN':math.sin(1),
        'COS':math.cos(1),'TAN':math.tan(1),'ASN':math.pi/2,'ACS':0.0,'ATN':math.pi/4}
 TOKENS=('1','1L','1u','1Ul','1.0','1.0l')
+RESULT_CASES = (
+    ('ADD', '2.5L,2.0L', 4.5), ('SUB', '5.5L,2.0L', 3.5),
+    ('MUL', '1.5L,2.0L', 3.0), ('DIV', '7.0L,2U', 3.5),
+    ('MOD', '7.5L,2U', 1.5), ('NEG', '-2.5L', 2.5), ('ABS', '-3.5L', 3.5),
+    ('XPY', '4.0L,0.5L', 2.0), ('SQR', '-9.0L', 3.0),
+    ('LN', '1.0L', 0.0), ('LOG', '100.0L', 2.0),
+    ('DEG', '0.0L', 0.0), ('RAD', '0.0L', 0.0),
+    ('SIN', '0.0L', 0.0), ('COS', '0.0L', 1.0), ('TAN', '0.0L', 0.0),
+    ('ASN', '0.0L', 0.0), ('ACS', '1.0L', 0.0), ('ATN', '0.0L', 0.0),
+)
 
 
 class LrealMathLiteralTests(unittest.TestCase):
@@ -132,14 +142,110 @@ class LrealMathLiteralTests(unittest.TestCase):
         e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('BufferA[2]'),value+.1)
         e.memory.write('EnabledA',False);e.memory.write('IndexA',999);e.step()
 
-    def test_other_result_comparison_and_firmware_profiles_do_not_widen(self):
+    def test_invalid_operands_and_firmware_profiles_remain_guarded(self):
         for dest in ('SINT','INT','DINT','LINT','REAL'):
-            for call in (('ADD(1.0L,1L,Results[1]);' if dest=='REAL' else 'ADD(1UL,1UL,Results[1]);' if dest=='LINT' else 'ADD(1L,1L,Results[1]);'),'XPY(1.0L,1L,Results[1]);','SQR(1.0L,Results[1]);'):
+            for call in (('ADD(1.0L,TRUE,Results[1]);' if dest=='REAL' else 'ADD(1UL,1UL,Results[1]);' if dest=='LINT' else 'ADD(1L,1L,Results[1]);'),'XPY(1.0L,TRUE,Results[1]);','SQR(1e309L,Results[1]);'):
                 self.assertTrue(self.engine([call],dest=dest).blockers,(call,dest))
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()ADD(1L,1L,Results[1]);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)
         self.assertTrue(self.engine(['EQU(Source,1e309L)OTE(RunLatch);'],source='LREAL').blockers)
         self.assertEqual(literal('16#FFFFFFFF'),4294967295)
+
+    def test_lreal_sources_can_write_all_nine_other_numeric_destinations(self):
+        destinations = ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL')
+        for dtype, (name, args, value) in itertools.product(destinations, RESULT_CASES):
+            with self.subTest(dtype=dtype, name=name):
+                engine = self.checked([f'{name}({args},Results[1]);'], dest=dtype)
+                engine.step()
+                expected = value if dtype == 'REAL' else round(value)
+                self.assertEqual(engine.memory.read('Results'), [None, expected, None])
+
+    def test_lreal_source_precision_survives_until_the_final_write(self):
+        engine = self.checked([
+            'SUB(Source,16777216,Results[0]);',
+            'SUB(16777216,Source,Results[1]);',
+            'DIV(1e39L,1e39L,Results[2]);',
+        ], source='LREAL', value=16777217, dest='REAL')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [1.0, -1.0, 1.0])
+        self.assertEqual(engine.memory.read('Source'), 16777217.0)
+        engine = self.checked([
+            'SQR(1e60L,Results[0]);',
+            'DIV(1e-50L,1e-50L,Results[1]);',
+            'ADD(0.1L,0.1,Results[2]);',
+        ], dest='REAL')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [1.0000000150474662e30, 1.0, 0.20000000298023224])
+
+    def test_integer_results_round_once_and_reject_out_of_range_values(self):
+        for call, dtype, expected in (
+            ('ADD(-2.5L,0,Results[1]);', 'DINT', -2),
+            ('NEG(3.5L,Results[1]);', 'DINT', -4),
+            ('ABS(-9223372036854774784.0L,Results[1]);', 'LINT', 9223372036854774784),
+            ('ADD(-0.5L,0,Results[1]);', 'ULINT', 0),
+        ):
+            with self.subTest(call=call, dtype=dtype):
+                engine = self.checked([call], dest=dtype)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results[1]'), expected)
+        for call, dtype, error in (
+            ('ADD(127.5L,0,Results[1]);', 'SINT', 'overflow'),
+            ('NEG(1.5L,Results[1]);', 'UINT', 'overflow'),
+            ('XPY(2.0L,63,Results[1]);', 'LINT', 'overflow'),
+            ('ADD(1e39L,0,Results[1]);', 'REAL', 'finite REAL'),
+            ('XPY(1e20L,2,Results[1]);', 'REAL', 'finite REAL'),
+            ('LN(-1.0L,Results[1]);', 'DINT', 'finite LREAL'),
+        ):
+            with self.subTest(call=call, dtype=dtype):
+                engine = self.checked(['MOV(99,SpeedCommand);', call], dest=dtype)
+                self.fault(engine, error)
+
+    def test_indirect_sources_and_destinations_skip_false_and_rollback_late_faults(self):
+        engine = self.checked([
+            'XIC(StartPB)SUB(Inputs[Index],16777216,Results[Index]);',
+            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+        ], source='LREAL', dest='LINT')
+        engine.memory.write('Index', 99)
+        engine.enter_run()
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, None, None])
+        engine.memory.write('StartPB', True)
+        self.fault(engine, 'outside bounds')
+        engine.memory.write('Index', 1)
+        self.fault(engine, 'Unknown')
+        engine.memory.write('Inputs[1]', 16777217.0)
+        engine.memory.write('Mask', 0)
+        self.fault(engine, 'zero')
+        engine.memory.write('Mask', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, 1, None])
+
+    def test_aoi_outputs_inout_and_locals_use_the_destination_conversion(self):
+        import test_aoi_queues as queues
+
+        fixture = queues.AOIQueueTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+
+        def logic(root):
+            queues.logic(root, [
+                'SUB(16777217.0L,16777216,Buffer[Index]);',
+                'XPY(4.0L,0.5L,Item);',
+                'ADD(3.5L,0,Stack[Index]);',
+            ])
+            queues.logic(root, ['AFI()ADD(3.5L,0,Stack[Index]);'], name='EnableInFalse')
+
+        engine = fixture.checked(logic)
+        engine.step()
+        self.assertEqual(engine.memory.read('BufferA[1]'), 1)
+        self.assertEqual(engine.memory.read('ItemA'), 2)
+        self.assertEqual(engine.memory.read('DriverA.Stack[1]'), 4)
+        engine.memory.write('IndexA', 2)
+        engine.memory.write('FaultDivisor', 0)
+        self.fault(engine, 'zero')
+        engine.memory.write('FaultDivisor', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('BufferA[2]'), 1)
 
     def test_permissions_shapes_and_reporting_remain_explicit(self):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
