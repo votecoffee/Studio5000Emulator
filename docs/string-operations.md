@@ -47,8 +47,8 @@ Shared call validation is also used by existing ST calls; this adds no ST syntax
 Unknown LEN, active DATA, numeric inputs and dynamic index values can remain
 at import. False rungs and prescan skip those operands. Reached calls still
 resolve actual addresses and require every consumed source value, including
-active string bytes, numeric conversions, positions and quantities. MID with
-zero length still consumes its source. String comparisons do not fold identical
+active string bytes, numeric conversions, positions and quantities. MID reads
+its source LEN and the selected DATA bytes. String comparisons do not fold identical
 references; CMP consumes both logical operands even when one determines the result.
 
 Full logical string writes establish unknown LEN/active DATA and preserve unused
@@ -58,6 +58,21 @@ Aliases, explicit user strings/UDT members and existing AOI InOut/local bindings
 use this selection. Fault rollback restores earlier writes, AOI bindings and
 the modeled advance. AOI call-argument binding retains its separate contract.
 The software profile uses single-byte strings. Native fault and status handling remains separate.
+
+## MID copy windows
+
+`MID(Source,Qty,Start,Dest)` in ladder and Structured Text requires Start
+within the source's declared DATA capacity and the entire requested window
+within the active LEN. Qty zero writes an empty string and still checks the
+source LEN and Start. MID reads only the selected DATA bytes, so an export
+may omit other bytes. Missing selected bytes or an invalid range roll back the
+advance. Aliased destinations use the selected source bytes from before the
+write. See installed v35 help 14579 and the [MID reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/ascii-string-instructions/middle-string--mid-.html).
+
+In String Lab, set `MidWindow` true and step. The default `MidStart=2` and
+`MidQty=2` copy `BC` into `MidDest` from a partially populated source.
+Set MidStart to 1 to observe rollback on an unknown byte. Set MidQty to 0 and
+MidStart to 6 to clear the result with a valid empty window.
 
 ## Remaining cases and faults
 

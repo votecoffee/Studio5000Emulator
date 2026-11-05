@@ -1101,6 +1101,25 @@
           <DataValue DataType="DINT" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="MidWindow" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MidStart" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="MidQty" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="MidSource" DataType="LabText32" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+            <DataValueMember Name="LEN" DataType="DINT" Value="5" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+              <Element Index="[1]" Value="66" />
+              <Element Index="[2]" Value="67" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MidDest" DataType="LabText32" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32"><DataValueMember Name="LEN" DataType="DINT" Value="0" /></Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1164,6 +1183,7 @@
               <Rung Number="21" Type="N"><Text>XIC(CompareStrings)NEQ('A','a')OTE(CompareCase);</Text></Rung>
               <Rung Number="22" Type="N"><Text>XIC(Convert)DTOS(RealSource,RoundedText);</Text></Rung>
               <Rung Number="23" Type="N"><Text>XIC(Convert)STOD(NumericText,ParsedInteger);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>XIC(MidWindow)MID(MidSource,MidQty,MidStart,MidDest);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">

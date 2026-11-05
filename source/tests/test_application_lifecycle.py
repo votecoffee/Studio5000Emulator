@@ -851,12 +851,17 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['Cleaned'], values['SourceText'])
         self.assertEqual(values['StEdited'], values['SourceText'])
         self.assertTrue(values['AllOK'])
+        self.assertEqual(values['MidDest'], '')
         self.post('write', {'tag': 'SearchText', 'value': 'PART'})
+        self.post('write', {'tag': 'MidWindow', 'value': True})
         state = self.post('step', {'dt': 10})
         values = {row['name']: row['value'] for row in state['tags']}
         self.assertEqual(values['Location'], 1)
         self.assertEqual(values['StPosition'], 1)
         self.assertFalse(values['AllOK'])
+        self.assertEqual(values['MidDest'], 'BC')
+        self.assertIsNone(values['MidSource.DATA[0]'])
+        self.assertIsNone(values['MidSource.DATA[3]'])
         self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
 
     def test_string_lab_ladder_relations_compare_literals_and_rollback_through_http(self):

@@ -1048,16 +1048,32 @@ class Memory:
         if count>len(addresses):raise ModelError('Block operation exceeds the modeled array/member boundary')
         return key,addresses[:count],dtype
 
-    def string(self,ref,scope='',*,limit=None):
+    def _string_data(self, ref, scope):
         _,_,dtype=self.resolve(ref,scope)
         capacity=self.project.string_capacity(dtype)
         obj=self.read(ref,scope)
         if capacity is None or not isinstance(obj,dict):raise ModelError('String operand required')
         length=obj['LEN']
         if not isinstance(length,int) or not 0<=length<=capacity or len(obj['DATA'])!=capacity:raise ModelError('String LEN/DATA unknown or outside declared capacity')
-        active = obj['DATA'][:length if limit is None else min(length, limit)]
+        return obj['DATA'], length
+
+    @staticmethod
+    def _decode_string_data(active):
         if any(x is None for x in active):raise ModelError('String contains unknown active DATA bytes')
         return bytes(x&255 for x in active).decode('latin-1')
+
+    def string(self,ref,scope='',*,limit=None):
+        data, length = self._string_data(ref, scope)
+        return self._decode_string_data(data[:length if limit is None else min(length, limit)])
+
+    def string_slice(self, ref, start, count, scope=''):
+        """Read an exact one-based window within both declared DATA and active LEN."""
+        data, length = self._string_data(ref, scope)
+        first = start - 1
+        end = first + count
+        if not 1 <= start <= len(data) or count < 0 or end > length:
+            raise ModelError('MID range exceeds source LEN or declared DATA bounds')
+        return self._decode_string_data(data[first:end])
 
     def write_string(self,ref,text,scope=''):
         key,parts,dtype=self.check_writable(ref,scope)

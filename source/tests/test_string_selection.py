@@ -105,13 +105,50 @@ class StringSelectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Numbers[0]',3);e.memory.write('Numbers[1]',1);e.step();self.assertEqual(e.memory.string('TextResults[0]'),'ABC')
 
-    def test_active_bytes_required_unused_bytes_preserved_and_zero_mid_not_folded(self):
+    def test_concat_requires_active_bytes_and_preserves_unused_bytes(self):
         e=self.checked(['CONCAT(TextCells[0],SourceB,TextResults[0]);']);e.memory.write('TextCells[0].LEN',3);e.memory.write('TextCells[0].DATA[0]',65);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'unknown active'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('TextCells[0].DATA[1]',66);e.memory.write('TextCells[0].DATA[2]',67);e.step();self.assertEqual(e.memory.string('TextResults[0]'),'ABCXY');self.assertEqual(e.memory.read('TextResults')[0]['DATA'][81],33)
-        e=self.checked(['MID(TextCells[0],0,1,TextResults[0]);']);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'(?i)unknown'):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('TextCells[0]','ABC');e.step();self.assertEqual(e.memory.string('TextResults[0]'),'');self.assertIsNone(e.memory.read('TextResults')[0]['DATA'][0])
+
+    def test_mid_reads_the_selected_window_and_always_requires_source_len(self):
+        for st in (False, True):
+            with self.subTest(st=st):
+                e = self.checked(['MID(TextCells[0],Qty,Start,TextResults[0]);'], st=st)
+                e.memory.write('Qty', 2)
+                e.memory.write('Start', 2)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'LEN/DATA unknown'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                e.memory.write('TextCells[0].LEN', 5)
+                e.memory.write('TextCells[0].DATA[1]', ord('B'))
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                e.memory.write('TextCells[0].DATA[2]', ord('C'))
+                e.step()
+                self.assertEqual(e.memory.string('TextResults[0]'), 'BC')
+                self.assertIsNone(e.memory.read('TextCells[0].DATA')[0])
+                self.assertIsNone(e.memory.read('TextCells[0].DATA')[3])
+                e.memory.write('Qty', 0)
+                e.memory.write('Start', 6)
+                e.step()
+                self.assertEqual(e.memory.string('TextResults[0]'), '')
+                self.assertEqual(e.memory.read('TextResults[0].DATA[0]'), ord('B'))
+
+    def test_mid_start_bounds_apply_even_to_a_zero_length_window(self):
+        e = self.checked(['MOV(77,Count);', 'MID(SourceA,0,Start,Dest);'])
+        e.memory.write('SourceA', 'A' * 82)
+        e.memory.write('Start', 83)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'MID range.*DATA bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Start', 82)
+        e.step()
+        self.assertEqual(e.memory.string('Dest'), '')
+        self.assertTrue(self.engine(['AFI()MID(SourceA,0,83,Dest);']).blockers)
 
     def test_capacity_and_later_fault_restore_lengths_data_numeric_results_and_schedule(self):
         e=self.checked(['CONCAT(SourceA,SourceB,TextResults[0]);','STOD(SourceA,Numbers[0]);','DELETE(TextResults[0],99,1,TextResults[0]);']);before=self.snapshot(e)

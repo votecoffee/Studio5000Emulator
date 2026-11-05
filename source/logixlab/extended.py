@@ -179,7 +179,7 @@ class Extensions:
         previous=self.memory.structural
         self.memory.structural=True
         try:
-            def text(ref,write=False):string_operations.string_operand(self.memory,ref,scope,destination=write)
+            def text(ref,write=False):return string_operations.string_operand(self.memory,ref,scope,destination=write)
             def integer(ref,write=False):string_operations.integer_operand(self.memory,ref,scope,destination=write)
             if n in COMPARE:
                 if not any(self.is_string(ref,scope) for ref in a):return False
@@ -198,11 +198,12 @@ class Extensions:
             elif n in string_conversions.INSTRUCTIONS:string_conversions.validate(self.memory,op,scope)
             elif n=='CONCAT':text(a[0]);text(a[1]);text(a[2],True)
             elif n=='MID':
-                text(a[0]);integer(a[1]);integer(a[2]);text(a[3],True)
-                for ref,minimum in ((a[1],0),(a[2],1)):
+                capacity=text(a[0]);integer(a[1]);integer(a[2]);text(a[3],True)
+                for ref,minimum,maximum in ((a[1],0,(1<<31)-1),(a[2],1,capacity)):
                     try:value=literal(ref)
                     except ValueError:continue
-                    if value<minimum:raise ModelError('MID requires nonnegative length and a one-based start')
+                    if not minimum<=value<=maximum:
+                        raise ModelError('MID requires nonnegative quantity and Start within source DATA capacity')
             elif n=='DTOS':string_conversions.dtos_operand(self.memory,a[0],scope);text(a[1],True)
             else:text(a[0]);integer(a[1],True)
         finally:self.memory.structural=previous
@@ -299,11 +300,9 @@ class Extensions:
             text=self.memory.string(a[0],scope)+self.memory.string(a[1],scope)
             self.memory.write_string(a[2],text,scope)
         elif n=='MID':
-            source=self.memory.string(a[0],scope)
             length,start=self.integer(a[1],scope),self.integer(a[2],scope)
-            if length<0 or start<1 or start>len(source)+1 or start-1+length>len(source):
-                raise ModelError('MID range exceeds modeled source bounds')
-            self.memory.write_string(a[3],source[start-1:start-1+length],scope)
+            source=self.memory.string_slice(a[0],start,length,scope)
+            self.memory.write_string(a[3],source,scope)
         elif n=='DTOS':
             if comparisons.available(self.engine.project):
                 text=string_conversions.format_dint(self.memory.read(a[0],scope))

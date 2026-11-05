@@ -101,6 +101,7 @@ def description():
                 strings='STRING and explicit DINT LEN / one-dimensional SINT DATA user strings',
                 positions='One-based SINT/INT/DINT tag or bounded DINT immediate; no expression operands',
                 search='Case-sensitive; first match at/after Start, zero when absent',
+                mid='Start within declared DATA; exact window within LEN; only selected DATA bytes are consumed',
                 mov=dict(language='RLL', firmware='35', controllers=sorted(CONTROLLERS),
                     sources='Scalar STRING or user string tag, or one single-quoted byte literal',
                     selection='Validate shape and literal syntax structurally; false/prescan skip live indices, LEN and DATA',

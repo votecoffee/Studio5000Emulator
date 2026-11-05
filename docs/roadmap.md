@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.185210` [MID copy windows](string-operations.md#mid-copy-windows)
+enforce source DATA bounds and read only the requested bytes in ladder and ST.
+String Lab demonstrates a copy from a partially populated source.
+
 Available in `26.1105.183658` [STOD decimal parsing](string-conversions.md#stod-decimal-input)
 uses the whole-number part of the first decimal in ladder and ST. String Lab
 shows STOD and STOR processing the same ASCII input.
