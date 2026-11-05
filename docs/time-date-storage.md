@@ -90,6 +90,15 @@ LongStamp ticks. PromotedWallStamp reads 1767225600000001000. DurationTotal
 reads 1248506 microseconds and DurationDelta reads -749993 microseconds.
 NextStamp is one nanosecond after WallStamp, and NanoDelta reads 1.
 
-Lossy conversion, clock attributes, ST, native packed
+## Reading timestamps and durations with GSV
+
+[WallClockTime.CurrentValue](wall-clock-gsv.md) and [Task.StartTime](task-start-gsv.md)
+can write DT directly. Task.MinimumInterval and Task.MaximumInterval can
+write TIME. [Program and Task scan durations](scan-time-gsv.md) can write
+TIME32. These reads use integer microseconds, check the destination range
+and keep the existing clock and measurement sources. In **System lab**,
+enable ReadTypedTimes and step to see these reads and an exact DT-to-LDT MOV.
+
+Lossy conversion, broader clock attributes, ST time expressions, native packed
 layouts and CIP time/date access remain separate. Native Studio/controller
 acceptance is unverified.

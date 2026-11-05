@@ -2,13 +2,14 @@
 import struct
 
 from .integer_math import CONTROLLERS
-from .model import ModelError
+from .model import ModelError, coerce
 from .numeric_copy import static_reference
 from . import gsv_wall_clock
 from .gsv_configuration import current_instance
 
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
             'task':{'lastscantime':8,'maxscantime':7,'starttime':13,'minimuminterval':14,'maximuminterval':15}}
+TIME_FORMATS={'DT':'<q','TIME':'<Q','TIME32':'<I'}
 
 
 def matches(op):
@@ -46,14 +47,14 @@ def specification(engine,op,scope='',*,executing=False):
 
 
 def destination(memory,ref,scope,number):
-    if number in (13,14,15):
-        if number!=13 and memory.check_writable(ref,scope)[2]!='DINT':
-            raise ModelError('Task interval GSV destination requires two contiguous DINT elements')
+    if number==13:
         return gsv_wall_clock.destination(memory,ref,scope,2)
+    if number in (14,15):
+        return gsv_wall_clock.destination(memory,ref,scope,2,scalar_types=('TIME',))
 
     key,parts,dtype=memory.check_writable(ref,scope)
-    if dtype!='DINT' or isinstance(memory.at(key,parts),(dict,list)):
-        raise ModelError('Timing GSV destination requires one writable DINT scalar element')
+    if dtype not in ('DINT','TIME32') or isinstance(memory.at(key,parts),(dict,list)):
+        raise ModelError('Timing GSV destination requires one writable DINT or TIME32 scalar element')
     return key,[parts],dtype
 
 
@@ -71,6 +72,9 @@ def execute(engine,op,scope):
     raw=reader(name,source_sha256=engine.project.sha256).get(number)
     count=2 if number in (13,14,15) else 1
     if raw is None or len(raw)!=count*4:raise ModelError('Timing GSV measurement is unavailable')
+    if dtype in TIME_FORMATS:
+        memory.store(key,paths[0],coerce(struct.unpack(TIME_FORMATS[dtype],raw)[0],dtype))
+        return
     # Keep the same DWORD bits as the existing protocol counters in signed DINT storage.
     values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
     for path,value in zip(paths,values,strict=True):memory.store(key,path,value)
@@ -91,7 +95,7 @@ def description():
     return dict(profile='v35-5580-committed-GSV-timing',languages=['RLL','ST'],
                 classes=['Program','Task'],attributes=['LastScanTime','MaxScanTime'],
                 task_attributes=['StartTime','MinimumInterval','MaximumInterval'],
-                destination='Scan durations: exact DINT; Task intervals: two contiguous DINTs; Task StartTime: scalar LINT or two contiguous DINTs',
+                destination='Scan durations: scalar DINT or TIME32; Task intervals: scalar TIME or two contiguous DINTs; Task StartTime: scalar DT, scalar LINT or two contiguous DINTs',
                 source='Committed host perf_counter_ns interpreter durations/start intervals, in whole microseconds; StartTime samples existing host UTC WallClockTime',
                 intervals='Independent successive actual host invocation starts; zero until two executions; include host idle time, not simulated rate',
                 start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
@@ -99,11 +103,11 @@ def description():
                 task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',
                 selection='Structural preflight without live destination indices or timing reads; false/prescan skip outputs; full writes establish unknown cells',
-                failures='Unavailable measurements, invalid indices and later faults roll back tags, bindings, scheduling and uncommitted measurements',
+                failures='Unavailable measurements, out-of-range time values, invalid indices and later faults roll back tags, bindings, scheduling and uncommitted measurements',
                 st_for_effects='Exact static cells; aliases/AOI/indirect destinations conservatively cover their enclosing array',
                 native_runtime_parity=False,controller_performance_prediction=False,
                 current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
                 remaining=['Empty/numeric instances, AOI/harness THIS contexts, additional attributes and timing setters',
-                           'TIME/DT destination types, simulated-time intervals and newer shortened interval names',
+                           'TIME32[2] interval destinations, simulated-time intervals and newer shortened interval names',
                            'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

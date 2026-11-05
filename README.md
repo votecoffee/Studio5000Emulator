@@ -131,12 +131,13 @@ instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
 
 [Scan-time GSV reads](docs/scan-time-gsv.md) expose committed Program and Task
-LastScanTime/MaxScanTime interpreter measurements. **System lab** includes
-gated Program timing reads in ladder and ST.
+LastScanTime/MaxScanTime interpreter measurements in DINT and TIME32.
+**System lab** includes gated Program timing reads in ladder and ST.
 
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
-as the CIP endpoint. **System lab** includes gated timestamp examples.
+as the CIP endpoint. In **System lab**, enable ReadTypedTimes to see a DT
+timestamp, its exact LDT conversion and typed Task measurements.
 
 [BCD file expressions](docs/file-bcd.md) add FRD/TOD transforms and searches
 in ALL, numeric and INC modes. **Control lab** includes a BcdFiles routine.
@@ -211,8 +212,9 @@ numeric conversions and atomic tag reads/writes. **Integer lab** demonstrates
 precision retention, REAL narrowing and guarded selected outputs.
 
 [Task start and interval GSV](docs/task-start-gsv.md) adds named/THIS ladder and
-ST reads of StartTime, MinimumInterval and MaximumInterval. **System lab**
-includes guarded timestamp/interval windows and a rollback example.
+ST reads of StartTime, MinimumInterval and MaximumInterval, including DT
+starts and TIME intervals. **System lab** includes guarded word windows and a
+rollback example.
 
 [Event overlap counts](docs/event-overlap-count.md) adds live ladder/ST reads
 and zero resets, including THIS and separate status/counter behavior. **Event

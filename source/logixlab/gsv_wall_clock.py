@@ -2,7 +2,7 @@
 import struct
 
 from .integer_math import CONTROLLERS
-from .model import ModelError
+from .model import ModelError, coerce
 from .numeric_copy import static_reference
 
 ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7)}
@@ -26,15 +26,16 @@ def specification(engine,op):
     return ATTRIBUTES[attribute]
 
 
-def destination(memory,ref,scope,count):
+def destination(memory,ref,scope,count,scalar_types=('LINT','DT')):
     key,parts,dtype=memory.check_writable(ref,scope)
     value=memory.at(key,parts)
-    if dtype=='LINT' and count==2 and not isinstance(value,(dict,list)):
+    if count==2 and dtype in scalar_types and not isinstance(value,(dict,list)):
         return key,[parts],dtype
     if dtype=='DINT':
         key,paths,dtype=memory.region(ref,count,scope)
         return key,paths,dtype
-    raise ModelError('WallClockTime destination requires '+('a scalar LINT or ' if count==2 else '')+str(count)+' contiguous DINT elements')
+    choices=' or '.join(('a scalar '+dtype for dtype in scalar_types))+' or ' if count==2 else ''
+    raise ModelError('GSV destination requires '+choices+str(count)+' contiguous DINT elements')
 
 
 def validate(engine,op,scope):
@@ -50,6 +51,9 @@ def execute(engine,op,scope):
     raw=engine.project.wall_clock.attributes(read_time=True).get(number)
     if raw is None or len(raw)!=count*4:
         raise ModelError('WallClockTime GSV value is unavailable from the host UTC clock')
+    if dtype=='DT':
+        memory.store(key,paths[0],coerce(struct.unpack('<q',raw)[0],dtype))
+        return
     values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
     for path,value in zip(paths,values,strict=True):memory.store(key,path,value)
 
@@ -69,14 +73,14 @@ def write_effects(engine,op,scope):
 def description():
     return dict(profile='v35-5580-WallClockTime-GSV',languages=['RLL','ST'],
                 attributes=['CurrentValue','DateTime','LocalDateTime (explicit UTC local policy)'],
-                destinations='CurrentValue: scalar LINT or two DINT cells; calendars: seven DINT cells; complete logical member windows',
+                destinations='CurrentValue: scalar DT, scalar LINT or two DINT cells; calendars: seven DINT cells; complete logical member windows',
                 source='Existing host time.time_ns UTC clock; independent of simulated scan time; microseconds since 1970-01-01',
                 sampling='One sample per reached GSV; separate calls may differ; no scan-wide snapshot',
                 selection='Structural preflight; false/prescan skip live indices and time sampling; reached full writes establish unknown cells',
                 st_for_effects='Exact complete windows for direct static references; aliases/AOI/indirect references conservatively cover their enclosing array',
                 local_time='Existing explicit source UTC policy only; no workstation local-zone or extended DST inference',
-                failures='Required unavailable clock, invalid destinations and later faults roll back the whole modeled advance',
+                failures='Unavailable clock, out-of-range DT, invalid destinations and later faults roll back the whole modeled advance',
                 native_runtime_parity=False,clock_setters=False,ptp=False,
-                remaining=['DT/TIME/DATETIMESTRUCT destinations and other attributes',
+                remaining=['DATETIMESTRUCT destinations and other attributes',
                            'Non-UTC/DST policies, SSV and synchronized/CST clock state',
                            'Native sampling, interruption, scheduling, layout and fault/lifecycle parity'])

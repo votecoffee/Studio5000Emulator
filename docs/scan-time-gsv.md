@@ -10,14 +10,14 @@ GSV(Task,MainTask,LastScanTime,TaskLast);
 GSV(Task,MainTask,MaxScanTime,TaskMaximum);
 ```
 
-All four destinations are exact scalar DINT elements. Class, attribute and
+All four destinations accept scalar DINT or TIME32 elements. Class, attribute and
 literal instance names are case insensitive. [THIS](current-instance-gsv.md)
 selects the current ordinary scheduled Program or its owner Task. Empty/numeric
 instances and AOI/harness/Event THIS contexts remain unqualified. Existing configuration and
 [wall-clock GSV](wall-clock-gsv.md) profiles remain separate.
 
 [Task start and interval GSV](task-start-gsv.md) also reads committed Task
-StartTime, MinimumInterval and MaximumInterval through complete 64-bit windows.
+StartTime, MinimumInterval and MaximumInterval through scalar DT/TIME tags or complete 64-bit word windows.
 
 ## Measurement and visibility
 
@@ -43,8 +43,9 @@ are unchanged by GSV observation.
 
 DINT storage preserves the same 32-bit word as the protocol counter. A set
 high bit appears negative in signed DINT storage; this is not a negative
-elapsed duration. Existing unrepresentable counters remain unavailable rather
-than wrapping or saturating. Task fields retain independent availability;
+elapsed duration. TIME32 writes check the signed duration range using the
+unsigned elapsed microseconds. An out-of-range TIME32 value faults. Existing
+unrepresentable protocol counters remain unavailable. Task fields retain independent availability;
 the existing Program timing record withholds both fields if its maximum cannot
 fit the protocol word.
 
@@ -76,7 +77,7 @@ Routine replacement deep-copies this state into its detached candidate.
 Preflight validates destination type, shape, permissions and index grammar
 without reading timing values or saved dynamic indices. False ladder rungs,
 prescan and skipped ST branches retain outputs. Reached full writes can establish
-unknown DINT cells. Aliases, Program-local scope and typed AOI InOut/local
+unknown DINT or TIME32 cells. Aliases, Program-local scope and typed AOI InOut/local
 operands use normal memory rules. ST FOR checks protect exact static cells and
 conservatively cover the enclosing array for alias/AOI/indirect destinations.
 
@@ -108,6 +109,9 @@ Program also reads Task THIS LastScanTime; with25ms advances these match the
 named values. ControlTasks and TaskInhibitCommand can inhibit FastTask; its
 last/maximum durations retain while other tasks continue. Re-enable at the
 existing phase without catch-up. Disable ReadTaskTiming to retain outputs.
+
+Enable ReadTypedTimes and step to read the previous Background Program
+last duration into ProgramTime32 and its owner Task maximum into TaskTime32.
 
 The type/unit baseline follows installed v35 help 14638/14646 and Rockwell's
 [Program object](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)

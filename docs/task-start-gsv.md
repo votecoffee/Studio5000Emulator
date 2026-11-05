@@ -1,7 +1,7 @@
 # Task start times and intervals
 
-App `26.1104.001622` adds ladder/ST GSV reads of Task `StartTime`,
-`MinimumInterval` and `MaximumInterval` for the v35 ControlLogix 5580 software
+The ladder/ST GSV reads of Task `StartTime`, `MinimumInterval` and
+`MaximumInterval` are available for the v35 ControlLogix 5580 software
 profile. Named instances and `THIS` use the existing ordinary scheduled context
 rules. Eligible Standard Continuous, Periodic and instruction-only Event tasks
 retain independent successful invocation histories.
@@ -13,9 +13,9 @@ GSV(Task,FastTask,MinimumInterval,MinimumWords[1]);
 GSV(Task,FastTask,MaximumInterval,MaximumWords[1]);
 ```
 
-`LastStart` is a scalar LINT. Each word destination selects two contiguous DINT
-elements within one logical array/member boundary, lower word first. Intervals
-use DINT pairs; LINT interval destinations and TIME/DT types remain unqualified.
+StartTime accepts a scalar LINT or DT. MinimumInterval and MaximumInterval
+accept a scalar TIME. Each attribute also accepts two contiguous DINT elements
+within one logical array or member boundary, lower word first.
 Complete writes establish unknown destination cells and retain neighboring
 elements. The full window and permissions are checked before its first write.
 
@@ -39,7 +39,8 @@ in its parent's duration; each Event also has its own independent start history.
 An unavailable host UTC sample withholds only that invocation's StartTime.
 Durations and intervals remain independently available. Unrepresentable 64-bit
 intervals are withheld without wrapping or saturation. DINT pairs preserve all
-64 bits, including a set sign bit in either word.
+64 bits, including a set sign bit in either word. DT and TIME writes check the
+[supported type ranges](time-date-storage.md) and fault on overflow.
 
 ## Selection, faults and lifecycle
 
@@ -49,7 +50,7 @@ bodies and prescan skip live outputs and timing reads. Reached invalid indices,
 insufficient windows, unavailable measurements and later faults roll back the
 whole advance: tags, bindings, all task histories and scheduling progress.
 
-ST FOR validation protects both destination words. Alias and changing-index
+ST FOR validation protects the whole destination, including both cells of a word pair. Alias and changing-index
 destinations conservatively protect their enclosing array. Run entry and
 detached routine replacement retain committed timing histories; fresh load/reset
 initializes them. Runtime-inhibited tasks retain their last successful samples.
@@ -67,6 +68,9 @@ preceding FastTask UTC start. Ladder `TaskMinWords`/`TaskMaxWords` match ST
 
 Set `TaskStartDivisor=0` to demonstrate a late fault and rollback. Restore 1
 before continuing. Disable `ReadTaskStarts` before returning the index to 99.
+Enable ReadTypedTimes to read the prior Background Task start into TaskStartDate
+and the prior FastTask intervals into TaskMinTime and TaskMaxTime.
+
 See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 [timing reads](../source/logixlab/gsv_timing.py) and
 [invocation measurements](../source/logixlab/task_runtime.py).
@@ -75,5 +79,5 @@ The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
 SSV timing changes, Safety/other Event profiles, broader AOI/harness contexts,
-time-type destinations and native sampling/precision/status/fault/lifecycle
+TIME32[2] interval destinations and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

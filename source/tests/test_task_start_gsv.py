@@ -11,6 +11,7 @@ import test_gsv_timing as single
 import test_event_inhibit as events
 from logixlab.model import ModelError
 from logixlab.task_runtime import TaskMeasurements
+from logixlab.time_values import BOUNDS
 
 
 class TaskStartGsvTests(unittest.TestCase):
@@ -22,6 +23,11 @@ class TaskStartGsvTests(unittest.TestCase):
         tags=root.find('./Controller/Tags')
         for name in ('Stamp','NamedStamp'):
             config.scalar(tags,name,'LINT',-1)
+        for name,dtype in (('StartDate','DT'),('MinimumTime','TIME'),('MaximumTime','TIME')):
+            config.scalar(tags,name,dtype,0)
+        tag=E.SubElement(tags,'Tag',Name='TimeWords',DataType='TIME32',TagType='Base',Dimensions='2')
+        array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TIME32',Dimensions='2')
+        for i in range(2):E.SubElement(array,'Element',Index=f'[{i}]',Value='0')
         for name in ('StartWords','MinWords','MaxWords','NamedWords'):
             tag=E.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base',Dimensions='4')
             array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='DINT',Dimensions='4')
@@ -65,6 +71,27 @@ class TaskStartGsvTests(unittest.TestCase):
             e.step();self.assertEqual(e.memory.read('Stamp'),1234567);self.assertEqual(self.word(e,'StartWords'),1234567);self.assertEqual(self.word(e,'MaxWords'),0)
             e.step();self.assertEqual(e.memory.read('Stamp'),2345678);self.assertEqual(self.word(e,'MinWords'),10);self.assertEqual(self.word(e,'MaxWords'),10)
         self.assertEqual(e._task_measurements.maximum_interval_ns,30000)
+
+    def test_start_and_interval_types_match_legacy_prior_snapshot(self):
+        typed=[('StartTime','StartDate'),('MinimumInterval','MinimumTime'),('MaximumInterval','MaximumTime')]
+        for st in (False,True):
+            e=self.checked(self.reads()+[f'GSV(Task,FastTask,{attr},{tag});' for attr,tag in typed],st=st)
+            for expected in ((0,0,0),(123,17,31)):
+                if expected[0]:
+                    e._task_scan_timings['fasttask']=TaskMeasurements(minimum_interval_ns=17000,
+                        maximum_interval_ns=31000,executions=2,last_start_ns=0,start_time_us=123)
+                e.step(25)
+                self.assertEqual((e.memory.read('Stamp'),self.word(e,'MinWords'),self.word(e,'MaxWords')),expected)
+                self.assertEqual(tuple(e.memory.read(tag,allow_time=True) for _,tag in typed),expected)
+
+    def test_start_and_interval_overflow_roll_back_typed_and_legacy_outputs(self):
+        stamp=BOUNDS['DT'][1]+1;duration=(BOUNDS['TIME'][1]+1)*1000
+        for attr,tag,dtype in (('StartTime','StartDate','DT'),('MinimumInterval','MinimumTime','TIME'),
+                               ('MaximumInterval','MaximumTime','TIME')):
+            e=self.checked(self.reads()+[f'GSV(Task,FastTask,{attr},{tag});'])
+            e._task_scan_timings['fasttask']=TaskMeasurements(minimum_interval_ns=duration,
+                maximum_interval_ns=duration,executions=2,last_start_ns=0,start_time_us=stamp)
+            self.fault(e,dtype+' requires exact ticks')
 
     def test_multitask_histories_measure_actual_host_invocations_not_simulated_rate(self):
         e=self.checked(self.reads())
@@ -144,6 +171,7 @@ class TaskStartGsvTests(unittest.TestCase):
     def test_invalid_types_small_windows_constants_other_classes_and_setters_are_guarded(self):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Stamp"]').set('Constant','true')
         for logic in ('GSV(Task,FastTask,MinimumInterval,Stamp);','GSV(Task,FastTask,StartTime,Out);',
+                      'GSV(Task,FastTask,MinimumInterval,TimeWords[0]);','GSV(Task,FastTask,MinimumInterval,StartDate);',
                       'GSV(Task,FastTask,StartTime,MinWords[3]);','GSV(Program,BackgroundProgram,StartTime,Stamp);',
                       'SSV(Task,FastTask,StartTime,Stamp);','GSV(Task,FastTask,MaxInterval,MinWords[1]);'):
             self.assertTrue(self.engine([logic]).blockers,logic)

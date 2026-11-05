@@ -9,6 +9,7 @@ from xml.etree import ElementTree as E
 import test_gsv_configuration as configuration
 import test_aoi_queues as aoi
 from logixlab.model import ModelError
+from logixlab.time_values import BOUNDS
 
 INSTANT=datetime(2024,2,29,23,59,58,123456,tzinfo=timezone.utc)
 DELTA=INSTANT-datetime(1970,1,1,tzinfo=timezone.utc)
@@ -29,7 +30,7 @@ class GsvWallClockTests(unittest.TestCase):
             controller=root.find('Controller');tags=controller.find('Tags')
             for name,dtype,value in [('ClockWide','LINT',91),('ClockIndex','DINT',99),('ReadClock','BOOL',0),('ClockDivisor','DINT',1)]:
                 configuration.scalar(tags,name,dtype,value)
-            for name,dtype,count in [('ClockWords','DINT',12),('ClockUnknown','DINT',9),('WideUnknown','LINT',2)]:
+            for name,dtype,count in [('ClockWords','DINT',12),('ClockUnknown','DINT',9),('WideUnknown','LINT',2),('DateUnknown','DT',2)]:
                 tag=E.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base',Dimensions=str(count))
                 array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType=dtype,Dimensions=str(count))
                 if name=='ClockWords':
@@ -57,6 +58,19 @@ class GsvWallClockTests(unittest.TestCase):
         with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000+999) as clock:e.step()
         self.assertEqual(clock.call_count,2);self.assertEqual(e.memory.read('ClockWide'),MICROSECONDS)
         self.assertEqual(e.memory.read('ClockWords'),[77,77,*WORDS]+[77]*8)
+
+    def test_current_value_writes_selected_dt_without_touching_unknown_sibling(self):
+        for st,logic in [(False,'XIC(ReadClock)GSV(WallClockTime,,CurrentValue,DateUnknown[ClockIndex]);'),
+                         (True,'IF ReadClock THEN GSV(WallClockTime,,CurrentValue,DateUnknown[ClockIndex]); END_IF;')]:
+            with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Unused clock read')):
+                e=self.checked([logic],st=st,local=False);e.enter_run();e.step()
+                e.memory.write('ReadClock',True);self.fault(e,'outside bounds')
+            e.memory.write('ClockIndex',1)
+            for ticks in (MICROSECONDS,BOUNDS['DT'][1]):
+                with patch('logixlab.wall_clock.time.time_ns',return_value=ticks*1000+999):e.step()
+                self.assertEqual(e.memory.values['dateunknown'],[None,ticks])
+            with patch('logixlab.wall_clock.time.time_ns',return_value=(ticks+1)*1000):
+                self.fault(e,'DT requires exact ticks')
 
     def test_datetime_and_qualified_local_datetime_write_seven_fields_with_guards(self):
         for attribute in ('DateTime','LocalDateTime'):
@@ -167,7 +181,7 @@ class GsvWallClockTests(unittest.TestCase):
 
     def test_bad_instances_attributes_destinations_permissions_and_profiles_stay_blocked(self):
         for text in ('GSV(WallClockTime,This,CurrentValue,ClockWide);','GSV(WallClockTime,,CSTOffset,ClockWide);',
-                     'GSV(WallClockTime,,ApplyDST,Out);','GSV(WallClockTime,,DateTime,ClockWide);',
+                     'GSV(WallClockTime,,ApplyDST,Out);','GSV(WallClockTime,,DateTime,ClockWide);','GSV(WallClockTime,,DateTime,DateUnknown[0]);',
                      'GSV(WallClockTime,,CurrentValue,ClockWide.0);','GSV(WallClockTime,,DateTime,ClockWords[6]);',
                      'SSV(WallClockTime,,CurrentValue,ClockWide);'):
             self.assertTrue(self.engine([text]).blockers,text)

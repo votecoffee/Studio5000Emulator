@@ -6,6 +6,7 @@ used by the CIP endpoint; separate calls have separate sampling times.
 
 ```text
 GSV(WallClockTime,,CurrentValue,Timestamp);
+GSV(WallClockTime,,CurrentValue,ClockDate);
 GSV(WallClockTime,,CurrentValue,Words[0]);
 GSV(WallClockTime,,DateTime,Calendar[0]);
 GSV(WallClockTime,,LocalDateTime,LocalCalendar[0]);
@@ -15,13 +16,13 @@ Class and attribute lookup are case insensitive. The instance operand is empty.
 
 | Attribute | Destination | Meaning |
 | --- | --- | --- |
-| CurrentValue | Scalar LINT or two contiguous DINT cells | UTC microseconds since 1970-01-01; DINT cells contain the signed low and high 32-bit words. |
+| CurrentValue | Scalar DT, scalar LINT or two contiguous DINT cells | UTC microseconds since 1970-01-01; DINT cells contain the signed low and high 32-bit words. |
 | DateTime | Seven contiguous DINT cells | UTC year, month, day, hour, minute, second and microsecond. |
 | LocalDateTime | Seven contiguous DINT cells | Same UTC calendar under the explicit local-time policy described below. |
 
-Microseconds retain integer precision. Calendar fields require a timestamp that
-fits Python's calendar range; a representable counter alone does not guarantee
-calendar availability. Time comes from host `time.time_ns`, independently of
+Microseconds retain integer precision. DT checks the
+[supported timestamp range](time-date-storage.md); calendar fields require a
+timestamp that fits Python's calendar range. Time comes from host `time.time_ns`, independently of
 simulated scan milliseconds. Pausing scans retains previously written tags; the
 host clock keeps advancing. The [appliance launcher](vmware-appliance.md) seeds
 UTC from Windows when it boots a new owned VM; that one-time whole-second
@@ -43,7 +44,7 @@ Preflight checks the declared destination type, complete logical window, shape,
 permissions and index grammar without reading live indices or sampling time.
 False ladder rungs, prescan and skipped ST branches retain destinations. A
 reached call resolves the whole destination window before sampling the clock.
-Unknown complete LINT/DINT cells can be established; surrounding cells remain
+Unknown complete DT/LINT/DINT cells can be established; surrounding cells remain
 unchanged. Windows stay inside the selected logical scalar/member/array region.
 
 Aliases, Program-local scope, indexed elements and existing typed AOI InOut/local
@@ -52,7 +53,7 @@ direct static windows have exact effects, while aliases/AOI/indirect references
 conservatively protect their enclosing array. Some disjoint dynamic forms remain
 blocked by this conservative policy.
 
-An unavailable host clock, invalid calendar/index/window or later instruction
+An unavailable host clock, out-of-range DT, invalid calendar/index/window or later instruction
 fault rolls back tag values, AOI bindings, trace, task scheduling and simulated
 time for the whole advance. The host clock itself cannot be rolled back; retrying
 reads the current time. No native fault/status record, packed layout, hardware
@@ -71,8 +72,13 @@ reached calendar read then faults and rolls back the advance. Restore the index
 to 1 to recover. Calls may have slightly different microseconds. `ReadConfig`
 also gates the existing call to ReadSettings, so it must stay true for ST reads.
 
+Enable ReadTypedTimes and step to run **ReadTypedClock**. ClockDate holds
+the live UTC timestamp in DT microseconds. MOV copies it to ClockDateNs
+in LDT nanoseconds. TaskStartDate and the duration tags read the previous
+committed [Task](task-start-gsv.md) and [Program](scan-time-gsv.md) measurements.
+
 Installed v35 help 14645 and Rockwell's published
 [WallClockTime object reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
 define the counter/calendar formats. The installed version determines this
-profile. DT/TIME/DATETIMESTRUCT destinations, other attributes, SSV clock setters,
+profile. DATETIMESTRUCT destinations, other attributes, SSV clock setters,
 non-UTC/DST policies, CST/PTP synchronization and broader profiles remain separate.

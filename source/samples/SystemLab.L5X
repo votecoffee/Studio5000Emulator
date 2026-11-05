@@ -486,6 +486,14 @@
       <Tag Name="StProgramLast" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="StProgramMax" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="TimingWords" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="-1" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
+      <Tag Name="ReadTypedTimes" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClockDate" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
+      <Tag Name="ClockDateNs" DataType="LDT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data></Tag>
+      <Tag Name="TaskStartDate" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
+      <Tag Name="ProgramTime32" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data></Tag>
+      <Tag Name="TaskTime32" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data></Tag>
+      <Tag Name="TaskMinTime" DataType="TIME" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
+      <Tag Name="TaskMaxTime" DataType="TIME" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="BackgroundProgram" MainRoutineName="Main" Class="Standard">
@@ -542,6 +550,18 @@
               <Rung Number="16" Type="N"><Text>JSR(ReadCurrentInstances,0)JSR(ReadProgramTimes,0);</Text></Rung>
               <Rung Number="17" Type="N"><Text>JSR(ReadTaskTimes,0);</Text></Rung>
               <Rung Number="18" Type="N"><Text>JSR(ReadTaskStarts,0);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(ReadTypedTimes)JSR(ReadTypedClock,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ReadTypedClock" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>GSV(WallClockTime,,CurrentValue,ClockDate);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>MOV(ClockDate,ClockDateNs);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>GSV(Task,THIS,StartTime,TaskStartDate);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>GSV(Program,THIS,LastScanTime,ProgramTime32);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>GSV(Task,THIS,MaxScanTime,TaskTime32);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>GSV(Task,FastTask,MinimumInterval,TaskMinTime);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>GSV(Task,FastTask,MaximumInterval,TaskMaxTime);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTaskStarts" Type="RLL">

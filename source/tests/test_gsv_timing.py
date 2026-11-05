@@ -11,6 +11,7 @@ from logixlab.model import ModelError,Project
 from logixlab.runtime import Engine
 from logixlab.program_timing import ProgramTiming
 from logixlab.task_runtime import TaskMeasurements
+from logixlab.time_values import BOUNDS
 
 SAMPLES=Path(__file__).resolve().parents[1]/'samples'
 
@@ -21,7 +22,7 @@ class GsvTimingTests(unittest.TestCase):
 
     def engine(self,logic,*,st=False,mutate=None,mode='project'):
         root=E.parse(SAMPLES/'ConveyorDemo.L5X').getroot();tags=root.find('./Controller/Tags')
-        for name,dtype,value in [('ProgramLast','DINT',91),('ProgramMax','DINT',92),('TaskLast','DINT',93),('TaskMax','DINT',94),('ReadTiming','BOOL',0),('Index','DINT',99),('Limit','DINT',2),('Divisor','DINT',1)]:
+        for name,dtype,value in [('ProgramLast','DINT',91),('ProgramMax','DINT',92),('TaskLast','DINT',93),('TaskMax','DINT',94),('ProgramTicks','TIME32',-1),('TaskTicks','TIME32',-1),('ReadTiming','BOOL',0),('Index','DINT',99),('Limit','DINT',2),('Divisor','DINT',1)]:
             tag=E.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base');E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value=str(value))
         for name,values in [('Words',[77]*6),('UnknownWords',[])]:
             tag=E.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base',Dimensions='6');array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='DINT',Dimensions='6')
@@ -92,6 +93,22 @@ class GsvTimingTests(unittest.TestCase):
         e.step();self.assertEqual(e.memory.read('TaskLast'),1)
         e=self.checked(['GSV(Task,MainTask,MaxScanTime,TaskMax);']);e._task_measurements=TaskMeasurements(1000,0x100000000*1000,executions=1,last_start_ns=0)
         self.fault(e,'unavailable')
+
+    def test_scan_durations_write_time32_and_check_range_independently_of_dint(self):
+        limit=BOUNDS['TIME32'][1]
+        for cls,name in (('Program','MainProgram'),('Task','MainTask')):
+            for attr,raw in (('LastScanTime','Last'),('MaxScanTime','Max')):
+                e=self.checked([f'GSV({cls},{name},{attr},{cls}{raw});',f'GSV({cls},{name},{attr},{cls}Ticks);'])
+                e.step()
+                self.assertEqual(e.memory.read(f'{cls}Ticks',allow_time=True),0)
+                for value in (limit,limit+1):
+                    e._program_timings['mainprogram']=ProgramTiming(value*1000,value*1000,1)
+                    e._task_measurements=TaskMeasurements(value*1000,value*1000,executions=1,last_start_ns=0)
+                    if value==limit:
+                        e.step()
+                        self.assertEqual(e.memory.read(f'{cls}{raw}'),value)
+                        self.assertEqual(e.memory.read(f'{cls}Ticks',allow_time=True),value)
+                    else:self.fault(e,'TIME32 requires exact ticks')
 
     def test_named_programs_use_independent_scheduled_counters(self):
         def worker(root):
