@@ -74,13 +74,19 @@ def component_name(engine, cls, instance, scope, *, executing):
     return name
 
 
-def controller_device(project, instance, attribute):
+def controller_device(engine, instance, attribute, *, executing):
+    project = engine.project
     if instance:
         raise ModelError('GSV ControllerDevice requires an empty instance operand')
     fields = project.source_controller_settings
     processor = project.processor.upper()
     if not {'ProcessorType', 'MajorRev'} <= fields or processor not in CONTROLLOGIX_5580_PRODUCT_CODES:
         raise ModelError('GSV ControllerDevice requires an explicit v35 5580 processor and major revision')
+    if attribute == 'status':
+        status = engine._scan_controller_status
+        if executing and status is None:
+            raise ModelError('GSV ControllerDevice Status requires an active scan')
+        return 'INT', status
     if attribute == 'devicename':
         name = processor.encode('ascii')
         return 'SINT[33]', (bytes((len(name),)) + name).ljust(DEVICE_NAME_SIZE, b'\0')
@@ -108,7 +114,7 @@ def source(engine, op, scope='', *, executing=False):
         raise ModelError('GSV configuration source is incomplete or unavailable')
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls == 'controllerdevice':
-        return controller_device(project, instance, attribute)
+        return controller_device(engine, instance, attribute, executing=executing)
     if cls=='controller':
         if instance:raise ModelError('GSV Controller requires an empty instance operand')
         if attribute=='name':
@@ -217,8 +223,9 @@ def description():
                 task=['Name','Instance','Rate (Periodic or Event timeout)','EnableTimeOut (Event)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
                 program=['Name'],routine=['Name'],
-                controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor'],
-                controller_device_source='v35 5580 project processor and firmware revision; model catalog name, no serial or hardware status.',
+                controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
+                controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
+                controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
                 destinations='Exact INT/DINT scalars, represented LEN/DATA strings, or a 33-cell SINT window for DeviceName; no cross-type byte copies',

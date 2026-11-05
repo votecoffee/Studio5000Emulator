@@ -11,6 +11,11 @@ CONTROLLOGIX_5580_PRODUCT_CODES = {
 }
 
 
+def controller_status_word(mode):
+    """Encode the emulator status for a fixed Remote keyswitch."""
+    return 0x3000 | {'Run': 0x60, 'Program': 0x70, 'Faulted': 0x450}[mode]
+
+
 @dataclass(frozen=True)
 class Identity:
     profile:str

@@ -37,6 +37,8 @@
       <Tag Name="ThisBackgroundTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="TaskWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadThis" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="StDeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ReadControllerDevice" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DeviceNameBytes" TagType="Base" DataType="SINT" Dimensions="33"><Data Format="Decorated"><Array DataType="SINT" Dimensions="33"><Element Index="[0]" Value="-1" /></Array></Data></Tag>
       <Tag Name="DeviceProductCode" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
@@ -658,7 +660,7 @@
               <Line Number="11">IF ControlSlowProgram THEN SSV(Program,SlowProgram,DisableFlag,SlowProgramDisable); END_IF;</Line>
               <Line Number="12">GSV(Program,SlowProgram,DisableFlag,LiveSlowProgramDisabled);</Line>
               <Line Number="13">IF ReadObjectIdentity THEN GSV(Program,FastProgram,Name,StObjectProgramName); GSV(Routine,THIS,Name,StObjectRoutineName); GSV(Task,SlowTask,Instance,StObjectTaskSlot); END_IF;</Line>
-              <Line Number="14">IF ReadControllerDevice THEN GSV(ControllerDevice,,Type,DeviceType); GSV(ControllerDevice,,Vendor,DeviceVendor); END_IF;</Line>
+              <Line Number="14">IF ReadControllerDevice THEN GSV(ControllerDevice,,Type,DeviceType); GSV(ControllerDevice,,Vendor,DeviceVendor); GSV(ControllerDevice,,Status,StDeviceStatus); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -676,7 +678,7 @@
               <Rung Number="2" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,LastScanTime,ThisWords[ThisIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,MaxScanTime,ThisProgramMax);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadObjectIdentity)GSV(Program,THIS,Name,ObjectProgramName)GSV(Routine,THIS,Name,ObjectRoutineName)GSV(Task,THIS,Instance,ObjectTaskSlot);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ReadControllerDevice)GSV(ControllerDevice,,DeviceName,DeviceNameBytes)GSV(ControllerDevice,,ProductCode,DeviceProductCode)GSV(ControllerDevice,,ProductRev,DeviceProductRev);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadControllerDevice)GSV(ControllerDevice,,DeviceName,DeviceNameBytes)GSV(ControllerDevice,,ProductCode,DeviceProductCode)GSV(ControllerDevice,,ProductRev,DeviceProductRev)GSV(ControllerDevice,,Status,DeviceStatus);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadProgramTimes" Type="RLL">

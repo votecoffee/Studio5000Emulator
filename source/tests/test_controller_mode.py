@@ -4,10 +4,12 @@ import time
 import unittest
 from unittest.mock import patch
 
+from logixlab.ethernetip import Endpoint
 from logixlab.model import ModelError
 from logixlab.native_project import NativeProjectIdentity
 from logixlab.server import Application
 import test_native_session as native_tests
+from test_ethernetip import Client
 from test_programming_lease import ACQUIRE, RELEASE
 
 
@@ -43,6 +45,56 @@ class ControllerModeTests(unittest.TestCase):
         self.assertEqual(before['controller']['mode'],'Program')
         self.app.command('controller-mode',{'mode':'Run'})
         wait_for(lambda:self.app.engine.scan_count>before['scan'])
+
+    def test_device_gsv_and_native_identity_follow_actual_scans_and_mode(self):
+        state=self.app.command('demo',{'sample':'SystemLab'})
+        self.assertEqual(state['blockers'],[])
+        self.app.endpoint=Endpoint(self.app,0,False,'logix-v35-l85e',native_read_only=True).start()
+        client=Client(self.app.endpoint.port)
+        self.addCleanup(client.close)
+        client.register()
+
+        def identity():
+            status,response=client.cip(bytes.fromhex('0e03200124013005'))
+            self.assertEqual((status,response[:4]),(0,bytes.fromhex('8e000000')))
+            return int.from_bytes(response[4:],'little')
+
+        def read_tags(state):
+            return tuple(row['value'] for row in state['tags'] if row['name'] in ('DeviceStatus','StDeviceStatus'))
+
+        def observe():
+            return self.app.command('observe',{})
+
+        def write(tag,value):
+            return self.app.command('write',{'tag':tag,'value':value})
+
+        def step():
+            return self.app.command('step',{'dt':25})
+
+        self.assertEqual(read_tags(step()),(-1,-1))
+        write('ReadControllerDevice',True)
+        self.assertEqual(read_tags(step()),(0x3070,0x3070))
+        self.assertEqual(identity(),0x3070)
+        self.app.command('controller-mode',{'mode':'Run','dt':25})
+        wait_for(lambda:read_tags(observe())==(0x3060,0x3060))
+        self.assertEqual(identity(),0x3060)
+        stopped=self.app.command('controller-mode',{'mode':'Program'})
+        self.assertEqual(read_tags(stopped),(0x3060,0x3060))
+        self.assertEqual(identity(),0x3070)
+        self.assertEqual(read_tags(step()),(0x3070,0x3070))
+
+        write('TaskStartIndex',1)
+        write('ReadTaskStarts',True)
+        write('TaskStartDivisor',0)
+        with self.assertRaisesRegex(ModelError,'zero'):
+            step()
+        self.assertEqual(read_tags(observe()),(0x3070,0x3070))
+        self.assertEqual(identity(),0x3450)
+        write('TaskStartDivisor',1)
+        self.assertEqual(read_tags(step()),(0x3450,0x3450))
+        self.assertEqual(identity(),0x3070)
+        self.assertEqual(read_tags(step()),(0x3070,0x3070))
+        client.close()
 
     def test_invalid_modes_and_intervals_do_not_start_scanning(self):
         for value in ('Test','run','',None):
@@ -82,12 +134,15 @@ class ControllerModeTests(unittest.TestCase):
             self.assertEqual(self.app.engine.scan_count,0)
 
     def test_fault_stops_worker_and_requires_reset_before_run(self):
-        def fail(_):raise ModelError('Synthetic scan failure')
+        def fail(_, *, running):
+            self.assertTrue(running)
+            raise ModelError('Synthetic scan failure')
         with patch.object(self.app.engine,'step',side_effect=fail):
             self.app.command('controller-mode',{'mode':'Run'})
             wait_for(lambda:bool(self.app.engine.fault))
         state=self.app.command('observe',{})
         self.assertEqual(state['controller']['mode'],'Faulted')
+        self.assertEqual(state['fault'],'Synthetic scan failure')
         self.assertFalse(state['controller']['running'])
         with self.assertRaises(ModelError):self.app.command('controller-mode',{'mode':'Run'})
         self.app.command('reset',{})

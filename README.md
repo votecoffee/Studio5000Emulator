@@ -140,7 +140,9 @@ Program and Routine names plus Task registry slots in ladder and ST.
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware
-revision, device type and vendor. **System lab** demonstrates ladder and ST.
+revision, device type and vendor. [Controller device status](docs/gsv-configuration.md#controller-device-status)
+uses the same mode word as the emulator's EtherNet/IP endpoint.
+**System lab** demonstrates ladder and ST.
 
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock

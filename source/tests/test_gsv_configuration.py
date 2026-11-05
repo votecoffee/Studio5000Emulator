@@ -153,9 +153,30 @@ class GsvConfigurationTests(unittest.TestCase):
                      'GSV(ControllerDevice,,ProductCode,Out);',
                      'GSV(ControllerDevice,,ProductCode,PriorityOut.0);',
                      'GSV(ControllerDevice,,SerialNumber,Out);',
-                     'GSV(ControllerDevice,,Status,PriorityOut);',
+                     'GSV(ControllerDevice,,Status,Out);',
+                     'GSV(ControllerDevice,,Status,PriorityOut.0);',
+                     'SSV(ControllerDevice,,Status,PriorityOut);',
                      'SSV(ControllerDevice,,ProductRev,PriorityOut);'):
             self.assertTrue(self.engine([text]).blockers,text)
+
+    def test_device_status_uses_one_entry_sample_and_rolls_back_on_fault(self):
+        for st in (False,True):
+            with self.subTest(st=st):
+                later='Out := 1 / Limit;' if st else 'DIV(1,Limit,Out);'
+                e=self.checked(['GSV(ControllerDevice,,Status,PriorityOut);',later],st=st)
+                self.assertEqual(e.memory.read('PriorityOut'),-7)
+                e.step();self.assertEqual(e.memory.read('PriorityOut'),0x3070)
+                e.memory.write('Limit',0)
+                before=copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError,'zero'):
+                    e.step(running=True)
+                self.assertEqual(e.memory.values,before)
+                self.assertIsNone(e._scan_controller_status)
+                e.memory.write('Limit',2);e.step()
+                self.assertEqual(e.memory.read('PriorityOut'),0x3450)
+                self.assertEqual(e.controller_mode(),'Program')
+                e.step(running=True)
+                self.assertEqual(e.memory.read('PriorityOut'),0x3060)
 
     def test_device_name_writes_a_counted_sint_window_and_preserves_neighbors(self):
         expected=list(bytes((9,))+b'1756-L85E')+[0]*23

@@ -19,7 +19,7 @@ import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from .model import ModelError,operations
-from .identity import Identity
+from .identity import Identity, controller_status_word
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import interface_snapshot, port_attributes, cip_string
@@ -215,8 +215,7 @@ class Router:
         attributes=self.endpoint.identity.attributes()
         if self.endpoint.native_read_only:
             mode=self.app.controller_state()['mode']
-            # Logix Status: bits 12..13 Remote, bits 4..7 Run/Program/Faulted.
-            attributes[5]=struct.pack('<H',0x3000 | {'Run':0x60,'Program':0x70,'Faulted':0x450}[mode])
+            attributes[5]=struct.pack('<H',controller_status_word(mode))
         return attributes
 
     def identity(self):

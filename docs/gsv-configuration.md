@@ -32,6 +32,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
 | ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
+| ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 
@@ -99,10 +100,32 @@ processor, independent of the endpoint's advertised identity profile.
 
 In **System lab**, enable ReadControllerDevice and step 25 ms. Ladder writes
 DeviceNameBytes, product code 168, and revision 16#0B23. ST writes device type
-14 and vendor 1. ST also uses the existing ReadConfig gate. These reads are
-based on the installed v35 topic 14635. Device status, physical serial numbers,
-and native ControllerDevice execution remain unqualified.
-[Rockwell ControllerDevice reference](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-controllerdevice-object.html)
+14 and vendor 1. ST also uses the existing ReadConfig gate. Physical serial
+numbers and native ControllerDevice execution remain unqualified. These reads
+follow installed v35 help topic 14635.
+[Rockwell ControllerDevice reference](https://www.rockwellautomation.com/en-pr/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/input-output-instructions/access-the-controllerdevice-object.html)
+
+### Controller device status
+
+ControllerDevice Status uses the same INT word as the emulator's Logix
+EtherNet/IP Identity status. The virtual keyswitch remains Remote. Every
+routine in an advance sees the mode sampled at its entry.
+
+| Scan entry | Status word |
+| --- | --- |
+| Manual Step in Remote Program | 16#3070 |
+| Background scan in Remote Run | 16#3060 |
+| Manual retry entered while the emulator still reports a software fault | 16#3450 |
+
+A failed advance rolls back the destination. If a manual retry succeeds, the
+next step samples Remote Program. Switching back to Program updates the
+endpoint immediately. The GSV destination retains its last value until a scan
+reaches the instruction.
+
+Enable ReadControllerDevice in **System lab**. Compare DeviceStatus in ladder
+and StDeviceStatus in ST after Step, Run, and another Step in Program.
+The software model covers these modes and the existing emulator fault word.
+Native fault classifications, debug, and transition flags remain unqualified.
 
 ## Changing a periodic task rate
 

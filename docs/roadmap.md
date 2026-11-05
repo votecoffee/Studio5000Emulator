@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.155020` [ControllerDevice Status](gsv-configuration.md#controller-device-status)
+reads the emulator's Remote Program, Remote Run and fault-entry status in
+ladder and ST. The Logix EtherNet/IP endpoint uses the same word encoding.
+
 Available in `26.1105.154033` [ControllerDevice GSV](gsv-configuration.md#controller-device-identity)
 reads the v35 5580 catalog name, product and firmware codes, device type and
 vendor in ladder and ST. System Lab demonstrates the counted SINT name.

@@ -4,6 +4,7 @@ import copy
 import operator
 from collections import Counter
 from time import perf_counter_ns
+from .identity import controller_status_word
 from .program_timing import ProgramTiming
 from . import program_control
 from .gsv_timing import TimingAdvance
@@ -79,6 +80,7 @@ class Engine:
         self._program_advance = None
         self._executing_task = None
         self._executing_routine = None
+        self._scan_controller_status = None
         self._event_dispatch = None
         self._plan()
         if not self.blockers:
@@ -268,6 +270,11 @@ class Engine:
             self._activation_prescan_pending=self._program_activation.keys() & self._disabled_programs
             if self._task_scheduler is not None:self._task_scheduler.reset(self.time_ms)
             self.trace=[]
+
+    def controller_mode(self, *, running=False):
+        if self.fault:
+            return 'Faulted'
+        return 'Run' if running else 'Program'
 
     def enter_run(self):
         """Initialize a Program-to-Run transition without a normal scan."""
@@ -613,7 +620,7 @@ class Engine:
         self.validate_interval(dt)
         if self._initial_prescan_pending:self.enter_run()
 
-    def step(self, dt=10):
+    def step(self, dt=10, *, running=False):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
@@ -634,6 +641,7 @@ class Engine:
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
                                                        set(self._activation_prescan_pending))
         try:
+            self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
             programs=self._program_advance
@@ -710,6 +718,7 @@ class Engine:
             self._event_dispatch=None
             self._timing_advance=None
             self._program_advance=None
+            self._scan_controller_status=None
         changes = []
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)

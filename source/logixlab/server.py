@@ -140,8 +140,8 @@ class Application:
         lease.download_committed=True
 
     def controller_state(self):
-        fault = bool(self.engine and self.engine.fault)
-        return {'mode':'Faulted' if fault else 'Run' if self.running else 'Program',
+        mode = self.engine.controller_mode(running=self.running) if self.engine else 'Program'
+        return {'mode':mode,
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
@@ -200,7 +200,7 @@ class Application:
                 try:
                     self.device_io.apply(self)
                     self._io_dirty = True
-                    self.engine.step(self.scan_interval_ms)
+                    self.engine.step(self.scan_interval_ms,running=self.running)
                     self.scan_interval_ms = self.engine.fixed_scan_interval() or self.scan_interval_ms
                     if self.device_io.sample_due():self.publish_device_io()
                 except Exception as error:
