@@ -129,11 +129,11 @@ class ScalarMathTests(unittest.TestCase):
 
     def test_types_shapes_constants_and_missing_tags_remain_blocked_even_false(self):
         for text in ('ADD(StartPB,1,Results[0]);', 'ADD(Source,1,Results);', 'ADD(Inputs,1,Results[0]);',
-                     'ADD(Missing,1,Results[0]);', 'AND(1.0L,1,Results[0]);', 'NOT(StartPB,Results[0]);'):
+                     'ADD(Missing,1,Results[0]);', 'AND(1e309L,1,Results[0]);', 'NOT(StartPB,Results[0]);'):
             self.assertTrue(self.engine(['AFI()' + text]).blockers, text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()ADD(Source,Mask,Results[0]);'], mutate=constant).blockers)
-        self.assertTrue(self.engine(['AND(Source,Mask,Results[0]);'], dest='LREAL').blockers)
+        self.assertTrue(self.engine(['AND(Source,Mask,Results[0]);'], dest='BOOL').blockers)
 
     def test_later_failure_restores_established_values_and_scheduler(self):
         e = self.checked(['ADD(Source,Mask,Results[0]);', 'NOT(Source,Results[1]);', 'DIV(Source,Inputs[0],Results[2]);'])

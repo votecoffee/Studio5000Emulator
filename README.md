@@ -386,7 +386,9 @@ skip their values while false or in prescan. Set `MathIndex` to 1 and enable
 
 [REAL ladder bitwise operands](docs/scalar-math.md#real-operands-in-ladder-bitwise-instructions)
 round to DINT before AND, OR, XOR and NOT, with optional REAL results.
-Enable RealBitwise in **Bit lab** to see the conversions.
+Enable RealBitwise in **Bit lab** to see the conversions. The
+[LREAL forms](docs/scalar-math.md#lreal-operands-in-ladder-bitwise-instructions)
+use signed LINT and demonstrate exact integer results above 2^53.
 
 [Basic scalar arithmetic and bitwise operations](docs/scalar-math.md) validate
 unknown values structurally, skip false-rung operands and establish full numeric

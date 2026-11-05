@@ -2522,6 +2522,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'RealBitwise','value':True})
         self.assertEqual(step_values(),(6,-1.0,-8,1.0))
 
+    def test_bit_lab_lreal_bitwise_preserves_lint_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        names=('LrealBitAnd','LrealBitOr','LrealBitXor','LrealBitNot')
+
+        def step_values():
+            state=self.post('step',{'dt':10})
+            tags={row['name']:row['value'] for row in state['tags']}
+            return tuple(tags[name] for name in names)
+
+        self.assertEqual(step_values(),('-99','-99','-99',-99.0))
+        self.post('write',{'tag':'LrealBitwise','value':True})
+        self.assertEqual(step_values(),('9007199254740992','9007199254740993','9007199254740996',-9007199254740992.0))
+        self.post('write',{'tag':'LrealBitInput','value':float(1 << 63)})
+        with self.assertRaises(HTTPError) as caught:
+            step_values()
+        self.assertEqual(caught.exception.code,400)
+        self.assertIn(b'LINT overflow',caught.exception.read())
+        caught.exception.close()
+        self.post('write',{'tag':'LrealBitInput','value':-1.5})
+        self.assertEqual(step_values(),('9007199254740992','-1','-6',1.0))
+
     def test_bit_lab_declared_width_bitwise_results_and_false_retention_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
         def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}

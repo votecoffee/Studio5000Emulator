@@ -259,11 +259,32 @@ their declared-width zero extension.
 An integer destination retains its usual low bits. A REAL destination gets
 the signed DINT result converted to binary32. An out-of-range conversion
 faults and rolls back the advance. False rungs and prescan skip live sources
-and indices. LREAL, mixes of REAL with wide or unsigned integers, typed
-integer immediates mixed with REAL, expressions and native status/fault
-behavior are outside this profile.
+and indices. REAL-only floating forms are qualified with narrow signed
+integers. The [LREAL forms](#lreal-operands-in-ladder-bitwise-instructions)
+also accept LINT. Typed integer immediates in floating forms, expressions
+and native status/fault behavior remain unqualified.
 
 In **Bit lab**, enable RealBitwise and step. RealBitInput starts at 3.5 and
 rounds to 4. AND, OR, XOR and NOT produce 4, 5.0, 2 and -5.0. Set RealBitInput
 to -1.5 to see negative conversion, or enter 2147483648 to exercise rollback.
 [Rockwell AND operand reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/move-logical-instructions/bitwise-and--and-.html)
+
+## LREAL operands in ladder bitwise instructions
+
+An LREAL tag, decimal floating L/l immediate or LREAL destination selects the
+64-bit profile for standalone AND, OR, XOR and NOT. An LREAL source rounds
+from binary64 to signed LINT with ties to even. REAL sources still round to
+DINT. The operation zero-extends narrower patterns and keeps the low bits
+for an integer destination. A REAL or LREAL destination receives the signed
+LINT result converted to its declared floating precision.
+
+The profile accepts signed integer tags, bounded DINT immediates, REAL and
+LREAL operands. A reached LREAL value outside LINT range faults and rolls
+back the scan. Unsigned mixtures, typed integer immediates in floating forms,
+ST expressions and native overflow/status behavior remain unqualified.
+
+Enable LrealBitwise in **Bit lab**. With the default input 9007199254740992,
+OR produces the exact LINT 9007199254740993. NOT's LREAL destination rounds
+the integer result -9007199254740993 to -9007199254740992. Enter
+9223372036854775808 to exercise overflow and rollback.
+[Rockwell OR operand reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/move-logical-instructions/bitwise-inclusive-or--or-.html)

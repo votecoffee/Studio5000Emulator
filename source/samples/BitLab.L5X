@@ -5,6 +5,12 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="LrealBitwise" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="LrealBitInput" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="9007199254740992" /></Data></Tag>
+      <Tag Name="LrealBitAnd" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-99" /></Data></Tag>
+      <Tag Name="LrealBitOr" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-99" /></Data></Tag>
+      <Tag Name="LrealBitXor" TagType="Base" DataType="LINT"><Data Format="Decorated"><DataValue DataType="LINT" Value="-99" /></Data></Tag>
+      <Tag Name="LrealBitNot" TagType="Base" DataType="LREAL"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-99" /></Data></Tag>
       <Tag Name="RealBitwise" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="RealBitInput" TagType="Base" DataType="REAL"><Data Format="Decorated"><DataValue DataType="REAL" Value="3.5" /></Data></Tag>
       <Tag Name="RealBitAnd" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-99" /></Data></Tag>
@@ -586,6 +592,10 @@
               <Rung Number="50" Type="N"><Text>XIC(RealBitwise)OR(RealBitInput,1,RealBitOr);</Text></Rung>
               <Rung Number="51" Type="N"><Text>XIC(RealBitwise)XOR(RealBitInput,6.5,RealBitXor);</Text></Rung>
               <Rung Number="52" Type="N"><Text>XIC(RealBitwise)NOT(RealBitInput,RealBitNot);</Text></Rung>
+              <Rung Number="53" Type="N"><Text>XIC(LrealBitwise)AND(LrealBitInput,9007199254740992.0L,LrealBitAnd);</Text></Rung>
+              <Rung Number="54" Type="N"><Text>XIC(LrealBitwise)OR(LrealBitInput,1,LrealBitOr);</Text></Rung>
+              <Rung Number="55" Type="N"><Text>XIC(LrealBitwise)XOR(LrealBitInput,3.5L,LrealBitXor);</Text></Rung>
+              <Rung Number="56" Type="N"><Text>XIC(LrealBitwise)NOT(LrealBitInput,LrealBitNot);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CptConversions" Type="RLL"><RLLContent>

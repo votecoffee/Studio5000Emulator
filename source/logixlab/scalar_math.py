@@ -6,10 +6,11 @@ from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile, typed_integer, pattern_width, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
-from .numeric_storage import floating_math_profile, lreal_math_source, write_lreal_math_result
+from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
+BITWISE_FLOATS = {'REAL': 'DINT', 'LREAL': 'LINT'}
 ARITHMETIC = frozenset(('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS'))
 INSTRUCTIONS = BITWISE | ARITHMETIC
 
@@ -139,7 +140,7 @@ def arithmetic_profile(engine, op, scope):
 
 
 def bitwise_specification(engine, op, scope):
-    """Select declared integer widths and the bounded REAL conversion path."""
+    """Select declared bit widths and the bounded floating conversion path."""
     memory = engine.memory
     if any(typed_integer(ref) is not None for ref in op.args[:-1]):
         widths=[pattern_width(memory,ref,scope) for ref in op.args[:-1]]
@@ -154,7 +155,11 @@ def bitwise_specification(engine, op, scope):
             try:
                 literal_value = literal(ref)
             except ValueError:
-                pass
+                typed = typed_literal(ref) if ref.rstrip().lower().endswith('l') else None
+                if typed is not None and typed[0] == 'LREAL':
+                    widths.append(INT_BITS['LINT'])
+                    types.append('LREAL')
+                    continue
             else:
                 if type(literal_value) is float:
                     real(literal_value)
@@ -166,33 +171,41 @@ def bitwise_specification(engine, op, scope):
                 immediate = True
                 continue
         key, parts, dtype = (memory.check_writable if destination else memory.resolve)(ref, scope)
-        if (dtype not in INT_BITS and dtype != 'REAL') or isinstance(memory.at(key, parts), (list, dict)):
-            raise ModelError('Bitwise operands require scalar signed/unsigned integers or REAL')
-        widths.append(INT_BITS[dtype] if dtype != 'REAL' else 32)
+        integer_type = BITWISE_FLOATS.get(dtype, dtype)
+        if integer_type not in INT_BITS or isinstance(memory.at(key, parts), (list, dict)):
+            raise ModelError('Bitwise operands require scalar integers, REAL or LREAL')
+        widths.append(INT_BITS[integer_type])
         types.append(dtype)
     wide = bool(set(types) & WIDE_TYPES)
+    if 'LREAL' in types:
+        if any(dtype in UNSIGNED_BITS for dtype in types):
+            raise ModelError('LREAL bitwise operands require signed integers, REAL or LREAL')
+        return widths[:-1], types[:-1], types[-1], None
     if 'REAL' in types and wide:
-        raise ModelError('REAL bitwise operations require SINT, INT, DINT or REAL operands')
+        raise ModelError('REAL bitwise operations without LREAL require SINT, INT, DINT or REAL operands')
     legacy = profile(engine, op, scope) if immediate and wide else None
     return widths[:-1], types[:-1], types[-1], legacy
 
 
 def execute_bitwise(engine, op, scope):
-    """Combine declared integer patterns, converting REAL operands numerically."""
+    """Combine declared integer patterns, converting floating operands numerically."""
     memory = engine.memory
     widths, source_types, dtype, legacy = bitwise_specification(engine, op, scope)
     if legacy is not None:
         return execute_integer(engine, op, scope, legacy)
     values = []
     for ref, width, kind in zip(op.args[:-1], widths, source_types, strict=True):
-        if kind == 'REAL':
-            rounded = coerce(real(memory.read(ref, scope)), 'DINT')
-            values.append(rounded & 0xFFFFFFFF)
+        if kind in BITWISE_FLOATS:
+            number = real(memory.read(ref, scope)) if kind == 'REAL' else lreal_math_source(memory, ref, scope, execute=True)
+            rounded = coerce(number, BITWISE_FLOATS[kind])
+            values.append(rounded & ((1 << width) - 1))
         else:
             values.append(pattern(memory, ref, scope, width))
     value = ~values[0] if op.name == 'NOT' else {
         'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[op.name](*values)
-    result_type = 'DINT' if dtype == 'REAL' else dtype
+    result_type = dtype
+    if dtype in BITWISE_FLOATS:
+        result_type = 'LINT' if dtype == 'LREAL' or 'LREAL' in source_types else 'DINT'
     memory.write(op.args[-1], bit_value(value, result_type), scope)
     return True
 
@@ -272,6 +285,10 @@ def description(project):
                                   conversion='REAL sources are finite binary32, rounded to signed DINT with ties to even.',
                                   destination='Signed DINT bitwise result converted to REAL for a REAL destination.',
                                   native_runtime_parity=False),
+                lreal_bitwise=dict(instructions=sorted(BITWISE), types=['SINT','INT','DINT','LINT','REAL','LREAL'],
+                                   conversion='LREAL sources are finite binary64, rounded to signed LINT with ties to even. REAL sources retain their DINT conversion and zero extension.',
+                                   destination='LREAL in the instruction selects a signed LINT bitwise result for floating destinations.',
+                                   native_runtime_parity=False),
                 typed_integer_bitwise=dict(instructions=sorted(BITWISE),constant_types=['LINT','UDINT','ULINT'],
                     operands='At least one decimal L/U/UL source; scalar integer tags and existing bounded DINT/32-bit radix patterns may mix',
                     conversion='Preserve each declared-width bit pattern, zero-extend before combining; NOT inverts after promotion and result keeps destination low bits',
@@ -281,5 +298,5 @@ def description(project):
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, mixed-wide/typed bitwise immediates, LREAL and REAL/wide bitwise mixtures, and other wide/unsigned/LREAL remainder mixtures',
+                remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, mixed-wide/typed bitwise immediates, unsigned floating bitwise mixtures, REAL/wide bitwise without LREAL, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

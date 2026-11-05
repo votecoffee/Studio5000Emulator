@@ -71,7 +71,7 @@ class ScalarBitwiseTests(unittest.TestCase):
                      'NOT(16#1FFFFFFFF,Results[0]);','NOT(1e40,Results[0]);','OR(StartPB,1,Results[0]);',
                      'NOT(Source,Results);','OR(Inputs,Mask,Results[0]);','NOT(Missing,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
-        self.assertTrue(self.engine(dest='LREAL').blockers)
+        self.assertTrue(self.engine(dest='BOOL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()NOT(Source,Results[0]);'],mutate=constant).blockers)
 
@@ -113,6 +113,53 @@ class ScalarBitwiseTests(unittest.TestCase):
         e.memory.write('Inputs[1]',7.5)
         e.step()
         self.assertEqual(e.memory.read('Results'),[0,0,None])
+
+    def test_lreal_bitwise_preserves_lint_bits_and_converts_floating_results(self):
+        base=1 << 53
+        cases=(
+            ('AND','LREAL','LINT','LINT',base+2,base+3,base+2),
+            ('OR','LREAL','DINT','LINT',base,-1,base+0xFFFFFFFF),
+            ('XOR','LINT','LREAL','LINT',base+1,3.5,base+5),
+            ('NOT','LREAL','DINT','LINT',base,0,-base-1),
+            ('NOT','LREAL','DINT','LREAL',base,0,-float(base)),
+            ('AND','LREAL','REAL','LINT',-1.5,-1.5,0xFFFFFFFE),
+            ('OR','DINT','DINT','LREAL',-1,0,4294967295.0),
+            ('OR','LREAL','DINT','REAL',(1 << 40)+1,0,float(1 << 40)),
+            ('OR','LREAL','DINT','LINT',-(1 << 63),1,-(1 << 63)+1),
+        )
+        for name,source,other,dest,value,mask,expected in cases:
+            with self.subTest(name=name,source=source,other=other,dest=dest,value=value):
+                e=self.checked([instruction(name)+';'],source=source,other=other,dest=dest,value=value,mask=mask)
+                e.step()
+                actual=e.memory.read('Results[1]')
+                self.assertEqual(actual,expected)
+                self.assertIs(type(actual),type(expected))
+        e=self.checked(['AND(3.5L,7,Results[0]);','XOR(2.5l,1.5L,Results[1]);','NOT(-2.5L,Results[2]);'])
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[4,0,1])
+
+    def test_lreal_bitwise_guards_unsigned_and_typed_integer_mixtures(self):
+        self.assertTrue(self.engine(source='LREAL',dest='ULINT').blockers)
+        self.assertTrue(self.engine(source='ULINT',dest='LREAL',value=1).blockers)
+        for text in ('AND(1.0L,1L,Results[0]);','NOT(1e309L,Results[0]);'):
+            self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
+
+    def test_lreal_bitwise_overflow_rolls_back_and_skipped_call_does_not_read(self):
+        e=self.checked(['OR(4.0L,1,Results[0]);','XIC(StartPB)NOT(Inputs[Index],Results[Index]);'],source='LREAL',dest='LINT')
+        e.memory.write('Index',99)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[5,None,None])
+        e.memory.write('Results[0]',99)
+        e.memory.write('StartPB',True)
+        e.memory.write('Index',1)
+        e.memory.write('Inputs[1]',float(1 << 63))
+        before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'LINT overflow'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('Inputs[1]',2.5)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[5,-3,None])
 
     def test_false_and_prescan_skip_unknown_sources_results_and_dynamic_indices(self):
         for name in OPS:
