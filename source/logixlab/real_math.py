@@ -1,7 +1,7 @@
-"""Finite ladder math with narrow numeric results for the v35 5580 profile."""
+"""Finite standalone ladder math for the v35 5580 software profile."""
 import math
 
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, WIDE_TYPES
 from .model import INT_BITS, ModelError, coerce, literal
 
 
@@ -96,9 +96,12 @@ def description():
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 real_destination=dict(instructions=sorted(INSTRUCTIONS),source_types=sorted({*INT_BITS,'REAL'}),
                     destination='Scalar REAL tag selects float32 sources and result, including constant-only calls',
+                    integer_destinations=sorted(WIDE_TYPES),
+                    selection_by_source='A REAL tag or floating immediate selects float32 for LINT and unsigned results',
+                    integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
                     constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared range before float32 conversion',
                     calculation='All required sources convert to finite float32 before the existing unary/power solver; result rounds to float32',
-                    boundaries='LREAL inputs select the binary64 path before final REAL conversion',
+                    boundaries='LREAL inputs select the binary64 path before final destination conversion',
                     native_runtime_parity=False),
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
                     unary=dict(instructions=sorted(FUNCTIONS),source_types=sorted(LREAL_SOURCE_TYPES),

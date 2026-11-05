@@ -59,7 +59,7 @@ def execute_lreal(engine,op,scope):
 
 
 def execute_real(engine,op,scope):
-    """Convert required sources before the operation and round its REAL result."""
+    """Calculate from finite REAL sources and round before destination conversion."""
     memory=engine.memory
     from .numeric_storage import real_math_source
     values=[real_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
@@ -201,9 +201,12 @@ def description(project):
                     native_runtime_parity=False),
                 real_arithmetic=dict(instructions=sorted(ARITHMETIC),source_types=sorted({*INT_BITS,'REAL'}),
                     destination='Scalar REAL tag; no REAL source is required; constant-only calls execute',
+                    integer_destinations=sorted(WIDE_TYPES),
+                    selection_by_source='A REAL tag or floating immediate selects float32 for LINT and unsigned results',
+                    integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
                     constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared integer range checked before float32 conversion',
                     calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
-                    boundaries='LREAL inputs select binary64 before final REAL conversion',
+                    boundaries='LREAL inputs select binary64 before final destination conversion',
                     native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',

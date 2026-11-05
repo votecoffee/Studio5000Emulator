@@ -1,4 +1,4 @@
-"""REAL results select finite float32 inputs across common ladder math."""
+"""Finite float32 ladder math with REAL and wider integer results."""
 import itertools
 import math
 import struct
@@ -14,6 +14,15 @@ from logixlab.runtime import Engine
 TYPES=(*INT_BITS,'REAL')
 EXPECTED=fixtures.EXPECTED
 CASES=unary.CASES
+INTEGER_DESTINATIONS = ('LINT', 'USINT', 'UINT', 'UDINT', 'ULINT')
+INTEGER_CASES = (
+    ('ADD', '2.5,2', 4), ('SUB', '5.5,2', 4), ('MUL', '1.5,2', 3),
+    ('DIV', '7.0,2U', 4), ('MOD', '7.5,2L', 2), ('NEG', '-2.5', 2),
+    ('ABS', '-3.5', 4), ('XPY', '4.0,0.5', 2), ('SQR', '-9.0', 3),
+    ('LN', '1.0', 0), ('LOG', '100.0', 2), ('DEG', '1.0', 57),
+    ('RAD', '180.0', 3), ('SIN', '1.0', 1), ('COS', '1.0', 1),
+    ('TAN', '0.5', 1), ('ASN', '1.0', 2), ('ACS', '0.0', 2), ('ATN', '1.0', 1),
+)
 
 
 class RealDestinationMathTests(unittest.TestCase):
@@ -135,3 +144,77 @@ class RealDestinationMathTests(unittest.TestCase):
         self.assertEqual(len(a['source_types']),9);self.assertEqual(len(a['instructions']),7);self.assertFalse(a['native_runtime_parity'])
         self.assertEqual(len(u['instructions']),12);self.assertIn('float32',u['calculation']);self.assertFalse(u['native_runtime_parity'])
         self.assertIn('no LREAL source',r['scalar_math']['lreal_arithmetic']['operands'])
+        self.assertEqual(set(a['integer_destinations']), set(INTEGER_DESTINATIONS))
+        self.assertEqual(set(u['integer_destinations']), set(INTEGER_DESTINATIONS))
+
+    def test_real_literals_cover_all_nineteen_forms_and_five_integer_destinations(self):
+        for dtype, (name, args, expected) in itertools.product(INTEGER_DESTINATIONS, INTEGER_CASES):
+            with self.subTest(dtype=dtype, name=name):
+                engine = self.checked([f'{name}({args},Results[1]);'], dest=dtype)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results'), [None, expected, None])
+
+    def test_real_tags_select_float32_in_both_positions_and_preserve_sources(self):
+        engine = self.checked([
+            'SUB(Source,16777217U,Results[0]);',
+            'SUB(16777217U,Source,Results[1]);',
+            'ADD(16777217U,1.0,Results[2]);',
+        ], source='REAL', value=16777216, dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [0, 0, 16777216])
+        self.assertEqual(engine.memory.read('Source'), 16777216.0)
+        engine = self.checked([
+            'SUB(16777217.0L,16777216.0,Results[0]);',
+            'DIV(18446744073709551615UL,3UL,Results[1]);',
+            'MUL(18446744073709551615UL,0.5,Results[2]);',
+        ], dest='ULINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [1, 6148914691236517205, 9223372036854775808])
+
+    def test_float32_domain_rounding_and_destination_overflow_are_atomic(self):
+        cases = (
+            ('DIV(1,1e-50,Results[1]);', 'LINT', 'zero'),
+            ('LN(-1.0,Results[1]);', 'UINT', 'finite REAL'),
+            ('ADD(255.5,0,Results[1]);', 'USINT', 'overflow'),
+            ('NEG(1.5,Results[1]);', 'UINT', 'overflow'),
+            ('XPY(2.0,64,Results[1]);', 'ULINT', 'overflow'),
+            ('MUL(3.4e38,2,Results[1]);', 'ULINT', 'finite REAL'),
+        )
+        for call, dtype, error in cases:
+            with self.subTest(call=call, dtype=dtype):
+                engine = self.checked(['MOV(99,SpeedCommand);', call], dest=dtype)
+                self.fault(engine, error)
+        engine = self.checked(['ADD(-0.5,0,Results[1]);', 'MOD(-7.5,2U,Results[2]);'], dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, 0, -2])
+
+    def test_integer_result_indices_are_lazy_and_late_faults_restore_unknowns(self):
+        engine = self.checked([
+            'XIC(StartPB)ADD(Inputs[Index],0,Results[Index]);',
+            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+        ], source='REAL', dest='LINT')
+        engine.memory.write('Index', 99)
+        engine.enter_run()
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, None, None])
+        engine.memory.write('StartPB', True)
+        self.fault(engine, 'outside bounds')
+        engine.memory.write('Index', 1)
+        self.fault(engine, 'Unknown')
+        engine.memory.write('Inputs[1]', 2.5)
+        engine.memory.write('Mask', 0)
+        self.fault(engine, 'zero')
+        engine.memory.write('Mask', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, 2, None])
+
+    def test_wide_integer_result_preflight_retains_literal_and_shape_checks(self):
+        for call in (
+            'ADD(1.0,4294967296U,Results[1]);',
+            'ADD(1.0,TRUE,Results[1]);',
+            'SQR(1e39,Results[1]);',
+            'SQR(1.0,Results);',
+            'SQR(1.0,RunLatch);',
+            'SQR(4,Results[1]);',
+        ):
+            self.assertTrue(self.engine(['AFI()' + call], dest='ULINT').blockers, call)

@@ -1,7 +1,7 @@
 """Scalar MOV/CLR and explicit numeric conversions for the v35 5580 model."""
 import re
 from .st_literals import scan as typed_integer
-from .integer_math import CONTROLLERS, bit_value
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
 from .real_math import real
 
@@ -76,15 +76,17 @@ def lreal_math_source(memory, ref, scope, *, execute=False):
     return coerce(value,'LREAL') if execute else dtype
 
 
-def is_lreal_source(memory, ref, scope):
+def floating_source_type(memory, ref, scope):
+    """Identify the declared precision of a tag or floating immediate."""
     typed = typed_literal(ref) if '#' not in ref else None
     if typed is not None:
-        return typed[0] == 'LREAL'
+        return 'LREAL' if typed[0] == 'LREAL' else None
     try:
-        literal(ref)
+        value = literal(ref)
     except ValueError:
-        return memory.resolve(ref, scope)[2] == 'LREAL'
-    return False
+        dtype = memory.resolve(ref, scope)[2]
+        return dtype if dtype in ('REAL', 'LREAL') else None
+    return 'REAL' if type(value) is float else None
 
 
 def real_math_source(memory, ref, scope, *, execute=False):
@@ -102,8 +104,10 @@ def floating_math_profile(memory, op, scope):
     if dtype not in TYPES:
         return None
     sources = op.args[:-1]
-    binary64 = dtype == 'LREAL' or any(is_lreal_source(memory, ref, scope) for ref in sources)
-    if not binary64 and dtype != 'REAL':
+    source_types = () if dtype == 'LREAL' else tuple(floating_source_type(memory, ref, scope) for ref in sources)
+    binary64 = dtype == 'LREAL' or 'LREAL' in source_types
+    single = dtype == 'REAL' or (dtype in WIDE_TYPES and 'REAL' in source_types)
+    if not (binary64 or single):
         return None
     if isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Floating math requires one scalar numeric destination')

@@ -697,6 +697,16 @@
           <DataValue DataType="BOOL" Radix="Decimal" Value="0" />
         </Data>
       </Tag>
+      <Tag Name="RealIntegerEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerInput" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="2.5" /></Data></Tag>
+      <Tag Name="RealIntegerSigned" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerByte" TagType="Base" DataType="USINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerCollapsed" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerBinary64" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RealIntegerSelected" TagType="Base" DataType="ULINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="RealIntegerLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealIntegerLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -873,6 +883,17 @@
               <Rung Number="57" Type="N"><Text>JSR(DoubleResults,0);</Text></Rung>
               <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
               <Rung Number="59" Type="N"><Text>JSR(RealResults,0);</Text></Rung>
+              <Rung Number="60" Type="N"><Text>JSR(RealIntegerOutputs,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealIntegerOutputs" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealIntegerEnabled)ADD(RealIntegerInput,0,RealIntegerSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealIntegerEnabled)DIV(7.0,2U,RealIntegerByte);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealIntegerEnabled)SUB(16777217U,16777216.0,RealIntegerCollapsed);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealIntegerEnabled)SUB(16777217.0L,16777216.0,RealIntegerBinary64);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealIntegerEnabled)XPY(4.0,0.5,RealIntegerSelected[RealIntegerIndex]);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealIntegerEnabled)DIV(1,RealIntegerLateDivisor,RealIntegerLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealResults" Type="RLL">

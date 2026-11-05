@@ -21,8 +21,9 @@ With a [REAL destination](real-destination-math.md), integer and REAL sources
 use float32 calculation. An LREAL input or result selects the
 [binary64 profile](lreal-math-literals.md#real-and-integer-results), which
 converts the finite result to the declared REAL, LREAL or integer destination.
-Integer destinations with only narrow inputs retain scalar SINT/INT/DINT/REAL
-source rules. Untyped immediates keep bounded DINT and finite REAL precision.
+A REAL tag or floating immediate can select float32 with a
+[LINT or unsigned integer result](real-destination-math.md#wide-and-unsigned-integer-results).
+The existing narrow integer forms retain scalar SINT/INT/DINT/REAL source rules. Untyped immediates keep bounded DINT and finite REAL precision.
 Array elements, indirect indices, UDT members, aliases and supported AOI
 local/Output/InOut bindings use the same scalar destination rules.
 

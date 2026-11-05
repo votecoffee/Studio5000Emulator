@@ -1,4 +1,4 @@
-# REAL-result ladder math
+# Ladder math with REAL precision
 
 [Typed integer constants](real-integer-literals.md) extend this profile in app
 `26.1104.174245`: decimal L/U/UL integers are checked at their declared ranges
@@ -66,6 +66,33 @@ DomainFault, ZeroFault and OverflowFault independently demonstrate rollback;
 reset them to false. LateDivisor=0 demonstrates a failure after earlier results;
 restore it to 1. External source writes update the next Step. Disable the
 section before returning the selected index to 99; outputs remain stored.
+
+## Wide and unsigned integer results
+
+App `26.1105.081222` extends the same nineteen ladder forms to LINT, USINT,
+UINT, UDINT and ULINT results when a REAL tag or an unsuffixed floating
+immediate selects float32. All required inputs convert to finite REAL before
+calculation. The result rounds to float32, then to the nearest integer with
+ties to even. The rounded integer must fit its destination.
+
+```text
+ADD(2.5,0,SignedResult);
+DIV(7.0,2U,ByteResult);
+SUB(16777217U,16777216.0,FloatResidual);
+SUB(16777217.0L,16777216.0,DoubleResidual);
+```
+
+These produce 2, 4, 0 and 1. In the third example, both inputs become
+16777216 in float32. The LREAL source in the fourth selects binary64.
+Integer-only arithmetic retains its exact calculation rules. Earlier
+SINT/INT/DINT forms retain their existing profiles.
+
+Enable `RealIntegerEnabled` in **Integer lab** and step through
+**RealIntegerOutputs**. Set `RealIntegerIndex` to 1 to write the next
+unknown element. Element 2 retains 903. Set `RealIntegerLateDivisor`
+to zero to observe scan rollback, then restore it to 1 to retry.
+Reached invalid indices, out-of-range results and nonfinite calculations
+also roll back the advance.
 
 Source basis: installed v35 ADD (14623), MOD (14620), XPY (14478), SQR (14617)
 and Data Conversions (14451). See the

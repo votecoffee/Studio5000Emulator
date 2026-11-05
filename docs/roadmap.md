@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.081222`: [REAL math with LINT and unsigned results](real-destination-math.md#wide-and-unsigned-integer-results)
+for nineteen ladder math forms. The float32 result rounds to the nearest integer
+with ties to even and checked bounds. Integer lab includes RealIntegerOutputs.
+
 Available in `26.1105.075557`: [LREAL inputs with REAL and integer results](lreal-math-literals.md#real-and-integer-results)
 for nineteen standalone ladder math forms. Binary64 calculation precedes the
 final destination conversion. Wide expression lab includes Binary64SourceResults.
