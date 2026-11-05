@@ -1,7 +1,7 @@
 """Finite standalone ladder math for the v35 5580 software profile."""
 import math
 
-from .integer_math import CONTROLLERS, WIDE_TYPES
+from .integer_math import CONTROLLERS, WIDE_TYPES, integer_operand, read_source
 from .model import INT_BITS, ModelError, coerce, literal
 
 
@@ -15,6 +15,7 @@ FUNCTIONS = {'SQR': square_root, 'LN': math.log, 'LOG': math.log10,
              'SIN': math.sin, 'COS': math.cos, 'TAN': math.tan,
              'ASN': math.asin, 'ACS': math.acos, 'ATN': math.atan}
 INSTRUCTIONS = frozenset((*FUNCTIONS, 'XPY'))
+INTEGER_ROOT_POWER = frozenset(('SQR', 'XPY'))
 SOURCE_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 DESTINATION_TYPES = SOURCE_TYPES
 LREAL_SOURCE_TYPES = frozenset((*INT_BITS, 'REAL', 'LREAL'))
@@ -29,14 +30,48 @@ def real(value):
         raise ModelError('Math value exceeds finite REAL range') from error
 
 
+def rounded_integer_root(value):
+    magnitude = abs(value)
+    root = math.isqrt(magnitude)
+    # The squared midpoint between root and root + 1 is root² + root + 1/4.
+    return root + 1 if magnitude - root * root > root else root
+
+
+def integer_power_result(base, exponent, dtype):
+    if exponent == 0:
+        return 1
+    if base == 0 and exponent < 0:
+        raise ModelError('XPY zero base with negative exponent')
+    if base == -1:
+        return -1 if exponent % 2 else 1
+    if base in (0, 1):
+        return base
+    if exponent < 0:
+        # The reciprocal magnitude is at most 1/2, which rounds to even zero.
+        return 0
+    if exponent >= INT_BITS[dtype]:
+        # For |base| >= 2, even the smallest such power cannot fit.
+        raise ModelError(f'{dtype} overflow in XPY')
+    return base ** exponent
+
+
 def validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Standalone math requires the v35 ControlLogix 5580 software profile')
-    from .numeric_storage import floating_math_profile
+    from .numeric_storage import floating_math_profile, math_source_type
     profile = floating_math_profile(memory, op, scope)
     if profile:
         return profile
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
+    if op.name in INTEGER_ROOT_POWER and dtype in INT_BITS:
+        sources = op.args[:-1]
+        types = tuple(math_source_type(memory, ref, scope) for ref in sources)
+        if (dtype in WIDE_TYPES or WIDE_TYPES.intersection(types)) and all(t in INT_BITS for t in types):
+            if isinstance(memory.at(key, parts), (list, dict)):
+                raise ModelError('Integer SQR/XPY requires one scalar integer destination')
+            for ref in sources:
+                integer_operand(memory, ref, scope)
+            return dtype
     if dtype not in DESTINATION_TYPES or isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Standalone math requires a scalar SINT/INT/DINT/REAL destination')
     for ref in op.args[:-1]:
@@ -65,6 +100,15 @@ def execute(memory, op, power, scope):
     if not power:
         return False
     profile=validate(memory,op,scope)
+    if profile in INT_BITS:
+        values = [read_source(memory, ref, scope) for ref in op.args[:-1]]
+        if op.name == 'SQR':
+            result = rounded_integer_root(values[0])
+        else:
+            base, exponent = values
+            result = integer_power_result(base, exponent, profile)
+        memory.write(op.args[-1], result, scope)
+        return True
     if profile=='LREAL':
         from .numeric_storage import lreal_math_source, write_lreal_math_result
         values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
@@ -94,6 +138,14 @@ def description():
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
+                integer_root_power=dict(instructions=sorted(INTEGER_ROOT_POWER),
+                    source_types=list(INT_BITS), destination_types=list(INT_BITS),
+                    selection='Integer-only operands with at least one LINT or unsigned operand, including typed L/U/UL sources or the destination',
+                    immediates='Bounded DINT numeric values and decimal L/U/UL constants',
+                    square_root='Round the square root of the exact absolute value to the nearest integer',
+                    power='Exact bounded integer powers; negative integral exponents round their reciprocal to the nearest even integer',
+                    conversion='Range-check the final result; zero to a negative exponent and overflow roll back the advance',
+                    native_runtime_parity=False),
                 real_destination=dict(instructions=sorted(INSTRUCTIONS),source_types=sorted({*INT_BITS,'REAL'}),
                     destination='Scalar REAL tag selects float32 sources and result, including constant-only calls',
                     integer_destinations=sorted(WIDE_TYPES),

@@ -94,7 +94,7 @@ class LrealMathTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Pair.Value'),e.memory.read('Pair.Guard'),e.memory.read('Source')),(10.5,777,22.5))
 
     def test_mixed_types_immediates_aggregates_constants_and_other_profiles_are_guarded(self):
-        for text in ('ADD(Source,2147483648,Dest);','SUB(1e39,Source,Dest);','ADD(Source,SpeedCommand,SpeedCommand);','MUL(Source,Mask,SpeedCommand);','EQU(Source,2147483648);','EQU(Source,TRUE);','LIM(Source,1e39,Mask);','ADD(Inputs,Mask,Dest);'):
+        for text in ('ADD(Source,2147483648,Dest);','SUB(1e39,Source,Dest);','ADD(Source,SpeedCommand,RunLatch);','MUL(Source,Mask,Results);','EQU(Source,2147483648);','EQU(Source,TRUE);','LIM(Source,1e39,Mask);','ADD(Inputs,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()ADD(Source,Mask,Results[1]);'],mutate=constant).blockers)
@@ -102,7 +102,7 @@ class LrealMathTests(unittest.TestCase):
         self.assertTrue(self.engine(mutate=old).blockers)
 
     def test_st_expressions_cpt_cmp_bitwise_and_mixed_advanced_math_remain_guarded(self):
-        for text in ('CPT(SpeedCommand,Source AND Mask);','CMP(Source>StartPB);','AND(Source,Mask,Dest);','SQR(Source,SpeedCommand);'):
+        for text in ('CPT(SpeedCommand,Source AND Mask);','CMP(Source>StartPB);','AND(Source,Mask,Dest);','SQR(Source,RunLatch);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))

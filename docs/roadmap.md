@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.082615`: [wide integer SQR and XPY](math-operations.md#wide-integer-roots-and-powers).
+Integer-only calls with a LINT or unsigned operand preserve exact input
+values, check the result range and reject oversized powers before evaluation.
+Integer lab includes ExactRootPower.
+
 Available in `26.1105.081222`: [REAL math with LINT and unsigned results](real-destination-math.md#wide-and-unsigned-integer-results)
 for nineteen ladder math forms. The float32 result rounds to the nearest integer
 with ties to even and checked bounds. Integer lab includes RealIntegerOutputs.

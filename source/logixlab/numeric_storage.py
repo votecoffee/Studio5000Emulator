@@ -76,16 +76,17 @@ def lreal_math_source(memory, ref, scope, *, execute=False):
     return coerce(value,'LREAL') if execute else dtype
 
 
-def floating_source_type(memory, ref, scope):
-    """Identify the declared precision of a tag or floating immediate."""
+def math_source_type(memory, ref, scope):
+    """Identify a declared math source type without consuming a tag value."""
     typed = typed_literal(ref) if '#' not in ref else None
     if typed is not None:
-        return 'LREAL' if typed[0] == 'LREAL' else None
+        return typed[0]
     try:
         value = literal(ref)
     except ValueError:
-        dtype = memory.resolve(ref, scope)[2]
-        return dtype if dtype in ('REAL', 'LREAL') else None
+        return memory.resolve(ref, scope)[2]
+    if type(value) is int:
+        return 'DINT'
     return 'REAL' if type(value) is float else None
 
 
@@ -104,7 +105,7 @@ def floating_math_profile(memory, op, scope):
     if dtype not in TYPES:
         return None
     sources = op.args[:-1]
-    source_types = () if dtype == 'LREAL' else tuple(floating_source_type(memory, ref, scope) for ref in sources)
+    source_types = () if dtype == 'LREAL' else tuple(math_source_type(memory, ref, scope) for ref in sources)
     binary64 = dtype == 'LREAL' or 'LREAL' in source_types
     single = dtype == 'REAL' or (dtype in WIDE_TYPES and 'REAL' in source_types)
     if not (binary64 or single):

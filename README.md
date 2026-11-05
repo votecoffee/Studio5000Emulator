@@ -6,7 +6,7 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1105.081222`.** Versions use `YY.MMDD.HHmmss`; the
+**Current app version: `26.1105.082615`.** Versions use `YY.MMDD.HHmmss`; the
 browser title, page header, Windows tray and executable properties match.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
@@ -32,6 +32,10 @@ Development is maintained on `main`.
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
+
+**Wide integer SQR and XPY** preserve exact input values through calculation.
+In **Integer lab**, enable `ExactRootPowerEnabled` and step. See
+[wide integer roots and powers](docs/math-operations.md#wide-integer-roots-and-powers).
 
 **REAL inputs** can write LINT and unsigned integer results in nineteen ladder
 math forms. In **Integer lab**, enable `RealIntegerEnabled` and step. See

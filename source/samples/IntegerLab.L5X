@@ -707,6 +707,15 @@
       <Tag Name="RealIntegerSelected" TagType="Base" DataType="ULINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
       <Tag Name="RealIntegerLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RealIntegerLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactRootPowerEnabled" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ExactRootPowerIndex" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactRootBelow" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactRootAbove" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactPowerWide" TagType="Base" DataType="ULINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactPowerOdd" TagType="Base" DataType="LINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ExactPowerSelected" TagType="Base" DataType="ULINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
+      <Tag Name="ExactPowerLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ExactPowerLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -884,6 +893,17 @@
               <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
               <Rung Number="59" Type="N"><Text>JSR(RealResults,0);</Text></Rung>
               <Rung Number="60" Type="N"><Text>JSR(RealIntegerOutputs,0);</Text></Rung>
+              <Rung Number="61" Type="N"><Text>JSR(ExactRootPower,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="ExactRootPower" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(ExactRootPowerEnabled)SQR(16000000004000000000UL,ExactRootBelow);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ExactRootPowerEnabled)SQR(16000000004000000001UL,ExactRootAbove);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(3,34U,ExactPowerWide);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(-1,18446744073709551615UL,ExactPowerOdd);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(9007199254740993UL,1,ExactPowerSelected[ExactRootPowerIndex]);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ExactRootPowerEnabled)DIV(1,ExactPowerLateDivisor,ExactPowerLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealIntegerOutputs" Type="RLL">

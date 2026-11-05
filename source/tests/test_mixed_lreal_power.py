@@ -105,11 +105,11 @@ class MixedLrealPowerTests(unittest.TestCase):
         self.assertEqual((e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[1]')),(81.0,16.0))
 
     def test_excluded_literals_types_destinations_and_profiles_remain_guarded(self):
-        for token in ('1.0','1e0','TRUE','2147483648','-2147483649','1L','1UL'):
+        for token in ('1.0UL','1LU','TRUE','2147483648','-2147483649','1e309L','18446744073709551616UL'):
             for args in ('Source,'+token,token+',Source'):
                 self.assertTrue(self.engine(['AFI()XPY('+args+',Dest);']).blockers,args)
-        for call in ('XPY(Inputs,Mask,Dest);','XPY(Source,RunLatch,Dest);','XPY(Source,Mask,SpeedCommand);',
-                     'XPY(2.0,3,Dest);','CPT(Dest,Source**2);','EXPT(Source,Mask,Dest);','SQR(TRUE,Dest);'):
+        for call in ('XPY(Inputs,Mask,Dest);','XPY(Source,RunLatch,Dest);','XPY(Source,Mask,RunLatch);',
+                     'XPY(2.0,3,Results);','CPT(Dest,Source**RunLatch);','EXPT(Source,Mask,Dest);','SQR(TRUE,Dest);'):
             self.assertTrue(self.engine([call]).blockers,call)
         self.assertEqual(self.checked(source='DINT',other='REAL').blockers,[])
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
@@ -120,5 +120,5 @@ class MixedLrealPowerTests(unittest.TestCase):
     def test_report_separates_mixed_power_from_unary_forms(self):
         d=self.checked().report()['real_math'];p=d['lreal']['power']
         self.assertEqual(len(p['source_types']),10);self.assertEqual(p['instruction'],'XPY')
-        self.assertIn('Signed DINT',p['constants']);self.assertFalse(p['native_runtime_parity'])
+        self.assertIn('Bounded DINT',p['constants']);self.assertFalse(p['native_runtime_parity'])
         self.assertEqual(d['destinations'],['DINT','INT','REAL','SINT'])

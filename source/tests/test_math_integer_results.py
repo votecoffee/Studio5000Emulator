@@ -1,10 +1,12 @@
 """Ladder math integer results: conversion boundaries, bindings and rollback."""
 import copy
+import itertools
 import unittest
 from xml.etree import ElementTree as E
 
 import test_real_math as fixtures
-from logixlab.model import ModelError
+import test_real_destination_math as wide
+from logixlab.model import INT_BITS, ModelError
 
 
 class MathIntegerResultTests(unittest.TestCase):
@@ -131,9 +133,8 @@ class MathIntegerResultTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('StepA',2);e.step();self.assertEqual(e.memory.read('SharedB'),4)
 
-    def test_wide_bool_bits_aggregate_and_constant_destinations_stay_blocked(self):
-        for dtype in ('LINT','USINT','UINT','UDINT','ULINT','BOOL'):
-            self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL',dtype),values=(3,2,0)).blockers)
+    def test_bool_bits_aggregate_and_constant_destinations_stay_blocked(self):
+        self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL','BOOL'),values=(3,2,0)).blockers)
         for ref in ('Results','Packet1','Dest.0','3'):
             self.assertTrue(self.engine([f'SQR(Source,{ref});'],mutate=self.aggregate).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant','true')
@@ -143,6 +144,120 @@ class MathIntegerResultTests(unittest.TestCase):
         e=self.checked(['SQR(Source,Dest);'],types=('REAL','REAL','DINT'));report=e.report()['real_math']
         self.assertEqual(report['destinations'],['DINT','INT','REAL','SINT']);self.assertIn('ties to even',report['integer_conversion']);self.assertIn('out-of-range',report['integer_conversion'])
         self.assertFalse(report['native_math_status']);self.assertFalse(report['native_fault_classification'])
+
+
+class WideRootPowerTests(unittest.TestCase):
+    setUp = wide.RealDestinationMathTests.setUp
+    engine = wide.RealDestinationMathTests.engine
+    checked = wide.RealDestinationMathTests.checked
+    fault = wide.RealDestinationMathTests.fault
+    snapshot = staticmethod(wide.RealDestinationMathTests.snapshot)
+
+    def test_integer_tag_inputs_and_all_result_types(self):
+        for source, dest in itertools.product(INT_BITS, repeat=2):
+            with self.subTest(source=source, dest=dest):
+                engine = self.checked(
+                    ['SQR(Source,Results[0]);', 'XPY(Source,Mask,Results[1]);'],
+                    source=source, other='UINT', dest=dest, value=4,
+                )
+                engine.memory.write('Mask', 3)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results'), [2, 64, None])
+                self.assertEqual((engine.memory.read('Source'), engine.memory.read('Mask')), (4, 3))
+
+    def test_exact_rounding_distinguishes_adjacent_large_integer_radicands(self):
+        engine = self.checked([
+            'SQR(16000000004000000000UL,Results[0]);',
+            'SQR(16000000004000000001UL,Results[1]);',
+            'SQR(18446744073709551615UL,Results[2]);',
+        ], dest='ULINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [4000000000, 4000000001, 4294967296])
+        engine = self.checked(['SQR(Source,Results[1]);'], source='LINT', value=-(1 << 63), dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results[1]'), 3037000500)
+
+    def test_powers_preserve_exact_values_signed_limits_and_exponent_parity(self):
+        engine = self.checked([
+            'XPY(9007199254740993L,1,Results[0]);',
+            'XPY(-2L,63U,Results[1]);',
+            'XPY(-1,18446744073709551615UL,Results[2]);',
+        ], dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [9007199254740993, -9223372036854775808, -1])
+        engine = self.checked(['XPY(3,34U,Results[1]);'], dest='ULINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('Results[1]'), 16677181699666569)
+
+    def test_negative_and_zero_exponents_with_integer_destinations(self):
+        for base, exponent, expected in (
+            ('0L', '0', 1), ('0L', '18446744073709551615UL', 0),
+            ('-1L', '-9223372036854775807L', -1), ('-1L', '-9223372036854775808L', 1),
+            ('2L', '-1', 0), ('-2L', '-1', 0), ('3L', '-9223372036854775808L', 0),
+        ):
+            with self.subTest(base=base, exponent=exponent):
+                engine = self.checked([f'XPY({base},{exponent},Results[1]);'], dest='LINT')
+                engine.step()
+                self.assertEqual(engine.memory.read('Results[1]'), expected)
+
+    def test_overflows_and_zero_to_negative_power_restore_prior_work(self):
+        for call, dtype, error in (
+            ('XPY(0L,-1,Results[1]);', 'LINT', 'zero'),
+            ('XPY(2L,18446744073709551615UL,Results[1]);', 'ULINT', 'overflow'),
+            ('XPY(2L,63U,Results[1]);', 'LINT', 'overflow'),
+            ('XPY(-2L,3,Results[1]);', 'UINT', 'overflow'),
+            ('SQR(18446744073709551615UL,Results[1]);', 'UDINT', 'overflow'),
+        ):
+            with self.subTest(call=call, dtype=dtype):
+                engine = self.checked(['MOV(99,SpeedCommand);', call], dest=dtype)
+                self.fault(engine, error)
+
+    def test_false_prescan_and_failed_steps_leave_indirect_results_unknown(self):
+        engine = self.checked([
+            'XIC(StartPB)XPY(Inputs[Index],1,Results[Index]);',
+            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+        ], source='ULINT', dest='ULINT')
+        engine.memory.write('Index', 99)
+        engine.enter_run()
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, None, None])
+        engine.memory.write('StartPB', True)
+        self.fault(engine, 'outside bounds')
+        engine.memory.write('Index', 1)
+        self.fault(engine, 'Unknown')
+        engine.memory.write('Inputs[1]', 9007199254740993)
+        engine.memory.write('Mask', 0)
+        self.fault(engine, 'zero')
+        engine.memory.write('Mask', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [None, 9007199254740993, None])
+        for call in ('XPY(Inputs[1],0,Results[1]);', 'XPY(1,Inputs[1],Results[1]);'):
+            self.fault(self.checked([call], source='ULINT', dest='ULINT'), 'Unknown')
+
+    def test_exact_selection_leaves_floating_and_legacy_paths_available(self):
+        engine = self.checked([
+            'XPY(16777217,1,SpeedCommand);',
+            'XPY(16777217U,1,Results[0]);',
+            'XPY(16777217U,1.0,Results[1]);',
+            'XPY(16777217U,1.0L,Results[2]);',
+        ], dest='LINT')
+        engine.step()
+        self.assertEqual(engine.memory.read('SpeedCommand'), 16777216)
+        self.assertEqual(engine.memory.read('Results'), [16777217, 16777216, 16777217])
+
+    def test_preflight_rejects_invalid_literals_types_and_permissions(self):
+        for call in (
+            'SQR(16#FFFFFFFF,Results[1]);', 'SQR(18446744073709551616UL,Results[1]);',
+            'SQR(Inputs,Results[1]);', 'XPY(2L,TRUE,Results[1]);',
+            'XPY(2L,3,Results);', 'SQR(1L,RunLatch);',
+        ):
+            self.assertTrue(self.engine(['AFI()' + call], dest='ULINT').blockers, call)
+        def readonly(root):
+            root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant', 'true')
+        self.assertTrue(self.engine(['SQR(3L,Results[1]);'], dest='LINT', mutate=readonly).blockers)
+        report = self.checked(['SQR(3L,Results[1]);'], dest='LINT').report()['real_math']['integer_root_power']
+        self.assertEqual(set(report['destination_types']), set(INT_BITS))
+        self.assertFalse(report['native_runtime_parity'])
 
 
 if __name__=='__main__':unittest.main()

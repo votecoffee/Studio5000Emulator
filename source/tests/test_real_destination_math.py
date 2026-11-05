@@ -134,7 +134,7 @@ class RealDestinationMathTests(unittest.TestCase):
         for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Inputs','RunLatch'):
             for call in (f'ADD(Source,{token},Results[1]);',f'SQR({token},Results[1]);'):
                 self.assertTrue(self.engine(['AFI()'+call]).blockers,call)
-        self.assertTrue(self.engine(['SQR(Source,SpeedCommand);'],source='ULINT').blockers)
+        self.assertTrue(self.engine(['SIN(Source,SpeedCommand);'],source='ULINT').blockers)
         e=self.checked(['ADD(Source,1,SpeedCommand);'],source='REAL');e.step();self.assertEqual(e.memory.read('SpeedCommand'),4)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['ADD(1,2,Results[1]);'],mutate=constant).blockers)
@@ -215,6 +215,6 @@ class RealDestinationMathTests(unittest.TestCase):
             'SQR(1e39,Results[1]);',
             'SQR(1.0,Results);',
             'SQR(1.0,RunLatch);',
-            'SQR(4,Results[1]);',
+            'SIN(4,Results[1]);',
         ):
             self.assertTrue(self.engine(['AFI()' + call], dest='ULINT').blockers, call)

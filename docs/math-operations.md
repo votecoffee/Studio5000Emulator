@@ -23,7 +23,10 @@ use float32 calculation. An LREAL input or result selects the
 converts the finite result to the declared REAL, LREAL or integer destination.
 A REAL tag or floating immediate can select float32 with a
 [LINT or unsigned integer result](real-destination-math.md#wide-and-unsigned-integer-results).
-The existing narrow integer forms retain scalar SINT/INT/DINT/REAL source rules. Untyped immediates keep bounded DINT and finite REAL precision.
+Integer-only SQR and XPY with a LINT or unsigned operand use the
+[exact integer profile](#wide-integer-roots-and-powers). The existing narrow
+integer forms retain scalar SINT/INT/DINT/REAL source rules. Untyped
+immediates keep bounded DINT and finite REAL precision.
 Array elements, indirect indices, UDT members, aliases and supported AOI
 local/Output/InOut bindings use the same scalar destination rules.
 
@@ -61,8 +64,8 @@ validation; calculations, rounding and existing finite math bounds are unchanged
 | SIN/COS/TAN | Trigonometric result from a source in radians |
 | ASN/ACS/ATN | Inverse trigonometric result in radians; ASN/ACS require -1..1 |
 
-Sources are rounded to float32 before the host math calculation, and the result
-is rounded to float32 before writing. This defines a finite software profile;
+The float32 profile rounds sources to float32 before the host calculation
+and rounds the result to float32 before writing. This defines a finite software profile;
 it does not establish bit-for-bit native math-library or precision parity.
 In-place operations capture their inputs before writing. Unknown destinations
 can be established by a successful full result write.
@@ -87,6 +90,42 @@ and task scheduling. Native NaN/infinity results, configurable minor faults,
 math-status flags, underflow status and partial side effects remain unfinished.
 Out-of-range rounded integer results also roll back the advance. The simulator
 does not store truncated overflow bits or synthesize native arithmetic flags.
+
+## Wide integer roots and powers
+
+App `26.1105.082615` adds an exact software profile for ladder SQR and XPY
+with scalar integer sources and an integer destination. At least one operand,
+including the destination, must be LINT, USINT, UINT, UDINT or ULINT. Decimal
+L/U/UL constants select the same types as tags. Untyped integer immediates
+must fit signed DINT.
+
+SQR rounds the square root of the exact absolute value to the nearest integer.
+For example, 16000000004000000000UL gives 4000000000 and adding one to the source
+gives 4000000001. The magnitude of the most negative LINT can be used as a source.
+
+XPY computes a nonnegative integral power with an exact integer result. The
+zero exponent yields 1. For a negative exponent, a zero base faults. Bases 1
+and -1 retain their value and exponent parity, respectively. The reciprocal
+for every other nonzero integer base has magnitude at most one half and
+rounds to even zero. The result must fit the destination. Oversized exponents
+for a base with magnitude at least two are bounded before exponentiation.
+
+```text
+XPY(3,34U,ExactPower);
+XPY(-1,18446744073709551615UL,OddPower);
+SQR(16000000004000000001UL,ExactRoot);
+```
+
+These write 16677181699666569, -1 and 4000000001. Enable
+`ExactRootPowerEnabled` in **Integer lab** and step to inspect the results.
+Set `ExactRootPowerIndex` to 1 to fill the next unknown array element. Element 2
+retains 903. Set `ExactPowerLateDivisor` to zero to demonstrate scan rollback,
+then restore it to 1 and retry.
+
+Floating operands retain the precision selection above. All-narrow integer
+calls retain the established float32 model. The v35 operand and rounding
+references are help 14617 and 14478. Native intermediate precision, flags
+and fault status remain unqualified.
 
 ## Expressions and languages
 
