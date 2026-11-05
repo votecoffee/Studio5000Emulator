@@ -500,6 +500,21 @@
       <Tag Name="PromotedWallStamp" DataType="LDT" TagType="Base">
         <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
       </Tag>
+      <Tag Name="DurationTotal" DataType="TIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="DurationDelta" DataType="TIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="NextStamp" DataType="LDT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
+      </Tag>
+      <Tag Name="NanoDelta" DataType="LTIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LTIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="EarlierStamp" DataType="LDT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -669,6 +684,11 @@
               <Rung Number="6" Type="N"><Text>MOV(CycleDuration,ConvertedDuration)EQU(CycleDuration,ConvertedDuration)OTE(DurationMatches);</Text></Rung>
               <Rung Number="7" Type="N"><Text>MOV(LongStamp,TimestampTicks)MOV(TimestampTicks,BridgedStamp);</Text></Rung>
               <Rung Number="8" Type="N"><Text>MOV(WallStamp,PromotedWallStamp);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>ADD(ShortDelay,CycleDuration,DurationTotal);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>SUB(CycleDuration,T32#2s,DurationDelta);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>ADD(WallStamp,LT#1ns,NextStamp);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>SUB(NextStamp,WallStamp,NanoDelta);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>SUB(NextStamp,LT#2ns,EarlierStamp);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

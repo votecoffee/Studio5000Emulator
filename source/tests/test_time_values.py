@@ -76,7 +76,7 @@ class TimeValueTests(unittest.TestCase):
     def test_scope_and_invalid_operands_are_structural_blockers_even_while_false(self):
         for text in ('MOV(DT#1970-01-01-00:00:00,Dest);', 'MOV(1,Dest);', 'MOV(Source,SpeedCommand);',
                      'MOV(Source.0,Dest);', 'EQU(Source,DT#1970-01-01-00:00:00)OTE(RunLatch);',
-                     'LIM(Source,Source,Source)OTE(RunLatch);', 'ADD(Source,Source,Dest);',
+                     'LIM(Source,Source,Source)OTE(RunLatch);', 'MUL(Source,Source,Dest);',
                      'CPT(Dest,Source+Source);', 'EQU(Source,LT#32d)OTE(RunLatch);',
                      'COP(Source,Dest,1);', 'CPS(Source,Dest,1);'):
             with self.subTest(text=text):
@@ -200,6 +200,99 @@ class TimeValueTests(unittest.TestCase):
                          {'T#-1ms_1us': {'type': 'TIME literal', 'value': '-1001'}})
         self.assertNotIn('literal_values', branch[3][0])
 
+    def test_add_sub_preserve_mixed_units_order_and_signed_elapsed_time(self):
+        for op, left_type, left, right_type, right, dest, expected in (
+            ('ADD', 'TIME32', -1501, 'TIME', 1250007, 'TIME', 1248506),
+            ('SUB', 'TIME', 1250007, 'TIME32', 2000000, 'TIME', -749993),
+            ('ADD', 'DT', 1767225600000001, 'LTIME', 1, 'LDT', 1767225600000001001),
+            ('ADD', 'LTIME', 1, 'DT', 1767225600000001, 'LDT', 1767225600000001001),
+            ('SUB', 'LDT', 1767225600000001001, 'LTIME', 2, 'LDT', 1767225600000000999),
+            ('SUB', 'TIME', 2, 'LDT', 1, 'LDT', 1999),
+            ('SUB', 'DT', 1767225600000001, 'LDT', 1767225600000001001, 'LTIME', -1),
+        ):
+            with self.subTest(op=op, left=left_type, right=right_type, dest=dest):
+                e = fixtures.BitTransferTests.engine(
+                    self, [f'{op}(Source,Mask,Dest);'],
+                    types=(left_type, right_type, dest), values=(left, right, 0))
+                self.assertEqual(e.blockers, [])
+                e.step()
+                self.assertEqual(e.memory.read('Dest', allow_time=True), expected)
+        e = self.checked(['ADD(LT#1us_1ns,LT#-1ns,Source);', 'SUB(Source,LT#1us,Source);'])
+        e.step()
+        self.assertEqual(e.memory.read('Source', allow_time=True), 0)
+
+    def test_time_arithmetic_blocks_bad_families_and_non_temporal_operands(self):
+        for text, dest, diagnostic in (
+            ('ADD(DT#1970-01-01-00:00:00,LDT#1970-01-01-00:00:00,Dest);', 'LTIME', 'two timestamps'),
+            ('SUB(DT#1970-01-01-00:00:00,LDT#1970-01-01-00:00:00,Dest);', 'DT', 'duration destination'),
+            ('ADD(T#1us,LT#2ns,Dest);', 'DT', 'duration destination'),
+            ('ADD(LDT#1970-01-01-00:00:00,LT#2ns,Dest);', 'LTIME', 'timestamp destination'),
+            ('ADD(Source,1L,Dest);', 'LTIME', 'time/date source operands'),
+            ('SUB(LT#2ns,1,Dest);', 'LTIME', 'time/date source operands'),
+        ):
+            with self.subTest(text=text, dest=dest):
+                e = fixtures.BitTransferTests.engine(
+                    self, ['AFI()'+text], types=('LTIME', 'DINT', dest), values=(0, 0, 0))
+                self.assertTrue(any(diagnostic in problem for problem in e.blockers), e.blockers)
+        for text in ('ADD(LT#1ns,LT#2ns,SpeedCommand);',
+                     'ADD(Source,LT#2ns,Packet.Ticks);', 'ADD(Packet.Ticks,LT#2ns,Dest);'):
+            self.assertTrue(self.engine(['AFI()'+text], mutate=self.array_tags).blockers)
+        def constant(root):
+            root.find('.//Tag[@Name="Dest"]').set('Constant', 'true')
+        self.assertTrue(self.engine(['AFI()ADD(Source,LT#2ns,Dest);'], mutate=constant).blockers)
+
+    def test_temporal_precision_range_and_exact_cancellation(self):
+        for op, source, raw, right, dest, reason in (
+            ('ADD', 'LTIME', -1001, 'LT#0ns', 'TIME', 'fractional ticks'),
+            ('ADD', 'TIME32', 2147483647, 'T32#1us', 'TIME32', 'exact ticks in range'),
+            ('SUB', 'DT', 0, 'LT#1us', 'LDT', 'exact ticks in range'),
+            ('ADD', 'LDT', time_values.BOUNDS['LDT'][1], 'LT#1ns', 'LDT', 'exact ticks in range'),
+        ):
+            with self.subTest(op=op, source=source, dest=dest, raw=raw):
+                e = fixtures.BitTransferTests.engine(
+                    self, ['MOV(33,SpeedCommand);', f'XIC(StartPB){op}(Source,{right},Dest);'],
+                    types=(source, 'DINT', dest), values=(raw, 0, 0))
+                self.assertEqual(e.blockers, [])
+                e.step()
+                e.memory.write('StartPB', True)
+                e.memory.write('SpeedCommand', 7)
+                before = copy.deepcopy((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()))
+                with self.assertRaisesRegex(ModelError, reason):
+                    e.step()
+                self.assertEqual((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()), before)
+        e = fixtures.BitTransferTests.engine(
+            self, ['ADD(LT#1us_1ns,LT#-1ns,Dest);', 'SUB(LT#-1us_1ns,LT#-1ns,Source);'],
+            types=('TIME', 'DINT', 'TIME'), values=(0, 0, 0))
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('Dest', allow_time=True), 1)
+        self.assertEqual(e.memory.read('Source', allow_time=True), -1)
+
+    def test_lazy_temporal_sources_and_unknown_destination_retry(self):
+        e = self.checked([
+            'XIC(StartPB)ADD(Packet.Ticks[SpeedSetpoint],LT#1ns,Packet.Ticks[1]);',
+            'DIV(1,SpeedCommand,DisplayedPartCount);',
+        ], mutate=self.array_tags)
+        e.memory.write('SpeedSetpoint', 99)
+        e.memory.write('SpeedCommand', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Packet')['Ticks'], [None, None, 9])
+        e.memory.write('StartPB', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        e.memory.write('SpeedSetpoint', 0)
+        with self.assertRaisesRegex(ModelError, 'Unknown'):
+            e.step()
+        e.memory.write('SpeedSetpoint', 2)
+        e.memory.write('SpeedCommand', 0)
+        before = copy.deepcopy((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()))
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual((e.memory.values, e.scan_count, e.time_ms, e.scheduler_description()), before)
+        e.memory.write('SpeedCommand', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Packet')['Ticks'], [None, 10, 9])
+
     def test_bundled_data_lab_moves_time_types_and_compares_nanoseconds(self):
         p = Path(__file__).resolve().parents[1] / 'samples/DataLab.L5X'
         e = Engine(Project(p))
@@ -217,6 +310,11 @@ class TimeValueTests(unittest.TestCase):
         self.assertEqual(e.memory.read('TimestampTicks'), 1767225600000000001)
         self.assertEqual(e.memory.read('BridgedStamp', allow_time=True), 1767225600000000001)
         self.assertEqual(e.memory.read('PromotedWallStamp', allow_time=True), 1767225600000001000)
+        self.assertEqual(e.memory.read('DurationTotal', allow_time=True), 1248506)
+        self.assertEqual(e.memory.read('DurationDelta', allow_time=True), -749993)
+        self.assertEqual(e.memory.read('NextStamp', allow_time=True), 1767225600000001001)
+        self.assertEqual(e.memory.read('NanoDelta', allow_time=True), 1)
+        self.assertEqual(e.memory.read('EarlierStamp', allow_time=True), 1767225600000000999)
 
 
 if __name__ == '__main__':

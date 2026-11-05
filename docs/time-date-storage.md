@@ -3,7 +3,8 @@
 LogixLab models scalar time and date tags in Standard v35 ControlLogix 5580
 projects (L81E through L85E). MOV accepts temporal tags and typed literals, CLR
 writes zero ticks, and EQU, NEQ, LES, LEQ, GRT and GEQ compare time operands
-within one family.
+within one family. ADD and SUB handle the duration and timestamp combinations
+below.
 The operations also work on selected array elements, explicit UDT members and
 aliases. A zero date represents the UTC epoch.
 
@@ -28,8 +29,8 @@ Logix Designer v35 help 414477 and 14452 and
 Decorated L5X scalar and array values accept matching typed literals or
 decimal tick counts. The tag watch, change history, inspector and HTTP
 state/snapshot use decimal text to preserve all digits. The ladder inspector
-shows the exact parsed ticks and declared type for each valid time literal. Enter a decimal tick count when editing from the
-browser. A matching typed literal is also accepted by the local write API.
+shows the exact parsed ticks and declared type for each valid time literal.
+Enter a decimal tick count when editing from the browser. A matching typed literal is also accepted by the local write API.
 
 ## Exact mixed operands
 
@@ -54,13 +55,41 @@ grammar. False rungs and prescan skip live values and indices. A complete MOV
 or CLR can establish an unknown selected element. Reached unknown sources,
 bad indices and later faults roll back the advance.
 
+## Exact time arithmetic
+
+ADD and SUB consume time tags or typed literals in the v35 5580 ladder profile.
+They calculate in integer nanoseconds, then convert the result once to the
+declared destination precision and check its range.
+
+| Operation | Source types | Result type |
+| --- | --- | --- |
+| ADD or SUB | Two durations | Duration |
+| ADD or SUB | One timestamp and one duration | Timestamp |
+| SUB | Two timestamps | Signed elapsed duration |
+
+SUB preserves source order. ADD of two timestamps is rejected. The
+signed-duration result for two timestamps is the emulator's interpretation
+of timestamp subtraction. An exact result can combine sub-microsecond sources
+into a whole-microsecond value. Fractional destination ticks, a timestamp
+outside the supported calendar range or a duration beyond its type range
+fault and roll back the advance.
+
+Structural validation checks both source types, scalar shape, destination
+permissions and literal bounds. False rungs and prescan skip saved source
+values and live indices. Reached operations can write unknown destinations
+and preserve unwritten siblings. LINT remains available through the separate
+MOV bridge. See installed v35 help 14623 (ADD), 14616 (SUB) and 414477 and
+[Rockwell's time and date rules](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
+
 In **Data Lab**, enable TimeDateDemo and step. The TimeAndDate routine copies
 a duration, writes date literals and compares timestamps one nanosecond apart.
 LongStamp reads 1767225600000000001, EarlierNano is true, ShortDelay reads
 -1501 and TimeToClear reads zero. ConvertedDuration reads 1250007000 and
 DurationMatches is true. TimestampTicks and BridgedStamp retain the exact
-LongStamp ticks. PromotedWallStamp reads 1767225600000001000.
+LongStamp ticks. PromotedWallStamp reads 1767225600000001000. DurationTotal
+reads 1248506 microseconds and DurationDelta reads -749993 microseconds.
+NextStamp is one nanosecond after WallStamp, and NanoDelta reads 1.
 
-Lossy conversion, time arithmetic, clock attributes, ST, native packed
+Lossy conversion, clock attributes, ST, native packed
 layouts and CIP time/date access remain separate. Native Studio/controller
 acceptance is unverified.

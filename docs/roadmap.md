@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.094954` [exact time ADD and SUB](time-date-storage.md#exact-time-arithmetic)
+handle durations, timestamp offsets and signed elapsed time. Data Lab
+demonstrates a one-nanosecond timestamp difference.
+
 Available in `26.1105.093801` [exact temporal operands](time-date-storage.md#exact-mixed-operands)
 add same-family moves and comparisons and a raw LINT/LDT bridge. The ladder
 inspector shows exact parsed time literal ticks.

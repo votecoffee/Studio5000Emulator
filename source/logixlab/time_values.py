@@ -127,11 +127,15 @@ def ns_per_tick(dtype):
     return 1 if dtype in ('LTIME', 'LDT', 'LINT') else 1000
 
 
-def convert_move(value, source, dest):
-    ticks, remainder = divmod(value * ns_per_tick(source), ns_per_tick(dest))
+def exact_ticks(nanoseconds, dest, operation):
+    ticks, remainder = divmod(nanoseconds, ns_per_tick(dest))
     if remainder:
-        raise ValueError(f'{source} to {dest} MOV would discard fractional ticks')
+        raise ValueError(f'{operation} would discard fractional ticks')
     return ticks
+
+
+def convert_move(value, source, dest):
+    return exact_ticks(value * ns_per_tick(source), dest, f'{source} to {dest} MOV')
 
 
 @lru_cache(maxsize=512)

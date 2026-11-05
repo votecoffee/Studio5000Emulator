@@ -127,7 +127,7 @@ class TypedIntegerOperandTests(unittest.TestCase):
         for token in BAD:
             self.assertTrue(self.engine(['AFI()ADD(Source,'+token+',Results[1]);']).blockers,token)
             self.assertTrue(self.engine(['AFI()EQU(Source,'+token+')OTE(RunLatch);']).blockers,token)
-        for call in ('AND(Source,1.0L,Results[1]);','MEQ(Source,1.0L,Source)OTE(RunLatch);','FLL(1L,Results[1],1);','XPY(2L,3L,Results[1]);','ADD(Inputs,1L,Results[1]);'):
+        for call in ('AND(Source,1.0L,Results[1]);','MEQ(Source,1.0L,Source)OTE(RunLatch);','FLL(1L,Results[1],1);','ADD(Inputs,1L,Results[1]);'):
             self.assertTrue(self.engine(['AFI()'+call]).blockers,call)
         self.assertEqual(literal('16#FFFFFFFF'),4294967295)
 

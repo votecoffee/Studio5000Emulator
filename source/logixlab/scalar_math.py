@@ -2,6 +2,7 @@
 import math
 import operator
 
+from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, execute as execute_integer, profile, typed_profile, typed_integer, pattern_width, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
@@ -24,6 +25,8 @@ def validate(engine, op, scope):
     memory.structural = True
     try:
         if op.name in ARITHMETIC:
+            if time_arithmetic(engine, op, scope):
+                return True
             if floating_math_profile(memory, op, scope) or typed_profile(engine, op, scope, arithmetic=True):
                 return True
         if op.name in BITWISE and any(typed_integer(ref) is not None for ref in op.args[:-1]):
@@ -42,6 +45,37 @@ def validate(engine, op, scope):
             arithmetic_profile(engine, op, scope)
     finally:
         memory.structural = previous
+    return True
+
+
+def time_arithmetic(engine, op, scope, *, execute=False):
+    """Select a typed ADD/SUB result before the general numeric profiles."""
+    if op.name not in ('ADD', 'SUB'):
+        return False
+    memory = engine.memory
+    key, parts, dtype = memory.check_writable(op.args[2], scope)
+    if dtype not in time_values.TYPES:
+        return False
+    if isinstance(memory.at(key, parts), (list, dict)):
+        raise ModelError('Time/date arithmetic requires one scalar destination')
+
+    sources = op.args[:2]
+    types = [time_values.operand_type(memory, ref, scope) for ref in sources]
+    if any(source not in time_values.TYPES for source in types):
+        raise ModelError('Time/date arithmetic requires time/date source operands')
+    timestamps = sum(source in time_values.DATE_TYPES for source in types)
+    if op.name == 'ADD' and timestamps == 2:
+        raise ModelError('Time/date ADD cannot sum two timestamps')
+    if (dtype in time_values.DATE_TYPES) != (timestamps == 1):
+        expected = 'timestamp' if timestamps == 1 else 'duration'
+        raise ModelError(f'Time/date {op.name} requires a {expected} destination')
+
+    if execute:
+        left, right = (time_values.read_operand(memory, ref, scope) * time_values.ns_per_tick(source)
+                       for ref, source in zip(sources, types))
+        result = left + right if op.name == 'ADD' else left - right
+        ticks = time_values.exact_ticks(result, dtype, f'{op.name} to {dtype}')
+        memory.store(key, parts, coerce(ticks, dtype))
     return True
 
 
@@ -174,6 +208,11 @@ def description(project):
                 validation='Declared scalar types, references, permissions and existing wide-profile rules; no saved values/live indices',
                 selection='False/prescan skip operands; true instructions require all source values; full writes establish unknown destinations',
                 arithmetic='Exact integer quotient/remainder and checked destination writes; homogeneous/immediate rules retained',
+                time_date_arithmetic=dict(instructions=['ADD', 'SUB'], types=sorted(time_values.TYPES),
+                    operands='Scalar time/date tags or typed literals, with a duration or timestamp result',
+                    result='Two durations yield a duration. Mixed operands yield a timestamp. Timestamp subtraction yields a signed duration.',
+                    precision='Calculate exact integer nanoseconds before checking destination precision and range',
+                    native_runtime_parity=False),
                 widening_arithmetic=dict(instructions=sorted(ARITHMETIC), types=list(INT_BITS),
                     operands='Mixed integer tags with optional signed-DINT constants; destination covers every complete source tag type range',
                     constants='Known integer literals in signed DINT range, representable in destination; larger/typed/REAL constants remain excluded',
