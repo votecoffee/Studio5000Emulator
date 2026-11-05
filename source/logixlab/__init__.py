@@ -1,2 +1,2 @@
 """LogixLab: an offline, bounded Logix ladder execution model."""
-__version__ = "26.1105.141552"
+__version__ = "26.1105.142703"

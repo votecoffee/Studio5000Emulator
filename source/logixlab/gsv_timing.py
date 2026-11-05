@@ -1,4 +1,4 @@
-"""Read committed interpreter timings and reset qualified scan maxima."""
+"""Read committed interpreter timings and reset qualified timing measurements."""
 from dataclasses import replace
 import struct
 
@@ -11,6 +11,15 @@ from .gsv_configuration import current_instance
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
             'task':{'lastscantime':8,'maxscantime':7,'starttime':13,'minimuminterval':14,'maximuminterval':15}}
 TIME_FORMATS={'DT':'<q','TIME':'<Q','TIME32':'<I'}
+INTERVAL_ATTRIBUTES = (14, 15)
+RESET_VALUES = {
+    'program': {3: {'maximum_ns': 0}},
+    'task': {
+        7: {'maximum_ns': 0},
+        14: {'minimum_interval_ns': 0, 'minimum_interval_pending': True},
+        15: {'maximum_interval_ns': 0},
+    },
+}
 
 
 class TimingAdvance:
@@ -20,17 +29,17 @@ class TimingAdvance:
         self.tables = {'program': programs, 'task': tasks}
         self.cleared = set()
 
-    def reset_maximum(self, cls, name):
+    def reset(self, cls, name, number):
         name = name.casefold()
         table = self.tables[cls]
         if name not in table:
-            raise ModelError('SSV MaxScanTime measurement is unavailable')
-        table[name] = replace(table[name], maximum_ns=0)
-        self.cleared.add((cls, name))
+            raise ModelError('Timing SSV measurement is unavailable')
+        table[name] = replace(table[name], **RESET_VALUES[cls][number])
+        self.cleared.add((cls, name, number))
 
-    def read_reset_maximum(self, cls, name, number):
+    def read_reset(self, cls, name, number):
         name = name.casefold()
-        if number == ATTRIBUTES[cls]['maxscantime'] and (cls, name) in self.cleared:
+        if (cls, name, number) in self.cleared:
             return self.tables[cls][name].attributes().get(number, b'')
         return None
 
@@ -48,9 +57,10 @@ def specification(engine,op,scope='',*,executing=False):
         raise ModelError('Timing GSV requires the v35 ControlLogix 5580 project execution profile')
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls not in ATTRIBUTES or attribute not in ATTRIBUTES[cls]:raise ModelError('Unsupported timing class/attribute')
+    number=ATTRIBUTES[cls][attribute]
     if op.name=='SSV':
-        if attribute!='maxscantime':
-            raise ModelError('Timing SSV supports Program or Task MaxScanTime reset only')
+        if number not in RESET_VALUES[cls]:
+            raise ModelError('Timing SSV supports MaxScanTime and Task interval resets only')
         current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     if cls=='task':
@@ -70,13 +80,13 @@ def specification(engine,op,scope='',*,executing=False):
         if (not program or program['class']!='Standard' or program['disabled'] or program['use_as_folder']
                 or not scheduled or not project.program_configuration.type_attributes(name,source_sha256=project.sha256)):
             raise ModelError('Program timing GSV requires an explicit eligible scheduled Standard Program name')
-    return cls,name,ATTRIBUTES[cls][attribute]
+    return cls,name,number
 
 
 def destination(memory,ref,scope,number):
     if number==13:
         return gsv_wall_clock.destination(memory,ref,scope,2)
-    if number in (14,15):
+    if number in INTERVAL_ATTRIBUTES:
         return gsv_wall_clock.destination(memory,ref,scope,2,scalar_types=('TIME',),word_types=('DINT','TIME32'))
 
     key,parts,dtype=memory.check_writable(ref,scope)
@@ -92,35 +102,43 @@ def validate(engine,op,scope):
     finally:memory.structural=previous
 
 
-def reset_source(memory, ref, scope):
+def reset_source(memory, ref, scope, number):
     key, parts, dtype = memory.resolve(ref, scope)
+    if number in INTERVAL_ATTRIBUTES:
+        if dtype in ('DINT', 'TIME32'):
+            key, paths, _ = memory.region(ref, 2, scope)
+            return key, paths
+        if dtype == 'TIME' and not isinstance(memory.at(key, parts), (dict, list)):
+            return key, [parts]
+        raise ModelError('Task interval SSV requires scalar TIME or two contiguous DINT or TIME32 source elements')
     if dtype not in ('DINT', 'TIME32') or isinstance(memory.at(key, parts), (dict, list)):
         raise ModelError('SSV MaxScanTime requires one scalar DINT or TIME32 source tag')
-    return key, parts
+    return key, [parts]
 
 
 def validate_reset(engine, op, scope):
-    specification(engine, op, scope)
+    _, _, number = specification(engine, op, scope)
     memory = engine.memory
     previous = memory.structural
     memory.structural = True
     try:
-        reset_source(memory, op.args[3], scope)
+        reset_source(memory, op.args[3], scope, number)
     finally:
         memory.structural = previous
 
 
 def execute_reset(engine, op, scope):
-    cls, name, _ = specification(engine, op, scope, executing=True)
+    cls, name, number = specification(engine, op, scope, executing=True)
     memory = engine.memory
-    key, parts = reset_source(memory, op.args[3], scope)
-    value = memory.at(key, parts)
-    if type(value) is not int or value != 0:
-        raise ModelError('SSV MaxScanTime requires a known zero source')
+    key, paths = reset_source(memory, op.args[3], scope, number)
+    for path in paths:
+        value = memory.at(key, path)
+        if type(value) is not int or value != 0:
+            raise ModelError(f'SSV {op.args[2]} requires a known zero source')
     advance = engine._timing_advance
     if advance is None:
-        raise ModelError('SSV MaxScanTime requires an active advance')
-    advance.reset_maximum(cls, name)
+        raise ModelError('Timing SSV requires an active advance')
+    advance.reset(cls, name, number)
 
 
 def execute(engine,op,scope):
@@ -128,7 +146,7 @@ def execute(engine,op,scope):
     key,paths,dtype=destination(memory,op.args[3],scope,number)
     reader=engine.task_scan_timing_attributes if cls=='task' else engine.program_timing_attributes
     advance=engine._timing_advance
-    raw=advance.read_reset_maximum(cls,name,number) if advance is not None else None
+    raw=advance.read_reset(cls,name,number) if advance is not None else None
     if raw is None:
         raw=reader(name,source_sha256=engine.project.sha256).get(number)
     count=2 if number in (13,14,15) else 1
@@ -163,8 +181,9 @@ def description():
                 source='Committed host perf_counter_ns interpreter durations/start intervals, in whole microseconds; StartTime samples existing host UTC WallClockTime',
                 intervals='Independent successive actual host invocation starts; zero until two executions; include host idle time, not simulated rate',
                 start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
-                visibility='Reads see the preceding committed timing snapshot, except a maximum explicitly reset in the advance',
+                visibility='Reads see the preceding committed timing snapshot, except a field explicitly reset in the advance',
                 max_scan_reset='Named or THIS Program/Task SSV from a known zero DINT or TIME32 in ordinary scheduled code. Reset applies immediately and includes only samples completed afterward. Last, intervals, and execution counts are independent.',
+                interval_reset='Named or THIS Task SSV from known zero scalar TIME or two contiguous DINT or TIME32 elements. Extrema reset independently and resume sampling on later completions.',
                 task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',
                 selection='Structural preflight without live destination indices or timing reads; false/prescan skip outputs; full writes establish unknown cells',

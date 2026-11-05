@@ -32,8 +32,8 @@ one Step can therefore have an interval shorter than their simulated period.
 These diagnostics measure the interpreter, not controller performance.
 
 Before execution StartTime is zero. Minimum/maximum intervals remain zero until
-two successful invocations. Every read within an advance sees the previous
-committed snapshot, including reads after another task has run in that advance.
+two successful invocations. Reads normally see the previous committed
+snapshot, including after another task has run in the same advance.
 Event requests that overlap, coalesce, are inhibited or are canceled without
 dispatch do not add invocation samples. Successful nested Event work is included
 in its parent's duration; each Event also has its own independent start history.
@@ -45,6 +45,26 @@ intervals are withheld without wrapping or saturation. DINT pairs preserve all
 [supported type range](time-date-storage.md). If either word is outside that
 range, the pair is rejected before either cell changes. Scalar DT and TIME
 writes also check their supported type ranges.
+
+## Resetting Task intervals
+
+Ladder and ST can reset either interval independently for a named eligible Task
+or THIS. Use a known-zero scalar TIME or two contiguous zero DINT or TIME32
+elements in the same logical array or member. A reached unknown or nonzero word
+faults. A skipped SSV does not read its live source.
+
+```text
+SSV(Task,FastTask,MinimumInterval,IntervalResetTime);
+SSV(Task,FastTask,MaximumInterval,IntervalResetWords[0]);
+```
+
+A later GSV of the reset field reads zero until a subsequent successful
+invocation completes and contributes its start-to-start interval. An invocation
+already running at reset can contribute when it finishes. Resetting the minimum
+allows the next sample to become the minimum even when it is greater than zero.
+A genuinely measured zero remains a valid minimum. Resetting either field keeps
+the other interval, scan durations, invocation counts, and previous start sample.
+The full advance must succeed to commit the reset.
 
 ## Selection, faults and lifecycle
 
@@ -77,6 +97,11 @@ and the prior FastTask intervals into TaskMinTime and TaskMaxTime. The same
 ladder routine writes the minimum interval to TaskMinTimeWords[1..2]. The ST
 routine gated by ReadTaskStarts writes the maximum to TaskMaxTimeWords[1..2].
 
+With ReadTaskStarts enabled and TaskStartIndex valid, set ResetTaskIntervals
+and Step. FastMinAfterReset shows the ladder minimum reset and FastMaxAfterReset
+shows the ST maximum reset. Both read zero immediately. Clear ResetTaskIntervals
+to resume accumulating extrema.
+
 See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 [timing reads](../source/logixlab/gsv_timing.py) and
 [invocation measurements](../source/logixlab/task_runtime.py).
@@ -84,7 +109,7 @@ See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
-SSV changes to start and interval attributes, Safety/other Event profiles,
+StartTime writes, nonzero interval writes, Safety/other Event profiles,
 broader AOI/harness contexts
 and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

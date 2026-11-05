@@ -294,12 +294,16 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.assertEqual((int(v[prefix+'[0]']),int(v[prefix+'[3]'])),(101,999))
         def state_now():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
+        self.assertEqual((int(v['FastMinAfterReset']),int(v['FastMaxAfterReset'])),(-1,-1))
+        write('ResetTaskIntervals',True)
         timings=self.post('report',{})['task_scan_timing'];write('TaskStartDivisor',0);before=state_now()
         with self.assertRaises(HTTPError) as caught:step()
         self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
         for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
         self.assertEqual(self.post('report',{})['task_scan_timing'],timings)
-        write('TaskStartDivisor',1);step();write('ReadTaskStarts',False);write('TaskStartIndex',99);step()
+        write('TaskStartDivisor',1);v=values(step())
+        self.assertEqual((int(v['FastMinAfterReset']),int(v['FastMaxAfterReset'])),(0,0))
+        write('ResetTaskIntervals',False);write('ReadTaskStarts',False);write('TaskStartIndex',99);step()
 
     def test_integer_lab_lreal_storage_precision_conversions_and_atomic_recovery(self):
         self.post('demo',{'sample':'IntegerLab'})

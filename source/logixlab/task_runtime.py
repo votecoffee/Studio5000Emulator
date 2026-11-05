@@ -17,11 +17,16 @@ class TaskMeasurements:
     executions: int = 0
     last_start_ns: int | None = field(default=None,repr=False)
     start_time_us: int | None = None
+    # A measured zero must stay the minimum until an explicit reset.
+    minimum_interval_pending: bool = field(default=False,repr=False)
 
     def __post_init__(self):
         values=(self.last_ns,self.maximum_ns,self.minimum_interval_ns,self.maximum_interval_ns,self.executions)
         if (any(type(value) is not int or value<0 for value in values)
-                or 0<self.maximum_ns<self.last_ns or self.minimum_interval_ns>self.maximum_interval_ns
+                or 0<self.maximum_ns<self.last_ns
+                or 0<self.maximum_interval_ns<self.minimum_interval_ns
+                or type(self.minimum_interval_pending) is not bool
+                or self.minimum_interval_pending and self.minimum_interval_ns
                 or (self.last_start_ns is not None and (type(self.last_start_ns) is not int or self.last_start_ns<0))
                 or bool(self.executions)!=(self.last_start_ns is not None)
                 or not self.executions and any(values)
@@ -36,7 +41,9 @@ class TaskMeasurements:
                 or self.last_start_ns is not None and start_ns<self.last_start_ns):
             raise ValueError('Invalid Task monotonic interval')
         interval=start_ns-self.last_start_ns if self.last_start_ns is not None else 0
-        minimum=(min(self.minimum_interval_ns,interval) if self.executions>=2 else interval)
+        minimum = interval
+        if self.executions >= 2 and not self.minimum_interval_pending:
+            minimum = min(self.minimum_interval_ns, interval)
         return TaskMeasurements(end_ns-start_ns,max(self.maximum_ns,end_ns-start_ns),
             minimum,max(self.maximum_interval_ns,interval),self.executions+1,start_ns,start_time_us)
 

@@ -213,8 +213,9 @@ precision retention, REAL narrowing and guarded selected outputs.
 
 [Task start and interval GSV](docs/task-start-gsv.md) adds named/THIS ladder and
 ST reads of StartTime, MinimumInterval and MaximumInterval, including DT
-starts, TIME intervals and paired TIME32 interval destinations. **System lab**
-includes guarded word windows and a rollback example.
+starts, TIME intervals and paired TIME32 interval destinations. Ladder and ST
+can also reset either interval from a known-zero source. **System lab** includes
+word windows, resets and a rollback example.
 
 [Event overlap counts](docs/event-overlap-count.md) adds live ladder/ST reads
 and zero resets, including THIS and separate status/counter behavior. **Event

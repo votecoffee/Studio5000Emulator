@@ -7,6 +7,11 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="ReadTaskStarts" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ResetTaskIntervals" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IntervalResetTime" TagType="Base" DataType="TIME"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
+      <Tag Name="FastMinAfterReset" TagType="Base" DataType="TIME"><Data Format="Decorated"><DataValue DataType="TIME" Value="-1" /></Data></Tag>
+      <Tag Name="FastMaxAfterReset" TagType="Base" DataType="TIME"><Data Format="Decorated"><DataValue DataType="TIME" Value="-1" /></Data></Tag>
+      <Tag Name="IntervalResetWords" TagType="Base" DataType="DINT" Dimensions="2"><Data Format="Decorated"><Array DataType="DINT" Dimensions="2"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /></Array></Data></Tag>
       <Tag Name="TaskStartIndex" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="TaskStartDivisor" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="TaskStartResult" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
@@ -593,8 +598,9 @@
               <Rung Number="1" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,StartTime,TaskStartWords[TaskStartIndex]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,MinimumInterval,TaskMinWords[1]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,MaximumInterval,TaskMaxWords[1]);</Text></Rung>
-              <Rung Number="4" Type="N"><Text>XIC(ReadTaskStarts)JSR(ReadTaskStartsST,0);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ReadTaskStarts)DIV(1,TaskStartDivisor,TaskStartResult);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ResetTaskIntervals)SSV(Task,FastTask,MinimumInterval,IntervalResetTime)GSV(Task,FastTask,MinimumInterval,FastMinAfterReset);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadTaskStarts)JSR(ReadTaskStartsST,0);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadTaskStarts)DIV(1,TaskStartDivisor,TaskStartResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTaskStartsST" Type="ST">
@@ -603,6 +609,7 @@
               <Line Number="1">GSV(Task,FastTask,MinimumInterval,StTaskMin[1]);</Line>
               <Line Number="2">GSV(Task,FastTask,MaximumInterval,StTaskMax[1]);</Line>
               <Line Number="3">GSV(Task,FastTask,MaximumInterval,TaskMaxTimeWords[1]);</Line>
+              <Line Number="4">IF ResetTaskIntervals THEN SSV(Task,FastTask,MaximumInterval,IntervalResetWords[0]); GSV(Task,FastTask,MaximumInterval,FastMaxAfterReset); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadSettings" Type="ST">
