@@ -389,6 +389,8 @@ round to DINT before AND, OR, XOR and NOT, with optional REAL results.
 Enable RealBitwise in **Bit lab** to see the conversions. The
 [LREAL forms](docs/scalar-math.md#lreal-operands-in-ladder-bitwise-instructions)
 use signed LINT and demonstrate exact integer results above 2^53.
+[Mixed floating and integer forms](docs/scalar-math.md#mixed-floating-and-integer-bitwise-operands)
+include unsigned results and typed integer immediates.
 
 [Basic scalar arithmetic and bitwise operations](docs/scalar-math.md) validate
 unknown values structurally, skip false-rung operands and establish full numeric

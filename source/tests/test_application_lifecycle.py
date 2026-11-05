@@ -2522,6 +2522,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write',{'tag':'RealBitwise','value':True})
         self.assertEqual(step_values(),(6,-1.0,-8,1.0))
 
+    def test_bit_lab_mixed_floating_bitwise_preserves_unsigned_results_through_http(self):
+        self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
+        names=('MixedFloatOr','MixedFloatXor','MixedFloatAnd','MixedFloatNot')
+
+        def write(tag,value):
+            self.post('write',{'tag':tag,'value':value})
+
+        def step_values():
+            state=self.post('step',{'dt':10})
+            tags={row['name']:row['value'] for row in state['tags']}
+            return tuple(tags[name] for name in names)
+
+        self.assertEqual(step_values(),('0','0',0,'0'))
+        write('MixedFloatBitwise',True)
+        baseline=('9223372041149743102','18446744069414584321',4294967294,'1')
+        self.assertEqual(step_values(),baseline)
+        write('MixedFloatInput',2.5)
+        write('MixedFloatLrealInput',float(1 << 63))
+        with self.assertRaises(HTTPError) as caught:
+            step_values()
+        self.assertEqual(caught.exception.code,400)
+        self.assertIn(b'LINT overflow',caught.exception.read())
+        caught.exception.close()
+        write('MixedFloatBitwise',False)
+        self.assertEqual(step_values(),baseline)
+        write('MixedFloatLrealInput',0.5)
+        write('MixedFloatBitwise',True)
+        self.assertEqual(step_values(),('9223372036854775810','18446744073709551613',2,'18446744073709551615'))
+
     def test_bit_lab_lreal_bitwise_preserves_lint_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
         names=('LrealBitAnd','LrealBitOr','LrealBitXor','LrealBitNot')

@@ -250,19 +250,16 @@ before conversion to the declared REAL or integer result.
 ## REAL operands in ladder bitwise instructions
 
 Standalone AND, OR, XOR and NOT accept scalar REAL tags and ordinary REAL
-immediates in the v35 5580 software profile. Mix them with SINT, INT or DINT
-tags and the existing bounded DINT immediates. Each REAL source is sampled at
+immediates in the v35 5580 software profile. Each REAL source is sampled at
 binary32 precision and rounded to a signed DINT, with ties to even. The
 operation uses the rounded integer's bits. Narrow integer sources retain
 their declared-width zero extension.
 
 An integer destination retains its usual low bits. A REAL destination gets
-the signed DINT result converted to binary32. An out-of-range conversion
-faults and rolls back the advance. False rungs and prescan skip live sources
-and indices. REAL-only floating forms are qualified with narrow signed
-integers. The [LREAL forms](#lreal-operands-in-ladder-bitwise-instructions)
-also accept LINT. Typed integer immediates in floating forms, expressions
-and native status/fault behavior remain unqualified.
+a signed DINT result when no source has 64-bit width. Out-of-range
+conversion faults and rolls back the advance. False rungs and prescan skip
+live sources and indices. [Mixed floating and integer forms](#mixed-floating-and-integer-bitwise-operands)
+also accept wide tags and typed integer immediates.
 
 In **Bit lab**, enable RealBitwise and step. RealBitInput starts at 3.5 and
 rounds to 4. AND, OR, XOR and NOT produce 4, 5.0, 2 and -5.0. Set RealBitInput
@@ -278,13 +275,34 @@ DINT. The operation zero-extends narrower patterns and keeps the low bits
 for an integer destination. A REAL or LREAL destination receives the signed
 LINT result converted to its declared floating precision.
 
-The profile accepts signed integer tags, bounded DINT immediates, REAL and
-LREAL operands. A reached LREAL value outside LINT range faults and rolls
-back the scan. Unsigned mixtures, typed integer immediates in floating forms,
-ST expressions and native overflow/status behavior remain unqualified.
+A reached LREAL value outside LINT range faults and rolls back the scan.
+The mixed forms below specify the integer and floating destination rules.
 
 Enable LrealBitwise in **Bit lab**. With the default input 9007199254740992,
 OR produces the exact LINT 9007199254740993. NOT's LREAL destination rounds
 the integer result -9007199254740993 to -9007199254740992. Enter
 9223372036854775808 to exercise overflow and rollback.
 [Rockwell OR operand reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/move-logical-instructions/bitwise-inclusive-or--or-.html)
+
+## Mixed floating and integer bitwise operands
+
+Standalone ladder AND, OR, XOR and NOT can combine REAL or LREAL with all
+eight signed and unsigned integer types. Integer sources keep their declared
+width, including decimal L, U and UL immediates. A REAL source contributes
+the 32-bit pattern of its rounded DINT. An LREAL source contributes the
+64-bit pattern of its rounded LINT. Both use ties-to-even rounding. Narrower
+patterns zero-extend. An integer destination keeps its low bits and interprets
+them using its declared type.
+
+A floating destination accepts signed and floating sources. The emulator uses
+a signed LINT result when any source or the destination has 64-bit width.
+Otherwise it uses signed DINT. It converts that result to REAL or LREAL at
+the destination. Unsigned inputs to floating destinations, ST expressions
+and native overflow/status behavior remain unqualified.
+
+In **Bit lab**, enable MixedFloatBitwise and step. The default REAL input
+-1.5 becomes DINT -2. Combining it with the ULINT high bit produces exact
+ULINT 9223372041149743102. The typed ULINT XOR and UDINT AND show their
+result widths. For rollback, set MixedFloatInput to 2.5 and
+MixedFloatLrealInput to 9223372036854775808. The last instruction faults and
+the earlier three results retain their previous values.

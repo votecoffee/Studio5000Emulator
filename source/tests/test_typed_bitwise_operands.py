@@ -108,11 +108,12 @@ class TypedBitwiseOperandTests(unittest.TestCase):
         e.memory.write('EnabledA',False);e.memory.write('IndexA',999);e.step()
 
     def test_literal_ranges_types_shapes_permissions_and_profiles_stay_explicit(self):
-        for token in (*integers.BAD,'1.0L','1.5','Inputs'):
+        for token in (*integers.BAD,'Inputs'):
             self.assertTrue(self.engine(['AFI()AND('+token+',0UL,Results[1]);']).blockers,token)
             self.assertTrue(self.engine(['AFI()MEQ('+token+',0UL,0L)OTE(RunLatch);']).blockers,token)
-        for kind in ('REAL','LREAL','BOOL'):
-            self.assertTrue(self.engine(['AFI()AND(Source,1UL,Results[1]);'],source=kind,value=1).blockers)
+        for token in ('1.0L','1.5'):
+            self.assertTrue(self.engine(['AFI()MEQ('+token+',0UL,0L)OTE(RunLatch);']).blockers,token)
+        self.assertTrue(self.engine(['AFI()AND(Source,1UL,Results[1]);'],source='BOOL',value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()OR(1L,0UL,Results[1]);'],mutate=constant).blockers)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:

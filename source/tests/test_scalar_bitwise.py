@@ -138,11 +138,10 @@ class ScalarBitwiseTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('Results'),[4,0,1])
 
-    def test_lreal_bitwise_guards_unsigned_and_typed_integer_mixtures(self):
-        self.assertTrue(self.engine(source='LREAL',dest='ULINT').blockers)
+    def test_lreal_bitwise_guards_unsigned_sources_for_floating_destinations(self):
         self.assertTrue(self.engine(source='ULINT',dest='LREAL',value=1).blockers)
-        for text in ('AND(1.0L,1L,Results[0]);','NOT(1e309L,Results[0]);'):
-            self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
+        self.assertTrue(self.engine(['AFI()OR(1.0L,1UL,Results[0]);'],dest='REAL').blockers)
+        self.assertTrue(self.engine(['AFI()NOT(1e309L,Results[0]);']).blockers)
 
     def test_lreal_bitwise_overflow_rolls_back_and_skipped_call_does_not_read(self):
         e=self.checked(['OR(4.0L,1,Results[0]);','XIC(StartPB)NOT(Inputs[Index],Results[Index]);'],source='LREAL',dest='LINT')

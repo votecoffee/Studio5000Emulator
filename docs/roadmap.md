@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.165147` [mixed floating and integer bitwise forms](scalar-math.md#mixed-floating-and-integer-bitwise-operands)
+add wide/unsigned integer tags and typed integer constants alongside REAL
+and LREAL. Bit Lab demonstrates exact unsigned results and scan rollback.
+
 Available in `26.1105.163752` [LREAL ladder bitwise operands](scalar-math.md#lreal-operands-in-ladder-bitwise-instructions)
 round LREAL to signed LINT before AND, OR, XOR and NOT. Bit Lab
 demonstrates exact results above 2^53 and LREAL destination rounding.

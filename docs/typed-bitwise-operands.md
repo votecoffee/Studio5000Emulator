@@ -44,8 +44,10 @@ Load **Wide expression lab**, enable TypedBitsEnabled and step to run
 shows NOT/truncation/MEQ, and retains an unknown selected neighbor plus a 903
 guard. A zero TypedBitsLateDivisor demonstrates atomic fault/retry.
 
-REAL/LREAL/BOOL bitwise forms, typed radix, MVM/BTD, expression/file/ST/FBD and
-other controller profiles remain separate. Native numerical/status/fault/lifecycle
+[Mixed floating operands](scalar-math.md#mixed-floating-and-integer-bitwise-operands)
+can use these constants in AND, OR, XOR and NOT. MEQ retains integer operands.
+BOOL bitwise forms, typed radix, MVM/BTD, expression/file/ST/FBD and other
+controller profiles remain separate. Native numerical/status/fault/lifecycle
 parity remains unverified. The source basis is installed v35 AND (14670), OR
 (14687), XOR (14683), NOT (14669), MEQ (14602), Immediate values (14454), and the
 existing declared-width integer pattern model. General memory literal parsing

@@ -102,13 +102,42 @@ class MixedBitwiseTests(unittest.TestCase):
         with patch('logixlab.scalar_math.real',side_effect=AssertionError('Bitwise used REAL')):e.step()
         self.assertEqual(e.memory.read('Results')[:2],[9007199254740995,9007199254740995])
 
+    def test_floating_and_wide_integer_operands_preserve_declared_width(self):
+        cases=(
+            ('OR','REAL','ULINT','ULINT',-1.5,1<<63,(1<<63)+0xFFFFFFFE),
+            ('AND','LREAL','ULINT','ULINT',-1.5,(1<<64)-1,(1<<64)-2),
+            ('XOR','REAL','LINT','LINT',2.5,(1<<53)+1,(1<<53)+3),
+            ('AND','UDINT','REAL','DINT',0xFFFFFFFF,-1.5,-2),
+            ('OR','LREAL','UINT','UINT',256.5,3,259),
+            ('OR','LINT','REAL','REAL',-(1<<40),0.5,-float(1<<40)),
+        )
+        for name,source,other,dest,value,mask,expected in cases:
+            with self.subTest(name=name,source=source,other=other,dest=dest):
+                e=self.checked([f'{name}(Source,Mask,Results[1]);'],source=source,other=other,dest=dest,value=value,mask=mask)
+                e.step()
+                self.assertEqual(e.memory.read('Results[1]'),expected)
+                self.assertIs(type(e.memory.read('Results[1]')),type(expected))
+        e=self.checked(['NOT(-1.5,Results[0]);','NOT(-1.5L,Results[1]);'])
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[0xFFFFFFFF00000001,1,None])
+
+    def test_floating_bitwise_accepts_typed_integer_immediates_without_rounding_them(self):
+        e=self.checked(['OR(18446744073709551615UL,2.5,Results[0]);',
+                        'XOR(3.5L,18446744073709551615UL,Results[1]);',
+                        'AND(-1.5,4294967295U,Results[2]);'])
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[(1<<64)-1,(1<<64)-5,0xFFFFFFFE])
+        e=self.checked(['OR(-1099511627776L,0.5,Results[1]);'],dest='LREAL')
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'),-float(1<<40))
+
     def test_legacy_wide_immediate_forms_and_restrictions_are_preserved(self):
         e=self.checked(['AND(Source,1,Results[0]);','NOT(7,Results[1]);'],source='ULINT',other='ULINT',value=9007199254740993,mask=1)
         e.step();self.assertEqual(e.memory.read('Results')[:2],[1,18446744073709551608])
         for text in ('AND(Source,-1,Results[0]);','OR(Source,16#FFFF_FFFF,Results[0]);','NOT(2147483648,Results[0]);'):
             self.assertTrue(self.engine([text],source='ULINT',other='ULINT',mask=1).blockers,text)
         self.assertTrue(self.engine(['OR(Source,1,Results[0]);'],source='LINT',value=7).blockers)
-        self.assertTrue(self.engine(['OR(Source,1.0,Results[0]);']).blockers)
+        self.assertTrue(self.engine(['OR(Source,1e40,Results[0]);']).blockers)
 
     def test_false_prescan_unknown_sources_and_actual_indices_for_all_four(self):
         for name,result in (('AND',1),('OR',2147483903),('XOR',2147483902),('NOT',18446744071562067966)):
@@ -183,9 +212,8 @@ class MixedBitwiseTests(unittest.TestCase):
     def test_shapes_permissions_float_and_arithmetic_profiles_remain_guarded(self):
         for text in ('OR(Inputs,Mask,Results[0]);','NOT(Source,Results);','AND(StartPB,Mask,Results[0]);','OR(Missing,Mask,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
-        self.assertTrue(self.engine(source='REAL',value=1).blockers)
         self.assertTrue(self.engine(dest='REAL').blockers)
-        self.assertTrue(self.engine(source='LREAL',other='UDINT',dest='DINT',value=1).blockers)
+        self.assertTrue(self.engine(source='LREAL',other='UDINT',dest='LREAL',value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
         self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);'],source='LINT').blockers)
