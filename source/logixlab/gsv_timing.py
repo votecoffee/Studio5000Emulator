@@ -1,4 +1,5 @@
-"""Read committed interpreter Program/Task scan durations through typed GSV."""
+"""Read committed interpreter timings and reset qualified scan maxima."""
+from dataclasses import replace
 import struct
 
 from .integer_math import CONTROLLERS
@@ -12,6 +13,28 @@ ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
 TIME_FORMATS={'DT':'<q','TIME':'<Q','TIME32':'<I'}
 
 
+class TimingAdvance:
+    """Working measurements and explicit resets for one transactional advance."""
+
+    def __init__(self, programs, tasks):
+        self.tables = {'program': programs, 'task': tasks}
+        self.cleared = set()
+
+    def reset_maximum(self, cls, name):
+        name = name.casefold()
+        table = self.tables[cls]
+        if name not in table:
+            raise ModelError('SSV MaxScanTime measurement is unavailable')
+        table[name] = replace(table[name], maximum_ns=0)
+        self.cleared.add((cls, name))
+
+    def read_reset_maximum(self, cls, name, number):
+        name = name.casefold()
+        if number == ATTRIBUTES[cls]['maxscantime'] and (cls, name) in self.cleared:
+            return self.tables[cls][name].attributes().get(number, b'')
+        return None
+
+
 def matches(op):
     return (len(op.args)>=3 and all(isinstance(a,str) for a in op.args[:3])
             and op.args[0].casefold() in ATTRIBUTES and op.args[2].casefold() in ATTRIBUTES[op.args[0].casefold()])
@@ -19,12 +42,16 @@ def matches(op):
 
 def specification(engine,op,scope='',*,executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
-        raise ModelError('Timing GSV requires four neutral-text operands')
+        raise ModelError('Timing instruction requires four neutral-text operands')
     project=engine.project
     if project.version!='35' or project.processor.upper() not in CONTROLLERS or engine.mode!='project':
         raise ModelError('Timing GSV requires the v35 ControlLogix 5580 project execution profile')
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
-    if cls not in ATTRIBUTES or attribute not in ATTRIBUTES[cls]:raise ModelError('Unsupported timing GSV class/attribute')
+    if cls not in ATTRIBUTES or attribute not in ATTRIBUTES[cls]:raise ModelError('Unsupported timing class/attribute')
+    if op.name=='SSV':
+        if attribute!='maxscantime':
+            raise ModelError('Timing SSV supports Program or Task MaxScanTime reset only')
+        current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     if cls=='task':
         name=next((t['name'] for t in project.tasks if t['name'].casefold()==instance.casefold()),None)
@@ -65,11 +92,45 @@ def validate(engine,op,scope):
     finally:memory.structural=previous
 
 
+def reset_source(memory, ref, scope):
+    key, parts, dtype = memory.resolve(ref, scope)
+    if dtype not in ('DINT', 'TIME32') or isinstance(memory.at(key, parts), (dict, list)):
+        raise ModelError('SSV MaxScanTime requires one scalar DINT or TIME32 source tag')
+    return key, parts
+
+
+def validate_reset(engine, op, scope):
+    specification(engine, op, scope)
+    memory = engine.memory
+    previous = memory.structural
+    memory.structural = True
+    try:
+        reset_source(memory, op.args[3], scope)
+    finally:
+        memory.structural = previous
+
+
+def execute_reset(engine, op, scope):
+    cls, name, _ = specification(engine, op, scope, executing=True)
+    memory = engine.memory
+    key, parts = reset_source(memory, op.args[3], scope)
+    value = memory.at(key, parts)
+    if type(value) is not int or value != 0:
+        raise ModelError('SSV MaxScanTime requires a known zero source')
+    advance = engine._timing_advance
+    if advance is None:
+        raise ModelError('SSV MaxScanTime requires an active advance')
+    advance.reset_maximum(cls, name)
+
+
 def execute(engine,op,scope):
     cls,name,number=specification(engine,op,scope,executing=True);memory=engine.memory
     key,paths,dtype=destination(memory,op.args[3],scope,number)
     reader=engine.task_scan_timing_attributes if cls=='task' else engine.program_timing_attributes
-    raw=reader(name,source_sha256=engine.project.sha256).get(number)
+    advance=engine._timing_advance
+    raw=advance.read_reset_maximum(cls,name,number) if advance is not None else None
+    if raw is None:
+        raw=reader(name,source_sha256=engine.project.sha256).get(number)
     count=2 if number in (13,14,15) else 1
     if raw is None or len(raw)!=count*4:raise ModelError('Timing GSV measurement is unavailable')
     if dtype in TIME_FORMATS and len(paths)==1:
@@ -102,7 +163,8 @@ def description():
                 source='Committed host perf_counter_ns interpreter durations/start intervals, in whole microseconds; StartTime samples existing host UTC WallClockTime',
                 intervals='Independent successive actual host invocation starts; zero until two executions; include host idle time, not simulated rate',
                 start_time='Zero before execution; previous committed invocation UTC microseconds since 1970; missing clock sample withholds only StartTime',
-                visibility='Zero until a successful advance; reads during an advance see the preceding committed timing snapshot',
+                visibility='Reads see the preceding committed timing snapshot, except a maximum explicitly reset in the advance',
+                max_scan_reset='Named or THIS Program/Task SSV from a known zero DINT or TIME32 in ordinary scheduled code. Reset applies immediately and includes only samples completed afterward. Last, intervals, and execution counts are independent.',
                 task_scope='Complete-source Standard Continuous/Periodic and instruction-only Event tasks; independent successful invocation durations; existing single-Task native contract retained',
                 program_scope='Eligible scheduled ordinary Standard Programs, including the existing zero-initialized no-main profile',
                 selection='Structural preflight without live destination indices or timing reads; false/prescan skip outputs; full writes establish unknown cells',
@@ -110,7 +172,7 @@ def description():
                 st_for_effects='Exact static cells; aliases/AOI/indirect destinations conservatively cover their enclosing array',
                 native_runtime_parity=False,controller_performance_prediction=False,
                 current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
-                remaining=['Empty/numeric instances, AOI/harness THIS contexts, additional attributes and timing setters',
+                remaining=['Empty/numeric instances, AOI/harness THIS contexts and broader timing setters',
                            'Simulated-time intervals and newer shortened interval names',
                            'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

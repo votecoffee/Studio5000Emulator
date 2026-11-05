@@ -3135,6 +3135,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
         report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
 
+    def test_system_lab_scan_max_resets_ladder_and_st_with_late_rollback(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        write=lambda tag,value:self.post('write',{'tag':tag,'value':value})
+        step=lambda:self.post('step',{'dt':25})
+        values=lambda state:{r['name']:r['value'] for r in state['tags']}
+        def state_now():
+            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:
+                return json.load(response)
+        v=values(step())
+        self.assertEqual((v['ProgramMaxAfterReset'],v['FastTaskMaxAfterReset']),(-1,-1))
+        write('ReadConfig',True);write('ResetScanMax',True)
+        write('TaskStartIndex',1);write('ReadTaskStarts',True);write('TaskStartDivisor',0)
+        before=state_now();timings=self.post('report',{})['task_scan_timing']
+        with self.assertRaises(HTTPError) as error:step()
+        self.assertEqual(error.exception.code,400);error.exception.close()
+        after=state_now()
+        for key in ('tags','routines','scan','ms','task_schedule','trace'):self.assertEqual(after[key],before[key])
+        self.assertEqual(self.post('report',{})['task_scan_timing'],timings)
+        write('TaskStartDivisor',1)
+        v=values(step())
+        self.assertEqual((v['ProgramMaxAfterReset'],v['FastTaskMaxAfterReset']),(0,0))
+        self.assertIn('known zero',self.post('report',{})['system_values']['timing']['max_scan_reset'])
+
     def test_system_lab_scan_time_gsv_keeps_committed_values_and_rollback_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
         values=lambda s:{r['name']:r['value'] for r in s['tags']}

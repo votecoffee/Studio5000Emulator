@@ -36,6 +36,25 @@ class EventTimingTests(unittest.TestCase):
         self.assertEqual((e.memory.read('CallerStatus'),e.memory.read('AfterStatus'),e.memory.read('EntryStatus'),e.memory.read('Count1')),(0,0,0,2))
         self.assertEqual(tuple(getattr(e._task_scan_timings['task1'],a) for a in ('last_ns','maximum_ns','executions')),(5000,5000,2))
 
+    def test_event_maximum_reset_orders_completions_within_the_same_advance(self):
+        e=self.checked([[
+            'EVENT(Task1);','SSV(Task,Task1,MaxScanTime,Command);',
+            'GSV(Task,Task1,MaxScanTime,CallerStatus);','EVENT(Task1);',
+            'GSV(Task,Task1,MaxScanTime,AfterStatus);',
+            'XIC(ClearStatus)SSV(Task,Task1,MaxScanTime,Command);',
+        ],['GSV(Task,THIS,LastScanTime,EntryStatus);']])
+        with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(0,9000,10000,15000,20000,29000,30000,35000)):
+            e.step()
+            t=e._task_scan_timings['task1']
+            self.assertEqual((e.memory.read('CallerStatus'),e.memory.read('AfterStatus')),(0,5))
+            self.assertEqual((t.last_ns,t.maximum_ns,t.executions),(5000,5000,2))
+            e.memory.write('ClearStatus',True)
+            e.step()
+        t=e._task_scan_timings['task1']
+        self.assertEqual((e.memory.read('EntryStatus'),e.memory.read('AfterStatus')),(5,5))
+        self.assertEqual((t.last_ns,t.maximum_ns,t.executions,t.minimum_interval_ns,t.maximum_interval_ns),
+                         (5000,0,4,10000,10000))
+
     def test_active_overlap_does_not_add_a_timing_record(self):
         e=self.checked([['EVENT(Task1);'],['EVENT(Task1);','ADD(Count1,1,Count1);']])
         with patch('logixlab.task_runtime.perf_counter_ns',side_effect=(0,9000)):e.step()

@@ -26,10 +26,10 @@ These inclusive durations do not predict controller CPU performance, exclusive
 CPU usage, preemption, watchdogs or interrupt latency.
 
 Values start at zero and publish only with a successful complete advance.
-Every GSV read during that advance sees the previous committed snapshot,
-including reads after a synchronous Event return and repeated executions of
-the same Event in one step. The final successful invocation supplies last;
-maximum retains the longest successful invocation since reset.
+GSV normally reads the previous committed snapshot, including after a
+synchronous Event return. A [MaxScanTime reset](scan-time-gsv.md#resetting-maxscantime)
+clears that maximum immediately and includes only durations completed after
+the reset. The final successful invocation still supplies LastScanTime.
 
 Ignored requests, active-overlap requests, pending duplicate coalescing and
 pending work canceled by inhibition do not add execution or timing records.

@@ -64,6 +64,53 @@ class GsvTimingTests(unittest.TestCase):
             e.step();self.assertEqual([e.memory.read(n) for n in ('ProgramLast','ProgramMax','TaskLast','TaskMax')],[3,5,7,8])
         self.assertEqual(e._program_timings['mainprogram'].last_ns,2000)
 
+    def test_maximum_resets_read_back_immediately_and_retain_last_and_history(self):
+        for st in (False,True):
+            with self.subTest(st=st):
+                logic=[
+                    'SSV(Program,THIS,MaxScanTime,ProgramTicks);',
+                    'SSV(Task,MainTask,MaxScanTime,Divisor);',
+                    *self.reads(),
+                ]
+                e=self.checked(logic,st=st)
+                e.memory.write('ProgramTicks',0);e.memory.write('Divisor',0)
+                e._program_timings['mainprogram']=ProgramTiming(5000,100000,2)
+                e._task_measurements=TaskMeasurements(8000,200000,10000,14000,2,last_start_ns=1000,start_time_us=25)
+                with patch('logixlab.runtime.perf_counter_ns',side_effect=(100000,104000)),patch(
+                        'logixlab.task_runtime.perf_counter_ns',side_effect=(13000,19000)):
+                    e.step()
+                self.assertEqual([e.memory.read(n) for n in ('ProgramLast','ProgramMax','TaskLast','TaskMax')],[5,0,8,0])
+                self.assertEqual(e._program_timings['mainprogram'],ProgramTiming(4000,4000,3))
+                t=e._task_measurements
+                self.assertEqual((t.last_ns,t.maximum_ns,t.minimum_interval_ns,t.maximum_interval_ns,t.executions),
+                                 (6000,6000,10000,14000,3))
+
+    def test_maximum_reset_source_is_lazy_and_failures_restore_both_timings(self):
+        e=self.checked([
+            'XIC(ReadTiming)SSV(Program,MainProgram,MaxScanTime,UnknownWords[Index]);',
+            'XIC(ReadTiming)SSV(Task,THIS,MaxScanTime,ProgramTicks);',
+            'DIV(1,Divisor,ProgramLast);',
+        ])
+        e.enter_run();e.step()
+        e.memory.write('ReadTiming',True);self.fault(e,'outside bounds')
+        e.memory.write('Index',1);self.fault(e,'known zero')
+        e.memory.write('UnknownWords[1]',0);self.fault(e,'known zero')
+        e.memory.write('ProgramTicks',0);e.memory.write('Divisor',0);self.fault(e,'zero')
+        self.assertIsNone(e._timing_advance)
+        e.memory.write('Divisor',1);e.step()
+        self.assertIsNone(e._timing_advance)
+
+    def test_maximum_reset_rejects_other_types_literals_attributes_and_harness(self):
+        for code in (
+            'SSV(Program,MainProgram,MaxScanTime,ReadTiming);',
+            'SSV(Task,MainTask,MaxScanTime,0);',
+            'SSV(Task,MainTask,MaxScanTime,Words);',
+            'SSV(Task,Missing,MaxScanTime,Divisor);',
+            'SSV(Program,MainProgram,LastScanTime,Divisor);',
+        ):
+            self.assertTrue(self.engine([code]).blockers,code)
+        self.assertTrue(self.engine(['SSV(Task,MainTask,MaxScanTime,Divisor);'],mode='routine').blockers)
+
     def test_prescan_and_false_paths_do_not_read_measurements_or_live_indices(self):
         for st,logic in [(False,['XIC(ReadTiming)GSV(Task,MainTask,LastScanTime,Words[Index]);']),
                          (True,['IF ReadTiming THEN GSV(Program,MainProgram,MaxScanTime,Words[Index]); END_IF;'])]:

@@ -84,6 +84,7 @@ See the authored [SystemLab.L5X](../source/samples/SystemLab.L5X),
 The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
-SSV timing changes, Safety/other Event profiles, broader AOI/harness contexts
+SSV changes to start and interval attributes, Safety/other Event profiles,
+broader AOI/harness contexts
 and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

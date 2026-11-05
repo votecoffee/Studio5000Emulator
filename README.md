@@ -130,9 +130,9 @@ for operand details; zoom and fit the document. Ladder topology has explicit
 instruction/junction nodes, typed ports and edges for a future node and wire
 editor. The current monitor remains read-only.
 
-[Scan-time GSV reads](docs/scan-time-gsv.md) expose committed Program and Task
-LastScanTime/MaxScanTime interpreter measurements in DINT and TIME32.
-**System lab** includes gated Program timing reads in ladder and ST.
+[Scan-time GSV reads](docs/scan-time-gsv.md) expose Program and Task
+LastScanTime/MaxScanTime in DINT and TIME32. A zero-source SSV clears the
+selected maximum. **System lab** demonstrates reads and resets in ladder and ST.
 
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock

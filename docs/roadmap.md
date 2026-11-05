@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.141552` [scan maximum resets](scan-time-gsv.md#resetting-maxscantime)
+clear a Program or Task maximum through ladder/ST SSV from a known zero.
+The reset preserves the other measurements and commits with the full advance.
+
 Available in `26.1105.134905` [runtime Event timeout settings](event-tasks.md#runtime-timeout-settings)
 add Rate and EnableTimeOut SSV, immediate GSV readback and transactional
 deadline changes. Event Lab includes runtime controls for its fallback task.

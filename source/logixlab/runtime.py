@@ -5,6 +5,7 @@ import operator
 from collections import Counter
 from time import perf_counter_ns
 from .program_timing import ProgramTiming
+from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
 from .wall_clock import current_value_microseconds
@@ -64,6 +65,7 @@ class Engine:
         self.structured = Structured(self)
         self.function_blocks = FunctionBlocks(self)
         self._program_timings = {}
+        self._timing_advance = None
         self._task_measurements = None
         self._task_scan_timings = {}
         self._task_event_status = {}
@@ -402,10 +404,7 @@ class Engine:
         if n=='MCR':mcr.profile(self.project);return
         if n=='DTR':data_transition.validate(self.memory,op,scope);return
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
-        if n=='SSV':
-            if event_status.matches(op):event_status.validate(self,op,scope)
-            else:task_inhibit.validate(self,op,scope)
-            return
+        if n=='SSV':system_values.validate_set(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -615,17 +614,21 @@ class Engine:
         inhibitions=dict(self._task_scheduler.inhibitions) if batch else None
         watchdog_overrides=dict(self._task_scheduler.watchdog_overrides) if batch else None
         completed=[]
+        single_timing = self._task_measurements is not None
+        if single_timing:task_timings[self._measured_task]=self._task_measurements
+        self._timing_advance=TimingAdvance(timings,task_timings)
         try:
-            task_wall_time=current_value_microseconds() if self._task_measurements is not None else None
-            task_start=task_runtime.perf_counter_ns() if self._task_measurements is not None else None
+            task_wall_time=current_value_microseconds() if single_timing else None
+            task_start=task_runtime.perf_counter_ns() if single_timing else None
             scanned=set(self._program_scanned)
             def run_task(due,task,entries):
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
                 self.time_ms=due;self._executing_task=task
                 previous_calls=self.calls.stack;self.calls.stack=[]
                 measured_task=task.casefold() if isinstance(task,str) else None
-                task_scan_wall=current_value_microseconds() if measured_task in task_timings else None
-                task_scan_start=task_runtime.perf_counter_ns() if measured_task in task_timings else None
+                measure_invocation = not single_timing and measured_task in task_timings
+                task_scan_wall=current_value_microseconds() if measure_invocation else None
+                task_scan_start=task_runtime.perf_counter_ns() if measure_invocation else None
                 try:
                     for entry in entries:
                         name=self.project.routines[entry].program.casefold()
@@ -657,8 +660,8 @@ class Engine:
                         self._event_dispatch.drain(timeout_at=due)
             if batch:self._event_dispatch.drain_timeouts_through(end_ms)
             self.time_ms=end_ms;self._executing_task=None
-            measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
-                      if self._task_measurements is not None else None)
+            measured=(task_timings.pop(self._measured_task).record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
+                      if single_timing else None)
             if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due,event_timeouts=self._event_dispatch.event_timeouts)
             self._program_scanned=scanned
             self.scan_count += 1
@@ -680,7 +683,9 @@ class Engine:
             self._executing_task=None
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
-        finally:self._event_dispatch=None
+        finally:
+            self._event_dispatch=None
+            self._timing_advance=None
         changes = []
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)
@@ -752,8 +757,7 @@ class Engine:
         if n in ladder_pid.INSTRUCTIONS:return ladder_pid.execute(self,op,p,scope)
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
-        if n=='SSV':return (event_status.execute(self,op,p,scope) if event_status.matches(op)
-                            else task_inhibit.execute(self,op,p,scope))
+        if n=='SSV':return system_values.execute_set(self,op,p,scope)
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n in ('UID','UIE'):return event_tasks.execute_interrupt(self,op,p,scope)
         if n=='GSV':
@@ -1031,7 +1035,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ supports zero-extended mixed integer tag patterns for v35 5580; any wide/unsigned tag with an immediate retains homogeneous bounded rules; native flags/fault/lifecycle parity is unqualified",
-                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, and Event EnableTimeOut/Status/OverlapCount; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values and explicit v35 5580 Task/Controller configuration with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task MaxScanTime resets; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

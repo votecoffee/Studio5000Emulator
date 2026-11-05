@@ -87,7 +87,9 @@ class ProgramTimingTests(unittest.TestCase):
         self.assertEqual(ProgramTiming(0xFFFFFFFF*1000,0xFFFFFFFF*1000,1).attributes(),{2:b'\xff'*4,3:b'\xff'*4})
         timing=ProgramTiming((0x100000000)*1000,(0x100000000)*1000,1)
         self.assertEqual(timing.attributes(),{})
-        for args in ((-1,0,1),(1,0,1),(False,0,0),(0,5,0)):
+        self.assertEqual(ProgramTiming(9000,0,1).attributes(),{2:struct.pack('<I',9),3:bytes(4)})
+        self.assertEqual(ProgramTiming(timing.last_ns,0,1).attributes(),{3:bytes(4)})
+        for args in ((-1,0,1),(2,1,1),(1,0,0),(False,0,0),(0,5,0)):
             with self.assertRaises(ValueError):ProgramTiming(*args)
         with self.assertRaises(FrozenInstanceError):timing.executions=2
 

@@ -11,7 +11,8 @@ class ProgramTiming:
 
     def __post_init__(self):
         if (any(type(value) is not int or value<0 for value in (self.last_ns,self.maximum_ns,self.executions))
-                or self.last_ns>self.maximum_ns or not self.executions and self.maximum_ns):
+                or 0<self.maximum_ns<self.last_ns
+                or not self.executions and (self.last_ns or self.maximum_ns)):
             raise ValueError('Invalid measured Program timing')
 
     def record(self, elapsed_ns):
@@ -22,4 +23,7 @@ class ProgramTiming:
         # duration that cannot be represented by the native DWORD contract.
         last=self.last_ns//1000;maximum=self.maximum_ns//1000
         if maximum>0xFFFFFFFF:return {}
-        return {2:struct.pack('<I',last),3:struct.pack('<I',maximum)}
+        result={}
+        if last<=0xFFFFFFFF:result[2]=struct.pack('<I',last)
+        result[3]=struct.pack('<I',maximum)
+        return result

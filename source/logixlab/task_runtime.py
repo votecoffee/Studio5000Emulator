@@ -21,7 +21,7 @@ class TaskMeasurements:
     def __post_init__(self):
         values=(self.last_ns,self.maximum_ns,self.minimum_interval_ns,self.maximum_interval_ns,self.executions)
         if (any(type(value) is not int or value<0 for value in values)
-                or self.last_ns>self.maximum_ns or self.minimum_interval_ns>self.maximum_interval_ns
+                or 0<self.maximum_ns<self.last_ns or self.minimum_interval_ns>self.maximum_interval_ns
                 or (self.last_start_ns is not None and (type(self.last_start_ns) is not int or self.last_start_ns<0))
                 or bool(self.executions)!=(self.last_start_ns is not None)
                 or not self.executions and any(values)

@@ -1,4 +1,4 @@
-# Program and Task scan-time GSV
+# Program and Task scan-time GSV and SSV
 
 The v35 ControlLogix 5580 project profile supports ladder and existing ST reads
 of `LastScanTime` and `MaxScanTime` for eligible named Programs and Tasks.
@@ -37,9 +37,9 @@ its pending last/maximum durations independently. GSV observes the prior committ
 advance throughout that batch. Unreleased or runtime-inhibited tasks retain their
 measurements. Run entry retains committed values; reset/reload initializes them.
 Prescan and failed
-advances do not commit new measurements. Maximum values retain the longest
-successful execution since model reset. Existing counters and protocol reads
-are unchanged by GSV observation.
+advances do not commit new measurements. Each maximum retains the longest
+successful execution since model load or its last reset. GSV observation leaves
+measurements unchanged.
 
 DINT storage preserves the same 32-bit word as the protocol counter. A set
 high bit appears negative in signed DINT storage; this is not a negative
@@ -86,6 +86,29 @@ tag values, AOI bindings, trace, scheduling and uncommitted measurements for the
 whole advance. Invalid named main entries produce explicit blockers. Changing a file
 on disk does not replace the loaded source snapshot.
 
+## Resetting MaxScanTime
+
+In ordinary scheduled ladder and ST, use a known-zero scalar DINT or TIME32 tag
+to clear the maximum for a named eligible Program or Task, or use THIS to select
+the current Program or its owner Task.
+
+```text
+SSV(Program,THIS,MaxScanTime,ResetProgramMaxValue);
+SSV(Task,FastTask,MaxScanTime,ResetTaskMaxValue);
+```
+
+The reset applies at the instruction. Later GSV calls for that maximum see zero
+until an invocation completes. A completed invocation contributes its measured
+duration when it finishes, including an invocation already running at reset.
+Other GSV timing attributes keep their prior committed snapshot. The reset leaves
+LastScanTime, start time, interval extrema and invocation counts intact. Multiple
+resets in one advance clear the same maximum each time.
+
+A false or skipped instruction leaves the maximum alone and does not read the
+source index or value. A reached unknown or nonzero source, or a later fault,
+rolls back the whole advance. Native protocol reads continue to use committed
+measurements. This profile adds no protocol write service.
+
 ## System Lab
 
 Choose **System lab** and step once to generate measurements. Enable `ReadTiming`
@@ -113,9 +136,13 @@ existing phase without catch-up. Disable ReadTaskTiming to retain outputs.
 Enable ReadTypedTimes and step to read the previous Background Program
 last duration into ProgramTime32 and its owner Task maximum into TaskTime32.
 
+Enable ReadConfig and ResetScanMax, then step. ProgramMaxAfterReset shows the
+ladder THIS reset. FastTaskMaxAfterReset shows the named ST reset. Both read
+zero immediately. Clear ResetScanMax to let the maxima accumulate.
+
 The type/unit baseline follows installed v35 help 14638/14646 and Rockwell's
 [Program object](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
 and [Task object](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
-references. The installed version determines this profile. Timing setters,
+references. The installed version determines this profile. Other timing setters,
 other runtime attributes, broader source/language profiles and native precision,
 status/fault, packed layout, scheduling and lifecycle parity remain separate work.

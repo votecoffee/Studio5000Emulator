@@ -74,6 +74,21 @@ def write_effects(engine,op,scope):
     return [(key,part) for part in parts]
 
 
+def validate_set(engine, op, scope):
+    if gsv_timing.matches(op):return gsv_timing.validate_reset(engine,op,scope)
+    if event_status.matches(op):return event_status.validate(engine,op,scope)
+    return task_inhibit.validate(engine,op,scope)
+
+
+def execute_set(engine, op, power, scope):
+    if not power:return power
+    if gsv_timing.matches(op):
+        gsv_timing.execute_reset(engine,op,scope)
+        return power
+    if event_status.matches(op):return event_status.execute(engine,op,power,scope)
+    return task_inhibit.execute(engine,op,power,scope)
+
+
 def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
