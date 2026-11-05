@@ -35,6 +35,10 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
+| Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
+| Controller | RedundancyEnabled | SINT | Explicit RedundancyInfo Enabled flag, 0/1 |
+| Controller | KeepTestEditsOnSwitchover | SINT | Explicit RedundancyInfo retention flag, 0/1 |
+| Controller | InhibitAutomaticFirmwareUpdate | BOOL | Explicit Controller setting, 0/1 |
 
 Class, attribute and object lookup are case insensitive. Returned names retain
 source spelling. Task references use literal configured names or
@@ -82,6 +86,23 @@ and SlowTask slot 2. ST also uses the existing ReadConfig gate.
 The operand types follow the installed v35 Program, Task and Routine help
 topics 14638, 14646 and 14651. Native instance identity and execution parity
 remain separate.
+
+## Controller source flags
+
+Ladder and ST can read four explicit settings from the loaded project with an
+empty Controller instance operand. The RPI setting uses DINT, redundancy and
+test-edit retention use SINT, and firmware-update inhibition uses a BOOL cell.
+Missing, ambiguous or invalid flags are unavailable. RedundancyInfo must be
+canonical. The BOOL read requires a saved value of 0 or 1 and a declared BOOL
+destination.
+
+Enable ReadControllerFlags in **System lab** and step 25 ms. Ladder reads
+UseProducerRpi (1) and RedundancyFlag (0). ST reads RetainTestEdits (1) and
+FirmwareUpdateInhibit (true) with ReadConfig enabled. The flags are read-only.
+Native RPI negotiation, redundancy switchover and firmware services are outside
+the software model. The 5580 data-table padding attribute is outside this
+instruction profile. [Rockwell Controller reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-controller-object.html)
+[5580 migration guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf)
 
 ## Controller device identity
 

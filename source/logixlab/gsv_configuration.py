@@ -16,6 +16,14 @@ CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
 
+CONTROLLER_FLAGS = {
+    'canuserpifromproducer': ('DINT', 'can_use_rpi_from_producer'),
+    'redundancyenabled': ('SINT', 'source_redundancy_configured'),
+    'keeptesteditsonswitchover': ('SINT', 'continue_test_edits'),
+    'inhibitautomaticfirmwareupdate': ('BOOL', 'automatic_firmware_update_inhibit'),
+}
+
+
 def current_instance(engine, cls, instance, scope='', *, executing=False, allow_event=False):
     """Resolve THIS from a source-bound scheduled Program, never saved tag data."""
     if instance.casefold()!='this':return instance
@@ -127,6 +135,14 @@ def source(engine, op, scope='', *, executing=False):
             if value is None or getattr(controller,defaulted) or field not in project.source_controller_settings:
                 raise ModelError('GSV Controller setting is unavailable without an explicit source value')
             return 'INT',coerce(value,'INT')
+        if attribute in CONTROLLER_FLAGS:
+            dtype, field = CONTROLLER_FLAGS[attribute]
+            controller = project.controller_configuration
+            value = getattr(controller, field)
+            if (value not in (0, 1) or
+                    attribute == 'keeptesteditsonswitchover' and controller.source_redundancy_configured is None):
+                raise ModelError('GSV Controller '+op.args[2]+' requires an unambiguous explicit 0/1 setting')
+            return dtype, coerce(value, dtype)
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls in ('program','routine') and attribute=='name':
         return 'STRING',component_name(engine,cls,instance,scope,executing=executing)
@@ -184,8 +200,12 @@ def destination(memory, ref, scope, dtype):
         key,parts,kind=memory.resolve(ref,scope)
     else:
         key,parts,kind=memory.check_writable(ref,scope)
-        if kind!=dtype or isinstance(memory.at(key,parts),(dict,list,bool)):
-            raise ModelError('GSV configuration destination must be an exact scalar '+dtype+' tag')
+        error = 'GSV configuration destination must be an exact scalar '+dtype+' tag'
+        if kind != dtype or (parts and isinstance(parts[-1], tuple)):
+            raise ModelError(error)
+        value = memory.at(key,parts)
+        if isinstance(value, (dict,list)) or (dtype != 'BOOL' and isinstance(value, bool)):
+            raise ModelError(error)
     return key,[parts],kind
 
 
@@ -221,14 +241,16 @@ def write_effects(engine,op,scope):
 def description():
     return dict(profile='v35-5580-explicit-GSV-configuration', languages=['RLL','ST'],
                 task=['Name','Instance','Rate (Periodic or Event timeout)','EnableTimeOut (Event)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
-                controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
+                controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)',
+                            'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
+                controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
-                destinations='Exact INT/DINT scalars, represented LEN/DATA strings, or a 33-cell SINT window for DeviceName; no cross-type byte copies',
+                destinations='Exact BOOL/SINT/INT/DINT scalars, represented LEN/DATA strings, or a 33-cell SINT window for DeviceName; no cross-type byte copies',
                 times='Microseconds from exact milliseconds; no inferred defaults',
                 state='Source configuration with live Task InhibitTask, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',

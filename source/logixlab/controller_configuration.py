@@ -16,7 +16,23 @@ MEMORY_PAD_FIELDS = ('IOMemoryPadPercentage','DataTablePadPercentage')
 REDUNDANCY_FIELDS = {'Enabled','KeepTestEditsOnSwitchOver','Use',*MEMORY_PAD_FIELDS}
 
 
-def memory_padding(root,controller):
+def redundancy_source(controller):
+    nodes = controller.findall('RedundancyInfo')
+    if len(nodes) != 1:
+        return None
+    node = nodes[0]
+    if (node.attrib.keys() - REDUNDANCY_FIELDS or node.get('Use') not in (None, 'Target')
+            or node.get('Enabled') not in ('true', 'false') or len(node) or (node.text or '').strip()):
+        return None
+    for item in controller.iter():
+        if item is not node and item.tag.rsplit('}', 1)[-1].casefold().startswith('redundancyinfo'):
+            return None
+        if any(key.rsplit('}', 1)[-1].casefold().startswith('redundancyinfo') for key in item.attrib):
+            return None
+    return node
+
+
+def memory_padding(root,controller,node):
     """Static spare-memory settings, never percentages of live free RAM.
 
     Explicit disabled redundancy selects this emulator's zero-reservation
@@ -24,17 +40,11 @@ def memory_padding(root,controller):
     Malformed explicit values never fall back to the omission policy.
     """
     unavailable=((None,None),(False,False))
-    if (root is None or not complete_tag_source(root,controller) or controller.get('MajorRev')!='35'
+    if (node is None or controller.get('MajorRev')!='35'
             or root.get('SchemaRevision')!='1.0' or not re.fullmatch(r'35\.[0-9]{2}',root.get('SoftwareRevision',''))):
         return unavailable
-    nodes=controller.findall('RedundancyInfo')
-    if len(nodes)!=1:return unavailable
-    node=nodes[0]
-    if (node.attrib.keys()-REDUNDANCY_FIELDS or node.get('Use') not in (None,'Target')
-            or node.get('Enabled') not in ('true','false') or len(node) or (node.text or '').strip()):
-        return unavailable
     # Reject aliases and shadows even when the canonical setting is omitted.
-    names=('redundancyinfo',*(name.casefold() for name in MEMORY_PAD_FIELDS))
+    names=tuple(name.casefold() for name in MEMORY_PAD_FIELDS)
     for item in controller.iter():
         local=item.tag.rsplit('}',1)[-1].casefold()
         if any(local.startswith(name) for name in names) and item is not node:return unavailable
@@ -92,6 +102,7 @@ class ControllerConfiguration:
     io_memory_pad_percentage: int | None = None
     data_table_pad_percentage: int | None = None
     memory_pad_defaulted: tuple[bool,bool] = (False,False)
+    source_redundancy_configured: bool | None = None
 
     @classmethod
     def from_controller(cls, controller, root=None):
@@ -148,7 +159,9 @@ class ControllerConfiguration:
                 if local.lower() in related:
                     if name not in names or value:return False
             return complete
-        padding,defaulted=memory_padding(root,controller)
+        source_node = redundancy_source(controller) if complete else None
+        source_redundancy = None if source_node is None else source_node.get('Enabled') == 'true'
+        padding,defaulted=memory_padding(root,controller,source_node)
         return cls(value if value is not None and value <= 0xFFFFFFFF else None,
                    controller.get('Name', 'Controller'), description,
                    {'true':True,'false':False}.get(enabled),time_slice,share,
@@ -156,7 +169,7 @@ class ControllerConfiguration:
                    empty_handler('PowerLossProgram','PowerUpHandlerProgram'),
                    empty_handler('MajorFaultProgram'),pass_mode,
                    match_project,firmware,producer_rpi,report_overflow,retain,diagnostics,
-                   change_detection_mask(root,controller),*padding,defaulted)
+                   change_detection_mask(root,controller),*padding,defaulted,source_redundancy)
 
     def attributes(self):
         values={13: struct.pack('<I', self.security_code)} if self.security_code is not None else {}

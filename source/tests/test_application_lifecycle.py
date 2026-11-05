@@ -764,6 +764,23 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tuple(after[name] for name in fields),(168,0x0B23,14,1))
         self.assertEqual(bytes(after[f'DeviceNameBytes[{i}]'] for i in range(33)),b'\x09' + b'1756-L85E' + bytes(23))
 
+    def test_system_lab_controller_source_flags_in_ladder_and_st(self):
+        self.assertEqual(self.post('demo',{'sample':'SystemLab'})['blockers'],[])
+        names=('UseProducerRpi','RedundancyFlag','RetainTestEdits','FirmwareUpdateInhibit')
+
+        def step_values():
+            state=self.post('step',{'dt':25})
+            values={row['name']:row['value'] for row in state['tags']}
+            return tuple(values[name] for name in names)
+
+        self.assertEqual(step_values(),(-1,-1,-1,False))
+        self.post('write',{'tag':'ReadControllerFlags','value':True})
+        self.assertEqual(step_values(),(1,0,1,True))
+        self.post('write',{'tag':'ReadConfig','value':False})
+        self.post('write',{'tag':'RetainTestEdits','value':-1})
+        self.post('write',{'tag':'UseProducerRpi','value':-1})
+        self.assertEqual(step_values(),(1,0,-1,True))
+
     def test_system_lab_reads_typed_gsv_settings_without_changing_task_schedule(self):
         self.assertIn('id="system-demo"', self.get('/').decode())
         state = self.post('demo', {'sample': 'SystemLab'})

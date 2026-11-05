@@ -1,6 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SystemLab" TargetType="Controller" ContainsContext="false">
-  <Controller Name="SystemLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11" TimeSlice="30" ShareUnusedTimeSlice="1">
+  <Controller Name="SystemLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11" TimeSlice="30" ShareUnusedTimeSlice="1" CanUseRPIFromProducer="true" InhibitAutomaticFirmwareUpdate="1">
+    <RedundancyInfo Enabled="false" KeepTestEditsOnSwitchOver="true" />
     <DataTypes />
     <Modules />
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
@@ -37,6 +38,11 @@
       <Tag Name="ThisBackgroundTaskLast" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="TaskWords" TagType="Base" DataType="DINT" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="77" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadThis" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ReadControllerFlags" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="UseProducerRpi" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="RedundancyFlag" TagType="Base" DataType="SINT"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="RetainTestEdits" TagType="Base" DataType="SINT"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
+      <Tag Name="FirmwareUpdateInhibit" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="StDeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ReadControllerDevice" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -661,6 +667,7 @@
               <Line Number="12">GSV(Program,SlowProgram,DisableFlag,LiveSlowProgramDisabled);</Line>
               <Line Number="13">IF ReadObjectIdentity THEN GSV(Program,FastProgram,Name,StObjectProgramName); GSV(Routine,THIS,Name,StObjectRoutineName); GSV(Task,SlowTask,Instance,StObjectTaskSlot); END_IF;</Line>
               <Line Number="14">IF ReadControllerDevice THEN GSV(ControllerDevice,,Type,DeviceType); GSV(ControllerDevice,,Vendor,DeviceVendor); GSV(ControllerDevice,,Status,StDeviceStatus); END_IF;</Line>
+              <Line Number="15">IF ReadControllerFlags THEN GSV(Controller,,KeepTestEditsOnSwitchover,RetainTestEdits); GSV(Controller,,InhibitAutomaticFirmwareUpdate,FirmwareUpdateInhibit); END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -679,6 +686,7 @@
               <Rung Number="3" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,MaxScanTime,ThisProgramMax);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadObjectIdentity)GSV(Program,THIS,Name,ObjectProgramName)GSV(Routine,THIS,Name,ObjectRoutineName)GSV(Task,THIS,Instance,ObjectTaskSlot);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(ReadControllerDevice)GSV(ControllerDevice,,DeviceName,DeviceNameBytes)GSV(ControllerDevice,,ProductCode,DeviceProductCode)GSV(ControllerDevice,,ProductRev,DeviceProductRev)GSV(ControllerDevice,,Status,DeviceStatus);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadControllerFlags)GSV(Controller,,CanUseRPIFromProducer,UseProducerRpi)GSV(Controller,,RedundancyEnabled,RedundancyFlag);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadProgramTimes" Type="RLL">

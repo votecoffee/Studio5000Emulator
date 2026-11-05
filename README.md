@@ -138,6 +138,10 @@ measurement. **System lab** demonstrates reads and resets in ladder and ST.
 Program and Routine names plus Task registry slots in ladder and ST.
 **System lab** shows how Routine THIS follows a called routine.
 
+[Controller source flags](docs/gsv-configuration.md#controller-source-flags)
+read the project settings for producer RPI, redundancy, test-edit retention,
+and firmware-update inhibition in ladder and ST.
+
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware
 revision, device type and vendor. [Controller device status](docs/gsv-configuration.md#controller-device-status)

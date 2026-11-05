@@ -25,6 +25,14 @@ def device_buffer(root, *, dtype='SINT', count=36, constant=False):
         E.SubElement(array,'Element',Index=f'[{i}]',Value='-1')
 
 
+def controller_flags(root, *, rpi='true', redundancy='false', retain='true', firmware='1'):
+    controller=root.find('Controller')
+    controller.attrib.update(CanUseRPIFromProducer=rpi,InhibitAutomaticFirmwareUpdate=firmware)
+    E.SubElement(controller,'RedundancyInfo',Enabled=redundancy,KeepTestEditsOnSwitchOver=retain)
+    for name in ('RedundancyByte','RetentionByte'):
+        scalar(controller.find('Tags'),name,'SINT')
+
+
 class GsvConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
@@ -88,6 +96,53 @@ class GsvConfigurationTests(unittest.TestCase):
     def test_identifiers_are_case_insensitive_and_names_keep_source_spelling(self):
         e=self.checked(['GSV(tAsK,fAsTtAsK,rAtE,Out);','GSV(TASK,fasttask,NAME,NameOut);']);e.step()
         self.assertEqual(e.memory.read('Out'),10000);self.assertEqual(e.memory.string('NameOut'),'FastTask')
+
+    def test_explicit_controller_flags_in_ladder_and_st_have_exact_types(self):
+        fields=('CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate')
+        destinations=('Out','RedundancyByte','RetentionByte','Flag')
+        calls=[f'GSV(cOnTrOlLeR,,{attr},{tag});' for attr,tag in zip(fields,destinations,strict=True)]
+        for st in (False,True):
+            for enabled in (False,True):
+                with self.subTest(st=st,enabled=enabled):
+                    def source(root):
+                        text=str(enabled).lower()
+                        controller_flags(root,rpi=text,redundancy=str(not enabled).lower(),retain=text,firmware=str(int(enabled)))
+                    engine=self.checked(calls,st=st,mutate=source)
+                    engine.memory.values['flag']=None
+                    engine.step()
+                    values=tuple(engine.memory.read(tag) for tag in destinations)
+                    self.assertEqual(values,(int(enabled),int(not enabled),int(enabled),enabled))
+                    self.assertIs(values[-1],enabled)
+
+    def test_controller_flags_withhold_missing_malformed_and_ambiguous_sources(self):
+        cases=(
+            ('CanUseRPIFromProducer','Out',lambda c,n:c.attrib.pop('CanUseRPIFromProducer')),
+            ('CanUseRPIFromProducer','Out',lambda c,n:c.set('CanUseRPIFromProducerUId','true')),
+            ('InhibitAutomaticFirmwareUpdate','Flag',lambda c,n:c.set('InhibitAutomaticFirmwareUpdate','255')),
+            ('InhibitAutomaticFirmwareUpdate','Flag',lambda c,n:c.attrib.pop('InhibitAutomaticFirmwareUpdate')),
+            ('KeepTestEditsOnSwitchover','RetentionByte',lambda c,n:n.attrib.pop('KeepTestEditsOnSwitchOver')),
+            ('KeepTestEditsOnSwitchover','RetentionByte',lambda c,n:E.SubElement(c.find('DataTypes'),'{other}RedundancyInfo')),
+            ('RedundancyEnabled','RedundancyByte',lambda c,n:E.SubElement(c,'RedundancyInfo',Enabled='false')),
+            ('RedundancyEnabled','RedundancyByte',lambda c,n:n.set('Enabled','yes')),
+            ('RedundancyEnabled','RedundancyByte',lambda c,n:n.set('Use','Context')),
+        )
+        for index,(attr,tag,modify) in enumerate(cases):
+            with self.subTest(attribute=attr,case=index):
+                def malformed(root):
+                    controller_flags(root)
+                    c=root.find('Controller')
+                    modify(c,c.find('RedundancyInfo'))
+                engine=self.engine([f'GSV(Controller,,{attr},{tag});'],mutate=malformed)
+                self.assertTrue(any('explicit 0/1 setting' in error for error in engine.blockers),engine.blockers)
+
+    def test_controller_flags_reject_wrong_destinations_and_remain_read_only(self):
+        for call in ('GSV(Controller,,CanUseRPIFromProducer,PriorityOut);',
+                     'GSV(Controller,,KeepTestEditsOnSwitchover,Out);',
+                     'GSV(Controller,,RedundancyEnabled,Flag);',
+                     'GSV(Controller,,InhibitAutomaticFirmwareUpdate,Out.0);',
+                     'SSV(Controller,,InhibitAutomaticFirmwareUpdate,Flag);',
+                     'GSV(Controller,THIS,CanUseRPIFromProducer,Out);'):
+            self.assertTrue(self.engine([call],mutate=controller_flags).blockers,call)
 
     def test_program_and_routine_names_match_source_case_in_ladder_and_st(self):
         for st in (False,True):
