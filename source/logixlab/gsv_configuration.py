@@ -70,6 +70,11 @@ def source(engine, op, scope='', *, executing=False):
         from .event_tasks import profile
         profile(project)
         current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
+        if attribute in ('enabletimeout','rate'):
+            event=task.get('event',{})
+            if 'timeout' not in event:raise ModelError('Event timeout settings are unavailable')
+            if attribute=='enabletimeout':return 'DINT',int(event['timeout'])
+            if event['timeout']:return 'DINT',event['timeout_ms']*1000
     if attribute=='name':return 'STRING',name
     if attribute not in TASK:raise ModelError('Unsupported GSV Task configuration attribute '+op.args[2])
     number,dtype=TASK[attribute]
@@ -130,7 +135,7 @@ def write_effects(engine,op,scope):
 
 def description():
     return dict(profile='v35-5580-explicit-GSV-configuration', languages=['RLL','ST'],
-                task=['Name','Rate (Periodic)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
+                task=['Name','Rate (Periodic or source-enabled Event timeout)','EnableTimeOut (Event)','Watchdog','Priority (Periodic/Event)','InhibitTask','DisableUpdateOutputs'],
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)'],
                 destinations='Exact INT/DINT scalars or represented LEN/DATA strings; no cross-type byte copies',
                 times='Microseconds from exact milliseconds; no inferred defaults',

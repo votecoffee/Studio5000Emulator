@@ -165,6 +165,12 @@
       <Tag Name="GuardEvents" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="GuardSeen" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ReleasedSeen" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TriggerTimeoutDemo" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoRuns" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoFirst" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoStatus" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoRateUs" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TimeoutDemoEnabled" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="ProducerProgram" MainRoutineName="Main" Class="Standard">
@@ -200,6 +206,7 @@
               <Rung Number="11" Type="N"><Text>XIC(GuardEvents)JSR(GuardedEvent,0);</Text></Rung>
               <Rung Number="12" Type="N"><Text>JSR(ReadEventStatus,0);</Text></Rung>
               <Rung Number="13" Type="N"><Text>JSR(ReadEventTimings,0);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(TriggerTimeoutDemo)EVENT(TimeoutDemoEvent);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="GuardedEvent" Type="RLL">
@@ -305,6 +312,20 @@
           </Routine>
         </Routines>
       </Program>
+      <Program Name="TimeoutDemoProgram" MainRoutineName="Main" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="Main" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>ADD(TimeoutDemoRuns,1,TimeoutDemoRuns);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(S:FS)ADD(TimeoutDemoFirst,1,TimeoutDemoFirst);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>GSV(Task,THIS,Status,TimeoutDemoStatus);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>GSV(Task,THIS,Rate,TimeoutDemoRateUs);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>GSV(Task,THIS,EnableTimeOut,TimeoutDemoEnabled);</Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
     </Programs>
     <Tasks>
       <Task Name="ProducerTask" Type="PERIODIC" Class="Standard" Priority="5" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="false" Rate="10">
@@ -327,6 +348,12 @@
         <EventInfo EventTrigger="EVENT Instruction Only" EnableTimeout="false" />
         <ScheduledPrograms>
           <ScheduledProgram Name="DeferredProgram" />
+        </ScheduledPrograms>
+      </Task>
+      <Task Name="TimeoutDemoEvent" Type="EVENT" Class="Standard" Priority="4" Watchdog="500" InhibitTask="false" DisableUpdateOutputs="true" Rate="35">
+        <EventInfo EventTrigger="EVENT Instruction Only" EnableTimeout="true" />
+        <ScheduledPrograms>
+          <ScheduledProgram Name="TimeoutDemoProgram" />
         </ScheduledPrograms>
       </Task>
     </Tasks>

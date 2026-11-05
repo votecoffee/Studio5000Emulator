@@ -267,12 +267,76 @@ class EventTaskTests(unittest.TestCase):
                 if change=='missing':task.remove(info)
                 elif change=='duplicate':task.append(copy.deepcopy(info))
                 elif change=='case':info.tag='eventinfo'
-                elif change=='timeout':info.set('EnableTimeout','true')
+                elif change=='timeout':info.set('EnableTimeout','true');task.attrib.pop('Rate')
                 elif change=='trigger':info.set('EventTrigger','Consumed Tag')
                 elif change=='tag':info.set('EventTag','TagSource')
                 elif change=='priority':task.attrib.pop('Priority')
                 else:task.set('inhibittask','false')
             self.assertTrue(self.engine(mutate=invalid).blockers,change)
+
+    @staticmethod
+    def timeout(root,rate='15'):
+        task=root.find('./Controller/Tasks/Task[2]')
+        task.set('Rate',rate)
+        task.find('EventInfo').set('EnableTimeout','true')
+
+    def test_timeouts_run_at_each_deadline_even_without_any_base_release(self):
+        def configure(root):
+            self.timeout(root)
+            root.find('./Controller/Tasks/Task').attrib.update(Type='PERIODIC',Rate='100')
+        e=self.checked([['NOP();'],['ADD(Count1,1,Count1);','XIC(S:FS)ADD(First1,1,First1);',
+                                   'GSV(Task,THIS,Rate,SpeedCommand);','GSV(Task,THIS,EnableTimeOut,SpeedSetpoint);']],
+                       mutate=configure)
+        e.step(60)
+        self.assertEqual((e.memory.read('Count1'),e.memory.read('First1')),(4,1))
+        self.assertEqual((e.memory.read('SpeedCommand'),e.memory.read('SpeedSetpoint')),(15000,1))
+        self.assertEqual([row['release_ms'] for row in e.trace if row['number']=='0'],[15,30,45,60])
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],75)
+        self.assertEqual(e._task_event_status['task1'],2)
+        self.assertEqual(e._task_scan_timings['task1'].executions,4)
+
+    def test_explicit_trigger_rearms_deadline_and_latches_both_causes(self):
+        e=self.checked([['XIC(StartPB)EVENT(Task1);'],['ADD(Count1,1,Count1);']],mutate=self.timeout)
+        e.memory.write('StartPB',True);e.step(10)
+        self.assertEqual(e._task_event_status['task1'],1)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],25)
+        e.memory.write('StartPB',False);e.step(14)
+        self.assertEqual(e.memory.read('Count1'),1)
+        e.step(1)
+        self.assertEqual(e.memory.read('Count1'),2)
+        self.assertEqual(e._task_event_status['task1'],3)
+
+    def test_coincident_timeout_obeys_snapshot_priority_and_base_ties(self):
+        def configure(root):
+            self.timeout(root,'10')
+            root.find('./Controller/Tasks/Task').attrib.update(Type='PERIODIC',Priority='5',Rate='10')
+        for priority,expected,status in (('1',2,3),('5',1,1),('10',1,1)):
+            e=self.checked([['EVENT(Task1);'],['ADD(Count1,1,Count1);']],mutate=configure,priority=priority)
+            e.step()
+            self.assertEqual(e.memory.read('Count1'),expected)
+            self.assertEqual(e._task_event_status['task1'],status)
+            self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],20)
+
+    def test_inhibited_timeout_slots_are_skipped_and_count_against_release_budget(self):
+        e=self.checked([['SSV(Task,Task1,InhibitTask,SpeedCommand);'],['ADD(Count1,1,Count1);']],
+                       mutate=lambda root:self.timeout(root,'1'),inhibited=True)
+        e.memory.write('SpeedCommand',0)
+        schedule=copy.deepcopy(e.scheduler_description())
+        with self.assertRaisesRegex(ModelError,'release budget'):e.step(5000)
+        self.assertEqual(e.scheduler_description(),schedule)
+        self.assertEqual(e._task_event_status['task1'],0)
+        e.step(5);self.assertEqual(e.memory.read('Count1'),0)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],6)
+        e.step(1);self.assertEqual(e.memory.read('Count1'),1)
+
+    def test_event_timeout_source_requires_bounded_exact_rate(self):
+        for rate in ('0','0.999','1.001','60001','bad'):
+            e=self.engine(mutate=lambda root:self.timeout(root,rate))
+            self.assertTrue(any('Event timeout requires' in b for b in e.blockers),rate)
+        e=self.checked([['GSV(Task,Task1,EnableTimeOut,SpeedCommand);'],['NOP();']]);e.step()
+        self.assertEqual(e.memory.read('SpeedCommand'),0)
+        for text in ('SSV(Task,Task1,EnableTimeOut,SpeedCommand);','SSV(Task,Task1,Rate,SpeedCommand);'):
+            self.assertTrue(self.engine([[text],['NOP();']],mutate=self.timeout).blockers)
 
     def test_safety_incomplete_and_other_controller_profiles_remain_blocked(self):
         def safety(root):root.find('./Controller/Tasks/Task[2]').set('Class','Safety')

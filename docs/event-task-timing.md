@@ -48,9 +48,9 @@ timing state.
 ## Eligibility and operands
 
 Task measurements require complete current source, an unchanged task graph,
-canonical instruction-only EventInfo with timeout disabled, a known ordered
+canonical instruction-only EventInfo with a supported timeout setting, a known ordered
 Program schedule, and explicit priority/output-update/inhibit settings. Missing
-metadata does not fabricate a default. Safety, other Event sources/timeouts,
+metadata does not fabricate a default. Safety, external Event sources,
 AOI and isolated routine-harness Event timing contexts remain unqualified.
 The established Continuous/Periodic and single-Task native profiles are retained.
 

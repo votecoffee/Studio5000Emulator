@@ -224,6 +224,10 @@ lab** includes guarded count and reset controls.
 durations and Program/Task THIS reads for instruction-only Events. **Event lab**
 compares named ladder, ST and THIS snapshots with inhibition and rollback.
 
+[Configured Event timeouts](docs/event-tasks.md#configured-timeouts) let an
+instruction-triggered Event task run when no trigger arrives. **Event lab**
+shows a 35 ms timeout, its latched Status bit and deadline changes after EVENT.
+
 [Event task inhibition](docs/event-task-inhibition.md) adds live named/THIS
 controls, queued-request checks and Event configuration reads. **Event lab**
 includes controls for inhibit, enable and self-inhibition.

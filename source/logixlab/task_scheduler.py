@@ -22,6 +22,7 @@ class Task:
     period: int | None
     inhibited: bool
     entries: tuple
+    timeout_ms: int | None
 
 
 @dataclass(frozen=True)
@@ -64,14 +65,18 @@ class TaskScheduler:
                     period = int(rate)
                 except (InvalidOperation, ValueError, TypeError):
                     raise ModelError('Periodic task rate must be whole milliseconds in 1..60000') from None
-            if row['type']=='Event' and row.get('event')!={'trigger':'EVENT Instruction Only','timeout':False}:
-                raise ModelError('Event task requires EVENT Instruction Only with timeout disabled')
+            timeout_ms = None
+            if row['type']=='Event':
+                event=row.get('event',{})
+                if event.get('trigger')!='EVENT Instruction Only':
+                    raise ModelError(event.get('error','Event task requires EVENT Instruction Only'))
+                timeout_ms=event.get('timeout_ms')
             if row['type']!='Continuous':
                 raw = row.get('priority', '10')
                 if not isinstance(raw, str) or not raw.isdecimal() or not MIN_PRIORITY <= int(raw) <= MAX_PRIORITY:
                     raise ModelError(f'Periodic task priority must be an integer in {MIN_PRIORITY}..{MAX_PRIORITY}')
                 priority = int(raw)
-            tasks.append(Task(name, row['type'], priority, period, row['inhibited'], tuple(entries.get(name.casefold(), ()))))
+            tasks.append(Task(name, row['type'], priority, period, row['inhibited'], tuple(entries.get(name.casefold(), ())), timeout_ms))
         self.tasks = tuple(tasks)
         self.priorities = [t.priority for t in self.tasks]
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
@@ -83,6 +88,7 @@ class TaskScheduler:
         self.origin = now
         self.clock = now
         self.next_due = {i: now + period for i, period in self.periods.items()}
+        self.timeout_due = {i: now + task.timeout_ms for i, task in enumerate(self.tasks) if task.timeout_ms is not None}
         self.counts = {i: 0 for i in range(len(self.tasks))}
         self.last = {i: None for i in range(len(self.tasks))}
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
@@ -115,10 +121,10 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides', 'timeout_due'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
-    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None):
+    def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None, timeout_due=None):
         if batch.start != self.clock:
             raise ModelError('Task scheduler batch is stale')
         # Event eligibility is checked at dispatch. A completed body may now be
@@ -139,7 +145,13 @@ class TaskScheduler:
         positions={release:i for i,release in enumerate(batch.releases)}
         order=[positions.get(release,-1) for release in executed]
         if any(i<0 for i in order) or order!=sorted(set(order)):raise ModelError('Invalid completed base-task releases')
+        if timeout_due is None:timeout_due={}
+        if not isinstance(timeout_due,dict) or timeout_due.keys()!=self.timeout_due.keys() or any(
+                type(due) is not int or not batch.end<due<=batch.end+self.tasks[i].timeout_ms
+                for i,due in timeout_due.items()):
+            raise ModelError('Invalid Event timeout deadlines')
         self.clock = batch.end
+        self.timeout_due = dict(timeout_due)
         # Rate writes leave the prepared releases intact and start a new phase
         # at the commit boundary only when the effective period changed.
         self.next_due = dict(batch.next_due)
@@ -155,7 +167,7 @@ class TaskScheduler:
         for i,n in (coalesced or {}).items():self.coalesced[i]+=n
 
     def description(self):
-        return dict(policy='Periodic releases in simulated time; Continuous once per step, after due Periodic tasks',
+        return dict(policy='Periodic releases and Event deadlines in simulated time; Continuous once per step after due higher-priority work',
                     clock_ms=self.clock, run_epoch_ms=self.origin, preemptive=False, event_tasks=any(t.kind=='Event' for t in self.tasks), safety_tasks=False,
                     event_dispatch='Immediate higher-priority EVENT; deferred lower/equal at task returns; no CPU timing/preemption model',
                     watchdog_enforced=False, release_limit=MAX_RELEASES,
@@ -169,7 +181,8 @@ class TaskScheduler:
                                 source_priority=t.priority if t.kind!='Continuous' else None, rate_ms=self.periods.get(i), source_rate_ms=t.period,
                                 watchdog_override_us=self.watchdog_overrides.get(i),
                                 inhibited=self.inhibitions[i], source_inhibited=t.inhibited, executions=self.counts[i],
-                                last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i),
+                                last_release_ms=self.last[i], next_release_ms=None if self.inhibitions[i] else self.next_due.get(i,self.timeout_due.get(i)),
                                 **({'event_instruction_overlaps':self.overlaps[i],
-                                    'event_pending_requests_coalesced':self.coalesced[i]} if t.kind=='Event' else {}))
+                                    'event_pending_requests_coalesced':self.coalesced[i],
+                                    'event_timeout_ms':t.timeout_ms} if t.kind=='Event' else {}))
                            for i, t in enumerate(self.tasks)])

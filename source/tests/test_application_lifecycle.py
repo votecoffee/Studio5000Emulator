@@ -714,13 +714,18 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['EventFirst'], 1)
         self.assertEqual([values[k] for k in ('DeferredCount','RllDeferredSeen','StDeferredSeen')], [1,0,1])
         self.assertEqual(state['task_schedule']['tasks'][3]['event_pending_requests_coalesced'], 1)
-        self.assertFalse(state['controller']['first_scan_pending'])
+        self.assertTrue(state['controller']['first_scan_pending'])
+        self.assertEqual(values['TimeoutDemoRuns'], 0)
         self.post('write', {'tag': 'SelfTrigger', 'value': True})
         state = self.post('step', {'dt': 10})
         values = {row['name']: row['value'] for row in state['tags']}
         self.assertEqual(values['EventCount'], 4)
         self.assertEqual(state['task_schedule']['tasks'][2]['event_instruction_overlaps'], 2)
         self.assertEqual(state['task_schedule']['tasks'][2]['executions'], 4)
+        state = self.post('step', {'dt': 5})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual((values['TimeoutDemoRuns'], values['TimeoutDemoFirst'], values['TimeoutDemoStatus']), (1, 1, 2))
+        self.assertFalse(state['controller']['first_scan_pending'])
         self.assertFalse(self.post('report', {})['event_execution']['native_cpu_timing'])
 
     def test_system_lab_reads_typed_gsv_settings_without_changing_task_schedule(self):

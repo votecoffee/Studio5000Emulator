@@ -4,7 +4,8 @@ import re
 
 from .integer_math import CONTROLLERS
 from .model import ModelError
-from .task_scheduler import MAX_RELEASES
+from .task_scheduler import MAX_RELEASES, MIN_PERIOD_MS, MAX_PERIOD_MS
+from .task_timing import microseconds
 
 
 def specification(node):
@@ -14,14 +15,21 @@ def specification(node):
     info=related[0]
     if (set(info.attrib)-{'EventTrigger','EnableTimeout','Use','EventTag'} or len(info) or (info.text or '').strip()
             or info.get('Use') not in (None,'Target') or info.get('EventTag') not in (None,'')
-            or info.get('EventTrigger')!='EVENT Instruction Only' or info.get('EnableTimeout')!='false'):
-        return dict(error='Only EVENT Instruction Only with explicit timeout disabled is supported')
+            or info.get('EventTrigger')!='EVENT Instruction Only' or info.get('EnableTimeout') not in ('false','true')):
+        return dict(error='Event task requires EVENT Instruction Only and an explicit EnableTimeout flag')
     for name in ('Name','Type','Class','Priority','InhibitTask'):
         if [key for key in node.attrib if key.rsplit('}',1)[-1].casefold()==name.casefold()]!=[name]:
             return dict(error='Event task requires explicit unambiguous identity, priority and inhibition')
     if node.get('InhibitTask') not in ('true','false'):
         return dict(error='Event task InhibitTask must be true or false')
-    return dict(trigger='EVENT Instruction Only',timeout=False)
+    if info.get('EnableTimeout')=='false':
+        return dict(trigger='EVENT Instruction Only',timeout=False)
+    rate_keys=[key for key in node.attrib if key.rsplit('}',1)[-1].casefold()=='rate']
+    rate_us=microseconds(node.get('Rate'))
+    if (rate_keys!=['Rate'] or rate_us is None or rate_us%1000
+            or not MIN_PERIOD_MS<=rate_us//1000<=MAX_PERIOD_MS):
+        return dict(error='Event timeout requires explicit Task Rate in whole milliseconds in 1..60000')
+    return dict(trigger='EVENT Instruction Only',timeout=True,timeout_ms=rate_us//1000)
 
 
 def profile(project):
@@ -78,6 +86,7 @@ class Dispatch:
         self.pending=set();self.queue=[];self.interrupt_depth={}
         self.status=dict(engine._task_event_status)
         self.overlap_counts=dict(engine._task_scheduler.overlaps)
+        self.timeout_due=dict(engine._task_scheduler.timeout_due)
 
     def masked(self):
         return self.interrupt_depth.get(self.engine._executing_task,0)>0
@@ -115,8 +124,7 @@ class Dispatch:
             return
         priority=self.batch.priorities[index]
         caller_priority=self.caller_priority()
-        self.accepted+=1
-        if len(self.batch.releases)+self.accepted>MAX_RELEASES:raise ModelError('Event task release budget exceeded')
+        self.claim_release()
         if task.name.casefold() in self.status:self.status[task.name.casefold()]|=1
         if priority<caller_priority and not self.masked():
             self._execute(index,self.engine.time_ms)
@@ -126,6 +134,20 @@ class Dispatch:
             self.pending.add(index)
             heapq.heappush(self.queue,(priority,self.accepted,index,self.engine.time_ms))
 
+    def claim_release(self):
+        self.accepted+=1
+        if len(self.batch.releases)+self.accepted>MAX_RELEASES:
+            raise ModelError('Event task release budget exceeded')
+
+    def expire(self,index,due):
+        self.claim_release()
+        task=self.engine._task_scheduler.tasks[index]
+        if self.engine._task_scheduler.inhibitions[index]:
+            self.timeout_due[index]=due+task.timeout_ms
+            return
+        self.status[task.name.casefold()]|=2
+        self._execute(index,due)
+
     def _execute(self,index,due):
         task=self.engine._task_scheduler.tasks[index]
         if self.engine._task_scheduler.inhibitions[index]:return
@@ -133,18 +155,32 @@ class Dispatch:
         try:self.run(due,task.name,task.entries)
         finally:self.active.remove(index)
         self.releases.append((due,index))
+        if task.timeout_ms is not None:self.timeout_due[index]=due+task.timeout_ms
 
-    def drain(self,ceiling=17):
-        """Run ready Events before lower-priority work, using FIFO for Event ties."""
-        while self.queue and self.queue[0][0]<ceiling and not self.masked():
-            _,_,index,due=heapq.heappop(self.queue)
-            self.pending.remove(index)
-            self._execute(index,due)
+    def drain_timeouts_through(self,end):
+        while self.timeout_due:
+            due=min(self.timeout_due.values())
+            if due>end:return
+            self.drain(timeout_at=due)
+
+    def drain(self,ceiling=17,*,timeout_at=None):
+        """Arbitrate ready Events and same-time deadlines before lower-priority work."""
+        while not self.masked():
+            priority,index=min(((self.batch.priorities[i],i) for i,due in self.timeout_due.items() if due==timeout_at),
+                               default=(17,None)) if timeout_at is not None else (17,None)
+            if self.queue and self.queue[0][0]<ceiling and self.queue[0][0]<=priority:
+                _,_,index,due=heapq.heappop(self.queue)
+                self.pending.remove(index)
+                self._execute(index,due)
+            elif priority<ceiling:
+                self.expire(index,timeout_at)
+            else:return
 
 
 def description():
     return dict(profile='v35-5580-instruction-EVENT', languages=['RLL','ST'],
-                source='Standard EventInfo EVENT Instruction Only; explicit EnableTimeout false',
+                source='Standard EventInfo EVENT Instruction Only; optional source-enabled whole-millisecond timeout',
+                timeout='Simulated deadline starts at Run entry and rearms after each completed invocation; latched Status bit 1',
                 dispatch='Unmasked higher-priority target runs immediately; UID queues requests until outer UIE; lower/equal targets wait for task return at the same simulated time',
                 ordering='Advance-start priorities, then Event request order; coincident base releases precede queued Events at equal priority',
                 retrigger='Active requests are discarded as modeled overlaps; pending duplicates coalesce and have a separate diagnostic',
@@ -152,7 +188,7 @@ def description():
                 non_event='Existing Continuous/Periodic target or live-inhibited Event target does not execute; queued targets recheck before dispatch',
                 rollback='Event writes, first scans, release counts and overlap diagnostics commit only with the complete advance',
                 native_cpu_timing=False, native_status_parity=False,
-                remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed/timeout event sources',
+                remaining=['Native equal-priority time slicing and pending-duplicate semantics','External/I/O/motion/consumed triggers, runtime timeout configuration and sub-millisecond intervals',
                            'AOI/routine harness and ST FOR-loop EVENT calls','Native interrupt latency, watchdog/status/fault parity'])
 
 

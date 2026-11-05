@@ -65,7 +65,7 @@ existing measurement profile; initially inhibited qualified Events have zero
 measurements until enabled and executed. A runtime-inhibited eligible Task
 retains readable committed values. The existing single-Task native registry
 requirement is retained for Continuous/Periodic measurement. Safety, other
-Event sources/timeouts and routine harnesses remain unqualified. No source
+Event sources and routine harnesses remain unqualified. No source
 defaults fabricate availability.
 
 Multi-task and Event measurements are logical GSV data. They add no native Task identity,

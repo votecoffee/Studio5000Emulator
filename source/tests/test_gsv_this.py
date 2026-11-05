@@ -111,7 +111,7 @@ class GsvThisTests(unittest.TestCase):
         self.assertTrue(self.engine(['GSV(Task,THIS,Watchdog,Out);'],harness=True).blockers)
         e=aoi.AOIQueueTests.engine(self,lambda root:aoi.logic(root,['GSV(Task,THIS,Watchdog,Buffer[Index]);']));self.assertTrue(any('AOI' in b for b in e.blockers))
         import test_event_tasks as events
-        e=events.EventTaskTests.engine(self,[['EVENT(Task1);'],['GSV(Task,THIS,LastScanTime,SpeedCommand);']],mutate=lambda root:root.find('./Controller/Tasks/Task[2]/EventInfo').set('EnableTimeout','true'));self.assertTrue(e.blockers)
+        e=events.EventTaskTests.engine(self,[['EVENT(Task1);'],['GSV(Task,THIS,LastScanTime,SpeedCommand);']],mutate=lambda root:events.EventTaskTests.timeout(root,'0.5'));self.assertTrue(e.blockers)
         for cls,instance,attribute in [('Task','','Watchdog'),('Task','0','Watchdog'),('Controller','THIS','TimeSlice'),('Program','','LastScanTime')]:self.assertTrue(self.engine([f'GSV({cls},{instance},{attribute},Out);']).blockers)
 
     def test_configuration_st_for_effects_cover_static_and_changing_destinations(self):

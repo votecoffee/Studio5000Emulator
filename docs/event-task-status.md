@@ -26,6 +26,7 @@ independent and commit with the same complete advance.
 | Bit | Meaning | Set by |
 | --- | --- | --- |
 | 0 | Accepted EVENT instruction request | A valid uninhibited request accepted for immediate or deferred execution |
+| 1 | Timeout | A [configured Event timeout](event-tasks.md#configured-timeouts) dispatched the task |
 | 2 | Active-task overlap | A request discarded because its target is already executing |
 
 These bits are latched until explicitly replaced. Reads during an advance see
@@ -33,9 +34,9 @@ the current status, including changes made by a nested Event or SSV before the
 next caller instruction. Pending duplicates retain the existing coalescing
 policy; they do not set the active-overlap bit. An inhibited Event does not
 execute or set status through EVENT. SSV replaces the complete modeled word
-without modifying its source; supported values are exactly 0, 1, 4 and 5.
-Other bits, including the timeout bit, remain unqualified and cause a reached
-setter to fault rather than accepting an unmodeled state.
+without modifying its source. A timeout-enabled Event supports values 0
+through 7. With timeout disabled, values 0, 1, 4 and 5 remain supported.
+A reached setter faults if it includes a bit outside the modeled mask.
 
 The state starts at zero when a model is loaded or reset. Run entry retains it;
 scheduler overlap/coalescing diagnostic counters have their separate Run-entry
@@ -79,7 +80,7 @@ advance. See [EventLab.L5X](../source/samples/EventLab.L5X),
 This feature does not expand native Task protocol attributes or import physical
 controller status/history. Reports expose the logical words under
 event_task_status with native_protocol_expanded=false and
-native_runtime_parity=false. Timeout/external/I/O/motion events, other Task bits,
+native_runtime_parity=false. External I/O or motion events, other Task bits,
 Continuous/Periodic/Safety status setters, broader contexts, native pending
 semantics, interrupt timing and fault/lifecycle equivalence remain separate.
 

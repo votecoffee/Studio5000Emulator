@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.110205` [configured Event timeouts](event-tasks.md#configured-timeouts)
+schedule instruction-only fallback releases on the simulated clock, rearm after
+completion and latch Status bit 1. Event lab includes a 35 ms example.
+
 Available in `26.1105.104728` [Task Watchdog settings](gsv-configuration.md#changing-a-task-watchdog)
 support exact DINT microseconds, Continuous/Periodic zero-write defaults and
 live GSV readback. Task watchdog expiration and fault handlers remain open.
@@ -322,7 +326,7 @@ GSV/SSV read and replace accepted-request/active-overlap bits in ladder/ST,
 including THIS inside qualified Event tasks. Live words are latched until
 cleared; pending duplicates retain coalescing. Status, values and scheduling
 commit only with a successful advance. Event lab adds guarded read-clear,
-THIS/named/ST and rollback examples. Other bits, timeout/external events,
+THIS/named/ST and rollback examples. External events and other bits,
 AOI/harness/Safety and native protocol/status/lifecycle parity remain separate.
 
 Available in `26.1103.224555`: [multi-task scan-time GSV](scan-time-gsv.md).
@@ -881,7 +885,7 @@ Remaining string edge cases, conversions and native status behavior stay open.
 Available event increment: [instruction-only EVENT execution](event-tasks.md)
 with immediate higher priorities, deferred lower/equal priorities, RLL/ST context,
 separate active/pending diagnostics and rollback. Native time slicing and
-pending-duplicate semantics, external triggers/timeouts and CPU/status remain open.
+pending-duplicate semantics, external triggers, runtime timeout setters and CPU/status parity remain open.
 
 Available system-value increment: [explicit Task/Controller GSV](gsv-configuration.md),
 including microsecond rates/watchdogs, periodic priorities, flags, names and

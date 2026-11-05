@@ -20,7 +20,8 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Class | Attribute | Destination type | Scope |
 | --- | --- | --- | --- |
 | Task | Name | STRING or explicit user string | Existing named Standard Continuous/Periodic or qualified Event task |
-| Task | Rate | DINT | Effective Periodic rate in project execution, explicit source rate in a harness, in microseconds |
+| Task | Rate | DINT | Effective Periodic rate, or [configured Event timeout](event-tasks.md#configured-timeouts), in microseconds |
+| Task | EnableTimeOut | DINT | Explicit Event timeout enable, 0 or 1 |
 | Task | Watchdog | DINT | Effective setting in project execution, explicit positive source setting in a harness, in microseconds |
 | Task | Priority | INT | Effective Periodic/Event priority in project execution, explicit source priority in a harness |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
@@ -44,8 +45,9 @@ Metadata must come from a complete loaded source snapshot. Task times use the
 existing exact source milliseconds-to-microseconds conversion. For example,
 10 ms reads as 10000 and 500 ms as 500000. Missing, malformed, zero-watchdog or
 unqualified settings fail explicitly; compatibility defaults do not become GSV
-source values. Continuous rate/priority remain unqualified. Event settings require the qualified project context described in
-[Event task inhibition](event-task-inhibition.md); Event Rate is not inferred.
+source values. Continuous rate/priority remain unqualified. Event settings
+require the [qualified Event project context](event-tasks.md). Event Rate is
+available when source enables the timeout and supplies an explicit Rate.
 
 ## Changing a periodic task rate
 
@@ -80,7 +82,7 @@ The installed v35 Task object help 14646 and Rockwell's
 [Task object reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 specify DINT microseconds. The whole-millisecond range and commit boundary
 are software scheduler policies. CIP Task rate reads retain the source value.
-Native phase and fault behavior, sub-millisecond periods, Event timeouts,
+Native phase and fault behavior, sub-millisecond periods, Event timeout setters,
 Safety, AOI SSV and routine-harness SSV remain outside this profile.
 
 ## Changing a task priority

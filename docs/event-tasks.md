@@ -14,9 +14,9 @@ IF Request THEN EVENT(WorkEvent); END_IF;
 ## Source and dispatch profile
 
 The task must declare one canonical EventInfo with EventTrigger="EVENT
-Instruction Only" and EnableTimeout="false". Priority and inhibition must be
-explicit and unambiguous. Other trigger kinds, timeouts, Safety and incomplete
-source are blocked. The target name is a literal configured task name.
+Instruction Only" and an explicit EnableTimeout flag. Priority and inhibition
+must be explicit and unambiguous. Other trigger kinds, Safety and incomplete
+source are blocked. The EVENT target is a literal configured task name.
 
 When no [UID/UIE mask](interrupt-control.md) is active, a higher-priority target
 runs synchronously at the EVENT instruction, at the
@@ -64,6 +64,41 @@ Task logic can alter loop data, so ST FOR calls await full write-effect analysis
 [Ladder FOR](ladder-loops.md) supports live loop data and separate per-task call
 stacks, including nested Event calls; native timing and sampling remain unverified.
 
+## Configured timeouts
+
+An instruction-only Event task can declare `EnableTimeout="true"` on
+its EventInfo and an explicit `Rate` on the Task element. The emulator
+accepts 1 through 60000 whole milliseconds for Rate. At Run entry the
+first deadline is one configured interval away. Each completed invocation
+starts a fresh interval, whether triggered by EVENT or by timeout.
+
+Deadlines use simulated time and can release a task between Periodic
+releases. A long advance can execute several timeout invocations at their
+individual timestamps. Coincident work uses the advance-start priorities.
+A Periodic release wins a tie with an equally ranked timeout. An already
+queued EVENT wins a tie with a timeout at equal priority. If it runs the
+same task first, its completion replaces the old deadline. A timeout that
+runs first can be followed by a separate explicit EVENT at the same time.
+Equal-priority timeout candidates use source order. These tie rules are
+deterministic software policies.
+
+An inhibited task skips its timeout and advances to the next deadline.
+Enabling it resumes from the next future deadline without replay. Skipped
+timeout slots count against the same release budget as other scheduled
+work. A fault rolls back deadlines, status, data and execution progress.
+Routine replacement retains committed deadlines. Run entry restarts the
+deadline and reset or reload restores the initial state.
+
+GSV reads `EnableTimeOut` as a DINT flag and the configured timeout
+`Rate` as DINT microseconds. Timeout execution latches
+[Status bit 1](event-task-status.md) independently of explicit EVENT and
+active overlap. SSV Rate and EnableTimeOut for Event tasks, external
+triggers, fractional-millisecond intervals and native timing remain open.
+
+See the installed v35 Task object help 14646 and Rockwell's
+[Event task configuration](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/tasks--programs--and-routines/tasks/edit-task-properties/create-an-event-task.html)
+and [Task import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
+
 ## State, limits and timing
 
 Event Programs participate in prescan and have their own first actual scan.
@@ -82,14 +117,15 @@ entry rearms first scans and resets scheduler diagnostic counts.
 
 Coverage distinguishes Event tasks, their priority, execution count and
 event_instruction_overlaps (active requests discarded) and
-event_pending_requests_coalesced (pending duplicates merged). They have no
-periodic next-release time. [Logical Status GSV/SSV](event-task-status.md) now
-provides latched accepted-request/active-overlap bits and supported clears.
+event_pending_requests_coalesced (pending duplicates merged). For a
+timeout-enabled Event, the next release time shows its current deadline.
+[Logical Status GSV/SSV](event-task-status.md) exposes the latched causes and
+supports clearing them.
 [OverlapCount GSV/SSV](event-overlap-count.md) additionally provides live reads
 and zero resets of the active-request counter, separately from Status clearing.
 Neither feature expands native Task Status/OverlapCount protocol attributes.
-Native interrupt latency, CPU preemption/time slicing, deadlines, watchdogs,
-external I/O/motion/consumed triggers and timeout queues remain unfinished.
+Native interrupt latency, CPU preemption/time slicing, watchdog expiration,
+and external I/O, motion or consumed-tag triggers remain unfinished.
 
 [Runtime Event inhibition](event-task-inhibition.md) now checks live flags for
 new requests and queued dispatch. Current bodies complete, enabling does not
@@ -117,7 +153,16 @@ finishes. After the first 10 ms step, DeferredCount is 1, RllDeferredSeen is 0 a
 StDeferredSeen is 1: the producer read the old value while the later Continuous
 Program read the completed Event's value. The pending-duplicate count increases
 once per producer release. DeferredFirst increments once and DeferredTimer uses
-release timestamps. Turn the producer flags off to stop new Event executions.
+release timestamps. Turn the producer flags off to stop their explicit requests.
+
+With the producer flags off, TimeoutDemoEvent runs first at 35 ms and then
+at 70 ms. TimeoutDemoRuns and TimeoutDemoFirst count releases and first
+scans. TimeoutDemoStatus reads 2, TimeoutDemoRateUs reads 35000 and
+TimeoutDemoEnabled reads 1. To postpone the first deadline, reset, enable
+TriggerTimeoutDemo for the first 10 ms step, and disable the flag. The
+explicit request sets Status to 1 at 10 ms. The next timeout runs at 45 ms
+and the two latched bits read 3.
+
 See [EventLab.L5X](../source/samples/EventLab.L5X) and
 [implementation](../source/logixlab/event_tasks.py).
 

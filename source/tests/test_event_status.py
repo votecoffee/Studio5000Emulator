@@ -117,8 +117,34 @@ class EventStatusTests(unittest.TestCase):
             self.assertTrue(self.engine([[text],['NOP();']]).blockers,text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="CallerStatus"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
-        def timeout(root):root.find('./Controller/Tasks/Task[2]/EventInfo').set('EnableTimeout','true')
+        def timeout(root):events.EventTaskTests.timeout(root,'0.5')
         self.assertTrue(self.engine(mutate=timeout).blockers)
+
+    def test_timeout_status_replacement_and_late_fault_preserve_prior_deadline(self):
+        e=self.checked([['DIV(1,Divisor,SpeedCommand);'],
+                        ['GSV(Task,THIS,Status,EntryStatus);','SSV(Task,THIS,Status,Command);',
+                         'GSV(Task,THIS,Status,ExitStatus);','ADD(Count1,1,Count1);']],
+                       mutate=lambda root:events.EventTaskTests.timeout(root,'5'))
+        e.memory.write('Command',3);e.memory.write('Divisor',0);self.fault(e,'zero')
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],5)
+        self.assertEqual(e._task_event_status['task1'],0)
+        e.memory.write('Divisor',1);e.step()
+        self.assertEqual((e.memory.read('EntryStatus'),e.memory.read('ExitStatus'),e.memory.read('Count1')),(3,3,2))
+        e.memory.write('Command',0);e.step(5)
+        self.assertEqual((e.memory.read('EntryStatus'),e.memory.read('ExitStatus')),(3,0))
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],20)
+        e.step(2)
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        source=decode(container(E.tostring(xml_source(name='Main',text='NOP();'),encoding='utf-8')))
+        candidate,_=prepare(e,source,('NOP();',),'Program0',0)
+        self.assertEqual(candidate.scheduler_description()['tasks'][1]['next_release_ms'],20)
+        candidate.step(3)
+        self.assertEqual(candidate.scheduler_description()['tasks'][1]['next_release_ms'],25)
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],20)
+        e.enter_run()
+        self.assertEqual(e.scheduler_description()['tasks'][1]['next_release_ms'],22)
 
     def test_st_loop_write_effects_guard_aliases_and_allow_disjoint_static_output(self):
         e=self.checked([['FOR Command:=0 TO Values[0] DO GSV(Task,Task1,Status,Values[1]); END_FOR;'],['NOP();']],st=True)

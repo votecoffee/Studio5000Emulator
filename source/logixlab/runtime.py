@@ -114,7 +114,7 @@ class Engine:
                 and self.mode=='project' and scheduler is not None and scheduler.source==scheduler.configuration
                 and row and row['class']=='Standard'):return False
         if row['type']=='Event':
-            return (row.get('event')=={'trigger':'EVENT Instruction Only','timeout':False}
+            return (row.get('event',{}).get('trigger')=='EVENT Instruction Only'
                     and project.task_configuration.scheduled_settings_available(row['name'],source_sha256=project.sha256))
         return (row['type'] in ('Continuous','Periodic')
                 and project.task_configuration.measurement_supported(row['name'],source_sha256=project.sha256))
@@ -645,18 +645,21 @@ class Engine:
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
             for position,(due,task,entries) in enumerate(runs):
                 index=batch.releases[position][1] if batch else None
+                if batch:
+                    self._event_dispatch.drain_timeouts_through(due-1)
+                    self._event_dispatch.drain(batch.priorities[index],timeout_at=due)
                 if not batch or not self._task_scheduler.inhibitions[index]:
                     run_task(due,task,entries)
                     if batch:completed.append((due,index))
                 if batch:
                     following=batch.releases[position+1] if position+1<len(batch.releases) else None
-                    ceiling=(batch.priorities[following[1]]
-                             if following and following[0]==due else 17)
-                    self._event_dispatch.drain(ceiling)
+                    if following is None or following[0]!=due:
+                        self._event_dispatch.drain(timeout_at=due)
+            if batch:self._event_dispatch.drain_timeouts_through(end_ms)
             self.time_ms=end_ms;self._executing_task=None
             measured=(self._task_measurements.record(task_start,task_runtime.perf_counter_ns(),start_time_us=task_wall_time)
                       if self._task_measurements is not None else None)
-            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts)
+            if batch:self._task_scheduler.commit(batch,executed=completed,events=self._event_dispatch.releases,overlaps=self._event_dispatch.overlaps,coalesced=self._event_dispatch.coalesced,event_overlap_counts=self._event_dispatch.overlap_counts,timeout_due=self._event_dispatch.timeout_due)
             self._program_scanned=scanned
             self.scan_count += 1
             self.memory.first_scan = False
@@ -1011,7 +1014,7 @@ class Engine:
                 'instruction_limit_per_scan':self.instruction_limit,
                 "project_routine_issues": {r.key: r.problems for r in self.project.routines.values() if r.problems},
                 "limits": ["Custom deterministic software model; native/controller equivalence is unverified",
-                           "Standard task releases are deterministic; unmasked qualified EVENT calls dispatch at higher priority, outer UIE releases masked higher-priority work, and deferred work waits for task returns, without general CPU timing, other event sources, Safety or watchdog enforcement",
+                           "Standard task releases are deterministic; unmasked qualified EVENT calls dispatch at higher priority, outer UIE releases masked higher-priority work, and deferred work waits for task returns, with source-configured Event timeouts and without general CPU timing, external event sources, Safety or watchdog enforcement",
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP retain homogeneous wide operands; tag-only MEQ and standalone bitwise operations use separate mixed-integer profiles; arithmetic promotion and native math status remain incomplete",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",

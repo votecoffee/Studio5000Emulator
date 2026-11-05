@@ -1,4 +1,4 @@
-"""Logical EVENT-trigger/active-overlap status, separate from native Task status."""
+"""Logical EVENT, timeout and active-overlap status, separate from native Task status."""
 import struct
 from .model import ModelError
 from . import event_tasks
@@ -29,7 +29,7 @@ def target(engine,op,scope,*,executing=False):
     scheduler=engine._task_scheduler
     task=next((t for t in scheduler.tasks if t.name.casefold()==name.casefold()),None)
     if task is None or task.kind!='Event':raise ModelError('Task Status requires a qualified instruction-only Event target')
-    return task.name.casefold()
+    return task
 
 
 def operand(engine,op,scope):
@@ -61,7 +61,7 @@ def overlap_counts(engine):
 
 def execute(engine,op,power,scope):
     if not power:return power
-    name=target(engine,op,scope,executing=True);key,parts=operand(engine,op,scope)
+    task=target(engine,op,scope,executing=True);name=task.name.casefold();key,parts=operand(engine,op,scope)
     if op.args[2].casefold()=='overlapcount':
         if op.name=='GSV':
             count=overlap_counts(engine)[name]
@@ -83,7 +83,9 @@ def execute(engine,op,power,scope):
         if engine._event_dispatch is None:raise ModelError('SSV Event Task Status requires an active advance')
         value=engine.memory.read(op.args[3],scope)
         if type(value) is not int:raise ModelError('SSV Event Task Status requires a known DINT')
-        if value & ~MASK:raise ModelError('SSV Event Task Status supports only EVENT and active-overlap bits (0 and 2)')
+        mask=MASK if task.timeout_ms is None else MASK|2
+        if value & ~mask:
+            raise ModelError('SSV Event Task Status supports only EVENT, qualified timeout and active-overlap bits')
         state[name]=value
     return power
 
@@ -103,12 +105,12 @@ def description():
                 attributes=['Status','OverlapCount'],
                 overlap_count='Live active-request counter; exact DINT zero reset; independent of Status bits; DWORD availability without wrapping',
                 overlap_lifecycle='Existing scheduler diagnostic: zero at Run entry/reset/load; detached replacement preserves committed counters',
-                bits={'0':'Accepted EVENT instruction request','2':'Discarded request while target is active'},
+                bits={'0':'Accepted EVENT instruction request','1':'Source-configured timeout dispatch','2':'Discarded request while target is active'},
                 visibility='Live within an advance; latched until supported SSV replacement; reset/reload initializes zero',
-                setters='Exact DINT source containing 0, 1, 4 or 5; source retained',
+                setters='Exact DINT replacement of modeled bits; bit 1 requires a source-enabled timeout; source retained',
                 contexts='Ordinary scheduled Programs, named Event target or THIS inside its Event task; no AOI/harness',
                 duplicates='Pending requests still coalesce; they do not set the active-overlap bit',
                 rollback='Status and task/data progress commit only with a successful complete advance',
                 native_protocol_expanded=False,native_runtime_parity=False,
-                remaining=['Timeout/external event sources and other Task status bits','Continuous/Periodic/Safety status setters',
+                remaining=['External event sources and other Task status bits','Continuous/Periodic/Safety status setters',
                            'AOI/harness contexts and native pending/interrupt/status/fault/lifecycle parity'])
