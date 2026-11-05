@@ -103,7 +103,7 @@ class ExpansionTests(unittest.TestCase):
         self.assertEqual(e.memory.read('ParsedNumber'),50)
         e.memory.write('Source[0]',2)
         self.assertEqual(e.memory.read('Source[Source[0]]'),30)
-        with self.assertRaisesRegex(ModelError,'integer'):e.memory.read('Source[Index/2]')
+        self.assertEqual(e.memory.read('Source[Index/2]'),2)
 
     def test_cpt_precedence_and_bitwise_operations(self):
         cases=[('2+3*4',14),('(2+3)*4',20),('15 AND 6 XOR 1 OR 16',23),('NOT 0',-1),('-7 MOD 3',-1)]

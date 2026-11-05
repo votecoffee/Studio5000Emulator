@@ -72,6 +72,36 @@ minor-fault records, continuation and math/status behavior are separate work.
 See [LOWER/UPPER and STOR/RTOS](string-conversions.md) for case and REAL
 conversions. FBD execution and broader conversion/encoding behavior remain unfinished.
 
+## Ladder string MOV
+
+App `26.1105.175855` supports `MOV(Source,Destination)` with scalar STRING or
+user-defined strings in the v35 ControlLogix 5580 ladder profile. Source may be
+a tag or one single-quoted literal. A user string has a DINT LEN and a fixed
+one-dimensional SINT DATA array. Aliases, selected array elements, UDT members
+and supported AOI bindings use their declared string capacities.
+
+The destination receives the active source prefix that fits its DATA capacity.
+MOV updates LEN, preserves unused destination DATA, and consumes no source
+bytes past the copied prefix. A zero-length source sets LEN to zero. MOV
+reads the source before it writes, including when the operands alias one
+string. Unknown copied bytes or invalid LEN and live indices fault and roll
+back the full advance. False rungs and ordinary prescan skip live data and
+indices. The emulator models clipping and leaves native S:V and minor-fault
+behavior unqualified.
+
+Quoted literals accept punctuation, including commas and parentheses. Use
+`$'` for a quote, `$$` for a dollar sign, or `$hh` for a hexadecimal byte.
+The represented control escapes are `$T`, `$L`/`$I`, `$R` and `$P`.
+This is the single-byte profile. String CLR and native status behavior remain
+outside it. The source basis is installed v35 MOV (14688) and Character string
+literals (267909). [Rockwell move reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/move-logical-instructions/move--move-.html).
+
+In **String lab**, set `MoveStringIndex` to 0 and write a value to
+`IndexedSource[0]`. Enable `MoveStrings` and step. `MoveShort` holds the first
+32 bytes of `MoveSource`. `MoveLiteral` contains `Line [1], (ready); 'OK' $`,
+and `MoveSelected` holds the indexed source. Set `MoveStringIndex` to 99
+while enabled to see the later bounds fault roll back the earlier two moves.
+
 ## String Lab
 
 Choose **String lab** in the webpage and **Step scan**. The authored

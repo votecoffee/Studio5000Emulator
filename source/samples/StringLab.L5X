@@ -1009,6 +1009,71 @@
       <Tag Name="IndexedPosition" TagType="Base" DataType="DINT" Dimensions="3">
         <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" /></Data>
       </Tag>
+      <Tag Name="MoveStrings" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MoveStringIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="MoveSource" DataType="STRING" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+            <DataValueMember Name="LEN" DataType="DINT" Value="36" />
+            <ArrayMember Name="DATA" DataType="SINT" Dimensions="82">
+              <Element Index="[0]" Value="65" />
+              <Element Index="[1]" Value="66" />
+              <Element Index="[2]" Value="67" />
+              <Element Index="[3]" Value="68" />
+              <Element Index="[4]" Value="69" />
+              <Element Index="[5]" Value="70" />
+              <Element Index="[6]" Value="71" />
+              <Element Index="[7]" Value="72" />
+              <Element Index="[8]" Value="73" />
+              <Element Index="[9]" Value="74" />
+              <Element Index="[10]" Value="75" />
+              <Element Index="[11]" Value="76" />
+              <Element Index="[12]" Value="77" />
+              <Element Index="[13]" Value="78" />
+              <Element Index="[14]" Value="79" />
+              <Element Index="[15]" Value="80" />
+              <Element Index="[16]" Value="81" />
+              <Element Index="[17]" Value="82" />
+              <Element Index="[18]" Value="83" />
+              <Element Index="[19]" Value="84" />
+              <Element Index="[20]" Value="85" />
+              <Element Index="[21]" Value="86" />
+              <Element Index="[22]" Value="87" />
+              <Element Index="[23]" Value="88" />
+              <Element Index="[24]" Value="89" />
+              <Element Index="[25]" Value="90" />
+              <Element Index="[26]" Value="48" />
+              <Element Index="[27]" Value="49" />
+              <Element Index="[28]" Value="50" />
+              <Element Index="[29]" Value="51" />
+              <Element Index="[30]" Value="52" />
+              <Element Index="[31]" Value="53" />
+              <Element Index="[32]" Value="54" />
+              <Element Index="[33]" Value="55" />
+              <Element Index="[34]" Value="56" />
+              <Element Index="[35]" Value="57" />
+            </ArrayMember>
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MoveShort" DataType="LabText32" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MoveLiteral" DataType="STRING" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="STRING">
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MoveSelected" DataType="LabText32" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabText32">
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1064,6 +1129,9 @@
               <Rung Number="15" Type="N">
                 <Text>XIC(IndexedStrings)EQU(IndexedSlice[StringIndex],SearchText)OTE(IndexedMatch);</Text>
               </Rung>
+              <Rung Number="16" Type="N"><Text>XIC(MoveStrings)MOV(MoveSource,MoveShort);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(MoveStrings)MOV('Line [1], (ready); $'OK$' $$',MoveLiteral);</Text></Rung>
+              <Rung Number="18" Type="N"><Text>XIC(MoveStrings)MOV(IndexedSource[MoveStringIndex],MoveSelected);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">

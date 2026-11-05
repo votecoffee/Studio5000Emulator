@@ -38,10 +38,10 @@ Choose **Data lab** and enable `MoveNumeric`. Inspect `MoveByte`, `MoveWord`,
 and the homogeneous wide arithmetic profile. The report exposes `numeric_storage`.
 
 [Time and date operands](time-date-storage.md) use exact same-family conversions
-and a raw LINT/LDT timestamp bridge. Other controllers retain their previous behavior. Mixed LREAL
-arithmetic and expressions, lossy time/date conversions, string and aggregate MOV/CLR
-forms, broader literal support and native status/fault/lifecycle
-parity remain unfinished. ST assignments and FBD are unchanged.
+and a raw LINT/LDT timestamp bridge. [Ladder string MOV](string-operations.md#ladder-string-mov)
+has a separate tag/literal and capacity-clipping profile. Lossy time/date
+conversions, non-string aggregate MOV/CLR, string CLR and native status,
+fault and lifecycle parity remain unfinished.
 
 Reference basis: installed Studio 5000 v35 **Data Conversions** (14451),
 **Clear (CLR)** (14685), and **Move (MOV)** (14688). Rockwell's published

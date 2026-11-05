@@ -1,5 +1,5 @@
 """Bounded FIND/INSERT/DELETE on represented single-byte LEN/DATA strings."""
-from .model import ModelError, coerce, literal
+from .model import ModelError, ascii_bytes, ascii_literal_end, coerce, literal
 from .integer_math import CONTROLLERS
 
 INSTRUCTIONS = frozenset(('FIND', 'INSERT', 'DELETE'))
@@ -17,6 +17,14 @@ def string_operand(memory, ref, scope, *, destination=False):
     if not isinstance(obj['DATA'], list) or len(obj['DATA']) != capacity:
         raise ModelError('String DATA shape differs from its declared capacity')
     return capacity
+
+
+def move_literal(ref):
+    if not ref.startswith("'"):
+        return None
+    if ascii_literal_end(ref, 0) != len(ref):
+        raise ModelError('String MOV requires a single literal or string tag')
+    return bytes(value & 255 for value in ascii_bytes(ref)).decode('latin-1')
 
 
 def integer_operand(memory, ref, scope, *, destination=False):
@@ -93,6 +101,11 @@ def description():
                 strings='STRING and explicit DINT LEN / one-dimensional SINT DATA user strings',
                 positions='One-based SINT/INT/DINT tag or bounded DINT immediate; no expression operands',
                 search='Case-sensitive; first match at/after Start, zero when absent',
+                mov=dict(language='RLL', firmware='35', controllers=sorted(CONTROLLERS),
+                    sources='Scalar STRING or user string tag, or one single-quoted byte literal',
+                    selection='Validate shape and literal syntax structurally; false/prescan skip live indices, LEN and DATA',
+                    result='Copy the active prefix up to destination capacity, update LEN, retain unused DATA',
+                    native_math_status=False, native_runtime_parity=False),
                 operand_selection=dict(language='RLL',firmware='35',controllers=sorted(CONTROLLERS),
                     instructions=['CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EQU','NEQ','LES','LEQ','GRT','GEQ','CMP'],
                     preflight='Declared string/scalar shapes, index grammar, permissions and existing literal bounds without saved values or dynamic indices',

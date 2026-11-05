@@ -1,6 +1,6 @@
 """Scalar MOV/CLR and explicit numeric conversions for the v35 5580 model."""
 import re
-from . import time_values
+from . import string_operations, time_values
 from .st_literals import scan as typed_integer
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
@@ -14,8 +14,11 @@ def available(project):
     return project.version == '35' and project.processor.upper() in CONTROLLERS
 
 
-def destination(memory, ref, scope, *, allow_time=False):
+def destination(memory, ref, scope, *, allow_time=False, allow_string=False):
     key, parts, dtype = memory.check_writable(ref, scope)
+    if allow_string and memory.project.string_capacity(dtype) is not None:
+        string_operations.string_operand(memory, ref, scope, destination=True)
+        return key, parts, dtype
     if (dtype not in TYPES and not (allow_time and dtype in time_values.TYPES)
             or isinstance(memory.at(key, parts), (list, dict))):
         raise ModelError('MOV/CLR destination requires one supported scalar element')
@@ -133,10 +136,14 @@ def specification(memory, op, scope):
     previous = memory.structural
     memory.structural = True
     try:
-        _, _, dtype = destination(memory, op.args[-1], scope, allow_time=True)
+        _, _, dtype = destination(memory, op.args[-1], scope, allow_time=True, allow_string=op.name == 'MOV')
         if op.name == 'CLR':
             return None
         ref = op.args[0]
+        if memory.project.string_capacity(dtype) is not None:
+            if string_operations.move_literal(ref) is None:
+                string_operations.string_operand(memory, ref, scope)
+            return None
         if dtype == 'LINT':
             immediate = typed_literal(ref)
             if immediate is not None:
@@ -171,7 +178,14 @@ def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
     source = specification(memory, op, scope)
-    key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True)
+    key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True, allow_string=op.name == 'MOV')
+    capacity = memory.project.string_capacity(dtype)
+    if capacity is not None:
+        ref = op.args[0]
+        text = string_operations.move_literal(ref)
+        value = memory.string(ref, scope, limit=capacity) if text is None else text[:capacity]
+        memory.write_string(op.args[-1], value, scope)
+        return True
     if dtype in time_values.TYPES or source in time_values.TYPES:
         value = 0
         if source is not None:
@@ -211,5 +225,5 @@ def description(project):
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['Lossy or cross-family time/date conversion, string and aggregate MOV/CLR; typed radix/other consumers/controllers',
+                remaining=['Lossy or cross-family time/date conversion, string CLR and non-string aggregate MOV/CLR; typed radix/other consumers/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])

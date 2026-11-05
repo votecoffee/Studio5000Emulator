@@ -859,6 +859,44 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['AllOK'])
         self.assertEqual(self.post('report', {})['string_operations']['instructions'], ['DELETE','FIND','INSERT'])
 
+    def test_string_lab_ladder_mov_clips_and_preserves_literal_punctuation_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'StringLab'})['blockers'], [])
+        def write(tag, value):
+            return self.post('write', {'tag':tag, 'value':value})
+        def step():
+            return self.post('step', {'dt':10})
+        def values(state):
+            return {row['name']:row['value'] for row in state['tags']}
+        self.assertIsNone(values(step())['MoveShort.LEN'])
+        before = write('MoveStrings', True)
+        with self.assertRaises(HTTPError) as error:
+            step()
+        with error.exception as failure:
+            self.assertEqual(failure.code, 400)
+            self.assertIn('outside bounds', failure.read().decode())
+        request = Request(self.url+'/api/state', headers={'X-Logix-Token':self.token})
+        with urlopen(request, timeout=3) as response:
+            after = json.load(response)
+        for key in ('tags','routines','scan','ms','task_schedule','aoi_bindings','trace'):
+            self.assertEqual(after[key], before[key], key)
+        write('IndexedSource[0]', 'selected')
+        write('MoveStringIndex', 0)
+        state = step()
+        row = values(state)
+        self.assertEqual(row['MoveShort'], 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345')
+        self.assertEqual(row['MoveShort.LEN'], 32)
+        self.assertEqual(row['MoveLiteral'], "Line [1], (ready); 'OK' $")
+        self.assertEqual(row['MoveSelected'], 'selected')
+        self.assertEqual(row['MoveSource'], 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+        literal = next(op for routine in state['routines'] for rung in routine.get('rungs', [])
+                       for op in rung['nodes'] if op.get('name') == 'MOV' and op['args'][1] == 'MoveLiteral')
+        self.assertEqual(literal['literal_values'][literal['args'][0]]['value'], row['MoveLiteral'])
+        write('MoveSource', 'AB')
+        row = values(step())
+        self.assertEqual(row['MoveShort'], 'AB')
+        self.assertEqual(row['MoveShort.DATA[31]'], ord('5'))
+        self.assertFalse(self.post('report', {})['string_operations']['mov']['native_math_status'])
+
     def test_string_lab_case_and_real_conversions_in_rll_and_st(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

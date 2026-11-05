@@ -34,7 +34,7 @@ from .native_metadata_definitions import NativeMetadataDefinitions
 from .native_metadata_values import NativeMetadataValues
 from .device_io import DeviceIO
 from .wall_clock import CoordinatedClock
-from . import time_values
+from . import string_operations, time_values
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -57,6 +57,14 @@ def serialize_nodes(nodes):
                 if value is not None:
                     dtype, ticks = value
                     literals[ref] = {"type": dtype + " literal", "value": str(ticks)}
+        if node.name == 'MOV' and node.args and len(node.args[0]) <= 512:
+            ref = node.args[0]
+            try:
+                value = string_operations.move_literal(ref)
+            except ModelError:
+                value = None
+            if value is not None:
+                literals[ref] = {'type': 'String literal', 'value': value}
         if literals:
             row["literal_values"] = literals
         rows.append(row)

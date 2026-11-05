@@ -80,6 +80,16 @@ def operand_problem(op):
     return ''
 
 
+def ascii_literal_end(text, start):
+    """Return the exclusive end of a single-quoted Logix literal."""
+    pos = start + 1
+    while pos < len(text):
+        if text[pos] == "'":
+            return pos + 1
+        pos += 2 if text[pos] == '$' else 1
+    raise ModelError('Unclosed single-quoted ASCII literal')
+
+
 def parse_rung(text: str) -> list:
     """Parse neutral-text RLL without eval. Branch commas never split operands."""
     text = text.strip()
@@ -116,29 +126,33 @@ def parse_rung(text: str) -> list:
                 raise ModelError(f"Unrecognized ladder syntax at {text[pos:pos + 40]!r}")
             name = m[1].upper()
             pos += m.end()
-            start = pos
-            depth = 0
+            args = []
+            start_arg = pos
+            depth = brackets = 0
             while pos < len(text):
-                if text[pos] == "(":
+                char = text[pos]
+                if char == "'":
+                    pos = ascii_literal_end(text, pos)
+                    continue
+                if char == "(":
                     depth += 1
-                elif text[pos] == ")":
+                elif char == ")":
                     if not depth:
                         break
                     depth -= 1
+                elif char == "[":
+                    brackets += 1
+                elif char == "]":
+                    brackets -= 1
+                elif char == "," and not depth and not brackets:
+                    args.append(text[start_arg:pos].strip())
+                    start_arg = pos + 1
                 pos += 1
             if pos >= len(text):
                 raise ModelError(f"Unclosed {name}")
-            args_text = text[start:pos]
-            args = []
-            start_arg = 0
-            brackets = 0
-            for i, c in enumerate(args_text):
-                if c in "[(": brackets += 1
-                if c in "])": brackets -= 1
-                if c == "," and brackets == 0:
-                    args.append(args_text[start_arg:i].strip())
-                    start_arg = i + 1
-            if args_text.strip(): args.append(args_text[start_arg:].strip())
+            tail = text[start_arg:pos].strip()
+            if tail or args:
+                args.append(tail)
             pos += 1
             out.append(Op(name, args))
         return out
@@ -207,7 +221,7 @@ def ascii_bytes(text):
     text=text.strip()
     if len(text)<2 or text[0]!="'" or text[-1]!="'":raise ModelError('Expected single-quoted ASCII data')
     text=text[1:-1];out=[];pos=0
-    escapes={'$':36,"'":39,'T':9,'L':10,'R':13,'P':12}
+    escapes={'$':36,"'":39,'T':9,'L':10,'I':10,'R':13,'P':12}
     while pos<len(text):
         c=text[pos];pos+=1
         if c=='$':
@@ -1034,15 +1048,16 @@ class Memory:
         if count>len(addresses):raise ModelError('Block operation exceeds the modeled array/member boundary')
         return key,addresses[:count],dtype
 
-    def string(self,ref,scope=''):
+    def string(self,ref,scope='',*,limit=None):
         _,_,dtype=self.resolve(ref,scope)
         capacity=self.project.string_capacity(dtype)
         obj=self.read(ref,scope)
         if capacity is None or not isinstance(obj,dict):raise ModelError('String operand required')
         length=obj['LEN']
         if not isinstance(length,int) or not 0<=length<=capacity or len(obj['DATA'])!=capacity:raise ModelError('String LEN/DATA unknown or outside declared capacity')
-        if any(x is None for x in obj['DATA'][:length]):raise ModelError('String contains unknown active DATA bytes')
-        return bytes(x&255 for x in obj['DATA'][:length]).decode('latin-1')
+        active = obj['DATA'][:length if limit is None else min(length, limit)]
+        if any(x is None for x in active):raise ModelError('String contains unknown active DATA bytes')
+        return bytes(x&255 for x in active).decode('latin-1')
 
     def write_string(self,ref,text,scope=''):
         key,parts,dtype=self.check_writable(ref,scope)
