@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.174720` [binary64 ladder FSC](file-search.md#binary64-searches)
+adds LREAL comparisons in ALL, numeric and INC modes. Stats Lab shows the
+first match, resume after IN clears, and cursor rollback after a fault.
+
 Available in `26.1105.172023` [binary64 ladder FAL](file-arithmetic.md#binary64-expressions)
 adds LREAL and mixed numeric expressions in ALL, numeric and INC modes.
 Stats Lab demonstrates partial-file rollback, REAL results and integer rounding.

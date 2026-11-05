@@ -49,8 +49,8 @@ No short-circuit assumption hides a required unknown value or invalid access.
 
 Integer division now follows the [narrow expression profile](integer-expressions.md).
 Existing CMP expression limits still apply. [LINT/unsigned searches](integer-files.md)
-now share the exact wide/mixed CMP profile. LREAL, BCD expression functions and
-additional native conversion forms remain unfinished.
+share the exact wide/mixed CMP profile. [Binary64 searches](#binary64-searches)
+add an LREAL-selected profile. Narrow BCD forms are linked below.
 [INC mode](file-incremental.md) now supports one comparison per enable edge for
 idle-source controls, with explicit inhibit/rearming and transactional progress.
 Saved active INC controls remain blocked; native internal state stays unqualified.
@@ -58,6 +58,34 @@ Saved active INC controls remain blocked; native internal state stays unqualifie
 operands, frame-scoped expressions and canonical per-CONTROL progress.
 ST/FBD instruction calls remain unsupported. CONTROL aliases
 and constant source arrays are supported; CONTROL must be writable.
+
+## Binary64 searches
+
+App `26.1105.174720` adds LREAL comparisons to ladder FSC in ALL, positive
+numeric and idle-source INC modes. An LREAL tag or floating L/l literal selects
+the [binary64 evaluator](lreal-expressions.md) for all numeric subexpressions.
+For example, a saved LREAL value of 1.0000000000000002 is greater than 1.0L.
+REAL tags and unsuffixed floating literals retain float32 precision before
+promotion. Decimal L/U/UL constants are checked at their declared widths before
+conversion. Large integer inputs can round during binary64 conversion.
+
+The expression must produce a BOOL result. The six numeric relations and
+Boolean composition work with the same eager operand evaluation as CMP. An
+unknown or arithmetic fault on one side still faults when the other side
+already determines the Boolean result. Numeric bitwise and FRD/TOD forms
+remain outside the binary64 profile. Existing narrow, wide integer, REAL and
+string searches use their respective expression rules.
+
+In **Stats lab**, enable `Binary64Find` and step. The search matches at
+`Binary64FindControl.POS = 1` and sets FD/IN. Clear IN and step to resume at
+position 2 and set DN. Set `Binary64Divisors[1]` to 0 before starting a fresh
+search to see the advance roll back. Restore the divisor to 1 and retry.
+
+Enable `Binary64FindBatch` for one comparison per scan. The search continues
+after the rung goes false and finds 3.5 at position 2. Enable
+`Binary64FindStep` to find the binary64 difference above 1.0 at position 0.
+Clear IN, scan with the enable false, then enable it again to find position 1.
+Native cursor, fault and Studio import behavior remain unverified.
 
 ## Stats Lab
 

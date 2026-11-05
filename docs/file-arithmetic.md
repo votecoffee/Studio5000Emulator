@@ -97,8 +97,9 @@ per scan (1.5, 3.0, 4.0), including continuation after a false rung. Pulse
 `Binary64Step` three times with false scans between edges for DINT results
 1, 2 and 4. The three guard cells stay at 901, 902 and 903.
 
-FSC, native fault/cursor behavior and Studio import acceptance remain
-unqualified for these binary64 file expressions.
+See [binary64 FSC](file-search.md#binary64-searches) for searches using the
+same numeric precision. Native fault, cursor and Studio import behavior
+remain unqualified for these file expressions.
 
 ## Stats Lab
 

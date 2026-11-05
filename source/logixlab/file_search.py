@@ -24,7 +24,8 @@ def validate(engine, op, scope):
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
-    count = mode(op.args[3]);expression = engine.extensions.condition(op.args[4],allow_wide=True,bcd=True,integer_literals=True)
+    count = mode(op.args[3])
+    expression = engine.extensions.condition(op.args[4], allow_wide=True, bcd=True, lreal=True, integer_literals=True)
     if count=='INC':incremental.validate(engine,op,scope)
     # Type-check dynamic subscripts at a structural position, without consuming
     # unknown data or rejecting a saved final cursor before execution begins.
@@ -78,7 +79,11 @@ def execute(engine, op, power, scope):
 
 def description():
     return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                expressions='Existing bounded CMP grammar including qualified narrow FRD/TOD, exact wide/mixed-integer profile and dynamic CONTROL.POS subscripts',
+                expressions='Existing bounded CMP grammar including qualified narrow FRD/TOD, exact wide/mixed integers, binary64 comparisons and dynamic CONTROL.POS subscripts',
+                binary64=dict(selection='LREAL source or floating L/l literal',
+                    modes=['ALL','positive DINT immediate','INC'],
+                    calculation='Use the bounded binary64 comparison evaluator per reached element, including eager BOOL composition',
+                    native_runtime_parity=False),
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
                 typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
                     range='Matching numeric tag/literal/result type; check declared literal range with its unary sign before execution',
@@ -92,5 +97,5 @@ def description():
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False,
                 incremental=incremental.description(),
-                remaining=['Saved active INC controls and native internal edge state', 'LREAL, typed radix/mixed literal forms and additional expression types/functions',
+                remaining=['Saved active INC controls and native internal edge state', 'Typed radix, numeric bitwise/BCD within binary64 and additional expression types/functions',
                            'Broader AOI lifecycle/schema and native faults/status/invalid-state parity'])

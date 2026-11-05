@@ -155,7 +155,7 @@ def evaluate(expression, memory, scope, profile):
 
 def description(project):
     return dict(available=available(project), profile='v35-5580-lreal-expressions',
-                consumers=['CPT', 'CMP', 'FAL'], types=sorted(NUMERIC), destination='CPT/FAL numeric scalar', destination_types=sorted(NUMERIC),
+                consumers=['CPT', 'CMP', 'FAL', 'FSC'], types=sorted(NUMERIC), destination='CPT/FAL numeric scalar', destination_types=sorted(NUMERIC),
                 destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
                 selection='Any LREAL tag/literal or CPT/FAL LREAL destination selects binary64 for every numeric node',
                 constants='Bounded DINT integers; decimal L/U/UL constants checked at declared width then converted to binary64; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
@@ -166,10 +166,10 @@ def description(project):
                     native_runtime_parity=False),
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
-                comparisons='Six numeric relations, BOOL tags and eager Boolean composition',
+                comparisons='CMP/FSC: six numeric relations, BOOL tags and eager Boolean composition',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Typed radix/separators and other typed forms; FRD/TOD and numeric bitwise forms',
-                           'ST/FSC/FBD/SFC consumers and other controller profiles',
+                           'ST/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])

@@ -60,10 +60,10 @@ indices; reached failures roll back the entire modeled advance, including warm
 AOI copied outputs, InOut values, local state, scheduler/timing and trace.
 
 Typed radix forms, separators and alternate typed spellings remain blocked.
-[Ladder FAL](file-arithmetic.md#binary64-expressions) also accepts these
-constants when an LREAL operand selects binary64. Numeric bitwise/BCD forms,
-FSC, generic/index consumers, other controllers and additional languages
-remain separate. ST retains its separate
+[Ladder FAL](file-arithmetic.md#binary64-expressions) and
+[FSC](file-search.md#binary64-searches) also accept these constants when an
+LREAL operand selects binary64. Numeric bitwise/BCD forms, generic/index
+consumers, other controllers and additional languages remain separate. ST retains its separate
 integer literal behavior. Native numerical, status, fault, partial-write,
 packed-layout and Studio/controller lifecycle equivalence remain unverified.
 

@@ -150,7 +150,7 @@ class FileIntegerLiteralTests(unittest.TestCase):
         from logixlab.conditions import Condition
         e = self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],1L);', 'FSC(Ctl,?,?,ALL,1L=1L);'])
         self.assertIn(('1L', True, True, True), e.extensions.expressions)
-        self.assertIn(('1L=1L', True, True, False, True), e.extensions.conditions)
+        self.assertIn(('1L=1L', True, True, True, True), e.extensions.conditions)
         with self.assertRaises(ModelError): e.extensions.condition('1L=1L', allow_wide=True, bcd=True)
         for create in [Expression, Condition, lambda text: Expression(text, subscript=True)]:
             with self.assertRaises(ModelError): create('1UL')

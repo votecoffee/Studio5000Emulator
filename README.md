@@ -353,7 +353,8 @@ checked REAL and integer results.
 
 [File search](docs/file-search.md) adds FSC ALL/numeric/INC modes, match/inhibit
 state and resumable searches using the existing comparison grammar. **Stats lab**
-shows ALL/numeric searches and one comparison per enable edge in INC mode.
+shows ALL/numeric searches and one comparison per enable edge in INC mode,
+including [binary64 searches with LREAL](docs/file-search.md#binary64-searches).
 
 [File sorting](docs/array-sort.md) adds SRT in ladder and Structured Text, with
 exact integer ordering and selected array dimensions. **Stats lab** demonstrates

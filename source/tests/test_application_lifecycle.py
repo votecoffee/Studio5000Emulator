@@ -1183,6 +1183,55 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertFalse(values['BatchControl.FD'])
         self.assertFalse(self.post('report', {})['file_search']['native_cursor_parity'])
 
+    def test_stats_lab_binary64_fsc_match_resume_and_rollback_through_http(self):
+        self.assertEqual(self.post('demo', {'sample':'StatsLab'})['blockers'], [])
+        def write(tag, value):
+            self.post('write', {'tag':tag, 'value':value})
+        def step():
+            return self.post('step', {'dt':10})
+        def state():
+            request = Request(self.url+'/api/state', headers={'X-Logix-Token':self.token})
+            with urlopen(request, timeout=3) as response:
+                return json.load(response)
+        def control(state, name):
+            values = {row['name']:row['value'] for row in state['tags']}
+            return tuple(values[f'Binary64{name}Control.{field}'] for field in ('POS','FD','IN','DN'))
+        self.assertEqual(control(step(), 'Find'), (0, False, False, False))
+        write('Binary64Find', True)
+        write('Binary64Divisors[1]', 0)
+        before = state()
+        with self.assertRaises(HTTPError) as error:
+            step()
+        with error.exception as failure:
+            self.assertEqual(failure.code, 400)
+            self.assertIn('divide by zero', failure.read().decode().lower())
+        after = state()
+        for field in ('tags','routines','scan','ms','task_schedule','aoi_bindings','trace'):
+            self.assertEqual(after[field], before[field], field)
+        write('Binary64Divisors[1]', 1)
+        write('Binary64FindBatch', True)
+        write('Binary64FindStep', True)
+        first = step()
+        self.assertEqual(control(first, 'Find'), (1, True, True, False))
+        self.assertEqual(control(first, 'FindBatch'), (0, False, False, False))
+        self.assertEqual(control(first, 'FindStep'), (0, True, True, False))
+        write('Binary64FindBatch', False)
+        held = step()
+        self.assertEqual(control(held, 'Find'), (1, True, True, False))
+        self.assertEqual(control(held, 'FindBatch'), (1, False, False, False))
+        self.assertEqual(control(held, 'FindStep'), (0, True, True, False))
+        write('Binary64FindControl.IN', False)
+        write('Binary64FindStepControl.IN', False)
+        write('Binary64FindStep', False)
+        resumed = step()
+        self.assertEqual(control(resumed, 'Find'), (2, True, True, True))
+        self.assertEqual(control(resumed, 'FindBatch'), (2, True, True, True))
+        write('Binary64FindStep', True)
+        self.assertEqual(control(step(), 'FindStep'), (1, True, True, False))
+        profile = self.post('report', {})['file_search']['binary64']
+        self.assertEqual(profile['modes'], ['ALL','positive DINT immediate','INC'])
+        self.assertFalse(profile['native_runtime_parity'])
+
     def test_stats_lab_binary64_fal_modes_and_mid_file_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'StatsLab'})['blockers'], [])
         def write(tag, value):

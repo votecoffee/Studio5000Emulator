@@ -557,6 +557,57 @@
           </Array>
         </Data>
       </Tag>
+      <Tag Name="Binary64Find" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="Binary64FindControl" DataType="CONTROL" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Binary64FindBatch" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="Binary64FindBatchControl" DataType="CONTROL" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="Binary64FindStep" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="Binary64FindStepControl" DataType="CONTROL" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="CONTROL">
+            <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+            <DataValueMember Name="POS" DataType="DINT" Value="0" />
+            <DataValueMember Name="EN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="DN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="ER" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EU" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EM" DataType="BOOL" Value="0" />
+            <DataValueMember Name="UL" DataType="BOOL" Value="0" />
+            <DataValueMember Name="IN" DataType="BOOL" Value="0" />
+            <DataValueMember Name="FD" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -620,6 +671,9 @@
               <Rung Number="19" Type="N"><Text>XIC(Binary64Transform)FAL(Binary64MapControl,?,?,ALL,Binary64Mapped[Binary64MapControl.POS],(Binary64Samples[Binary64MapControl.POS]-1.0L)/Binary64Divisors[Binary64MapControl.POS]);</Text></Rung>
               <Rung Number="20" Type="N"><Text>XIC(Binary64Batch)FAL(Binary64BatchControl,?,?,1,Binary64Batched[Binary64BatchControl.POS],Binary64Samples[Binary64BatchControl.POS]+0.5L);</Text></Rung>
               <Rung Number="21" Type="N"><Text>XIC(Binary64Step)FAL(Binary64StepControl,?,?,INC,Binary64Rounded[Binary64StepControl.POS],Binary64Samples[Binary64StepControl.POS]);</Text></Rung>
+              <Rung Number="22" Type="N"><Text>XIC(Binary64Find)FSC(Binary64FindControl,?,?,ALL,(Binary64Samples[Binary64FindControl.POS]-1.0L)/Binary64Divisors[Binary64FindControl.POS]&gt;=1.0L);</Text></Rung>
+              <Rung Number="23" Type="N"><Text>XIC(Binary64FindBatch)FSC(Binary64FindBatchControl,?,?,1,Binary64Samples[Binary64FindBatchControl.POS]&gt;=3.5L);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>XIC(Binary64FindStep)FSC(Binary64FindStepControl,?,?,INC,Binary64Samples[Binary64FindStepControl.POS]&gt;1.0L);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="SortText" Type="ST">

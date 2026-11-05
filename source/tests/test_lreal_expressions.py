@@ -200,7 +200,7 @@ class LrealExpressionTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('BufferA[1]'), 2.125)
 
-    def test_scoped_cache_keeps_generic_and_file_conditions_separate(self):
+    def test_scoped_cache_keeps_generic_and_ladder_conditions_separate(self):
         e = self.checked(['CMP(Source>Other)OTE(RunLatch);'])
         e.step()
         self.assertIn(('Source>Other', True, True, True, False), e.extensions.conditions)
@@ -211,7 +211,9 @@ class LrealExpressionTests(unittest.TestCase):
         f = files.FileBcdTests()
         f.setUp()
         self.addCleanup(f.doCleanups)
-        self.assertTrue(f.engine(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>1);'], source_type='LREAL').blockers)
+        fsc = f.checked(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>1);'], source_type='LREAL')
+        fsc.step()
+        self.assertTrue(fsc.memory.read('Ctl.FD'))
 
     def test_copied_lreal_parameters_keep_tag_precision_and_real_constant_rules(self):
         import test_aoi_queues as queues
@@ -270,7 +272,7 @@ class LrealExpressionTests(unittest.TestCase):
 
     def test_report_describes_lreal_selection_and_native_boundaries(self):
         report = self.checked().report()['lreal_expression_execution']
-        self.assertEqual(report['consumers'], ['CPT', 'CMP', 'FAL'])
+        self.assertEqual(report['consumers'], ['CPT', 'CMP', 'FAL', 'FSC'])
         self.assertEqual(set(report['types']), set(TYPES))
         self.assertFalse(report['native_runtime_parity'])
 

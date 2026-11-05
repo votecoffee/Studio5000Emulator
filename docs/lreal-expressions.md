@@ -1,7 +1,8 @@
 # LREAL ladder expressions
 
 The bounded v35 ControlLogix 5580 model supports finite binary64 calculations
-in CPT, [ladder FAL](file-arithmetic.md#binary64-expressions) and CMP comparisons.
+in CPT and [ladder FAL](file-arithmetic.md#binary64-expressions), and comparisons
+in CMP and [ladder FSC](file-search.md#binary64-searches).
 An LREAL source, floating L/l literal or LREAL CPT/FAL destination selects
 binary64 for every numeric node, including constant-only subexpressions.
 CPT and FAL can store representable results in all ten numeric destination types;
@@ -48,7 +49,7 @@ before a later reducing operation faults the modeled advance.
 | ULINT maximum | 18446744073709551616.0 |
 | SQR(3)+SQR(3), LREAL destination | approximately 3.4641016151377544 |
 
-CMP supports six numeric relations, BOOL references, BOOL equality/inequality,
+CMP and FSC support six numeric relations, BOOL references, BOOL equality/inequality,
 logical negation and Boolean composition. Both operands are evaluated eagerly;
 an unknown, domain error or zero divisor cannot hide behind an already true or
 false Boolean operand. BOOL tags cannot serve as numeric arguments.
@@ -72,9 +73,9 @@ storage use the same evaluator. Required unknowns, invalid indices, arithmetic
 and later instruction faults restore the complete modeled advance, including
 earlier writes, warm bindings, trace and scheduler/timing state.
 
-Direct ladder CPT/CMP and FAL opt into this evaluator. FAL retains its
-iteration, false-continuation and INC edge rules. Generic condition caches,
-ST, FSC, FBD/SFC and other controller profiles retain their existing limits.
+Direct ladder CPT/CMP and FAL/FSC use this evaluator. FAL and FSC follow their
+respective iteration, false-continuation and INC edge rules. Generic condition
+caches and other languages use their own profiles.
 Other typed literal forms and complete native math flags,
 fault records, partial effects, packed layouts and lifecycle equivalence remain
 unfinished. Host binary64 calculations are software behavior; these checks do
