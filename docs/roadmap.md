@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.140349` [OSR and OSF array fault recovery](controller-handlers.md#recover-osr-and-osf-array-faults)
+preserves one-shot storage and pulse output when a ladder handler clears
+Type 4 Code 20. A later valid scan can still emit the edge pulse.
+
 Available in `26.1106.135526` [contact, coil, ONS and comparison array fault recovery](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
 preserves the incoming rung power and skips the instruction when a fault
 handler clears Type 4 Code 20 during a whole-project scan.

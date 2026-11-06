@@ -124,11 +124,28 @@ XIC, XIO, OTL, OTU and the comparisons skip their array operands when
 incoming power is false. OTE and ONS still select their destination
 when false. For example, if the handler repairs an invalid OTE subscript
 on a false rung, the next visit can clear the selected bit.
-OSR, OSF and prescan array faults remain outside this recovery profile.
 
 [Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
 [Rockwell OTE reference](https://www.rockwellautomation.com/en-pr/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/bit-instructions1/output-energize--ote-11.html)
 [Rockwell major fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
+
+## Recover OSR and OSF array faults
+
+During a whole-project ladder scan, an out-of-bounds storage or pulse
+output subscript in OSR or OSF can raise Type 4 Code 20. If the pulse
+output address faults after the storage write, the emulator restores
+the original storage value before calling either handler. This also
+restores unknown scalar storage and preserves adjacent bits in a packed
+integer. The pulse output keeps its previous value.
+
+When a handler clears the fault, the next instruction sees the incoming
+rung power. A later valid execution can still emit the pending edge pulse
+if the rung input differs from the retained storage in the required
+direction. Valid executions still select the output after the storage
+write. Prescan bounds faults use their separate startup behavior.
+
+[Rockwell OSR reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/bit-instructions1/one-shot-rising--osr-1.html)
+[Rockwell OSF reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/bit-instructions1/one-shot-falling--osf-1.html)
 
 ## Escalate an uncleared Program fault
 

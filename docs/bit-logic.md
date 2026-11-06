@@ -23,8 +23,11 @@ pulse. Unknown history is not inferred from a desired output.
 Individual integer-bit writes require a known backing integer to preserve
 neighboring bits. They do not establish an entire unknown packed integer.
 Native packed BOOL layout remains unqualified. In a whole-project scan,
-[XIC, XIO, OTE, OTL, OTU and ONS can recover an out-of-bounds array subscript](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
-when a fault handler clears Type 4 Code 20. Reached unknowns, unrecovered faults
+[XIC, XIO, OTE, OTL, OTU and ONS](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
+and [OSR and OSF](controller-handlers.md#recover-osr-and-osf-array-faults)
+can recover out-of-bounds array subscripts when a fault handler clears Type 4
+Code 20. OSR and OSF restore storage before a fault handler runs if the
+pulse output subscript is out of bounds. Reached unknowns, unrecovered faults
 and later errors roll back the complete advance, including established BOOLs,
 edge storage, task/time state and existing AOI bindings.
 

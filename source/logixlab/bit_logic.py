@@ -1,6 +1,6 @@
 """Structural contacts/coils and state-dependent one-shot reads for v35 5580."""
 from .integer_math import CONTROLLERS
-from .model import ModelError
+from .model import ArrayBoundsError, ModelError
 
 INSTRUCTIONS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS', 'OSR', 'OSF'))
 WRITES = {'OTE': (0,), 'OTL': (0,), 'OTU': (0,), 'ONS': (0,), 'OSR': (0, 1), 'OSF': (0, 1)}
@@ -39,9 +39,22 @@ def execute(memory, op, power, scope):
         needs_history = not power if name == 'OSF' else power
         pulse = bool(memory.read(args[0], scope)) if needs_history else False
         if name != 'OSF' and needs_history:pulse = not pulse
+        if name == 'ONS':
+            memory.write(args[0], power, scope)
+            return pulse
+
+        # The output index can depend on the storage write. Save the original
+        # scalar or packed word at its resolved address for bounds recovery.
+        key, parts, _ = memory.check_writable(args[0], scope)
+        if parts and isinstance(parts[-1], tuple):
+            parts = parts[:-1]
+        previous = memory.at(key, parts)
         memory.write(args[0], power, scope)
-        if name == 'ONS':return pulse
-        memory.write(args[1], pulse, scope)
+        try:
+            memory.write(args[1], pulse, scope)
+        except ArrayBoundsError:
+            memory.store(key, parts, previous)
+            raise
     return power
 
 
@@ -55,7 +68,8 @@ def description(project):
                 one_shots='ONS/OSR false and OSF true skip prior storage reads; other transitions require known history',
                 prescan='Existing OTE clear, ONS/OSR storage set, OSF storage clear and pulse-output clear; latches retained',
                 packed_bits='Partial writes require known backing integers to preserve neighboring bits',
-                array_recovery='Whole-project XIC/XIO/OTE/OTL/OTU/ONS skip the operation when a ladder handler clears Type 4 Code 20',
+                array_recovery='Whole-project ladder handlers can clear Type 4 Code 20 and skip any of these bit instructions',
+                pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

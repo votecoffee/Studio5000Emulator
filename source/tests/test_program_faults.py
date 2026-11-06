@@ -782,6 +782,96 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabValues'),[12,13])
         self.assertEqual(engine.memory.read('SpeedCommand'),50)
 
+    def test_one_shot_output_fault_preserves_edge_and_packed_bits(self):
+        for name, rising in (('OSR',True),('OSF',False)):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    handler = 'MOV(LabValues[0],FaultWords[3])MOV(1,LabIndex);'
+                    if rising:
+                        ladder_fault_fixture(root,handler_tail=handler)
+                    else:
+                        controller_fault_fallback_fixture(root,controller_tail=handler)
+                    set_fault_instruction(root,f'{name}(LabValues[0].1,LabValues[LabIndex].1)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',1)
+                engine.memory.write('StartPB',not rising)
+                engine.step()
+                saved = 12 if rising else 14
+                self.assertEqual(engine.memory.read('LabValues'),[saved,13])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('StartPB',rising)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,name))
+                self.assertEqual(fault['handler']['routine'],
+                                 'MainProgram/RecoverMove' if rising else 'FaultHandler/Capture')
+                self.assertEqual(engine.memory.read('FaultWords[3]'),saved)
+                self.assertEqual(engine.memory.read('LabValues'),[saved,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51 if rising else 50)
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['in'],event['out']),(rising,rising))
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),[14 if rising else 12,15])
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),[14 if rising else 12,13])
+
+    def test_one_shot_storage_fault_leaves_the_existing_pulse(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+            set_fault_instruction(root,'OSR(LabValues[LabIndex].1,LabValues[0].0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.step()
+        engine.memory.write('LabValues[0].0',True)
+        engine.memory.write('LabIndex',2)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['instruction'],'OSR')
+        self.assertEqual(engine.memory.read('LabValues'),[13,13])
+        engine.step()
+        self.assertEqual(engine.memory.read('LabValues'),[12,13])
+
+    def test_one_shot_recovery_restores_unknown_lazy_storage(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+            set_fault_instruction(root,'OSR(RunLatch,LabValues[LabIndex].1)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.step()
+        key, parts, _ = engine.memory.resolve('RunLatch')
+        engine.memory.store(key,parts,None)
+        engine.memory.write('LabIndex',2)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['instruction'],'OSR')
+        self.assertIsNone(engine.memory.at(key,parts))
+        engine.step()
+        self.assertFalse(engine.memory.read('RunLatch'))
+
+    def test_one_shot_output_index_observes_the_storage_write(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(LabIndex,FaultWords[3])CLR(LabIndex);')
+            set_fault_instruction(root,'OSR(LabIndex.0,LabValues[LabIndex].1)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.step()
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['instruction'],'OSR')
+        self.assertEqual(engine.memory.read('FaultWords[3]'),2)
+        self.assertEqual(engine.memory.read('LabValues'),[12,13])
+        engine.step()
+        self.assertEqual(engine.memory.read('LabIndex'),1)
+        self.assertEqual(engine.memory.read('LabValues'),[12,15])
+
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests
 
