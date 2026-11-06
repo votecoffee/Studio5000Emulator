@@ -169,8 +169,9 @@ can clear out-of-bounds MOV, [COP/CPS](docs/controller-handlers.md#recover-cop-a
 [arithmetic](docs/controller-handlers.md#recover-a-ladder-arithmetic-array-fault),
 [bitwise](docs/controller-handlers.md#recover-a-ladder-bitwise-array-fault),
 [FLL, CLR and SWPB](docs/controller-handlers.md#recover-fll-clr-and-swpb-array-faults),
-[contact, coil, ONS and comparison](docs/controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
-and [OSR and OSF](docs/controller-handlers.md#recover-osr-and-osf-array-faults)
+[contact, coil, ONS and comparison](docs/controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults),
+[OSR and OSF](docs/controller-handlers.md#recover-osr-and-osf-array-faults) and
+[timer, counter and reset](docs/controller-handlers.md#recover-timer-counter-and-reset-array-faults)
 operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 The [ladder monitor marks the skipped instruction](docs/logic-viewer.md#fault-recovery-in-the-ladder-monitor)

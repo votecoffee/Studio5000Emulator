@@ -147,6 +147,28 @@ write. Prescan bounds faults use their separate startup behavior.
 [Rockwell OSR reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/bit-instructions1/one-shot-rising--osr-1.html)
 [Rockwell OSF reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/bit-instructions1/one-shot-falling--osf-1.html)
 
+## Recover timer, counter and reset array faults
+
+During whole-project ladder scans, an out-of-bounds record subscript
+in TON, TOF, RTO, CTU, CTD or RES can raise Type 4 Code 20. If a fault
+handler clears it, the emulator skips the instruction and continues
+with incoming rung power. This applies on either rung state for timers
+and counters. A false RES skips the live subscript.
+
+The skipped instruction leaves record fields, timer timestamps,
+counter edge bits and CONTROL incremental progress intact. A later
+valid timer call uses the existing elapsed time since its last execution.
+A later valid count checks the retained edge bit. RES applies to TIMER,
+COUNTER and CONTROL. A valid CONTROL reset uses the same resolved address
+to clear the record and its incremental file progress, even if clearing
+POS changes the expression that selected it.
+
+Prescan array faults have their own startup behavior. Unknown fields,
+invalid presets and arithmetic overflow use the existing scan rollback.
+
+[Rockwell timer and counter instruction reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/timer-and-counter-instructions.html)
+[Rockwell RES reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/timer-and-counter-instructions/reset--res-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

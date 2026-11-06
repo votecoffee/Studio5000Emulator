@@ -75,9 +75,11 @@ the existing elapsed-since-last-call policy; this is not a newly qualified
 native skipped-execution contract. Clock sources, precision, overshoot, timing
 limits, native status/fault/retention and full controller parity remain separate.
 
-Unknown consumed fields, invalid indices, accumulator overflow and later faults
-restore values, clock history, AOI bindings, time and scheduling within the
-modeled advance. Completed prescan is a separate lifecycle boundary. No new ST
+A [cleared Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
+skips the timer in a whole-project scan and retains its last execution time.
+Unknown consumed fields, unrecovered faults, accumulator overflow and later
+errors restore values, clock history, AOI bindings, time and scheduling within
+the modeled advance. Completed prescan is a separate lifecycle boundary. No new ST
 or FBD forms are introduced; [ST timer calls](st-timers.md) retain their own
 FBD_TIMER contract. Other controller profiles keep their previous path.
 

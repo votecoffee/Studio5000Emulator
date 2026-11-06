@@ -20,7 +20,10 @@ def default():
 
 
 def control(memory, ref, scope):
-    key, parts, dtype = memory.check_writable(ref, scope)
+    return _control_at(memory, *memory.check_writable(ref, scope))
+
+
+def _control_at(memory, key, parts, dtype):
     if dtype != 'CONTROL':
         raise ModelError('A scalar writable CONTROL record is required')
     obj = memory.at(key, parts)
@@ -239,8 +242,10 @@ def prescan(memory, op, scope):
 
 
 def reset(memory, ref, scope):
-    obj = control(memory, ref, scope)
+    key, parts, dtype = memory.check_writable(ref, scope)
+    obj = _control_at(memory, key, parts, dtype)
     obj.update(dict.fromkeys(FLAGS, False));obj['POS'] = 0
+    return key, tuple(parts)
 
 
 def shift(memory, op, power, scope):

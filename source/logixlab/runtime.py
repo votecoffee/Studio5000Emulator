@@ -29,9 +29,9 @@ FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','
 PROGRAM_FAULT_OPS = FAULT_HANDLER_OPS - {'JSR', 'SBR', 'RET'}
 # These instructions leave no partial writes on an array bounds error.
 ARRAY_FAULT_RECOVERY_OPS = (
-    frozenset(('COP', 'CPS', 'CPT', 'FLL', 'SWPB', 'CMP')) | numeric_storage.INSTRUCTIONS
-    | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS | comparisons.INSTRUCTIONS
-    | bit_logic.INSTRUCTIONS
+    frozenset(('COP', 'CPS', 'CPT', 'FLL', 'SWPB', 'CMP', 'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES'))
+    | numeric_storage.INSTRUCTIONS | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
+    | comparisons.INSTRUCTIONS | bit_logic.INSTRUCTIONS
 )
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
@@ -976,8 +976,8 @@ class Engine:
         if counter is not None:return counter
         if n=='RES' and (control_operations.reset_preflight(self.memory,op,scope) or self.memory.resolve(a[0],scope)[2]=='CONTROL'):
             if p:
-                control_operations.reset(self.memory,a[0],scope)
-                file_incremental.reset(self,a[0],scope)
+                identity = control_operations.reset(self.memory,a[0],scope)
+                self._file_incremental.discard(identity)
             return p
         if n in numeric_storage.INSTRUCTIONS and numeric_storage.available(self.project):return numeric_storage.execute(self,op,p,scope)
         if n in bit_logic.INSTRUCTIONS and bit_logic.available(self.project):return bit_logic.execute(self.memory,op,p,scope)
@@ -1155,14 +1155,16 @@ class Engine:
                     selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
                     clock='Existing deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
                     lifecycle='Prescan needs actual indices; TON/TOF clear ACC/DN, RTO retains them; completed prescan is separate from scan rollback',
-                    faults='Unknown consumed fields, bad indices, negative/overflow values and later faults roll back values and timer history',
+                    array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
+                    faults='Unknown fields, unrecovered array faults, negative/overflow values and later faults roll back values and timer history',
                     native_runtime_parity=False),
                 'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
                     counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',
                     unknowns='False CTU/CTD establish their edge flag without old history; unread opposite-edge/overflow flags are retained',
                     reset='TIMER/COUNTER RES preserves PRE, establishes zero ACC and false status bits without old field values',
                     selection='Structural counter/reset preflight; false RES skips live indices; counter prescan and execution require actual record addresses',
-                    boundaries='Completed prescan separate from runtime rollback; timer algorithms, CONTROL RES and other profiles unchanged',
+                    array_recovery='A cleared Type 4 Code 20 skips a whole-project count or reset and preserves the addressed records',
+                    boundaries='Completed prescan separate from runtime rollback; existing timer recurrence and reset rules apply',
                     native_runtime_parity=False),
                 'numeric_fill':numeric_fill.description(self.project),
                 'aggregate_fill':numeric_fill.aggregate_description(self.project),

@@ -47,10 +47,13 @@ the actual writable scalar CONTROL, sets POS=0 and all represented status
 flags false, and preserves LEN, including an unknown LEN. Unknown old POS/flags
 are replaced without being consumed as inputs. Other records remain unchanged.
 
-The reset removes modeled incremental file progress for that canonical CONTROL
-identity only. Aliases and existing AOI local/InOut references resolve to the
-same storage. A bad true-call index, later instruction fault or AOI failure
-restores values, flags, incremental progress, time, scheduling and bindings
+The reset captures the canonical CONTROL identity before writing POS or flags.
+It uses that identity to remove incremental file progress, including when
+the index expression reads a field that RES clears. Aliases and existing AOI
+local/InOut references resolve to the same storage. A
+[cleared Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
+skips the reset in a whole-project scan. Unrecovered faults and later errors
+restore values, flags, incremental progress, time, scheduling and bindings
 within the modeled advance. Completed prescan is a separate lifecycle boundary.
 
 [TIMER/COUNTER reset](ladder-counters.md) keeps its separate contract. General

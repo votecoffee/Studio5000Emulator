@@ -114,12 +114,30 @@ def set_fault_instruction(root, instruction):
     text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
 
 
-def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None, **options):
+def add_fault_record_array(root, dtype):
+    members = {
+        'TIMER':dict(PRE=100,ACC=4,EN=False,TT=False,DN=False),
+        'COUNTER':dict(PRE=3,ACC=7,CU=False,CD=False,DN=True,OV=False,UN=False),
+        'CONTROL':dict(LEN=9,POS=1,EN=True,EU=True,DN=True,EM=True,ER=True,UL=True,IN=True,FD=True),
+    }[dtype]
+    tags = root.find('./Controller/Tags')
+    tag = ET.SubElement(tags,'Tag',Name='LabRecords',DataType=dtype,TagType='Base',Dimensions='2')
+    array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType=dtype,Dimensions='2')
+    for index in range(2):
+        obj = ET.SubElement(ET.SubElement(array,'Element',Index=f'[{index}]'),'Structure',DataType=dtype)
+        for member,value in members.items():
+            data_type = 'BOOL' if type(value) is bool else 'DINT'
+            ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
+
+
+def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None, record_type=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
     build = controller_fault_fallback_fixture if controller_fallback else ladder_fault_fixture
     build(root, **options)
+    if record_type is not None:
+        add_fault_record_array(root,record_type)
     if call_fault is not None:
         add_jsr_fault_call(root, return_destination=call_fault=='return')
     if instruction is not None:
@@ -871,6 +889,124 @@ class ProgramFaultTests(unittest.TestCase):
         engine.step()
         self.assertEqual(engine.memory.read('LabIndex'),1)
         self.assertEqual(engine.memory.read('LabValues'),[12,15])
+
+    def test_timer_array_fault_preserves_records_and_last_execution_time(self):
+        for name in ('TON','TOF','RTO'):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                    add_fault_record_array(root,'TIMER')
+                    set_fault_instruction(root,f'{name}(LabRecords[LabIndex],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.step()
+                power = name != 'TOF'
+                engine.memory.write('StartPB',power)
+                engine.step()
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                clock = engine.last_timer.copy()
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,name))
+                self.assertEqual(engine.memory.read('LabRecords'),before)
+                self.assertEqual(engine.last_timer,clock)
+                self.assertEqual(engine.memory.read('SpeedCommand'),51 if power else 50)
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['in'],event['out']),(power,power))
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].ACC'),before[0]['ACC']+20)
+                self.assertEqual(engine.memory.read('LabRecords')[1],before[1])
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_counter_array_fault_preserves_the_next_counting_edge(self):
+        for name,edge,delta in (('CTU','CU',1),('CTD','CD',-1)):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root,controller_tail='CLR(LabIndex);')
+                    add_fault_record_array(root,'COUNTER')
+                    set_fault_instruction(root,f'{name}(LabRecords[LabIndex],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.step()
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('LabIndex',-1)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['instruction'],fault['handler']['routine']),(name,'FaultHandler/Capture'))
+                self.assertEqual(engine.memory.read('LabRecords'),before)
+                engine.step()
+                self.assertTrue(engine.memory.read(f'LabRecords[0].{edge}'))
+                self.assertEqual(engine.memory.read('LabRecords[0].ACC'),7+delta)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].ACC'),7+delta)
+                self.assertEqual(engine.memory.read('LabRecords')[1],before[1])
+
+    def test_reset_array_fault_retains_records_and_incremental_progress(self):
+        for dtype in ('TIMER','COUNTER','CONTROL'):
+            with self.subTest(type=dtype):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                    add_fault_record_array(root,dtype)
+                    set_fault_instruction(root,'RES(LabRecords[LabIndex])')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                selected,sibling = (('labrecords',(i,)) for i in range(2))
+                if dtype == 'CONTROL':
+                    engine._file_incremental.update((selected,sibling))
+                progress = engine._file_incremental.copy()
+                engine.memory.write('LabIndex',2)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabIndex'),2)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],'RES')
+                self.assertEqual(engine.memory.read('LabRecords'),before)
+                self.assertEqual(engine._file_incremental,progress)
+                engine.step()
+                retained, cleared = ('LEN','POS') if dtype == 'CONTROL' else ('PRE','ACC')
+                self.assertEqual(engine.memory.read('LabRecords')[0],{
+                    field: value if field == retained else 0 if field == cleared else False
+                    for field,value in before[0].items()
+                })
+                self.assertEqual(engine.memory.read('LabRecords')[1],before[1])
+                self.assertEqual(engine._file_incremental,progress-{selected})
+
+    def test_control_reset_keeps_address_when_it_changes_its_own_index(self):
+        for offset in (1,2):
+            with self.subTest(offset=offset):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    add_fault_record_array(root,'CONTROL')
+                    set_fault_instruction(root,f'RES(LabRecords[{offset}-LabRecords[0].POS])')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[0].POS',offset)
+                selected,sibling = (('labrecords',(i,)) for i in range(2))
+                engine._file_incremental.update((selected,sibling))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),0)
+                self.assertEqual(engine.memory.read('LabRecords[1].POS'),1)
+                self.assertEqual(engine._file_incremental,{sibling})
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

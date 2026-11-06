@@ -52,9 +52,11 @@ remain blockers regardless of rung power.
 A reset can initialize an unknown counter accumulator and edge/status fields.
 Counting still requires its preset to be known. RES does not operate on
 FBD_COUNTER; [ST CTUD](st-counter.md) uses that type's Reset input instead.
-The existing CONTROL RES contract is separate and unchanged.
+[CONTROL RES](control-operands.md#control-reset) has its own field rules.
 
-Counter/reset faults and later faults restore prior values, counts, flags,
+A [cleared Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
+skips a count or reset in a whole-project scan and preserves the records.
+Unrecovered faults and later errors restore prior values, counts, flags,
 AOI bindings, time and scheduling within the modeled advance. Completed prescan
 is a separate lifecycle boundary. Other controller profiles, timer clock
 algorithms, Postscan, native faults/status/retention and full native execution
