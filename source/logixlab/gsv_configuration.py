@@ -160,12 +160,11 @@ def configure_module_connection(engine, data, *, running=False):
     if state == 'faulted' and (type(code) is not int or not 0 < code <= 0xffff
                                or type(info) is not int or not -(1 << 31) <= info < (1 << 31)):
         raise ModelError('Faulted module requires a nonzero 16-bit fault code and signed DINT fault info')
-    trip = (running and engine.mode == 'project' and code and _module_required(engine, module)
-            and _module_connection_state(engine, module, project.io_map.named_module)[0] == MODULE_RUNNING)
     connection = ModuleConnection(code, info)
-    engine._module_connections[module.name] = connection
-    if trip:
-        _latch_module_major_fault(engine, module, connection, 16)
+    if running and engine.mode == 'project' and code:
+        _apply_run_connection_fault(engine, module, connection)
+    else:
+        engine._module_connections[module.name] = connection
     return {'module': module.name, 'state': state, 'fault_code': code, 'fault_info': info}
 
 
@@ -201,15 +200,38 @@ def _module_connection_state(engine, module, find_parent):
     return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
 
 
-def _latch_module_major_fault(engine, module, connection, code):
+def _apply_run_connection_fault(engine, module, connection):
+    modules = {item.name: item for item in engine.project.io_map.module_settings}
+    required_running = {
+        item.name: item for item in modules.values()
+        if item.name in engine._module_connections and _module_required(engine, item)
+        and _module_connection_state(engine, item, modules.get)[0] == MODULE_RUNNING
+    }
+    engine._module_connections[module.name] = connection
+    if module.name in required_running:
+        _latch_module_major_fault(engine, module, connection, 16)
+        return
+    # Only the injected fault changed between these two effective-state reads.
+    for item in required_running.values():
+        if _module_connection_state(engine, item, modules.get)[0] == MODULE_WAITING:
+            _latch_module_major_fault(engine, item, connection, 16, upstream=module)
+            return
+
+
+def _latch_module_major_fault(engine, module, connection, code, *, upstream=None):
     label = module.display_name or module.name
     reason = ('lost its simulated connection' if code == 16
               else 'could not establish its simulated connection before Run')
-    engine.module_major_fault = {'type': 3, 'code': code, 'module': module.name,
-                                 'fault_code': connection.fault_code, 'fault_info': connection.fault_info,
-                                 'fault_id': uuid4().hex}
+    diagnostic = 'module fault'
+    fault = {'type': 3, 'code': code, 'module': module.name,
+             'fault_code': connection.fault_code, 'fault_info': connection.fault_info, 'fault_id': uuid4().hex}
+    if upstream is not None:
+        fault['upstream_module'] = upstream.name
+        reason += f' through {upstream.display_name or upstream.name}'
+        diagnostic = 'upstream module fault'
+    engine.module_major_fault = fault
     engine.fault = (f'Required module {label} {reason} '
-                    f'(Type 3 Code {code}, module fault 0x{connection.fault_code:04X}, info {connection.fault_info}).')
+                    f'(Type 3 Code {code}, {diagnostic} 0x{connection.fault_code:04X}, info {connection.fault_info}).')
 
 
 def fault_on_run_entry(engine):
@@ -231,9 +253,12 @@ def module_major_fault_state(engine):
     if fault is None:
         return None
     find_module = engine.project.io_map.named_module
-    module = find_module(fault['module'])
-    status, _ = _module_connection_state(engine, module, find_module)
-    return {**fault, 'clear_ready': status == MODULE_RUNNING}
+    recovery = [fault['module']]
+    if 'upstream_module' in fault:
+        recovery.append(fault['upstream_module'])
+    ready = all(_module_connection_state(engine, find_module(name), find_module)[0] == MODULE_RUNNING
+                for name in recovery)
+    return {**fault, 'clear_ready': ready}
 
 
 def clear_module_major_fault(engine, fault_id):
@@ -241,7 +266,8 @@ def clear_module_major_fault(engine, fault_id):
     if fault is None or fault_id != fault['fault_id']:
         raise ModelError('Clear requires the current I/O major fault')
     if not fault['clear_ready']:
-        raise ModelError('Restore the faulted module to effective Running before clearing the I/O major fault')
+        modules = 'the required module and its upstream module' if 'upstream_module' in fault else 'the faulted module'
+        raise ModelError(f'Restore {modules} to effective Running before clearing the I/O major fault')
     engine.module_major_fault = None
     engine.fault = ''
 

@@ -22,7 +22,7 @@
           <Port Id="2" Address="192.0.2.7" Type="Ethernet" Upstream="true" />
         </Ports>
       </Module>
-      <Module Name="RemoteInput" CatalogNumber="1756-IB16" Vendor="1" ProductType="7" ParentModule="RemoteRack" ParentModPortId="1" Inhibited="false" MajorFault="false">
+      <Module Name="RemoteInput" CatalogNumber="1756-IB16" Vendor="1" ProductType="7" ParentModule="RemoteRack" ParentModPortId="1" Inhibited="false" MajorFault="true">
         <Ports><Port Id="1" Address="4" Type="ICP" Upstream="true" /></Ports>
       </Module>
     </Modules>

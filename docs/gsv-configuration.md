@@ -308,11 +308,12 @@ controller reports Faulted and Device I/O retains the applied input.
 `module` name, the injected `fault_code` and `fault_info`, the `fault_id`
 for this occurrence, and `clear_ready`.
 
-Loss of an optional module leaves Run active. A fault injected while the
-module is inhibited, waiting or lacks a Running input does not trip the
-controller. Program-mode changes and isolated routine harnesses also
-leave the controller latch alone. The model covers direct injected loss.
-Downstream loss propagation and controller fault-handler execution remain open.
+Loss of an optional module leaves Run active unless it interrupts a
+[required connection downstream](#required-module-loss-through-an-upstream-fault).
+A module that was inhibited, waiting or unknown cannot directly trip the
+controller on a fault injection. Program-mode changes and isolated routine
+harnesses leave the controller latch alone. Controller fault-handler execution
+remains open.
 
 In **Module status lab**, set ModeCommand to 1 and ApplyMode to true,
 then Step once to uninhibit RackOutput and keep it required. Set
@@ -333,6 +334,27 @@ from a previous fault cannot clear a later one. The response is the updated
 emulator state. Clearing this simulated fault is a local control.
 [Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 [Rockwell Clear Faults help](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/studio-5000-logix-designer/controller-properties/clear-faults.html)
+
+## Required module loss through an upstream fault
+
+A simulated Faulted input on a routed upstream module can take a required
+downstream module from effective Running to Waiting during whole-project Run.
+This trips Type 3 Code 16 even when the upstream module is optional. The
+latched record names the required module in `module` and the injected source
+in `upstream_module`. Its `fault_code` and `fault_info` come from the injected
+upstream fault. The downstream module retains its own staged input and
+reports Waiting. If the upstream module also qualifies for a direct trip,
+it is reported first. Otherwise the first affected required module in source
+order is recorded.
+
+In **Module status lab**, RemoteInput is required and RemoteRack starts
+inhibited. Set RackModeCommand to 0, Step with ApplyRackMode true, then
+set ApplyRackMode back to false. Apply Running to RemoteRack and RemoteInput
+in **Device I/O**. Start Run and inject Faulted on RemoteRack. The controller
+fault names both modules. Restore both modules to effective Running before
+using **Clear I/O major fault**. Clearing the upstream input to Unknown
+leaves the controller fault latched.
+[Rockwell Module status help](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/status.html)
 
 ## Required module fault at Run entry
 

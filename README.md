@@ -146,17 +146,18 @@ and firmware-update inhibition in ladder and ST.
 adds LEDStatus and ForceStatus reads in ladder and ST. DINT destinations keep
 their upper word. [Named Module status](docs/gsv-configuration.md#named-module-status)
 reads the Mode word and reports Inhibited or Waiting for qualified modules.
-Waiting means a modeled parent or ancestor is inhibited. Ladder and ST can
-set Mode with SSV and read it back in the same scan. The **Module status lab**
+Waiting means a modeled parent or ancestor is inhibited or faulted. Ladder
+and ST can set Mode with SSV and read it back in the same scan. The **Module status lab**
 demonstrates these states and reads local and Ethernet routes, including
 [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
-trips a latched I/O major fault during whole-project Run. Restore the simulated
-connection and use **Clear I/O major fault** to return to Program with current
-tag values. An [explicitly faulted required connection at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
+trips a latched I/O major fault during whole-project Run, including when a
+[simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).
+Restore the affected connections and use **Clear I/O major fault** to return to
+Program with current tag values. An [explicitly faulted required connection at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
 trips before prescan.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.

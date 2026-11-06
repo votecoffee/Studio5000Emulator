@@ -226,6 +226,84 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(mode('Run')['running'])
         self.assertEqual(mode('Program')['mode'], 'Program')
 
+    def test_required_downstream_connection_loss_latches_when_parent_faults(self):
+        state = self.post('demo', {'sample':'ModuleStatusLab'})
+        generation = state['project_generation']
+        def set_connection(module, status, **details):
+            return self.post('module-connection', {
+                'project_generation':generation, 'module':module, 'state':status, **details})
+        def parent_fault():
+            return set_connection('RemoteRack', 'faulted', fault_code=0x0204, fault_info=-42)
+        def set_parent_mode(word):
+            self.post('write', {'tag':'RackModeCommand', 'value':word})
+            self.post('write', {'tag':'ApplyRackMode', 'value':True})
+            self.post('step', {'dt':25})
+            self.post('write', {'tag':'ApplyRackMode', 'value':False})
+        def mode(value):
+            return self.post('controller-mode', {'mode':value, 'dt':25})
+        def observe():
+            return self.post('observe', {})
+
+        set_parent_mode(0)
+        set_connection('RemoteRack', 'running')
+        self.assertTrue(mode('Run')['controller']['running'])
+        parent_fault()
+        self.assertTrue(observe()['controller']['running'])
+        mode('Program')
+
+        set_connection('RemoteRack', 'running')
+        set_connection('RemoteInput', 'running')
+        self.assertTrue(mode('Run')['controller']['running'])
+        before = observe()
+        parent_fault()
+        after = observe()
+        self.assertEqual(after['controller']['mode'], 'Faulted')
+        self.assertFalse(after['controller']['running'])
+        self.assertEqual(after['tags'], before['tags'])
+        record = after['controller']['module_major_fault']
+        fault_id = record['fault_id']
+        self.assertEqual(record, {'type':3, 'code':16, 'module':'remoteinput',
+                                  'upstream_module':'remoterack', 'fault_code':0x0204, 'fault_info':-42,
+                                  'fault_id':fault_id, 'clear_ready':False})
+        rows = {row['name']: row for row in after['module_simulation']}
+        self.assertEqual(rows['remoterack']['entry_status'], 0x1000)
+        self.assertEqual(rows['remoteinput']['entry_status'], 0x7000)
+        self.assertEqual(rows['remoteinput']['input']['state'], 'running')
+
+        def clear():
+            return self.post('module-major-fault-clear', {'project_generation':generation, 'fault_id':fault_id})
+
+        def reject_clear():
+            with self.assertRaises(HTTPError) as rejected:
+                clear()
+            self.assertEqual(rejected.exception.code, 400)
+            rejected.exception.close()
+
+        reject_clear()
+        set_connection('RemoteRack', 'clear')
+        unknown = observe()
+        child = next(row for row in unknown['module_simulation'] if row['name']=='remoteinput')
+        self.assertEqual(child['entry_status'], 0x4000)
+        self.assertFalse(unknown['controller']['module_major_fault']['clear_ready'])
+        reject_clear()
+
+        set_connection('RemoteRack', 'running')
+        set_connection('RemoteInput', 'clear')
+        reject_clear()
+        set_connection('RemoteInput', 'running')
+        self.assertTrue(observe()['controller']['module_major_fault']['clear_ready'])
+        cleared = clear()
+        self.assertEqual(cleared['controller']['mode'], 'Program')
+        self.assertEqual(cleared['scan'], after['scan'])
+        self.assertEqual(cleared['tags'], after['tags'])
+
+        set_parent_mode(1)
+        self.assertTrue(mode('Run')['controller']['running'])
+        parent_fault()
+        direct = observe()['controller']['module_major_fault']
+        self.assertEqual((direct['code'], direct['module']), (16, 'remoterack'))
+        self.assertNotIn('upstream_module', direct)
+
     def test_required_faulted_connection_blocks_run_entry_before_prescan(self):
         state = self.post('demo', {'sample':'ModuleStatusLab'})
         generation = state['project_generation']

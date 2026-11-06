@@ -112,9 +112,10 @@ function render() {
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
   if (moduleFault) {
+    const recovery = moduleFault.upstream_module ? 'the upstream and required modules' : 'the module';
     $('alert').textContent += moduleFault.clear_ready
       ? ' Clear the fault to return to Program with current tag values.'
-      : ' Restore the module to effective Running in Device I/O, then clear the fault.';
+      : ` Restore ${recovery} to effective Running in Device I/O, then clear the fault.`;
   }
   const provenance = state.provenance;
   $('provenance').textContent = `${provenance.method || 'L5X'}\nSHA-256: ${(provenance.original_acd_sha256 || report?.source_l5x_sha256 || '').slice(0,20)}…`;
