@@ -48,7 +48,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
 | Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
-| ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records and basic timed alarm state |
+| ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records, timed alarm state and suppression |
 | No dedicated model | 160 | No dedicated bounded named runtime model |
 
 Thus **62 entries have dedicated bounded models**. Each entry retains its

@@ -33,6 +33,19 @@ and gives a coincident count-reset request precedence over the increment.
 Delayed state and edge history roll back with tag writes after a failed
 advance. This model covers valid severity settings from 1 through 1000.
 
+## Suppression
+
+Set `ProgSuppress` or `OperSuppress` to latch `Suppressed`. Set
+`ProgUnsuppress` or `OperUnsuppress` to clear it. Unsuppress takes precedence
+when both are requested. Operator requests clear after each completed call,
+while program commands retain their values. Suppression preserves detection,
+minimum duration, latching and activation count. A previously unacknowledged
+alarm can still be acknowledged. While suppressed, a new activation preserves
+acknowledgment state. Clearing suppression on an active alarm that requires
+acknowledgment makes it unacknowledged again without incrementing the count.
+Prescan retains suppression and clears pending operator requests.
+[Rockwell alarm state model](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/proces-rm001_-en-p.pdf#page=60)
+
 ## Alarm Lab
 
 Select **Alarm lab** from Examples. Set `Trip` true and take three 10 ms
@@ -42,10 +55,16 @@ see the latched output hold. Pulse `Acknowledge` to clear
 `InAlarm`. Set `Healthy` false to activate the nonlatched `SignalAlarm`.
 Both records can be inspected from the ladder viewer and tag list.
 
+For suppression, reload Alarm Lab and set `MotorAlarm.ProgSuppress` and
+`Trip` true. After three 10 ms steps, the ladder block shows SUP and ALM.
+The alarm has counted one activation and is still acknowledged. Set
+`MotorAlarm.ProgUnsuppress` true and step. SUP clears, acknowledgment is
+required, and the count stays at one. Clear both program commands when done.
+
 ## Scope
 
-Suppression, shelving, timestamp generation, alarm messages/events and native
-packed records remain open. An attempted suppress, shelve or program-time
+Shelving, timestamp generation, alarm messages/events and native
+packed records remain open. An attempted shelve, unshelve or program-time
 command stops the modeled advance. ST, FBD, AOI alarms, ALMA and ASO remain
 separate. The native alarm discovery services still expose only verified empty
 catalogs. Runtime behavior is based on the installed v35 ALMD help and

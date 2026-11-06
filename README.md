@@ -338,8 +338,9 @@ configuration through GSV in ladder and ST. **System lab** shows task rates and
 watchdogs in microseconds, typed priorities, names and controller settings.
 
 [Ladder digital alarms](docs/ladder-alarm.md) import scalar `ALARM_DIGITAL`
-records and run ALMD minimum duration, latching, acknowledgment, reset and
-enable/disable. Choose **Alarm lab** to step through both alarm polarities.
+records and run ALMD minimum duration, latching, acknowledgment, reset,
+enable/disable and [suppression](docs/ladder-alarm.md#suppression).
+Choose **Alarm lab** to step through both alarm polarities and suppression.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

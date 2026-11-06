@@ -180,7 +180,7 @@
     },
     "ladder_alarm_model": {
       "label": "ALARM_DIGITAL model (partial)",
-      "remaining": "Suppression, shelving, timestamps, other languages and native alarm services/layouts.",
+      "remaining": "Shelving, timestamps, other languages and native alarm services/layouts.",
       "source": "source/logixlab/ladder_alarm.py"
     },
     "no_dedicated_model": {

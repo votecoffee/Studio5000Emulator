@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.192642` [ladder alarm suppression](ladder-alarm.md#suppression)
+adds program and operator commands. Alarm Lab shows that a suppressed alarm
+still activates and counts, and an active alarm requests acknowledgment when
+unsuppressed.
+
 Available in `26.1105.190432` [ladder digital alarms](ladder-alarm.md) add scalar
 Alarm-format ALARM_DIGITAL storage and ALMD execution. Alarm Lab demonstrates
 minimum duration, latch and acknowledgment/reset, and an active-low alarm.
