@@ -87,9 +87,12 @@ class ProgramHierarchy:
         children=source_children(controller,programs) if len(ordinary)==len(programs) else {}
         return cls(source_sha256,children,nulls)
 
+    def has_no_fault_routine(self,program,*,source_sha256):
+        return (source_sha256==self.source_sha256 and isinstance(program,str)
+                and program.casefold() in self._null_faults)
+
     def attributes(self,program,*,source_sha256):
-        if (source_sha256!=self.source_sha256 or not isinstance(program,str) or
-                program.casefold() not in self._null_faults):return {}
+        if not self.has_no_fault_routine(program,source_sha256=source_sha256):return {}
         return {9:bytes(4)}
 
     def child_attributes(self,program,*,source_sha256,source_acd_sha256,program_ids,

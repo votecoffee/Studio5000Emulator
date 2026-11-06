@@ -26,9 +26,28 @@ the skipped MOV.
 
 The bounded profile runs the assigned ladder routine during whole-project
 scans and keeps it out of prescan, normal routine calls and the isolated
-harness. Other instruction faults, Program fault subroutines, escalation
-to the Controller Fault Handler and native fault history remain open.
+harness. Other instruction faults, Program fault subroutines and native
+fault history remain open.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
+
+## Escalate an uncleared Program fault
+
+For the modeled MOV fault, the assigned Controller Fault Handler runs
+when the Program fault routine finishes without clearing the record or
+when the source confirms that the Program has no assigned fault routine.
+The controller handler and its ladder subroutines can use `THIS` or
+the handler Program's name to access the active simulated record. It
+retains the original Type 4 Code 20 and timestamp. The origin Program
+and routine are recorded in the browser's recovery data.
+
+The controller handler uses its own subroutine stack and runs with
+`S:FS` false. Both stages share the faulting scan's instruction budget.
+If the controller handler clears the record, execution resumes after the
+failed MOV and the scan commits both handlers' diagnostic writes.
+A handler execution error or an uncleared fault rolls back the scan.
+The browser names the routine that cleared the fault.
+
+[Rockwell controller fault handler configuration](https://www.rockwellautomation.com/en-no/docs/studio-5000-logix-designer/37-00/contents-ditamap/studio-5000-logix-designer/controller-properties/configure-a-controller-fault-handler-program.html)
 
 ## Simulated I/O fault capture
 
@@ -56,8 +75,8 @@ of the emulator UTC timestamp in microseconds. Word 2 holds Type in its
 low half and Code in its high half. The eight fault-specific Info words
 are unknown. The browser and HTTP fault record retain the injected module
 code and information independently. The read is available inside the
-executing handler. Program-specific fault routines, additional fault types
-and native handler references remain open.
+executing handler. Additional I/O fault types and native handler references
+remain open.
 The existing recovery control can clear a fault after the simulated
 connection is restored.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)

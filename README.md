@@ -165,6 +165,7 @@ Its main routine can [call ladder diagnostic subroutines](docs/controller-handle
 and commit their tag writes and fault clearing together.
 A separate [ladder Program fault routine](docs/controller-handlers.md#recover-a-ladder-mov-array-fault)
 can clear an out-of-bounds MOV fault and continue at the next instruction.
+The Controller Fault Handler can [recover an uncleared MOV fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

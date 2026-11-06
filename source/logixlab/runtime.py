@@ -780,26 +780,43 @@ class Engine:
         return self._record_tag_changes(before)
 
     def _recover_ladder_move(self, op, scope, error):
-        key = self.project.program_fault_routines.get(scope)
-        if (op.name != 'MOV' or self.mode != 'project' or not key
+        program_handler = self.project.program_fault_routines.get(scope)
+        controller_handler = self.project.fault_handler_routine
+        if (op.name != 'MOV' or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
             return False
-        # The handler has no JSR/SBR/RET and shares the scan transaction and budget.
+        if not program_handler and (not controller_handler or not self.project.program_hierarchy.has_no_fault_routine(
+                scope, source_sha256=self.project.sha256)):
+            return False
         routine = self._executing_routine.key
         fault = {'type':4, 'code':20, 'program':scope, 'routine':routine,
-                 'instruction':'MOV', 'detail':str(error), 'timestamp_us':current_value_microseconds(),
-                 'handler':{'routine':self.project.routines[key].key, 'status':'cleared'}}
-        message = f"Program fault 4/20 in {routine}: {error}"
+                 'instruction':'MOV', 'detail':str(error), 'timestamp_us':current_value_microseconds()}
         self._program_fault = fault
+        handler = program_handler
+        profile = 'Program fault routine'
         try:
-            self._routine(key, 0)
-            if not self._handler_clear_requested:
-                raise ModelError('Program fault routine completed without clearing the fault')
+            if program_handler:
+                self._routine(program_handler, 0)
+            if not self._handler_clear_requested and controller_handler:
+                handler = controller_handler
+                profile = 'Controller Fault Handler'
+                # The unscheduled handler has its own call stack and no first-scan bit.
+                # Both handlers still share the faulting scan's budget and transaction.
+                stack, first_scan = self.calls.stack, self.memory.first_scan
+                self.calls.stack, self.memory.first_scan = [], False
+                try:
+                    self._routine(controller_handler, 0)
+                finally:
+                    self.calls.stack, self.memory.first_scan = stack, first_scan
+            cleared = self._handler_clear_requested
         except ModelError as failure:
-            raise ModelError(f"{message}. {failure}") from failure
+            raise ModelError(f"Program fault 4/20 in {routine}: {error}. {profile}: {failure}") from failure
         finally:
             self._program_fault = None
             self._handler_clear_requested = False
+        if not cleared:
+            raise ModelError(f"Program fault 4/20 in {routine}: {error}. {profile} completed without clearing the fault")
+        fault['handler'] = {'routine':self.project.routines[handler].key, 'status':'cleared'}
         self.last_cleared_program_fault = fault
         return True
 

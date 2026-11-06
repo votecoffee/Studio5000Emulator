@@ -401,10 +401,10 @@ def _handler_fault(engine, instance, scope, *, executing):
         raise ModelError('MajorFaultRecord requires THIS or the current Controller Fault Handler Program')
     if not executing:
         return None
-    fault = engine.module_major_fault
+    fault = engine._program_fault if engine._program_fault is not None else engine.module_major_fault
     current = engine._executing_routine
     if current is None or current.key.lower() not in engine.project.fault_handler_routines or fault is None:
-        raise ModelError('MajorFaultRecord requires an active simulated I/O major fault in the handler')
+        raise ModelError('MajorFaultRecord requires an active simulated major fault in the handler')
     return fault
 
 

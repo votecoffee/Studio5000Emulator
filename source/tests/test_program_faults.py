@@ -43,11 +43,48 @@ def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None,
     rungs(ET.SubElement(recovery,'RLLContent'),handler+([handler_tail] if handler_tail else []))
 
 
-def ladder_fault_load(**options):
+def controller_fault_fallback_fixture(root, *, clear_at_program=False, clear_at_controller=True,
+                                      program_tail=None, controller_tail=None, main_tail=None):
+    ladder_fault_fixture(root, clear=clear_at_program, handler_tail=program_tail, main_tail=main_tail)
+    controller = root.find('Controller')
+    program = controller.find('./Programs/Program')
+    if clear_at_program is None:
+        del program.attrib['FaultRoutineName']
+        routines = program.find('Routines')
+        routines.remove(routines.find('./Routine[@Name="RecoverMove"]'))
+    controller.set('MajorFaultProgram','FaultHandler')
+    fault_handler = ET.SubElement(controller.find('Programs'),'Program',Name='FaultHandler',
+                                  MainRoutineName='Capture',Disabled='false',Class='Standard')
+    tags = ET.SubElement(fault_handler,'Tags')
+    for name in ('SeenCode','InputCode','ReturnCode'):
+        tag = ET.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base')
+        ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value='0')
+    routines = ET.SubElement(fault_handler,'Routines')
+
+    def add(name, lines):
+        routine = ET.SubElement(routines,'Routine',Name=name,Type='RLL')
+        content = ET.SubElement(routine,'RLLContent')
+        for index,line in enumerate(lines):
+            rung = ET.SubElement(content,'Rung',Number=str(index),Type='N')
+            ET.SubElement(rung,'Text').text = line
+
+    add('Capture',['JSR(Report,1,1310724,SeenCode);'])
+    lines = ['SBR(InputCode);','GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
+             'MOV(FaultWords[2],ReturnCode);']
+    if clear_at_controller:
+        lines.append('EQU(ReturnCode,InputCode)CLR(FaultWords[2])'
+                     'SSV(Program,FaultHandler,MajorFaultRecord,FaultWords[0]);')
+    if controller_tail:
+        lines.append(controller_tail)
+    add('Report',lines+['RET(ReturnCode);'])
+
+
+def ladder_fault_load(*, controller_fallback=False, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
-    ladder_fault_fixture(root, **options)
+    build = controller_fault_fallback_fixture if controller_fallback else ladder_fault_fixture
+    build(root, **options)
     return {'name':'LadderProgramFault.L5X', 'content':base64.b64encode(ET.tostring(root)).decode()}
 
 
@@ -182,3 +219,103 @@ class ProgramFaultTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
             harness.step()
         self.assertIsNone(harness.last_cleared_program_fault)
+
+    def test_unhandled_move_fault_reaches_controller_handler_and_resumes(self):
+        for clear_at_program, expected in (
+            (True,'MainProgram/RecoverMove'), (False,'FaultHandler/Capture'), (None,'FaultHandler/Capture')
+        ):
+            with self.subTest(clear_at_program=clear_at_program):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:controller_fault_fallback_fixture(
+                    root, clear_at_program=clear_at_program))
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('StartPB',True)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['program']), (4,20,'MainProgram'))
+                self.assertEqual(fault['handler'], {'routine':expected,'status':'cleared'})
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.memory.read('SpeedSetpoint'),91)
+                self.assertEqual(engine.memory.read('FaultWords[2]'),0)
+                self.assertEqual(engine.memory.read('CapturedFault'),0 if clear_at_program is None else 1310724)
+                self.assertEqual(engine.memory.read('SeenCode','FaultHandler'),0 if clear_at_program else 1310724)
+                expected_trace = [key for key,enabled in (
+                    ('MainProgram/RecoverMove',clear_at_program is not None),
+                    ('FaultHandler/Report',not clear_at_program),
+                    ('FaultHandler/Capture',not clear_at_program),
+                    ('MainProgram/MainRoutine',True),
+                ) if enabled]
+                self.assertEqual(list(dict.fromkeys(row['routine'] for row in engine.trace)),expected_trace)
+                self.assertIsNone(engine.module_major_fault)
+                self.assertIsNone(engine.last_cleared_module_fault)
+                self.assertEqual(engine.calls.stack,[])
+
+    def test_controller_fallback_rolls_back_both_handlers_on_failure(self):
+        cases = (
+            ({'clear_at_controller':False},'Controller Fault Handler completed without clearing'),
+            ({'controller_tail':'DIV(1,0,SpeedSetpoint);'},'Controller Fault Handler: DIV divide by zero'),
+            ({'program_tail':'MOV(LabValues[LabIndex],SpeedSetpoint);'},'Program fault routine: Array index outside bounds'),
+            ({'main_tail':'DIV(1,0,SpeedCommand);'},'divide by zero'),
+        )
+        for options, expected in cases:
+            with self.subTest(options=options):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:controller_fault_fallback_fixture(root,**options))
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,expected):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertEqual((engine.scan_count,engine.time_ms,engine.trace,engine.changes),(0,0,[],[]))
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertIsNone(engine._program_fault)
+                self.assertFalse(engine._handler_clear_requested)
+                self.assertEqual(engine.calls.stack,[])
+
+    def test_controller_fallback_requires_proof_that_a_program_handler_is_absent(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root,clear_at_program=None)
+            root.find('./Controller/Programs/Program').set('FaultRoutineName','Unresolved')
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.read('SeenCode','FaultHandler'),0)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_controller_fallback_restores_the_interrupted_call_and_first_scan(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root,clear_at_program=None)
+            programs = root.find('./Controller/Programs')
+            routines = programs.find('./Program/Routines')
+            main = routines.find('./Routine/RLLContent')
+            previous = [rung.findtext('Text') for rung in main]
+            main.clear()
+            sub = ET.SubElement(routines,'Routine',Name='FaultingCall',Type='RLL')
+            content = ET.SubElement(sub,'RLLContent')
+            lines = ['SBR(SpeedCommand);', *previous,
+                     'XIC(S:FS)MOV(52,SpeedCommand);', 'RET(SpeedCommand);']
+            for index,line in enumerate(lines):
+                rung = ET.SubElement(content,'Rung',Number=str(index),Type='N')
+                ET.SubElement(rung,'Text').text = line
+            ET.SubElement(ET.SubElement(main,'Rung',Number='0',Type='N'),'Text').text = (
+                'JSR(FaultingCall,1,50,SpeedSetpoint);')
+            handler = programs.find('./Program[@Name="FaultHandler"]/Routines/Routine/RLLContent')
+            rung = ET.SubElement(handler,'Rung',Number='1',Type='N')
+            ET.SubElement(rung,'Text').text = 'XIC(S:FS)MOV(-1,SeenCode);'
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['routine'],'MainProgram/FaultingCall')
+        self.assertEqual(engine.memory.read('SeenCode','FaultHandler'),1310724)
+        self.assertEqual(engine.memory.read('SpeedSetpoint'),52)
+        self.assertEqual(engine.calls.stack,[])
