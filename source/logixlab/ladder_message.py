@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, replace
 
 from .integer_math import CONTROLLERS
-from .model import ModelError
+from .model import ModelError, coerce
 
 MAX_ELEMENTS = 64
 MAX_PENDING = 32
@@ -151,17 +151,22 @@ def _region(memory, endpoint, start, count, *, remote, write):
     raise TransferError(0x05)
 
 
+def _control_key(engine, name, scope, instruction):
+    key = name.casefold()
+    if key not in engine.project.message_configs:
+        tag = engine.project.tags.get(key)
+        detail = f': {tag.problem}' if tag and tag.dtype.upper() == 'MESSAGE' and tag.problem else ''
+        raise ModelError(f'{instruction} requires a directly named controller MESSAGE with supported configuration' + detail)
+    if f'program:{scope.casefold()}.{key}' in engine.project.tags:
+        raise ModelError(f'{instruction} controller MESSAGE is shadowed by a program tag')
+    return key
+
+
 def validate(engine, op, scope, kind='RLL'):
     if kind != 'RLL' or engine.mode != 'project' or scope in engine.memory.frames:
         raise ModelError('MSG requires a whole-project ladder scan outside AOIs')
-    key = op.args[0].casefold()
-    configuration = engine.project.message_configs.get(key)
-    if configuration is None:
-        tag = engine.project.tags.get(key)
-        detail = f': {tag.problem}' if tag and tag.dtype.upper() == 'MESSAGE' and tag.problem else ''
-        raise ModelError('MSG requires a directly named controller MESSAGE with supported configuration' + detail)
-    if f'program:{scope.casefold()}.{key}' in engine.project.tags:
-        raise ModelError('MSG controller MESSAGE is shadowed by a program tag')
+    key = _control_key(engine, op.args[0], scope, op.name)
+    configuration = engine.project.message_configs[key]
     try:
         # A variable start needs a valid array shape, independent of its saved index.
         _region(engine.memory, configuration.local, configuration.local.start(0), configuration.count,
@@ -169,6 +174,47 @@ def validate(engine, op, scope, kind='RLL'):
     except TransferError as error:
         raise ModelError(f'MSG local element cannot address the requested numeric span (16#{error.code:04X})') from error
     return key
+
+
+def matches_timeout_attribute(op):
+    return (len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args)
+            and op.args[0].casefold() == 'message'
+            and op.args[2].casefold() == 'unconnectedtimeout')
+
+
+def _timeout_operand(memory, ref, scope, instruction):
+    resolve = memory.resolve if instruction == 'SSV' else memory.check_writable
+    key, parts, dtype = resolve(ref, scope)
+    if dtype not in ('DINT', 'TIME32') or isinstance(memory.at(key, parts), (list, dict)):
+        raise ModelError(f'{instruction} Message UnconnectedTimeout requires one scalar DINT or TIME32 tag')
+    return key, parts, dtype
+
+
+def validate_timeout_attribute(engine, op, scope, kind):
+    memory = engine.memory
+    if kind != 'RLL' or engine.mode != 'project' or scope in memory.frames:
+        raise ModelError('Message UnconnectedTimeout requires a whole-project ladder scan outside AOIs')
+    _control_key(engine, op.args[1], scope, op.name)
+    previous = memory.structural
+    memory.structural = True
+    try:
+        _timeout_operand(memory, op.args[3], scope, op.name)
+    finally:
+        memory.structural = previous
+
+
+def execute_timeout_attribute(engine, op, scope):
+    memory = engine.memory
+    control = _control_key(engine, op.args[1], scope, op.name)
+    key, parts, dtype = _timeout_operand(memory, op.args[3], scope, op.name)
+    record = memory.values[control]
+    if op.name == 'SSV':
+        value = memory.at(key, parts)
+        if type(value) is not int or value <= 0:
+            raise ModelError('SSV Message UnconnectedTimeout requires a known positive value')
+        record['UnconnectedTimeout'] = value
+    else:
+        memory.store(key, parts, coerce(record['UnconnectedTimeout'], dtype))
 
 
 def prescan(engine, op, scope):

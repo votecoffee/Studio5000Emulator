@@ -486,12 +486,12 @@ class Engine:
         if n=='MCR':mcr.profile(self.project);return
         if n=='DTR':data_transition.validate(self.memory,op,scope);return
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
-        if n=='SSV':system_values.validate_set(self,op,scope);return
+        if n=='SSV':system_values.validate_set(self,op,scope,kind=kind);return
         if n=='IOT':immediate_output.validate(self,op,scope);return
         if n=='MSG':ladder_message.validate(self,op,scope,kind);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
-        if n=='GSV':system_values.validate(self,op,scope);return
+        if n=='GSV':system_values.validate(self,op,scope,kind=kind);return
         if n in control_operations.INSTRUCTIONS:control_operations.validate(self.memory,op,scope);return
         if n in sequencer_operations.INSTRUCTIONS:sequencer_operations.validate(self.memory,op,scope);return
         if n in numeric_conversions.INSTRUCTIONS:numeric_conversions.preflight(self.memory,op,scope);return

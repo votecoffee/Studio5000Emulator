@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.175911` ladder [Message UnconnectedTimeout](ladder-message.md)
+GSV and SSV read or set the live timeout using DINT or TIME32. Message lab
+shows same-scan readback and preserves a queued request’s captured deadline.
+
 Available in `26.1106.175022` [ladder MSG](ladder-message.md) enforces
 UnconnectedTimeout against simulated time. Message lab demonstrates an expired
 request retaining the destination and a fresh ladder-triggered retry.

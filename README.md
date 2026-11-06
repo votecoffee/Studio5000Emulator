@@ -158,7 +158,8 @@ The Device I/O tab sets the simulated input and displays the effective state.
 [Ladder MSG](docs/ladder-message.md) runs simulated data-table reads and
 writes on the unconnected THIS path. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
-and simulated timeouts with ladder-controlled retries.
+and simulated timeouts with ladder-controlled retries. Ladder GSV and SSV
+can read and set the message timeout.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

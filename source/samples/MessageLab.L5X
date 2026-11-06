@@ -19,6 +19,7 @@
       <Tag Name="ReadRemoteIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="ApplyReadTimeout" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ReadTimeoutUs" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="10000" /></Data></Tag>
+      <Tag Name="ReadTimeoutEcho" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="0" /></Data></Tag>
       <Tag Name="CancelRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ReadValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="WriteValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="42" /></Data></Tag>
@@ -63,7 +64,7 @@
               <Rung Number="4" Type="N"><Text>XIC(SetReadIndices)MOV(ReadLocalIndex,RealReadControl.LocalIndex)MOV(ReadRemoteIndex,RealReadControl.RemoteIndex);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(SendTyped)MSG(RealReadControl);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(SendTyped)MSG(WideWriteControl);</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(ApplyReadTimeout)MOV(ReadTimeoutUs,ReadControl.UnconnectedTimeout);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ApplyReadTimeout)SSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutUs)GSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutEcho);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

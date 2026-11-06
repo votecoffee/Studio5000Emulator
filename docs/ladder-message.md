@@ -41,8 +41,9 @@ Tag Watch, clear UseAlternateRead first.
 
 For a timeout and retry, use the default 10 ms scan interval and start
 with a fresh Message Lab. Set ApplyReadTimeout to 1 and step once with
-SendRead off to copy ReadTimeoutUs (10,000) into UnconnectedTimeout. Set
-SendRead to 1 and step three times. The read sets ER and leaves ReadValue
+SendRead off. SSV sets UnconnectedTimeout to ReadTimeoutUs (10,000), and
+GSV reads it back into the TIME32 tag ReadTimeoutEcho. Set SendRead to 1
+and step three times. The read sets ER and leaves ReadValue
 untouched. Set ReadTimeoutUs to 20,000 and step with SendRead off. Turn
 SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
 
@@ -86,6 +87,11 @@ SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
   performs no transfer. A zero or negative setting reports 16#0003 when
   triggered. Prescan retains the live timeout and Reset restores the default.
   A false scan rearms the instruction for a ladder-controlled retry.
+- Ladder GSV and SSV support the named Message instance's UnconnectedTimeout
+  with a single DINT or TIME32 tag operand. SSV requires a known positive
+  value. A later GSV in the same scan reads the setting immediately. A
+  pending MSG keeps its captured deadline. A later scan fault rolls back
+  the SSV setting and GSV destination together.
 - Up to 32 requests may be pending. Completion uses submission order and
   snapshots the source span before changing the destination. Status and data
   roll back together if a later rung faults in the same controller advance.

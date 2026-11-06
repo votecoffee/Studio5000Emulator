@@ -95,6 +95,7 @@ class MessageTests(unittest.TestCase):
         memory.write('ApplyReadTimeout', True)
         engine.step()
         self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=10_000)
+        self.assertEqual(memory.read('ReadTimeoutEcho', allow_time=True), 10_000)
         memory.write('SendRead', True)
         engine.step()
         self.assert_flags(engine, 'ReadControl', EN=True, EW=True)
@@ -102,6 +103,7 @@ class MessageTests(unittest.TestCase):
         memory.write('ReadTimeoutUs', 10_001)
         engine.step()
         self.assert_flags(engine, 'ReadControl', ST=True, UnconnectedTimeout=10_001)
+        self.assertEqual(memory.read('ReadTimeoutEcho', allow_time=True), 10_001)
         engine.step()
         self.assert_flags(engine, 'ReadControl', EN=True, ST=False, ER=True, ERR=0xFE, DN=False, DN_LEN=0, TO=False)
         self.assertEqual(memory.read('ReadValue'), 0)
@@ -146,6 +148,87 @@ class MessageTests(unittest.TestCase):
         engine.enter_run()
         self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=4_000_000)
         self.assert_flags(Engine(engine.project), 'ReadControl', UnconnectedTimeout=30_000_000)
+
+    def test_message_timeout_ssv_accepts_time32_and_gsv_returns_exact_dint(self):
+        def configure(root):
+            for name, dtype in [('ReadTimeoutUs', 'TIME32'), ('ReadTimeoutEcho', 'DINT')]:
+                tag = root.find(f'.//Tag[@Name="{name}"]')
+                tag.set('DataType', dtype)
+                tag.find('Data/DataValue').set('DataType', dtype)
+            root.find('.//Rung[@Number="7"]/Text').text = (
+                'XIC(ApplyReadTimeout)SSV(message,readcontrol,unconnectedtimeout,ReadTimeoutUs)'
+                'GSV(MESSAGE,READCONTROL,UNCONNECTEDTIMEOUT,ReadTimeoutEcho);')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('ReadTimeoutUs', 'T32#20ms')
+        engine.memory.write('ApplyReadTimeout', True)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=20_000)
+        self.assertEqual(engine.memory.read('ReadTimeoutEcho'), 20_000)
+
+    def test_message_timeout_attribute_defers_live_indices_and_establishes_unknown_output(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            for name, dtype in [('TimeoutSources', 'TIME32'), ('TimeoutDestinations', 'DINT')]:
+                tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype, Dimensions='2')
+                data = ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType=dtype, Dimensions='2')
+                ET.SubElement(data, 'Element', Index='[0]' if dtype == 'TIME32' else '[1]', Value='21000')
+            root.find('.//Tag[@Name="ReadLocalIndex"]/Data/DataValue').set('Value', '99')
+            root.find('.//Rung[@Number="7"]/Text').text = (
+                'XIC(ApplyReadTimeout)SSV(Message,ReadControl,UnconnectedTimeout,TimeoutSources[ReadLocalIndex])'
+                'GSV(Message,ReadControl,UnconnectedTimeout,TimeoutDestinations[ReadLocalIndex]);')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=30_000_000)
+        engine.memory.write('ApplyReadTimeout', True)
+        engine.memory.write('ReadLocalIndex', 0)
+        engine.step()
+        self.assertEqual(engine.memory.read('TimeoutDestinations[0]'), 21_000)
+        engine.memory.write('ReadLocalIndex', 1)
+        with self.assertRaisesRegex(ModelError, 'requires a known positive value'):
+            engine.step()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=21_000)
+
+    def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
+        def configure(root):
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='8', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+
+        engine = self.engine(configure)
+        engine.memory.write('ApplyReadTimeout', True)
+        engine.memory.write('CancelRead', True)
+        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+            engine.step()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=30_000_000)
+        self.assertEqual(engine.memory.read('ReadTimeoutEcho', allow_time=True), 0)
+
+    def test_message_timeout_attribute_blocks_unqualified_instances_and_types(self):
+        for call in ('SSV(Message,,UnconnectedTimeout,ReadTimeoutUs)',
+                     'GSV(Message,ReadValue,UnconnectedTimeout,ReadTimeoutEcho)',
+                     'GSV(Message,ReadControl,UnconnectedTimeout,SendRead)',
+                     'SSV(Message,ReadControl,UnconnectedTimeout,10000)',
+                     'SSV(Message,ReadControl,ConnectionRate,ReadTimeoutUs)'):
+            with self.subTest(call=call):
+                def configure(root):
+                    root.find('.//Rung[@Number="7"]/Text').text = f'XIC(ApplyReadTimeout){call};'
+
+                self.assertTrue(self.engine(configure).blockers)
+
+    def test_message_timeout_attribute_remains_ladder_only(self):
+        def configure(root):
+            routine = root.find('.//Routine')
+            routine.set('Type', 'ST')
+            routine.remove(routine.find('RLLContent'))
+            content = ET.SubElement(routine, 'STContent')
+            ET.SubElement(content, 'Line', Number='0').text = 'GSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutEcho);'
+            ET.SubElement(content, 'Line', Number='1').text = 'SSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutUs);'
+
+        blockers = self.engine(configure).blockers
+        self.assertTrue(any('GSV' in problem and 'whole-project ladder scan' in problem for problem in blockers))
+        self.assertTrue(any('SSV' in problem and 'whole-project ladder scan' in problem for problem in blockers))
 
     def test_array_offsets_and_overlapping_source_snapshot(self):
         def configure(root):
