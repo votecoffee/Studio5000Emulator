@@ -34,7 +34,7 @@
 </div></div>
 <div id="devices" class="tab-content" hidden><div class="section-heading"><h2>External device simulation</h2><span id="device-badge" class="badge">EXTERNAL TAGS READ ONLY</span></div><div class="eip-body">
 <h3>SIMULATED MODULE CONNECTIONS</h3>
-<p class="limits">Set a connection input for a configured module and step or run the logic to exercise GSV diagnostics.</p>
+<p class="limits">Set a connection input for a configured module and step or run the logic to exercise GSV diagnostics and IOT captures.</p>
 <p id="module-simulation-empty" class="limits">No qualified modules in the loaded project.</p>
 <form id="module-connection-form" hidden>
 <div class="eip-controls">
@@ -49,6 +49,10 @@
 <p id="module-connection-summary" class="eip-address"></p>
 <p id="module-connection-feedback" class="limits" role="status"></p>
 </form>
+<details id="immediate-outputs" hidden>
+<summary>Last immediate outputs (IOT)</summary>
+<pre id="immediate-output-values" class="eip-address"></pre>
+</details>
 <h3>EXTERNAL TAG ACCESS</h3>
 <p class="limits">Monitor committed tag snapshots over the local device API or the optional MQTT bridge. External clients read a cached copy, independently of the scan loop.</p>
 <div class="eip-controls"><label><input id="device-writes" type="checkbox"> Allow external tag writes</label><button id="device-apply" class="primary">Apply device access</button></div>

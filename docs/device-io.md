@@ -13,6 +13,35 @@ This is a best-effort software interface, not a real-time motion bus. Snapshot
 capture still has a fixed copying cost. It publishes current state, with bounded
 buffers and coalescing; it does not record every intermediate tag transition.
 
+## Immediate output captures
+
+Ladder IOT supports a whole controller output tag such as Local:2:O when the
+project proves the slot of a local rack module and its simulated connection
+is effectively Running. Supported output images contain a scalar, a flat
+array or a flat user-defined record with up to 64 scalar cells. The allowed
+cell types are BOOL, SINT, INT, DINT, USINT, UINT, UDINT and REAL. The image
+must be fully known when the instruction runs.
+
+IOT captures the value at the instruction. The capture is published after the
+scan commits and can differ from the live tag at the end of that scan. The
+Device I/O tab and the cached device snapshot show the latest committed image
+per output tag. The snapshot field is immediate_outputs. Each row includes
+module, tag, value, scan, simulation_ms and a per-tag sequence. Multiple calls
+can advance the sequence more than once in one scan. A faulted scan discards
+its pending images. Resetting or replacing the project clears them. A false
+rung or a closed connection leaves the prior image and sequence in place.
+
+Try **Module status lab**. Set ModeCommand to 1 and ApplyMode to true, then set
+RackOutput to Running in **Device I/O**. Set SendImmediate to true and step.
+Expand **Last immediate outputs (IOT)** to see 17. The live Local:2:O tag
+ends the scan at 29.
+
+This models instruction-time sampling for a simulated device. Cyclic module
+traffic, RPI resets, produced-tag triggers, remote outputs, vendor module
+layouts and ST IOT remain outside this profile.
+
+[Rockwell IOT reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/immediate-output--iot-.html)
+
 ## Start with MQTT
 
 Use an MQTT 3.1.1 broker, such as [Eclipse Mosquitto](https://mosquitto.org/).

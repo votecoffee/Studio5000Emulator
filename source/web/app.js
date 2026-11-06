@@ -84,6 +84,10 @@ function render() {
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
   renderConnectivity();
   renderModuleSimulation();
+  const outputs=state?.immediate_outputs||[];
+  $('immediate-outputs').hidden=!outputs.length;
+  $('immediate-output-values').textContent=outputs.map(row=>
+    row.module+' · '+row.tag+' · Scan '+row.scan+' · '+row.simulation_ms+' ms · Send '+row.sequence+'\n'+JSON.stringify(row.value)).join('\n\n');
   const device=state?.device_io||{};
   $('device-badge').textContent=device.writes_enabled?'EXTERNAL TAG WRITES ENABLED':'EXTERNAL TAGS READ ONLY';
   $('device-writes').checked=!!device.writes_enabled;

@@ -270,6 +270,7 @@ class Application:
                 "module_simulation": gsv_configuration.simulated_module_connections(e),
                 'entry_routines':e.entries,
                 "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
+                'immediate_outputs':list(e.immediate_outputs.values()),
                 "changes": time_values.display_changes(e.changes, tags), "provenance": self.provenance,
                 "tasks": e.project.tasks, "task_schedule":e.scheduler_description(), "converter": self.converter,
                 'aoi_definitions':{name:{'name':aoi.name,'description':aoi.description,

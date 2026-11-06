@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.165122` [ladder IOT](device-io.md#immediate-output-captures)
+captures a running local module's output image at the instruction and publishes
+it through Device I/O after scan commit. The Module status lab shows the
+difference between the captured image and the later live tag value.
+
 Available in `26.1106.164130` [FOR operand monitoring](logic-viewer.md#for-loop-operand-values)
 shows the held index at exit, the last successful bound reads, the number
 of routine visits, and the exit reason.

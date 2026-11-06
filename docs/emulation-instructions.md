@@ -1,7 +1,7 @@
 # Instruction execution inventory
 
 Audited 2026-11-04; BCD FAL/FSC expressions added for app `26.1104.123302`. Language priority is ladder, then ST, then FBD, then SFC;
-new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **106 built-in
+new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **107 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -75,7 +75,7 @@ with its existing integer, REAL and LREAL destination types.
 | Equipment Sequence Instructions | — | — | `SASI`, `SATT`, `SCLF`, `SCMD`, `SDET`, `SOVR` |
 | Filter Instructions | — | — | `HPF`, `LDL2`, `NTCH` (ST/FBD DERV and ST-only LPF software model listed above) |
 | For Break Instructions | `BRK`, `FOR` | — | — |
-| Input/Output Instructions | `GSV`, `SSV` | — | `IOT`, `MSG` |
+| Input/Output Instructions | `GSV`, `SSV`, [`IOT`](device-io.md#immediate-output-captures) | — | `MSG` |
 | License Instructions | — | — | `LV` |
 | Math Conversion Instructions | `DEG`, `FRD`, `RAD`, `TOD`, `TRN` | — | — |
 | Metal Form Instructions | — | — | `AVC`, `CBCM`, `CBIM`, `CBSSM`, `CPM`, `CSM`, `EPMS`, `MMVC`, `MVC` |

@@ -97,6 +97,9 @@ class DeviceIO:
                     'simulation_ms': engine.time_ms, 'captured_at': datetime.now(timezone.utc).isoformat(),
                     'fault': engine.fault, 'blocked': bool(engine.blockers),
                     'tag_count': len(tags), 'truncated': len(tags) > MAX_TAGS}
+        immediate = getattr(engine,'immediate_outputs',None)
+        if immediate:
+            metadata['immediate_outputs'] = tuple(immediate.values())
         with self.lock:
             self.sequence += 1; metadata['sequence'] = self.sequence
             self.frame = (metadata, tuple(rows)); self.captures += 1; self.last_capture = self.clock()

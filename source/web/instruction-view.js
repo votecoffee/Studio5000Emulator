@@ -51,6 +51,7 @@
   add('ALMD', 'Digital Alarm', 'ALMD|ProgAck|ProgReset|ProgDisable|ProgEnable|MinDurationPRE|MinDurationACC');
   add('ALMA', 'Analog Alarm', 'ALMA|In|ProgAckAll|ProgDisable|ProgEnable');
   add('PID', 'PID', 'PID|Process Variable|Tieback|Control Variable|PID Master Loop|Inhold Bit|Inhold Value');
+  add('IOT', 'Immediate Output', 'Update Tag');
 
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
   const inline = new Set([...contacts, ...coils, 'ONS', 'AFI', 'NOP', 'MCR', 'TND', 'BRK', 'UID', 'UIE', 'JMP', 'LBL']);

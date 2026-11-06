@@ -6,7 +6,7 @@ from collections import Counter
 from time import perf_counter_ns
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
-from . import gsv_configuration, program_control
+from . import gsv_configuration, immediate_output, program_control
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
@@ -101,6 +101,8 @@ class Engine:
         self._task_scheduler = None
         self._module_modes = {}
         self._module_connections = {}
+        self.immediate_outputs = {}
+        self._immediate_output_advance = None
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}
@@ -482,6 +484,7 @@ class Engine:
         if n=='DTR':data_transition.validate(self.memory,op,scope);return
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
         if n=='SSV':system_values.validate_set(self,op,scope);return
+        if n=='IOT':immediate_output.validate(self,op,scope);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -708,6 +711,7 @@ class Engine:
         self._timing_advance=TimingAdvance(timings,task_timings)
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
                                                        set(self._activation_prescan_pending))
+        self._immediate_output_advance = {}
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             task_wall_time=current_value_microseconds() if single_timing else None
@@ -770,6 +774,8 @@ class Engine:
             self._task_measurements=measured
             self._task_scan_timings=task_timings
             if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
+            if self._immediate_output_advance:
+                self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
             self._module_modes = module_modes
@@ -789,6 +795,7 @@ class Engine:
             self._timing_advance=None
             self._program_advance=None
             self._scan_controller_status=None
+            self._immediate_output_advance=None
         return self._record_tag_changes(before)
 
     def _recover_ladder_array_fault(self, op, scope, error):
@@ -963,6 +970,9 @@ class Engine:
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
         if n=='SSV':return system_values.execute_set(self,op,p,scope)
+        if n=='IOT':
+            if p:immediate_output.execute(self,op,scope)
+            return p
         if n=='EVENT':return event_tasks.execute(self,op,p,scope)
         if n in ('UID','UIE'):return event_tasks.execute_interrupt(self,op,p,scope)
         if n=='GSV':
@@ -1205,6 +1215,7 @@ class Engine:
                 'string_operations':string_operations.description(),
                 'string_conversions':string_conversions.description(),
                 'system_values':system_values.description(),
+                'immediate_output':immediate_output.description(),
                 'task_scan_timing':dict(tasks_available=len(self._task_scan_timings),
                     tasks={name:dict(last_us=t.last_ns//1000,maximum_us=t.maximum_ns//1000,executions=t.executions,
                                     minimum_interval_us=t.minimum_interval_ns//1000,maximum_interval_us=t.maximum_interval_ns//1000,
