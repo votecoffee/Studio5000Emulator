@@ -92,6 +92,24 @@ scan rollback.
 [Rockwell move and logical instructions](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/move-logical-instructions.html)
 [Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
 
+## Recover FLL, CLR and SWPB array faults
+
+During whole-project ladder execution, a reached out-of-bounds array
+subscript in FLL, CLR or SWPB can raise Type 4 Code 20. If either fault
+handler clears it, the instruction skips its writes and the rung
+continues. The next visit resolves the current array addresses.
+
+FLL resolves the length and destination window before writing numeric
+elements or aggregate records. A zero-length fill still checks the
+destination and skips the source. A valid oversized length within the
+emulator's limits still clips at the modeled logical array boundary.
+Invalid lengths and errors outside the modeled array fault use scan
+rollback.
+
+[Rockwell FLL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html)
+[Rockwell CLR reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/move-logical-instructions/clear--clr-.html)
+[Rockwell SWPB reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/move-logical-instructions/swap-byte--swpb-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

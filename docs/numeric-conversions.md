@@ -170,8 +170,10 @@ immediates and invalid selectors remain blocked, including on false rungs.
 Enabled calls retain actual source/destination index and required-source checks.
 Full result writes can establish unknown selected elements or members while
 preserving unwritten siblings. Existing aliases, UDT members and AOI local/InOut
-bindings follow the same rules. Reached unknown/index/range or later faults roll
-back the entire advance and existing AOI bindings. Preflight restores its prior
+bindings follow the same rules. An out-of-bounds ladder SWPB operand can
+[skip the write after a fault clear](controller-handlers.md#recover-fll-clr-and-swpb-array-faults).
+Uncleared bounds faults, unknown values, range errors and later faults
+roll back the entire advance and existing AOI bindings. Preflight restores its prior
 structural context after success and errors. Calculations, type combinations,
 BCD range policy, byte-order selectors and the existing ST SWPB contract remain
 unchanged. FRD/TOD remain unavailable as ST calls.
@@ -179,8 +181,8 @@ unchanged. FRD/TOD remain unavailable as ST calls.
 ## Scans and demo
 
 Prescan and false ladder rungs retain destination data. A true rung or executed
-ST call updates once per execution. Unknown required values, bounds and later
-faults retain whole-advance data/time/scheduler rollback. Native status/fault
+ST call updates once per execution. Unknown required values, uncleared bounds
+faults and later faults retain whole-advance data/time/scheduler rollback. Native status/fault
 parity and other controller profiles remain unfinished.
 
 Choose **Conversion lab** and **Step scan**. Inspect Decimal/Packed/Decoded,

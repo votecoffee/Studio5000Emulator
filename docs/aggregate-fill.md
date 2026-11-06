@@ -50,10 +50,11 @@ unknown records while retaining the declared member types.
 
 ## Work limits and rollback
 
-Each actual scalar member filled consumes one advance-budget unit. A budget failure,
-invalid region/index/length, unknown or nonzero consumed source and later
-instruction faults restore earlier writes, AOI bindings, time and scheduling
-within the modeled advance. Completed prescan is a separate lifecycle boundary.
+Each actual scalar member filled consumes one advance-budget unit.
+An out-of-bounds ladder operand can [skip the fill after a fault clear](controller-handlers.md#recover-fll-clr-and-swpb-array-faults).
+Uncleared faults, invalid regions or lengths, budget failure, unknown or
+nonzero consumed sources and later instruction faults restore earlier
+writes, AOI bindings, time and scheduling within the modeled advance. Completed prescan is a separate lifecycle boundary.
 
 FLL changes represented tag data. It does not qualify native resets of private
 instruction histories, operational state, packed ABIs, native partial effects,

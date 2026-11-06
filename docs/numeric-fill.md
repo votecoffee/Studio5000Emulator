@@ -37,9 +37,11 @@ inside the destination do not change the operation midway through the fill.
 
 Zero length validates the live destination reference but does not read the
 source value or write anything. Unknown selected numeric elements can be
-established by a full fill; untouched elements remain unknown. Reached unknown
-operands, invalid indices/lengths, REAL range errors and later faults roll back
-the complete advance, including AOI local/external data and binding metadata.
+established by a full fill; untouched elements remain unknown.
+An out-of-bounds ladder operand can [skip the fill after a fault clear](controller-handlers.md#recover-fll-clr-and-swpb-array-faults).
+Uncleared faults, unknown operands, invalid lengths, REAL range errors and
+later faults roll back the complete advance, including AOI local/external
+data and binding metadata.
 Required copied AOI inputs are still consumed before the body, independently
 of an FLL instruction's lazy reads.
 

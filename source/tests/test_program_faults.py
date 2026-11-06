@@ -653,3 +653,86 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.values,before)
         self.assertIs(engine.last_cleared_program_fault,record)
         self.assertEqual(engine.scan_count,1)
+
+    def test_fill_clear_and_swap_operand_faults_skip_writes(self):
+        cases = (
+            ('FLL(LabValues[LabIndex],LabValues[0],2)',[13,13],52),
+            ('FLL(7,LabValues[LabIndex],100000)',[12,7],52),
+            ('FLL(7,LabValues[0],LabValues[LabIndex])',[7,7],52),
+            ('FLL(7,LabValues[LabIndex],0)',[12,13],52),
+            ('CLR(LabValues[LabIndex])',[12,0],52),
+            ('SWPB(LabValues[LabIndex],REVERSE,SpeedCommand)',[12,13],0x0d000001),
+            ('SWPB(LabValues[0],REVERSE,LabValues[LabIndex])',[12,0x0c000000],52),
+        )
+        for instruction,expected_values,expected_speed in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),
+                                 (4,20,instruction.split('(',1)[0]))
+                self.assertEqual(engine.memory.read('LabIndex'),1)
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertIs(engine.last_cleared_program_fault,fault)
+                self.assertEqual(engine.memory.read('LabValues'),expected_values)
+                self.assertEqual(engine.memory.read('SpeedCommand'),expected_speed)
+
+    def test_aggregate_fill_preserves_records_until_a_valid_start(self):
+        from test_aggregate_fill import AggregateFillTests
+
+        def configure(root):
+            controller_fault_fallback_fixture(root)
+            AggregateFillTests.fields(root)
+            set_fault_instruction(root,'FLL(0,Records[LabIndex],100000)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',3)
+        engine.memory.write('StartPB',True)
+        engine.memory.write('Records[2].Count',73)
+        before = copy.deepcopy(engine.memory.read('Records'))
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['instruction'],fault['handler']['routine']),('FLL','FaultHandler/Capture'))
+        self.assertEqual(engine.memory.read('Records'),before)
+        engine.memory.write('LabIndex',2)
+        engine.step()
+        self.assertEqual(engine.memory.read('Records')[:2],before[:2])
+        self.assertEqual(engine.memory.read('Records[2].Count'),0)
+        self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_fill_keeps_lazy_zero_length_and_invalid_length_behavior(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            set_fault_instruction(root,'FLL(LabValues[LabIndex],LabValues[0],SpeedCommand)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('SpeedCommand',0)
+        engine.step()
+        self.assertEqual(engine.memory.read('LabValues'),[12,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'),1)
+        self.assertIsNone(engine.last_cleared_program_fault)
+        engine.memory.write('SpeedCommand',-1)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'Numeric FLL length'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertEqual(engine.scan_count,1)
+        self.assertIsNone(engine.last_cleared_program_fault)
