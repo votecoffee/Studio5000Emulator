@@ -28,10 +28,12 @@ the start on every call, including held-true SQO/SQL calls that retain POS.
 Changing StartIndex therefore relocates the current row without an enable edge.
 A zero mask skips row/output values but still requires a valid table window.
 
-An unknown or invalid live starting index faults and rolls back the advance.
-A valid starting element whose LEN+1 window exceeds the selected array/member
-boundary keeps the existing policy: SQO/SQI set ER without moving data; SQL
-faults and rolls back. The configured region includes row zero and is limited
+A reached out-of-bounds start can trigger
+[Type 4 Code 20 recovery](controller-handlers.md#recover-sequencer-array-faults)
+during a whole-project ladder scan. An unknown index or an uncleared fault
+rolls back the advance. If the start is valid and its LEN+1 window exceeds
+the selected array/member, SQO/SQI set ER and retain the data. SQL rolls back
+the advance. The configured region includes row zero and is limited
 to 4096 elements. No operation crosses into adjacent members. Input tables
 may be constant outside AOIs; SQL targets must be writable. Existing AOI InOut
 bindings require writable actuals even for a read-only instruction use.

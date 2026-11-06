@@ -45,15 +45,17 @@ changes do not make every false CONTROL index dormant.
 ## Boundaries and recovery
 
 Aliases, constant sources and supported AOI local/InOut references retain
-canonical storage and frame scope. Data, flags, time, scheduler and AOI bindings
-roll back within the modeled advance when a consumed index/value, a SQL window
-or a later instruction faults. Completed prescan is a separate boundary.
+canonical storage and frame scope. In whole-project ladder scans, a handler
+can [clear a reached array subscript fault](controller-handlers.md#recover-sequencer-array-faults)
+after the emulator restores CONTROL. The skipped instruction leaves table and
+destination values untouched. Unrecovered faults, unknown consumed values and
+later errors still roll back data, flags, time, scheduler and AOI bindings.
+Completed prescan is a separate boundary.
 
 SQI/SQO keep their existing ER policy for valid starts with short configured
-table windows; SQL window failures stop the advance. Live invalid starting
-indices still fault. No packed layouts, native invalid-state/fault/status,
-partial effects or full controller parity are qualified here. Other profiles
-and broader source types remain outside this sequencer execution profile.
+table windows. SQL window failures stop the advance. Native packed layouts,
+invalid-state and fault parity, other profiles and broader source types remain
+outside this sequencer execution profile.
 
 ## Sequence lab
 

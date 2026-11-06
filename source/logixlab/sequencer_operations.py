@@ -1,7 +1,7 @@
 """Bounded DINT ladder sequencers with canonical table references and CONTROL."""
 from . import bit_transfer, control_operations as controls
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import ArrayBoundsError, ModelError
 
 INSTRUCTIONS = frozenset(('SQI', 'SQO', 'SQL'))
 
@@ -73,8 +73,17 @@ def source_value(memory,ref,scope):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
+    obj = controls.control(memory, op.args[2 if op.name == 'SQL' else 3], scope)
+    previous = obj.copy()
+    try:
+        return _execute(memory, op, power, scope, obj)
+    except ArrayBoundsError:
+        obj.update(previous)
+        raise
+
+
+def _execute(memory, op, power, scope, obj):
     a = op.args;n = op.name
-    obj = controls.control(memory, a[2 if n == 'SQL' else 3], scope)
     if not power:
         if n != 'SQI':obj['EN'] = False
         return False
@@ -107,6 +116,8 @@ def execute(memory, op, power, scope):
     starting_array(memory,a[0],scope,writable=n=='SQL')
     try:
         key, paths, _ = memory.region(a[0], length + 1, scope)
+    except ArrayBoundsError:
+        raise
     except ModelError:
         if n == 'SQL':raise
         obj['ER'] = True
@@ -142,7 +153,8 @@ def description():
                 zero_mask='Full table window checked first; zero mask skips row values and live compared-source/output references',
                 control_selection='Actual CONTROL address still required at runtime; SQO/SQL prescan sets actual EN; held true calls consume live data without advancing again',
                 aoi='RLL bodies with exact one-dimensional InOut/local DINT arrays and selected element starts; disjoint instance members allowed; existing Prescan/EnableInFalse/binding rollback rules',
-                invalid_state='ER with data retained for modeled SQI/SQO cases; SQL bounds stop and roll back',
+                array_recovery='Cleared Type 4 Code 20 skips a whole-project call and restores its original CONTROL fields',
+                invalid_state='ER with data retained for modeled SQI/SQO cases; SQL window overruns stop and roll back',
                 native_scan_parity=False, native_control_layout=False,
                 remaining=['Wide/unsigned/floating payloads and broader table/result types', 'Broader AOI shapes/lifecycle and additional languages',
                            'Native faults/invalid-state parity and broader controller profiles'])

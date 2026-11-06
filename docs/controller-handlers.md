@@ -188,6 +188,28 @@ regions and unknown consumed values use the existing rollback behavior.
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html)
 
+## Recover sequencer array faults
+
+A reached out-of-bounds subscript in SQI, SQO or SQL can raise Type 4
+Code 20 in a whole-project ladder scan. This includes subscripts that
+select the CONTROL record, table start, mask, source or destination.
+Before either fault handler runs, the emulator restores the CONTROL
+fields, including POS, EN, DN and ER. A skipped instruction leaves the
+table and destination untouched.
+
+If the handler clears the record, the next instruction receives the
+incoming rung power. A later valid call uses the retained edge state
+and position. For example, a held SQO can write the same row to a
+repaired destination without advancing again. A zero mask still checks
+the table window and skips the live compared source or destination.
+
+A valid start with a configured table window that is too short retains
+the existing behavior. SQI and SQO set ER, and SQL rolls back the scan.
+Unknown consumed values, prescan and other errors remain separate.
+
+[Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
+[Rockwell SQO reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/sequencer-instructions/sequencer-output--sqo-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

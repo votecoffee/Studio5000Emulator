@@ -1164,6 +1164,117 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabQueue'),[1,0,99])
         self.assertEqual(engine.memory.read('LabValues'),[12,0])
 
+    def test_sequencer_array_faults_preserve_state_and_retry_with_the_same_position(self):
+        for instruction,table,values in (
+            ('SQI(LabQueue[0],255,LabValues[LabIndex],LabRecords[0],?,?)',[31,47,99],[12,13]),
+            ('SQO(LabQueue[0],LabValues[LabIndex],LabValues[0],LabRecords[0],?,?)',[31,47,99],[13,13]),
+            ('SQO(LabQueue[0],255,LabValues[LabIndex],LabRecords[0],?,?)',[31,47,99],[12,47]),
+            ('SQO(LabQueue[0],16#FFFFFFFF,LabValues[LabIndex],LabRecords[0],?,?)',[31,47,99],[12,47]),
+            ('SQL(LabQueue[0],LabValues[LabIndex],LabRecords[0],?,?)',[31,13,99],[12,13]),
+            ('SQL(LabQueue[LabIndex],12,LabRecords[0],?,?)',[31,47,12],[12,13]),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_fault_record_array(root,'CONTROL')
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                comparison = instruction.startswith('SQI')
+                engine.memory.write('LabRecords[0].LEN',1)
+                engine.memory.write('LabRecords[0].POS',int(comparison))
+                engine.memory.write('LabIndex',3)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                controls = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,instruction[:3]))
+                self.assertEqual(engine.memory.read('LabRecords'),controls)
+                self.assertEqual(engine.memory.read('LabQueue'),[31,47,99])
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),1)
+                self.assertEqual(engine.memory.read('LabRecords')[1],controls[1])
+                self.assertFalse(engine.memory.read('LabRecords[0].ER'))
+                self.assertEqual(engine.memory.read('LabQueue'),table)
+                self.assertEqual(engine.memory.read('LabValues'),values)
+                self.assertEqual(engine.memory.read('SpeedCommand'),51 if comparison else 52)
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_held_sqo_array_fault_keeps_position_without_rearming_edge(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root,controller_tail='MOV(1,LabIndex);')
+            add_fault_record_array(root,'CONTROL')
+            add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+            set_fault_instruction(root,'SQO(LabQueue[0],255,LabValues[LabIndex],LabRecords[0],?,?)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabRecords[0].LEN',2)
+        engine.memory.write('LabRecords[0].POS',0)
+        engine.step()
+        engine.memory.write('StartPB',True)
+        engine.step()
+        controls = copy.deepcopy(engine.memory.read('LabRecords'))
+        self.assertEqual(engine.memory.read('LabValues'),[47,13])
+        engine.memory.write('LabIndex',2)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['instruction'],fault['handler']['routine']),('SQO','FaultHandler/Capture'))
+        self.assertEqual(engine.memory.read('LabRecords'),controls)
+        self.assertEqual(engine.memory.read('LabValues'),[47,13])
+        engine.step()
+        self.assertEqual(engine.memory.read('LabRecords'),controls)
+        self.assertEqual(engine.memory.read('LabValues'),[47,47])
+
+    def test_sequencer_window_failures_remain_separate_from_subscript_recovery(self):
+        for instruction in (
+            'SQI(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
+            'SQO(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
+            'SQL(LabQueue[LabIndex],12,LabRecords[0],?,?)',
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_fault_record_array(root,'CONTROL')
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[0].LEN',1)
+                engine.memory.write('SpeedSetpoint',99)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                engine.memory.write('LabIndex',3)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual(fault['instruction'],instruction[:3])
+                engine.memory.write('LabRecords[0].LEN',2)
+                saved = copy.deepcopy(engine.memory.values)
+                if instruction.startswith('SQL'):
+                    with self.assertRaisesRegex(ModelError,'exceeds the modeled array/member boundary'):
+                        engine.step()
+                    self.assertEqual(engine.memory.values,saved)
+                else:
+                    engine.step()
+                    self.assertTrue(engine.memory.read('LabRecords[0].ER'))
+                    self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                    self.assertFalse(any('recovery_source' in row for row in engine.trace))
+                self.assertIs(engine.last_cleared_program_fault,fault)
+
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests
 
