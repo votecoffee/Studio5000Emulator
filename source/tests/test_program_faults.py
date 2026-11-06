@@ -2185,6 +2185,14 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(memory.read('DisplayedPartCount'),0)
                 self.assertEqual(memory.read('SpeedCommand'),51)
                 self.assertEqual(engine.calls.stack,[])
+                event = next(event for visit in engine.trace for event in visit['events'] if event['instruction']=='FOR')
+                self.assertEqual(event['loop_trace'],{'visits':0,'exit':'bounds'})
+                if operands.startswith('LoopIndex[LabIndex]'):
+                    self.assertEqual(event['operand_samples'],[None]*5)
+                else:
+                    self.assertEqual(event['operand_samples'][1],{'address':'LoopIndex[0]','type':'DINT','value':77})
+                    missing = operands.split(',').index('LoopBounds[LabIndex]') + 1
+                    self.assertIsNone(event['operand_samples'][missing])
 
                 engine.step()
                 self.assertEqual(memory.read('LoopIndex'),indices)
@@ -2222,6 +2230,12 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(memory.read('DisplayedPartCount'),2)
                 self.assertEqual(memory.read('SpeedCommand'),51)
                 self.assertEqual(engine.calls.stack,[])
+                event = next(event for visit in engine.trace for event in visit['events'] if event['instruction']=='FOR')
+                self.assertEqual(event['loop_trace'],{'visits':2,'exit':'bounds'})
+                self.assertEqual(event['operand_samples'][1],{'address':'LoopIndex[0]','type':'DINT','value':stopped})
+                read_position = 3 if slot else 4
+                self.assertEqual(event['operand_samples'][read_position],
+                                 {'address':f'LoopBounds[{slot}]','type':'DINT','value':slot+1})
 
                 engine.step()
                 self.assertEqual(memory.read('LoopIndex'),[finished,88])

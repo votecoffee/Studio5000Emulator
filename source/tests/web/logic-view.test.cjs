@@ -42,6 +42,19 @@ test('call operand samples require the same rung, opcode and authored operands',
   assert.equal(read(g, {...trace, events: [{instruction:'SBR', args: event.args, in: false, out: false}]}, 1), null);
 });
 
+test('loop details belong to the matching FOR visit and keep the source operand order', () => {
+  const args = ['Worker', 'IndexSlots[Slot]', '0', 'Bounds[Slot]', '1'];
+  const g = graph.compile(rung([op('FOR', ...args)]), 'Main/Main');
+  const loop = {visits: 2, exit: 'bounds'};
+  const event = {instruction: 'FOR', args, in: true, out: true, operand_samples: [null], loop_trace: loop};
+  const trace = {rung_index: 0, operand_source: g.source, events: [event]};
+  assert.equal(graph.power(g, trace, 0).nodes[g.order[0]].loopTrace, loop);
+  assert.equal(graph.power({...g, source: 'edited'}, trace, 0).nodes[g.order[0]].loopTrace, null);
+  assert.equal(graph.power(g, {...trace, events: [{...event, operand_samples: null}]}, 0).nodes[g.order[0]].loopTrace, null);
+  const face = instruction.describe({opcode: 'FOR', operands: args});
+  assert.deepEqual(face.rows.map(row => row.argument), [0, 1, 2, 3, 4]);
+});
+
 function validate(g) {
   const nodes = new Map(g.nodes.map(node => [node.id, node]));
   assert.equal(nodes.size, g.nodes.length);

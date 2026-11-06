@@ -332,7 +332,7 @@ sections defer higher-priority EVENT work until their outer UIE.
 
 [Indirect FOR operands](docs/ladder-loops.md#runtime-selected-operands) let ladder
 loops select index and bound elements at runtime with explicit sampling and
-transactional rollback.
+transactional rollback. The [ladder monitor shows the held index and last bound reads](docs/logic-viewer.md#for-loop-operand-values).
 
 [Indirect routine arguments](docs/indirect-routine-calls.md) let JSR callers
 select input and return elements at runtime with copied values and captured

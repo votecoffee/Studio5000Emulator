@@ -48,18 +48,19 @@ def overlaps(a,b):
     return a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts
 
 
+def operand_sample(operand, value):
+    sample = {'address': operand.ref if operand.key is not None else None, 'type': operand.dtype}
+    if isinstance(value, (dict, list)):
+        sample['aggregate'] = True
+    elif value is not None and (operand.dtype in TIME_TYPES or operand.dtype in ('LINT', 'ULINT')):
+        sample['value'] = str(value)
+    else:
+        sample['value'] = value
+    return sample
+
+
 def transfer_samples(operands, values):
-    samples = []
-    for operand, value in zip(operands, values, strict=True):
-        sample = {'address': operand.ref if operand.key is not None else None, 'type': operand.dtype}
-        if isinstance(value, (dict, list)):
-            sample['aggregate'] = True
-        elif operand.dtype in TIME_TYPES or operand.dtype in ('LINT', 'ULINT'):
-            sample['value'] = str(value)
-        else:
-            sample['value'] = value
-        samples.append(sample)
-    return samples
+    return [operand_sample(operand, value) for operand, value in zip(operands, values, strict=True)]
 
 
 class Calls:
@@ -195,37 +196,59 @@ class Calls:
         self.loop_targets.add(key)
         return key,index,sources
 
-    def loop(self,op,scope,depth):
+    def loop(self,op,scope,depth,event=None):
         if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR/FOR nesting limit of {MAX_NESTING} exceeded')
         key,_,_=self.loop_spec(op,scope)
-        # Retain the selected index cell for this invocation. Bounds are live.
-        index=self._caller_operand(op,op.args[1],scope,writable=True)
-        def value(ref):return self.values([self._caller_operand(op,ref,scope)])[0]
-        saved_index=self.memory.at(index.key,index.parts)
-        self.memory.write(index.ref,value(op.args[2]),index.scope)
+        index = None
+        samples = [None] * len(op.args)
+        visits = 0
+        reason = 'terminal'
+
+        def value(argument):
+            operand = self._caller_operand(op,op.args[argument],scope)
+            result = self.values([operand])[0]
+            samples[argument] = (operand,result)
+            return result
+
         frame={'key':key,'sources':[],'values':[],'destinations':[],'received':False,'returned':False,'loop':True}
-        started=False
         self.stack.append(frame)
         try:
+            # Retain the selected index cell for this invocation. Bounds are live.
+            index=self._caller_operand(op,op.args[1],scope,writable=True)
+            saved_index=self.memory.at(index.key,index.parts)
+            self.memory.write(index.ref,value(2),index.scope)
             while True:
                 # Even an empty routine and a zero step consume a bounded budget.
                 self.engine.budget-=1
                 if self.engine.budget<0:raise ModelError('FOR instruction budget exceeded')
                 try:
-                    limit,step=(value(ref) for ref in op.args[3:])
+                    limit,step=value(3),value(4)
                 except CallOperandBoundsError:
-                    if not started:
+                    if not visits:
                         self.memory.store(index.key,index.parts,saved_index)
                     raise
                 current=self.memory.read(index.ref,index.scope)
                 if (step<0 and current<limit) or (step>=0 and current>limit):break
-                started=True
+                visits += 1
                 frame['received']=frame['returned']=False
                 try:self.engine._routine(key,depth+1)
-                except BreakLoop:break
+                except BreakLoop:
+                    reason = 'brk'
+                    break
                 # Reread after the routine: it may modify index or step.
-                self.memory.write(index.ref,self.memory.read(index.ref,index.scope)+value(op.args[4]),index.scope)
-        finally:self.stack.pop()
+                self.memory.write(index.ref,self.memory.read(index.ref,index.scope)+value(4),index.scope)
+        except CallOperandBoundsError as error:
+            if error.call is op:
+                reason = 'bounds'
+            raise
+        finally:
+            self.stack.pop()
+            if event is not None:
+                # Snapshot before any surrounding handler or later instruction writes.
+                if index is not None:
+                    samples[1] = (index,self.memory.at(index.key,index.parts))
+                event['operand_samples'] = [operand_sample(*item) if item is not None else None for item in samples]
+                event['loop_trace'] = {'visits':visits,'exit':reason}
 
     def break_loop(self):
         if any(frame.get('loop') for frame in self.stack):raise BreakLoop()

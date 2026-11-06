@@ -59,6 +59,15 @@ class LoopReferenceTests(unittest.TestCase):
         e.memory.write('TerminalValues[2]', 2); e.memory.write('StepValues[2]', 2); e.step()
         self.assertEqual(self.values(e, 'SelectedTotal', 'SelectedIterations', 'IndexSlots[1]', 'LoopSlot'), (2, 2, 4, 2))
         self.assertIsNone(e.memory.read('IndexSlots')[2])
+        event = next(event for visit in e.trace for event in visit['events'] if event['instruction']=='FOR')
+        self.assertEqual(event['loop_trace'],{'visits':2,'exit':'terminal'})
+        self.assertEqual(event['operand_samples'],[
+            None,
+            {'address':'IndexSlots[1]','type':'DINT','value':4},
+            {'address':'InitialValues[1]','type':'DINT','value':0},
+            {'address':'TerminalValues[2]','type':'SINT','value':2},
+            {'address':'StepValues[2]','type':'INT','value':2},
+        ])
 
     def test_initial_read_before_assignment_and_bounds_selected_after_assignment(self):
         text = 'FOR(Body,IndexSlots[LoopSlot],IndexSlots[LoopSlot],IndexSlots[LoopSlot],1);'
@@ -77,6 +86,9 @@ class LoopReferenceTests(unittest.TestCase):
             e = self.checked(body=['MOV(99,BoundsSlot)' + end + ';']); self.configure(e)
             if end == 'BRK()':
                 e.step(); self.assertEqual(e.memory.read('IndexSlots')[1], 0); self.assertEqual(e.memory.read('BoundsSlot'), 99)
+                event = next(event for visit in e.trace for event in visit['events'] if event['instruction']=='FOR')
+                self.assertEqual(event['loop_trace'],{'visits':1,'exit':'brk'})
+                self.assertEqual(event['operand_samples'][4],{'address':'StepValues[1]','type':'INT','value':1})
             else:
                 e.memory.write('SelectedLoop', False); e.step(); e.memory.write('SelectedLoop', True); before = self.snapshot(e)
                 with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()

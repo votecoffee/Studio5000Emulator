@@ -140,8 +140,9 @@
       const fault = argsMatch && recoveryMatches ? event.recovered_fault : null;
       const recoveredFault = Number.isInteger(fault?.type) && Number.isInteger(fault.code) ? fault : null;
       const operandSamples = argsMatch && operandMatches && Array.isArray(event.operand_samples) ? event.operand_samples : null;
+      const loopTrace = operandSamples && node.opcode === 'FOR' ? event.loop_trace || null : null;
       values[node.id] = {in: matched ? event.in : incoming, out: node.kind === 'instruction' ? (matched ? event.out : undefined) : incoming,
-        event: matched ? event : null, recoveredFault, operandSamples};
+        event: matched ? event : null, recoveredFault, operandSamples, loopTrace};
       for (const edge of outgoing.get(node.id)) {
         const target = nodes.get(edge.to.node), nextEvent = trace?.events?.[target.ordinal];
         const visited = target.kind !== 'instruction' || nextEvent?.instruction === target.opcode;

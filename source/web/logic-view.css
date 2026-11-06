@@ -72,6 +72,7 @@
 .lv-param-value.captured {fill:#285184}
 .lv-current-value.captured {color:#285184}
 .lv-sample-address {display:block;margin-top:2px;color:#285184;font-size:10px;overflow-wrap:anywhere;user-select:text}
+.lv-loop-summary {margin:0;padding:7px 12px;background:#edf3fa;color:#285184;border-bottom:1px solid #dce3eb}
 .lv-st-document {min-width:max-content;min-height:440px;background:#fff;padding:8px 0;font:13px/1.7 Consolas,'Courier New',monospace}
 .lv-st-line {display:grid;grid-template-columns:46px minmax(360px,1fr) minmax(0,250px);border-left:3px solid transparent;min-height:25px}
 .lv-st-number {color:#73869a;background:#f1f4f7;border-right:1px solid #d3dce5;text-align:right;padding:0 8px;user-select:none;font-size:11px}

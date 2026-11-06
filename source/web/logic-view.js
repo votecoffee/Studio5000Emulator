@@ -15,6 +15,8 @@
   const short = (text, limit = 28) => String(text).length > limit ? String(text).slice(0, limit - 1) + '…' : String(text);
   const valueText = row => !row || row.value == null ? '?' : typeof row.value === 'boolean' ? (row.value ? '1' : '0') : String(row.value);
   const sampleText = sample => sample.aggregate ? 'Aggregate' : valueText(sample);
+  const sampleLabel = (argument, loop) => loop ? (argument === 1 ? 'Index at exit' : 'Last loop read') : 'Last transfer';
+  const loopExitLabels = {terminal: 'Terminal condition', brk: 'BRK', bounds: 'Cleared bounds fault'};
   const faultCode = fault => fault ? `${fault.type}/${fault.code}` : '';
   const faultMessage = code => `Instruction skipped after fault ${code} was cleared.`;
   function html(tag, className, text) {
@@ -66,6 +68,11 @@
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       return snapshot?.read(ref, {dintRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;
     }
+    function operandDisplay(field, node, power) {
+      const sample = power?.operandSamples?.[field.argument];
+      const unsampled = !!power?.loopTrace && field.argument > 0 && !sample;
+      return {sample, unsampled, row: sample || (unsampled ? null : read(field.ref, node))};
+    }
     function trace(rung) {return lastTraces.get(rung);}
     function presentation(node) {return faceplates.describe(node, current.state.aoi_definitions);}
     function parameters(node) {return presentation(node).fields;}
@@ -104,13 +111,11 @@
       const doc = documents.find(doc => doc.instructions.has(selected)), item = doc?.instructions.get(selected);
       inspector.hidden = !item;if (!item) {inspection = '';return;}
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
-      const rows = fields.map(field => {
-        const sample = event?.operandSamples?.[field.argument];
-        return {...field, sample, row: sample || read(field.ref, item.node)};
-      });
+      const loop = event?.loopTrace;
+      const rows = fields.map(field => ({...field, ...operandDisplay(field, item.node, event)}));
       const face = item.graph ? presentation(item.node) : null;
       const recovery = faultCode(event?.recoveredFault);
-      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, recovery, face?.description]);if (fingerprint === inspection) return;
+      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, loop, recovery, face?.description]);if (fingerprint === inspection) return;
       inspection = fingerprint;inspector.replaceChildren();
       const head = html('div', 'lv-inspector-head');head.append(html('strong', '', face ? (face.kind === 'aoi' ? face.title : item.node.opcode + ' · ' + face.title) : item.node.type || item.node.kind));
       const context = doc.graph ? `Rung ${doc.graph.number} · Last scan ${event?.in === undefined ? '?' : Number(event.in)} → ${event?.out === undefined ? '?' : Number(event.out)}` : current.routine.key;
@@ -124,15 +129,21 @@
       if (aoi) {const open = html('button', '', 'Open AOI logic ↗');open.onclick = () => options.onOpenRoutine(aoi.key, aoi.context);head.insertBefore(open, close);}
       inspector.append(head);
       if (recovery) inspector.append(html('p', 'lv-inspector-fault', faultMessage(recovery)));
+      if (loop) inspector.append(html('p', 'lv-loop-summary',
+        loopExitLabels[loop.exit] + ' · ' + loop.visits + (loop.visits === 1 ? ' routine visit' : ' routine visits')));
       if (face?.description) inspector.append(html('p', 'lv-instruction-description', face.description));
       const table = html('div', 'lv-operand-list');
       for (const field of rows) {
         const row = html('div', 'lv-operand'), reference = html('div');
         reference.append(html('code', '', field.ref));
-        if (field.sample) reference.append(html('span', 'lv-sample-address',
-          field.sample.address ? 'Last transfer · ' + field.sample.address : 'Last transfer'));
-        const display = field.sourceOnly ? '—' : field.sample ? sampleText(field.sample) : valueText(field.row);
-        const valueClass = field.sample ? ' captured' : !field.sourceOnly && (!field.row || field.row.value == null) ? ' unknown' : '';
+        if (field.sample) {
+          const label = sampleLabel(field.argument, loop);
+          reference.append(html('span', 'lv-sample-address',
+            field.sample.address ? label + ' · ' + field.sample.address : label));
+        } else if (field.unsampled) reference.append(html('span', 'lv-sample-address', 'Not sampled'));
+        const display = field.sourceOnly || field.unsampled ? '—' : field.sample ? sampleText(field.sample) : valueText(field.row);
+        const valueClass = field.sample ? ' captured' :
+          !field.sourceOnly && !field.unsampled && field.row?.value == null ? ' unknown' : '';
         row.append(html('span', 'lv-field-label', field.label + (field.visible === false ? ' (hidden)' : '')),
           reference, html('span', 'lv-current-value' + valueClass, display),
           html('span', 'lv-field-type', [field.usage, field.sourceOnly ? 'Source text' : field.type || field.row?.type || 'Not available'].filter(Boolean).join(' · ')));
@@ -313,18 +324,19 @@
               item.title.textContent = recovery ? `${item.titleText}\n${faultMessage(recovery)}` : item.titleText;
             }
             for (const field of item.monitors) {
-              const sample = power?.operandSamples?.[field.argument], row = sample || read(field.ref, item.node);
+              const {sample, unsampled, row} = operandDisplay(field, item.node, power);
               if (sample) {
                 const value = sampleText(sample);
                 field.el.textContent = sample.address ?
                   short(sample.address, Math.max(6, field.valueLimit - value.length - 3)) + ' = ' + value : value;
-                field.el.setAttribute('aria-label', 'Last transfer · ' + (sample.address ? sample.address + ' = ' : '') + value);
+                field.el.setAttribute('aria-label', sampleLabel(field.argument, power.loopTrace) + ' · ' +
+                  (sample.address ? sample.address + ' = ' : '') + value);
               } else {
-                field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));
+                field.el.textContent = unsampled ? '—' : field.flag || (row?.aggregate ? '' : valueText(row));
                 field.el.removeAttribute('aria-label');
               }
               field.el.classList.toggle('captured', !!sample);
-              field.el.classList.toggle('unknown', !sample && (!row || row.value == null));
+              field.el.classList.toggle('unknown', !sample && !unsampled && (!row || row.value == null));
               field.el.classList.toggle('on', !!field.flag && row?.value === true);
             }
           }

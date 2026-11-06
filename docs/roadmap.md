@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.164130` [FOR operand monitoring](logic-viewer.md#for-loop-operand-values)
+shows the held index at exit, the last successful bound reads, the number
+of routine visits, and the exit reason.
+
 Available in `26.1106.163220` [captured call operand values](logic-viewer.md#call-operand-values)
 show the addresses and scalar values used by ladder JSR, SBR and RET.
 The ladder monitor keeps the authored operands visible.

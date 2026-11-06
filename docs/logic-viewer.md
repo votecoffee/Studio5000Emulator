@@ -36,6 +36,19 @@ The monitor uses the last recorded visit to each rung in the committed scan.
 A rolled-back scan preserves the previous trace. Skipped or unvisited calls
 use the live tag snapshot.
 
+## FOR loop operand values
+
+Select a ladder FOR block to see how many times its routine was entered and
+why the loop exited. The block shows the index cell selected at entry and its
+value at exit. Initial, terminal and step rows show each operand's last
+successful read. Those reads can come from different points in the loop.
+The authored references stay visible.
+
+After a cleared bounds fault, captured values describe the loop before the
+fault handler ran. Operands that had no successful read show a dash and
+**Not sampled** in the details. The latest committed rung visit controls the
+display. A false rung uses the ordinary live value labels.
+
 ## Fault recovery in the ladder monitor
 
 When a fault handler clears a fault and the rung resumes, the skipped

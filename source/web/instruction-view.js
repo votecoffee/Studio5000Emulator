@@ -74,7 +74,7 @@
     }
     const entry = catalog[op], fields = args.map((ref, i) => ({ref, visible: true,
       label: entry?.labels[i] || (op === 'SBR' ? 'Input Par ' : op === 'RET' ? 'Return Par ' : 'Operand ') + (i + 1)}));
-    if (['JSR', 'SBR', 'RET'].includes(op)) fields.forEach((field, argument) => {field.argument = argument;});
+    if (['JSR', 'SBR', 'RET', 'FOR'].includes(op)) fields.forEach((field, argument) => {field.argument = argument;});
     if (op === 'JSR') {
       const count = Number(args[1]);fields.splice(1, 1);
       fields.slice(1).forEach((field, i) => {field.label = i < count ? 'Input Par ' + (i + 1) : 'Return Par ' + (i - count + 1);});

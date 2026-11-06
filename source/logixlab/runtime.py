@@ -1102,7 +1102,7 @@ class Engine:
                 for k in obj:
                     if k != "PRE": obj[k] = 0 if k == "ACC" else False
         elif n=='FOR':
-            if p:self.calls.loop(op,scope,depth)
+            if p:self.calls.loop(op,scope,depth,event)
         elif n=='BRK':
             if p:self.calls.break_loop()
         elif n == "JSR":
