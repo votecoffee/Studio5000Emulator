@@ -14,6 +14,8 @@ TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
 DEVICE_NAME_SIZE = 33
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_INHIBITED = 0x6000
+MODULE_INHIBIT_BIT = 1 << 2
+MODULE_MODE_MASK = MODULE_INHIBIT_BIT | 1
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
@@ -114,7 +116,8 @@ def controller_device(engine, instance, attribute, *, executing):
     raise ModelError('Unsupported GSV ControllerDevice attribute ' + attribute)
 
 
-def module_attribute(io_map, instance, attribute):
+def module_attribute(engine, instance, attribute, *, executing):
+    io_map = engine.project.io_map
     if not instance and attribute in MODULE_STATUS:
         raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
         if raw is None:
@@ -125,14 +128,18 @@ def module_attribute(io_map, instance, attribute):
     module = io_map.named_module(instance)
     if module is None:
         raise ModelError('GSV Module requires an unambiguous named local-chassis module in complete source')
+    override = engine._module_modes.get(module.name)
     if attribute == 'entrystatus':
-        if module.inhibited is not True:
-            raise ModelError('GSV Module EntryStatus requires an explicitly inhibited module')
-        return MODULE_INHIBITED
+        if module.inhibited is None:
+            raise ModelError('GSV Module EntryStatus requires an explicit source Inhibited setting')
+        inhibited = module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
+        if executing and not inhibited:
+            raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited')
+        return MODULE_INHIBITED if inhibited else None
     value = module.mode()
     if value is None:
         raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
-    return value
+    return value if override is None else override
 
 
 def source(engine, op, scope='', *, executing=False):
@@ -149,7 +156,7 @@ def source(engine, op, scope='', *, executing=False):
     if cls == 'module':
         if instance and scope in engine.memory.frames:
             raise ModelError('Named GSV Module requires a Program routine; AOI module references are unsupported')
-        return 'INT', module_attribute(project.io_map, instance, attribute)
+        return 'INT', module_attribute(engine, instance, attribute, executing=executing)
     if cls=='controller':
         if instance:raise ModelError('GSV Controller requires an empty instance operand')
         if attribute=='name':
@@ -216,6 +223,34 @@ def source(engine, op, scope='', *, executing=False):
     return dtype,struct.unpack('<h' if dtype=='INT' else '<i',raw)[0]
 
 
+def matches_module_set(op):
+    return len(op.args) == 4 and isinstance(op.args[0], str) and op.args[0].casefold() == 'module'
+
+
+def validate_module_set(engine, op, scope):
+    if any(not isinstance(arg, str) for arg in op.args) or op.args[2].casefold() != 'mode':
+        raise ModelError('SSV Module supports Mode only')
+    if engine.mode != 'project' or scope in engine.memory.frames:
+        raise ModelError('SSV Module Mode requires a scheduled Program routine')
+    source(engine, op, scope)
+    memory = engine.memory
+    previous = memory.structural
+    memory.structural = True
+    try:
+        key, parts, dtype = memory.resolve(op.args[3], scope)
+        if dtype != 'INT' or isinstance(memory.at(key, parts), (list, dict, bool)):
+            raise ModelError('SSV Module Mode source requires an exact scalar INT tag')
+    finally:
+        memory.structural = previous
+
+
+def execute_module_set(engine, op, scope):
+    value = engine.memory.read(op.args[3], scope)
+    if type(value) is not int or value & ~MODULE_MODE_MASK:
+        raise ModelError('SSV Module Mode supports only bits 0 and 2 in a known INT')
+    engine._module_modes[op.args[1].casefold()] = value
+
+
 def destination(memory, ref, scope, dtype, *, allow_dint=False):
     if dtype == 'SINT[33]':
         key, parts, kind = prefix(memory, ref, scope, DEVICE_NAME_SIZE, writable=True)
@@ -280,7 +315,11 @@ def description():
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)'],
-                named_module_settings='Explicit local-chassis source settings. Mode reads bits 0 and 2; EntryStatus models only Inhibited (0x6000).',
+                named_module_settings='Explicit local-chassis source settings and live Mode overrides. EntryStatus models only Inhibited (0x6000).',
+                module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
+                                 'visibility':'Immediate within an advance; rolled back on fault',
+                                 'lifecycle':'Retained across Run entry and routine replacement; reset/reload restores source settings',
+                                 'connection_model':False},
                 module_status='Controller-only I/O map. INT or DINT low word; preserve a known DINT upper word.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',

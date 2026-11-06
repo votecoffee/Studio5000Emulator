@@ -74,6 +74,7 @@ class Engine:
         self._task_event_status = {}
         self._measured_task = None
         self._task_scheduler = None
+        self._module_modes = {}
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}
@@ -628,6 +629,7 @@ class Engine:
     def step(self, dt=10, *, running=False):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
+        module_modes = self._module_modes.copy()
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
         end_ms=self.time_ms+dt
@@ -709,6 +711,7 @@ class Engine:
             if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
+            self._module_modes = module_modes
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
             if batch:
                 self._task_scheduler.inhibitions=inhibitions
@@ -1087,7 +1090,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ mixes declared integer patterns with bounded plain or typed immediates for v35 5580; homogeneous LINT compatibility is retained; native parity is unqualified",
-                           "GSV supports Controller audit values, v35 5580 Task/Controller settings, Program/Routine names and ControllerDevice identity with typed destinations; SSV supports qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values, v35 5580 Task/Controller settings, Program/Routine names and ControllerDevice identity with typed destinations; SSV supports Module Mode, qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate and Priority, Event EnableTimeOut/Status/OverlapCount and Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

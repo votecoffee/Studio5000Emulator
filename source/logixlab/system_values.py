@@ -81,6 +81,7 @@ def validate_set(engine, op, scope):
     if program_control.matches(op):return program_control.validate(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate_reset(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
+    if gsv_configuration.matches_module_set(op):return gsv_configuration.validate_module_set(engine,op,scope)
     return task_inhibit.validate(engine,op,scope)
 
 
@@ -93,6 +94,9 @@ def execute_set(engine, op, power, scope):
         gsv_timing.execute_reset(engine,op,scope)
         return power
     if event_status.matches(op):return event_status.execute(engine,op,power,scope)
+    if gsv_configuration.matches_module_set(op):
+        gsv_configuration.execute_module_set(engine,op,scope)
+        return power
     return task_inhibit.execute(engine,op,power,scope)
 
 

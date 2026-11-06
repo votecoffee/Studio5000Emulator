@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="ModuleStatusLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="ModuleStatusLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
-    <Description>LogixLab sample for read-only Module GSV from explicit source settings.</Description>
+    <Description>LogixLab sample for Module Mode writes and status reads.</Description>
     <DataTypes />
     <Modules>
       <Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="168" Major="35" Minor="11" ParentModule="Local" ParentModPortId="1" Inhibited="false" MajorFault="true">
@@ -13,6 +13,9 @@
     </Modules>
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ApplyMode" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ApplyModeST" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ModeCommand" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="5" /></Data></Tag>
       <Tag Name="ReadModule" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="StateWord" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ModeWord" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="305463295" /></Data></Tag>
@@ -25,15 +28,17 @@
         <Routines>
           <Routine Name="Main" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,EntryStatus,StateWord);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Mode,ModeWord);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(ReadModule)MEQ(StateWord,16#F000,16#6000)OTE(ModuleInhibited);</Text></Rung>
-              <Rung Number="3" Type="N"><Text>JSR(ReadModeST,0);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(ApplyMode)SSV(Module,RackOutput,Mode,ModeCommand);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>JSR(ReadModeST,0);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Mode,ModeWord);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)GSV(Module,RackOutput,EntryStatus,StateWord);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)MEQ(StateWord,16#F000,16#6000)OTE(ModuleInhibited);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">
             <STContent>
-              <Line Number="0">IF ReadModule THEN GSV(Module,RackOutput,Mode,StMode); END_IF;</Line>
+              <Line Number="0">IF ApplyModeST THEN SSV(Module,RackOutput,Mode,ModeCommand); END_IF;</Line>
+              <Line Number="1">IF ReadModule THEN GSV(Module,RackOutput,Mode,StMode); END_IF;</Line>
             </STContent>
           </Routine>
         </Routines>

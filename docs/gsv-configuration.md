@@ -34,8 +34,8 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
-| Module | Mode | INT or DINT low word | Named local-chassis module with explicit Inhibited and MajorFault settings |
-| Module | EntryStatus | INT or DINT low word | Named local-chassis module explicitly configured as inhibited |
+| Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local-chassis module with explicit Inhibited and MajorFault settings |
+| Module | EntryStatus | INT or DINT low word | Named local-chassis module with an explicit Inhibited setting and effective inhibit active at the read |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -177,23 +177,38 @@ behavior and force control remain unqualified.
 
 In a complete v35 5580 project, a Program routine can use ladder or ST to
 read settings for an unambiguous named module directly under the Local
-controller. Mode uses the explicit L5X boolean fields MajorFault for bit 0
-and Inhibited for bit 2. EntryStatus returns 16#6000 for an explicitly
-inhibited module. An uninhibited module has no modeled connection state,
-so its EntryStatus is unavailable.
+controller. The initial Mode uses the explicit L5X boolean fields
+MajorFault for bit 0 and Inhibited for bit 2. EntryStatus returns 16#6000
+while the effective inhibit bit is set. Guard EntryStatus reads with Mode
+bit 2. Reaching the read for an uninhibited module faults the advance
+because its connection state is unavailable.
 
 Both reads support INT and the low word of a known DINT, with the upper
 word preserved. Destination indices are resolved only when a call executes.
 An invalid reached destination rolls back the scan.
 
+In scheduled project logic, SSV Mode takes an exact scalar INT tag and
+replaces both defined bits. The supported words are 0, 1, 4 and 5. Values
+with other bits set fault the advance. A false rung or skipped ST call
+leaves the mode alone and defers source selection. Later GSV calls in the
+same advance see the change. The override commits with tag values, so a
+later fault restores the previously committed mode. Run entry and
+routine replacement retain it. Reset, project reload and changing
+execution scope restore the L5X settings.
+
 Open **Module status lab** from Examples, set ReadModule to true, and step.
 StateWord becomes 16#6000, ModeWord changes from 16#1234FFFF to 16#12340005,
 and StMode reads 5. A masked ladder comparison sets ModuleInhibited.
+Set ModeCommand to 1 and enable ApplyMode. On the next step, the readback
+changes to 1 and ModuleInhibited clears. StateWord retains its last value
+because the read is skipped. Set ModeCommand to 4, disable ApplyMode and
+enable ApplyModeST to restore the inhibit through ST.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
-Mode writes, AOI module references, remote modules, cyclic data, live
-connection diagnostics and module-caused controller faults remain open.
-The sample demonstrates the emulator's source-based model.
+AOI module references, remote modules, cyclic data, live connection
+diagnostics and module-caused controller faults remain open. Bit 0
+controls the modeled Mode word. Fault generation on connection loss
+requires a connection model.
 [Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 

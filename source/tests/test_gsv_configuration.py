@@ -249,7 +249,8 @@ class GsvConfigurationTests(unittest.TestCase):
         for call in ('GSV(Module,,Mode,Out);', 'GSV(Module,Local,Mode,Out);',
                      'GSV(Module,RackIO,Mode,Flag);', 'GSV(Module,RackIO,FaultCode,Out);',
                      'GSV(Module,Unknown,Mode,Out);', 'GSV(Module,,LEDStatus,Out);',
-                     'SSV(Module,RackIO,Mode,Out);'):
+                     'SSV(Module,RackIO,Mode,Out);', 'SSV(Module,RackIO,EntryStatus,PriorityOut);',
+                     'SSV(Module,RackIO,Mode,4);'):
             with self.subTest(call=call):
                 self.assertTrue(self.engine([call], mutate=self.add_rack_module).blockers)
         for case in ('duplicate', 'remote', 'no_root', 'context', 'bad_mode', 'missing_major_fault'):
@@ -270,9 +271,89 @@ class GsvConfigurationTests(unittest.TestCase):
                     else:
                         del module.attrib['MajorFault']
                 self.assertTrue(self.engine(['GSV(Module,RackIO,Mode,Out);'], mutate=source).blockers)
-        e = self.engine(['GSV(Module,RackIO,EntryStatus,Out);'],
-                        mutate=lambda root: self.add_rack_module(root, inhibited='false'))
-        self.assertTrue(any('explicitly inhibited module' in error for error in e.blockers))
+        e = self.checked(['GSV(Module,RackIO,EntryStatus,Out);'],
+                         mutate=lambda root: self.add_rack_module(root, inhibited='false'))
+        with self.assertRaisesRegex(ModelError, 'unavailable while the module is uninhibited'):
+            e.step()
+        self.assertEqual(e.memory.read('Out'), -7)
+
+    def test_module_mode_write_is_visible_to_later_reads_in_both_languages(self):
+        for st in (False, True):
+            with self.subTest(st=st):
+                e = self.checked(['SSV(Module,rAcKiO,Mode,PriorityOut);',
+                                  'GSV(Module,RackIO,Mode,Out);',
+                                  'GSV(Module,RackIO,EntryStatus,PriorityOut);'], st=st,
+                                 mutate=lambda root: self.add_rack_module(root, inhibited='false'))
+                e.memory.write('PriorityOut', 4)
+                e.step()
+                self.assertEqual(e.memory.read('Out'), -65536 + 4)
+                self.assertEqual(e.memory.read('PriorityOut'), 0x6000)
+                self.assertEqual(e.project.io_map.named_module('RackIO').mode(), 1)
+
+    def test_module_mode_set_skips_indirect_values_and_rejects_reserved_bits(self):
+        def source(root):
+            self.add_rack_module(root)
+            device_buffer(root, dtype='INT', count=3)
+        for st in (False, True):
+            with self.subTest(st=st):
+                call = 'SSV(Module,RackIO,Mode,DeviceBytes[Index]);'
+                write = 'IF Flag THEN ' + call + ' END_IF;' if st else 'XIC(Flag)' + call
+                e = self.checked([write, 'GSV(Module,RackIO,Mode,PriorityOut);'], st=st, mutate=source)
+                e.memory.write('Index', 99)
+                e.step()
+                self.assertEqual(e.memory.read('PriorityOut'), 5)
+                e.memory.write('Flag', True)
+                with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                    e.step()
+                e.memory.write('Index', 0)
+                with self.assertRaisesRegex(ModelError, 'only bits 0 and 2'):
+                    e.step()
+                self.assertEqual(e.scan_count, 1)
+                self.assertEqual(e.memory.read('PriorityOut'), 5)
+                e.memory.write('Index', 1)
+                with self.assertRaisesRegex(ModelError, 'Unknown initial'):
+                    e.step()
+                e.memory.write('DeviceBytes[1]', 0)
+                e.step()
+                self.assertEqual(e.memory.read('PriorityOut'), 0)
+
+    def test_module_mode_override_rolls_back_and_survives_run_entry_and_routine_replacement(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container, xml_source
+
+        logic = ['XIC(Flag)SSV(Module,RackIO,Mode,PriorityOut);',
+                 'GSV(Module,RackIO,Mode,Out);',
+                 'DIV(1,Limit,Limit);']
+        e = self.checked(logic, mutate=self.add_rack_module)
+        e.memory.write('Flag', True)
+        e.memory.write('PriorityOut', 4)
+        e.step()
+        self.assertEqual(e.memory.read('Out'), -65536 + 4)
+        e.memory.write('PriorityOut', 0)
+        e.memory.write('Limit', 0)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'rolled back'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 1)
+        e.memory.write('Flag', False)
+        e.memory.write('Limit', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Out'), -65536 + 4)
+        e.enter_run()
+        e.step()
+        self.assertEqual(e.memory.read('Out'), -65536 + 4)
+
+        read = 'GSV(Module,RackIO,Mode,PriorityOut);'
+        wire = decode(container(E.tostring(xml_source(name='Main', text=read))))
+        candidate, _ = prepare(e, wire, (read,), 'BackgroundProgram', 0)
+        candidate.step()
+        self.assertEqual(candidate.memory.read('PriorityOut'), 4)
+        self.assertEqual(e.memory.read('PriorityOut'), 0)
+        fresh = Engine(e.project)
+        fresh.step()
+        self.assertEqual(fresh.memory.read('Out'), -65536 + 5)
 
     def test_module_status_lab_runs_its_ladder_and_st_routines(self):
         path = Path(__file__).resolve().parents[1] / 'samples/ModuleStatusLab.L5X'
@@ -288,6 +369,20 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('StateWord'), 0x6000)
         self.assertEqual(e.memory.read('ModeWord'), 0x12340005)
         self.assertEqual(e.memory.read('StMode'), 5)
+        self.assertTrue(e.memory.read('ModuleInhibited'))
+        e.memory.write('ApplyMode', True)
+        e.memory.write('ModeCommand', 1)
+        e.step()
+        self.assertEqual(e.memory.read('ModeWord'), 0x12340001)
+        self.assertEqual(e.memory.read('StMode'), 1)
+        self.assertEqual(e.memory.read('StateWord'), 0x6000)
+        self.assertFalse(e.memory.read('ModuleInhibited'))
+        e.memory.write('ApplyMode', False)
+        e.memory.write('ApplyModeST', True)
+        e.memory.write('ModeCommand', 4)
+        e.step()
+        self.assertEqual(e.memory.read('ModeWord'), 0x12340004)
+        self.assertEqual(e.memory.read('StMode'), 4)
         self.assertTrue(e.memory.read('ModuleInhibited'))
 
     def test_program_and_routine_names_match_source_case_in_ladder_and_st(self):
