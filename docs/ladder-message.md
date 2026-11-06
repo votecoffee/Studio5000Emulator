@@ -17,9 +17,15 @@ message control and its `EN`, `DN` and `ER` bits.
    read the new value.
 
 To cancel a read, set `CancelRead` for the scan that queues or starts it. The
-sample's latch sets `ReadControl.TO`. At the next step the message completes
+sample latches `ReadControl.FLAGS.8`, which is the same bit as `ReadControl.TO`.
+At the next step the message completes
 with `ER` set, `ERR` equal to `16#00FE`, and the destination retains its value.
 Clear `CancelRead` and scan `SendRead` false before issuing another read.
+
+Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
+times. The ladder MOV copies the current `ReadControl.FLAGS` into
+`ReadFlagsSnapshot` each scan. The INT word is 132 (EN and EW), then 192
+(EN and ST), then 160 (EN and DN).
 
 For the typed examples, set SendTyped to 1 and step three times. The read
 copies 2.5 and -7.25 from the program-scoped Samples array into RealReadback.
@@ -133,6 +139,11 @@ two SINT elements. Those bytes encode product code 168.
   including negative indices, set `ER` and `ERR` `16#0005` when the transfer is
   serviced. The destination is preserved. Prescan clears pending requests
   and status while preserving live index values. Reset restores authored indices.
+- The INT `FLAGS` word and the named status members share one value. Its
+  bit positions are EW (2), ER (4), DN (5), ST (6), EN (7), TO (8) and
+  EN_CC (9). The unconnected model keeps EN_CC clear. Writes through the
+  word or a named or numbered bit can change TO. The emulator preserves
+  managed status and reserved bits. A cancellation clears TO on completion.
 - UnconnectedTimeout is a positive DINT in microseconds. Its default is
   30,000,000. The request captures a deadline when queued. Service checks
   the deadline at the beginning of each advance using committed simulated

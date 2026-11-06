@@ -159,7 +159,8 @@ The Device I/O tab sets the simulated input and displays the effective state.
 writes on the unconnected THIS path. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries. Ladder GSV and SSV
-can read and set the message timeout. The lab also reads virtual controller
+can read and set the message timeout. Ladder can copy the packed FLAGS word
+and use its TO bit to cancel a request. The lab also reads virtual controller
 identity and mode bytes through CIP Generic, with runtime selection of the
 Identity attribute.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)

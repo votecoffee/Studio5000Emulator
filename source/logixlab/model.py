@@ -951,6 +951,14 @@ class Memory:
                             bit=ALIASES[item.lower()];parts.extend(['CTL',('bit',bit,32,True)])
                             dtype,value='BOOL',None if value['CTL'] is None else bool((value['CTL']>>bit)&1)
                             continue
+                    if dtype.upper() == 'MESSAGE' and not parts and key in self.project.message_configs:
+                        from .ladder_message import STATUS_BITS
+                        bit = STATUS_BITS.get(item.upper())
+                        if bit is not None:
+                            if tail: raise ModelError(f'Invalid MESSAGE status alias {ref}')
+                            parts.extend(['FLAGS', ('bit', bit, 16, True)])
+                            dtype, value = 'BOOL', bool((value['FLAGS'] >> bit) & 1)
+                            continue
                     actual = next((k for k in value if k.lower() == item.lower()), None)
                     if actual is None: raise ModelError(f"Unknown member {ref}")
                     if dtype.upper() in ("TIMER", "COUNTER", "CONTROL"):
@@ -1072,6 +1080,9 @@ class Memory:
         if value is None:
             if self.validating and scope in self.frames:return self.project.default(dtype)
             raise ModelError(f'Unknown initial byte/value omitted by export: {ref}')
+        if not parts and key in self.project.message_configs:
+            from .ladder_message import status_members
+            return {**value, **status_members(value['FLAGS'])}
         return value
 
     def write(self, ref, value, scope=""):
@@ -1083,22 +1094,17 @@ class Memory:
             self.write_string(ref,value,scope);return
         if isinstance(old, (dict, list)): raise ModelError("Whole aggregate assignment unsupported")
         value = coerce(value, dtype)
-        if not parts: self.values[key] = value
-        else:
-            parent = self.values
-            slot = key
-            for p in parts[:-1]: parent, slot = parent[slot], p
-            last = parts[-1]
-            if isinstance(last, tuple):
-                n = parent[slot]
-                mask = 1 << last[1]
-                n = (n | mask) if value else (n & ~mask)
-                # Interpret the modified packed integer as signed at its declared width.
-                bits = last[2]
-                n &= (1 << bits) - 1
-                if last[3] and n >= 1 << (bits - 1): n -= 1 << bits
-                parent[slot] = n
-            else: parent[slot][last] = value
+        if parts and isinstance(parts[-1], tuple):
+            bit = parts[-1]
+            parts = parts[:-1]
+            word = self.at(key, parts)
+            mask = 1 << bit[1]
+            word = (word | mask) if value else (word & ~mask)
+            # Interpret the modified packed integer as signed at its declared width.
+            width = bit[2]
+            value = word & ((1 << width) - 1)
+            if bit[3] and value >= 1 << (width - 1): value -= 1 << width
+        self.store(key, parts, value)
 
     def check_writable(self,ref,scope=''):
         if scope in self.frames and ref.strip().lower()=='enablein':raise ModelError('AOI EnableIn is read-only inside its logic')
@@ -1122,7 +1128,11 @@ class Memory:
     def store(self,key,parts,value):
         if self.project.tags[key].constant:raise ModelError('Constant destination')
         if not parts:self.values[key]=copy.deepcopy(value);return
-        parent=self.at(key,parts[:-1]);parent[parts[-1]]=copy.deepcopy(value)
+        parent=self.at(key,parts[:-1])
+        if len(parts) == 1 and parts[0] == 'FLAGS' and key in self.project.message_configs:
+            from .ladder_message import TO_MASK
+            value = (parent['FLAGS'] & ~TO_MASK) | (coerce(value, 'INT') & TO_MASK)
+        parent[parts[-1]]=copy.deepcopy(value)
 
     def region(self,ref,count,scope=''):
         if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=100000:

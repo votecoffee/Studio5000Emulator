@@ -32,6 +32,8 @@
         <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#01" ObjectType="16#01" TargetObject="1" AttributeNumber="16#00" RequestedLength="0" DestinationTag="IdentityAllReply[1]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
       <Tag Name="SendRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="CaptureReadFlags" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ReadFlagsSnapshot" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
       <Tag Name="SendWrite" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SendTyped" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SetReadIndices" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -95,7 +97,7 @@
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(UseAlternateRead)MOV('AlternateValue',ReadControl.RemoteElement);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(SendRead)MSG(ReadControl);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(CancelRead)OTL(ReadControl.TO);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(CancelRead)OTL(ReadControl.FLAGS.8);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(SendWrite)MSG(WriteControl);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(SetReadIndices)MOV(ReadLocalIndex,RealReadControl.LocalIndex)MOV(ReadRemoteIndex,RealReadControl.RemoteIndex);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(SendTyped)MSG(RealReadControl);</Text></Rung>
@@ -105,6 +107,7 @@
               <Rung Number="9" Type="N"><Text>XIC(SendIdentityAll)MSG(IdentityAllControl);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(ApplyIdentityAttribute)MOV(IdentityAttribute,IdentityControl.Attribute);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(SendGridRead)MSG(GridReadControl);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(CaptureReadFlags)MOV(ReadControl.FLAGS,ReadFlagsSnapshot);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

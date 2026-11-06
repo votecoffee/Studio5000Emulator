@@ -11,8 +11,10 @@ MAX_ELEMENTS = 64
 MAX_PENDING = 32
 DEFAULT_TIMEOUT_US = 30_000_000
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
-FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
-    'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
+STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
+TO_MASK = 1 << STATUS_BITS['TO']
+FIELDS = {
+    'FLAGS': 'INT', 'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
     'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
     'UnconnectedTimeout': 'DINT',
     'Class': 'INT', 'Instance': 'DINT', 'Attribute': 'INT',
@@ -162,9 +164,21 @@ def _words(dtype, count):
     return (ELEMENT_BYTES.get(dtype, 0) * count + 1) // 2
 
 
+def status_members(word):
+    return {name: bool(word & (1 << bit)) for name, bit in STATUS_BITS.items()}
+
+
+def _set_flags(record, **values):
+    word = record['FLAGS']
+    for name, value in values.items():
+        mask = 1 << STATUS_BITS[name]
+        word = word | mask if value else word & ~mask
+    record['FLAGS'] = word
+
+
 def initial(project, configuration):
-    record = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
-        'ERR': 0, 'EXERR': 0, 'REQ_LEN': 0, 'DN_LEN': 0,
+    record = {
+        'FLAGS': 0, 'ERR': 0, 'EXERR': 0, 'REQ_LEN': 0, 'DN_LEN': 0,
         'UnconnectedTimeout': DEFAULT_TIMEOUT_US,
     }
     if isinstance(configuration, IdentityRead):
@@ -341,16 +355,19 @@ def execute(engine, op, power):
         if pending.enabled != power:
             queue[key] = replace(pending, enabled=power)
     elif not power:
-        record['EN'] = False
-    elif not record['EN']:
-        record.update(EN=True, EW=False, ST=False, DN=False, ER=False, ERR=0, EXERR=0, DN_LEN=0)
+        _set_flags(record, EN=False)
+    elif not record['FLAGS'] & (1 << STATUS_BITS['EN']):
+        record.update(FLAGS=(record['FLAGS'] & TO_MASK) | (1 << STATUS_BITS['EN']),
+                      ERR=0, EXERR=0, DN_LEN=0)
         timeout_us = record['UnconnectedTimeout']
         if timeout_us <= 0:
-            record.update(ER=True, ERR=0x03)
+            _set_flags(record, ER=True)
+            record['ERR'] = 0x03
         elif len(queue) >= MAX_PENDING:
-            record.update(ER=True, ERR=0x02)
+            _set_flags(record, ER=True)
+            record['ERR'] = 0x02
         else:
-            record['EW'] = True
+            _set_flags(record, EW=True)
             request = engine.project.message_configs[key]
             if isinstance(request, IdentityRead):
                 request = replace(request, class_id=record['Class'], instance=record['Instance'],
@@ -407,10 +424,10 @@ def service(memory, queue, now_ms, status_word):
     for key, pending in tuple(queue.items()):
         record = memory.values[key]
         transferred = 0
-        if record['TO'] or now_us >= pending.deadline_us:
+        if record['FLAGS'] & TO_MASK or now_us >= pending.deadline_us:
             error = 0xFE
         elif not pending.started:
-            record.update(EW=False, ST=True)
+            _set_flags(record, EW=False, ST=True)
             queue[key] = replace(pending, started=True)
             continue
         else:
@@ -420,7 +437,6 @@ def service(memory, queue, now_ms, status_word):
                 error = failure.code
             else:
                 error = 0
-        record.update(EN=pending.enabled, EW=False, ST=False, TO=False,
-                      DN=not error, ER=bool(error), ERR=error,
-                      DN_LEN=transferred)
+        _set_flags(record, EN=pending.enabled, EW=False, ST=False, TO=False, DN=not error, ER=bool(error))
+        record.update(ERR=error, DN_LEN=transferred)
         del queue[key]

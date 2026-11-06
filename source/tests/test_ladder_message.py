@@ -89,6 +89,62 @@ class MessageTests(unittest.TestCase):
             engine.step()
         self.assertEqual(memory.read('ReadValue'), 0)
 
+    def test_flags_word_and_named_status_share_ladder_lifecycle(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        self.assertEqual(memory.resolve('ReadControl.FLAGS')[2], 'INT')
+        self.assertEqual(memory.resolve('ReadControl.EN_CC')[2], 'BOOL')
+        memory.write('CaptureReadFlags', True)
+        memory.write('SendRead', True)
+        for word, member, bit in ((0x84, 'EW', 2), (0xC0, 'ST', 6), (0xA0, 'DN', 5)):
+            engine.step()
+            self.assertEqual(memory.read('ReadFlagsSnapshot'), word)
+            self.assert_flags(engine, 'ReadControl', FLAGS=word, EN=True, EN_CC=False, **{member: True})
+            self.assertTrue(memory.read(f'ReadControl.FLAGS.{bit}'))
+            self.assertTrue(memory.read('ReadControl')[member])
+        memory.write('SendRead', False)
+        engine.step()
+        self.assertEqual(memory.read('ReadFlagsSnapshot'), 0x20)
+        leaves = {row['name']: row['value'] for row in memory.leaves()}
+        self.assertEqual((leaves['ReadControl.FLAGS'], leaves['ReadControl.EN'], leaves['ReadControl.DN']),
+                         (0x20, False, True))
+        engine.enter_run()
+        self.assert_flags(engine, 'ReadControl', FLAGS=0, DN=False)
+
+    def test_status_writes_preserve_engine_bits_and_share_timeout_bit(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('SendRead', True)
+        memory.write('CancelRead', True)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', FLAGS=0x184, TO=True, EW=True, DN=False)
+        memory.write('ReadControl.TO', False)
+        self.assertFalse(memory.read('ReadControl.FLAGS.8'))
+        memory.write('ReadControl.FLAGS', -1)
+        memory.write('ReadControl.EW', False)
+        memory.write('ReadControl.FLAGS.5', True)
+        memory.write('ReadControl.EN_CC', True)
+        self.assert_flags(engine, 'ReadControl', FLAGS=0x184, EW=True, DN=False, TO=True, EN_CC=False)
+        memory.write('CancelRead', False)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', FLAGS=0x90, ER=True, TO=False, ERR=0xFE)
+        self.assertEqual(memory.read('ReadValue'), 0)
+
+    def test_copy_into_flags_keeps_the_in_progress_status(self):
+        def configure(root):
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendRead', True)
+        engine.memory.write('CaptureReadFlags', True)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', FLAGS=0x84, EW=True, TO=False)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', FLAGS=0xC0, ST=True, TO=False)
+
     def test_timeout_at_exact_deadline_and_retry_with_new_setting(self):
         engine = self.engine()
         memory = engine.memory
@@ -195,7 +251,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='12', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -375,7 +431,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='12', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -749,7 +805,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='12', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='13', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -766,7 +822,7 @@ class MessageTests(unittest.TestCase):
                     engine.step()
                 self.assertEqual((engine.scan_count, engine.time_ms), (2, 20))
                 self.assertEqual(memory.read('VirtualValue'), 17)
-                self.assert_flags(engine, 'WriteControl', EN=True, ST=True, DN=False, ER=False)
+                self.assert_flags(engine, 'WriteControl', FLAGS=0xC0, EN=True, ST=True, DN=False, ER=False)
                 self.assertEqual(engine._messages['writecontrol'], pending)
 
     def test_decorated_only_message_fields_remain_readable_without_execution(self):

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.184830` [ladder MSG status](ladder-message.md#supported-configuration-and-timing)
+includes the packed INT FLAGS word. Message lab snapshots its queued,
+started and completed values and cancels a request through FLAGS.8.
+
 Available in `26.1106.183940` [ladder CIP Data Table transfers](ladder-message.md#supported-configuration-and-timing)
 read and write fully indexed two- and three-dimensional numeric arrays.
 Message lab demonstrates a read that crosses a row boundary.
