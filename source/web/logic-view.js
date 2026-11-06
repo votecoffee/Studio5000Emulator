@@ -14,6 +14,7 @@
   }
   const short = (text, limit = 28) => String(text).length > limit ? String(text).slice(0, limit - 1) + '…' : String(text);
   const valueText = row => !row || row.value == null ? '?' : typeof row.value === 'boolean' ? (row.value ? '1' : '0') : String(row.value);
+  const sampleText = sample => sample.aggregate ? 'Aggregate' : valueText(sample);
   const faultCode = fault => fault ? `${fault.type}/${fault.code}` : '';
   const faultMessage = code => `Instruction skipped after fault ${code} was cleared.`;
   function html(tag, className, text) {
@@ -103,7 +104,10 @@
       const doc = documents.find(doc => doc.instructions.has(selected)), item = doc?.instructions.get(selected);
       inspector.hidden = !item;if (!item) {inspection = '';return;}
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
-      const rows = fields.map(field => ({...field, row: read(field.ref, item.node)}));
+      const rows = fields.map(field => {
+        const sample = event?.operandSamples?.[field.argument];
+        return {...field, sample, row: sample || read(field.ref, item.node)};
+      });
       const face = item.graph ? presentation(item.node) : null;
       const recovery = faultCode(event?.recoveredFault);
       const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, recovery, face?.description]);if (fingerprint === inspection) return;
@@ -123,8 +127,14 @@
       if (face?.description) inspector.append(html('p', 'lv-instruction-description', face.description));
       const table = html('div', 'lv-operand-list');
       for (const field of rows) {
-        const row = html('div', 'lv-operand');row.append(html('span', 'lv-field-label', field.label + (field.visible === false ? ' (hidden)' : '')),
-          html('code', '', field.ref), html('span', 'lv-current-value' + (!field.sourceOnly && (!field.row || field.row.value == null) ? ' unknown' : ''), field.sourceOnly ? '—' : valueText(field.row)),
+        const row = html('div', 'lv-operand'), reference = html('div');
+        reference.append(html('code', '', field.ref));
+        if (field.sample) reference.append(html('span', 'lv-sample-address',
+          field.sample.address ? 'Last transfer · ' + field.sample.address : 'Last transfer'));
+        const display = field.sourceOnly ? '—' : field.sample ? sampleText(field.sample) : valueText(field.row);
+        const valueClass = field.sample ? ' captured' : !field.sourceOnly && (!field.row || field.row.value == null) ? ' unknown' : '';
+        row.append(html('span', 'lv-field-label', field.label + (field.visible === false ? ' (hidden)' : '')),
+          reference, html('span', 'lv-current-value' + valueClass, display),
           html('span', 'lv-field-type', [field.usage, field.sourceOnly ? 'Source text' : field.type || field.row?.type || 'Not available'].filter(Boolean).join(' · ')));
         table.append(row);
       }
@@ -173,7 +183,8 @@
             label.append(svg('title', {}, [param.usage, param.type, param.dimensions ? '[' + param.dimensions + ']' : '', param.required ? 'Required argument' : 'Instance parameter', param.description].filter(Boolean).join(' · ')));
           }
           if (!param.sourceOnly) {
-            const value = svg('text', {x: boxWidth - 9, y: param.member ? y : y + 13, class: 'lv-param-value' + (param.member ? ' lv-member-value' : '')});row.append(value);fields.push({el: value, ref: param.ref});
+            const value = svg('text', {x: boxWidth - 9, y: param.member ? y : y + 13, class: 'lv-param-value' + (param.member ? ' lv-member-value' : '')});
+            row.append(value);fields.push({el: value, ref: param.ref, argument: param.argument, valueLimit: Math.floor((boxWidth - 18) / 6)});
           }
           group.append(row);
         });
@@ -301,7 +312,21 @@
               item.group.setAttribute('aria-label', recovery ? `${item.label} ${faultMessage(recovery)}` : item.label);
               item.title.textContent = recovery ? `${item.titleText}\n${faultMessage(recovery)}` : item.titleText;
             }
-            for (const field of item.monitors) {const row = read(field.ref, item.node);field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));field.el.classList.toggle('unknown', !row || row.value == null);field.el.classList.toggle('on', !!field.flag && row?.value === true);}
+            for (const field of item.monitors) {
+              const sample = power?.operandSamples?.[field.argument], row = sample || read(field.ref, item.node);
+              if (sample) {
+                const value = sampleText(sample);
+                field.el.textContent = sample.address ?
+                  short(sample.address, Math.max(6, field.valueLimit - value.length - 3)) + ' = ' + value : value;
+                field.el.setAttribute('aria-label', 'Last transfer · ' + (sample.address ? sample.address + ' = ' : '') + value);
+              } else {
+                field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));
+                field.el.removeAttribute('aria-label');
+              }
+              field.el.classList.toggle('captured', !!sample);
+              field.el.classList.toggle('unknown', !sample && (!row || row.value == null));
+              field.el.classList.toggle('on', !!field.flag && row?.value === true);
+            }
           }
         } else if (doc.rows) {
           for (const [number, row] of doc.rows) {

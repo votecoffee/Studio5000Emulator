@@ -28,6 +28,20 @@ test('ALMA faceplate binds rate settings, live rate and condition shelf flags', 
   assert(timestamps.some(field => field.ref === 'Alarm.UnshelveTime' && field.visible === false));
   assert(face.rows.every(row => row.type !== 'LINT'));
 });
+test('call operand samples require the same rung, opcode and authored operands', () => {
+  const g = graph.compile(rung([op('SBR', 'Slots[Index]')]), 'Main/Worker');
+  const sample = [{address: 'Slots[1]', value: 7, type: 'DINT'}];
+  const event = {instruction: 'SBR', args: ['Slots[Index]'], in: true, out: true, operand_samples: sample};
+  const trace = {rung_index: 1, operand_source: g.source, events: [event]};
+  const read = (model, visit, index) => graph.power(model, visit, index).nodes[g.order[0]].operandSamples;
+  assert.equal(read(g, trace, 1), sample);
+  assert.equal(read(g, trace, 0), null);
+  assert.equal(read({...g, source: 'Edited source'}, trace, 1), null);
+  assert.equal(read(g, {...trace, events: [{...event, args: ['Slots[Other]']}]}, 1), null);
+  assert.equal(read(g, {...trace, events: [{...event, instruction: 'RET'}]}, 1), null);
+  assert.equal(read(g, {...trace, events: [{instruction:'SBR', args: event.args, in: false, out: false}]}, 1), null);
+});
+
 function validate(g) {
   const nodes = new Map(g.nodes.map(node => [node.id, node]));
   assert.equal(nodes.size, g.nodes.length);
@@ -172,6 +186,7 @@ test('timer and control faceplates monitor saved members instead of neutral plac
 
 test('routine faceplates distinguish input and return arguments from the neutral count', () => {
   const face = instruction.describe({opcode: 'JSR', operands: ['Worker', '2', 'A', 'B', 'Result']});
+  assert.deepEqual(face.rows.map(row => row.argument), [0, 2, 3, 4]);
   assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Routine Name', 'Worker'], ['Input Par 1', 'A'], ['Input Par 2', 'B'], ['Return Par 1', 'Result']]);
   assert(face.rows[0].sourceOnly);assert(!face.rows[1].sourceOnly);
 });

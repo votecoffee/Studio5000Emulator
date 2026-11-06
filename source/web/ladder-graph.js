@@ -128,17 +128,20 @@
     for (const edge of graph.edges) {outgoing.get(edge.from.node).push(edge);pending.set(edge.to.node, pending.get(edge.to.node) + 1);}
     const queue = graph.nodes.filter(n => !pending.get(n.id)), nodes = new Map(graph.nodes.map(n => [n.id, n]));
     const any = xs => xs.includes(true) ? true : xs.includes(undefined) || !xs.length ? undefined : false;
-    const recoveryMatches = Number.isInteger(rungIndex) && trace?.rung_index === rungIndex && trace.recovery_source === graph.source;
+    const rungMatches = Number.isInteger(rungIndex) && trace?.rung_index === rungIndex;
+    const recoveryMatches = rungMatches && trace.recovery_source === graph.source;
+    const operandMatches = rungMatches && trace.operand_source === graph.source;
     while (queue.length) {
       const node = queue.shift(), event = trace?.events?.[node.ordinal];
       const matched = node.kind === 'instruction' && event?.instruction === node.opcode;
       const incoming = node.side === 'left' ? (trace ? trace.events?.[0]?.in ?? trace.power : undefined) : any(inputs.get(node.id));
-      const fault = matched && recoveryMatches ? event.recovered_fault : null;
-      const recoveredFault = Number.isInteger(fault?.type) && Number.isInteger(fault.code) &&
-        Array.isArray(event.args) && node.operands.length === event.args.length &&
-        node.operands.every((operand, i) => operand === event.args[i]) ? fault : null;
+      const argsMatch = matched && (recoveryMatches || operandMatches) && Array.isArray(event.args) &&
+        node.operands.length === event.args.length && node.operands.every((operand, i) => operand === event.args[i]);
+      const fault = argsMatch && recoveryMatches ? event.recovered_fault : null;
+      const recoveredFault = Number.isInteger(fault?.type) && Number.isInteger(fault.code) ? fault : null;
+      const operandSamples = argsMatch && operandMatches && Array.isArray(event.operand_samples) ? event.operand_samples : null;
       values[node.id] = {in: matched ? event.in : incoming, out: node.kind === 'instruction' ? (matched ? event.out : undefined) : incoming,
-        event: matched ? event : null, recoveredFault};
+        event: matched ? event : null, recoveredFault, operandSamples};
       for (const edge of outgoing.get(node.id)) {
         const target = nodes.get(edge.to.node), nextEvent = trace?.events?.[target.ordinal];
         const visited = target.kind !== 'instruction' || nextEvent?.instruction === target.opcode;

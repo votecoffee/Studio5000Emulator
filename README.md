@@ -338,7 +338,8 @@ transactional rollback.
 select input and return elements at runtime with copied values and captured
 call-entry addresses. Two JSR return operands can select distinct elements
 of the same array. Ladder SBR and RET select the callee's indexed elements
-when their transfer runs.
+when their transfer runs. The [ladder monitor shows captured call operands](docs/logic-viewer.md#call-operand-values)
+when a transfer has executed.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.

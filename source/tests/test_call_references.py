@@ -80,6 +80,11 @@ class CallReferenceTests(unittest.TestCase):
         e = self.checked(['XIC(IndirectEnabled)JSR(PairEcho,1,Pairs[InputIndex],PairResults[OutputIndex]);'], pair)
         e.step(); e.memory.write('InputIndex', 1); e.memory.write('OutputIndex', 1); e.memory.write('Pairs[1].A', 23); e.memory.write('IndirectEnabled', True); e.step()
         self.assertEqual(e.memory.read('PairResults')[1], {'A':23, 'B':None}); e.memory.write('Pairs[1].A', 31)
+        call = next(event for visit in e.trace for event in visit['events'] if event['instruction']=='JSR')
+        self.assertEqual(call['operand_samples'][2:],[
+            {'address':'Pairs[1]','type':'LABPAIR','aggregate':True},
+            {'address':'PairResults[1]','type':'LABPAIR','aggregate':True},
+        ])
         self.assertEqual(e.memory.read('PairResults')[1]['A'], 23); self.assertIsNone(e.memory.read('PairResults')[0]['A'])
 
     def test_bool_real_and_wide_integer_elements_transfer_exact_matching_types(self):
@@ -95,6 +100,9 @@ class CallReferenceTests(unittest.TestCase):
             e = self.checked(['JSR(TypedEcho,1,TypedInputs[InputIndex],TypedOutputs[OutputIndex]);'], typed)
             e.memory.write('InputIndex', 1); e.memory.write('OutputIndex', 2); e.memory.write('TypedInputs[1]', value); e.step()
             self.assertEqual(e.memory.read('TypedOutputs')[2], value); self.assertIs(type(e.memory.read('TypedOutputs')[2]), type(value))
+            call = next(event for visit in e.trace for event in visit['events'] if event['instruction']=='JSR')
+            captured = str(value) if kind in ('LINT','ULINT') else value
+            self.assertEqual(call['operand_samples'][3],{'address':'TypedOutputs[2]','type':kind,'value':captured})
 
     def test_multidimensional_element_member_and_program_local_references(self):
         def local(root):
@@ -199,6 +207,25 @@ class CallReferenceTests(unittest.TestCase):
         self.assertEqual(e.memory.read('OutputIndex'),2)
         self.assertEqual(e.memory.read('Outputs'),[7,None,None])
         self.assertEqual(e.calls.stack,[])
+        transfers = {}
+        for visit in e.trace:
+            for event in visit['events']:
+                if 'operand_samples' in event:
+                    self.assertIn(event['instruction']+'(',visit['operand_source'])
+                    transfers[event['instruction']] = event['operand_samples']
+        self.assertEqual(transfers,{
+            'JSR':[None,None,{'address':None,'type':'DINT','value':2},
+                   {'address':'InputValue','type':'DINT','value':7},
+                   {'address':'Outputs[0]','type':'DINT','value':7}],
+            'SBR':[{'address':'InputIndex','type':'DINT','value':2},
+                   {'address':'Inputs[1]','type':'DINT','value':7}],
+            'RET':[{'address':'Inputs[1]','type':'DINT','value':7}],
+        })
+        e.memory.write('Inputs[1]',99)
+        self.assertEqual(transfers['RET'][0]['value'],7)
+        e.memory.write('IndirectEnabled',False)
+        e.step()
+        self.assertFalse(any('operand_samples' in event for visit in e.trace for event in visit['events']))
 
     def test_callee_skips_live_index_of_an_unreached_return(self):
         def setup(root):

@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from .model import ArrayBoundsError, ModelError, Op, coerce, literal, operand_problem, operations
 from .integer_math import CONTROLLERS
+from .time_values import TYPES as TIME_TYPES
 
 
 MAX_NESTING = 25
@@ -45,6 +46,20 @@ def overlaps(a,b):
     if not a.parts or not b.parts:return True
     if a.deferred_overlap or b.deferred_overlap:return False
     return a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts
+
+
+def transfer_samples(operands, values):
+    samples = []
+    for operand, value in zip(operands, values, strict=True):
+        sample = {'address': operand.ref if operand.key is not None else None, 'type': operand.dtype}
+        if isinstance(value, (dict, list)):
+            sample['aggregate'] = True
+        elif operand.dtype in TIME_TYPES or operand.dtype in ('LINT', 'ULINT'):
+            sample['value'] = str(value)
+        else:
+            sample['value'] = value
+        samples.append(sample)
+    return samples
 
 
 class Calls:
@@ -238,17 +253,21 @@ class Calls:
             self.memory.check_writable(dest.ref,dest.scope)
             self.memory.store(dest.key,dest.parts,value)
 
-    def call(self,op,scope,depth):
+    def call(self,op,scope,depth,event=None):
         if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR nesting limit of {MAX_NESTING} exceeded')
         key,sources,destinations=self.call_spec(op,scope,execute=True)
         frame={'key':key,'sources':sources,'values':self.values(sources),'destinations':destinations,'received':False,'returned':False}
+        if event is not None:
+            frame['operand_samples'] = [None, None, *transfer_samples(sources, frame['values'])]
         self.stack.append(frame)
         try:
             self.engine._routine(key,depth+1)
             if destinations and not frame['returned']:raise ModelError('Subroutine ended without passing required RET values')
+            if event is not None and len(frame['operand_samples']) > 2:
+                event['operand_samples'] = frame['operand_samples']
         finally:self.stack.pop()
 
-    def receive(self,op,scope):
+    def receive(self,op,scope,event=None):
         if not self.stack:
             if op.args:raise ModelError('SBR has no JSR caller')
             return
@@ -258,8 +277,10 @@ class Calls:
         destinations=self._callee_operands(op,scope,indirect=indirect)
         self.check_pairs(frame['sources'],destinations)
         self.store(destinations,frame['values']);frame['received']=True
+        if event is not None and destinations:
+            event['operand_samples'] = transfer_samples(destinations, frame['values'])
 
-    def returned(self,op,scope):
+    def returned(self,op,scope,event=None):
         if not self.stack:
             if op.args:raise ModelError('RET has no JSR caller')
             return
@@ -267,7 +288,12 @@ class Calls:
         indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind=='RLL'
         sources=self._callee_operands(op,scope,indirect=indirect)
         self.check_pairs(sources,frame['destinations'])
-        self.store(frame['destinations'],self.values(sources));frame['returned']=True
+        values = self.values(sources)
+        self.store(frame['destinations'],values);frame['returned']=True
+        if event is not None and sources:
+            event['operand_samples'] = transfer_samples(sources, values)
+        if 'operand_samples' in frame:
+            frame['operand_samples'].extend(transfer_samples(frame['destinations'], values))
 
     def report(self):
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,

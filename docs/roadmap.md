@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.163220` [captured call operand values](logic-viewer.md#call-operand-values)
+show the addresses and scalar values used by ladder JSR, SBR and RET.
+The ladder monitor keeps the authored operands visible.
+
 Available in `26.1106.162211` [same-array JSR return destinations](indirect-routine-calls.md#return-two-values-to-one-array)
 let a call write different elements of one array. JSR checks the resolved
 destinations before entering the routine. Call Lab includes a working example.

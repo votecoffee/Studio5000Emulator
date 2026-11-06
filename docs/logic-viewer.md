@@ -13,13 +13,28 @@ Structured Text JSR lines also have a navigation button. **Fit width**, zoom,
 monitor refreshes. Opening another routine or source resets the viewport and
 selection. The monitor is read-only; tag writes use the existing watch.
 
-Green wiring describes the last recorded scan. The value labels show the
+Green wiring describes the last recorded scan. Value labels normally show the
 current tag snapshot, which can change between scans. Unvisited instructions
 have no invented power state. Missing values remain `?`; expressions are not
 executed by the browser. Wide integers remain decimal strings. Program scope,
 represented integer bits, simple indirect tag indices and AOI instance bindings
 are resolved from snapshot metadata. More complex address expressions can remain
 unavailable in the viewer even when the runtime supports them.
+
+## Call operand values
+
+When a ladder JSR, SBR or RET completes a parameter transfer, its blue value
+labels show the resolved addresses and scalar values captured for that
+instruction. The authored expression stays visible. Select the instruction
+to see the full address under **Last transfer**. This lets you see which
+array element was used even when an index changes later in the scan.
+
+JSR displays the input values and return destinations captured for the call.
+SBR displays the destinations and copied inputs. RET displays the reached
+return sources and their values. Aggregates show their address and type.
+The monitor uses the last recorded visit to each rung in the committed scan.
+A rolled-back scan preserves the previous trace. Skipped or unvisited calls
+use the live tag snapshot.
 
 ## Fault recovery in the ladder monitor
 

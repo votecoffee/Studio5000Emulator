@@ -919,6 +919,8 @@ class Engine:
             if plan:visit['mcr_forced_false'] = forced
             if any('recovered_fault' in event for event in events):
                 visit['recovery_source'] = rung['text']
+            if any('operand_samples' in event for event in events):
+                visit['operand_source'] = rung['text']
             self.trace.append(visit)
             if len(self.trace)>5000:self.trace=self.trace[-5000:]
             if breaking:raise BreakLoop()
@@ -934,23 +936,24 @@ class Engine:
                 self.budget -= 1
                 if self.budget < 0: raise ModelError("Instruction budget exceeded")
                 incoming = False if force_false else power
+                event = {'instruction':node.name, 'args':node.args, 'in':incoming}
                 try:
-                    result=self._op(node,incoming,scope,depth)
+                    result=self._op(node,incoming,scope,depth,event=event)
                     power=False if force_false else result
                 except ArrayBoundsError as error:
                     if not self._recover_ladder_array_fault(node, scope, error):
                         raise
                     power = incoming
-                    events.append({'instruction':node.name, 'args':node.args, 'in':incoming,
-                                   'out':power, 'recovered_fault':{'type':4,'code':20}})
-                    continue
+                    event['recovered_fault'] = {'type':4,'code':20}
                 except (JumpRoutine,ReturnRoutine,BreakLoop):
-                    events.append({'instruction':node.name,'args':node.args,'in':incoming,'out':incoming,'transfer':True})
+                    event.update(out=incoming,transfer=True)
+                    events.append(event)
                     raise
-                events.append({"instruction": node.name, "args": node.args, "in": incoming, "out": power})
+                event['out'] = power
+                events.append(event)
         return power
 
-    def _op(self, op, p, scope, depth):
+    def _op(self, op, p, scope, depth, *, event=None):
         n, a = op.name, op.args
         if n in self.project.aois:return self.addons.call(op,p,scope,depth+1)
         if n=='MCR':return p
@@ -1103,12 +1106,12 @@ class Engine:
         elif n=='BRK':
             if p:self.calls.break_loop()
         elif n == "JSR":
-            if p:self.calls.call(op,scope,depth)
+            if p:self.calls.call(op,scope,depth,event)
         elif n=='SBR':
-            if p:self.calls.receive(op,scope)
+            if p:self.calls.receive(op,scope,event)
         elif n=='RET':
             if p:
-                self.calls.returned(op,scope)
+                self.calls.returned(op,scope,event)
                 raise ReturnRoutine()
         elif n == "TND":
             if p: raise ReturnRoutine()
