@@ -3725,6 +3725,12 @@ class ApplicationLifecycleTests(unittest.TestCase):
         instant=datetime(*fields,tzinfo=timezone.utc)
         self.assertLess(abs(instant.timestamp()*1000000-int(row['ClockMicros'])),5000000)
         self.assertEqual(row['ClockRecord.Guard'],999)
+        elapsed=int(row['ClockCst'])
+        cst_words=(int(row['ClockCstWords[1]']) & 0xffffffff) | int(row['ClockCstWords[2]']) << 32
+        self.assertGreaterEqual(cst_words,elapsed)
+        offset=struct.unpack('<q',struct.pack('<ii',row['ClockCstOffset[0]'],row['ClockCstOffset[1]']))[0]
+        self.assertLess(abs(offset+elapsed-int(row['ClockMicros'])),5_000_000)
+        self.assertEqual((int(row['ClockCstWords[0]']),int(row['ClockCstWords[3]'])),(101,999))
         for name,last in [('ClockWords',3),('ClockUtc',8),('ClockLocal',8)]:self.assertEqual((row[f'{name}[0]'],row[f'{name}[{last}]']),(101,999))
         retained={k:v for k,v in row.items() if k.startswith(('Clock','StClock'))}
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)

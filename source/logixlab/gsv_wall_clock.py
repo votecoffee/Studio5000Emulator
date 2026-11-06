@@ -1,28 +1,35 @@
-"""Typed v35 ladder/ST reads of the existing host UTC WallClockTime model."""
+"""Typed v35 ladder/ST reads of the host UTC and software coordinated clocks."""
 import struct
 
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, dimensions
 from .numeric_copy import static_reference
 
-ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7)}
+CST_CURRENT = None  # The software CST object has no CIP attribute number.
+CST_OFFSET = 3
+ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7),
+              'cstoffset': (CST_OFFSET, 2)}
 
 
 def matches(op):
-    return bool(op.args and isinstance(op.args[0],str) and op.args[0].casefold()=='wallclocktime')
+    return bool(op.args and isinstance(op.args[0],str) and op.args[0].casefold() in ('wallclocktime', 'cst'))
 
 
 def specification(engine,op):
     project=engine.project
     if project.version!='35' or project.processor.upper() not in CONTROLLERS:
-        raise ModelError('WallClockTime GSV requires the v35 ControlLogix 5580 software profile')
+        raise ModelError('Clock GSV requires the v35 ControlLogix 5580 software profile')
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
-        raise ModelError('WallClockTime GSV requires four neutral-text operands')
-    if op.args[1]:raise ModelError('WallClockTime GSV requires an empty instance operand')
+        raise ModelError('Clock GSV requires four neutral-text operands')
+    if op.args[1]:raise ModelError('Clock GSV requires an empty instance operand')
     attribute=op.args[2].casefold()
+    if op.args[0].casefold() == 'cst':
+        if attribute != 'currentvalue':
+            raise ModelError('CST GSV supports CurrentValue')
+        return CST_CURRENT, 2
     if attribute not in ATTRIBUTES:raise ModelError('Unsupported WallClockTime GSV attribute '+op.args[2])
-    if attribute=='localdatetime' and not project.wall_clock.legacy_utc:
-        raise ModelError('LocalDateTime GSV requires the explicit source UTC local-time policy')
+    if attribute in ('localdatetime', 'cstoffset') and not project.wall_clock.legacy_utc:
+        raise ModelError(f'{op.args[2]} GSV requires the explicit source UTC local-time policy')
     return ATTRIBUTES[attribute]
 
 
@@ -62,23 +69,40 @@ def destination(memory,ref,scope,count,scalar_types=('LINT','DT'),*,word_types=(
     raise ModelError('GSV destination requires '+choices+str(count)+' contiguous '+words+' elements')
 
 
+def _clock_destination(memory, ref, scope, number, count):
+    if number in (CST_CURRENT, CST_OFFSET):
+        return destination(memory, ref, scope, count, scalar_types=('TIME',), word_types=('DINT', 'TIME32'))
+    return destination(memory, ref, scope, count)
+
+
 def validate(engine,op,scope):
-    _,count=specification(engine,op);memory=engine.memory;previous=memory.structural
+    number,count=specification(engine,op);memory=engine.memory;previous=memory.structural
     memory.structural=True
-    try:return destination(memory,op.args[3],scope,count)
+    try:return _clock_destination(memory,op.args[3],scope,number,count)
     finally:memory.structural=previous
 
 
 def execute(engine,op,scope):
     number,count=specification(engine,op);memory=engine.memory
-    key,paths,dtype=destination(memory,op.args[3],scope,count)
-    raw=engine.project.wall_clock.attributes(read_time=True).get(number)
+    key,paths,dtype=_clock_destination(memory,op.args[3],scope,number,count)
+    if number is CST_CURRENT:
+        ticks = engine.coordinated_clock.microseconds()
+        if ticks is None:
+            raise ModelError('CST CurrentValue is unavailable from the software coordinated clock')
+        raw = struct.pack('<q', ticks)
+    else:
+        clock = engine.coordinated_clock if number == CST_OFFSET else None
+        raw = engine.project.wall_clock.attributes(read_time=True, coordinated_clock=clock).get(number)
     if raw is None or len(raw)!=count*4:
+        if number == CST_OFFSET:
+            raise ModelError('WallClockTime CSTOffset is unavailable from the software clocks')
         raise ModelError('WallClockTime GSV value is unavailable from the host UTC clock')
-    if dtype=='DT':
-        memory.store(key,paths[0],coerce(struct.unpack('<q',raw)[0],dtype))
-        return
-    values=struct.unpack('<q' if dtype=='LINT' else '<'+'i'*count,raw)
+    if dtype in ('DT', 'TIME'):
+        values = (coerce(struct.unpack('<q' if dtype == 'DT' else '<Q', raw)[0], dtype),)
+    else:
+        values = struct.unpack('<q' if dtype == 'LINT' else '<' + 'i' * count, raw)
+        if dtype == 'TIME32':
+            values = tuple(coerce(value, dtype) for value in values)
     for path,value in zip(paths,values,strict=True):memory.store(key,path,value)
 
 
@@ -96,8 +120,9 @@ def write_effects(engine,op,scope):
 
 def description():
     return dict(profile='v35-5580-WallClockTime-GSV',languages=['RLL','ST'],
-                attributes=['CurrentValue','DateTime','LocalDateTime (explicit UTC local policy)'],
+                attributes=['CurrentValue','DateTime','LocalDateTime and CSTOffset (explicit UTC local policy)'],
                 destinations='CurrentValue: scalar DT, scalar LINT or two DINT cells; calendars: seven DINT array cells or the first seven DINT members of a declared UDT',
+                coordinated_time='CST CurrentValue and WallClockTime CSTOffset: scalar TIME, two DINT or two TIME32 cells',
                 source='Existing host time.time_ns UTC clock; independent of simulated scan time; microseconds since 1970-01-01',
                 sampling='One sample per reached GSV; separate calls may differ; no scan-wide snapshot',
                 selection='Structural preflight; false/prescan skip live indices and time sampling; reached full writes establish unknown cells',
@@ -106,5 +131,5 @@ def description():
                 failures='Unavailable clock, out-of-range DT, invalid destinations and later faults roll back the whole modeled advance',
                 native_runtime_parity=False,clock_setters=False,ptp=False,
                 remaining=['Built-in DATETIMESTRUCT layout and other attributes',
-                           'Non-UTC/DST policies, SSV and synchronized/CST clock state',
+                           'Non-UTC/DST policies, SSV, CST status and chassis synchronization',
                            'Native sampling, interruption, scheduling, layout and fault/lifecycle parity'])

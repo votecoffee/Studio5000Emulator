@@ -25,7 +25,8 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
     if project.routines[key].kind!='RLL':raise ModelError('Only RLL routine replacement is supported')
     # Everything below is detached. Constructor/planning/preview cannot mutate
     # active values, history, scan ownership or external-input queues.
-    candidate=Engine(project,engine.mode,engine.selected,defer_prescan=True)
+    candidate=Engine(project,engine.mode,engine.selected,defer_prescan=True,
+                     coordinated_clock=engine.coordinated_clock)
     if candidate.blockers:raise ModelError('Candidate routine execution is blocked')
     candidate.memory.values=copy.deepcopy(engine.memory.values)
     candidate.memory.first_scan=engine.memory.first_scan

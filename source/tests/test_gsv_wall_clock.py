@@ -9,7 +9,9 @@ from xml.etree import ElementTree as E
 import test_gsv_configuration as configuration
 import test_aoi_queues as aoi
 from logixlab.model import ModelError
+from logixlab.server import Application
 from logixlab.time_values import BOUNDS
+from logixlab.wall_clock import CoordinatedClock
 
 INSTANT=datetime(2024,2,29,23,59,58,123456,tzinfo=timezone.utc)
 DELTA=INSTANT-datetime(1970,1,1,tzinfo=timezone.utc)
@@ -17,6 +19,7 @@ MICROSECONDS=(DELTA.days*86400+DELTA.seconds)*1000000+DELTA.microseconds
 FIELDS=[2024,2,29,23,59,58,123456]
 WORDS=list(struct.unpack('<ii',struct.pack('<q',MICROSECONDS)))
 CALENDAR_FIELDS=('Year','Month','Day','Hour','Minute','Second','Microsecond')
+MONOTONIC='logixlab.wall_clock.time.monotonic_ns'
 
 
 class GsvWallClockTests(unittest.TestCase):
@@ -78,6 +81,99 @@ class GsvWallClockTests(unittest.TestCase):
             e=self.checked([f'GSV(WallClockTime,,{attribute},ClockWords[1]);'])
             with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):e.step()
             self.assertEqual(e.memory.read('ClockWords'),[77,*FIELDS]+[77]*4)
+
+    @staticmethod
+    def coordinated_destinations(root):
+        tags=root.find('./Controller/Tags')
+        configuration.scalar(tags,'Elapsed','TIME',0)
+        tag=E.SubElement(tags,'Tag',Name='ElapsedWords',DataType='TIME32',TagType='Base',Dimensions='4')
+        array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TIME32',Dimensions='4')
+        for index in (0,3):E.SubElement(array,'Element',Index=f'[{index}]',Value='77')
+
+    def test_cst_gsv_uses_monotonic_time_and_exact_signed_or_unsigned_words(self):
+        e=self.checked(['GSV(CST,,CurrentValue,Elapsed);','GSV(CST,,CurrentValue,ClockWords[1]);',
+                        'GSV(CST,,CurrentValue,ElapsedWords[1]);'],local=False,mutate=self.coordinated_destinations)
+        origin=1_000_000
+        elapsed=0x187654321
+        e.coordinated_clock=CoordinatedClock(origin)
+        with (
+            patch(MONOTONIC,return_value=origin+elapsed*1000+999) as clock,
+            patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('CST does not use UTC')),
+        ):
+            e.step(10)
+        self.assertEqual(clock.call_count,3)
+        self.assertEqual(e.memory.read('Elapsed',allow_time=True),elapsed)
+        words=list(struct.unpack('<ii',struct.pack('<q',elapsed)))
+        self.assertEqual(e.memory.read('ClockWords')[1:3],words)
+        self.assertEqual(e.memory.read('ElapsedWords',allow_time=True),[77,*words,77])
+
+    def test_cst_offset_matches_the_existing_utc_relation(self):
+        e=self.checked(['GSV(WallClockTime,,CSTOffset,ClockWords[1]);',
+                        'GSV(WallClockTime,,CSTOffset,ElapsedWords[1]);'],mutate=self.coordinated_destinations,st=True)
+        elapsed=123456
+        e.coordinated_clock=CoordinatedClock(1_000_000)
+        offset=MICROSECONDS-elapsed
+        with (
+            patch(MONOTONIC,return_value=1_000_000+elapsed*1000) as clock,
+            patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000) as utc,
+        ):
+            e.step()
+        self.assertEqual((clock.call_count,utc.call_count),(2,2))
+        words=list(struct.unpack('<ii',struct.pack('<q',offset)))
+        self.assertEqual(e.memory.read('ClockWords')[1:3],words)
+        self.assertEqual(e.memory.read('ElapsedWords',allow_time=True),[77,*words,77])
+
+    def test_duration_range_errors_are_atomic_and_raw_dint_words_remain_available(self):
+        e=self.checked(['GSV(CST,,CurrentValue,ClockWords[1]);','GSV(CST,,CurrentValue,ElapsedWords[1]);'],
+                       mutate=self.coordinated_destinations)
+        e.coordinated_clock=CoordinatedClock(0)
+        with patch(MONOTONIC,return_value=(1 << 31)*1000):
+            self.fault(e,'TIME32 requires exact ticks')
+        e=self.checked(['GSV(WallClockTime,,CSTOffset,Elapsed);'],mutate=self.coordinated_destinations)
+        e.coordinated_clock=CoordinatedClock(0)
+        with patch(MONOTONIC,return_value=1000):
+            with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):
+                self.fault(e,'TIME requires exact ticks')
+            with patch('logixlab.wall_clock.time.time_ns',return_value=10_000):
+                e.step()
+        self.assertEqual(e.memory.read('Elapsed',allow_time=True),9)
+
+    def test_coordinated_reads_are_lazy_and_roll_back_without_a_valid_sample(self):
+        logic=['XIC(ReadClock)GSV(CST,,CurrentValue,ElapsedWords[ClockIndex]);',
+               'XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockWords[1]);','DIV(1,ClockDivisor,Out);']
+        e=self.checked(logic,mutate=self.coordinated_destinations)
+        e.coordinated_clock=CoordinatedClock(1_000_000)
+        with patch(MONOTONIC,side_effect=AssertionError('Unused clock read')):
+            e.step()
+            e.memory.write('ReadClock',True)
+            self.fault(e,'outside bounds')
+        e.memory.write('ClockIndex',1)
+        with patch(MONOTONIC,return_value=999_999):
+            self.fault(e,'CST CurrentValue is unavailable')
+        with patch(MONOTONIC,return_value=1_001_000), patch('logixlab.wall_clock.time.time_ns',return_value=0):
+            self.fault(e,'CSTOffset is unavailable')
+        e.memory.write('ClockDivisor',0)
+        with patch(MONOTONIC,return_value=1_001_000), patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):
+            self.fault(e,'zero')
+
+    def test_coordinated_scope_and_duration_types_are_checked(self):
+        for logic,local in (('GSV(CST,This,CurrentValue,Elapsed);',True),
+                            ('GSV(CST,,CurrentStatus,Elapsed);',True),
+                            ('GSV(CST,,CurrentValue,ClockWide);',True),
+                            ('GSV(WallClockTime,,CSTOffset,Elapsed);',False),
+                            ('SSV(WallClockTime,,CSTOffset,Elapsed);',True)):
+            with self.subTest(logic=logic):
+                self.assertTrue(self.engine([logic],local=local,mutate=self.coordinated_destinations).blockers)
+
+    def test_application_keeps_the_same_clock_on_load_reset_and_scope_change(self):
+        app=Application(self.tmp.name)
+        self.addCleanup(app.close)
+        clock=app.coordinated_clock
+        for action,args in (('demo',{'sample':'SystemLab'}),('reset',{}),
+                            ('configure',{'mode':'routine','routine':'BackgroundProgram/ReadClockValues'}),
+                            ('demo',{'sample':'SystemLab'})):
+            app.command(action,args)
+            self.assertIs(app.engine.coordinated_clock,clock)
 
     @staticmethod
     def calendar_records(root):

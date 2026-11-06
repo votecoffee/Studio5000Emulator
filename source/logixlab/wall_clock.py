@@ -53,7 +53,7 @@ class CoordinatedClock:
         return {'available': self.available, 'source': 'time.monotonic_ns elapsed microseconds',
                 'scope': 'application lifetime', 'reset_on_project_load': False,
                 'scan_time_independent': True, 'network_synchronized': False,
-                'cip_object_exposed': False, 'gsv_exposed': False}
+                'cip_object_exposed': False, 'gsv_exposed': True}
 
 
 def current_value_microseconds():

@@ -518,6 +518,20 @@
       <Tag Name="ClockUtc" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="ClockLocal" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="StClockUtc" DataType="DINT" TagType="Base" Dimensions="7"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /></Array></Data></Tag>
+      <Tag Name="ClockCst" DataType="TIME" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ClockCstWords" DataType="TIME32" TagType="Base" Dimensions="4">
+        <Data Format="Decorated"><Array DataType="TIME32" Dimensions="4">
+          <Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" />
+          <Element Index="[2]" Value="0" /><Element Index="[3]" Value="999" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="ClockCstOffset" DataType="DINT" TagType="Base" Dimensions="2">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="2">
+          <Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" />
+        </Array></Data>
+      </Tag>
       <Tag Name="ClockRecord" DataType="LabCalendar" TagType="Base">
         <Data Format="Decorated">
           <Structure DataType="LabCalendar">
@@ -708,6 +722,9 @@
               <Rung Number="2" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockUtc[ClockIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,LocalDateTime,ClockLocal[1]);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockRecord.Year);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCst);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCstWords[1]);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockCstOffset[0]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadCurrentInstances" Type="RLL">

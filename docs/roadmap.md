@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.090742` [CST and WallClockTime offset reads](wall-clock-gsv.md#coordinated-system-time)
+use the application-lifetime monotonic counter, with exact word pairs and
+range-checked duration destinations. System Lab demonstrates both reads.
+
 Available in `26.1106.085056` [WallClockTime calendar records](wall-clock-gsv.md#calendar-records)
 write seven declared DINT fields from the first member operand. System Lab
 shows the named values and preserves the trailing field.

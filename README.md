@@ -155,7 +155,8 @@ uses the same mode word as the emulator's EtherNet/IP endpoint.
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. In **System lab**, enable ReadClock to fill a calendar
-record with [named DINT fields](docs/wall-clock-gsv.md#calendar-records).
+record with [named DINT fields](docs/wall-clock-gsv.md#calendar-records)
+and read [software CST and its UTC offset](docs/wall-clock-gsv.md#coordinated-system-time).
 ReadTypedTimes shows a DT timestamp, its exact LDT conversion and typed Task
 measurements.
 

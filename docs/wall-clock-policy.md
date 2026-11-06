@@ -45,9 +45,10 @@ backward/invalid monotonic samples or a negative/unrepresentable relation
 withhold attribute 3 rather than supplying a fallback zero.
 
 Static policy reads and API state polling sample neither clock. All clock,
-time-zone and DST setters remain denied. This software counter does not
-expose a native CST object or GSV attribute, establish a synchronized chassis
-clock or discipline the host.
+time-zone and DST setters remain denied. Ladder and ST can read the elapsed
+counter and offset through [CST and WallClockTime GSV](wall-clock-gsv.md#coordinated-system-time).
+The software counter is local to the app. Native CST object access and chassis
+synchronization remain outside this profile.
 
 Rockwell's [WallClockTime reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
 defines the offset relation and DST units. The

@@ -29,6 +29,33 @@ UTC from Windows when it boots a new owned VM; that one-time whole-second
 initialization is separate from this read-only GSV profile. Each reached GSV takes one sample. Multiple GSV/CIP
 reads can differ and do not form one scan-wide snapshot.
 
+## Coordinated system time
+
+```text
+GSV(CST,,CurrentValue,ClockCst);
+GSV(CST,,CurrentValue,ClockCstWords[1]);
+GSV(WallClockTime,,CSTOffset,ClockCstOffset[0]);
+```
+
+`CST.CurrentValue` reads elapsed microseconds from the application's
+monotonic clock. Its origin survives project reload, reset and routine
+scope changes. Direct engine use starts its own clock. Simulated scan
+time and host UTC adjustments do not change the elapsed counter.
+
+`WallClockTime.CSTOffset` uses the same counter as the
+[EtherNet/IP offset](wall-clock-policy.md). It subtracts one elapsed sample
+from one UTC sample. This read requires the explicit UTC local-time policy.
+Calls take separate samples, so separate GSV results can differ by the time
+between calls.
+
+Both attributes accept a scalar TIME or two contiguous DINT or TIME32 cells.
+The low word comes first. DINT pairs preserve all bits. The scalar TIME and
+both TIME32 cells are checked against their normal duration ranges before
+writing. Use a DINT pair for the UTC offset, which normally exceeds the
+scalar TIME range. An invalid sample or destination range faults the
+advance and restores both words.
+[Rockwell CST reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/input-output-instructions/access-the-cst-object.html)
+
 ## Calendar records
 
 Pass the first member of an explicitly declared user-defined record.
@@ -85,7 +112,9 @@ Choose **System lab** and step once. Enable `ReadClock`, then step to populate
 also writes the seven named members of `ClockRecord`. Its trailing
 `Guard` stays at 999. The existing **ReadSettings** ST routine has gated
 reads. The example explicitly selects the UTC-local policy. Array guard
-cells stay 101/999.
+cells stay 101/999. `ClockCst` and `ClockCstWords[1..2]` show elapsed
+microseconds, and `ClockCstOffset[0..1]` holds the UTC offset. The
+`ClockCstWords` guard cells retain 101 and 999.
 
 Set `ClockIndex` to 99 while ReadClock is false to observe lazy retention. A
 reached calendar read then faults and rolls back the advance. Restore the index
@@ -101,4 +130,4 @@ Installed v35 help 14645 and Rockwell's published
 [WallClockTime object reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
 define the counter/calendar formats. The installed version determines this
 profile. Built-in DATETIMESTRUCT layout, other attributes, SSV clock setters,
-non-UTC/DST policies, CST/PTP synchronization and broader profiles remain separate.
+non-UTC/DST policies, CST status, chassis synchronization and broader profiles remain separate.

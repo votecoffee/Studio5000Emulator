@@ -10,7 +10,7 @@ from . import program_control
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
-from .wall_clock import current_value_microseconds
+from .wall_clock import CoordinatedClock, current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions
@@ -33,8 +33,9 @@ class JumpRoutine(Exception):
 
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
-    def __init__(self, project, mode="project", routine="", *, defer_prescan=False):
+    def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None):
         self.project = project
+        self.coordinated_clock = coordinated_clock if coordinated_clock is not None else CoordinatedClock.start()
         self.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
         self.runtime_references = RuntimeReferences(project)
         self.mode = mode
