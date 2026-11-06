@@ -8,6 +8,15 @@ import test_runtime as fixtures
 from logixlab.model import ModelError
 
 
+def add_fault_dint_array(tags, name, values):
+    size = len(values)
+    tag = ET.SubElement(tags,'Tag',Name=name,DataType='DINT',Dimensions=str(size),TagType='Base')
+    data = ET.SubElement(tag,'Data',Format='Decorated')
+    array = ET.SubElement(data,'Array',DataType='DINT',Dimensions=str(size))
+    for index,value in enumerate(values):
+        ET.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
+
+
 def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None, destination=False, copy_op=None):
     controller = root.find('Controller')
     program = controller.find('./Programs/Program')
@@ -17,12 +26,7 @@ def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None,
     if copy_op:
         arrays.append(('LabCopy',[81,82]))
     for name, values in arrays:
-        size = len(values)
-        tag = ET.SubElement(tags,'Tag',Name=name,DataType='DINT',Dimensions=str(size),TagType='Base')
-        data = ET.SubElement(tag,'Data',Format='Decorated')
-        array = ET.SubElement(data,'Array',DataType='DINT',Dimensions=str(size))
-        for index,value in enumerate(values):
-            ET.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
+        add_fault_dint_array(tags,name,values)
     scalars = [('LabIndex','DINT','0'), ('CapturedFault','DINT','0'), ('FaultWitness','BOOL','1')]
     if copy_op:
         scalars.append(('CopyLength','DINT','2'))
@@ -114,14 +118,14 @@ def set_fault_instruction(root, instruction):
     text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
 
 
-def add_fault_record_array(root, dtype):
+def add_fault_record_array(root, dtype, name='LabRecords'):
     members = {
         'TIMER':dict(PRE=100,ACC=4,EN=False,TT=False,DN=False),
         'COUNTER':dict(PRE=3,ACC=7,CU=False,CD=False,DN=True,OV=False,UN=False),
         'CONTROL':dict(LEN=9,POS=1,EN=True,EU=True,DN=True,EM=True,ER=True,UL=True,IN=True,FD=True),
     }[dtype]
     tags = root.find('./Controller/Tags')
-    tag = ET.SubElement(tags,'Tag',Name='LabRecords',DataType=dtype,TagType='Base',Dimensions='2')
+    tag = ET.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base',Dimensions='2')
     array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType=dtype,Dimensions='2')
     for index in range(2):
         obj = ET.SubElement(ET.SubElement(array,'Element',Index=f'[{index}]'),'Structure',DataType=dtype)
@@ -130,7 +134,8 @@ def add_fault_record_array(root, dtype):
             ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
 
 
-def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None, record_type=None, **options):
+def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
+                      record_type=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
@@ -138,6 +143,8 @@ def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction
     build(root, **options)
     if record_type is not None:
         add_fault_record_array(root,record_type)
+    if queue_values is not None:
+        add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',queue_values)
     if call_fault is not None:
         add_jsr_fault_call(root, return_destination=call_fault=='return')
     if instruction is not None:
@@ -1007,6 +1014,155 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabRecords[0].POS'),0)
                 self.assertEqual(engine.memory.read('LabRecords[1].POS'),1)
                 self.assertEqual(engine._file_incremental,{sibling})
+
+    def test_shift_array_faults_preserve_words_and_rearm_the_same_edge(self):
+        for instruction,expected in (
+            ('BSL(LabValues[0],LabRecords[0],LabValues[LabIndex].0,?)',[9,13]),
+            ('BSR(LabValues[LabIndex],LabRecords[0],LabValues[0].2,?)',[12,14]),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_fault_record_array(root,'CONTROL')
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[0].LEN',4)
+                engine.memory.write('LabIndex',2)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                controls = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],instruction[:3])
+                self.assertEqual(engine.memory.read('LabRecords'),controls)
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),4)
+                self.assertEqual(engine.memory.read('LabValues'),expected)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),expected)
+
+    def test_queue_load_bounds_preserve_position_and_skip_full_payload_reads(self):
+        for instruction,expected in (
+            ('FFL(LabValues[LabIndex],LabQueue[0],LabRecords[0],?,?)',[31,13,99]),
+            ('LFL(LabValues[0],LabQueue[LabIndex],LabRecords[0],?,?)',[31,47,12]),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_fault_record_array(root,'CONTROL')
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[0].LEN',2)
+                engine.memory.write('LabIndex',3)
+                engine.step()
+                controls = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual(fault['instruction'],instruction[:3])
+                self.assertEqual(engine.memory.read('LabRecords'),controls)
+                self.assertEqual(engine.memory.read('LabQueue'),[31,47,99])
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),2)
+                self.assertEqual(engine.memory.read('LabQueue'),expected)
+                engine.memory.write('LabIndex',3)
+                engine.memory.write('StartPB',False)
+                engine.step()
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertIs(engine.last_cleared_program_fault,fault)
+                self.assertEqual(engine.memory.read('LabQueue'),expected)
+
+    def test_queue_unload_bounds_restore_queue_and_control_before_handlers(self):
+        for name,value,shifted in (('FFU',31,[47,0,99]),('LFU',47,[31,0,99])):
+            for position in (0,2):
+                with self.subTest(name=name,position=position):
+                    self.setUp()
+
+                    def configure(root):
+                        handler = 'MOV(LabQueue[1],FaultWords[3])MOV(1,LabIndex);'
+                        controller_fault_fallback_fixture(root,controller_tail=handler)
+                        add_fault_record_array(root,'CONTROL')
+                        add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                        set_fault_instruction(root,f'{name}(LabQueue[0],LabValues[LabIndex],LabRecords[0],?,?)')
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers,[])
+                    engine.memory.write('LabRecords[0].LEN',2)
+                    engine.memory.write('LabRecords[0].POS',position)
+                    engine.step()
+                    controls = copy.deepcopy(engine.memory.read('LabRecords'))
+                    engine.memory.write('LabIndex',2)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['instruction'],fault['handler']['routine']),(name,'FaultHandler/Capture'))
+                    self.assertEqual(engine.memory.read('FaultWords[3]'),47)
+                    self.assertEqual(engine.memory.read('LabQueue'),[31,47,99])
+                    self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                    self.assertEqual(engine.memory.read('LabRecords'),controls)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabQueue'),shifted if position else [31,47,99])
+                    self.assertEqual(engine.memory.read('LabValues'),[12,value if position else 0])
+                    self.assertEqual(engine.memory.read('LabRecords[0].POS'),max(position-1,0))
+
+    def test_queue_unload_recovery_restores_aggregate_fields_with_unknown_values(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+            add_fault_record_array(root,'CONTROL')
+            add_fault_record_array(root,'TIMER','QueueTimers')
+            add_fault_record_array(root,'TIMER','OutputTimers')
+            set_fault_instruction(root,'FFU(QueueTimers[0],OutputTimers[LabIndex],LabRecords[0],?,?)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabRecords[0].LEN',2)
+        engine.memory.write('LabRecords[0].POS',2)
+        engine.memory.write('QueueTimers[1].ACC',27)
+        engine.memory.read('QueueTimers')[0]['DN'] = None
+        engine.step()
+        queue = copy.deepcopy(engine.memory.read('QueueTimers'))
+        outputs = copy.deepcopy(engine.memory.read('OutputTimers'))
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['instruction'],'FFU')
+        self.assertEqual(engine.memory.read('QueueTimers'),queue)
+        self.assertEqual(engine.memory.read('OutputTimers'),outputs)
+        engine.step()
+        self.assertEqual(engine.memory.read('QueueTimers')[0],queue[1])
+        self.assertEqual(engine.memory.read('OutputTimers')[1],queue[0])
+
+    def test_fifo_unload_keeps_destination_index_evaluation_after_the_shift(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabQueue[1]);')
+            add_fault_record_array(root,'CONTROL')
+            add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[0,3,99])
+            set_fault_instruction(root,'FFU(LabQueue[0],LabValues[LabQueue[0]],LabRecords[0],?,?)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabRecords[0].LEN',2)
+        engine.memory.write('LabRecords[0].POS',2)
+        engine.step()
+        engine.memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(engine.last_cleared_program_fault['instruction'],'FFU')
+        self.assertEqual(engine.memory.read('LabQueue'),[0,1,99])
+        self.assertEqual(engine.memory.read('LabValues'),[12,13])
+        engine.step()
+        self.assertEqual(engine.memory.read('LabQueue'),[1,0,99])
+        self.assertEqual(engine.memory.read('LabValues'),[12,0])
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

@@ -30,8 +30,11 @@ A moving shift edge requires the live source-bit address and a known BOOL.
 A moving load edge requires the actual source address and the existing
 matching numeric/string/UDT value. An unload writes the actual destination,
 including the established typed-zero result on an empty unload edge. Complete
-numeric destination writes can establish unknown values. A bad destination
-still faults on an empty unload; it is a write, rather than a skipped path.
+numeric destination writes can establish unknown values. An empty unload also
+selects and writes its destination. In whole-project scans, a handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-shift-and-queue-array-faults)
+and skip the instruction. The CONTROL state and any moved queue elements are
+restored before the handler runs.
 
 Prescan still selects actual CONTROL records. Queue prescan needs known LEN
 and POS for status; runtime queue calls retain those reads even when false or

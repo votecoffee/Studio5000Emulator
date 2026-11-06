@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.142652` [shift and queue array fault recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
+preserves CONTROL flags and queue entries when a handler clears Type 4 Code 20.
+A later valid shift, load or unload can use the retained edge state.
+
 Available in `26.1106.141118` [timer, counter and reset array fault recovery](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
 retains record values, timer timestamps and edge bits after a handler
 clears Type 4 Code 20. CONTROL RES clears file progress for the same record

@@ -169,6 +169,25 @@ invalid presets and arithmetic overflow use the existing scan rollback.
 [Rockwell timer and counter instruction reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/timer-and-counter-instructions.html)
 [Rockwell RES reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/timer-and-counter-instructions/reset--res-.html)
 
+## Recover shift and queue array faults
+
+A reached out-of-bounds subscript in BSL, BSR, FFL, FFU, LFL or LFU
+can raise Type 4 Code 20 in a whole-project ladder scan. The emulator
+restores the CONTROL record and any queue elements moved by an unload
+before calling the fault handler. If the handler clears the fault, the
+next instruction sees the incoming rung power. A later valid call can
+still use the retained EN or EU edge state.
+
+This covers the selected CONTROL address, a reached array start, a
+load or shift source, and an unload destination, including the write
+on an empty unload. Valid unloads still resolve their destination
+after moving the queue. False, held and full-load paths retain their
+existing rules for when to read an address. Invalid lengths, exhausted
+regions and unknown consumed values use the existing rollback behavior.
+
+[Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
+[Rockwell FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

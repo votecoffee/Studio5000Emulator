@@ -5,7 +5,7 @@ Length/position pseudo-operands use saved LEN/POS, never per-scan initialization
 """
 import re
 
-from .model import ModelError, coerce, literal, split_indices
+from .model import ArrayBoundsError, ModelError, coerce, literal, split_indices
 from .integer_math import CONTROLLERS
 from . import fifo_values
 
@@ -248,8 +248,8 @@ def reset(memory, ref, scope):
     return key, tuple(parts)
 
 
-def shift(memory, op, power, scope):
-    a = op.args;obj = control(memory, a[1], scope)
+def shift(memory, op, power, scope, obj):
+    a = op.args
     if not power:
         obj.update(EN=False, DN=False, ER=False, POS=0)
         return False
@@ -284,8 +284,23 @@ def shift(memory, op, power, scope):
     return True
 
 
-def fifo(memory, op, power, scope):
-    n, a = op.name, op.args;obj = control(memory, a[2], scope)
+def _unload(memory, dest, scope, key, paths, dtype):
+    values = [fifo_values.read(memory,memory.address(key,path),'',dtype) for path in paths]
+    # The destination index can read the queue after it moves. Retain the
+    # original elements so a bounds error leaves the queue intact.
+    previous = [memory.at(key,path) for path in paths]
+    for path,value in zip(paths,values[1:]+[fifo_values.zero(memory,dtype)]):
+        memory.store(key,path,value)
+    try:
+        fifo_values.write(memory,dest,scope,dtype,values[0])
+    except ArrayBoundsError:
+        for path,value in zip(paths,previous):
+            memory.store(key,path,value)
+        raise
+
+
+def fifo(memory, op, power, scope, obj):
+    n, a = op.name, op.args
     length, position = fifo_status(obj)
     latch = 'EN' if n in ('FFL', 'LFL') else 'EU'
     if not power:
@@ -305,15 +320,10 @@ def fifo(memory, op, power, scope):
         obj['POS'] += 1
     elif position == 0:
         fifo_values.write(memory,a[1],scope,dtype,fifo_values.zero(memory,dtype))
-    elif n == 'LFU':
-        value = fifo_values.read(memory,memory.address(key,paths[position-1]),'',dtype)
-        memory.store(key, paths[position - 1], fifo_values.zero(memory,dtype))
-        fifo_values.write(memory,a[1],scope,dtype,value)
-        obj['POS'] -= 1
     else:
-        values = [fifo_values.read(memory,memory.address(key,path),'',dtype) for path in paths]
-        for path,value in zip(paths,values[1:]+[fifo_values.zero(memory,dtype)]):memory.store(key,path,value)
-        fifo_values.write(memory,a[1],scope,dtype,values[0])
+        if n == 'LFU':
+            paths = paths[position-1:position]
+        _unload(memory,a[1],scope,key,paths,dtype)
         obj['POS'] -= 1
     fifo_status(obj)
     return True
@@ -321,7 +331,15 @@ def fifo(memory, op, power, scope):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
-    return shift(memory, op, power, scope) if op.name in ('BSL', 'BSR') else fifo(memory, op, power, scope)
+    is_shift = op.name in ('BSL', 'BSR')
+    obj = control(memory, op.args[1 if is_shift else 2], scope)
+    previous = obj.copy()
+    try:
+        operation = shift if is_shift else fifo
+        return operation(memory, op, power, scope, obj)
+    except ArrayBoundsError:
+        obj.update(previous)
+        raise
 
 
 def description():
@@ -336,6 +354,7 @@ def description():
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',
+                array_recovery='Whole-project Type 4 Code 20 subscript recovery restores CONTROL and any moved queue elements',
                 reset_selection='v35 5580 CONTROL RES skips live indices on false/prescan; true establishes POS/flags, retains LEN and clears modeled incremental progress',
                 lifecycle='Shift/queue prescan still requires actual CONTROL addresses and queue LEN/POS; algorithms and runtime state selection unchanged',
                 aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',
