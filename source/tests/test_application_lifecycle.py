@@ -53,6 +53,43 @@ def diagnostic_handler_l5x(*, clear_record=False, extra_rung=None, scheduled=Fal
     return {'name':'DiagnosticHandler.L5X', 'content':base64.b64encode(ET.tostring(root)).decode()}
 
 
+def structured_handler_l5x(layout, *, clear=None, info_count=8, first_member=None):
+    fixture = diagnostic_handler_l5x()
+    root = ET.fromstring(base64.b64decode(fixture['content']))
+    controller = root.find('Controller')
+    timestamps = [('Timestamp','LINT')] if layout=='lint' else [('Time_Low','DINT'), ('Time_High','DINT')]
+    scalars = timestamps + [('Type','INT'), ('Code','INT')]
+    definition = ET.SubElement(controller.find('DataTypes'), 'DataType', Name='LabFaultRecord', Class='User')
+    members = ET.SubElement(definition, 'Members')
+    for name, dtype in scalars:
+        ET.SubElement(members, 'Member', Name=name, DataType=dtype, Dimension='0', Hidden='false')
+    ET.SubElement(members, 'Member', Name='Info', DataType='DINT', Dimension=str(info_count), Hidden='false')
+    tag = ET.SubElement(controller.find('Tags'), 'Tag', Name='CapturedFaults',
+                        DataType='LabFaultRecord', Dimensions='2', TagType='Base')
+    data = ET.SubElement(tag, 'Data', Format='Decorated')
+    array = ET.SubElement(data, 'Array', DataType='LabFaultRecord', Dimensions='2')
+    for index in range(2):
+        element = ET.SubElement(array, 'Element', Index=f'[{index}]')
+        record = ET.SubElement(element, 'Structure', DataType='LabFaultRecord')
+        for name, dtype in scalars:
+            ET.SubElement(record, 'DataValueMember', Name=name, DataType=dtype, Value='17')
+        info = ET.SubElement(record, 'ArrayMember', Name='Info', DataType='DINT', Dimensions=str(info_count))
+        ET.SubElement(info, 'Element', Index='[0]', Value='31')
+
+    routine = controller.find('./Programs/Program[@Name="FaultHandler"]/Routines/Routine/RLLContent')
+    operand = f'CapturedFaults[1].{first_member or timestamps[0][0]}'
+    routine[0].find('Text').text = f'GSV(Program,THIS,MajorFaultRecord,{operand});'
+    if clear is not None:
+        fields = ('Type', 'Code') if clear=='both' else (clear,)
+        actions = ''.join(f'CLR(CapturedFaults[1].{name})' for name in fields)
+        rung = ET.SubElement(routine, 'Rung', Number=str(len(routine)), Type='N')
+        ET.SubElement(rung, 'Text').text = (
+            f'EQU(CapturedFaults[1].Type,3)EQU(CapturedFaults[1].Code,23){actions}'
+            f'SSV(Program,THIS,MajorFaultRecord,{operand});')
+    fixture['content'] = base64.b64encode(ET.tostring(root)).decode()
+    return fixture
+
+
 class ApplicationLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -662,6 +699,70 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertIn('known zero Type and Code', fault['handler']['error'])
         self.assertIsNone(after['controller']['last_cleared_module_fault'])
         self.assertEqual(after['tags'], before['tags'])
+
+    def test_controller_fault_handler_reads_and_clears_both_structured_record_layouts(self):
+        def start(layout, clear):
+            state = self.post('load', structured_handler_l5x(layout, clear=clear))
+            self.assertEqual(state['blockers'], [])
+            self.post('write', {'tag':'ModeCommand', 'value':1})
+            self.post('write', {'tag':'ApplyMode', 'value':True})
+            self.post('step', {'dt':25})
+            self.post('module-connection', {'project_generation':state['project_generation'],
+                                            'module':'RackOutput', 'state':'faulted',
+                                            'fault_code':0x0204, 'fault_info':-42})
+            body = {'mode':'Run', 'dt':25}
+            if clear=='both':
+                return self.post('controller-mode', body)
+            with self.assertRaises(HTTPError) as rejected:
+                self.post('controller-mode', body)
+            self.assertEqual(rejected.exception.code, 400)
+            rejected.exception.close()
+            return self.post('observe', {})
+
+        for layout in ('lint', 'split'):
+            for clear in (None, 'both'):
+                with self.subTest(layout=layout, clear=clear):
+                    state = start(layout, clear)
+                    controller = state['controller']
+                    if clear:
+                        self.assertTrue(controller['running'])
+                        self.assertIsNone(controller['module_major_fault'])
+                        fault = controller['last_cleared_module_fault']
+                    else:
+                        self.assertFalse(controller['running'])
+                        fault = controller['module_major_fault']
+                    self.assertEqual((fault['type'], fault['code']), (3, 23))
+                    self.assertEqual(fault['handler']['status'], 'cleared' if clear else 'completed')
+                    tags = {row['name']:row['value'] for row in state['tags']}
+                    selected = 'CapturedFaults[1].'
+                    if layout=='lint':
+                        timestamp = int(tags[selected+'Timestamp'])
+                    else:
+                        low = tags[selected+'Time_Low'] & 0xffffffff
+                        high = tags[selected+'Time_High'] & 0xffffffff
+                        timestamp = low | (high << 32)
+                    self.assertEqual(timestamp, fault['timestamp_us'])
+                    self.assertEqual((tags[selected+'Type'], tags[selected+'Code']), (0, 0) if clear else (3, 23))
+                    self.assertEqual([tags[selected+f'Info[{i}]'] for i in range(8)], [None]*8)
+                    self.assertEqual((tags['CapturedFaults[0].Type'], tags['CapturedFaults[0].Info[0]']), (17, 31))
+                    self.assertEqual(tags['FaultWords[2]'], 0)
+
+            with self.subTest(layout=layout, clear='Code'):
+                state = start(layout, 'Code')
+                controller = state['controller']
+                self.assertIsNone(controller['last_cleared_module_fault'])
+                fault = controller['module_major_fault']
+                self.assertEqual((fault['code'], fault['handler']['status']), (23, 'rolled_back'))
+                self.assertIn('known zero Type and Code', fault['handler']['error'])
+                tags = {row['name']:row['value'] for row in state['tags']}
+                self.assertEqual((tags['CapturedFaults[1].Type'], tags['CapturedFaults[1].Code']), (17, 17))
+
+    def test_controller_fault_handler_rejects_incompatible_structured_record_operands(self):
+        for options in ({'info_count':7}, {'first_member':'Code'}):
+            with self.subTest(options=options):
+                state = self.post('load', structured_handler_l5x('lint', **options))
+                self.assertTrue(any('MajorFaultRecord UDT requires its first member' in reason
+                                    for reason in state['blockers']), state['blockers'])
 
     def test_controller_fault_handler_rejects_scheduling_and_unsupported_instructions(self):
         cases = (({'scheduled':True}, 'unscheduled Standard Program'),

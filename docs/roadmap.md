@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.122232` [structured fault records](controller-handlers.md#read-and-clear-a-structured-fault-record)
+let ladder handlers read and clear the LINT and split-DINT timestamp layouts
+through the first UDT member.
+
 Available in `26.1106.120850` [ladder fault clearing](controller-handlers.md#clear-an-active-fault-in-ladder-logic)
 lets a handler clear a simulated I/O major fault with a zero Type/Code
 record. The clear commits only when the handler finishes successfully.

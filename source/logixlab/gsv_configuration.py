@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from .identity import CONTROLLOGIX_5580_PRODUCT_CODES
 from .integer_math import CONTROLLERS
-from .model import ModelError, coerce
+from .model import ModelError, coerce, dimensions
 from .numeric_copy import location, prefix, static_reference
 from .string_operations import string_operand
 from .task_configuration import NAME
@@ -16,6 +16,13 @@ TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
 DEVICE_NAME_SIZE = 33
 MAJOR_FAULT_RECORD = 'major-fault-record'
 MAJOR_FAULT_WORDS = 11
+FAULT_RECORD_LINT = 'fault-record-lint'
+FAULT_RECORD_SPLIT = 'fault-record-split'
+FAULT_RECORD_TAIL = (('INT', ()), ('INT', ()), ('DINT', (8,)))
+FAULT_RECORD_LAYOUTS = {
+    (('LINT', ()),) + FAULT_RECORD_TAIL: FAULT_RECORD_LINT,
+    (('DINT', ()), ('DINT', ())) + FAULT_RECORD_TAIL: FAULT_RECORD_SPLIT,
+}
 MODULE_PATH = 'module-path'
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_FAULTED = 0x1000
@@ -399,11 +406,46 @@ def _major_fault_record(engine, instance, scope, *, executing):
     return MAJOR_FAULT_RECORD, (*time_words, type_code) + (None,) * 8
 
 
+def _structured_fault_record(memory, key, parts):
+    parent = parts[:-1]
+    _, _, dtype = memory.resolve(memory.address(key, parent))
+    definition = memory.project.udts.get(dtype.lower())
+    if definition is None or definition.get('Class') != 'User':
+        return None
+    containers = definition.findall('Members')
+    members = definition.findall('./Members/Member')
+    names = [member.get('Name', '') for member in members]
+    shape = tuple((member.get('DataType'), dimensions(member.get('Dimension', '0'))) for member in members)
+    layout = FAULT_RECORD_LAYOUTS.get(shape)
+    error = ('MajorFaultRecord UDT requires its first member, a LINT or two DINT timestamp words, '
+             'followed by INT Type, INT Code and DINT[8] Info')
+    if (layout is None or len(containers)!=1 or list(containers[0])!=members or names[0]!=parts[-1]
+            or not all(names) or len({name.casefold() for name in names})!=len(names)
+            or any(member.get('Hidden', 'false').casefold()!='false'
+                   or 'Target' in member.attrib or 'BitNumber' in member.attrib for member in members)):
+        raise ModelError(error)
+    record = memory.at(key, parent)
+    if (not isinstance(record, dict) or set(record)!=set(names)
+            or any(isinstance(record[name], (dict, list)) for name in names[:-1])
+            or not isinstance(record[names[-1]], list) or len(record[names[-1]])!=8
+            or any(isinstance(item, (dict, list)) for item in record[names[-1]])):
+        raise ModelError('MajorFaultRecord UDT storage does not match its declared layout')
+    paths = [parent + [name] for name in names[:-1]]
+    paths.extend(parent + [names[-1], index] for index in range(8))
+    return key, paths, layout
+
+
 def _major_fault_region(memory, ref, scope, *, writable=False):
+    resolve = memory.check_writable if writable else memory.resolve
+    key, parts, _ = resolve(ref, scope)
+    if key is not None and parts and isinstance(parts[-1], str) and not isinstance(memory.at(key, parts), (dict, list)):
+        record = _structured_fault_record(memory, key, parts)
+        if record is not None:
+            return record
     key, paths, kind = prefix(memory, ref, scope, MAJOR_FAULT_WORDS, writable=writable)
     if kind != 'DINT' or len(paths) != MAJOR_FAULT_WORDS:
         direction = 'writable' if writable else 'readable'
-        raise ModelError(f'MajorFaultRecord requires 11 {direction} contiguous DINT elements')
+        raise ModelError(f'MajorFaultRecord requires 11 {direction} contiguous DINT elements or a supported UDT first member')
     return key, paths, kind
 
 
@@ -414,10 +456,12 @@ def write_major_fault_record(engine, op, scope, *, executing):
     previous = memory.structural
     memory.structural = not executing
     try:
-        key, paths, _ = _major_fault_region(memory, op.args[3], scope)
+        key, paths, layout = _major_fault_region(memory, op.args[3], scope)
         if executing:
-            type_code = memory.at(key, paths[2])
-            if type(type_code) is not int or type_code != 0:
+            start = 1 if layout == FAULT_RECORD_LINT else 2
+            count = 1 if layout == 'DINT' else 2
+            words = (memory.at(key, path) for path in paths[start:start+count])
+            if any(type(word) is not int or word != 0 for word in words):
                 raise ModelError('SSV MajorFaultRecord requires known zero Type and Code')
             engine._handler_clear_requested = True
     finally:
@@ -575,9 +619,20 @@ def validate(engine, op, scope):
     finally:memory.structural=previous
 
 
+def _structured_fault_values(words, layout):
+    low, high, packed, *info = words
+    type_code = struct.unpack('<2h', struct.pack('<i', packed))
+    if layout == FAULT_RECORD_LINT:
+        timestamp = None if low is None else struct.unpack('<q', struct.pack('<2i', low, high))[0]
+        return (timestamp, *type_code, *info)
+    return (low, high, *type_code, *info)
+
+
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
+    if dtype == MAJOR_FAULT_RECORD and kind != 'DINT':
+        value = _structured_fault_values(value, kind)
     if dtype in ('SINT[33]', MODULE_PATH, MAJOR_FAULT_RECORD):
         for path, item in zip(paths, value, strict=True):
             memory.store(key, path, item)
@@ -619,6 +674,7 @@ def description():
                 module_status='INT or DINT low word; preserve a known DINT upper word.',
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
+                major_fault_record='Active ladder controller fault handler; DINT[11] or first member of a supported fault-record UDT.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

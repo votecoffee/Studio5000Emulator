@@ -26,17 +26,41 @@ of the emulator UTC timestamp in microseconds. Word 2 holds Type in its
 low half and Code in its high half. The eight fault-specific Info words
 are unknown. The browser and HTTP fault record retain the injected module
 code and information independently. The read is available inside the
-executing handler. Direct structure destinations, Program-specific fault
-routines, additional fault types and native handler references remain open.
+executing handler. Program-specific fault routines, additional fault types
+and native handler references remain open.
 The existing recovery control can clear a fault after the simulated
 connection is restored.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 [Rockwell Program object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
 
+## Read and clear a structured fault record
+
+A user-defined record can declare either a scalar LINT timestamp or two
+scalar DINT words in low/high order. Declare scalar INT Type and Code
+next, then a one-dimensional DINT[8] Info array. The member names may
+vary. Use the record's first timestamp member as the GSV destination or
+SSV source. The selected record can be a scalar tag or an element of
+an array. The simulator validates the entire declared layout, including
+visible members and array extent, before writing any fields.
+
+For a record whose first member is `Timestamp`, these rungs capture
+the fault and clear only Type 3 Code 16.
+
+```text
+GSV(Program,THIS,MajorFaultRecord,FaultRecord.Timestamp);
+EQU(FaultRecord.Type,3)EQU(FaultRecord.Code,16)CLR(FaultRecord.Type)CLR(FaultRecord.Code)SSV(Program,THIS,MajorFaultRecord,FaultRecord.Timestamp);
+```
+
+The split timestamp form uses its low word as the operand. Info words
+remain unknown in either layout. Both INT fields must contain known zeros
+to request a clear. The existing handler commit and rollback rules apply.
+[Rockwell fault-record structure and operand guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
+[Rockwell LINT timestamp layout](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
+
 ## Clear an active fault in ladder logic
 
 In the same controller handler, use SSV with THIS or the current handler
-Program and an 11-word DINT source. The packed Type and Code word must be
+Program. For an 11-word DINT source, the packed Type and Code word must be
 known zero. For example, after reading the active fault, this rung clears
 only Type 3 Code 16.
 
