@@ -359,16 +359,20 @@ leaves the controller fault latched.
 ## Required module fault at Run entry
 
 A whole-project Program-to-Run request trips Type 3 Code 23 if a module
-is required by its effective Mode word and already has an effective
-simulated Faulted connection. The request fails before prescan and leaves
-tags, simulated time and scan counters intact. If several modules qualify,
-the controller records the first one in the source module order.
+is required by its effective Mode word and has an effective simulated
+Faulted connection or is Waiting on an explicitly faulted routed ancestor.
+The request fails before prescan and preserves tags, simulated time and
+scan counters. Direct faults take precedence over upstream faults. Within
+each group, the controller reports the first qualifying module in source order.
 
-Optional, inhibited, waiting and unknown module states do not trigger
-this startup check. Manual Step and isolated routine Run stay available
-for diagnostics when there is no controller fault latch. The simulator
-checks the explicit input immediately. Rockwell's connection attempt and
-startup delay require live I/O and are outside this model.
+An inhibited route and an unmodeled connection without a known upstream
+fault do not trigger the startup check. An optional module can still block a
+required descendant. A required descendant with no staged input can trip
+when its route is known and an ancestor has an explicit fault. Manual Step
+and isolated routine Run stay available for diagnostics when there is no
+controller fault latch. The simulator checks the explicit input immediately.
+Rockwell's connection attempt and startup delay require live I/O and are
+outside this model.
 
 In **Module status lab**, set ModeCommand to 1, Step with ApplyMode true,
 and set ApplyMode back to false. In **Device I/O**, apply Faulted to
@@ -377,6 +381,11 @@ RackOutput while still in Program. Select **Run** to see **I/O MAJOR FAULT
 Run again. The same API fault record and recovery controls apply to both
 3/23 and 3/16. If another required module is still faulted, the next Run
 request reports that module.
+
+For the upstream case, uninhibit RemoteRack as shown in the previous
+section, then apply Faulted to it while still in Program. A Run request
+reports required RemoteInput and names RemoteRack as the upstream source.
+Set both modules to effective Running before clearing the fault.
 [Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 
 ## Module backplane path

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.114118` [upstream faults at Run entry](gsv-configuration.md#required-module-fault-at-run-entry)
+latch Type 3 Code 23 when an explicit upstream fault blocks a required route.
+Inhibited routes stay out of the startup check.
+
 Available in `26.1106.113325` [loss of required I/O through an upstream fault](gsv-configuration.md#required-module-loss-through-an-upstream-fault)
 latches Type 3 Code 16 when a required Running module becomes Waiting.
 Recovery requires both affected connections to be effectively Running.

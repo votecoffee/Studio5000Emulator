@@ -183,21 +183,27 @@ def _module_inhibited(engine, module):
 
 def _module_connection_state(engine, module, find_parent):
     if _module_inhibited(engine, module):
-        return MODULE_INHIBITED, None
+        return MODULE_INHIBITED, None, None
     parent_name = module.routed_parent
+    faulted_ancestor = None
     # Only follow dependencies for which the parser proved a route.
     while parent_name is not None:
         parent = find_parent(parent_name)
         if parent is None:
             break
-        connection = engine._module_connections.get(parent.name)
-        if _module_inhibited(engine, parent) or (connection and connection.fault_code):
-            return MODULE_WAITING, None
+        if _module_inhibited(engine, parent):
+            return MODULE_WAITING, None, None
+        upstream_connection = engine._module_connections.get(parent.name)
+        if upstream_connection and upstream_connection.fault_code:
+            # The fault nearest the controller is the effective blocker.
+            faulted_ancestor = parent
         parent_name = parent.routed_parent
+    if faulted_ancestor is not None:
+        return MODULE_WAITING, None, faulted_ancestor
     connection = engine._module_connections.get(module.name)
     if connection is None:
-        return None, None
-    return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
+        return None, None, None
+    return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection, None
 
 
 def _apply_run_connection_fault(engine, module, connection):
@@ -237,15 +243,22 @@ def _latch_module_major_fault(engine, module, connection, code, *, upstream=None
 def fault_on_run_entry(engine):
     if engine.mode != 'project' or not engine._module_connections:
         return False
-    io_map = engine.project.io_map
-    for module in io_map.module_settings:
-        if module.name not in engine._module_connections or not _module_required(engine, module):
+    modules = {module.name: module for module in engine.project.io_map.module_settings}
+    upstream_failure = None
+    for module in modules.values():
+        if not _module_required(engine, module):
             continue
-        status, connection = _module_connection_state(engine, module, io_map.named_module)
+        status, connection, upstream = _module_connection_state(engine, module, modules.get)
         if status == MODULE_FAULTED:
             _latch_module_major_fault(engine, module, connection, 23)
             return True
-    return False
+        if upstream is not None and upstream_failure is None:
+            upstream_failure = module, upstream
+    if upstream_failure is None:
+        return False
+    module, upstream = upstream_failure
+    _latch_module_major_fault(engine, module, engine._module_connections[upstream.name], 23, upstream=upstream)
+    return True
 
 
 def module_major_fault_state(engine):
@@ -282,7 +295,7 @@ def simulated_module_connections(engine):
     for module in modules.values():
         if module.route is None or module.inhibited is None:
             continue
-        status, _ = _module_connection_state(engine, module, modules.get)
+        status, _, _ = _module_connection_state(engine, module, modules.get)
         connection = engine._module_connections.get(module.name)
         applied = {'state': 'clear'}
         if connection is not None:
@@ -303,7 +316,7 @@ def _module_connection_attribute(engine, module, attribute, *, executing):
         raise ModelError('GSV Module fault diagnostics require a qualified route')
     if not executing:
         return dtype, None
-    status, connection = _module_connection_state(engine, module, engine.project.io_map.named_module)
+    status, connection, _ = _module_connection_state(engine, module, engine.project.io_map.named_module)
     if attribute == 'entrystatus':
         if status is None:
             raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited, no modeled parent is inhibited, and no connection state is set')

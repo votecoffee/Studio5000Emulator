@@ -157,7 +157,7 @@ The Device I/O tab sets the simulated input and displays the effective state.
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).
 Restore the affected connections and use **Clear I/O major fault** to return to
-Program with current tag values. An [explicitly faulted required connection at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
+Program with current tag values. A [required connection blocked by a simulated fault at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
 trips before prescan.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
