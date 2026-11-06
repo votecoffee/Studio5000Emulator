@@ -192,6 +192,104 @@ class GsvConfigurationTests(unittest.TestCase):
         e=self.engine('FOR Index:=0 TO Out DO GSV(Module,,ForceStatus,Out); END_FOR;',st=True)
         self.assertTrue(any('bounds/step' in error for error in e.blockers),e.blockers)
 
+    @staticmethod
+    def add_rack_module(root, *, inhibited='true', major_fault='true', parent='Local'):
+        modules = root.find('./Controller/Modules')
+        E.SubElement(modules, 'Module', Name='Local', ParentModule='Local',
+                     CatalogNumber='1756-L85E', Vendor='1', ProductType='14')
+        module = E.SubElement(modules, 'Module', Name='RackIO', ParentModule=parent,
+                              CatalogNumber='1756-OB16D', ProductType='7')
+        if inhibited is not None:
+            module.set('Inhibited', inhibited)
+        if major_fault is not None:
+            module.set('MajorFault', major_fault)
+        return module
+
+    def test_named_module_mode_reads_source_bits_in_ladder_and_st(self):
+        for st in (False, True):
+            for inhibited, major_fault, expected in (('false','false',0), ('false','true',1),
+                                                       ('true','false',4), ('true','true',5)):
+                with self.subTest(st=st, inhibited=inhibited, major_fault=major_fault):
+                    def source(root):
+                        module = self.add_rack_module(root, inhibited=inhibited, major_fault=major_fault)
+                        E.SubElement(E.SubElement(module, 'Communications'), 'ForceData')
+                    e = self.checked(['GSV(Module,rAcKiO,Mode,PriorityOut);',
+                                      'GSV(Module,RackIO,Mode,Out);'], st=st, mutate=source)
+                    self.assertFalse(e.project.io_map.empty)
+                    self.assertEqual(e.project.io_map.attributes(), {})
+                    self.assertIsNone(e.project.io_map.connection_class_attributes())
+                    e.memory.values['priorityout'] = None
+                    e.memory.write('Out', -1)
+                    e.step()
+                    self.assertEqual(e.memory.read('PriorityOut'), expected)
+                    self.assertEqual(e.memory.read('Out'), -65536 + expected)
+
+    def test_named_module_entry_status_skips_unreached_destination_and_rolls_back(self):
+        def source(root):
+            self.add_rack_module(root, major_fault=None)
+            device_buffer(root, dtype='DINT', count=3)
+        e = self.checked(['GSV(Module,RackIO,EntryStatus,PriorityOut);',
+                          'XIC(Flag)GSV(Module,RackIO,EntryStatus,DeviceBytes[Index]);'], mutate=source)
+        e.memory.write('Index', 99)
+        e.step()
+        self.assertEqual(e.memory.read('PriorityOut'), 0x6000)
+        e.memory.write('PriorityOut', -9)
+        e.memory.write('Flag', True)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 1)
+        e.memory.write('Index', 1)
+        e.memory.write('DeviceBytes[1]', 0x1234ffff)
+        e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'), [-1, 0x12346000, -1])
+
+    def test_named_module_rejects_unsupported_attributes_and_ambiguous_source(self):
+        for call in ('GSV(Module,,Mode,Out);', 'GSV(Module,Local,Mode,Out);',
+                     'GSV(Module,RackIO,Mode,Flag);', 'GSV(Module,RackIO,FaultCode,Out);',
+                     'GSV(Module,Unknown,Mode,Out);', 'GSV(Module,,LEDStatus,Out);',
+                     'SSV(Module,RackIO,Mode,Out);'):
+            with self.subTest(call=call):
+                self.assertTrue(self.engine([call], mutate=self.add_rack_module).blockers)
+        for case in ('duplicate', 'remote', 'no_root', 'context', 'bad_mode', 'missing_major_fault'):
+            with self.subTest(case=case):
+                def source(root):
+                    module = self.add_rack_module(root)
+                    modules = root.find('./Controller/Modules')
+                    if case == 'duplicate':
+                        E.SubElement(modules, 'Module', Name='rackio')
+                    elif case == 'remote':
+                        module.set('ParentModule', 'Bridge')
+                    elif case == 'no_root':
+                        modules.remove(modules.find('Module'))
+                    elif case == 'context':
+                        module.set('Use', 'Context')
+                    elif case == 'bad_mode':
+                        module.set('Inhibited', 'unknown')
+                    else:
+                        del module.attrib['MajorFault']
+                self.assertTrue(self.engine(['GSV(Module,RackIO,Mode,Out);'], mutate=source).blockers)
+        e = self.engine(['GSV(Module,RackIO,EntryStatus,Out);'],
+                        mutate=lambda root: self.add_rack_module(root, inhibited='false'))
+        self.assertTrue(any('explicitly inhibited module' in error for error in e.blockers))
+
+    def test_module_status_lab_runs_its_ladder_and_st_routines(self):
+        path = Path(__file__).resolve().parents[1] / 'samples/ModuleStatusLab.L5X'
+        e = Engine(Project(path))
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('StateWord'), -1)
+        self.assertEqual(e.memory.read('ModeWord'), 0x1234ffff)
+        self.assertEqual(e.memory.read('StMode'), -1)
+        self.assertFalse(e.memory.read('ModuleInhibited'))
+        e.memory.write('ReadModule', True)
+        e.step()
+        self.assertEqual(e.memory.read('StateWord'), 0x6000)
+        self.assertEqual(e.memory.read('ModeWord'), 0x12340005)
+        self.assertEqual(e.memory.read('StMode'), 5)
+        self.assertTrue(e.memory.read('ModuleInhibited'))
+
     def test_program_and_routine_names_match_source_case_in_ladder_and_st(self):
         for st in (False,True):
             for cls,instance,expected in (('Program','fAsTpRoGrAm','FastProgram'),

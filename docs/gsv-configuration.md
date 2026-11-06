@@ -34,6 +34,8 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
+| Module | Mode | INT or DINT low word | Named local-chassis module with explicit Inhibited and MajorFault settings |
+| Module | EntryStatus | INT or DINT low word | Named local-chassis module explicitly configured as inhibited |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -44,8 +46,9 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 Class, attribute and object lookup are case insensitive. Returned names retain
 source spelling. Task references use literal configured names or
 [THIS in ordinary scheduled Program routines](current-instance-gsv.md).
-Controller, ControllerDevice and the supported Module status reads use an empty instance operand. Numeric object references and
-AOI/harness THIS contexts remain outside the profile.
+Controller, ControllerDevice and collection-wide Module status reads use an
+empty instance operand. Mode and EntryStatus require a module name. Numeric
+object references and AOI/harness THIS contexts remain outside the profile.
 
 Structural preflight validates destinations without reading saved dynamic
 indices. ST FOR effects cover complete static cells/strings and conservatively
@@ -165,10 +168,34 @@ IoLedStatus to zero. ST clears the low word of IoForceStatus, changing
 16#1234FFFF to 16#12340000, with ReadConfig enabled.
 
 Projects with configured external modules, produced or consumed tags, force
-declarations or opaque I/O source are outside this profile. Named module
-diagnostics, hardware LED behavior and force control remain unqualified.
+declarations or opaque I/O source are outside this profile. Hardware LED
+behavior and force control remain unqualified.
 [Rockwell I/O status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 [Rockwell force status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm004_-en-p.pdf)
+
+## Named Module status
+
+In a complete v35 5580 project, a Program routine can use ladder or ST to
+read settings for an unambiguous named module directly under the Local
+controller. Mode uses the explicit L5X boolean fields MajorFault for bit 0
+and Inhibited for bit 2. EntryStatus returns 16#6000 for an explicitly
+inhibited module. An uninhibited module has no modeled connection state,
+so its EntryStatus is unavailable.
+
+Both reads support INT and the low word of a known DINT, with the upper
+word preserved. Destination indices are resolved only when a call executes.
+An invalid reached destination rolls back the scan.
+
+Open **Module status lab** from Examples, set ReadModule to true, and step.
+StateWord becomes 16#6000, ModeWord changes from 16#1234FFFF to 16#12340005,
+and StMode reads 5. A masked ladder comparison sets ModuleInhibited.
+[ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
+
+Mode writes, AOI module references, remote modules, cyclic data, live
+connection diagnostics and module-caused controller faults remain open.
+The sample demonstrates the emulator's source-based model.
+[Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
+[Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 
 ## Changing a periodic task rate
 

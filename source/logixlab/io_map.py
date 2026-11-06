@@ -1,6 +1,42 @@
-"""Read-only empty I/O status and bounded root connection-class metadata."""
+"""Read-only I/O settings and bounded root connection-class metadata."""
 from dataclasses import dataclass
 from .tag_catalog import complete_tag_source
+from .task_configuration import NAME
+
+
+@dataclass(frozen=True)
+class ModuleSettings:
+    name: str
+    inhibited: bool | None
+    major_fault: bool | None
+
+    def mode(self):
+        if self.inhibited is None or self.major_fault is None:
+            return None
+        return (int(self.inhibited) << 2) | int(self.major_fault)
+
+
+def _module_settings(controller, modules):
+    entries = {module.get('Name', '').casefold(): module for module in modules}
+    local = entries.get('local')
+    if (len(entries) != len(modules) or '' in entries or local is None
+            or local.get('ParentModule', '').casefold() != 'local'
+            or local.get('CatalogNumber') != controller.get('ProcessorType')
+            or local.get('Vendor') != '1' or local.get('ProductType') != '14'):
+        return ()
+    bool_values = {'true': True, 'false': False}
+    settings = []
+    for name, module in entries.items():
+        product = module.get('ProductType', '')
+        if (name == 'local' or not NAME.fullmatch(module.get('Name', ''))
+                or module.get('ParentModule', '').casefold() != 'local'
+                or not module.get('CatalogNumber') or 'SafetyNetwork' in module.attrib
+                or not (product.isascii() and product.isdecimal() and len(product) <= 5)
+                or not 0 < int(product) <= 0xffff or int(product) == 14):
+            continue
+        settings.append(ModuleSettings(name, bool_values.get(module.get('Inhibited')),
+                                       bool_values.get(module.get('MajorFault'))))
+    return tuple(settings)
 
 
 @dataclass(frozen=True)
@@ -10,6 +46,7 @@ class IOMap:
     root_link_port: int|None = None
     local_identity: tuple[int,int,int,int,int]|None = None
     module_status_qualified: bool = False
+    module_settings: tuple[ModuleSettings, ...] = ()
 
     @classmethod
     def from_source(cls, root, controller):
@@ -21,6 +58,7 @@ class IOMap:
         modules = list(sections[0])
         if any(module.tag != 'Module' for module in modules):
             return cls()
+        external_modules = len(modules) > 1
         module_status_qualified = True
         for node in controller.iter():
             local = node.tag.rsplit('}', 1)[-1].lower()
@@ -29,6 +67,8 @@ class IOMap:
                     or node.tag == 'Modules' and node is not sections[0]
                     or node.tag == 'Module' and node not in modules):
                 return cls()
+            if external_modules:
+                continue
             if (local in ('produceinfo', 'consumeinfo')
                     or local in ('tag', 'localtag') and node.get('TagType', '').casefold() in ('produced', 'consumed')
                     or any(word in local or word in node.get('Format', '').casefold()
@@ -40,12 +80,14 @@ class IOMap:
             if any(any(word in name.lower() for word in ('force', 'encoded', 'encrypted', 'protected'))
                    for name in node.attrib):
                 return cls()
+        if external_modules:
+            # Named GSV settings use only module declarations. They never
+            # establish an empty native I/O Map or infer connection state.
+            return cls(module_settings=_module_settings(controller, modules))
         root_link_address=None;root_link_port=None;local_identity=None
         if modules:
             # A native full-controller export includes its own Local module.
             # It is not an I/O Map connection to an external module.
-            if len(modules) != 1:
-                return cls()
             module = modules[0]
             expected = {'Name':'Local', 'ParentModule':'Local', 'Vendor':'1',
                         'ProductType':'14', 'CatalogNumber':'1756-L85E'}
@@ -76,6 +118,10 @@ class IOMap:
                             and key[3:]==tuple(map(int,revision))):local_identity=key
         return cls(True,root_link_address,root_link_port,local_identity,module_status_qualified)
 
+    def named_module(self, name):
+        name = name.casefold()
+        return next((entry for entry in self.module_settings if entry.name == name), None)
+
     def attributes(self):
         # No installed/enabled I/O forces; LED 0 means no Module objects.
         return {9:bytes(2), 11:bytes(2)} if self.empty else {}
@@ -102,4 +148,5 @@ class IOMap:
                 'root_link_address_available':self.root_link_address is not None,
                 'root_link_port':self.root_link_port,
                 'root_link_port_available':self.root_link_port is not None,
+                'named_module_settings':len(self.module_settings),
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

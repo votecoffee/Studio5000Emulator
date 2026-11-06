@@ -13,6 +13,7 @@ TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
+MODULE_INHIBITED = 0x6000
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
@@ -113,6 +114,27 @@ def controller_device(engine, instance, attribute, *, executing):
     raise ModelError('Unsupported GSV ControllerDevice attribute ' + attribute)
 
 
+def module_attribute(io_map, instance, attribute):
+    if not instance and attribute in MODULE_STATUS:
+        raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
+        if raw is None:
+            raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
+        return struct.unpack('<h', raw)[0]
+    if not instance or attribute not in ('mode', 'entrystatus'):
+        raise ModelError('GSV Module requires a named instance for Mode or EntryStatus, or a blank instance for ForceStatus or LEDStatus')
+    module = io_map.named_module(instance)
+    if module is None:
+        raise ModelError('GSV Module requires an unambiguous named local-chassis module in complete source')
+    if attribute == 'entrystatus':
+        if module.inhibited is not True:
+            raise ModelError('GSV Module EntryStatus requires an explicitly inhibited module')
+        return MODULE_INHIBITED
+    value = module.mode()
+    if value is None:
+        raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
+    return value
+
+
 def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
@@ -125,13 +147,9 @@ def source(engine, op, scope='', *, executing=False):
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
     if cls == 'module':
-        if instance or attribute not in MODULE_STATUS:
-            raise ModelError('GSV Module requires an empty instance and ForceStatus or LEDStatus')
-        io_map = project.io_map
-        raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
-        if raw is None:
-            raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
-        return 'INT', struct.unpack('<h', raw)[0]
+        if instance and scope in engine.memory.frames:
+            raise ModelError('Named GSV Module requires a Program routine; AOI module references are unsupported')
+        return 'INT', module_attribute(project.io_map, instance, attribute)
     if cls=='controller':
         if instance:raise ModelError('GSV Controller requires an empty instance operand')
         if attribute=='name':
@@ -261,7 +279,8 @@ def description():
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
-                module=['ForceStatus','LEDStatus'],
+                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)'],
+                named_module_settings='Explicit local-chassis source settings. Mode reads bits 0 and 2; EntryStatus models only Inhibited (0x6000).',
                 module_status='Controller-only I/O map. INT or DINT low word; preserve a known DINT upper word.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
