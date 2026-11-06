@@ -68,6 +68,16 @@ class ApplicationLifecycleTests(unittest.TestCase):
         state = self.post('demo', {'sample':'ModuleStatusLab'})
         self.assertEqual(state['blockers'], [])
         request = {'module':'PointAdapter', 'project_generation':state['project_generation']}
+        def modules(snapshot):
+            return {row['label']:row for row in snapshot['module_simulation']}
+        self.assertEqual(modules(state)['PointAdapter'],
+                         {'name':'pointadapter', 'label':'PointAdapter', 'entry_status':None, 'input':{'state':'clear'}})
+        self.assertEqual(modules(state)['RemoteInput']['entry_status'], 0x7000)
+        self.post('module-connection', {**request, 'module':'RackOutput', 'state':'running'})
+        rack = modules(self.post('observe', {}))['RackOutput']
+        self.assertEqual(rack['input']['state'], 'running')
+        self.assertEqual(rack['entry_status'], 0x6000)
+
         def observed():
             current = self.post('step', {'dt':25})
             tags = {row['name']:row['value'] for row in current['tags']}
@@ -83,6 +93,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('module-connection', {**request, 'state':'faulted', 'fault_code':0xf003, 'fault_info':-42})
         self.post('write', {'tag':'ReadConnection', 'value':True})
         self.assertEqual(observed(), (0x1000, 0xf003 - 0x10000, -42))
+        point = modules(self.post('observe', {}))['PointAdapter']
+        self.assertEqual(point['entry_status'], 0x1000)
+        self.assertEqual(point['input'], {'state':'faulted', 'fault_code':0xf003, 'fault_info':-42})
         for invalid in ({'state':'faulted', 'fault_code':True, 'fault_info':1},
                         {'state':'faulted', 'fault_code':0, 'fault_info':1},
                         {'state':'faulted', 'fault_code':2, 'fault_info':1 << 31},
@@ -103,6 +116,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
             self.post('module-connection', {**request, 'state':'running'})
         self.assertEqual(stale.exception.code, 400)
         self.assertNotEqual(reset['project_generation'], request['project_generation'])
+        self.assertEqual(modules(reset)['RackOutput']['input'], {'state':'clear'})
         self.assertEqual(observed(), (-1, -1, -1))
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):

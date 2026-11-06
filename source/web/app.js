@@ -2,6 +2,9 @@
 const $ = id => document.getElementById(id);
 let state = null, selected = '', selectedContext = '', running = false, stepping = false, modePending = false, observing = false, currentTab = 'ladder', report = null, editTag = null;
 let connectivityPoll = null;
+let moduleFormGeneration, modulePending = false;
+const moduleStatusLabels = {4096:'Faulted',16384:'Running',24576:'Inhibited',28672:'Waiting'};
+const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,6 +35,39 @@ async function accept(value, refreshReport = false) {
   if (refreshReport && value.loaded) report = await api('report');
   render();
 }
+function selectedModule() {
+  return state?.module_simulation?.find(module=>module.name===$('module-name').value);
+}
+function loadModuleInput() {
+  const input = selectedModule()?.input;
+  $('module-input').value = input?.state ?? 'clear';
+  $('module-fault-code').value = input?.state === 'faulted' ? input.fault_code : 516;
+  $('module-fault-info').value = input?.fault_info ?? 0;
+  $('module-connection-feedback').textContent = '';
+}
+function renderModuleSimulation() {
+  const modules = state?.module_simulation ?? [];
+  if (moduleFormGeneration !== state?.project_generation) {
+    moduleFormGeneration = state?.project_generation;
+    $('module-name').replaceChildren(...modules.map(module=>new Option(module.label,module.name)));
+    loadModuleInput();
+  }
+  const module = selectedModule();
+  $('module-connection-form').hidden = !module;
+  $('module-simulation-empty').hidden = !!module;
+  if (!module) return;
+  const inhibited = !!state.connectivity?.native_programming_lease?.scan_inhibited;
+  const faulted = $('module-input').value === 'faulted';
+  $('module-fault-fields').hidden = !faulted;
+  $('module-name').disabled = $('module-input').disabled = modulePending;
+  $('module-fault-code').disabled = $('module-fault-info').disabled = !faulted || modulePending;
+  $('module-apply').disabled = modulePending || inhibited;
+  const input = module.input;
+  const diagnostics = input.state === 'faulted'
+    ? ' (0x' + input.fault_code.toString(16).toUpperCase().padStart(4,'0') + ', info ' + input.fault_info + ')' : '';
+  $('module-connection-summary').textContent = 'Input ' + moduleInputLabels[input.state] + diagnostics
+    + ' · Effective ' + (moduleStatusLabels[module.entry_status] ?? 'Unknown');
+}
 function render() {
   if(state?.app_version){$('app-version').textContent=state.app_version;document.title=`LogixLab ${state.app_version} · Offline PLC lab`;}
   const appliance=state?.execution_environment==='vmware-host-only';
@@ -46,8 +82,9 @@ function render() {
   $('save-logic').disabled=!loaded||running||!state?.routine_edits?.l5x_export_available||!!state?.connectivity?.native_programming_lease?.owned;
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
   renderConnectivity();
+  renderModuleSimulation();
   const device=state?.device_io||{};
-  $('device-badge').textContent=device.writes_enabled?'EXTERNAL WRITES ENABLED':'READ ONLY';
+  $('device-badge').textContent=device.writes_enabled?'EXTERNAL TAG WRITES ENABLED':'EXTERNAL TAGS READ ONLY';
   $('device-writes').checked=!!device.writes_enabled;
   $('device-api').textContent=location.origin+'/api/device-io/snapshot';
   $('device-summary').textContent=`Snapshot ${device.snapshot_sequence||0} · ${device.pending_writes||0}/${device.queue_capacity||64} queued input batches · apply between scans`;
@@ -233,6 +270,32 @@ $('reset').onclick=async()=>{try{await accept(await api('reset'),true);}catch(e)
 $('mode').onchange=()=>{$('harness').disabled=$('mode').value!=='routine';};
 $('apply').onclick=async()=>{try{await accept(await api('configure',{mode:$('mode').value,routine:$('harness').value}),true);}catch(e){error(e);}};
 $('filter').oninput=()=>{if(state?.loaded)renderTags();};
+$('module-name').onchange=()=>{loadModuleInput();renderModuleSimulation();};
+$('module-input').onchange=renderModuleSimulation;
+$('module-connection-form').onsubmit=async event=>{
+  event.preventDefault();
+  const module = selectedModule();
+  if (!module || $('module-apply').disabled) return;
+  const generation = state.project_generation;
+  const data = {module:module.name, project_generation:generation, state:$('module-input').value};
+  if (data.state === 'faulted') {
+    data.fault_code = $('module-fault-code').valueAsNumber;
+    data.fault_info = $('module-fault-info').valueAsNumber;
+  }
+  modulePending = true;
+  renderModuleSimulation();
+  try {
+    await api('module-connection',data);
+    if (state?.project_generation === generation)
+      $('module-connection-feedback').textContent = module.label + ' input applied. Step or run to read it from logic.';
+  } catch (failure) {
+    if (state?.project_generation === generation)
+      $('module-connection-feedback').textContent = failure.message;
+  } finally {
+    modulePending = false;
+    renderModuleSimulation();
+  }
+};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>selectTab(b.dataset.tab));
 $('settings').onclick=()=>{$('converter').value=state?.converter || '';$('settings-dialog').showModal();};
 $('cancel-settings').onclick=()=>$('settings-dialog').close();

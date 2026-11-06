@@ -32,7 +32,24 @@
 <h3>NATIVE POLICY REJECTIONS</h3><p class="limits">Requests rejected before ordinary object dispatch. These include blocked changes and unsupported compatibility operations; they do not identify every cause of an SDK failure.</p><div id="eip-native-rejections" class="limits">No native policy rejections recorded.</div>
 <h3>UNSUPPORTED ATTRIBUTES</h3><p class="limits">Recent unsupported field reads. An SDK operation may have other failure causes. Export the protocol trace for all recorded groups.</p><div id="eip-attribute-gaps" class="limits">No unsupported attribute reads recorded.</div>
 </div></div>
-<div id="devices" class="tab-content" hidden><div class="section-heading"><h2>External device simulation</h2><span id="device-badge" class="badge">READ ONLY</span></div><div class="eip-body">
+<div id="devices" class="tab-content" hidden><div class="section-heading"><h2>External device simulation</h2><span id="device-badge" class="badge">EXTERNAL TAGS READ ONLY</span></div><div class="eip-body">
+<h3>SIMULATED MODULE CONNECTIONS</h3>
+<p class="limits">Set a connection input for a configured module and step or run the logic to exercise GSV diagnostics.</p>
+<p id="module-simulation-empty" class="limits">No qualified modules in the loaded project.</p>
+<form id="module-connection-form" hidden>
+<div class="eip-controls">
+<label>Module <select id="module-name"></select></label>
+<label>Connection input <select id="module-input"><option value="clear">Clear input</option><option value="running">Running</option><option value="faulted">Faulted</option></select></label>
+<button id="module-apply" type="submit" class="primary">Apply connection</button>
+</div>
+<div id="module-fault-fields" class="eip-controls" hidden>
+<label>Fault code (decimal) <input id="module-fault-code" type="number" min="1" max="65535" step="1" required></label>
+<label>Fault info (signed DINT) <input id="module-fault-info" type="number" min="-2147483648" max="2147483647" step="1" required></label>
+</div>
+<p id="module-connection-summary" class="eip-address"></p>
+<p id="module-connection-feedback" class="limits" role="status"></p>
+</form>
+<h3>EXTERNAL TAG ACCESS</h3>
 <p class="limits">Monitor committed tag snapshots over the local device API or the optional MQTT bridge. External clients read a cached copy, independently of the scan loop.</p>
 <div class="eip-controls"><label><input id="device-writes" type="checkbox"> Allow external tag writes</label><button id="device-apply" class="primary">Apply device access</button></div>
 <p class="limits">Writes are queued and applied atomically before a scan. Start Run or Step scan to consume device inputs. Each request receives a queued, applied or rejected acknowledgement. Resetting or replacing the project cancels pending inputs.</p>

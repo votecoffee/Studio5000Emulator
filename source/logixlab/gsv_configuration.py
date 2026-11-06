@@ -186,6 +186,27 @@ def _module_connection_state(engine, module, find_parent):
     return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
 
 
+def simulated_module_connections(engine):
+    try:
+        project = _configuration_source(engine)
+    except ModelError:
+        return []
+    modules = {module.name: module for module in project.io_map.module_settings}
+    rows = []
+    for module in modules.values():
+        if module.route is None or module.inhibited is None:
+            continue
+        status, _ = _module_connection_state(engine, module, modules.get)
+        connection = engine._module_connections.get(module.name)
+        applied = {'state': 'clear'}
+        if connection is not None:
+            applied = {'state': 'faulted' if connection.fault_code else 'running',
+                       'fault_code': connection.fault_code, 'fault_info': connection.fault_info}
+        rows.append({'name': module.name, 'label': module.display_name or module.name,
+                     'entry_status': status, 'input': applied})
+    return rows
+
+
 def _module_connection_attribute(engine, module, attribute, *, executing):
     dtype = MODULE_CONNECTION_ATTRIBUTES[attribute]
     if module.inhibited is None:

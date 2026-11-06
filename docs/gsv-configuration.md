@@ -256,9 +256,15 @@ requires a connection model.
 
 ## Simulated module connection
 
-Use the local session's token-protected POST `/api/module-connection`
-to set an explicit connection input for a named module with a qualified
-route and a declared Inhibited setting. Send the current
+In the **Device I/O** tab, use **Simulated Module Connections** to set
+Running, Faulted or Clear input for a module with a qualified route and
+a declared Inhibited setting. The panel displays the applied input and
+effective state separately. An inhibited module can have a Running input
+while its effective state remains Inhibited. Step or run the logic to
+read the result into tags with GSV.
+
+Automation can use the local session's token-protected POST
+`/api/module-connection`. Send the current
 `project_generation` from `/api/state`. The command is serialized
 between scans and rejects stale project generations. It applies to the
 active simulation. Routine edits retain the input. Reset, a new project,
@@ -274,8 +280,9 @@ and FaultInfo require an effective running or faulted input. Reaching
 them without one faults the advance. Input persists independently of a
 failed scan, and the scan's tag and Mode writes roll back.
 
-Open **Module status lab**. In the app's browser console, stage a fault
-for the sample POINT I/O adapter with the existing session helper.
+Open **Module status lab**, then **Device I/O**. Select PointAdapter
+and Faulted. Enter 516 for Fault code and -42 for Fault info, then
+select Apply connection. The equivalent local session command is below.
 
 ```javascript
 await api('module-connection', {
@@ -285,9 +292,8 @@ await api('module-connection', {
 ```
 
 Enable ReadConnection and step. PointStatus reads 16#1000, PointFaultCode
-reads 16#0204, and PointFaultInfo reads -42. Submit `state: 'running'`
-with the same module and current generation, omitting the diagnostic
-fields, then step to see Running and zero diagnostics. The local
+reads 16#0204, and PointFaultInfo reads -42. Apply Running for the same
+module and step to see Running and zero diagnostics. The local
 simulation input covers these steady states. Automatic reconnection,
 real module communication and controller major faults remain open.
 

@@ -255,6 +255,7 @@ class Application:
         return {**metadata, "loaded": True, "name": e.project.name, "version": e.project.version,
                 "processor": e.project.processor, "scan": e.scan_count, "ms": e.time_ms,
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
+                "module_simulation": gsv_configuration.simulated_module_connections(e),
                 'entry_routines':e.entries,
                 "fault": e.fault, "tags": tags, "trace": e.trace,'connectivity':self.connectivity(),
                 "changes": time_values.display_changes(e.changes, tags), "provenance": self.provenance,

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.104547` [browser module simulation controls](gsv-configuration.md#simulated-module-connection)
+set Running, Faulted or Clear input from Device I/O. The panel displays
+the effective state alongside the input.
+
 Available in `26.1106.103111` [aggregate Module LEDStatus](gsv-configuration.md#simulated-module-ledstatus)
 summarizes effective simulated connection states and withholds ambiguous
 results. Module Status Lab shows the change from none to some Running.
