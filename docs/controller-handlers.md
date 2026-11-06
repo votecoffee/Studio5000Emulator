@@ -76,6 +76,22 @@ the modeled array fault follow the usual scan rollback.
 
 [Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
 
+## Recover a ladder bitwise array fault
+
+During whole-project ladder execution, an out-of-bounds array subscript
+in AND, OR, XOR, NOT, MVM or BTD can raise Type 4 Code 20. If a fault
+handler clears it, the instruction skips its destination write and the
+rung resumes with the incoming power. This includes an indexed MVM mask
+and a destination selected for a partial masked or bit-field write.
+
+A later scan uses the current subscript and the existing instruction
+rules for operand widths, masks and untouched bits. Unknown operand
+values and other errors outside the modeled array fault follow the usual
+scan rollback.
+
+[Rockwell move and logical instructions](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/move-logical-instructions.html)
+[Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

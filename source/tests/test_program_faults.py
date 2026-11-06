@@ -470,7 +470,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('AND','MOV'):
+        for mnemonic in ('EQU','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -483,7 +483,7 @@ class ProgramFaultTests(unittest.TestCase):
                     ET.SubElement(set_index,'Text').text = 'MOV(2,LabIndex);'
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
-                    line = ('AND(LabValues[LabIndex],1,CallInput);' if mnemonic=='AND'
+                    line = ('EQU(LabValues[LabIndex],1)NOP();' if mnemonic=='EQU'
                             else 'MOV(LabValues[LabIndex],CallInput);')
                     ET.SubElement(faulting,'Text').text = line
                     content.insert(3,faulting)
@@ -492,7 +492,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='AND':
+                if mnemonic=='EQU':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -586,3 +586,67 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.values,before)
                 self.assertEqual((engine.scan_count,engine.time_ms,engine.trace),(0,0,[]))
                 self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_bitwise_array_faults_preserve_the_destination_and_resume(self):
+        expected = {'AND':(4,5),'OR':(13,5),'XOR':(9,0),'NOT':(-13,-6),'MVM':(52,13),'BTD':(60,5)}
+        for mnemonic,(source_result,dest_result) in expected.items():
+            for destination,index in ((False,2),(True,-1)):
+                with self.subTest(mnemonic=mnemonic,destination=destination):
+                    self.setUp()
+                    source = '5' if destination else 'LabValues[LabIndex]'
+                    target = 'LabValues[LabIndex]' if destination else 'SpeedCommand'
+                    if mnemonic=='BTD':
+                        instruction = f'BTD({source},0,{target},0,4)'
+                    elif mnemonic=='MVM':
+                        instruction = f'MVM({source},7,{target})'
+                    elif mnemonic=='NOT':
+                        instruction = f'NOT({source},{target})'
+                    else:
+                        instruction = f'{mnemonic}({source},5,{target})'
+
+                    def configure(root):
+                        ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                        set_fault_instruction(root,instruction)
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write('LabIndex',index)
+                    engine.memory.write('SpeedCommand',50)
+                    engine.step()
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    record = engine.last_cleared_program_fault
+                    self.assertEqual((record['type'],record['code'],record['instruction']),(4,20,mnemonic))
+                    self.assertEqual(engine.memory.read('LabIndex'),0)
+                    self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                    event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                    self.assertEqual((event['instruction'],event['out']),(mnemonic,True))
+                    engine.step()
+                    self.assertIs(engine.last_cleared_program_fault,record)
+                    self.assertEqual(engine.memory.read('LabValues'),[dest_result,13] if destination else [12,13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),52 if destination else source_result+1)
+
+    def test_mvm_mask_index_can_escalate_and_unknown_source_still_rolls_back(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root)
+            set_fault_instruction(root,'MVM(LabValues[0],LabValues[LabIndex],SpeedCommand)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        record = engine.last_cleared_program_fault
+        self.assertEqual((record['instruction'],record['handler']['routine']),('MVM','FaultHandler/Capture'))
+        self.assertEqual(engine.memory.read('SpeedCommand'),51)
+        engine.memory.write('LabIndex',1)
+        engine.memory.values['labvalues'][0] = None
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'Unknown initial'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertIs(engine.last_cleared_program_fault,record)
+        self.assertEqual(engine.scan_count,1)

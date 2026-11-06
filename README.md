@@ -165,8 +165,9 @@ Its main routine can [call ladder diagnostic subroutines](docs/controller-handle
 and commit their tag writes and fault clearing together.
 A separate [ladder Program fault routine](docs/controller-handlers.md#recover-a-ladder-mov-array-fault)
 can clear out-of-bounds MOV, [COP/CPS](docs/controller-handlers.md#recover-cop-and-cps-array-faults),
-[JSR](docs/controller-handlers.md#recover-a-jsr-argument-fault) and
+[JSR](docs/controller-handlers.md#recover-a-jsr-argument-fault),
 [arithmetic](docs/controller-handlers.md#recover-a-ladder-arithmetic-array-fault)
+and [bitwise](docs/controller-handlers.md#recover-a-ladder-bitwise-array-fault)
 operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
