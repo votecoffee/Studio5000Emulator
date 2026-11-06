@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.194612` [ladder ALMD timestamps](ladder-alarm.md#timestamps)
+use WallClockTime or ProgTime, retain the first detection time through a
+minimum-duration delay, and expose exact LINT values in Alarm Lab.
+
 Available in `26.1105.193517` [ladder alarm shelving](ladder-alarm.md#shelving)
 adds operator shelf and reshelf commands, manual unshelving, and expiration on
 the simulated clock. Alarm Lab demonstrates acknowledgment after expiration.

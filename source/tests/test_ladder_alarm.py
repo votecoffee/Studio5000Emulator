@@ -2,15 +2,18 @@
 import copy
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from logixlab.ladder_alarm import TIMESTAMPS
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
 
 
 SAMPLE = Path(__file__).resolve().parents[1] / 'samples/AlarmLab.L5X'
 MOTOR = 'MotorAlarm'
+UTC_MICROSECONDS = 1_700_000_000_000_123
 
 
 class LadderAlarmTests(unittest.TestCase):
@@ -140,12 +143,12 @@ class LadderAlarmTests(unittest.TestCase):
         engine = self.engine()
         memory = engine.memory
         memory.write('Trip', True)
-        memory.write('SignalAlarm.UseProgTime', True)
+        memory.write('SignalAlarm.Severity', 0)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms, engine.scan_count))
-        with self.assertRaisesRegex(ModelError, 'program timestamps'):
+        with self.assertRaisesRegex(ModelError, 'severity'):
             engine.step()
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms, engine.scan_count), baseline)
-        memory.write('SignalAlarm.UseProgTime', False)
+        memory.write('SignalAlarm.Severity', 500)
         engine.step()
         engine.step()
         self.assertFalse(self.alarm(engine)['InAlarm'])
@@ -219,13 +222,13 @@ class LadderAlarmTests(unittest.TestCase):
         memory.write('MotorAlarm.MinDurationPRE', 0)
         memory.write('MotorAlarm.OperSuppress', True)
         memory.write('Trip', True)
-        memory.write('SignalAlarm.UseProgTime', True)
+        memory.write('SignalAlarm.Severity', 0)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
-        with self.assertRaisesRegex(ModelError, 'program timestamps'):
+        with self.assertRaisesRegex(ModelError, 'severity'):
             engine.step()
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms), baseline)
 
-        memory.write('SignalAlarm.UseProgTime', False)
+        memory.write('SignalAlarm.Severity', 500)
         engine.step()
         alarm = self.alarm(engine)
         self.assertTrue(alarm['Suppressed'])
@@ -245,10 +248,12 @@ class LadderAlarmTests(unittest.TestCase):
         self.assertTrue(alarm['InAlarm'])
         self.assertTrue(alarm['Acked'])
         self.assertFalse(alarm['OperShelve'])
+        planned = alarm['UnshelveTime']
         engine.step(59_999)
         self.assertTrue(alarm['Shelved'])
         engine.step(1)
         self.assertFalse(alarm['Shelved'])
+        self.assertEqual(alarm['UnshelveTime'], planned)
         self.assertTrue(alarm['InAlarmUnack'])
         self.assertEqual(alarm['AlarmCount'], 1)
 
@@ -314,15 +319,105 @@ class LadderAlarmTests(unittest.TestCase):
         memory.write('MotorAlarm.OperShelve', True)
         memory.write('Trip', True)
         engine.step()
-        memory.write('SignalAlarm.UseProgTime', True)
+        memory.write('SignalAlarm.Severity', 0)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
-        with self.assertRaisesRegex(ModelError, 'program timestamps'):
+        with self.assertRaisesRegex(ModelError, 'severity'):
             engine.step(60_000)
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms), baseline)
-        memory.write('SignalAlarm.UseProgTime', False)
+        memory.write('SignalAlarm.Severity', 500)
         engine.step(60_000)
         self.assertFalse(self.alarm(engine)['Shelved'])
         self.assertTrue(self.alarm(engine)['InAlarmUnack'])
+
+    def test_progtime_captures_detection_before_delay_and_stamps_later_events(self):
+        engine = self.engine()
+        memory = engine.memory
+        first = (1 << 53) + 1
+        memory.write('MotorAlarm.UseProgTime', True)
+        memory.write('MotorAlarm.ProgTime', first)
+        memory.write('Trip', True)
+        with patch('logixlab.ladder_alarm.current_value_microseconds', side_effect=AssertionError):
+            engine.step()
+            self.assertEqual(self.alarm(engine)['InAlarmTime'], 0)
+            memory.write('MotorAlarm.ProgTime', first + 1)
+            engine.step()
+            engine.step()
+            self.assertEqual(self.alarm(engine)['InAlarmTime'], first)
+            self.assertEqual(self.alarm(engine)['AckTime'], 0)
+            memory.write('MotorAlarm.ProgTime', first + 2)
+            memory.write('Acknowledge', True)
+            engine.step()
+            self.assertEqual(self.alarm(engine)['AckTime'], first + 2)
+            memory.write('MotorAlarm.ProgTime', first + 3)
+            memory.write('Trip', False)
+            memory.write('ResetAlarm', True)
+            memory.write('MotorAlarm.AlarmCountReset', True)
+            engine.step()
+        alarm = self.alarm(engine)
+        self.assertEqual(alarm['RetToNormalTime'], first + 3)
+        self.assertEqual(alarm['AlarmCountResetTime'], first + 3)
+        self.assertEqual(alarm['AlarmCount'], 0)
+
+    def test_wallclock_is_sampled_once_for_detection_and_shelf_and_auto_ack_uses_detection(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.AckRequired', False)
+        with patch('logixlab.ladder_alarm.current_value_microseconds',
+                   side_effect=[UTC_MICROSECONDS, UTC_MICROSECONDS + 200]) as clock:
+            engine.step()
+            clock.assert_not_called()
+            memory.write('Trip', True)
+            memory.write('MotorAlarm.OperShelve', True)
+            engine.step()
+            alarm = self.alarm(engine)
+            self.assertEqual(clock.call_count, 1)
+            self.assertEqual(alarm['ShelveTime'], UTC_MICROSECONDS)
+            self.assertEqual(alarm['UnshelveTime'], UTC_MICROSECONDS + 60_000_000)
+            engine.step()
+            engine.step()
+            self.assertEqual(clock.call_count, 1)
+            self.assertEqual(alarm['InAlarmTime'], UTC_MICROSECONDS)
+            self.assertEqual(alarm['AckTime'], UTC_MICROSECONDS)
+            memory.write('MotorAlarm.OperUnshelve', True)
+            engine.step()
+            self.assertEqual(clock.call_count, 2)
+            self.assertEqual(alarm['UnshelveTime'], UTC_MICROSECONDS + 200)
+
+    def test_unavailable_clock_and_invalid_progtime_fail_only_on_an_event(self):
+        for program_time in (False, True):
+            with self.subTest(program_time=program_time):
+                engine = self.engine()
+                memory = engine.memory
+                memory.write('MotorAlarm.UseProgTime', program_time)
+                memory.write('MotorAlarm.ProgTime', -1)
+                with patch('logixlab.ladder_alarm.current_value_microseconds', return_value=None):
+                    engine.step()
+                    memory.write('Trip', True)
+                    before = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
+                    with self.assertRaisesRegex(ModelError, 'nonnegative LINT UTC timestamp'):
+                        engine.step()
+                    self.assertEqual((memory.values, engine.last_timer, engine.time_ms), before)
+
+    def test_planned_unshelve_overflow_rolls_back_request_and_reshelve_replaces_times(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.UseProgTime', True)
+        memory.write('MotorAlarm.ProgTime', (1 << 63) - 1)
+        memory.write('MotorAlarm.OperShelve', True)
+        before = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
+        with self.assertRaisesRegex(ModelError, 'LINT overflow'):
+            engine.step()
+        self.assertEqual((memory.values, engine.last_timer, engine.time_ms), before)
+        memory.write('MotorAlarm.ProgTime', UTC_MICROSECONDS)
+        engine.step()
+        alarm = self.alarm(engine)
+        self.assertEqual(alarm['ShelveTime'], UTC_MICROSECONDS)
+        engine.step()
+        memory.write('MotorAlarm.ProgTime', UTC_MICROSECONDS + 10)
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        self.assertEqual(alarm['ShelveTime'], UTC_MICROSECONDS + 10)
+        self.assertEqual(alarm['UnshelveTime'], UTC_MICROSECONDS + 60_000_010)
 
     def test_prescan_clears_active_and_operator_requests_but_retains_count(self):
         engine = self.engine()
@@ -347,6 +442,7 @@ class LadderAlarmTests(unittest.TestCase):
         self.assertTrue(alarm['Suppressed'])
         self.assertFalse(alarm['Shelved'])
         self.assertEqual(alarm['AlarmCount'], 1)
+        self.assertTrue(all(alarm[field] == 0 for field in TIMESTAMPS))
         self.assertEqual(engine.last_timer, {})
 
     def test_program_scoped_alias_and_immediate_preset(self):

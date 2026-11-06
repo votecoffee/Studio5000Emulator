@@ -66,6 +66,27 @@ requires acknowledgment again when both shelving and suppression have
 cleared and `AckRequired` is true.
 [Rockwell ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html)
 
+## Timestamps
+
+The alarm records six LINT UTC timestamps in microseconds since 1970-01-01.
+`InAlarmTime` retains the first abnormal sample that qualifies as an alarm
+after the delay. `AckTime` records acknowledgment and matches detection
+for an activation that requires no acknowledgment. `RetToNormalTime`
+records the transition out of alarm. An `AlarmCountReset` tag command
+records its event in `AlarmCountResetTime`.
+
+`ShelveTime` records the shelf or reshelf event. `UnshelveTime` is the
+planned timestamp and is replaced with the event time on manual unshelving.
+The planned value remains visible after automatic expiration. The shelf
+deadline and the minimum-duration timer still use simulated elapsed time.
+
+Each event samples the existing WallClockTime UTC clock or, with
+`UseProgTime` set, the current nonnegative LINT `ProgTime`. Events within
+one call share a sample. Pending detection time and all timestamp writes
+roll back with the advance. Prescan clears the six fields. The tag view
+shows exact decimal strings for LINT values.
+[Rockwell ALMD status parameters](https://www.rockwellautomation.com/en-pr/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/almd-properties-dialog-box---status-tab-parameters.html)
+
 ## Alarm Lab
 
 Select **Alarm lab** from Examples. Set `Trip` true and take three 10 ms
@@ -87,11 +108,15 @@ ladder block shows SHV and ALM. Enter
 60000 ms for the next step to expire the one-minute shelf and rearm
 acknowledgment. The count remains one.
 
+To try program-supplied time, reload Alarm Lab and set
+`MotorAlarm.UseProgTime` true and `MotorAlarm.ProgTime` to
+`1700000000000123` before setting `Trip`. Step three times. The detection
+time remains at that value even if ProgTime changes during the delay.
+
 ## Scope
 
-Timestamp generation, alarm messages/events and native packed records
-remain open. A program-time command stops the modeled advance. ST, FBD, AOI alarms, ALMA and ASO remain
-separate. The native alarm discovery services still expose only verified empty
+Native alarm messages, event delivery and packed records remain open.
+ST, FBD, AOI alarms, ALMA and ASO remain separate. The native alarm discovery services still expose only verified empty
 catalogs. Runtime behavior is based on the installed v35 ALMD help and
 the import/export record description. Native execution and transfer parity
 remain unverified. [ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html) · [Import/export manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
