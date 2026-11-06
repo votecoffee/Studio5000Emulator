@@ -169,6 +169,7 @@ class IOMap:
     local_identity: tuple[int,int,int,int,int]|None = None
     module_status_qualified: bool = False
     module_settings: tuple[ModuleSettings, ...] = ()
+    led_inventory_complete: bool = False
 
     @classmethod
     def from_source(cls, root, controller):
@@ -205,7 +206,17 @@ class IOMap:
         if external_modules:
             # Named GSV settings use only module declarations. They never
             # establish an empty native I/O Map or infer connection state.
-            return cls(module_settings=_module_settings(controller, modules))
+            settings = _module_settings(controller, modules)
+            complete = (len(settings) == len(modules) - 1
+                        and all(entry.route is not None and entry.inhibited is not None for entry in settings))
+            if complete:
+                markers = ('encoded', 'encrypted', 'protected')
+                for node in sections[0].iter():
+                    fields = (node.tag, node.get('Format', ''), *node.attrib)
+                    if any(marker in field.casefold() for marker in markers for field in fields):
+                        complete = False
+                        break
+            return cls(module_settings=settings, led_inventory_complete=complete)
         root_link_address=None;root_link_port=None;local_identity=None
         if modules:
             # A native full-controller export includes its own Local module.
@@ -271,6 +282,7 @@ class IOMap:
                 'root_link_port':self.root_link_port,
                 'root_link_port_available':self.root_link_port is not None,
                 'named_module_settings':len(self.module_settings),
+                'simulated_led_inventory_complete':self.led_inventory_complete,
                 'named_backplane_paths':sum(len(entry.route or b'') == 2 for entry in self.module_settings),
                 'named_ethernet_paths':sum(len(entry.route or b'') > 2 for entry in self.module_settings),
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

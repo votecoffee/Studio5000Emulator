@@ -316,6 +316,89 @@ class GsvConfigurationTests(unittest.TestCase):
         e = self.engine(['GSV(Module,RemoteInput,EntryStatus,PriorityOut);'], mutate=missing_target)
         self.assertTrue(any('requires an explicit source Inhibited setting' in error for error in e.blockers))
 
+    @classmethod
+    def add_led_inventory(cls, root, *, second_inhibited='true', extra=False):
+        first = cls.add_rack_path(root, slot='2')
+        first.set('Inhibited', 'false')
+        modules = root.find('./Controller/Modules')
+        second = copy.deepcopy(first)
+        second.attrib.update(Name='RackOther', Inhibited=second_inhibited)
+        second.find('./Ports/Port').set('Address', '3')
+        modules.append(second)
+        if extra:
+            third = copy.deepcopy(first)
+            third.set('Name', 'RackUnknown')
+            third.find('./Ports/Port').set('Address', '4')
+            modules.append(third)
+        return first, second
+
+    def test_module_led_status_reports_none_some_and_all_running(self):
+        from logixlab.gsv_configuration import configure_module_connection
+
+        for st in (False, True):
+            with self.subTest(st=st):
+                setter = 'SSV(Module,RackOther,Mode,PriorityOut);'
+                gated = 'IF Flag THEN ' + setter + ' END_IF;' if st else 'XIC(Flag)' + setter
+                e = self.checked([gated, 'GSV(Module,,LEDStatus,Out);'], st=st,
+                                 mutate=self.add_led_inventory)
+                request = {'module':'RackIO', 'project_generation':1}
+                e.memory.write('Out', 0x1234ffff)
+                configure_module_connection(e, {**request, 'state':'faulted',
+                                                 'fault_code':0x204, 'fault_info':0})
+                e.step()
+                self.assertEqual(e.memory.read('Out'), 0x12340001)
+                configure_module_connection(e, {**request, 'state':'running'})
+                e.step()
+                self.assertEqual(e.memory.read('Out'), 0x12340002)
+                configure_module_connection(e, {**request, 'module':'RackOther', 'state':'running'})
+                e.memory.write('PriorityOut', 0)
+                e.memory.write('Flag', True)
+                e.step()
+                self.assertEqual(e.memory.read('Out'), 0x12340003)
+                self.assertFalse(e.project.io_map.empty)
+                self.assertEqual(e.project.io_map.attributes(), {})
+
+    def test_module_led_status_can_prove_mixed_but_rolls_back_ambiguous_reads(self):
+        from logixlab.gsv_configuration import configure_module_connection
+
+        calls = ['MOV(123,Limit);', 'XIC(Flag)GSV(Module,,LEDStatus,Out);']
+        e = self.checked(calls, mutate=lambda root: self.add_led_inventory(root, extra=True))
+        e.step()
+        self.assertEqual(e.memory.read('Out'), -7)
+        e.memory.write('Flag', True)
+        e.memory.write('Limit', 0)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'module states are unknown'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 1)
+        configure_module_connection(e, {'module':'RackIO', 'project_generation':1, 'state':'running'})
+        e.step()
+        self.assertEqual(e.memory.read('Out'), -65536 + 2)
+
+        e = self.checked(['GSV(Module,,LEDStatus,Out);'],
+                         mutate=lambda root: self.add_led_inventory(root, second_inhibited='false'))
+        configure_module_connection(e, {'module':'RackIO', 'project_generation':1, 'state':'running'})
+        with self.assertRaisesRegex(ModelError, 'module states are unknown'):
+            e.step()
+
+    def test_module_led_status_requires_the_entire_supported_inventory(self):
+        for case in ('unrouted', 'unknown-inhibit', 'opaque-module-data', 'unsupported-module'):
+            with self.subTest(case=case):
+                def source(root):
+                    _, second = self.add_led_inventory(root)
+                    if case == 'unrouted':
+                        second.remove(second.find('Ports'))
+                    elif case == 'unknown-inhibit':
+                        del second.attrib['Inhibited']
+                    elif case == 'opaque-module-data':
+                        E.SubElement(second, 'Data', Format='Encoded')
+                    else:
+                        second.set('SafetyNetwork', '16#1')
+                e = self.engine(['GSV(Module,,LEDStatus,Out);'], mutate=source)
+                self.assertTrue(any('complete supported module inventory' in error for error in e.blockers))
+                self.checked(['GSV(Module,RackIO,Mode,PriorityOut);'], mutate=source)
+
     def test_simulated_module_fault_values_have_logix_destination_widths(self):
         from logixlab.gsv_configuration import configure_module_connection
 

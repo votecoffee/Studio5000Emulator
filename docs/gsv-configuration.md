@@ -33,7 +33,8 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
-| Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
+| Module | LEDStatus | INT or DINT low word | Complete controller-only map or complete simulated module inventory with a determinable aggregate |
+| Module | ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local or qualified Ethernet module with explicit Inhibited and MajorFault settings |
 | Module | EntryStatus | INT or DINT low word | Explicit Inhibited setting on the target and a modeled inhibit, waiting condition or simulated connection |
 | Module | FaultCode | INT or DINT low word | Effective simulated connection |
@@ -175,6 +176,34 @@ declarations or opaque I/O source are outside this profile. Hardware LED
 behavior and force control remain unqualified.
 [Rockwell I/O status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 [Rockwell force status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm004_-en-p.pdf)
+
+## Simulated Module LEDStatus
+
+Use `GSV(Module,,LEDStatus,Destination)` in ladder or ST. A qualified
+external inventory includes every declared module, with explicit routes
+and Inhibited settings. The aggregate uses effective states, including
+any Mode changes made earlier in the same scan.
+
+| Value | Modeled condition |
+| --- | --- |
+| 0 | Controller-only inventory with zero configured modules |
+| 1 | No module is Running |
+| 2 | At least one module is Running and at least one is Faulted, Inhibited or Waiting |
+| 3 | Every module is Running |
+
+An unknown connection state can still yield 2 if both sides of the
+condition are known. Otherwise an ambiguous read faults and rolls back
+the scan. Incomplete or opaque module inventories fail preflight. A
+false rung skips the read and keeps its destination. The INT value can
+also be read into the low word of a known DINT.
+
+In **Module status lab**, set PointAdapter to `faulted` using the
+[simulated connection input](#simulated-module-connection), enable
+ReadLed, and step. ModuleLed reads 1 because the other modules are
+inhibited or waiting. Set PointAdapter to `running` and step to see 2.
+These values are simulated GSV results. The native I/O Map and physical
+indicator behavior remain separate.
+[Rockwell Module object and LEDStatus values](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 
 ## Named Module status
 

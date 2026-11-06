@@ -152,6 +152,8 @@ demonstrates these states and reads local and Ethernet routes, including
 [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
+[Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
+summarizes a complete simulated module inventory.
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware

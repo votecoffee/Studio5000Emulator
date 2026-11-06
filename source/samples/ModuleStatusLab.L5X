@@ -60,6 +60,8 @@
       <Tag Name="PointStatus" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="PointFaultCode" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="PointFaultInfo" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="ReadLed" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ModuleLed" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ModuleInhibited" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
@@ -83,6 +85,7 @@
               <Rung Number="12" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,EntryStatus,PointStatus);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,FaultCode,PointFaultCode);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,FaultInfo,PointFaultInfo);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(ReadLed)GSV(Module,,LEDStatus,ModuleLed);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">

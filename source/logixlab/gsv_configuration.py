@@ -167,14 +167,13 @@ def _module_inhibited(engine, module):
     return module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
 
 
-def _module_connection_state(engine, module):
+def _module_connection_state(engine, module, find_parent):
     if _module_inhibited(engine, module):
         return MODULE_INHIBITED, None
-    io_map = engine.project.io_map
     parent_name = module.routed_parent
     # Only follow dependencies for which the parser proved a route.
     while parent_name is not None:
-        parent = io_map.named_module(parent_name)
+        parent = find_parent(parent_name)
         if parent is None:
             break
         connection = engine._module_connections.get(parent.name)
@@ -195,7 +194,7 @@ def _module_connection_attribute(engine, module, attribute, *, executing):
         raise ModelError('GSV Module fault diagnostics require a qualified route')
     if not executing:
         return dtype, None
-    status, connection = _module_connection_state(engine, module)
+    status, connection = _module_connection_state(engine, module, engine.project.io_map.named_module)
     if attribute == 'entrystatus':
         if status is None:
             raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited, no modeled parent is inhibited, and no connection state is set')
@@ -208,11 +207,26 @@ def _module_connection_attribute(engine, module, attribute, *, executing):
     return dtype, code if code < 0x8000 else code - 0x10000
 
 
+def _module_led_status(engine):
+    by_name = {module.name: module for module in engine.project.io_map.module_settings}
+    states = {_module_connection_state(engine, module, by_name.get)[0] for module in by_name.values()}
+    running = MODULE_RUNNING in states
+    if running and states - {None, MODULE_RUNNING}:
+        return 2
+    if None in states:
+        raise ModelError('GSV Module LEDStatus is unavailable while module states are unknown')
+    return 3 if running else 1
+
+
 def module_attribute(engine, instance, attribute, *, executing):
     io_map = engine.project.io_map
+    if not instance and attribute == 'ledstatus' and io_map.led_inventory_complete:
+        return 'INT', _module_led_status(engine) if executing else None
     if not instance and attribute in MODULE_STATUS:
         raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
         if raw is None:
+            if attribute == 'ledstatus':
+                raise ModelError('GSV Module LEDStatus requires a complete supported module inventory')
             raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
         return 'INT', struct.unpack('<h', raw)[0]
     if not instance or (attribute not in ('mode', 'path') and attribute not in MODULE_CONNECTION_ATTRIBUTES):
@@ -420,7 +434,9 @@ def description():
                                  'lifecycle':'Retained across Run entry and routine replacement; reset/reload restores source settings',
                                  'connection_model':False},
                 module_connection_input='Explicit project-bound API state, applied between scans. Fault diagnostics reflect only an effective simulated connection.',
-                module_status='Controller-only I/O map. INT or DINT low word; preserve a known DINT upper word.',
+                module_status='INT or DINT low word; preserve a known DINT upper word.',
+                module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
+                module_force_status='Controller-only I/O map.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
