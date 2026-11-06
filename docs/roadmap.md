@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.160418` [FOR array recovery](controller-handlers.md#recover-for-array-faults)
+lets a ladder handler exit the current invocation on a cleared Type 4 Code 20.
+Entry faults preserve the original index. Later faults retain completed loop work.
+
 Available in `26.1106.155324` [PID and alarm recovery](controller-handlers.md#recover-pid-and-alarm-array-faults)
 lets a ladder handler clear Type 4 Code 20 while retaining PID and alarm
 history. PID prescan and false rungs address only the record.

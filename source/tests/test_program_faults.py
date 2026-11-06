@@ -195,6 +195,17 @@ def add_stateful_recovery_tags(root, mnemonic):
         add_fault_dint_array(tags,'LabOutputs',[77,88])
 
 
+def configure_for_recovery(root, *lines):
+    tags = root.find('./Controller/Tags')
+    add_fault_dint_array(tags,'LoopIndex',[77,88])
+    add_fault_dint_array(tags,'LoopBounds',[1,2])
+    content = root.find('./Controller/Programs/Program/Routines/Routine[@Name="Reporting"]/RLLContent')
+    content.clear()
+    for index,line in enumerate(lines):
+        rung = ET.SubElement(content,'Rung',Number=str(index),Type='N')
+        ET.SubElement(rung,'Text').text = line
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -573,7 +584,7 @@ class ProgramFaultTests(unittest.TestCase):
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
                     line = {
-                        'FOR':'FOR(Reporting,CallInput,0,LabValues[LabIndex],1);',
+                        'FOR':'FOR(LoopBody,CallInput,0,0,1);',
                         'GSV':'GSV(Task,THIS,LastScanTime,LabValues[LabIndex]);',
                         'SQR':'SQR(LabValues[LabIndex],CallInput);',
                         'FRD':'FRD(LabValues[LabIndex],CallInput);',
@@ -582,13 +593,18 @@ class ProgramFaultTests(unittest.TestCase):
                     }[mnemonic]
                     ET.SubElement(faulting,'Text').text = line
                     content.insert(3,faulting)
+                    if mnemonic=='FOR':
+                        routines = root.find('./Controller/Programs/Program/Routines')
+                        body = ET.SubElement(routines,'Routine',Name='LoopBody',Type='ST')
+                        st = ET.SubElement(body,'STContent')
+                        ET.SubElement(st,'Line',Number='0').text = 'SpeedCommand := LabValues[LabIndex];'
 
                 engine = self.engine(mutate=configure)
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
                 if mnemonic=='FOR':
-                    with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
+                    with self.assertRaisesRegex(ModelError,'Scan rolled back: MainProgram/LoopBody, ST line 1: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
                     self.assertIsNone(engine.last_cleared_program_fault)
@@ -2132,6 +2148,105 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertTrue(memory.read('PressureAlarm.HHInAlarm'))
         self.assertEqual(memory.read('PressureAlarm.HAlarmCount'),1)
         self.assertEqual(memory.read('SpeedCommand'),53)
+
+    def test_for_entry_array_fault_preserves_index_until_a_valid_scan(self):
+        cases = (
+            ('LoopIndex[LabIndex],0,1,1',[77,2],2),
+            ('LoopIndex[0],LoopBounds[LabIndex],2,1',[3,88],1),
+            ('LoopIndex[0],0,LoopBounds[LabIndex],1',[3,88],3),
+            ('LoopIndex[0],0,1,LoopBounds[LabIndex]',[2,88],1),
+        )
+        for operands,indices,visits in cases:
+            with self.subTest(operands=operands):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root,controller_tail=(
+                        'MOV(LoopIndex[0],FaultWords[3])MOV(LoopIndex[1],FaultWords[4])MOV(1,LabIndex);'))
+                    configure_for_recovery(root,'ADD(DisplayedPartCount,1,DisplayedPartCount);')
+                    set_fault_instruction(root,f'FOR(Reporting,{operands})')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                memory = engine.memory
+                memory.write('LabIndex',2)
+                memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(memory.read('LabIndex'),2)
+
+                memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'FOR'))
+                self.assertEqual(fault['handler']['routine'],'FaultHandler/Capture')
+                self.assertEqual(memory.read('LoopIndex'),[77,88])
+                self.assertEqual(memory.read('FaultWords')[3:5],[77,88])
+                self.assertEqual(memory.read('DisplayedPartCount'),0)
+                self.assertEqual(memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.calls.stack,[])
+
+                engine.step()
+                self.assertEqual(memory.read('LoopIndex'),indices)
+                self.assertEqual(memory.read('DisplayedPartCount'),visits)
+                self.assertEqual(memory.read('SpeedCommand'),52)
+                self.assertEqual(engine.calls.stack,[])
+
+    def test_for_late_operand_fault_retains_completed_body_work(self):
+        cases = (
+            ('LoopBounds[LabIndex],1',1,2,3,5),
+            ('4,LoopBounds[LabIndex]',0,1,5,7),
+        )
+        for bounds,slot,stopped,finished,count in cases:
+            with self.subTest(bounds=bounds):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail=(
+                        'MOV(LoopIndex[0],FaultWords[3])'
+                        f'MOV(DisplayedPartCount,FaultWords[4])MOV({slot},LabIndex);'))
+                    configure_for_recovery(root,'ADD(DisplayedPartCount,1,DisplayedPartCount);',
+                                           'EQU(DisplayedPartCount,2)MOV(2,LabIndex);')
+                    set_fault_instruction(root,f'FOR(Reporting,LoopIndex[0],0,{bounds})')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                memory = engine.memory
+                memory.write('LabIndex',slot)
+                memory.write('SpeedCommand',50)
+                memory.write('StartPB',True)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],'FOR')
+                self.assertEqual(memory.read('LoopIndex'),[stopped,88])
+                self.assertEqual(memory.read('FaultWords')[3:5],[stopped,2])
+                self.assertEqual(memory.read('DisplayedPartCount'),2)
+                self.assertEqual(memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.calls.stack,[])
+
+                engine.step()
+                self.assertEqual(memory.read('LoopIndex'),[finished,88])
+                self.assertEqual(memory.read('DisplayedPartCount'),count)
+                self.assertEqual(memory.read('SpeedCommand'),52)
+
+    def test_for_body_array_fault_is_recovered_at_the_body_instruction(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+            configure_for_recovery(root,'MOV(LabValues[LabIndex],DisplayedPartCount)'
+                                   'ADD(DisplayedPartCount,1,DisplayedPartCount);')
+            set_fault_instruction(root,'FOR(Reporting,LoopIndex[0],0,0,1)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('StartPB',True)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['instruction'],fault['routine']),('MOV','MainProgram/Reporting'))
+        self.assertEqual(engine.memory.read('DisplayedPartCount'),1)
+        self.assertEqual(engine.memory.read('LoopIndex'),[1,88])
+        self.assertEqual(engine.memory.read('SpeedCommand'),51)
+        self.assertEqual(engine.calls.stack,[])
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

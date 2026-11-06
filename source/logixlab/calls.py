@@ -13,8 +13,8 @@ class BreakLoop(Exception):
     """Unwind calls to the nearest active ladder FOR in the current task."""
 
 
-class CallArgumentBoundsError(ArrayBoundsError):
-    """A caller argument failed before this particular JSR could enter its callee."""
+class CallOperandBoundsError(ArrayBoundsError):
+    """A live operand of this JSR or FOR faulted outside the called routine."""
 
     def __init__(self, call, message):
         super().__init__(message)
@@ -122,7 +122,7 @@ class Calls:
         try:
             return self.operand(ref, scope, writable=writable, indirect=self.indirect_profile(scope))
         except ArrayBoundsError as error:
-            raise CallArgumentBoundsError(op, str(error)) from error
+            raise CallOperandBoundsError(op, str(error)) from error
 
     def _call_spec(self,op,scope):
         problem=operand_problem(op)
@@ -169,19 +169,27 @@ class Calls:
         if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR/FOR nesting limit of {MAX_NESTING} exceeded')
         key,_,_=self.loop_spec(op,scope)
         # Retain the selected index cell for this invocation. Bounds are live.
-        index=self.operand(op.args[1],scope,writable=True,indirect=True)
-        def value(ref):return self.values([self.operand(ref,scope,indirect=True)])[0]
+        index=self._caller_operand(op,op.args[1],scope,writable=True)
+        def value(ref):return self.values([self._caller_operand(op,ref,scope)])[0]
+        saved_index=self.memory.at(index.key,index.parts)
         self.memory.write(index.ref,value(op.args[2]),index.scope)
         frame={'key':key,'inputs':[],'values':[],'destinations':[],'received':False,'returned':False,'loop':True}
+        started=False
         self.stack.append(frame)
         try:
             while True:
                 # Even an empty routine and a zero step consume a bounded budget.
                 self.engine.budget-=1
                 if self.engine.budget<0:raise ModelError('FOR instruction budget exceeded')
-                limit,step=(value(ref) for ref in op.args[3:])
+                try:
+                    limit,step=(value(ref) for ref in op.args[3:])
+                except CallOperandBoundsError:
+                    if not started:
+                        self.memory.store(index.key,index.parts,saved_index)
+                    raise
                 current=self.memory.read(index.ref,index.scope)
                 if (step<0 and current<limit) or (step>=0 and current>limit):break
+                started=True
                 frame['received']=frame['returned']=False
                 try:self.engine._routine(key,depth+1)
                 except BreakLoop:break
@@ -200,6 +208,7 @@ class Calls:
                     sampling='Index address retained at entry; initial selected before assignment; terminal/step reselected per test; step reselected after each normal call',
                     control='BRK unwinds to the nearest active FOR in the current task; outside FOR it has no action',
                     lifecycle='Reachable routines prescanned once; no parameters; shared 25-level call limit and instruction budget',
+                    array_recovery='A cleared Type 4 Code 20 on an owned FOR operand exits the loop; an entry fault preserves the saved index and a later fault retains completed work',
                     overflow='Modeled DINT overflow and budget exhaustion roll back the entire advance',
                     native_runtime_parity=False,
                     remaining=['Native live-operand sampling, overflow/status/watchdog parity','Recursive calls and other controller profiles',

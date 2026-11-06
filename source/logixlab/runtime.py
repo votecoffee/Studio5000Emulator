@@ -18,7 +18,7 @@ from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, op
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
-from .calls import CallArgumentBoundsError, Calls, BreakLoop, MAX_NESTING
+from .calls import CallOperandBoundsError, Calls, BreakLoop, MAX_NESTING
 from .structured import Structured
 from . import __version__
 
@@ -797,8 +797,8 @@ class Engine:
         if (op.name in self.project.aois or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
             return False
-        if isinstance(error, CallArgumentBoundsError):
-            if op.name != 'JSR' or error.call is not op:
+        if isinstance(error, CallOperandBoundsError):
+            if op.name not in ('JSR', 'FOR') or error.call is not op:
                 return False
         elif op.name not in ARRAY_FAULT_RECOVERY_OPS:
             return False

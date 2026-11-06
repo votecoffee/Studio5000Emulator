@@ -105,8 +105,10 @@ preserving slot 1 and unknown guard elements. The example resets its two totals
 each scan and leaves its other original loop unchanged.
 
 BRK skips the post-call step selection. RET/TND retain the normal increment and
-next test. Unknown/out-of-range required operands, increment overflow, budget
-exhaustion, nested/event or later failures roll back the entire advance. Existing
-shared call-depth, task-stack isolation and prescan behavior remain. No wider
+next test. A cleared Type 4 Code 20 on a FOR operand
+[ends that invocation](controller-handlers.md#recover-for-array-faults).
+Entry faults preserve the original index. Later faults preserve completed body
+writes and index updates. Unknown required operands, increment overflow, budget
+exhaustion and unrecovered faults roll back the entire advance. No wider
 types, new language syntax, FBD/SFC or native fault/partial-effect/status/lifecycle
 qualification is implied.

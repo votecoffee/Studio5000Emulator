@@ -345,6 +345,23 @@ behavior.
 
 [Rockwell PID execution table](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/special-instructions/proportional-integral-derivative--pid-.html#execution)
 
+## Recover FOR array faults
+
+A reached out-of-bounds subscript in a ladder FOR index, initial value,
+terminal value or step can raise Type 4 Code 20. If the fault handler clears
+it, FOR ends the invocation and the next instruction receives the incoming
+rung power. An entry fault preserves the original index, including when
+the first terminal or step lookup fails after index initialization.
+
+Once the body has run, a fault in a later terminal or step lookup preserves
+completed routine writes and prior index increments. A failed step lookup
+does not increment the index. The handler sees the index and body writes
+at the point of failure. A later scan starts a new invocation.
+
+Array faults inside the called routine follow that routine's instruction
+rules. Unknown values, DINT overflow, and budget exhaustion still roll
+back the scan. See [FOR sampling and lifecycle](ladder-loops.md#runtime-selected-operands).
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs
