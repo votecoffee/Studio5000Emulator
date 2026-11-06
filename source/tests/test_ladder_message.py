@@ -88,6 +88,65 @@ class MessageTests(unittest.TestCase):
             engine.step()
         self.assertEqual(memory.read('ReadValue'), 0)
 
+    def test_timeout_at_exact_deadline_and_retry_with_new_setting(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=30_000_000)
+        memory.write('ApplyReadTimeout', True)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=10_000)
+        memory.write('SendRead', True)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', EN=True, EW=True)
+
+        memory.write('ReadTimeoutUs', 10_001)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', ST=True, UnconnectedTimeout=10_001)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', EN=True, ST=False, ER=True, ERR=0xFE, DN=False, DN_LEN=0, TO=False)
+        self.assertEqual(memory.read('ReadValue'), 0)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', ER=True, EW=False)
+
+        memory.write('SendRead', False)
+        engine.step()
+        self.assert_flags(engine, 'ReadControl', EN=False, ER=True)
+        memory.write('SendRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assert_flags(engine, 'ReadControl', DN=True, ER=False, ERR=0)
+        self.assertEqual(memory.read('ReadValue'), 17)
+
+    def test_variable_step_timeout_preserves_the_write_destination(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('WriteControl.UnconnectedTimeout', 30_000)
+        memory.write('SendWrite', True)
+        engine.step(7)
+        engine.step(42)
+        self.assert_flags(engine, 'WriteControl', ST=True, ER=False)
+        self.assertEqual(engine.time_ms, 49)
+        engine.step(1)
+        self.assert_flags(engine, 'WriteControl', ST=False, ER=True, ERR=0xFE, DN=False)
+        self.assertEqual(memory.read('VirtualValue'), 17)
+
+    def test_nonpositive_timeout_reports_invalid_value_without_queuing(self):
+        for timeout in (0, -1):
+            with self.subTest(timeout=timeout):
+                engine = self.engine()
+                engine.memory.write('ReadControl.UnconnectedTimeout', timeout)
+                engine.memory.write('SendRead', True)
+                engine.step()
+                self.assert_flags(engine, 'ReadControl', EN=True, EW=False, ST=False, ER=True, ERR=0x03)
+                self.assertEqual(engine._messages, {})
+
+    def test_prescan_preserves_live_timeout_and_new_engine_uses_default(self):
+        engine = self.engine()
+        engine.memory.write('ReadControl.UnconnectedTimeout', 4_000_000)
+        engine.enter_run()
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=4_000_000)
+        self.assert_flags(Engine(engine.project), 'ReadControl', UnconnectedTimeout=30_000_000)
+
     def test_array_offsets_and_overlapping_source_snapshot(self):
         def configure(root):
             tag = root.find('.//Tag[@Name="VirtualValue"]')
@@ -372,21 +431,25 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='7', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='8', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
-        engine = self.engine(configure)
-        memory = engine.memory
-        memory.write('SendWrite', True)
-        engine.step()
-        engine.step()
-        memory.write('CancelRead', True)
-        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
-            engine.step()
-        self.assertEqual(engine.scan_count, 2)
-        self.assertEqual(memory.read('VirtualValue'), 17)
-        self.assert_flags(engine, 'WriteControl', EN=True, ST=True, DN=False, ER=False)
-        self.assertTrue(engine._messages['writecontrol'].started)
+        for timeout in (30_000_000, 10_000):
+            with self.subTest(timeout=timeout):
+                engine = self.engine(configure)
+                memory = engine.memory
+                memory.write('WriteControl.UnconnectedTimeout', timeout)
+                memory.write('SendWrite', True)
+                engine.step()
+                engine.step()
+                pending = engine._messages['writecontrol']
+                memory.write('CancelRead', True)
+                with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+                    engine.step()
+                self.assertEqual((engine.scan_count, engine.time_ms), (2, 20))
+                self.assertEqual(memory.read('VirtualValue'), 17)
+                self.assert_flags(engine, 'WriteControl', EN=True, ST=True, DN=False, ER=False)
+                self.assertEqual(engine._messages['writecontrol'], pending)
 
     def test_decorated_only_message_fields_remain_readable_without_execution(self):
         def configure(root):

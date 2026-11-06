@@ -39,6 +39,13 @@ still reads VirtualValue. Scan SendRead false before triggering again. The
 next read returns 64 from AlternateValue. To edit the STRING directly in
 Tag Watch, clear UseAlternateRead first.
 
+For a timeout and retry, use the default 10 ms scan interval and start
+with a fresh Message Lab. Set ApplyReadTimeout to 1 and step once with
+SendRead off to copy ReadTimeoutUs (10,000) into UnconnectedTimeout. Set
+SendRead to 1 and step three times. The read sets ER and leaves ReadValue
+untouched. Set ReadTimeoutUs to 20,000 and step with SendRead off. Turn
+SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
+
 ## Supported configuration and timing
 
 - Use a scalar Standard controller base tag with `DataType="MESSAGE"` and
@@ -72,6 +79,13 @@ Tag Watch, clear UseAlternateRead first.
   including negative indices, set `ER` and `ERR` `16#0005` when the transfer is
   serviced. The destination is preserved. Prescan clears pending requests
   and status while preserving live index values. Reset restores authored indices.
+- UnconnectedTimeout is a positive DINT in microseconds. Its default is
+  30,000,000. The request captures a deadline when queued. Service checks
+  the deadline at the beginning of each advance using committed simulated
+  time. At or after the deadline, ER sets with ERR 16#00FE and the request
+  performs no transfer. A zero or negative setting reports 16#0003 when
+  triggered. Prescan retains the live timeout and Reset restores the default.
+  A false scan rearms the instruction for a ladder-controlled retry.
 - Up to 32 requests may be pending. Completion uses submission order and
   snapshots the source span before changing the destination. Status and data
   roll back together if a later rung faults in the same controller advance.
@@ -84,6 +98,7 @@ runtime qualification remain open. Decorated-only MESSAGE fields remain readable
 saved data. The native Message object inventory is separate.
 
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
+- [Rockwell unconnected timeout units](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)
 - [Rockwell message configuration and program-scoped addressing](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/configuring-message-instructions.html)
 - [Rockwell CIP data table types](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/2080-um002_-en-e.pdf)

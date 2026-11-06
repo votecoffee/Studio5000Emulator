@@ -8,9 +8,11 @@ from .model import ModelError
 
 MAX_ELEMENTS = 64
 MAX_PENDING = 32
+DEFAULT_TIMEOUT_US = 30_000_000
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
     'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
+    'UnconnectedTimeout': 'DINT',
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
@@ -47,6 +49,7 @@ class Pending:
     local_start: int | None
     remote: Endpoint | None
     remote_start: int | None
+    deadline_us: int
     enabled: bool = True
     started: bool = False
 
@@ -112,6 +115,7 @@ def initial(project, configuration):
     record = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
         'ERR': 0, 'EXERR': 0, 'REQ_LEN': requested, 'DN_LEN': 0,
         'LocalIndex': configuration.local.offset, 'RemoteIndex': configuration.remote.offset,
+        'UnconnectedTimeout': DEFAULT_TIMEOUT_US,
     }
     # Preserve long authored addresses that predate the writable STRING field.
     text = configuration.remote_text
@@ -171,7 +175,8 @@ def prescan(engine, op, scope):
     key = validate(engine, op, scope)
     record = engine.memory.values[key]
     defaults = initial(engine.project, engine.project.message_configs[key])
-    defaults.update(LocalIndex=record['LocalIndex'], RemoteIndex=record['RemoteIndex'])
+    defaults.update(LocalIndex=record['LocalIndex'], RemoteIndex=record['RemoteIndex'],
+                    UnconnectedTimeout=record['UnconnectedTimeout'])
     if 'RemoteElement' in record:
         defaults['RemoteElement'] = record['RemoteElement']
     engine.memory.values[key] = defaults
@@ -206,14 +211,18 @@ def execute(engine, op, power):
         record['EN'] = False
     elif not record['EN']:
         record.update(EN=True, EW=False, ST=False, DN=False, ER=False, ERR=0, EXERR=0, DN_LEN=0)
-        if len(queue) >= MAX_PENDING:
+        timeout_us = record['UnconnectedTimeout']
+        if timeout_us <= 0:
+            record.update(ER=True, ERR=0x03)
+        elif len(queue) >= MAX_PENDING:
             record.update(ER=True, ERR=0x02)
         else:
             record['EW'] = True
             configuration = engine.project.message_configs[key]
             remote = _capture_remote(engine.memory, key, configuration, record)
             queue[key] = Pending(configuration, configuration.local.start(record['LocalIndex']),
-                                 remote, remote.start(record['RemoteIndex']) if remote is not None else None)
+                                 remote, remote.start(record['RemoteIndex']) if remote is not None else None,
+                                 deadline_us=engine.time_ms * 1000 + timeout_us)
     return power
 
 
@@ -241,11 +250,12 @@ def _transfer(memory, pending):
     return _words(dtype, configuration.count)
 
 
-def service(memory, queue):
+def service(memory, queue, now_ms):
+    now_us = now_ms * 1000
     for key, pending in tuple(queue.items()):
         record = memory.values[key]
         transferred = 0
-        if record['TO']:
+        if record['TO'] or now_us >= pending.deadline_us:
             error = 0xFE
         elif not pending.started:
             record.update(EW=False, ST=True)
