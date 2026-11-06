@@ -157,7 +157,6 @@ class WideningArithmeticTests(unittest.TestCase):
                               ('ADD(Source,-1,Results[0]);', {'source':'ULINT','dest':'ULINT'}),
                               ('ADD(Source,Mask,Results[0]);', {'source':'LINT','dest':'DINT'}),
                               ('ADD(Source,Mask,Results[0]);', {'source':'DINT','dest':'ULINT'}),
-                              ('ADD(Source,Mask,Results[0]);', {'other':'REAL'}),
                               ('ADD(Inputs,Mask,Results[0]);', {}), ('ADD(Source,Mask,Results);', {}),
                               ('ADD(StartPB,Mask,Results[0]);', {})]:
             self.assertTrue(self.engine(['AFI()' + text], **options).blockers, (text, options))
@@ -170,6 +169,9 @@ class WideningArithmeticTests(unittest.TestCase):
             routine = root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type', 'ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = 'Results[1]:=Source+Mask;'
         self.assertTrue(self.engine(mutate=st).blockers, 'This ladder increment does not enable mixed ST expressions')
+        e = self.checked(['ADD(Source,Mask,Results[0]);'], other='REAL', mask=0.5)
+        e.step()
+        self.assertEqual(e.memory.read('Results[0]'), 8)
         report = self.checked().report()['scalar_math']['widening_arithmetic']
         self.assertEqual(len(report['instructions']), 7);self.assertEqual(set(report['types']), set(DESTINATIONS));self.assertFalse(report['native_runtime_parity'])
 

@@ -115,10 +115,16 @@ class ArithmeticConstantTests(unittest.TestCase):
         self.assertEqual(e.memory.read('DriverA.Stack')[:2],[0,200]);self.assertEqual(e.memory.read('DriverA.Stack[3]'),777)
 
     def test_unsupported_literals_types_permissions_and_old_targets_stay_blocked(self):
-        for source,dest,constant in [('DINT','LINT','2147483648'),('DINT','LINT','16#FFFF_FFFF'),('DINT','LINT','1.0'),
-                                     ('DINT','LINT','TRUE'),('DINT','LINT','1L'),('DINT','LINT','1U'),
-                                     ('USINT','UINT','-1'),('DINT','ULINT','1'),('LINT','DINT','1')]:
-            self.assertTrue(self.engine([f'AFI()ADD(Source,{constant},Results[0]);'],source=source,dest=dest).blockers)
+        for source,dest,constant in [('DINT','LINT','2147483648'),('DINT','LINT','16#FFFF_FFFF'),
+                                     ('DINT','LINT','TRUE'),('USINT','UINT','-1'),
+                                     ('DINT','ULINT','1'),('LINT','DINT','1')]:
+            with self.subTest(source=source,dest=dest,constant=constant):
+                self.assertTrue(self.engine([f'AFI()ADD(Source,{constant},Results[0]);'],source=source,dest=dest).blockers)
+        for constant in ('1.0','1L','1U'):
+            with self.subTest(constant=constant):
+                e = self.checked([f'ADD(Source,{constant},Results[0]);'],source='DINT',dest='LINT',value=3)
+                e.step()
+                self.assertEqual(e.memory.read('Results[0]'),4)
         for text in ('ADD(Inputs,1,Results[0]);','ADD(Source,1,Results);','ADD(StartPB,1,Results[0]);','ADD(Missing,1,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text],source='DINT').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
