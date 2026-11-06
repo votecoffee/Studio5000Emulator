@@ -268,6 +268,21 @@ The recovery path applies to ladder execution.
 
 [Rockwell array and file instructions reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions.html)
 
+## Recover BCD, size and truncation array faults
+
+A reached out-of-bounds subscript in FRD, TOD, SIZE or TRN can raise
+Type 4 Code 20 during a whole-project ladder scan. This includes indexed
+sources and destinations, as well as an indexed dimension tag in the
+emulator SIZE extension. If a handler clears the fault, the instruction
+skips its result write and the next instruction receives incoming rung
+power. A later valid call uses the current operand values and indices.
+
+False rungs skip live operands. Reached unknown values, invalid BCD
+ranges, and SIZE dimensions outside the selected array rank use scan
+rollback. This recovery applies to ladder calls.
+
+[Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

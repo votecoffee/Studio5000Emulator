@@ -519,7 +519,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('FRD','EQU','MOV'):
+        for mnemonic in ('SQR','FRD','EQU','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -533,6 +533,7 @@ class ProgramFaultTests(unittest.TestCase):
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
                     line = {
+                        'SQR':'SQR(LabValues[LabIndex],CallInput);',
                         'FRD':'FRD(LabValues[LabIndex],CallInput);',
                         'EQU':'EQU(LabValues[LabIndex],1)NOP();',
                         'MOV':'MOV(LabValues[LabIndex],CallInput);',
@@ -544,7 +545,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='FRD':
+                if mnemonic=='SQR':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -1646,6 +1647,71 @@ class ProgramFaultTests(unittest.TestCase):
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
                 with self.assertRaisesRegex(ModelError,'selected dimension/member boundary'):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_bcd_size_and_truncate_array_faults_skip_the_result_write(self):
+        cases = (
+            ('FRD(LabValues[LabIndex],SpeedCommand)',0x23,[12,0x23],24),
+            ('FRD(16#1234,LabValues[LabIndex])',13,[12,1234],52),
+            ('TOD(LabValues[LabIndex],SpeedCommand)',13,[12,13],20),
+            ('TOD(1234,LabValues[LabIndex])',13,[12,0x1234],52),
+            ('TRN(LabStats[LabIndex],LabValues[0])',13,[-6,13],52),
+            ('TRN(-12.75L,LabValues[LabIndex])',13,[12,-12],52),
+            ('SIZE(LabValues[LabIndex],0,SpeedCommand)',13,[12,13],3),
+            ('SIZE(LabValues,LabValues[LabIndex],LabValues[0])',0,[2,0],52),
+            ('SIZE(LabValues,0,LabValues[LabIndex])',13,[12,2],52),
+        )
+        for instruction,saved,values,speed in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root,controller_tail='MOV(1,LabIndex);')
+                    add_array_calculation_tags(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabValues[1]',saved)
+                engine.memory.write('LabStats[1]',-6.75)
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                mnemonic = instruction.split('(',1)[0]
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,mnemonic))
+                self.assertEqual(fault['handler']['routine'],'FaultHandler/Capture')
+                self.assertEqual(engine.memory.read('LabValues'),[12,saved])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),values)
+                self.assertEqual(engine.memory.read('LabStats'),[11.0,-6.75])
+                self.assertEqual(engine.memory.read('SpeedCommand'),speed)
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_conversion_range_and_size_dimension_errors_keep_scan_rollback(self):
+        for instruction,message in (
+            ('TOD(-1,LabValues[0])','TOD source outside'),
+            ('SIZE(LabValues,LabIndex,LabValues[0])','SIZE dimension exceeds array rank'),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',1)
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,message):
                     engine.step()
                 self.assertEqual(engine.memory.values,before)
                 self.assertIsNone(engine.last_cleared_program_fault)

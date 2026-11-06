@@ -175,8 +175,9 @@ can clear out-of-bounds MOV, [COP/CPS](docs/controller-handlers.md#recover-cop-a
 [shift and queue](docs/controller-handlers.md#recover-shift-and-queue-array-faults),
 [sequencer](docs/controller-handlers.md#recover-sequencer-array-faults),
 [file arithmetic and search](docs/controller-handlers.md#recover-file-arithmetic-and-search-array-faults),
-[bit diagnostics and data transition](docs/controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
-and [sorting and statistics](docs/controller-handlers.md#recover-sort-and-statistics-array-faults)
+[bit diagnostics and data transition](docs/controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults),
+[sorting and statistics](docs/controller-handlers.md#recover-sort-and-statistics-array-faults)
+and [BCD, size and truncation](docs/controller-handlers.md#recover-bcd-size-and-truncation-array-faults)
 operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 The [ladder monitor marks the skipped instruction](docs/logic-viewer.md#fault-recovery-in-the-ladder-monitor)

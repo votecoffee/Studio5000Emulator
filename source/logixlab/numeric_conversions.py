@@ -100,6 +100,7 @@ def description():
                               'TOD':{'sources':list(INT_BITS),'destinations':list(PACKED_TYPES)}},
                 preflight='Declared scalar types/shapes, index grammar, permissions, immediate bounds and SWPB selectors; no saved dynamic indices or tag values',
                 selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the conversion write',
                 frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
                 tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
                 immediates='FRD/TOD accept decimal L/U/UL integer sources alongside bounded DINT and 32-bit radix sources',

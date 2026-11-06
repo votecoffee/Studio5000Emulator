@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.151405` [BCD, size and truncation recovery](controller-handlers.md#recover-bcd-size-and-truncation-array-faults)
+lets a ladder handler clear Type 4 Code 20 before FRD, TOD, SIZE or TRN writes
+its result. Invalid conversion ranges and dimensions use scan rollback.
+
 Available in `26.1106.150353` [sort and statistics recovery](controller-handlers.md#recover-sort-and-statistics-array-faults)
 lets a ladder handler clear Type 4 Code 20 before SRT, AVE or STD writes data
 or updates CONTROL. A later valid call uses the retained edge.

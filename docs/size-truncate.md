@@ -30,9 +30,11 @@ this change does not add a TRN ST call or expand FBD.
 
 Preflight checks types, shape and permissions without consuming saved scalar
 values or live indices. False rungs and ordinary prescan retain outputs. Executed
-full writes can establish unknown destination values; reached unknown sources,
-bad indices, excluded ranges and later failures roll back the complete advance.
-Other controller profiles retain their previous behavior.
+full writes can establish unknown destination values. A handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-bcd-size-and-truncation-array-faults)
+during a whole-project ladder scan and skip the result write. Reached unknown
+sources, uncleared faults, excluded ranges and later failures roll back the
+complete advance.
 
 Choose **Data lab**, enable `InspectData`, and inspect `SizeResult`,
 `StringCapacity`, `TruncatedWide` and `TruncatedUnsigned`. The API report exposes

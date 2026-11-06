@@ -107,6 +107,7 @@ def description(project):
                 trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero, then representable destination conversion',
                 lreal='Tagged and floating L/l LREAL sources with integer/REAL/LREAL destinations; v35 ladder TRN',
                 selection='Structural preflight; false/prescan skip live values and dynamic indices',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the SIZE or TRN result write',
                 dynamic_dimension='Existing SINT/INT/DINT tag extension; native SIZE documents an immediate 0..2',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Native rounding/overflow, signed zero, subnormals, status, fault and lifecycle parity',
