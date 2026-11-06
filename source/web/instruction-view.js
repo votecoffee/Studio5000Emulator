@@ -86,7 +86,8 @@
       for (const [i, member] of [[5, 'MinDurationPRE'], [6, 'MinDurationACC']]) {
         if (fields[i]?.ref === '?') fields[i] = {label: member, ref: args[0] + '.' + member, member: true, visible: true};
       }
-      flags = [['ALM', 'InAlarm'], ['ACK', 'Acked'], ['SUP', 'Suppressed'], ['SHV', 'Shelved'], ['DIS', 'Disabled'], ['BAD', 'Status.1']]
+      flags = [['ALM', 'InAlarm'], ['ACK', 'Acked'], ['SUP', 'Suppressed'], ['SHV', 'Shelved'],
+        ['DIS', 'Disabled'], ['FLT', 'Status.0'], ['BAD', 'Status.1'], ['SEV', 'Status.2']]
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (Object.hasOwn(control, op)) {

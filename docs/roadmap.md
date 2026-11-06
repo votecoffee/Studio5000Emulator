@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.195653` [ladder ALMD diagnostics](ladder-alarm.md#diagnostics)
+keep alarm evaluation active when severity is out of range. Status reports
+configuration and input quality separately, and Alarm Lab shows both.
+
 Available in `26.1105.194612` [ladder ALMD timestamps](ladder-alarm.md#timestamps)
 use WallClockTime or ProgTime, retain the first detection time through a
 minimum-duration delay, and expose exact LINT values in Alarm Lab.

@@ -21,7 +21,7 @@ INPUTS = dict(
 OUTPUTS = dict(EnableOut=False, InAlarm=False, Acked=True, InAlarmUnack=False,
                Suppressed=False, Shelved=False, Disabled=False, Commissioned=True,
                MinDurationACC=0, AlarmCount=0, Status=0, **dict.fromkeys(TIMESTAMPS, 0))
-STATUS_BITS = {'infaulted': 1}
+STATUS_BITS = {'instructfault': 0, 'infaulted': 1, 'severityinv': 2}
 FIELDS = {name: 'BOOL' if type(value) is bool else 'DINT'
           for name, value in (INPUTS | OUTPUTS).items()}
 FIELDS.update(dict.fromkeys(('ProgTime', *TIMESTAMPS), 'LINT'))
@@ -137,8 +137,8 @@ def _event_time(obj):
 def execute(engine, op, power, scope):
     memory = engine.memory
     key, obj = _record(memory, op.args[0], scope)
-    if not 1 <= obj['Severity'] <= 1000:
-        raise ModelError('ALMD severity must be 1..1000 in the software profile')
+    severity_invalid = not 1 <= obj['Severity'] <= 1000
+    status = (0b101 if severity_invalid else 0) | (0b010 if obj['InFault'] else 0)
     ack, reset, disable, enable = (_command(memory, ref, scope) for ref in op.args[1:5])
     preset = _duration(op.args[5], MAX_DINT)
     if preset is None:
@@ -212,7 +212,7 @@ def execute(engine, op, power, scope):
                ProgAck=ack, ProgReset=reset, ProgDisable=disable, ProgEnable=enable,
                MinDurationPRE=preset, MinDurationACC=0, Disabled=disabled, Suppressed=suppressed,
                Shelved=shelved, InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
-               AlarmCount=count, Status=2 if obj['InFault'] else 0)
+               AlarmCount=count, Status=status)
     engine.last_timer[identity] = (since, ack, reset, shelf_until, shelve_request, detected_at)
     return power
 
@@ -221,7 +221,8 @@ def description(project):
     return dict(available=available(project), instruction='ALMD', language='RLL', data_type=TYPE,
                 source='Scalar Alarm-format ALARM_DIGITAL tags, including program scope and aliases',
                 timing='First abnormal sample starts the minimum duration; later releases use modeled milliseconds',
-                state='Polarity, enable/disable, suppression, shelving, latch/reset, acknowledgment, count and InFaulted',
+                state='Polarity, enable/disable, suppression, shelving, latch/reset, acknowledgment and count',
+                diagnostics='Status.0 InstructFault and Status.2 SeverityInv indicate invalid severity. Status.1 InFaulted indicates bad input quality. Alarm evaluation continues.',
                 suppression='Suppress retains detection, delay and count. Unsuppress wins and rearms acknowledgment for an active, unshelved alarm.',
                 shelving='A sampled rising edge shelves or reshelves for configured minutes. Unshelve wins. Expiration uses modeled time.',
                 timestamps='UTC microseconds as LINT. Reached events use WallClockTime or ProgTime; InAlarmTime retains initial detection.',

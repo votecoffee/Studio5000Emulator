@@ -76,6 +76,42 @@ class LadderAlarmTests(unittest.TestCase):
         engine.step()
         self.assertFalse(engine.memory.read('SignalAlarm.InAlarm'))
 
+    def test_severity_and_input_quality_are_diagnostics_while_alarm_qualifies(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.UseProgTime', True)
+        memory.write('MotorAlarm.ProgTime', UTC_MICROSECONDS)
+        memory.write('MotorAlarm.Severity', 0)
+        memory.write('Trip', True)
+        engine.step()
+        alarm = self.alarm(engine)
+        self.assertEqual(alarm['Status'], 5)
+        self.assertFalse(alarm['InAlarm'])
+        memory.write('MotorAlarm.InFault', True)
+        engine.step()
+        self.assertEqual(alarm['Status'], 7)
+        engine.step()
+        self.assertTrue(alarm['InAlarmUnack'])
+        self.assertEqual(alarm['InAlarmTime'], UTC_MICROSECONDS)
+        self.assertEqual(alarm['AlarmCount'], 1)
+        self.assertFalse(engine.fault)
+
+        for severity, bad, expected in ((1, True, 2), (1000, False, 0),
+                                         (-(1 << 31), False, 5), ((1 << 31) - 1, True, 7),
+                                         (1001, False, 5), (500, False, 0)):
+            with self.subTest(severity=severity, bad_input=bad):
+                memory.write('MotorAlarm.Severity', severity)
+                memory.write('MotorAlarm.InFault', bad)
+                engine.step()
+                self.assertEqual(alarm['Severity'], severity)
+                self.assertEqual(alarm['Status'], expected)
+                self.assertEqual(memory.read('MotorAlarm.InstructFault'), bool(expected & 1))
+                self.assertEqual(memory.read('MotorAlarm.InFaulted'), bool(expected & 2))
+                self.assertEqual(memory.read('MotorAlarm.SeverityInv'), bool(expected & 4))
+                self.assertEqual(alarm['InAlarmTime'], UTC_MICROSECONDS)
+                self.assertEqual(alarm['AlarmCount'], 1)
+                self.assertTrue(alarm['InAlarm'])
+
     def test_latch_requires_a_new_reset_edge_after_the_input_goes_normal(self):
         engine = self.engine()
         memory = engine.memory
@@ -143,12 +179,12 @@ class LadderAlarmTests(unittest.TestCase):
         engine = self.engine()
         memory = engine.memory
         memory.write('Trip', True)
-        memory.write('SignalAlarm.Severity', 0)
+        memory.write('SignalAlarm.OperShelve', True)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms, engine.scan_count))
-        with self.assertRaisesRegex(ModelError, 'severity'):
+        with self.assertRaisesRegex(ModelError, 'shelve duration'):
             engine.step()
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms, engine.scan_count), baseline)
-        memory.write('SignalAlarm.Severity', 500)
+        memory.write('SignalAlarm.OperShelve', False)
         engine.step()
         engine.step()
         self.assertFalse(self.alarm(engine)['InAlarm'])
@@ -222,13 +258,13 @@ class LadderAlarmTests(unittest.TestCase):
         memory.write('MotorAlarm.MinDurationPRE', 0)
         memory.write('MotorAlarm.OperSuppress', True)
         memory.write('Trip', True)
-        memory.write('SignalAlarm.Severity', 0)
+        memory.write('SignalAlarm.OperShelve', True)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
-        with self.assertRaisesRegex(ModelError, 'severity'):
+        with self.assertRaisesRegex(ModelError, 'shelve duration'):
             engine.step()
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms), baseline)
 
-        memory.write('SignalAlarm.Severity', 500)
+        memory.write('SignalAlarm.OperShelve', False)
         engine.step()
         alarm = self.alarm(engine)
         self.assertTrue(alarm['Suppressed'])
@@ -319,12 +355,12 @@ class LadderAlarmTests(unittest.TestCase):
         memory.write('MotorAlarm.OperShelve', True)
         memory.write('Trip', True)
         engine.step()
-        memory.write('SignalAlarm.Severity', 0)
+        memory.write('SignalAlarm.OperShelve', True)
         baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
-        with self.assertRaisesRegex(ModelError, 'severity'):
+        with self.assertRaisesRegex(ModelError, 'shelve duration'):
             engine.step(60_000)
         self.assertEqual((memory.values, engine.last_timer, engine.time_ms), baseline)
-        memory.write('SignalAlarm.Severity', 500)
+        memory.write('SignalAlarm.OperShelve', False)
         engine.step(60_000)
         self.assertFalse(self.alarm(engine)['Shelved'])
         self.assertTrue(self.alarm(engine)['InAlarmUnack'])

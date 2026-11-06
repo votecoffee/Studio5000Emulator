@@ -24,14 +24,25 @@ increments `AlarmCount` up to the signed DINT maximum.
   commands are consumed and cleared on execution. Enable takes precedence
   over disable. Disabling clears `InAlarm` and allows acknowledgment of an
   existing unacknowledged alarm.
-- `InFault` sets `Status.1` (`InFaulted`) while evaluation continues.
-  Prescan clears active alarms and operator commands, acknowledges alarms
+- Prescan clears active alarms and operator commands, acknowledges alarms
   and resets hidden timing and command history. The count is retained.
 
 The software applies acknowledgment after activation within a single call
 and gives a coincident count-reset request precedence over the increment.
 Delayed state and edge history roll back with tag writes after a failed
-advance. This model covers valid severity settings from 1 through 1000.
+advance.
+
+## Diagnostics
+
+`Status.0` (`InstructFault`) and `Status.2` (`SeverityInv`) indicate
+severity outside 1 through 1000. `Status.1` (`InFaulted`) follows the
+`InFault` input independently. Both conditions allow the alarm to keep
+evaluating, timing and counting. Correction clears the corresponding
+bits on the next ALMD call. Ladder can read each bit by name or number.
+The configured `Severity` value stays available for inspection. Native
+alarm subscribers use a bounded severity, and subscriber delivery is
+outside the current software model.
+[Rockwell ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html)
 
 ## Suppression
 
@@ -112,6 +123,10 @@ To try program-supplied time, reload Alarm Lab and set
 `MotorAlarm.UseProgTime` true and `MotorAlarm.ProgTime` to
 `1700000000000123` before setting `Trip`. Step three times. The detection
 time remains at that value even if ProgTime changes during the delay.
+
+For severity diagnostics, set `MotorAlarm.Severity` to 0 and step. The
+ladder block shows FLT and SEV. Set `MotorAlarm.InFault` true to see BAD.
+Restore severity to 500 and step to clear FLT and SEV.
 
 ## Scope
 
