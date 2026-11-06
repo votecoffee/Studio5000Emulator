@@ -2,7 +2,20 @@
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="SystemLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="SystemLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11" TimeSlice="30" ShareUnusedTimeSlice="1" CanUseRPIFromProducer="true" InhibitAutomaticFirmwareUpdate="1">
     <RedundancyInfo Enabled="false" KeepTestEditsOnSwitchOver="true" />
-    <DataTypes />
+    <DataTypes>
+      <DataType Name="LabCalendar" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Year" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Month" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Day" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Hour" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Minute" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Second" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Microsecond" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Guard" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
     <Modules />
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
@@ -505,6 +518,20 @@
       <Tag Name="ClockUtc" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="ClockLocal" DataType="DINT" TagType="Base" Dimensions="9"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /><Element Index="[7]" Value="0" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="StClockUtc" DataType="DINT" TagType="Base" Dimensions="7"><Data Format="Decorated"><Array DataType="DINT" Dimensions="7"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" /><Element Index="[6]" Value="0" /></Array></Data></Tag>
+      <Tag Name="ClockRecord" DataType="LabCalendar" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabCalendar">
+            <DataValueMember Name="Year" DataType="DINT" Value="0" />
+            <DataValueMember Name="Month" DataType="DINT" Value="0" />
+            <DataValueMember Name="Day" DataType="DINT" Value="0" />
+            <DataValueMember Name="Hour" DataType="DINT" Value="0" />
+            <DataValueMember Name="Minute" DataType="DINT" Value="0" />
+            <DataValueMember Name="Second" DataType="DINT" Value="0" />
+            <DataValueMember Name="Microsecond" DataType="DINT" Value="0" />
+            <DataValueMember Name="Guard" DataType="DINT" Value="999" />
+          </Structure>
+        </Data>
+      </Tag>
       <Tag Name="ReadTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetScanMax" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetLastAndStart" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -680,6 +707,7 @@
               <Rung Number="1" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CurrentValue,ClockWords[1]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockUtc[ClockIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,LocalDateTime,ClockLocal[1]);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,DateTime,ClockRecord.Year);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadCurrentInstances" Type="RLL">

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.085056` [WallClockTime calendar records](wall-clock-gsv.md#calendar-records)
+write seven declared DINT fields from the first member operand. System Lab
+shows the named values and preserves the trailing field.
+
 Available in `26.1106.073147` [ladder alarms in AOIs](ladder-alarm.md#ladder-alarms-in-add-on-instructions)
 allow ALMD and ALMA to use scalar alarm records passed by reference. AOI Alarm
 Lab demonstrates qualification, acknowledgment and an authored false routine.

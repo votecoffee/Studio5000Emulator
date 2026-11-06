@@ -3721,6 +3721,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for name,first in [('ClockUtc',1),('ClockLocal',1),('StClockUtc',0)]:
             fields=[row[f'{name}[{i}]'] for i in range(first,first+7)];instant=datetime(*fields,tzinfo=timezone.utc)
             self.assertLess(abs(instant.timestamp()*1000000-int(row['ClockMicros'])),5000000)
+        fields=[row['ClockRecord.'+field] for field in ('Year','Month','Day','Hour','Minute','Second','Microsecond')]
+        instant=datetime(*fields,tzinfo=timezone.utc)
+        self.assertLess(abs(instant.timestamp()*1000000-int(row['ClockMicros'])),5000000)
+        self.assertEqual(row['ClockRecord.Guard'],999)
         for name,last in [('ClockWords',3),('ClockUtc',8),('ClockLocal',8)]:self.assertEqual((row[f'{name}[0]'],row[f'{name}[{last}]']),(101,999))
         retained={k:v for k,v in row.items() if k.startswith(('Clock','StClock'))}
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)

@@ -17,8 +17,8 @@ Class and attribute lookup are case insensitive. The instance operand is empty.
 | Attribute | Destination | Meaning |
 | --- | --- | --- |
 | CurrentValue | Scalar DT, scalar LINT or two contiguous DINT cells | UTC microseconds since 1970-01-01; DINT cells contain the signed low and high 32-bit words. |
-| DateTime | Seven contiguous DINT cells | UTC year, month, day, hour, minute, second and microsecond. |
-| LocalDateTime | Seven contiguous DINT cells | Same UTC calendar under the explicit local-time policy described below. |
+| DateTime | Seven contiguous DINT cells or the first member of a [calendar record](#calendar-records) | UTC year, month, day, hour, minute, second and microsecond. |
+| LocalDateTime | Same destination forms as DateTime | Same UTC calendar under the explicit local-time policy described below. |
 
 Microseconds retain integer precision. DT checks the
 [supported timestamp range](time-date-storage.md); calendar fields require a
@@ -28,6 +28,24 @@ host clock keeps advancing. The [appliance launcher](vmware-appliance.md) seeds
 UTC from Windows when it boots a new owned VM; that one-time whole-second
 initialization is separate from this read-only GSV profile. Each reached GSV takes one sample. Multiple GSV/CIP
 reads can differ and do not form one scan-wide snapshot.
+
+## Calendar records
+
+Pass the first member of an explicitly declared user-defined record.
+Its first seven members must be visible scalar DINTs, in the order
+year, month, day, hour, minute, second and microsecond. The declaration
+determines the assignment order. Field names can follow the project's
+conventions. Members after the seven calendar fields retain their values.
+
+```text
+GSV(WallClockTime,,DateTime,ClockRecord.Year);
+```
+
+A supported record can be a scalar tag, a member, or a selected array
+element. The destination can resolve through an alias. The whole write
+is validated before the clock is sampled. The same layout works for
+LocalDateTime under the policy below.
+[Rockwell calendar UDT example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf#page=61)
 
 ## Local-time policy
 
@@ -64,8 +82,10 @@ clock, task interruption or lifecycle equivalence is established by this model.
 Choose **System lab** and step once. Enable `ReadClock`, then step to populate
 `ClockMicros`, low/high `ClockWords[1..2]`, `ClockUtc[1..7]`, `ClockLocal[1..7]`,
 `StClockMicros` and `StClockUtc`. The called **ReadClockValues** ladder routine
-shows the four GSV forms; the existing **ReadSettings** ST routine has gated reads.
-The example explicitly selects the UTC-local policy. Guard cells stay 101/999.
+also writes the seven named members of `ClockRecord`. Its trailing
+`Guard` stays at 999. The existing **ReadSettings** ST routine has gated
+reads. The example explicitly selects the UTC-local policy. Array guard
+cells stay 101/999.
 
 Set `ClockIndex` to 99 while ReadClock is false to observe lazy retention. A
 reached calendar read then faults and rolls back the advance. Restore the index
@@ -80,5 +100,5 @@ committed [Task](task-start-gsv.md) and [Program](scan-time-gsv.md) measurements
 Installed v35 help 14645 and Rockwell's published
 [WallClockTime object reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
 define the counter/calendar formats. The installed version determines this
-profile. DATETIMESTRUCT destinations, other attributes, SSV clock setters,
+profile. Built-in DATETIMESTRUCT layout, other attributes, SSV clock setters,
 non-UTC/DST policies, CST/PTP synchronization and broader profiles remain separate.

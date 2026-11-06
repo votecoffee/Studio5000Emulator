@@ -154,8 +154,10 @@ uses the same mode word as the emulator's EtherNet/IP endpoint.
 
 [Wall-clock GSV reads](docs/wall-clock-gsv.md) expose UTC microseconds and
 calendar fields to ladder and existing ST calls through the same host clock
-as the CIP endpoint. In **System lab**, enable ReadTypedTimes to see a DT
-timestamp, its exact LDT conversion and typed Task measurements.
+as the CIP endpoint. In **System lab**, enable ReadClock to fill a calendar
+record with [named DINT fields](docs/wall-clock-gsv.md#calendar-records).
+ReadTypedTimes shows a DT timestamp, its exact LDT conversion and typed Task
+measurements.
 
 [BCD file expressions](docs/file-bcd.md) add FRD/TOD transforms and searches
 in ALL, numeric and INC modes. **Control lab** includes a BcdFiles routine.

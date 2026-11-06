@@ -16,6 +16,7 @@ DELTA=INSTANT-datetime(1970,1,1,tzinfo=timezone.utc)
 MICROSECONDS=(DELTA.days*86400+DELTA.seconds)*1000000+DELTA.microseconds
 FIELDS=[2024,2,29,23,59,58,123456]
 WORDS=list(struct.unpack('<ii',struct.pack('<q',MICROSECONDS)))
+CALENDAR_FIELDS=('Year','Month','Day','Hour','Minute','Second','Microsecond')
 
 
 class GsvWallClockTests(unittest.TestCase):
@@ -77,6 +78,68 @@ class GsvWallClockTests(unittest.TestCase):
             e=self.checked([f'GSV(WallClockTime,,{attribute},ClockWords[1]);'])
             with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):e.step()
             self.assertEqual(e.memory.read('ClockWords'),[77,*FIELDS]+[77]*4)
+
+    @staticmethod
+    def calendar_records(root):
+        controller=root.find('Controller')
+        dtype=E.SubElement(controller.find('DataTypes'),'DataType',Name='TestCalendarRecord',Class='User')
+        members=E.SubElement(dtype,'Members')
+        for field in (*CALENDAR_FIELDS,'Guard'):
+            E.SubElement(members,'Member',Name=field,DataType='DINT',Dimension='0',Hidden='false')
+        tags=controller.find('Tags')
+        tag=E.SubElement(tags,'Tag',Name='CalendarRecord',DataType='TestCalendarRecord',TagType='Base')
+        record=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='TestCalendarRecord')
+        E.SubElement(record,'DataValueMember',Name='Guard',DataType='DINT',Value='123')
+        tag=E.SubElement(tags,'Tag',Name='CalendarBank',DataType='TestCalendarRecord',TagType='Base',Dimensions='2')
+        array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='TestCalendarRecord',Dimensions='2')
+        for index in range(2):
+            element=E.SubElement(array,'Element',Index=f'[{index}]')
+            element.append(copy.deepcopy(record))
+        E.SubElement(tags,'Tag',Name='CalendarAlias',TagType='Alias',DataType='DINT',
+                     AliasFor='CalendarBank[ClockIndex].Year')
+
+    def test_calendar_record_maps_declared_dint_members_from_a_single_sample(self):
+        for attribute in ('DateTime','LocalDateTime'):
+            e=self.checked([f'GSV(WallClockTime,,{attribute},CalendarRecord.Year);'],mutate=self.calendar_records)
+            self.assertIsNone(e.memory.values['calendarrecord']['Month'])
+            with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000) as clock:
+                e.step()
+            clock.assert_called_once()
+            self.assertEqual(e.memory.read('CalendarRecord'),dict(zip(CALENDAR_FIELDS,FIELDS)) | {'Guard':123})
+
+    def test_calendar_record_alias_resolves_lazily_and_rolls_back_a_later_fault(self):
+        logic=['XIC(ReadClock)GSV(WallClockTime,,DateTime,CalendarAlias);','DIV(1,ClockDivisor,Out);']
+        with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Unused clock read')):
+            e=self.checked(logic,mutate=self.calendar_records)
+            e.step()
+            e.memory.write('ReadClock',True)
+            self.fault(e,'outside bounds')
+        e.memory.write('ClockIndex',1)
+        e.memory.write('ClockDivisor',0)
+        with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):
+            self.fault(e,'zero')
+            e.memory.write('ClockDivisor',1)
+            e.step()
+        self.assertIsNone(e.memory.values['calendarbank'][0]['Year'])
+        self.assertEqual(e.memory.read('CalendarBank[1]'),dict(zip(CALENDAR_FIELDS,FIELDS)) | {'Guard':123})
+
+    def test_calendar_record_requires_first_member_and_seven_explicit_scalar_dints(self):
+        logic=['GSV(WallClockTime,,DateTime,CalendarRecord.Year);']
+        for field,attribute,value in (('Month','DataType','INT'),('Day','Dimension','2'),('Hour','Hidden','true')):
+            def incompatible(root):
+                self.calendar_records(root)
+                member=root.find(f'.//DataType[@Name="TestCalendarRecord"]/Members/Member[@Name="{field}"]')
+                member.set(attribute,value)
+            with self.subTest(field=field):
+                self.assertIn('seven leading visible scalar DINTs',' '.join(self.engine(logic,mutate=incompatible).blockers))
+        e=self.engine(['GSV(WallClockTime,,DateTime,CalendarRecord.Month);'],mutate=self.calendar_records)
+        self.assertIn('first member as destination',' '.join(e.blockers))
+
+    def test_st_for_tracks_the_last_calendar_field_as_written(self):
+        blocked=self.engine(
+            ['FOR Index:=0 TO CalendarRecord.Microsecond DO GSV(WallClockTime,,DateTime,CalendarRecord.Year); END_FOR;'],
+            mutate=self.calendar_records,st=True)
+        self.assertTrue(any('bounds/step' in item for item in blocked.blockers),blocked.blockers)
 
     def test_epoch_zero_exact_counter_limit_and_calendar_range_are_distinct(self):
         for value in (0,(1<<63)-1):

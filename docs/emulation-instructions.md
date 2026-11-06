@@ -106,7 +106,7 @@ schema/behavior backlog separately from instruction names.
 
 [WallClockTime GSV](wall-clock-gsv.md) adds UTC CurrentValue/DateTime and explicit
 UTC-local LocalDateTime reads to existing RLL/ST calls. Exact DT/LINT/two-DINT
-counters, seven-DINT calendar windows, lazy references and whole-advance rollback
+counters, seven-DINT calendar arrays or declared records, lazy references and whole-advance rollback
 are modeled; no clock setters, time-zone/DST changes or native parity is implied.
 
 [Scan-time GSV](scan-time-gsv.md) adds Program/Task LastScanTime and MaxScanTime
