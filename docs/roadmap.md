@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.144906` [file arithmetic and search recovery](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
+restores CONTROL and FAL destination values from before a call that faults on
+an array subscript. INC retains its pending element, and numeric calls retain
+the work completed in prior calls.
+
 Available in `26.1106.143510` [sequencer array fault recovery](controller-handlers.md#recover-sequencer-array-faults)
 preserves CONTROL state and data when a handler clears Type 4 Code 20 for SQI,
 SQO or SQL. Valid short table windows retain the existing error behavior.

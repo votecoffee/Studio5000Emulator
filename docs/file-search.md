@@ -35,9 +35,12 @@ without restarting work. IN or ER inhibits these false-rung changes.
 
 FSC's rung output follows incoming power, independently of a match. Examine
 FD/IN/POS in logic to act on a result. Zero LEN completes without reading data.
-Negative or excessive lengths/positions and invalid accesses stop and roll back
-the modeled advance, including previous comparisons, other writes and scheduler
-state. Native major/minor fault records and partial effects remain unfinished.
+A handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
+in a whole-project scan after the emulator restores the search CONTROL.
+Unrecovered faults, invalid LEN/POS and other errors roll back the advance,
+including other writes and scheduler state. Native major/minor fault records
+and partial effects remain unqualified.
 
 ## Expressions and limits
 

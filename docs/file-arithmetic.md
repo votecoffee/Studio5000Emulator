@@ -32,9 +32,12 @@ Zero LEN and an initial POS equal to LEN complete without evaluating data.
 
 The software profile retains the last computed POS on completion. Installed
 v35 prose and flowcharts present the final cursor differently; native final-POS
-parity remains unverified. Negative/excessive LEN/POS and invalid reads/writes
-fail explicitly, with whole-advance rollback. Native fault records, ER overflow
-classification and partial writes are not implemented by this profile.
+parity remains unverified. A handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
+in a whole-project scan after the emulator restores the CONTROL and every
+destination from the current call. Unrecovered faults, invalid LEN/POS
+and other errors roll back the advance. Native fault records, ER overflow
+classification and native partial effects remain unqualified.
 
 ## Expressions and destinations
 

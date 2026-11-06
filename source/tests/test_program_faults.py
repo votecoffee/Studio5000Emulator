@@ -118,12 +118,12 @@ def set_fault_instruction(root, instruction):
     text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
 
 
-def add_fault_record_array(root, dtype, name='LabRecords'):
+def add_fault_record_array(root, dtype, name='LabRecords', **initial):
     members = {
         'TIMER':dict(PRE=100,ACC=4,EN=False,TT=False,DN=False),
         'COUNTER':dict(PRE=3,ACC=7,CU=False,CD=False,DN=True,OV=False,UN=False),
         'CONTROL':dict(LEN=9,POS=1,EN=True,EU=True,DN=True,EM=True,ER=True,UL=True,IN=True,FD=True),
-    }[dtype]
+    }[dtype] | initial
     tags = root.find('./Controller/Tags')
     tag = ET.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base',Dimensions='2')
     array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType=dtype,Dimensions='2')
@@ -135,14 +135,14 @@ def add_fault_record_array(root, dtype, name='LabRecords'):
 
 
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
-                      record_type=None, queue_values=None, **options):
+                      record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
     build = controller_fault_fallback_fixture if controller_fallback else ladder_fault_fixture
     build(root, **options)
     if record_type is not None:
-        add_fault_record_array(root,record_type)
+        add_fault_record_array(root,record_type,**(record_members or {}))
     if queue_values is not None:
         add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',queue_values)
     if call_fault is not None:
@@ -1274,6 +1274,132 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertEqual(engine.memory.read('LabValues'),[12,13])
                     self.assertFalse(any('recovery_source' in row for row in engine.trace))
                 self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_fal_all_restores_repeated_and_indirect_writes_before_handler(self):
+        from logixlab.control_operations import default
+
+        for dest,source,expected_queue,expected_values in (
+            ('LabQueue[0]','LabQueue[0]+LabValues[LabRecords[0].POS]',[56,47,99],[12,13]),
+            ('LabValues[LabRecords[0].POS]','LabQueue[LabRecords[0].POS]+1',[31,47,99],[32,48]),
+        ):
+            with self.subTest(destination=dest):
+                self.setUp()
+
+                def configure(root):
+                    handler = ('MOV(LabQueue[0],FaultWords[3])MOV(LabValues[0],FaultWords[4])'
+                               'MOV(LabRecords[0].POS,FaultWords[5])MOV(2,LabRecords[0].LEN);')
+                    ladder_fault_fixture(root,handler_tail=handler)
+                    add_fault_record_array(root,'CONTROL',**(default()|dict(LEN=3)))
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    set_fault_instruction(root,f'FAL(LabRecords[0],?,?,ALL,{dest},{source})')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'FAL'))
+                self.assertEqual(engine.memory.read('FaultWords')[3:6],[31,12,0])
+                self.assertEqual(engine.memory.read('LabQueue'),[31,47,99])
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('LabRecords')[0],default()|dict(LEN=2))
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'),expected_queue)
+                self.assertEqual(engine.memory.read('LabValues'),expected_values)
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_numeric_file_fault_keeps_prior_chunk_and_false_rung_state(self):
+        from logixlab.control_operations import default
+
+        for name in ('FAL','FSC'):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(3,LabRecords[0].LEN);')
+                    add_fault_record_array(root,'CONTROL',**(default()|dict(LEN=4)))
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    current = 'LabQueue[LabRecords[0].POS]'
+                    args = f'{current},{current}+1' if name=='FAL' else f'{current}=0'
+                    set_fault_instruction(root,f'{name}(LabRecords[0],?,?,2,{args})')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                before = copy.deepcopy(engine.memory.read('LabQueue'))
+                self.assertEqual(before,[32,48,99] if name=='FAL' else [31,47,99])
+                control = dict(engine.memory.read('LabRecords')[0],LEN=3)
+                engine.memory.write('StartPB',False)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],name)
+                self.assertEqual(engine.memory.read('LabQueue'),before)
+                self.assertEqual(engine.memory.read('LabRecords')[0],control)
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['in'],event['out']),(False,False))
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'),[32,48,100] if name=='FAL' else before)
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),2)
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+
+    def test_file_inc_faults_preserve_pending_edge_and_hidden_progress(self):
+        from logixlab.control_operations import default
+
+        for name in ('FAL','FSC'):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root,controller_tail='CLR(LabIndex);')
+                    add_fault_record_array(root,'CONTROL',**(default()|dict(LEN=2)))
+                    add_fault_dint_array(root.find('./Controller/Tags'),'LabQueue',[31,47,99])
+                    source = 'LabValues[LabIndex+LabRecords[0].POS]'
+                    args = f'LabQueue[LabRecords[0].POS],{source}' if name=='FAL' else f'{source}=13'
+                    set_fault_instruction(root,f'{name}(LabRecords[0],?,?,INC,{args})')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                for position in (0,1):
+                    control = dict(engine.memory.read('LabRecords')[0])
+                    progress = engine._file_incremental.copy()
+                    engine.memory.write('LabIndex',2)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['instruction'],fault['handler']['routine']),(name,'FaultHandler/Capture'))
+                    self.assertEqual(engine.memory.read('LabRecords')[0],control)
+                    self.assertEqual(engine._file_incremental,progress)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabRecords[0].POS'),position)
+                    self.assertEqual(engine._file_incremental,{('labrecords',(0,))})
+                    if position==0:
+                        engine.memory.write('StartPB',False)
+                        engine.step()
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+                self.assertEqual(engine.memory.read('LabRecords[0].FD'),name=='FSC')
+                self.assertEqual(engine.memory.read('LabQueue'),[12,13,99] if name=='FAL' else [31,47,99])
+
+    def test_completed_inc_clears_progress_for_the_original_control_address(self):
+        from logixlab.control_operations import default
+
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_fault_record_array(root,'CONTROL',**(default()|dict(LEN=2)))
+            set_fault_instruction(root,'FSC(LabRecords[1-LabRecords[0].POS],?,?,INC,LabValues[0]=0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabRecords[0].POS',1)
+        engine.memory.write('LabRecords[0].DN',True)
+        engine.memory.write('LabRecords[0].EN',True)
+        engine._file_incremental.update({('labrecords',(0,)),('labrecords',(1,))})
+        engine.step()
+        self.assertEqual(engine.memory.read('LabRecords[0].POS'),0)
+        self.assertFalse(engine.memory.read('LabRecords[0].DN'))
+        self.assertEqual(engine._file_incremental,{('labrecords',(1,))})
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

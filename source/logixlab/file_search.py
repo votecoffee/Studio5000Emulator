@@ -2,7 +2,7 @@
 from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS
-from .model import ModelError, coerce, literal
+from .model import ArrayBoundsError, ModelError, coerce, literal
 
 INSTRUCTIONS = frozenset(('FSC',))
 
@@ -40,9 +40,20 @@ def validate(engine, op, scope):
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
     memory = engine.memory
-    if count=='INC':
-        return incremental.execute(engine,op,power,scope,lambda:expression.evaluate(memory,scope),search=True)
     obj = controls.control(memory, op.args[0], scope)
+    previous = obj.copy()
+    try:
+        if count == 'INC':
+            return incremental.execute(engine, op, power, scope, obj,
+                                       lambda: expression.evaluate(memory, scope), search=True)
+        return _execute(engine, power, scope, obj, count, expression)
+    except ArrayBoundsError:
+        obj.update(previous)
+        raise
+
+
+def _execute(engine, power, scope, obj, count, expression):
+    memory = engine.memory
     if controls.flag(obj, 'ER') or controls.flag(obj, 'IN'):return power
     if controls.flag(obj, 'DN'):
         if not power:obj.update(EN=False, DN=False, POS=0)
@@ -85,6 +96,7 @@ def description():
                     calculation='Use the bounded binary64 comparison evaluator per reached element, including eager BOOL composition',
                     native_runtime_parity=False),
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
+                array_recovery='Type 4 Code 20 restores CONTROL from before the current whole-project call',
                 typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
                     range='Matching numeric tag/literal/result type; check declared literal range with its unary sign before execution',
                     precision='Exact integers at declared width; every numeric intermediate must fit',

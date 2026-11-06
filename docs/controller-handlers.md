@@ -210,6 +210,24 @@ Unknown consumed values, prescan and other errors remain separate.
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell SQO reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/sequencer-instructions/sequencer-output--sqo-.html)
 
+## Recover file arithmetic and search array faults
+
+A reached out-of-bounds array subscript in FAL or FSC can raise Type 4
+Code 20 in a whole-project ladder scan. This covers ALL, numeric and
+INC modes. Before either fault handler runs, the emulator restores the
+CONTROL record and any FAL destination values written during that call.
+Completed work from earlier calls remains available.
+
+When a handler clears the fault, the next instruction receives the
+incoming rung power. An active numeric call can still run on a false
+rung. A failed INC iteration leaves its position, pending edge and
+private progress as they were before the call. The next valid call
+can retry that element. Arithmetic overflow, invalid LEN/POS and
+other errors retain their existing scan rollback behavior.
+
+[Rockwell FAL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-arithmetic_logic-fal.html)
+[Rockwell FSC reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

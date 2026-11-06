@@ -3,7 +3,7 @@ from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS, WIDE_TYPES
 from . import lreal_expressions, wide_st
-from .model import ModelError, coerce, literal
+from .model import ArrayBoundsError, ModelError, coerce, literal
 
 INSTRUCTIONS = frozenset(('FAL',))
 
@@ -25,7 +25,7 @@ def destination(memory, op, scope):
     ck, cp, _ = memory.resolve(op.args[0], scope)
     if key == ck and parts[:len(cp)] == cp:
         raise ModelError('FAL destination must not overlap its CONTROL record')
-    return dtype
+    return key, parts, dtype
 
 
 def calculate(engine,expression,scope,dtype,*,execute=False):
@@ -58,7 +58,7 @@ def validate(engine, op, scope):
     previous = memory.structural
     try:
         memory.structural = True
-        calculate(engine,expression,scope,destination(memory,op,scope))
+        calculate(engine,expression,scope,destination(memory,op,scope)[2])
     finally:memory.structural = previous
     return count, expression
 
@@ -66,12 +66,30 @@ def validate(engine, op, scope):
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
     memory = engine.memory
-    if count=='INC':
-        def operation():
-            dtype=destination(memory,op,scope)
-            memory.write(op.args[4],calculate(engine,expression,scope,dtype,execute=True),scope)
-        return incremental.execute(engine,op,power,scope,operation)
     obj = controls.control(memory, op.args[0], scope)
+    previous = obj.copy()
+    writes = {}
+
+    def write_element():
+        key, parts, dtype = destination(memory, op, scope)
+        value = calculate(engine, expression, scope, dtype, execute=True)
+        # An address can be written repeatedly in one call. Retain its first
+        # value, including an unknown value, for recovery of that call.
+        writes.setdefault((key, tuple(parts)), memory.at(key, parts))
+        memory.write(op.args[4], value, scope)
+
+    try:
+        if count == 'INC':
+            return incremental.execute(engine, op, power, scope, obj, write_element)
+        return _execute(engine, power, obj, count, write_element)
+    except ArrayBoundsError:
+        for (key, parts), value in writes.items():
+            memory.store(key, parts, value)
+        obj.update(previous)
+        raise
+
+
+def _execute(engine, power, obj, count, write_element):
     if controls.flag(obj, 'ER'):return power
     if controls.flag(obj, 'DN'):
         if not power:obj.update(EN=False, DN=False, ER=False, POS=0)
@@ -95,8 +113,7 @@ def execute(engine, op, power, scope):
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FAL instruction budget exceeded')
         obj['POS'] = position
-        dtype = destination(memory, op, scope)
-        memory.write(op.args[4], calculate(engine,expression,scope,dtype,execute=True), scope)
+        write_element()
     if end == length:obj.update(EN=bool(power), DN=True)
     return power
 
@@ -119,6 +136,7 @@ def description():
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
                 writes='Sequential live reads/writes; source/destination array overlap can propagate',
+                array_recovery='Type 4 Code 20 restores CONTROL and destination values from before the current whole-project call',
                 prescan='No initialization', max_elements=controls.MAX_ELEMENTS,
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False, native_math_status=False,

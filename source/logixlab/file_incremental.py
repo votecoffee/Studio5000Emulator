@@ -17,18 +17,13 @@ def validate(engine,op,scope):
         raise ModelError('INC requires an idle source CONTROL: POS zero and all flags false; saved hidden progress is unavailable')
 
 
-def reset(engine,ref,scope):
-    engine._file_incremental.discard(identity(engine,ref,scope))
-
-
-def execute(engine,op,power,scope,operation,*,search=False):
-    obj=controls.control(engine.memory,op.args[0],scope)
+def execute(engine,op,power,scope,obj,operation,*,search=False):
     if controls.flag(obj,'ER') or (search and controls.flag(obj,'IN')):return power
     key=identity(engine,op.args[0],scope)
     if controls.flag(obj,'DN'):
         if not power:
             obj.update(EN=False,DN=False,POS=0)
-            reset(engine,op.args[0],scope)
+            engine._file_incremental.discard(key)
         return power
     enabled=controls.flag(obj,'EN')
     if not power:
@@ -46,10 +41,10 @@ def execute(engine,op,power,scope,operation,*,search=False):
         obj['DN']=True
         return True
     obj['POS']=start
-    engine._file_incremental.add(key)
     engine.budget-=1
     if engine.budget<0:raise ModelError(op.name+' INC instruction budget exceeded')
     result=operation()
+    engine._file_incremental.add(key)
     if search and result:obj.update(FD=True,IN=True)
     if start==length-1:obj['DN']=True
     return True

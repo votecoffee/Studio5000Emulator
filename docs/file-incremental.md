@@ -49,6 +49,9 @@ instructions have no prescan initialization. Routine replacement copies it
 into the detached candidate without changing the active engine.
 
 New iterations, completion/cleanup and RES share the whole advance's transaction.
+A [cleared array subscript fault](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
+leaves the pending INC element available to retry. Completed false-rung cleanup
+clears progress for the CONTROL selected before the cleanup writes POS.
 An expression, budget or later task failure restores progress alongside values,
 timers, first scans and scheduler state. A retry cannot silently skip an element.
 Each processed element consumes the global instruction budget, and LEN remains
