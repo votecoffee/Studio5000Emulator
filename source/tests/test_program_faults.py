@@ -109,7 +109,12 @@ def add_jsr_fault_call(root, *, return_destination=False):
         ET.SubElement(rung,'Text').text = line
 
 
-def ladder_fault_load(*, controller_fallback=False, call_fault=None, **options):
+def set_fault_instruction(root, instruction):
+    text = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent/Rung/Text')
+    text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
+
+
+def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
@@ -117,6 +122,8 @@ def ladder_fault_load(*, controller_fallback=False, call_fault=None, **options):
     build(root, **options)
     if call_fault is not None:
         add_jsr_fault_call(root, return_destination=call_fault=='return')
+    if instruction is not None:
+        set_fault_instruction(root, instruction)
     return {'name':'LadderProgramFault.L5X', 'content':base64.b64encode(ET.tostring(root)).decode()}
 
 
@@ -463,7 +470,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('ADD','MOV'):
+        for mnemonic in ('AND','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -476,7 +483,8 @@ class ProgramFaultTests(unittest.TestCase):
                     ET.SubElement(set_index,'Text').text = 'MOV(2,LabIndex);'
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
-                    line = 'ADD(LabValues[LabIndex],1,CallInput);' if mnemonic=='ADD' else 'MOV(LabValues[LabIndex],CallInput);'
+                    line = ('AND(LabValues[LabIndex],1,CallInput);' if mnemonic=='AND'
+                            else 'MOV(LabValues[LabIndex],CallInput);')
                     ET.SubElement(faulting,'Text').text = line
                     content.insert(3,faulting)
 
@@ -484,7 +492,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='ADD':
+                if mnemonic=='AND':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -516,3 +524,65 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.values,before)
         self.assertIsNone(engine.last_cleared_program_fault)
         self.assertEqual(engine.calls.stack,[])
+
+    def test_arithmetic_array_faults_skip_the_write_and_resume_the_rung(self):
+        expected = {'ADD':17,'SUB':7,'MUL':60,'DIV':2,'MOD':2,'NEG':-12,'ABS':12,'CPT':25}
+        for mnemonic,result in expected.items():
+            for destination,index in ((False,2),(True,-1)):
+                with self.subTest(mnemonic=mnemonic,destination=destination):
+                    self.setUp()
+                    source = '12' if destination else 'LabValues[LabIndex]'
+                    target = 'LabValues[LabIndex]' if destination else 'SpeedCommand'
+                    if mnemonic=='CPT':
+                        instruction = f'CPT({target},{source}*2+1)'
+                    elif mnemonic in ('NEG','ABS'):
+                        instruction = f'{mnemonic}({source},{target})'
+                    else:
+                        instruction = f'{mnemonic}({source},5,{target})'
+
+                    def configure(root):
+                        ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                        set_fault_instruction(root,instruction)
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write('LabIndex',index)
+                    engine.memory.write('SpeedCommand',50)
+                    engine.step()
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    record = engine.last_cleared_program_fault
+                    self.assertEqual((record['type'],record['code'],record['instruction']),(4,20,mnemonic))
+                    self.assertEqual(engine.memory.read('LabIndex'),0)
+                    self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                    event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                    self.assertEqual((event['instruction'],event['out']),(mnemonic,True))
+                    engine.step()
+                    self.assertIs(engine.last_cleared_program_fault,record)
+                    self.assertEqual(engine.memory.read('LabValues'),[result,13] if destination else [12,13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),52 if destination else result+1)
+
+    def test_arithmetic_errors_keep_existing_scan_rollback(self):
+        for instruction,message in (
+            ('DIV(12,0,SpeedCommand)','divide by zero'),
+            ('ADD(2147483647,LabValues[LabIndex],SpeedCommand)','DINT overflow'),
+            ('CPT(SpeedCommand,LabValues[LabIndex]/0)','divide by zero'),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root)
+                    set_fault_instruction(root,'MOV(44,SpeedCommand)'+instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,message):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertEqual((engine.scan_count,engine.time_ms,engine.trace),(0,0,[]))
+                self.assertIsNone(engine.last_cleared_program_fault)

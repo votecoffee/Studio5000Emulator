@@ -61,6 +61,21 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 
 [Rockwell JSR fault recovery example](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
 
+## Recover a ladder arithmetic array fault
+
+During whole-project ladder execution, ADD, SUB, MUL, DIV, MOD, NEG,
+ABS and CPT can raise Type 4 Code 20 for an out-of-bounds source or
+destination array subscript. If either fault handler clears the record,
+the instruction skips its destination write. The rung continues at the
+next instruction with the incoming power. A subsequent scan uses the
+current subscript.
+
+The calculation and result conversion still use the existing arithmetic
+rules. Zero divisors, arithmetic overflow and other errors outside
+the modeled array fault follow the usual scan rollback.
+
+[Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

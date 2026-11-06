@@ -164,9 +164,10 @@ can capture and clear the active simulated I/O fault using DINT words or a
 Its main routine can [call ladder diagnostic subroutines](docs/controller-handlers.md#call-ladder-diagnostic-subroutines)
 and commit their tag writes and fault clearing together.
 A separate [ladder Program fault routine](docs/controller-handlers.md#recover-a-ladder-mov-array-fault)
-can clear out-of-bounds MOV and [COP/CPS array faults](docs/controller-handlers.md#recover-cop-and-cps-array-faults)
-and [JSR argument faults](docs/controller-handlers.md#recover-a-jsr-argument-fault)
-to continue at the next instruction. The Controller Fault Handler can
+can clear out-of-bounds MOV, [COP/CPS](docs/controller-handlers.md#recover-cop-and-cps-array-faults),
+[JSR](docs/controller-handlers.md#recover-a-jsr-argument-fault) and
+[arithmetic](docs/controller-handlers.md#recover-a-ladder-arithmetic-array-fault)
+operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
