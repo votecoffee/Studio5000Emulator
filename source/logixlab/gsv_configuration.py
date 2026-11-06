@@ -21,7 +21,8 @@ MODULE_INHIBITED = 0x6000
 MODULE_WAITING = 0x7000
 MODULE_CONNECTION_ATTRIBUTES = {'entrystatus': 'INT', 'faultcode': 'INT', 'faultinfo': 'DINT'}
 MODULE_INHIBIT_BIT = 1 << 2
-MODULE_MODE_MASK = MODULE_INHIBIT_BIT | 1
+MODULE_MAJOR_FAULT_BIT = 1
+MODULE_MODE_MASK = MODULE_INHIBIT_BIT | MODULE_MAJOR_FAULT_BIT
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
               'shareunusedtimeslice':('share_unused_time_slice','share_unused_defaulted','ShareUnusedTimeSlice')}
 
@@ -138,7 +139,7 @@ def _configuration_source(engine):
     return project
 
 
-def configure_module_connection(engine, data):
+def configure_module_connection(engine, data, *, running=False):
     project = _configuration_source(engine)
     name, state = data.get('module'), data.get('state')
     if not isinstance(name, str) or state not in ('running', 'faulted', 'clear'):
@@ -158,8 +159,22 @@ def configure_module_connection(engine, data):
     if state == 'faulted' and (type(code) is not int or not 0 < code <= 0xffff
                                or type(info) is not int or not -(1 << 31) <= info < (1 << 31)):
         raise ModelError('Faulted module requires a nonzero 16-bit fault code and signed DINT fault info')
+    mode = _module_mode(engine, module)
+    trip = (running and engine.mode == 'project' and code and mode is not None
+            and mode & MODULE_MAJOR_FAULT_BIT
+            and _module_connection_state(engine, module, project.io_map.named_module)[0] == MODULE_RUNNING)
     engine._module_connections[module.name] = ModuleConnection(code, info)
+    if trip:
+        label = module.display_name or module.name
+        engine.module_major_fault = {'type': 3, 'code': 16, 'module': module.name,
+                                     'fault_code': code, 'fault_info': info}
+        engine.fault = (f'Required module {label} lost its simulated connection '
+                        f'(Type 3 Code 16, module fault 0x{code:04X}, info {info}). Reset to resume.')
     return {'module': module.name, 'state': state, 'fault_code': code, 'fault_info': info}
+
+
+def _module_mode(engine, module):
+    return engine._module_modes.get(module.name, module.mode())
 
 
 def _module_inhibited(engine, module):
@@ -202,8 +217,10 @@ def simulated_module_connections(engine):
         if connection is not None:
             applied = {'state': 'faulted' if connection.fault_code else 'running',
                        'fault_code': connection.fault_code, 'fault_info': connection.fault_info}
+        mode = _module_mode(engine, module)
         rows.append({'name': module.name, 'label': module.display_name or module.name,
-                     'entry_status': status, 'input': applied})
+                     'entry_status': status, 'input': applied,
+                     'major_fault_on_loss': None if mode is None else bool(mode & MODULE_MAJOR_FAULT_BIT)})
     return rows
 
 
@@ -261,10 +278,10 @@ def module_attribute(engine, instance, attribute, *, executing):
         return MODULE_PATH, struct.pack('<H', len(module.route)) + module.route
     if attribute in MODULE_CONNECTION_ATTRIBUTES:
         return _module_connection_attribute(engine, module, attribute, executing=executing)
-    value = module.mode()
+    value = _module_mode(engine, module)
     if value is None:
         raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
-    return 'INT', engine._module_modes.get(module.name, value)
+    return 'INT', value
 
 
 def source(engine, op, scope='', *, executing=False):

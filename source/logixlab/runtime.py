@@ -56,6 +56,7 @@ class Engine:
         self.changes = []
         self._native_fault_history_uncertain = False
         self.fault = ""
+        self.module_major_fault = None
         self.prescan_count = 0
         self._initial_prescan_pending = defer_prescan
         self.entries = []
@@ -624,6 +625,8 @@ class Engine:
             self._task_scheduler.prepare(self.time_ms+dt)
 
     def prepare_step(self, dt=10):
+        if self.module_major_fault:
+            raise ModelError('Reset the faulted project before stepping')
         self.validate_interval(dt)
         if self._initial_prescan_pending:self.enter_run()
 

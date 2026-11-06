@@ -66,7 +66,8 @@ function renderModuleSimulation() {
   const diagnostics = input.state === 'faulted'
     ? ' (0x' + input.fault_code.toString(16).toUpperCase().padStart(4,'0') + ', info ' + input.fault_info + ')' : '';
   $('module-connection-summary').textContent = 'Input ' + moduleInputLabels[input.state] + diagnostics
-    + ' · Effective ' + (moduleStatusLabels[module.entry_status] ?? 'Unknown');
+    + ' · Effective ' + (moduleStatusLabels[module.entry_status] ?? 'Unknown')
+    + (module.major_fault_on_loss ? ' · Required in Run' : '');
 }
 function render() {
   if(state?.app_version){$('app-version').textContent=state.app_version;document.title=`LogixLab ${state.app_version} · Offline PLC lab`;}
@@ -95,9 +96,10 @@ function render() {
   $('routine-count').textContent = state.routines.length;
   const blocked = state.blockers.length > 0;
   const inhibited=!!state.connectivity?.native_programming_lease?.scan_inhibited;
-  $('status').textContent = state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
+  const moduleFault = state.controller.module_major_fault;
+  $('status').textContent = moduleFault ? 'I/O MAJOR FAULT · 3/16' : state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
   $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
-  $('step').disabled = blocked||inhibited||running||modePending;
+  $('step').disabled = blocked||inhibited||running||modePending||!!moduleFault;
   $('run').disabled = modePending||(!running&&(blocked||inhibited||!!state.fault));
   $('run').textContent = running ? '■ Program' : '▶ Run';
   const schedule=state.task_schedule?.tasks;
@@ -287,7 +289,7 @@ $('module-connection-form').onsubmit=async event=>{
   try {
     await api('module-connection',data);
     if (state?.project_generation === generation)
-      $('module-connection-feedback').textContent = module.label + ' input applied. Step or run to read it from logic.';
+      $('module-connection-feedback').textContent = module.label + ' input applied.';
   } catch (failure) {
     if (state?.project_generation === generation)
       $('module-connection-feedback').textContent = failure.message;

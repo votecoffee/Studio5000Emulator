@@ -246,10 +246,9 @@ last value while the call is skipped. Set RackModeCommand to 4 to see
 Waiting again. The remote route bytes are available in either mode.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
-AOI module references, cyclic data, live connection diagnostics and
-module-caused controller faults remain open. Bit 0
-controls the modeled Mode word. Fault generation on connection loss
-requires a connection model.
+AOI module references, cyclic data and live connection diagnostics remain
+open. Bit 0 controls whether a [simulated connection loss](#required-module-loss-during-run)
+trips the controller.
 [Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell module states](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/status.html)
 [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
@@ -294,8 +293,36 @@ await api('module-connection', {
 Enable ReadConnection and step. PointStatus reads 16#1000, PointFaultCode
 reads 16#0204, and PointFaultInfo reads -42. Apply Running for the same
 module and step to see Running and zero diagnostics. The local
-simulation input covers these steady states. Automatic reconnection,
-real module communication and controller major faults remain open.
+simulation input covers these steady states. Automatic reconnection
+and real module communication remain open.
+
+## Required module loss during Run
+
+In whole-project Remote Run, changing a module's effective connection
+from Running to Faulted trips a latched Type 3 Code 16 I/O major fault
+when bit 0 of its effective Mode word is set. The command applies at a
+scan boundary and preserves the completed scan and tag values. The
+controller reports Faulted and Device I/O retains the applied input.
+`/api/state` exposes the controller fault under
+`controller.module_major_fault` with `type`, `code`, the canonical
+`module` name, and the injected `fault_code` and `fault_info`.
+
+Loss of an optional module leaves Run active. A fault injected while the
+module is inhibited, waiting or lacks a Running input does not trip the
+controller. Program-mode changes and isolated routine harnesses also
+leave the controller latch alone. The model covers direct injected loss.
+Startup connection checks, downstream loss propagation and controller
+fault-handler execution remain open.
+
+In **Module status lab**, set ModeCommand to 1 and ApplyMode to true,
+then Step once to uninhibit RackOutput and keep it required. Set
+ApplyMode back to false. Under **Device I/O**, apply Running to RackOutput,
+start Run, then apply Faulted to RackOutput with fault code 516 and
+fault info -42. The browser displays **I/O MAJOR FAULT · 3/16**. Applying
+Running again can recover the module's displayed state. Use **Reset** to
+clear the controller latch and reinitialize project values and simulated
+connection inputs before starting Run again.
+[Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 
 ## Module backplane path
 

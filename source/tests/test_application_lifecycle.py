@@ -71,7 +71,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
         def modules(snapshot):
             return {row['label']:row for row in snapshot['module_simulation']}
         self.assertEqual(modules(state)['PointAdapter'],
-                         {'name':'pointadapter', 'label':'PointAdapter', 'entry_status':None, 'input':{'state':'clear'}})
+                         {'name':'pointadapter', 'label':'PointAdapter', 'entry_status':None,
+                          'input':{'state':'clear'}, 'major_fault_on_loss':False})
         self.assertEqual(modules(state)['RemoteInput']['entry_status'], 0x7000)
         self.post('module-connection', {**request, 'module':'RackOutput', 'state':'running'})
         rack = modules(self.post('observe', {}))['RackOutput']
@@ -118,6 +119,78 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertNotEqual(reset['project_generation'], request['project_generation'])
         self.assertEqual(modules(reset)['RackOutput']['input'], {'state':'clear'})
         self.assertEqual(observed(), (-1, -1, -1))
+
+    def test_required_module_loss_stops_run_and_latches_until_reset(self):
+        state = self.post('demo', {'sample':'ModuleStatusLab'})
+        generation = state['project_generation']
+        def connection(module, status, **details):
+            return self.post('module-connection', {
+                'module':module, 'project_generation':generation, 'state':status, **details})
+        def fault(module):
+            return connection(module, 'faulted', fault_code=0x0204, fault_info=-42)
+        def set_mode_word(word):
+            self.post('write', {'tag':'ModeCommand', 'value':word})
+            self.post('write', {'tag':'ApplyMode', 'value':True})
+            return self.post('step', {'dt':25})
+        def mode(mode):
+            return self.post('controller-mode', {'mode':mode, 'dt':25})['controller']
+        def rack(snapshot):
+            return next(row for row in snapshot['module_simulation'] if row['name']=='rackoutput')
+
+        # A staged fault behind an inhibit, or a loss in Program, cannot trip Run.
+        connection('RackOutput', 'running')
+        self.assertTrue(mode('Run')['running'])
+        fault('RackOutput')
+        self.assertTrue(self.post('observe', {})['controller']['running'])
+        mode('Program')
+        self.assertTrue(rack(set_mode_word(1))['major_fault_on_loss'])
+        connection('RackOutput', 'running')
+        fault('RackOutput')
+        self.assertEqual(self.post('observe', {})['controller']['mode'], 'Program')
+        self.assertTrue(mode('Run')['running'])
+        mode('Program')
+
+        # The active SSV override controls whether the module is required.
+        self.assertFalse(rack(set_mode_word(0))['major_fault_on_loss'])
+        connection('RackOutput', 'running')
+        self.assertTrue(mode('Run')['running'])
+        fault('RackOutput')
+        self.assertTrue(self.post('observe', {})['controller']['running'])
+        mode('Program')
+
+        self.assertTrue(rack(set_mode_word(1))['major_fault_on_loss'])
+        self.post('write', {'tag':'ApplyMode', 'value':False})
+        connection('RackOutput', 'running')
+        connection('PointAdapter', 'running')
+        self.assertTrue(mode('Run')['running'])
+        fault('PointAdapter')
+        before = self.post('observe', {})
+        self.assertTrue(before['controller']['running'])
+        fault('RackOutput')
+        after = self.post('observe', {})
+        self.assertEqual(after['controller']['mode'], 'Faulted')
+        self.assertFalse(after['controller']['running'])
+        self.assertEqual(after['controller']['module_major_fault'],
+                         {'type':3, 'code':16, 'module':'rackoutput', 'fault_code':0x0204, 'fault_info':-42})
+        self.assertEqual(rack(after)['entry_status'], 0x1000)
+        self.assertEqual(after['tags'], before['tags'])
+
+        connection('RackOutput', 'running')
+        self.assertEqual(mode('Program')['mode'], 'Faulted')
+        for action, body in (('controller-mode', {'mode':'Run', 'dt':25}), ('step', {'dt':25})):
+            with self.subTest(action=action), self.assertRaises(HTTPError) as rejected:
+                self.post(action, body)
+            self.assertEqual(rejected.exception.code, 400)
+            rejected.exception.close()
+        idle = self.post('observe', {})
+        for field in ('scan', 'ms', 'tags', 'fault'):
+            self.assertEqual(idle[field], after[field])
+        reset = self.post('reset', {})
+        self.assertEqual(reset['controller']['mode'], 'Program')
+        self.assertIsNone(reset['controller']['module_major_fault'])
+        self.assertEqual(rack(reset)['input'], {'state':'clear'})
+        self.assertTrue(mode('Run')['running'])
+        self.assertEqual(mode('Program')['mode'], 'Program')
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])

@@ -151,7 +151,8 @@ class Application:
 
     def controller_state(self):
         mode = self.engine.controller_mode(running=self.running) if self.engine else 'Program'
-        return {'mode':mode,
+        module_fault = self.engine.module_major_fault if self.engine else None
+        return {'mode':mode, 'module_major_fault':dict(module_fault) if module_fault else None,
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
@@ -568,7 +569,12 @@ class Application:
                     raise ModelError('Module connection requires the current project generation')
                 if self.scan_inhibited():
                     raise ModelError('Release the native programming preparation before changing module connection input')
-                return gsv_configuration.configure_module_connection(e, data)
+                result = gsv_configuration.configure_module_connection(e, data, running=self.running)
+                if self.running and e.module_major_fault:
+                    self.set_controller_mode('Program')
+                    self._io_dirty = True
+                    self.publish_device_io()
+                return result
             if action == "configure":
                 engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True,
                                 coordinated_clock=self.coordinated_clock)

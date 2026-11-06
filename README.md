@@ -153,6 +153,8 @@ demonstrates these states and reads local and Ethernet routes, including
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
+[Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
+trips a latched I/O major fault during whole-project Run.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 
