@@ -155,9 +155,10 @@ demonstrates these states and reads local and Ethernet routes, including
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
-[Ladder MSG](docs/ladder-message.md) runs simulated DINT data-table reads and
-writes on the unconnected THIS path. **Message lab** shows the queued, started,
-completed and canceled states in the ladder viewer and tag watch.
+[Ladder MSG](docs/ladder-message.md) runs simulated data-table reads and
+writes on the unconnected THIS path. **Message lab** shows message status in
+the ladder viewer, indexed REAL array reads, and exact LINT writes to a
+program-scoped tag.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

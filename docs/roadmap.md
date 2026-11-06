@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.172551` [ladder MSG](ladder-message.md) adds matching
+SINT, INT, LINT and REAL transfers alongside DINT. Program-scoped remote
+addresses and [*] spans work on the simulated THIS path. Message lab shows
+an indexed REAL read and an exact LINT write.
+
 Available in `26.1106.171415` [ladder MSG](ladder-message.md) models
 unconnected THIS DINT reads and writes with queued, started, done and error
 states. Message lab exercises completion and cancellation without network I/O.

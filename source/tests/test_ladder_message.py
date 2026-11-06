@@ -1,4 +1,5 @@
 """Bounded THIS message lifecycle, simulated transfers and scan rollback."""
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -108,6 +109,98 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('VirtualValue'), [11, 11, 22, -33])
         self.assert_flags(engine, 'WriteControl', REQ_LEN=6, DN_LEN=6, DN=True, ER=False)
 
+    def test_matching_numeric_types_read_and_write_without_conversion(self):
+        for dtype, incoming, outgoing, words in (
+            ('SINT', -128, 127, 1), ('INT', -32768, 32767, 1),
+            ('DINT', -2147483648, 2147483647, 2), ('LINT', -9223372036854775808, 9007199254740993, 4),
+            ('REAL', -0.0, 1.25, 2),
+        ):
+            with self.subTest(dtype=dtype):
+                def configure(root):
+                    for name, value in [('ReadValue', 0), ('VirtualValue', incoming), ('WriteValue', outgoing)]:
+                        tag = root.find(f'.//Tag[@Name="{name}"]')
+                        tag.set('DataType', dtype)
+                        tag.find('./Data/DataValue').attrib.update(DataType=dtype, Value=str(value))
+                    # Configuration can precede both data endpoints in a saved export.
+                    tags = root.find('./Controller/Tags')
+                    read_control = tags.find('Tag[@Name="ReadControl"]')
+                    tags.remove(read_control)
+                    tags.insert(0, read_control)
+
+                engine = self.engine(configure, defer_prescan=True)
+                self.assertEqual(engine.blockers, [])
+                self.assert_flags(engine, 'ReadControl', REQ_LEN=words, DN_LEN=0)
+                engine.memory.write('SendRead', True)
+                engine.memory.write('SendWrite', True)
+                for _ in range(3):
+                    engine.step()
+                value = engine.memory.read('ReadValue')
+                self.assertEqual(value, incoming)
+                if dtype == 'REAL':
+                    self.assertEqual(math.copysign(1, value), -1)
+                self.assertEqual(engine.memory.read('VirtualValue'), outgoing)
+                for control in ('ReadControl', 'WriteControl'):
+                    self.assert_flags(engine, control, REQ_LEN=words, DN_LEN=words, DN=True, ER=False)
+
+    def test_star_indices_program_scope_and_exact_lint_in_bundled_sample(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendTyped', True)
+        engine.step()
+        self.assert_flags(engine, 'RealReadControl', EW=True, REQ_LEN=4, DN_LEN=0)
+        for _ in range(2):
+            engine.step()
+        self.assertEqual(engine.memory.read('RealReadback'), [2.5, -7.25])
+        self.assertEqual(engine.memory.read('Program:MainProgram.WideTarget'), 9007199254740993)
+        self.assert_flags(engine, 'RealReadControl', DN=True, DN_LEN=4)
+        self.assert_flags(engine, 'WideWriteControl', DN=True, DN_LEN=4)
+
+    def test_scoped_errors_and_unknown_source_leave_all_destination_elements_intact(self):
+        for case, expected in [('none', 0x0F), ('mismatch', 0xFC), ('unknown', 0x03), ('bounds', 0x05)]:
+            with self.subTest(case=case):
+                def configure(root):
+                    tag = root.find('.//Tag[@Name="Samples"]')
+                    data = tag.find('Data/Array')
+                    if case == 'none':
+                        tag.set('ExternalAccess', 'None')
+                    elif case == 'mismatch':
+                        tag.set('DataType', 'DINT')
+                        data.set('DataType', 'DINT')
+                        for i, item in enumerate(data):
+                            item.set('Value', str(i))
+                    elif case == 'unknown':
+                        data.remove(data[2])
+                    else:
+                        control = root.find('.//Tag[@Name="RealReadControl"]//MessageParameters')
+                        control.set('RemoteIndex', '2')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('SendTyped', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.memory.read('RealReadback'), [0.0, 0.0])
+                self.assert_flags(engine, 'RealReadControl', DN=False, ER=True, ERR=expected, DN_LEN=0)
+
+    def test_odd_sint_transfer_reports_whole_words(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="RealReadControl"]//MessageParameters')
+            control.attrib.update(LocalIndex='1', RemoteIndex='0', RequestedLength='3')
+            for name in ('Samples', 'RealReadback'):
+                tag = root.find(f'.//Tag[@Name="{name}"]')
+                tag.attrib.update(DataType='SINT', Dimensions='4')
+                data = tag.find('Data/Array')
+                data.attrib.update(DataType='SINT', Dimensions='4')
+                data[:] = [ET.Element('Element', Index=f'[{i}]', Value=str(value))
+                           for i, value in enumerate((10, -9, 8, -7))]
+
+        engine = self.engine(configure)
+        engine.memory.write('SendTyped', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('RealReadback'), [10, 10, -9, 8])
+        self.assert_flags(engine, 'RealReadControl', REQ_LEN=2, DN_LEN=2, DN=True, ER=False)
+
     def test_missing_wrong_type_and_denied_remote_transfers(self):
         for remote, access, expected in [('Missing', 'Read/Write', 0x05), ('VirtualValue[2]', 'Read/Write', 0x05),
                                          ('CancelRead', 'Read/Write', 0xFC), ('VirtualValue', 'Read Only', 0x0F)]:
@@ -127,7 +220,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='3', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='5', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

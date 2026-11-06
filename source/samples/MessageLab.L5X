@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="MessageLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="MessageLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
-    <Description>LogixLab sample for unconnected THIS data-table messaging.</Description>
+    <Description>LogixLab sample for unconnected THIS data-table messaging and typed spans.</Description>
     <DataTypes />
     <Modules>
       <Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="168" Major="35" Minor="11" ParentModule="Local" ParentModPortId="1">
@@ -12,6 +12,7 @@
     <Tags>
       <Tag Name="SendRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SendWrite" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendTyped" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="CancelRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ReadValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="WriteValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="42" /></Data></Tag>
@@ -22,16 +23,37 @@
       <Tag Name="WriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="WriteValue" RemoteElement="VirtualValue" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
+      <Tag Name="RealReadback" DataType="REAL" TagType="Base" Dimensions="2">
+        <Data Format="Decorated"><Array DataType="REAL" Dimensions="2">
+          <Element Index="[0]" Value="0.0" /><Element Index="[1]" Value="0.0" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="WideSource" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="RealReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Data Table Read" LocalElement="RealReadback[*]" LocalIndex="0" RemoteElement="Program:MainProgram.Samples[*]" RemoteIndex="1" RequestedLength="2" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
+      <Tag Name="WideWriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="WideSource" RemoteElement="Program:MainProgram.WideTarget" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="Main" Disabled="false" Class="Standard">
-        <Tags />
+        <Tags>
+          <Tag Name="Samples" DataType="REAL" TagType="Base" Dimensions="3" ExternalAccess="Read Only">
+            <Data Format="Decorated"><Array DataType="REAL" Dimensions="3">
+              <Element Index="[0]" Value="100.0" /><Element Index="[1]" Value="2.5" /><Element Index="[2]" Value="-7.25" />
+            </Array></Data>
+          </Tag>
+          <Tag Name="WideTarget" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+        </Tags>
         <Routines>
           <Routine Name="Main" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(SendRead)MSG(ReadControl);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(CancelRead)OTL(ReadControl.TO);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(SendWrite)MSG(WriteControl);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(SendTyped)MSG(RealReadControl);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(SendTyped)MSG(WideWriteControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

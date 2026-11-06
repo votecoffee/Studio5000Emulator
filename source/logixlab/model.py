@@ -467,6 +467,10 @@ class Project:
             self.fault_handler_routine, self.fault_handler_routines = self._controller_fault_routines(c)
         except ModelError as error:
             self.issues.append(str(error))
+        if self.message_configs:
+            from . import ladder_message
+            for key, config in self.message_configs.items():
+                self.tags[key].value = ladder_message.initial(self, config)
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
         from .pseudo_operands import initialize_ladder_operands
         initialize_ladder_operands(self)
@@ -749,7 +753,6 @@ class Project:
                 if e.get('TagType', 'Base') != 'Base':
                     raise ModelError('MESSAGE requires a base tag')
                 config = ladder_message.from_tag(self, tag, e, dimensions(e.get('Dimensions','')))
-                tag.value = ladder_message.initial(config)
                 self.message_configs[tag.key.casefold()] = config
             else:
                 dims = dimensions(e.get('Dimensions',''))

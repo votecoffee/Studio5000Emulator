@@ -50,7 +50,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
 | ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records, timed alarm state, suppression, shelving and UTC timestamps |
 | ALARM_ANALOG model, partial | 1 | [Ladder ALMA](ladder-alarm.md#analog-level-alarms), Alarm-format records, level delay, deadband, rate of change, timed shelving and UTC event timestamps |
-| MESSAGE model, partial | 1 | [Ladder MSG](ladder-message.md) unconnected THIS DINT transfers, asynchronous logical status and cancellation |
+| MESSAGE model, partial | 1 | [Ladder MSG](ladder-message.md) unconnected THIS typed numeric transfers, asynchronous logical status and cancellation |
 | No dedicated model | 158 | No dedicated bounded named runtime model |
 
 Thus **64 entries have dedicated bounded models**. Each entry retains its

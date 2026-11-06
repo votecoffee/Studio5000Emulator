@@ -1,4 +1,5 @@
 """Bounded, in-process ladder MSG transfers using the unconnected THIS route."""
+import math
 import re
 from dataclasses import dataclass, replace
 
@@ -10,7 +11,9 @@ MAX_PENDING = 32
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
 }
-ADDRESS = re.compile(r'([A-Za-z_][A-Za-z_0-9]{0,39})(?:\[([0-9]{1,6})\])?', re.ASCII)
+ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
+NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
+ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:\[([0-9]{{1,6}}|\*)\])?', re.ASCII | re.I)
 
 
 @dataclass(frozen=True)
@@ -48,11 +51,17 @@ def _number(attributes, name, minimum, maximum, default=''):
 
 def _endpoint(attributes, side):
     match = ADDRESS.fullmatch(attributes.get(side + 'Element', '').strip())
-    if match is None:
-        raise ModelError(f'MESSAGE {side}Element requires a controller tag or literal array element')
+    if match is None or (side == 'Local' and ':' in match[1]):
+        raise ModelError(f'MESSAGE {side}Element requires a supported tag or array element')
     offset = _number(attributes, side + 'Index', 0, 999999, '0')
-    index = int(match[2]) + offset if match[2] is not None else offset or None
-    return Endpoint(match[1].casefold(), index)
+    name, selector = match.groups()
+    if selector == '*':
+        index = offset
+    elif selector is None:
+        index = offset or None
+    else:
+        index = int(selector) + offset
+    return Endpoint(name.casefold(), index)
 
 
 def from_tag(project, tag, element, dims):
@@ -76,9 +85,15 @@ def from_tag(project, tag, element, dims):
                          _endpoint(attributes, 'Remote'), _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
 
 
-def initial(configuration):
+def _words(dtype, count):
+    return (ELEMENT_BYTES.get(dtype, 0) * count + 1) // 2
+
+
+def initial(project, configuration):
+    local = project.tags.get(configuration.local.name)
+    requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
     return dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
-        'ERR': 0, 'EXERR': 0, 'REQ_LEN': 2 * configuration.count, 'DN_LEN': 0,
+        'ERR': 0, 'EXERR': 0, 'REQ_LEN': requested, 'DN_LEN': 0,
     }
 
 
@@ -86,7 +101,11 @@ def _region(memory, endpoint, count, *, remote, write):
     tag = memory.project.tags.get(endpoint.name)
     if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
         raise TransferError(0x05)
-    if tag.dtype.upper() != 'DINT':
+    project = memory.project
+    if tag.scope and not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256):
+        raise TransferError(0x05)
+    dtype = tag.dtype.upper()
+    if dtype not in ELEMENT_BYTES:
         raise TransferError(0xFC)
     if ((write and tag.constant) or (remote and tag.external_access != 'Read/Write'
                                     and (write or tag.external_access != 'Read Only'))):
@@ -96,9 +115,9 @@ def _region(memory, endpoint, count, *, remote, write):
         start = endpoint.index or 0
         if start + count > len(value) or (value and isinstance(value[0], list)):
             raise TransferError(0x05)
-        return endpoint.name, tuple((index,) for index in range(start, start + count))
+        return endpoint.name, tuple((index,) for index in range(start, start + count)), dtype
     if endpoint.index is None and count == 1:
-        return endpoint.name, ((),)
+        return endpoint.name, ((),), dtype
     raise TransferError(0x05)
 
 
@@ -116,13 +135,13 @@ def validate(engine, op, scope, kind='RLL'):
     try:
         _region(engine.memory, configuration.local, configuration.count, remote=False, write=configuration.read)
     except TransferError as error:
-        raise ModelError(f'MSG local element cannot address the requested DINT span (16#{error.code:04X})') from error
+        raise ModelError(f'MSG local element cannot address the requested numeric span (16#{error.code:04X})') from error
     return key
 
 
 def prescan(engine, op, scope):
     key = validate(engine, op, scope)
-    engine.memory.values[key] = initial(engine.project.message_configs[key])
+    engine.memory.values[key] = initial(engine.project, engine.project.message_configs[key])
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
 
@@ -148,22 +167,30 @@ def execute(engine, op, power):
 
 
 def _transfer(memory, configuration):
-    local_key, local_paths = _region(memory, configuration.local, configuration.count,
-                                     remote=False, write=configuration.read)
-    remote_key, remote_paths = _region(memory, configuration.remote, configuration.count,
-                                       remote=True, write=not configuration.read)
+    local_key, local_paths, dtype = _region(memory, configuration.local, configuration.count,
+                                            remote=False, write=configuration.read)
+    remote_key, remote_paths, remote_dtype = _region(memory, configuration.remote, configuration.count,
+                                                     remote=True, write=not configuration.read)
+    if dtype != remote_dtype:
+        raise TransferError(0xFC)
     source, destination = ((remote_key, remote_paths), (local_key, local_paths)) if configuration.read else (
         (local_key, local_paths), (remote_key, remote_paths))
     values = [memory.at(source[0], path) for path in source[1]]
-    if any(type(value) is not int for value in values):
+    if dtype == 'REAL':
+        known = all(type(value) is float and math.isfinite(value) for value in values)
+    else:
+        known = all(type(value) is int for value in values)
+    if not known:
         raise TransferError(0x03)
     for path, value in zip(destination[1], values):
         memory.store(destination[0], path, value)
+    return _words(dtype, configuration.count)
 
 
 def service(memory, queue):
     for key, pending in tuple(queue.items()):
         record = memory.values[key]
+        transferred = 0
         if record['TO']:
             error = 0xFE
         elif not pending.started:
@@ -172,12 +199,12 @@ def service(memory, queue):
             continue
         else:
             try:
-                _transfer(memory, pending.configuration)
+                transferred = _transfer(memory, pending.configuration)
             except TransferError as failure:
                 error = failure.code
             else:
                 error = 0
         record.update(EN=pending.enabled, EW=False, ST=False, TO=False,
                       DN=not error, ER=bool(error), ERR=error,
-                      DN_LEN=0 if error else 2 * pending.configuration.count)
+                      DN_LEN=transferred)
         del queue[key]
