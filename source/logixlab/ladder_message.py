@@ -10,6 +10,7 @@ MAX_ELEMENTS = 64
 MAX_PENDING = 32
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
+    'LocalIndex': 'DINT', 'RemoteIndex': 'DINT',
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
@@ -19,7 +20,16 @@ ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:\[([0-9]{{1,6}}|\*)\])?'
 @dataclass(frozen=True)
 class Endpoint:
     name: str
-    index: int | None
+    subscript: int | None
+    offset: int
+    variable: bool
+
+    def start(self, parameter):
+        if self.variable:
+            return parameter
+        if self.subscript is not None:
+            return self.subscript + self.offset
+        return self.offset or None
 
 
 @dataclass(frozen=True)
@@ -33,6 +43,8 @@ class Configuration:
 @dataclass(frozen=True)
 class Pending:
     configuration: Configuration
+    local_start: int | None
+    remote_start: int | None
     enabled: bool = True
     started: bool = False
 
@@ -55,13 +67,8 @@ def _endpoint(attributes, side):
         raise ModelError(f'MESSAGE {side}Element requires a supported tag or array element')
     offset = _number(attributes, side + 'Index', 0, 999999, '0')
     name, selector = match.groups()
-    if selector == '*':
-        index = offset
-    elif selector is None:
-        index = offset or None
-    else:
-        index = int(selector) + offset
-    return Endpoint(name.casefold(), index)
+    subscript = int(selector) if selector not in (None, '*') else None
+    return Endpoint(name.casefold(), subscript, offset, selector == '*')
 
 
 def from_tag(project, tag, element, dims):
@@ -94,10 +101,11 @@ def initial(project, configuration):
     requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
     return dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
         'ERR': 0, 'EXERR': 0, 'REQ_LEN': requested, 'DN_LEN': 0,
+        'LocalIndex': configuration.local.offset, 'RemoteIndex': configuration.remote.offset,
     }
 
 
-def _region(memory, endpoint, count, *, remote, write):
+def _region(memory, endpoint, start, count, *, remote, write):
     tag = memory.project.tags.get(endpoint.name)
     if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
         raise TransferError(0x05)
@@ -112,11 +120,11 @@ def _region(memory, endpoint, count, *, remote, write):
         raise TransferError(0x0F)
     value = memory.values[endpoint.name]
     if isinstance(value, list):
-        start = endpoint.index or 0
-        if start + count > len(value) or (value and isinstance(value[0], list)):
+        start = start or 0
+        if not 0 <= start <= len(value) - count or (value and isinstance(value[0], list)):
             raise TransferError(0x05)
         return endpoint.name, tuple((index,) for index in range(start, start + count)), dtype
-    if endpoint.index is None and count == 1:
+    if start is None and count == 1:
         return endpoint.name, ((),), dtype
     raise TransferError(0x05)
 
@@ -133,7 +141,9 @@ def validate(engine, op, scope, kind='RLL'):
     if f'program:{scope.casefold()}.{key}' in engine.project.tags:
         raise ModelError('MSG controller MESSAGE is shadowed by a program tag')
     try:
-        _region(engine.memory, configuration.local, configuration.count, remote=False, write=configuration.read)
+        # A variable start needs a valid array shape, independent of its saved index.
+        _region(engine.memory, configuration.local, configuration.local.start(0), configuration.count,
+                remote=False, write=configuration.read)
     except TransferError as error:
         raise ModelError(f'MSG local element cannot address the requested numeric span (16#{error.code:04X})') from error
     return key
@@ -141,7 +151,10 @@ def validate(engine, op, scope, kind='RLL'):
 
 def prescan(engine, op, scope):
     key = validate(engine, op, scope)
-    engine.memory.values[key] = initial(engine.project, engine.project.message_configs[key])
+    record = engine.memory.values[key]
+    defaults = initial(engine.project, engine.project.message_configs[key])
+    defaults.update(LocalIndex=record['LocalIndex'], RemoteIndex=record['RemoteIndex'])
+    engine.memory.values[key] = defaults
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
 
@@ -162,15 +175,18 @@ def execute(engine, op, power):
             record.update(ER=True, ERR=0x02)
         else:
             record['EW'] = True
-            queue[key] = Pending(engine.project.message_configs[key])
+            configuration = engine.project.message_configs[key]
+            queue[key] = Pending(configuration, configuration.local.start(record['LocalIndex']),
+                                 configuration.remote.start(record['RemoteIndex']))
     return power
 
 
-def _transfer(memory, configuration):
-    local_key, local_paths, dtype = _region(memory, configuration.local, configuration.count,
-                                            remote=False, write=configuration.read)
-    remote_key, remote_paths, remote_dtype = _region(memory, configuration.remote, configuration.count,
-                                                     remote=True, write=not configuration.read)
+def _transfer(memory, pending):
+    configuration = pending.configuration
+    local_key, local_paths, dtype = _region(memory, configuration.local, pending.local_start,
+                                            configuration.count, remote=False, write=configuration.read)
+    remote_key, remote_paths, remote_dtype = _region(memory, configuration.remote, pending.remote_start,
+                                                     configuration.count, remote=True, write=not configuration.read)
     if dtype != remote_dtype:
         raise TransferError(0xFC)
     source, destination = ((remote_key, remote_paths), (local_key, local_paths)) if configuration.read else (
@@ -199,7 +215,7 @@ def service(memory, queue):
             continue
         else:
             try:
-                transferred = _transfer(memory, pending.configuration)
+                transferred = _transfer(memory, pending)
             except TransferError as failure:
                 error = failure.code
             else:

@@ -103,6 +103,8 @@ class MessageTests(unittest.TestCase):
 
         engine = self.engine(configure)
         self.assertEqual(engine.blockers, [])
+        engine.memory.write('WriteControl.LocalIndex', 2)
+        engine.memory.write('WriteControl.RemoteIndex', -1)
         engine.memory.write('SendWrite', True)
         for _ in range(3):
             engine.step()
@@ -150,10 +152,66 @@ class MessageTests(unittest.TestCase):
         self.assert_flags(engine, 'RealReadControl', EW=True, REQ_LEN=4, DN_LEN=0)
         for _ in range(2):
             engine.step()
-        self.assertEqual(engine.memory.read('RealReadback'), [2.5, -7.25])
+        self.assertEqual(engine.memory.read('RealReadback'), [2.5, -7.25, 0.0])
         self.assertEqual(engine.memory.read('Program:MainProgram.WideTarget'), 9007199254740993)
         self.assert_flags(engine, 'RealReadControl', DN=True, DN_LEN=4)
         self.assert_flags(engine, 'WideWriteControl', DN=True, DN_LEN=4)
+
+    def test_ladder_index_writes_are_captured_at_queue_time(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('SetReadIndices', True)
+        memory.write('ReadLocalIndex', 1)
+        memory.write('ReadRemoteIndex', 0)
+        memory.write('SendTyped', True)
+        engine.step()
+        self.assert_flags(engine, 'RealReadControl', EW=True, LocalIndex=1, RemoteIndex=0)
+
+        memory.write('ReadLocalIndex', 0)
+        memory.write('ReadRemoteIndex', 1)
+        engine.step()
+        self.assert_flags(engine, 'RealReadControl', ST=True, LocalIndex=0, RemoteIndex=1)
+        engine.step()
+        self.assertEqual(memory.read('RealReadback'), [0.0, 100.0, 2.5])
+        self.assert_flags(engine, 'RealReadControl', DN=True, ER=False)
+
+        memory.write('SendTyped', False)
+        engine.step()
+        memory.write('SendTyped', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('RealReadback'), [2.5, -7.25, 2.5])
+
+    def test_prescan_preserves_index_edits_and_reset_loads_authored_indices(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="RealReadControl"]//MessageParameters')
+            control.set('LocalIndex', '99')
+
+        engine = self.engine(configure, defer_prescan=True)
+        self.assertEqual(engine.blockers, [])
+        self.assert_flags(engine, 'RealReadControl', LocalIndex=99, RemoteIndex=1)
+        engine.memory.write('RealReadControl.LocalIndex', 1)
+        engine.memory.write('RealReadControl.RemoteIndex', 0)
+        engine.memory.write('SendTyped', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('RealReadback'), [0.0, 100.0, 2.5])
+        self.assert_flags(engine, 'RealReadControl', DN=True, LocalIndex=1, RemoteIndex=0)
+        fresh = Engine(engine.project, defer_prescan=True)
+        self.assert_flags(fresh, 'RealReadControl', DN=False, LocalIndex=99, RemoteIndex=1)
+
+    def test_invalid_live_index_sets_message_error_and_never_wraps(self):
+        for member, value in [('LocalIndex', -1), ('LocalIndex', 2),
+                              ('RemoteIndex', -1), ('RemoteIndex', 2147483647)]:
+            with self.subTest(member=member, value=value):
+                engine = self.engine()
+                engine.memory.write('RealReadControl.' + member, value)
+                engine.memory.write('SendTyped', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.fault, '')
+                self.assertEqual(engine.memory.read('RealReadback'), [0.0, 0.0, 0.0])
+                self.assert_flags(engine, 'RealReadControl', ER=True, ERR=0x05, DN=False, DN_LEN=0)
 
     def test_scoped_errors_and_unknown_source_leave_all_destination_elements_intact(self):
         for case, expected in [('none', 0x0F), ('mismatch', 0xFC), ('unknown', 0x03), ('bounds', 0x05)]:
@@ -179,7 +237,7 @@ class MessageTests(unittest.TestCase):
                 engine.memory.write('SendTyped', True)
                 for _ in range(3):
                     engine.step()
-                self.assertEqual(engine.memory.read('RealReadback'), [0.0, 0.0])
+                self.assertEqual(engine.memory.read('RealReadback'), [0.0, 0.0, 0.0])
                 self.assert_flags(engine, 'RealReadControl', DN=False, ER=True, ERR=expected, DN_LEN=0)
 
     def test_odd_sint_transfer_reports_whole_words(self):
@@ -220,7 +278,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='5', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='6', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

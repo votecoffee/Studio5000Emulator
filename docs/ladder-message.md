@@ -25,6 +25,13 @@ copies 2.5 and -7.25 from the program-scoped Samples array into RealReadback.
 The write copies the exact LINT value 9007199254740993 into the program-scoped
 WideTarget tag. Look for RealReadControl.DN and WideWriteControl.DN in Tag Watch.
 
+For a runtime index change, scan SendTyped false, then set SetReadIndices
+to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
+step three times. Ladder MOV writes the MESSAGE index fields before MSG
+queues the read. RealReadback[1] and RealReadback[2] receive 100.0 and 2.5.
+If you change either index after the first step, the new index takes effect
+on the next request.
+
 ## Supported configuration and timing
 
 - Use a scalar Standard controller base tag with `DataType="MESSAGE"` and
@@ -34,8 +41,10 @@ WideTarget tag. Look for RealReadControl.DN and WideWriteControl.DN in Tag Watch
   CIP communications, with the connected, cache and large packet options off.
 - Both endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in one-dimensional
-  arrays. A `[*]` selector uses its index attribute as the starting position.
-  The model also adds a literal subscript and any supplied index attribute.
+  arrays. A `[*]` selector takes its starting position from the corresponding
+  writable DINT member, LocalIndex or RemoteIndex. The exported index supplies
+  the initial value. A literal subscript keeps its authored start and offset.
+  Runtime writes to the index members affect only `[*]` selectors.
 - Local endpoints name direct Standard controller tags. Remote endpoints can
   also name direct tags in ordinary Standard Programs using
   `Program:<program>.<tag>`. Local writes require a writable tag. Remote reads
@@ -45,7 +54,10 @@ WideTarget tag. Look for RealReadControl.DN and WideWriteControl.DN in Tag Watch
   advance completes it before task logic runs, sampling the source then. A
   held true rung does not repeat a completed message. A false rung clears
   `EN` once the request is no longer busy, and the next trigger clears the
-  previous `DN` or `ER`. Prescan and Reset clear modeled pending requests.
+  previous `DN` or `ER`. Queuing captures both starts. Out-of-range captures,
+  including negative indices, set `ER` and `ERR` `16#0005` when the transfer is
+  serviced. The destination is preserved. Prescan clears pending requests
+  and status while preserving live index values. Reset restores authored indices.
 - Up to 32 requests may be pending. Completion uses submission order and
   snapshots the source span before changing the destination. Status and data
   roll back together if a later rung faults in the same controller advance.
@@ -53,7 +65,7 @@ WideTarget tag. Look for RealReadControl.DN and WideWriteControl.DN in Tag Watch
   round up to a whole word. A LINT uses four words.
 
 This profile is an in-process simulation. External routing, network packet
-timing, native MESSAGE layouts, dynamic configuration, and Studio 5000 runtime
+timing, native MESSAGE layouts, runtime path and tag changes, and Studio 5000 runtime
 qualification remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 

@@ -157,7 +157,7 @@ to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
 [Ladder MSG](docs/ladder-message.md) runs simulated data-table reads and
 writes on the unconnected THIS path. **Message lab** shows message status in
-the ladder viewer, indexed REAL array reads, and exact LINT writes to a
+the ladder viewer, runtime array index changes, and exact LINT writes to a
 program-scoped tag.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
