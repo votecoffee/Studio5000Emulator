@@ -55,9 +55,14 @@ class RocSample(NamedTuple):
     rate: float | None
 
 
+class DirectionTiming(NamedTuple):
+    started_ms: int
+    qualified: bool
+
+
 class AlarmHistory(NamedTuple):
-    low_since: int | None = None
-    high_since: int | None = None
+    low: DirectionTiming | None = None
+    high: DirectionTiming | None = None
     ack_all: bool = False
     level_acks: frozenset[str] = frozenset()
     roc: RocSample | None = None
@@ -129,7 +134,7 @@ def _diagnostics(obj, enabled, roc_enabled):
     return status, invalid_limits, 0.0 if invalid_band else band
 
 
-def _direction(obj, levels, enabled, sample, band, since, now, preset, high):
+def _direction(obj, levels, enabled, sample, band, timing, now, preset, high):
     tripped = set()
     retained = {}
     for level in levels:
@@ -140,12 +145,11 @@ def _direction(obj, levels, enabled, sample, band, since, now, preset, high):
             sample >= limit - band if high else sample <= limit + band)
     if not tripped and not any(retained.values()):
         return dict.fromkeys(levels, False), None, tripped
-    if since is None:
-        since = now
-    elapsed = now - since >= preset
+    started = now if timing is None else timing.started_ms
+    qualified = now - started >= preset
     active = {level: retained[level] or
-              (level in tripped and (elapsed or not obj[level+'MinDurationEnable'])) for level in levels}
-    return active, since, tripped
+              (level in tripped and (qualified or not obj[level+'MinDurationEnable'])) for level in levels}
+    return active, DirectionTiming(started, qualified), tripped
 
 
 def _sample_roc(previous, period, sample, now):
@@ -170,8 +174,14 @@ def execute(engine, op, power, scope):
     history = engine.last_timer.get(identity, AlarmHistory())
     if not power:
         obj.update(EnableIn=False, EnableOut=False)
-        if history.roc is not None:
-            engine.last_timer[identity] = history._replace(roc=None)
+        # A false rung stops unfinished delays but retains published alarm results.
+        interrupted = history._replace(
+            low=history.low if history.low and history.low.qualified else None,
+            high=history.high if history.high and history.high.qualified else None,
+            roc=None, detections=(),
+        )
+        if interrupted != history:
+            engine.last_timer[identity] = interrupted
         return False
 
     preset = obj['MinDurationPRE']
@@ -190,8 +200,8 @@ def execute(engine, op, power, scope):
     detected = set() if disabled or invalid_limits else enabled
 
     now = engine.time_ms
-    low, low_since, low_tripped = _direction(obj, LOW_LEVELS, detected, sample, band, history.low_since, now, preset, False)
-    high, high_since, high_tripped = _direction(obj, HIGH_LEVELS, detected, sample, band, history.high_since, now, preset, True)
+    low, low_timing, low_tripped = _direction(obj, LOW_LEVELS, detected, sample, band, history.low, now, preset, False)
+    high, high_timing, high_tripped = _direction(obj, HIGH_LEVELS, detected, sample, band, history.high, now, preset, True)
     roc = _sample_roc(history.roc, 0.0 if disabled else period, sample, now)
     rate = roc.rate if roc is not None else 0.0
     if rate is None:
@@ -270,14 +280,16 @@ def execute(engine, op, power, scope):
     obj.update(EnableIn=True, EnableOut=True, In=sample, ProgAckAll=ack_all,
                ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
                AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
-    engine.last_timer[identity] = AlarmHistory(low_since, high_since, ack_all, level_acks, roc,
+    engine.last_timer[identity] = AlarmHistory(low_timing, high_timing, ack_all, level_acks, roc,
                                               tuple(shelves.items()), shelf_requests, tuple(detections.items()))
     return True
 
 
 def description(project):
     return dict(available=available(project), instruction='ALMA', language='RLL', data_type=TYPE,
-                levels=['LL', 'L', 'H', 'HH'], timing='Shared qualification time per direction; inclusive pickup and deadband release',
+                levels=['LL', 'L', 'H', 'HH'],
+                timing='Shared qualification time per direction; inclusive pickup and deadband release; '
+                       'a false rung interrupts unfinished timing',
                 rate_of_change='Sampled positive and negative conditions using the configured period',
                 shelving='Independent timed shelves for all six conditions',
                 timestamps='UTC WallClockTime detection and state-change microseconds',

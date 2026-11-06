@@ -124,6 +124,52 @@ class LadderAnalogAlarmTests(unittest.TestCase):
         self.assertTrue(m.read('PressureAlarm.HShelved'))
         self.assertFalse(m.read('PressureAlarm.HOperShelve'))
 
+    def test_unfinished_level_delays_and_detection_times_restart_after_false_rung(self):
+        for level, pressure in (('H', 80), ('L', 20)):
+            with self.subTest(level=level):
+                e = self.engine()
+                m = e.memory
+                alarm = m.read(ALARM)
+                active, detected = level+'InAlarm', level+'InAlarmTime'
+                with patch(CLOCK, side_effect=[200, 500]) as clock:
+                    m.write('Pressure', pressure)
+                    e.step()
+                    e.step()
+                    self.assertFalse(alarm[active])
+                    m.write('AnalogRun', False)
+                    e.step(1_000)
+                    self.assertFalse(alarm['EnableOut'])
+                    self.assertEqual(alarm[detected], 0)
+                    m.write('AnalogRun', True)
+                    e.step()
+                    e.step(19)
+                    self.assertFalse(alarm[active])
+                    self.assertEqual(alarm['MinDurationACC'], 0)
+                    e.step(1)
+                self.assertEqual(clock.call_count, 2)
+                self.assertTrue(alarm[active])
+                self.assertEqual(alarm[detected], 500)
+                self.assertEqual(alarm['MinDurationACC'], 0)
+
+    def test_false_rung_preserves_qualified_direction(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        with patch(CLOCK, side_effect=[200, 500]):
+            m.write('Pressure', 80)
+            e.step()
+            e.step(20)
+            self.assertTrue(alarm['HInAlarm'])
+            m.write('AnalogRun', False)
+            m.write('Pressure', 90)
+            e.step(100)
+            self.assertTrue(alarm['HInAlarm'])
+            self.assertFalse(alarm['HHInAlarm'])
+            m.write('AnalogRun', True)
+            e.step()
+        self.assertTrue(alarm['HHInAlarm'])
+        self.assertEqual((alarm['HInAlarmTime'], alarm['HHInAlarmTime']), (200, 500))
+
     def test_invalid_order_and_deadband_are_instruction_diagnostics(self):
         e = self.engine()
         m = e.memory
@@ -469,6 +515,14 @@ class LadderAnalogAlarmTests(unittest.TestCase):
         self.assertFalse(m.read('PressureAlarm.ROCPosOperShelve'))
         e.step()
         self.assertFalse(m.read('PressureAlarm.HInAlarm'))
+        m.write('AnalogRun', False)
+        m.write('Divisor', 0)
+        prior = copy.deepcopy((m.values, e.last_timer, e.time_ms, e.scan_count))
+        with self.assertRaisesRegex(ModelError, '(?i)divide|division'):
+            e.step()
+        self.assertEqual((m.values, e.last_timer, e.time_ms, e.scan_count), prior)
+        m.write('AnalogRun', True)
+        m.write('Divisor', 1)
         e.step()
         self.assertEqual(m.read('PressureAlarm.HAlarmCount'), 1)
 

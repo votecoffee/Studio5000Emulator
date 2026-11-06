@@ -984,6 +984,29 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(row['PressureAlarm.HHInAlarmUnack'])
         self.assertEqual(row['PressureAlarm.HHAlarmCount'], 1)
 
+    def test_alarm_lab_false_rung_restarts_unfinished_analog_delay(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step(dt=10):
+            state = self.post('step', {'dt': dt})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('AnalogRun', True)
+        write('Pressure', 80)
+        self.assertFalse(step()['PressureAlarm.HInAlarm'])
+        write('AnalogRun', False)
+        self.assertFalse(step(100)['PressureAlarm.EnableOut'])
+        write('AnalogRun', True)
+        self.assertFalse(step()['PressureAlarm.HInAlarm'])
+        self.assertFalse(step(19)['PressureAlarm.HInAlarm'])
+        row = step(1)
+        self.assertTrue(row['PressureAlarm.HInAlarm'])
+        self.assertEqual(row['PressureAlarm.MinDurationACC'], 0)
+        self.assertGreater(int(row['PressureAlarm.HInAlarmTime']), 0)
+
     def test_alarm_lab_analog_timestamps_use_exact_utc_microseconds(self):
         self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
 

@@ -17,6 +17,7 @@ test('ALMA faceplate binds rate settings, live rate and condition shelf flags', 
   ]);
   assert.deepEqual(face.rows.slice(-6, -4).map(row => row.ref),
     ['Alarm.ShelveDuration', 'Alarm.MaxShelveDuration']);
+  assert.equal(face.rows.find(row => row.label === 'MinDurationPRE')?.ref, 'Alarm.MinDurationPRE');
   assert.deepEqual(face.flags.slice(-6).map(flag => flag.ref), [
     'Alarm.HHShelved', 'Alarm.HShelved', 'Alarm.LShelved', 'Alarm.LLShelved',
     'Alarm.ROCPosShelved', 'Alarm.ROCNegShelved',

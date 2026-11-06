@@ -346,6 +346,7 @@ to step through both polarities and inspect timestamps and
 [alarm diagnostics](docs/ladder-alarm.md#diagnostics).
 The same example runs [ladder ALMA level alarms](docs/ladder-alarm.md#analog-level-alarms)
 with low-low, low, high and high-high limits, directional delay and deadband.
+An unfinished level delay restarts after a false rung.
 The faceplate shows the live [rate of change](docs/ladder-alarm.md#rate-of-change)
 and separate rising and falling conditions. Operators can
 [shelve individual ALMA conditions](docs/ladder-alarm.md#analog-alarm-shelving)

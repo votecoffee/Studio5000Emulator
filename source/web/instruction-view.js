@@ -92,7 +92,7 @@
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (op === 'ALMA') {
-      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit', 'ShelveDuration', 'MaxShelveDuration',
+      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit', 'MinDurationPRE', 'ShelveDuration', 'MaxShelveDuration',
         'ROCPeriod', 'ROCPosLimit', 'ROCNegLimit', 'ROC']) {
         fields.push({label: member, ref: args[0] + '.' + member, member: true, visible: true});
       }

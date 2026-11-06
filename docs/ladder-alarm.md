@@ -141,8 +141,21 @@ alarm results and skips live input reads and commands.
 LL, L, H and HH pick up at inclusive limits. A high level clears below its
 limit minus deadband, and a low level clears above its limit plus deadband.
 Enabled levels share one minimum-duration clock per direction, using the
-first sampled excursion. A level can bypass the delay with its
-`MinDurationEnable` bit. Enabled limits must be ordered. The software
+first sampled excursion. A false rung discards an unfinished delay and
+its pending detection times. If the level is still beyond its limit on
+the next powered scan, timing starts from that scan. A direction that
+already met its delay keeps its qualification while the same excursion
+continues. A level can bypass the delay with its `MinDurationEnable` bit.
+
+The faceplate shows `MinDurationPRE` in milliseconds. The installed v35
+instruction page specifies zero for `MinDurationACC`, while the v35
+structure page describes an elapsed accumulator. The emulator follows
+the instruction page for the exposed member. The structure page describes
+interruption of unfinished timing on a false enable.
+[ALMA instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
+[ALARM_ANALOG structure](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/structure-definition-for-alarm_analog-tags--all-la.html)
+
+Enabled limits must be ordered. The software
 clears the active levels on invalid order and uses zero deadband when the
 configured band is invalid, exposing the corresponding status bits.
 
@@ -154,7 +167,10 @@ level state, counts and the qualification clocks.
 In Alarm Lab, set `AnalogRun` true and `Pressure` to 80, then take three
 10 ms steps. H activates. Set `Pressure` to 90 and step to activate HH
 on the same high excursion. HH remains active at 88 and clears at 87.5.
-H stays active. Pulse `AckAnalog` to acknowledge all conditions.
+H stays active. Pulse `AckAnalog` to acknowledge all conditions. To see a
+restart, reload Alarm Lab and step once with `AnalogRun` true and
+`Pressure` at 80. Step with `AnalogRun` false, then turn it back on. H
+takes three powered 10 ms steps to qualify.
 [Rockwell ALMA reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
 
 ## Rate of change
